@@ -889,11 +889,7 @@ static uint32_t cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_IN
 				} else if ((out_evt) && (out_evt->info.cpnd.error == SA_AIS_OK) &&
 					   (!out_evt->info.cpnd.info.ckpt_nd2nd_sync.num_of_elmts)) {
 					goto agent_rsp2;
-				} else if ((out_evt) && (out_evt->info.cpnd.error == SA_AIS_OK) &&
-					      (out_evt->info.cpnd.info.ckpt_nd2nd_sync.num_of_elmts)) {
-				  	cp_node->replica_info.n_secs = out_evt->info.cpnd.info.ckpt_nd2nd_sync.num_of_elmts;
 				}
-				
 			}
 			cp_node->open_active_sync_tmr.type = CPND_TMR_OPEN_ACTIVE_SYNC;
 			cp_node->open_active_sync_tmr.uarg = cb->cpnd_cb_hdl_id;
