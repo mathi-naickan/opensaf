@@ -1125,7 +1125,7 @@ static SaAisErrorT sg_rt_attr_cb(SaImmOiHandleT immOiHandle,
 			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &sg->saAmfSGNumCurrNonInstantiatedSpareSUs);
 		} else if (!strcmp("saAmfSGNumCurrInstantiatedSpareSUs", attributeName)) {
-			avd_saImmOiRtObjectUpdate(objectName, attributeName,
+			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &sg->saAmfSGNumCurrInstantiatedSpareSUs);
 		} else
 			osafassert(0);

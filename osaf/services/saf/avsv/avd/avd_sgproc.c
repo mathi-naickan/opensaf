@@ -1621,22 +1621,7 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg)
 		/* Check if the SU is inservice */
 		if (i_su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) {
 			num_insvc_su++;
-			if ((i_su->list_of_susi == AVD_SU_SI_REL_NULL) &&
-			    (i_su->saAmfSUPreInstantiable == true) &&
-			    (i_su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
-			    (sg->saAmfSGNumPrefInserviceSUs < (num_insvc_su + num_try_insvc_su))) {
-				/* enough inservice SUs are already there terminate this
-				 * SU.
-				 */
-				if (avd_snd_presence_msg(cb, i_su, true) == NCSCC_RC_SUCCESS) {
-					/* mark the SU operation state as disable and readiness state
-					 * as out of service.
-					 */
-					avd_su_oper_state_set(i_su, SA_AMF_OPERATIONAL_DISABLED);
-					avd_su_readiness_state_set(i_su, SA_AMF_READINESS_OUT_OF_SERVICE);
-					num_insvc_su--;
-				}
-			} else if (i_su->list_of_susi != AVD_SU_SI_REL_NULL) {
+			if (i_su->list_of_susi != AVD_SU_SI_REL_NULL) {
 				num_asgd_su++;
 			}
 		} /* if(i_su->readiness_state == NCS_IN_SERVICE) */
