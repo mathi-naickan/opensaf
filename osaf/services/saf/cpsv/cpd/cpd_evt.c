@@ -390,14 +390,16 @@ static uint32_t cpd_evt_proc_ckpt_usr_info(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_I
 
 			TRACE("  non-collocated CPSV_CKPT_RDSET_STOP ckpt_node->ckpt_id %llu ckpt_node->num_users %d ", 
 				       (SaUint64T)ckpt_node->ckpt_id,ckpt_node->num_users);
-			/* Clients for  non-collocated Ckpt , Stop ret timer ,  broadcast to all CPNDs */
-			memset(&send_evt, 0, sizeof(CPSV_EVT));
-			send_evt.type = CPSV_EVT_TYPE_CPND;
-			send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_RDSET;
-			send_evt.info.cpnd.info.rdset.ckpt_id = ckpt_node->ckpt_id;
-			send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_STOP;
-			rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
-			TRACE_2("cpd ckpt rdset success for ckpt_id:%llx,active_dest:%"PRIu64,ckpt_node->ckpt_id,ckpt_node->active_dest);
+			if (ckpt_node->num_users == 0) {
+				/* Clients for  non-collocated Ckpt , Stop ret timer ,  broadcast to all CPNDs */
+				memset(&send_evt, 0, sizeof(CPSV_EVT));
+				send_evt.type = CPSV_EVT_TYPE_CPND;
+				send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_RDSET;
+				send_evt.info.cpnd.info.rdset.ckpt_id = ckpt_node->ckpt_id;
+				send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_STOP;
+				rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
+				TRACE_2("cpd ckpt rdset success for ckpt_id:%llx,active_dest:%"PRIu64,ckpt_node->ckpt_id,ckpt_node->active_dest);
+			}
 			if (m_CPND_IS_ON_SCXB(cb->cpd_self_id, cpd_get_slot_sub_id_from_mds_dest(sinfo->dest))) {
 
 				if (evt->info.ckpt_usr_info.info_type == CPSV_USR_INFO_CKPT_OPEN_FIRST) {
@@ -444,14 +446,16 @@ static uint32_t cpd_evt_proc_ckpt_usr_info(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_I
 		if (!(m_IS_SA_CKPT_CHECKPOINT_COLLOCATED(&ckpt_node->attributes))) {
 			TRACE("  non-collocated  CPSV_CKPT_RDSET_START ckpt_node->ckpt_id %llu ckpt_node->num_users %d ", 
 				       (SaUint64T)ckpt_node->ckpt_id,ckpt_node->num_users);
-			/* Clients for  non-collocated Ckpt , Stop ret timer ,  broadcast to all CPNDs */
-			memset(&send_evt, 0, sizeof(CPSV_EVT));
-			send_evt.type = CPSV_EVT_TYPE_CPND;
-			send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_RDSET;
-			send_evt.info.cpnd.info.rdset.ckpt_id = ckpt_node->ckpt_id;
-			send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_START;
-			rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
-			TRACE_2("cpd ckpt rdset success for ckpt_id:%llx,active_dest:%"PRIu64,ckpt_node->ckpt_id,ckpt_node->active_dest);
+			if (ckpt_node->num_users == 1) {
+				/* Clients for  non-collocated Ckpt , Stop ret timer ,  broadcast to all CPNDs */
+				memset(&send_evt, 0, sizeof(CPSV_EVT));
+				send_evt.type = CPSV_EVT_TYPE_CPND;
+				send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_RDSET;
+				send_evt.info.cpnd.info.rdset.ckpt_id = ckpt_node->ckpt_id;
+				send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_START;
+				rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
+				TRACE_2("cpd ckpt rdset success for ckpt_id:%llx,active_dest:%"PRIu64,ckpt_node->ckpt_id,ckpt_node->active_dest);
+			}
 			if (m_CPND_IS_ON_SCXB(ckpt_node->ckpt_on_scxb1, cpd_get_slot_sub_id_from_mds_dest(sinfo->dest))) {
 				if (evt->info.ckpt_usr_info.info_type == CPSV_USR_INFO_CKPT_CLOSE_LAST) {
 					ckpt_node->ckpt_on_scxb1 = 0;
