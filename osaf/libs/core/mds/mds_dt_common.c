@@ -767,7 +767,7 @@ uint32_t mds_tmr_mailbox_processing(void)
 		tmr_req_info =
 		    (MDS_TMR_REQ_INFO *)ncshm_take_hdl(NCS_SERVICE_ID_COMMON, (uint32_t)(mbx_evt_info->info.tmr_info_hdl));
 		if (tmr_req_info == NULL) {
-			m_MDS_LOG_NOTIFY("MDTM: Tmr Mailbox Processing:Handle invalid (=0x%08x)",
+			m_MDS_LOG_INFO("MDTM: Tmr Mailbox Processing:Handle invalid (=0x%08x)",
 					 mbx_evt_info->info.tmr_info_hdl);
 			/* return NCSCC_RC_SUCCESS; */	/* Fall through to free memory */
 		} else {

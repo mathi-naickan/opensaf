@@ -919,7 +919,7 @@ uint32_t mds_subtn_tbl_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, NCSMDS
 	status = mds_subtn_tbl_query(svc_hdl, subscr_svc_id);
 	if (status == NCSCC_RC_SUCCESS || status == NCSCC_RC_NO_CREATION) {
 		/* Service already subscribed IMPLICITLY */
-		m_MDS_LOG_NOTIFY
+		m_MDS_LOG_INFO
 		    ("MCM_DB : subtn_tbl_add : IMPLICIT SUBSCRIPTION of SVC id = %d to SVC id = %d ALREADY EXIST");
 		m_MDS_LOG_DBG("MCM_DB : Leaving : F : mds_subtn_tbl_add");
 		return NCSCC_RC_FAILURE;
