@@ -165,12 +165,28 @@ static void avd_si_add_csi_db(struct avd_csi_tag* csi)
 {
 	AVD_CSI *i_csi = NULL;
 	AVD_CSI *prev_csi = NULL;
+	bool found_pos =  false;
 
 	osafassert((csi != NULL) && (csi->si != NULL));
-
 	i_csi = csi->si->list_of_csi;
-
 	while ((i_csi != NULL) && (csi->rank <= i_csi->rank)) {
+		while ((i_csi != NULL) && (csi->rank == i_csi->rank)) {
+
+			if (m_CMP_HORDER_SANAMET(csi->name, i_csi->name) < 0){
+				found_pos = true;
+				break;
+			}
+			prev_csi = i_csi;
+			i_csi = i_csi->si_list_of_csi_next;
+
+			if ((i_csi != NULL) && (i_csi->rank < csi->rank)) {
+				found_pos = true;
+				break;
+			}
+		}
+
+		if (found_pos || i_csi == NULL)
+			break;
 		prev_csi = i_csi;
 		i_csi = i_csi->si_list_of_csi_next;
 	}
@@ -182,8 +198,6 @@ static void avd_si_add_csi_db(struct avd_csi_tag* csi)
 		prev_csi->si_list_of_csi_next = csi;
 		csi->si_list_of_csi_next = i_csi;
 	}
-
-//	csi->si->num_csi++;
 }
 
 /**

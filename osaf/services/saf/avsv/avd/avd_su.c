@@ -194,16 +194,35 @@ void avd_su_remove_comp(AVD_COMP *comp)
 void avd_su_add_comp(AVD_COMP *comp)
 {
 	AVD_COMP *i_comp = comp->su->list_of_comp;
+	AVD_COMP *prev_comp = NULL; 
+	bool found_pos= false;
 
-	if ((i_comp == NULL) || (i_comp->comp_info.inst_level >= comp->comp_info.inst_level)) {
-		comp->su->list_of_comp = comp;
-		comp->su_comp_next = i_comp;
-	} else {
-		while ((i_comp->su_comp_next != NULL) &&
-		       (i_comp->su_comp_next->comp_info.inst_level < comp->comp_info.inst_level))
+	while ((i_comp == NULL) || (comp->comp_info.inst_level >= i_comp->comp_info.inst_level)) {
+		while ((i_comp != NULL) && (comp->comp_info.inst_level == i_comp->comp_info.inst_level)) {
+
+			if (m_CMP_HORDER_SANAMET(comp->comp_info.name, i_comp->comp_info.name) < 0){
+				found_pos = true;
+				break;
+			}
+			prev_comp = i_comp;
 			i_comp = i_comp->su_comp_next;
-		comp->su_comp_next = i_comp->su_comp_next;
-		i_comp->su_comp_next = comp;
+			if ((i_comp != NULL) && (i_comp->comp_info.inst_level > comp->comp_info.inst_level)) {
+				found_pos = true;
+				break;
+			}
+
+		}
+		if (found_pos || (i_comp == NULL))
+			break;
+		prev_comp = i_comp;
+		i_comp = i_comp->su_comp_next;
+	}
+	if (prev_comp == NULL) {
+		comp->su_comp_next = comp->su->list_of_comp;
+		comp->su->list_of_comp = comp;
+	} else {
+		prev_comp->su_comp_next = comp;
+		comp->su_comp_next = i_comp;
 	}
 	comp->su->curr_num_comp++;
 	comp->su->num_of_comp++;	// TODO 
