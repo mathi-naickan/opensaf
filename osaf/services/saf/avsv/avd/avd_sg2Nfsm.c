@@ -2310,11 +2310,25 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 			amfd_switch(avd_cb);
 
 	} else if ((act == AVSV_SUSI_ACT_DEL) && (su->sg_of_su->su_oper_list.su != su)) {
-		/* delete all and SU is not in the operation list. Free the SUSI 
-		 * relationships for the SU. 
-		 */
-
-		avd_sg_su_asgn_del_util(cb, su, true, false);
+		/* Delete all susi in the su if all are unassigned. If any of the susi is assigned
+		   then delete single susi*/
+		flag = false;
+		l_susi = su->list_of_susi;
+		while (l_susi != AVD_SU_SI_REL_NULL) {
+			if (l_susi->fsm == AVD_SU_SI_STATE_ASGND) {
+				flag = true;
+				break;
+			}
+			l_susi = l_susi->su_next;
+		}
+		if (flag == false) {
+			/* All are unassigned.*/
+			avd_sg_su_asgn_del_util(cb, su, true, false);
+		}
+		else if (susi != NULL) {
+			avd_compcsi_delete(cb, susi, false);
+			m_AVD_SU_SI_TRG_DEL(cb, susi);
+		}
 
 	} else if ((act == AVSV_SUSI_ACT_DEL) && (su->sg_of_su->su_oper_list.su == su)) {
 		/*remove all and SU is in the operation list */
