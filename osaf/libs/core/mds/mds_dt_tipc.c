@@ -877,9 +877,9 @@ static uns32 mdtm_process_discovery_events(uns32 discovery_event, struct tipc_ev
 			}
 
 			if (TIPC_PUBLISHED == discovery_event) {
-				m_MDS_LOG_INFO
-				    ("MDTM: Raising the svc up event for SVC id = %d, subscribed by SVC id = %d",
-				     svc_id, m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl));
+				m_MDS_LOG_NOTIFY
+				    ("MDTM: svc up event for SVCid =%d, subscri. by SVCid =%d pwe_id=%d adest=%016llx",
+				     svc_id, m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl), pwe_id, adest);
 
 				if (NCSCC_RC_SUCCESS != mds_mcm_svc_up(pwe_id, svc_id, role, scope,
 								       vdest, policy, adest, 0, svc_hdl, subtn_ref_val,
@@ -891,9 +891,9 @@ static uns32 mdtm_process_discovery_events(uns32 discovery_event, struct tipc_ev
 				}
 				return NCSCC_RC_SUCCESS;
 			} else if (TIPC_WITHDRAWN == discovery_event) {
-				m_MDS_LOG_INFO
-				    ("MDTM: Raising the svc down event for SVC id = %d, subscribed by SVC id = %d\n",
-				     svc_id, m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl));
+				m_MDS_LOG_NOTIFY
+				    ("MDTM: svc down event for SVCid =%d, subscri. by SVCid =%d pwe_id=%d adest=%016llx",
+				     svc_id, m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl), pwe_id, adest);
 
 				if (NCSCC_RC_SUCCESS != mds_mcm_svc_down(pwe_id, svc_id, role, scope,
 									 vdest, policy, adest, 0, svc_hdl,
@@ -1289,7 +1289,7 @@ uns32 mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCOP
 			m_MDS_LOG_ERR("MDTM: Can't set socket option TIPC_IMP");
 			assert(0);
 		} else {
-			m_MDS_LOG_NOTIFY("MDTM: Successfully set socket option TIPC_IMP, SVC_ID=%d", svc_id);
+			m_MDS_LOG_INFO("MDTM: Successfully set socket option TIPC_IMP, SVC_ID=%d", svc_id);
 		}
 	}
 
@@ -1342,6 +1342,7 @@ uns32 mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCOP
 		m_MDS_LOG_ERR("MDTM: SVC-INSTALL Failure\n");
 		return NCSCC_RC_FAILURE;
 	}
+	m_MDS_LOG_NOTIFY("MDTM: install_tipc : svc id=%d, vdest=%d", svc_id, vdest_id);
 	m_MDS_LOG_INFO("MDTM: SVC-INSTALL Success\n");
 	return NCSCC_RC_SUCCESS;
 }
@@ -1432,6 +1433,7 @@ uns32 mds_mdtm_svc_uninstall_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SC
 		m_MDS_LOG_ERR("MDTM: SVC-UNINSTALL Failure\n");
 		return NCSCC_RC_FAILURE;
 	}
+	m_MDS_LOG_NOTIFY("MDTM: uninstall_tipc : svc id=%d,vdest id=%d", svc_id, vdest_id);
 	m_MDS_LOG_INFO("MDTM: SVC-UNINSTALL Success\n");
 	return NCSCC_RC_SUCCESS;
 }

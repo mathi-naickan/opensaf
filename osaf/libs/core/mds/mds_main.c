@@ -65,7 +65,7 @@ NCS_LOCK *mds_lock(void)
 }
 
 /* global Log level variable */
-uns32 gl_mds_log_level = 2;
+uns32 gl_mds_log_level = 3;
 uns32 gl_mds_checksum = 0;
 
 uns32 MDS_QUIESCED_TMR_VAL = 80;
@@ -158,7 +158,7 @@ uns32 mds_lib_req(NCS_LIB_REQ_INFO *req)
 		/* gl_mds_log_level consistency check */
 		if (gl_mds_log_level > 5 || gl_mds_log_level < 1) {
 			/* gl_mds_log_level specified is outside range so reset to Default = 3 */
-			gl_mds_log_level = 2;
+			gl_mds_log_level = 3;
 		}
 
 		/* Get gl_mds_checksum */

@@ -288,7 +288,7 @@ static uns32 mcm_msg_encode_full_or_flat_and_send(uns8 to, SEND_MSG *to_msg,
 
 static uns32 mds_subtn_tbl_add_disc_queue(MDS_SUBSCRIPTION_INFO *sub_info, MDS_SEND_INFO *req,
 					  MDS_VDEST_ID dest_vdest_id, MDS_DEST dest,
-					  MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id);
+					  MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id, NCS_BOOL time_wait);
 
 static uns32 mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 					    SEND_MSG msg, MDS_DEST to_dest,
@@ -1594,6 +1594,7 @@ static uns32 mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_ID 
 	V_DEST_QA anchor;
 	uns32 disc_rc;
 	MDS_HDL env_hdl;
+	NCS_BOOL time_wait = FALSE;
 
 	MDS_SUBSCRIPTION_RESULTS_INFO *t_send_hdl = NULL;	/* Subscription Result */
 
@@ -1622,9 +1623,14 @@ static uns32 mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_ID 
 			return NCSCC_RC_FAILURE;
 		}
 	} else if (sub_info->tmr_flag != TRUE) {
-		m_MDS_LOG_INFO("MDS_SND_RCV:Subscription exists but no timer running\n");
-		m_MDS_LOG_DBG("MDS_SND_RCV :L  mds_mcm_process_disc_queue_checks\n");
-		return NCSCC_RC_FAILURE;
+		if ((MDS_SENDTYPE_RSP == req->i_sendtype) || (MDS_SENDTYPE_RRSP == req->i_sendtype)) {
+			time_wait = TRUE;
+			m_MDS_LOG_INFO("MDS_SND_RCV:Disc queue: Subscr exists no timer running: Waiting for some time\n");
+		} else {
+			m_MDS_LOG_INFO("MDS_SND_RCV:Subscription exists but no timer running\n");
+			m_MDS_LOG_DBG("MDS_SND_RCV :L  mds_mcm_process_disc_queue_checks\n");
+			return NCSCC_RC_FAILURE;
+		}
 	}
 
 	/* Add this message to the DISC Queue, One function call */
@@ -1635,7 +1641,8 @@ static uns32 mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_ID 
 	m_MDS_LOG_INFO("MDS_SND_RCV:Blocking send from SVC id = %d to SVC id = %d",
 		       m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl), dest_svc_id);
 
-	disc_rc = mds_subtn_tbl_add_disc_queue(sub_info, req, dest_vdest_id, anchor, env_hdl, svc_cb->svc_id);
+	disc_rc = mds_subtn_tbl_add_disc_queue(sub_info, req, dest_vdest_id, 	
+							anchor, env_hdl, svc_cb->svc_id, time_wait);
 	if (NCSCC_RC_SUCCESS != disc_rc) {
 		/* Again we will come here when timeout or result has come */
 		/* Check whether the Dest exists */
@@ -1715,12 +1722,15 @@ static uns32 mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_ID 
  ***************************************************************************/
 static uns32 mds_subtn_tbl_add_disc_queue(MDS_SUBSCRIPTION_INFO *sub_info, MDS_SEND_INFO *req,
 					  MDS_VDEST_ID dest_vdest_id, MDS_DEST dest, MDS_HDL env_hdl,
-					  MDS_SVC_ID fr_svc_id)
+					  MDS_SVC_ID fr_svc_id, NCS_BOOL time_wait)
 {
 	NCS_SEL_OBJ sel_obj;
 	MDS_AWAIT_DISC_QUEUE *add_ptr = NULL, *mov_ptr = NULL;
-	uns32 rc = NCSCC_RC_SUCCESS, status = 0;
-
+	uns32 rc = NCSCC_RC_SUCCESS, status = 0, timeout_val = 0;
+ 
+	if (TRUE == time_wait) {
+		timeout_val = 150; /* This may need a tuning */
+	}
 	mov_ptr = sub_info->await_disc_queue;
 	add_ptr = m_MMGR_ALLOC_DISC_QUEUE;
 
@@ -1767,7 +1777,7 @@ static uns32 mds_subtn_tbl_add_disc_queue(MDS_SUBSCRIPTION_INFO *sub_info, MDS_S
 	case MDS_SENDTYPE_RBCAST:
 		{
 			m_MDS_LOG_INFO("MDS_SND_RCV: Waiting for timeout\n");
-			if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(sel_obj, 0)) {
+			if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(sel_obj, timeout_val)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: timeout or error occured\n");
 				rc = NCSCC_RC_REQ_TIMOUT;
 			}
@@ -2262,7 +2272,7 @@ static uns32 mds_mcm_process_disc_queue_checks_redundant(MDS_SVC_INFO *svc_cb, M
 
 	MDS_SUBSCRIPTION_INFO *sub_info = NULL;
 	uns32 disc_rc;
-
+	NCS_BOOL time_wait = FALSE;
 	MDS_HDL env_hdl;
 
 	env_hdl = (MDS_HDL)(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(svc_cb->svc_hdl));
@@ -2280,8 +2290,13 @@ static uns32 mds_mcm_process_disc_queue_checks_redundant(MDS_SVC_INFO *svc_cb, M
 			return NCSCC_RC_FAILURE;
 		}
 	} else if (sub_info->tmr_flag != TRUE) {
-		m_MDS_LOG_INFO("MDS_SND_RCV: Subscription exists but Timer has expired\n");
-		return NCSCC_RC_FAILURE;
+		if ((MDS_SENDTYPE_RSP == req->i_sendtype) || (MDS_SENDTYPE_RRSP == req->i_sendtype)) {
+			time_wait = TRUE;
+			m_MDS_LOG_INFO("MDS_SND_RCV:Disc queue red: Subscr exists no timer running: Waiting for some time\n");
+		} else {
+			m_MDS_LOG_INFO("MDS_SND_RCV: Subscription exists but Timer has expired\n");
+			return NCSCC_RC_FAILURE;
+		}
 	}
 
 	/* Add this message to the DISC Queue, One function call */
@@ -2289,7 +2304,8 @@ static uns32 mds_mcm_process_disc_queue_checks_redundant(MDS_SVC_INFO *svc_cb, M
 	   Enqueue <sel-obj>, <send-type + destination-data>
 	   Wait_for_ind_on_sel_obj_with_remaining_timeout
 	 */
-	disc_rc = mds_subtn_tbl_add_disc_queue(sub_info, req, dest_vdest_id, anchor, env_hdl, svc_cb->svc_id);
+	disc_rc = mds_subtn_tbl_add_disc_queue(sub_info, req, dest_vdest_id, 
+						anchor, env_hdl, svc_cb->svc_id, time_wait);
 	if (NCSCC_RC_SUCCESS != disc_rc) {
 		/* Again we will come here when timeout, out-of-mem or result has come */
 		/* Check whether the Dest exists */
@@ -5825,7 +5841,7 @@ uns32 mds_retrieve(NCSMDS_INFO *info)
 		while ((msgelem = (MDS_MCM_MSG_ELEM *)m_NCS_IPC_NON_BLK_RECEIVE(&local_mbx, NULL)) != NULL) {
 			/* IR Fix 82530 */
 			if (mds_mailbox_proc(msgelem, svc_cb) == NCSCC_RC_NO_OBJECT) {
-				m_MDS_LOG_NOTIFY
+				m_MDS_LOG_INFO
 				    ("MDS_SND_RCV: Svc doesnt exists after calling the mailbox_proc, when called(MDS Q-Ownership,DIS-ALL), svc_id=%d",
 				     svc_id);
 				return NCSCC_RC_FAILURE;
@@ -5890,7 +5906,7 @@ static uns32 mds_mailbox_proc(MDS_MCM_MSG_ELEM *msgelem, MDS_SVC_INFO *svc_cb)
 						mds_mcm_free_msg_memory(msgelem->info.data.enc_msg);
 					}
 					status = NCSCC_RC_NO_OBJECT;
-					m_MDS_LOG_NOTIFY
+					m_MDS_LOG_INFO
 					    ("MDS_SND_RCV: Service doesnt exists : after calling the callback dec_full(MDS Q-Ownership), svc_id=%d",
 					     svc_id);
 					goto out2;
@@ -5929,7 +5945,7 @@ static uns32 mds_mailbox_proc(MDS_MCM_MSG_ELEM *msgelem, MDS_SVC_INFO *svc_cb)
 						mds_mcm_free_msg_memory(msgelem->info.data.enc_msg);
 					}
 					status = NCSCC_RC_NO_OBJECT;
-					m_MDS_LOG_NOTIFY
+					m_MDS_LOG_INFO
 					    ("MDS_SND_RCV: Service doesnt exists : after calling the callback dec_flat(MDS Q-Ownership), svc_id=%d",
 					     svc_id);
 					goto out2;
@@ -6044,7 +6060,7 @@ static uns32 mds_mailbox_proc(MDS_MCM_MSG_ELEM *msgelem, MDS_SVC_INFO *svc_cb)
 		m_MDS_LOCK(mds_lock(), NCS_LOCK_WRITE);
 
 		if (mds_validate_svc_cb(svc_cb, svc_hdl, svc_id) != NCSCC_RC_SUCCESS) {
-			m_MDS_LOG_NOTIFY
+			m_MDS_LOG_INFO
 			    ("MDS_SND_RCV: Service doesnt exists : after calling the callback rec or direct_rec(MDS Q-Ownership), svc_id=%d",
 			     svc_id);
 			status = NCSCC_RC_NO_OBJECT;
@@ -6070,7 +6086,7 @@ static uns32 mds_mailbox_proc(MDS_MCM_MSG_ELEM *msgelem, MDS_SVC_INFO *svc_cb)
 		m_MDS_LOCK(mds_lock(), NCS_LOCK_WRITE);
 
 		if (mds_validate_svc_cb(svc_cb, svc_hdl, svc_id) != NCSCC_RC_SUCCESS) {
-			m_MDS_LOG_NOTIFY
+			m_MDS_LOG_INFO
 			    ("MDS_SND_RCV: Service doesnt exists : after calling the callback for the Events(MDS Q-Ownership), svc_id=%d",
 			     svc_id);
 			status = NCSCC_RC_NO_OBJECT;
