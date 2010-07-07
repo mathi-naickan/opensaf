@@ -365,11 +365,15 @@ void saImmOmCcbObjectCreate_06(void)
 
 void saImmOmCcbObjectCreate_07(void)
 {
-    const char *long_name = "safLgStrCfg=saLogAlarm\\,safApp=safLogService\\,opensafImm=opensafImm\\,safApp=safImmService"; 
-    const char *long_name2 = "safLgStrCfg=saLogAlarm\\#safApp=safLogService\\,opensafImm=opensafImm\\,safApp=safImmService"; 
+    const SaImmClassNameT className = (SaImmClassNameT) __FUNCTION__;
+    SaImmAttrDefinitionT_2 attr1 =
+        {"rdn", SA_IMM_ATTR_SANAMET, SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_RDN, NULL};
+    const SaImmAttrDefinitionT_2 *attrDefinitions[] = {&attr1, NULL};
+
+    const char *long_name = "safLgStrCfg=saLogAlarm\\,safApp=safLogService\\,safApp=safImmService"; 
+    const char *long_name2 = "safLgStrCfg=saLogAlarm\\#safApp=safLogService\\,safApp=safImmService"; 
     static const SaNameT parentName= 
-        {sizeof("opensafImm=opensafImm,safApp=safImmService"), 
-         "opensafImm=opensafImm,safApp=safImmService"};
+        {sizeof("safApp=safImmService"), "safApp=safImmService"};
     static const SaNameT *objs[] = {&parentName, NULL};
 
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
@@ -381,23 +385,24 @@ void saImmOmCcbObjectCreate_07(void)
     strncpy((char *) rdn.value, long_name, rdn.length);
 
     SaNameT* nameValues[] = {&rdn};
-    SaImmAttrValuesT_2 v1 = {"opensafImm",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
+    SaImmAttrValuesT_2 v1 = {"rdn",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
     const SaImmAttrValuesT_2 * attrValues[] = {&v1, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    safassert(saImmOmClassCreate_2(immOmHandle, className, SA_IMM_CLASS_CONFIG, attrDefinitions), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objs, SA_IMM_ONE), SA_AIS_OK);
     /* Create association object */
-    test_validate(saImmOmCcbObjectCreate_2(ccbHandle, "OpensafImm", 
-                      &parentName, attrValues), SA_AIS_OK);
+    test_validate(saImmOmCcbObjectCreate_2(ccbHandle, className, &parentName, attrValues), SA_AIS_OK);
 
     rdn.length = strlen(long_name2) + 1;
     strncpy((char *) rdn.value, long_name2, rdn.length);
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, "OpensafImm", &parentName, attrValues), 
         SA_AIS_ERR_INVALID_PARAM);
 
-    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK); /* aborts ccb */
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+    safassert(saImmOmClassDelete(immOmHandle, className), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
