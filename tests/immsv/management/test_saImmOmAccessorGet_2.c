@@ -97,7 +97,7 @@ void saImmOmAccessorGet_2_01(void)
     safassert(rc, SA_AIS_OK);
     cnt = print_SaImmAttrValuesT_2(attributes);
     test_validate(rc, SA_AIS_OK);
-    assert(cnt == 6);
+    assert(cnt == 7);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
