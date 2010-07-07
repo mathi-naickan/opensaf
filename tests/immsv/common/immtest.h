@@ -37,9 +37,17 @@ extern SaSelectionObjectT selectionObject;
 /* Management globals */
 extern SaImmHandleT immOmHandle;
 extern SaImmCallbacksT immOmCallbacks;
+extern const SaImmClassNameT configClassName;
+extern const SaImmClassNameT runtimeClassName;
 
 /* Implementer globals */
 extern SaImmHandleT immOiHandle;
 extern SaImmOiCallbacksT_2 immOiCallbacks;
+
+/* Common functions */
+SaAisErrorT config_class_create(SaImmHandleT immHandle);
+SaAisErrorT config_class_delete(SaImmHandleT immHandle);
+SaAisErrorT runtime_class_create(SaImmHandleT immHandle);
+SaAisErrorT runtime_class_delete(SaImmHandleT immHandle);
 
 #endif

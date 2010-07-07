@@ -20,10 +20,6 @@
 #include <pthread.h>
 #include "immtest.h"
 
-/*static const SaImmClassNameT testConfigClassName = __FILE__;*/
-/* Special characters like '.' not allowed in classnames */
-static const SaImmClassNameT testConfigClassName = "test_SaImmOiCcb";
-
 static const SaNameT parentName = 
     {sizeof("opensafImm=opensafImm,safApp=safImmService"), 
      "opensafImm=opensafImm,safApp=safImmService"};
@@ -114,25 +110,6 @@ static const SaImmOiCallbacksT_2 callbacks = {
     saImmOiRtAttrUpdateCallback
 };
 
-static SaAisErrorT config_class_create(SaImmHandleT immHandle)
-{
-    SaImmAttrDefinitionT_2 rdn = {
-        "rdn", SA_IMM_ATTR_SANAMET, SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_RDN,
-        NULL
-    };
-
-    SaImmAttrDefinitionT_2 attr1 = {
-        "attr1", SA_IMM_ATTR_SAUINT32T, SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_WRITABLE, NULL};
-
-        SaImmAttrDefinitionT_2 attr2 = {
-        "attr2", SA_IMM_ATTR_SAUINT32T, SA_IMM_ATTR_RUNTIME, NULL};
-
-    const SaImmAttrDefinitionT_2* attributes[] = {&rdn, &attr1, &attr2, NULL};
-
-    return saImmOmClassCreate_2(immHandle, testConfigClassName, SA_IMM_CLASS_CONFIG,
-        attributes);
-}
-
 static SaAisErrorT config_object_create(
     SaImmAdminOwnerHandleT ownerHandle,
     const SaNameT *pName,
@@ -150,7 +127,7 @@ static SaAisErrorT config_object_create(
 
     nameValues[0] = rdn;
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    if (saImmOmCcbObjectCreate_2(ccbHandle, testConfigClassName, pName, attrValues) == SA_AIS_ERR_EXIST)
+    if (saImmOmCcbObjectCreate_2(ccbHandle, configClassName, pName, attrValues) == SA_AIS_ERR_EXIST)
         goto done;
 
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -268,7 +245,7 @@ static void *classImplementerThreadMain(void *arg)
         safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
     }
 
-    safassert(saImmOiClassImplementerRelease(handle, testConfigClassName), SA_AIS_OK);
+    safassert(saImmOiClassImplementerRelease(handle, configClassName), SA_AIS_OK);
     safassert(saImmOiFinalize(handle), SA_AIS_OK);
 
     TRACE_LEAVE();
@@ -305,7 +282,7 @@ static SaAisErrorT om_ccb_exec(void)
     if ((rc = saImmOmCcbObjectModify_2(ccbHandle, &dnObj2, attrMods)) != SA_AIS_OK)
         goto done;
 
-    if ((rc = saImmOmCcbObjectCreate_2(ccbHandle, testConfigClassName, &parentName, attrValues)) != SA_AIS_OK)
+    if ((rc = saImmOmCcbObjectCreate_2(ccbHandle, configClassName, &parentName, attrValues)) != SA_AIS_OK)
         goto done;
 
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -334,7 +311,7 @@ static void om_setup(void)
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_SUBTREE), SA_AIS_OK);
     if (config_class_create(immOmHandle) != SA_AIS_OK)
-        TRACE("Class '%s' cannot be created\n", testConfigClassName);
+        TRACE("Class '%s' cannot be created\n", configClassName);
     safassert(config_object_create(ownerHandle, &parentName, &rdnObj1), SA_AIS_OK);
     safassert(config_object_create(ownerHandle, &parentName, &rdnObj2), SA_AIS_OK);
     safassert(saImmOmAdminOwnerRelease(ownerHandle, objectNames, SA_IMM_SUBTREE), SA_AIS_OK);
@@ -363,7 +340,7 @@ static void om_teardown(void)
         TRACE("Object '%s' cannot be deleted\n", dnObj3.value);
     if (config_object_delete(ownerHandle, &dnObj3) != SA_AIS_OK)
         TRACE("Object '%s' cannot be deleted\n", dnObj3.value);
-    safassert(saImmOmClassDelete(immOmHandle, testConfigClassName), SA_AIS_OK);
+    safassert(saImmOmClassDelete(immOmHandle, configClassName), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     TRACE_LEAVE();
@@ -441,7 +418,7 @@ static void saImmOiCcb_03(void)
     om_setup();
 
     /* Create implementer threads */
-    res = pthread_create(&thread[0], NULL, classImplementerThreadMain, testConfigClassName);
+    res = pthread_create(&thread[0], NULL, classImplementerThreadMain, configClassName);
     assert(res == 0);
     
     sleep(1); /* Race condition, allow implementer threads to set up!*/
@@ -464,7 +441,7 @@ static void saImmOiCcb_04(void)
     om_setup();
 
     /* Create implementer threads */
-    res = pthread_create(&thread[0], NULL, classImplementerThreadMain, testConfigClassName);
+    res = pthread_create(&thread[0], NULL, classImplementerThreadMain, configClassName);
     assert(res == 0);
  
     saImmOiCcbObjectModifyCallback_response = SA_AIS_ERR_BAD_OPERATION;

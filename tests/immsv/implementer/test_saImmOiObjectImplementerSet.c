@@ -17,40 +17,108 @@
 
 #include "immtest.h"
 
-static const SaImmClassNameT configClassName = "OpensafImm";
-
-static const SaNameT objectName = {
-    .value = "opensafImm=opensafImm,safApp=safImmService",
-    .length = sizeof("opensafImm=opensafImm,safApp=safImmService"),
+static const SaNameT rdn = {
+    .value = "Obj2",
+    .length = sizeof("Obj2"),
 };
 
 void saImmOiObjectImplementerSet_01(void)
 {
     const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FILE__;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT* nameValues[] = {&rdn};
+    SaImmAttrValuesT_2 v2 = {"rdn",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
+    SaUint32T  int1Value1 = 7;
+    SaUint32T* int1Values[] = {&int1Value1};
+    SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
+    const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(config_class_create(immOmHandle), SA_AIS_OK);
+    /* Create test object under root */
+    safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
-    rc = saImmOiObjectImplementerSet(immOiHandle, &objectName, SA_IMM_ONE);
-    safassert(saImmOiObjectImplementerRelease(immOiHandle, &objectName, SA_IMM_ONE), SA_AIS_OK);
+    rc = saImmOiObjectImplementerSet(immOiHandle, &rdn, SA_IMM_ONE);
+    safassert(saImmOiObjectImplementerRelease(immOiHandle, &rdn, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
+ 
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
     test_validate(rc, SA_AIS_OK);
 }
 
 void saImmOiObjectImplementerSet_02(void)
 {
     const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FILE__;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT* nameValues[] = {&rdn};
+    SaImmAttrValuesT_2 v2 = {"rdn",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
+    SaUint32T  int1Value1 = 7;
+    SaUint32T* int1Values[] = {&int1Value1};
+    SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
+    const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(config_class_create(immOmHandle), SA_AIS_OK);
+    /* Create test object under root */
+    safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
-    rc = saImmOiObjectImplementerSet(-1, &objectName, SA_IMM_ONE);
+    rc = saImmOiObjectImplementerSet(-1, &rdn, SA_IMM_ONE);
+
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 }
 
 void saImmOiObjectImplementerSet_03(void)
 {
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FILE__;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT* nameValues[] = {&rdn};
+    SaImmAttrValuesT_2 v2 = {"rdn",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
+    SaUint32T  int1Value1 = 7;
+    SaUint32T* int1Values[] = {&int1Value1};
+    SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
+    const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(config_class_create(immOmHandle), SA_AIS_OK);
+    /* Create test object under root */
+    safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
-    rc = saImmOiObjectImplementerSet(immOiHandle, &objectName, SA_IMM_ONE);
+    rc = saImmOiObjectImplementerSet(immOiHandle, &rdn, SA_IMM_ONE);
+
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 }
@@ -75,18 +143,42 @@ void saImmOiObjectImplementerSet_05(void)
     SaImmOiHandleT newhandle;
     const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
     SaImmOiImplementerNameT implementerName2 = (SaImmOiImplementerNameT) __FILE__;
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
+
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT* nameValues[] = {&rdn};
+    SaImmAttrValuesT_2 v2 = {"rdn",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
+    SaUint32T  int1Value1 = 7;
+    SaUint32T* int1Values[] = {&int1Value1};
+    SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
+    const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(config_class_create(immOmHandle), SA_AIS_OK);
+    /* Create test object under root */
+    safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
-    safassert(saImmOiObjectImplementerSet(immOiHandle, &objectName, SA_IMM_ONE), SA_AIS_OK);
+    safassert(saImmOiObjectImplementerSet(immOiHandle, &rdn, SA_IMM_ONE), SA_AIS_OK);
 
     safassert(saImmOiInitialize_2(&newhandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(newhandle, implementerName2), SA_AIS_OK);
-    rc = saImmOiObjectImplementerSet(newhandle, &objectName, SA_IMM_ONE);
+    rc = saImmOiObjectImplementerSet(newhandle, &rdn, SA_IMM_ONE);
 
-    safassert(saImmOiObjectImplementerRelease(immOiHandle, &objectName, SA_IMM_ONE), SA_AIS_OK);
+    safassert(saImmOiObjectImplementerRelease(immOiHandle, &rdn, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
     safassert(saImmOiFinalize(newhandle), SA_AIS_OK);
+
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
     test_validate(rc, SA_AIS_ERR_EXIST);
 }
 
@@ -95,6 +187,23 @@ void saImmOiObjectImplementerSet_06(void)
     SaImmOiHandleT newhandle;
     const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
     SaImmOiImplementerNameT implementerName2 = (SaImmOiImplementerNameT) __FILE__;
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
+
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT* nameValues[] = {&rdn};
+    SaImmAttrValuesT_2 v2 = {"rdn",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
+    SaUint32T  int1Value1 = 7;
+    SaUint32T* int1Values[] = {&int1Value1};
+    SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
+    const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(config_class_create(immOmHandle), SA_AIS_OK);
+    /* Create test object under root */
+    safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
@@ -102,13 +211,20 @@ void saImmOiObjectImplementerSet_06(void)
 
     safassert(saImmOiInitialize_2(&newhandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(newhandle, implementerName2), SA_AIS_OK);
-    rc = saImmOiObjectImplementerSet(newhandle, &objectName, SA_IMM_ONE);
+    rc = saImmOiObjectImplementerSet(newhandle, &rdn, SA_IMM_ONE);
 
     safassert(saImmOiClassImplementerRelease(immOiHandle, configClassName), SA_AIS_OK);
     safassert(saImmOiImplementerClear(newhandle), SA_AIS_OK);
     safassert(saImmOiImplementerClear(immOiHandle), SA_AIS_OK);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
     safassert(saImmOiFinalize(newhandle), SA_AIS_OK);
+
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
     test_validate(rc, SA_AIS_ERR_EXIST);
 }
 

@@ -163,6 +163,11 @@ void saImmOiRtObjectUpdate_2_05(void)
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 }
 
+static const SaNameT rdn = {
+    .value = "Obj2",
+    .length = sizeof("Obj2"),
+};
+
 void saImmOiRtObjectUpdate_2_06(void)
 {
     const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
@@ -173,7 +178,7 @@ void saImmOiRtObjectUpdate_2_06(void)
     SaImmAttrModificationT_2 attrMod_6 =
     {
         .modType = SA_IMM_ATTR_VALUES_REPLACE,
-        .modAttr.attrName = "opensafImm",
+        .modAttr.attrName = "rdn",
         .modAttr.attrValuesNumber = 1,
         .modAttr.attrValueType = SA_IMM_ATTR_SANAMET,
         .modAttr.attrValues = attrUpdateValues_6
@@ -185,13 +190,35 @@ void saImmOiRtObjectUpdate_2_06(void)
 
     SaImmAttrModificationT_2* attrMods_6[] = {&attrMod_6, NULL};
 
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT* nameValues[] = {&rdn};
+    SaImmAttrValuesT_2 v2 = {"rdn",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
+    SaUint32T  int1Value1 = 7;
+    SaUint32T* int1Values[] = {&int1Value1};
+    SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
+    const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(config_class_create(immOmHandle), SA_AIS_OK);
+    /* Create test object under root */
+    safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
-    safassert(saImmOiObjectImplementerSet(immOiHandle, &parentName, SA_IMM_ONE), SA_AIS_OK);
+    safassert(saImmOiObjectImplementerSet(immOiHandle, &rdn, SA_IMM_ONE), SA_AIS_OK);
 
-    rc = saImmOiRtObjectUpdate_2(immOiHandle, &parentName, (const SaImmAttrModificationT_2**) attrMods_6);
+    rc = saImmOiRtObjectUpdate_2(immOiHandle, &rdn, (const SaImmAttrModificationT_2**) attrMods_6);
     test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 
-    safassert(saImmOiObjectImplementerRelease(immOiHandle, &parentName, SA_IMM_ONE), SA_AIS_OK);
+    safassert(saImmOiObjectImplementerRelease(immOiHandle, &rdn, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }

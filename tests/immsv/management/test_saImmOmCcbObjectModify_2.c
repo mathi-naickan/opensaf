@@ -20,30 +20,9 @@
 static const SaNameT parentName = {sizeof("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
 static const SaNameT rdnObj1 = {sizeof("Obj1"), "Obj1"};
 static const SaNameT rdnObj2 = {sizeof("Obj2"), "Obj2"};
-static const SaImmClassNameT testConfigClassName = "TestClassConfig";
-static const SaImmClassNameT testRuntimeClassName = "TestClassRuntime";
 static SaNameT dnObj1;
 static SaNameT dnObj2;
 static const SaNameT *dnObjs[] = {&dnObj1, NULL};
-
-static SaAisErrorT config_class_create(SaImmHandleT immHandle)
-{
-    SaImmAttrDefinitionT_2 rdn = {
-        "rdn", SA_IMM_ATTR_SANAMET, SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_RDN,
-        NULL
-    };
-
-    SaImmAttrDefinitionT_2 attr1 = {
-        "attr1", SA_IMM_ATTR_SAUINT32T, SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_WRITABLE, NULL};
-
-        SaImmAttrDefinitionT_2 attr2 = {
-        "attr2", SA_IMM_ATTR_SAUINT32T, SA_IMM_ATTR_RUNTIME, NULL};
-
-    const SaImmAttrDefinitionT_2* attributes[] = {&rdn, &attr1, &attr2, NULL};
-
-    return saImmOmClassCreate_2(immHandle, testConfigClassName, SA_IMM_CLASS_CONFIG,
-        attributes);
-}
 
 static SaAisErrorT config_object_create(SaImmHandleT immHandle,
     SaImmAdminOwnerHandleT ownerHandle,
@@ -58,7 +37,7 @@ static SaAisErrorT config_object_create(SaImmHandleT immHandle,
     const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
 
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(saImmOmCcbObjectCreate_2(ccbHandle, testConfigClassName, parentName, attrValues), SA_AIS_OK);
+    safassert(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, parentName, attrValues), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     return saImmOmCcbFinalize(ccbHandle);
 }
@@ -100,7 +79,7 @@ void saImmOmCcbObjectModify_2_01(void)
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(saImmOmClassDelete(immOmHandle, testConfigClassName), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -135,7 +114,7 @@ void saImmOmCcbObjectModify_2_02(void)
 
 done:
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(saImmOmClassDelete(immOmHandle, testConfigClassName), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
@@ -197,7 +176,7 @@ void saImmOmCcbObjectModify_2_03(void)
 
 done:
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(saImmOmClassDelete(immOmHandle, testConfigClassName), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
@@ -228,7 +207,7 @@ void saImmOmCcbObjectModify_2_04(void)
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_SUBTREE), SA_AIS_OK);
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(saImmOmClassDelete(immOmHandle, testConfigClassName), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     test_validate(rc, SA_AIS_ERR_BAD_OPERATION);
@@ -282,7 +261,7 @@ void saImmOmCcbObjectModify_2_05(void)
 done:
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(saImmOmClassDelete(immOmHandle, testConfigClassName), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     test_validate(rc, SA_AIS_ERR_NOT_EXIST);
@@ -317,7 +296,7 @@ void saImmOmCcbObjectModify_2_06(void)
     safassert(saImmOmCcbFinalize(ccbHandle1), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle2), SA_AIS_OK);
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(saImmOmClassDelete(immOmHandle, testConfigClassName), SA_AIS_OK);
+    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
