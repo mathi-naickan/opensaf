@@ -4498,9 +4498,19 @@ static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId, SaBoolT timeout, 
 	SaUint32T arrSize = 0;
 	SaUint32T dummyClient = 0;
 	SaImmOiHandleT implHandle = 0LL;
+	NCS_NODE_ID pbeNodeId = 0;
+	NCS_NODE_ID *pbeNodeIdPtr = NULL;
 	TRACE_ENTER();
 
-	immModel_ccbAbort(cb, ccbId, &arrSize, &implConnArr, &dummyClient);
+	if(cb->mPbeFile && (cb->mRim == SA_IMM_KEEP_REPOSITORY)) {
+		pbeNodeIdPtr = &pbeNodeId;
+		TRACE("We expect there to be a PBE");
+		/* If pbeNodeIdPtr is NULL then ccbAbort
+		   skips the lookup of the pbe implementer.
+		 */
+	}
+
+	immModel_ccbAbort(cb, ccbId, &arrSize, &implConnArr, &dummyClient, pbeNodeIdPtr);
 
 	if (client) {
 		*client = dummyClient;

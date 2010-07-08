@@ -651,14 +651,15 @@ immModel_ccbAbort(IMMND_CB *cb,
     SaUint32T ccbId,
     SaUint32T* arrSize,
     SaUint32T** implConnArr,
-    SaUint32T* client)
+    SaUint32T* client,
+    SaClmNodeIdT* pbeNodeId)
 {
     ConnVector cv;
     ConnVector::iterator cvi;
     unsigned int ix=0;
     
     
-    ImmModel::instance(&cb->immModel)->ccbAbort(ccbId, cv, client);
+    ImmModel::instance(&cb->immModel)->ccbAbort(ccbId, cv, client, pbeNodeId);
     
     *arrSize = cv.size();
     if(*arrSize) {
@@ -2757,7 +2758,7 @@ ImmModel::ccbApply(SaUint32T ccbId,
             ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
         } else {
             /* Remove assert after component test */
-            assert(!sMissingParents.size());
+            assert(sMissingParents.empty());
 
             TRACE_5("Apply CCB %u", ccb->mId);
             ccb->mState = IMM_CCB_PREPARE;
@@ -3005,8 +3006,10 @@ ImmModel::ccbCommit(SaUint32T ccbId, ConnVector& connVector)
 }
 
 void
-ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client)
+ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
+	unsigned int* pbeNodeIdPtr)
 {
+    SaUint32T pbeConn=0;
     TRACE_ENTER();
     CcbVector::iterator i;
     
@@ -3101,7 +3104,18 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client)
     }
     
     ccb->mImplementers.clear();
-    
+
+    if(ccb->mMutations.empty() && pbeNodeIdPtr) {
+	LOG_IN("Ccb %u being aborted is empty, avoid involving PBE", ccbId);
+        pbeNodeIdPtr = NULL;
+    }
+
+    if(pbeNodeIdPtr && getPbeOi(&pbeConn, pbeNodeIdPtr)) {
+        /* There is a PBE and it is registered at this node.
+           Send abort also to pbe. */
+        connVector.push_back(pbeConn);
+        TRACE_5("Ccb abort upcall for ccb %u for local PBE ", ccbId);
+    }
 }
 
 /** 
@@ -4824,6 +4838,11 @@ ImmModel::ccbWaitForCompletedAck(SaUint32T ccbId, SaAisErrorT* err,
         return false;
     }
 
+    if(ccb->mMutations.empty() && pbeNodeIdPtr) {
+	LOG_IN("Ccb %u being applied is empty, avoid involving PBE", ccbId);
+        pbeNodeIdPtr = NULL;
+    }
+
     if(((*err) == SA_AIS_OK) && pbeNodeIdPtr) {
         /* There should be a PBE */
         ImplementerInfo* pbeImpl = (ImplementerInfo *) getPbeOi(pbeConnPtr, pbeNodeIdPtr);
@@ -6483,16 +6502,12 @@ ImmModel::cleanTheBasement(unsigned int seconds, InvocVector& admReqs,
 
     while((i3 = ccbsToGc.begin()) != ccbsToGc.end()) {
         CcbInfo* ccb = (*i3);
-        TRACE("Deleting ccb %u from ccbsToGc", ccb->mId);
         ccbsToGc.erase(i3);
         i3 = std::find_if(sCcbVector.begin(), sCcbVector.end(),
             CcbIdIs(ccb->mId));
         assert(i3 != sCcbVector.end());
-        TRACE("Deleting ccb %u from sCcbsVector", ccb->mId);
         sCcbVector.erase(i3);
-        TRACE("Delete ccb %u", ccb->mId);
         delete (ccb);
-        TRACE("After delete");
     }
 
     ci2=sPbeRtReqContinuationMap.begin(); 

@@ -187,6 +187,7 @@ struct imma_oi_ccb_record * imma_oi_ccb_record_find(IMMA_CLIENT_NODE *cl_node, S
 	TRACE_ENTER();
 	struct imma_oi_ccb_record *tmp = cl_node->activeOiCcbs;
 	while (tmp && (tmp->ccbId != ccbId)) {
+		TRACE("Non matching record for ccb:%u", tmp->ccbId);
 		tmp = tmp->next;
 	}
 

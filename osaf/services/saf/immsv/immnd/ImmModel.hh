@@ -384,7 +384,8 @@ public:
     void              ccbAbort(
                                SaUint32T ccbId, 
                                ConnVector& connVector,
-                               SaUint32T* client);
+                               SaUint32T* client,
+			       unsigned int* pbeNodeIdPtr);
     bool              cleanTheBasement(
                                        unsigned int seconds, 
                                        InvocVector& admReqs,
