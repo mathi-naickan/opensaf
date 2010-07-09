@@ -123,11 +123,33 @@ static void valuesToPBE(const SaImmAttrValuesT_2* p,
 	TRACE_LEAVE();
 }
 
+
+/* mv the tempfile on to the regular db file name link.
+   This will simultaneously/atomically remove the link for the
+   old file. 
+*/
+void pbeAtomicSwitchFile(const char* filePath)
+{
+	std::string tmpFilename;
+	tmpFilename.append(filePath);
+	tmpFilename.append(".tmp"); 
+
+	if(rename(tmpFilename.c_str(), filePath)!=0) {
+		LOG_ER("Failed to rename %s to %s error:%s", 
+			filePath, tmpFilename.c_str(), strerror(errno));
+		exit(1);
+	} else {
+		TRACE("Renamed %s to %s.", tmpFilename.c_str(), filePath);
+	}
+}
+
+
 void* pbeRepositoryInit(const char* filePath, bool create)
 {
 	int fd=(-1);
 	sqlite3* dbHandle=NULL;
-	std::string newFilename;
+	std::string oldFilename;
+	std::string tmpFilename;
 	int rc=0;
 	SaImmRepositoryInitModeT rpi = (SaImmRepositoryInitModeT) 0;
 	char **result=NULL;
@@ -173,34 +195,48 @@ void* pbeRepositoryInit(const char* filePath, bool create)
 
 	if(!create) {goto re_attach;}
 
-	/* Create the Pbe-repository by dumping current imm contents to a fresh DB. */
+	/* Create a fresh Pbe-repository by dumping current imm contents to tmpFilename. 
+	   If old repository exists, then "save it" under additional oldFileName link.
+	 */
 
-	/* Check if db-file already exists and if so mv it to a backup copy. */
-	/* TODO reverse this, dump to tmp file, then copy oldfile, then mv tmp to file (atomic)*/
-	fd = open(filePath, O_RDWR);
-	if(fd != (-1)) {
-		close(fd);
-		fd=(-1);
-		newFilename.append(filePath);
-		newFilename.append(".prev"); 
-		/* Could mark with date, but that requires rotation. */
+	oldFilename.append(filePath);
+	oldFilename.append(".prev"); 
+	tmpFilename.append(filePath);
+	tmpFilename.append(".tmp"); 
 
-		if(rename(filePath, newFilename.c_str())!=0) {
-			LOG_ER("Failed to rename %s to %s error:%s", 
-				filePath, newFilename.c_str(), strerror(errno));
-			exit(1);
-		} else {
-			LOG_NO("Renamed %s to %s.", filePath, newFilename.c_str());
-		}
+
+	/* Existing new file indicates a previous failure.
+	   We should possible have some excalation mechanism here. */
+	if(unlink(tmpFilename.c_str()) != 0) {
+		TRACE_2("Failed to unlink %s  error:%s", 
+			tmpFilename.c_str(), strerror(errno));
 	}
 
-	rc = sqlite3_open(filePath, &dbHandle);
+	/* Also remove old old file. */
+	if(unlink(oldFilename.c_str()) != 0) {
+		TRACE_2("Failed to unlink %s  error:%s", 
+			oldFilename.c_str(), strerror(errno));
+	}
+
+	/* Make an additional link to the current db file.
+	   Instead of removing or overwriting the current db file
+	   we create the tmpFilename on the side, then mv the
+	   new file to the current file, automatically unlinking
+	   the current file from the regular file name. The current
+	   file will still have the oldFilename link.
+	   Could mark with date, but that requires rotation. */
+	if(link(filePath, oldFilename.c_str()) != 0) {
+		LOG_WA("Failed to link %s to %s error:%s", 
+			filePath, oldFilename.c_str(), strerror(errno));
+	}
+
+	rc = sqlite3_open(tmpFilename.c_str(), &dbHandle);
 	if(rc) {
 		LOG_ER("Can't open sqlite pbe file '%s', cause:%s", 
-			filePath, sqlite3_errmsg(dbHandle));
+			tmpFilename.c_str(), sqlite3_errmsg(dbHandle));
 		exit(1);
 	} 
-	TRACE_2("Successfully opened sqlite pbe file %s", filePath);
+	TRACE_2("Successfully opened sqlite pbe file %s", tmpFilename.c_str());
 		 
 
 	/* Creating the schema. */
@@ -218,6 +254,7 @@ void* pbeRepositoryInit(const char* filePath, bool create)
 	return (void *) dbHandle;
 
  re_attach:
+
 	/* Re-attach to an already created pbe file.
 	   Before trying to open with sqlite3, check if the db file exists
 	   and is writable. This avoids the sqlite3 default behavior of simply
@@ -629,7 +666,7 @@ static ClassInfo* verifyClassPBE(std::string classNameString,
 	/*
 	  This function does very little verification right now. It should do more.
 	  Reason is we are re-attaching to a DB file after a gap during which we do not know
-	  what has happened to that file. We shoul at least verify that the number of classes 
+	  what has happened to that file. We should at least verify that the number of classes 
 	  and number of objects match. Each object should really have a checksum.
 	  Verification of objects should be a separate function verifyObjectPBE.
 	*/
@@ -687,11 +724,10 @@ static ClassInfo* verifyClassPBE(std::string classNameString,
 	return classInfo;
 
  bailout:
-	sqlite3_close((sqlite3 *) dbHandle);
+	/*sqlite3_close((sqlite3 *) dbHandle);*/
 	delete classInfo;
-	/* TODO remove imm.db file */
-	LOG_ER("Exiting");
-	exit(1);
+	LOG_WA("Verify class %s failed!", classNameString.c_str());
+	return NULL;
 }
 
 void stampObjectWithCcbId(void* db_handle, const char* object_id,  SaUint64T ccb_id)
@@ -1643,9 +1679,13 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 
 	while (it != classNameList.end())
 	{
-		(*classIdMap)[(*it)] = 
-			verifyClassPBE((*it), immHandle, dbHandle);
-		it++;
+		ClassInfo* cl_info = verifyClassPBE((*it), immHandle, dbHandle);
+		if(cl_info) { 
+			(*classIdMap)[(*it)] = cl_info;
+			it++;
+		} else {
+			goto bailout;
+		}
 	}
 
 	rc = sqlite3_get_table(dbHandle, sqlQ.c_str(), &result, &nrows, &ncols, &qErr);
@@ -1677,8 +1717,8 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 
  bailout:
 	sqlite3_close(dbHandle);
-	LOG_ER("Exiting");
-	exit(1);	
+	LOG_WA("verifyPbeState failed!");
+	return 0;
 }
 
 unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
@@ -1958,6 +1998,12 @@ void* pbeRepositoryInit(const char* filePath, bool create)
 
 void pbeRepositoryClose(void* dbHandle) 
 {
+	assert(0);
+}
+
+void pbeAtomicSwitchFile(const char* filePath)
+{
+	assert(0);
 }
 
 void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,

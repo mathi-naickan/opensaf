@@ -44,6 +44,7 @@ std::string getClassName(const SaImmAttrValuesT_2** attrs);
 std::string valueToString(SaImmAttrValueT, SaImmValueTypeT);
 
 void* pbeRepositoryInit(const char* filePath, bool create);
+void pbeAtomicSwitchFile(const char* filePath);
 void pbeRepositoryClose(void* dbHandle);
 void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 	void* db_handle);

@@ -227,15 +227,17 @@ int main(int argc, char* argv[])
 	*/
         dbHandle = pbeRepositoryInit(filename.c_str(), false);
 	/* getClassIdMap */
-        if(!dbHandle) {
-            LOG_WA("Pbe: Failed to recover db file %s - regenerating db file",
-		    filename.c_str());
-            pbeDumpCase = true;
-        }
+        if(dbHandle) {
+		objCount = verifyPbeState(immHandle, &classIdMap, dbHandle);
+		TRACE("Classes Verified");
+		if(!objCount) {dbHandle = NULL;}
+        } 
 
-	objCount = verifyPbeState(immHandle, &classIdMap, dbHandle);
-        TRACE("Classes Verified");
-
+	if(!dbHandle) {
+		LOG_WA("Pbe: Failed to re-attach to db file %s - regenerating db file",
+			filename.c_str());
+		pbeDumpCase = true;
+	}
     }    
 
     if(pbeDumpCase) {
@@ -267,8 +269,10 @@ int main(int argc, char* argv[])
         objCount = dumpObjectsToPbe(immHandle, &classIdMap, dbHandle);
         TRACE("Dump objects OK");
 
+	pbeRepositoryClose(dbHandle);
+	dbHandle = NULL;
+	pbeAtomicSwitchFile(filename.c_str());
         if(!pbeDaemonCase) {
-            pbeRepositoryClose(dbHandle);
             exit(0);
         }
         /* Else the pbe dump was needed to get the initial pbe-file
