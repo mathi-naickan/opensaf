@@ -287,6 +287,9 @@ static ObjectMutationMap sPbeRtMutations; /* Persistent Runtime Mutations
                                               At most one mutating op per Prto 
                                               is allowed. Entry removed on on 
                                               ack from PBE. */
+static SaUint32T        sPbeRtMinContId = 0; /* Monitors that no PbePrto gets stuck. */
+static SaUint32T        sPbeRtBacklog = 0;   /* Monitors PbePrto capacity problems. */
+static SaUint32T        sPbeRegressPeriods = 0; 
 
 static SaUint32T        sLastContinuationId = 0;
 
@@ -524,7 +527,7 @@ immModel_pbeOiExists(IMMND_CB *cb)
         SA_TRUE : SA_FALSE;
 }
 
-SaBoolT
+SaUint32T
 immModel_cleanTheBasement(IMMND_CB *cb, 
     SaUint32T seconds,
     SaInvocationT** admReqArr,
@@ -545,7 +548,7 @@ immModel_cleanTheBasement(IMMND_CB *cb,
     IdVector::iterator ix2;
     unsigned int ix;
     
-    SaBoolT ccbsStuck = (SaBoolT)
+    SaUint32T stuck = 
         ImmModel::instance(&cb->immModel)->cleanTheBasement(seconds, 
         admReqs, 
         searchReqs, 
@@ -602,7 +605,7 @@ immModel_cleanTheBasement(IMMND_CB *cb,
         assert(ix==(*pbePrtoReqArrSize));
     }
 
-    return ccbsStuck;
+    return stuck;
 }
 
 SaAisErrorT
@@ -3007,7 +3010,7 @@ ImmModel::ccbCommit(SaUint32T ccbId, ConnVector& connVector)
 
 void
 ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
-	unsigned int* pbeNodeIdPtr)
+    unsigned int* pbeNodeIdPtr)
 {
     SaUint32T pbeConn=0;
     TRACE_ENTER();
@@ -3106,7 +3109,7 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
     ccb->mImplementers.clear();
 
     if(ccb->mMutations.empty() && pbeNodeIdPtr) {
-	LOG_IN("Ccb %u being aborted is empty, avoid involving PBE", ccbId);
+        LOG_IN("Ccb %u being aborted is empty, avoid involving PBE", ccbId);
         pbeNodeIdPtr = NULL;
     }
 
@@ -4839,7 +4842,7 @@ ImmModel::ccbWaitForCompletedAck(SaUint32T ccbId, SaAisErrorT* err,
     }
 
     if(ccb->mMutations.empty() && pbeNodeIdPtr) {
-	LOG_IN("Ccb %u being applied is empty, avoid involving PBE", ccbId);
+        LOG_IN("Ccb %u being applied is empty, avoid involving PBE", ccbId);
         pbeNodeIdPtr = NULL;
     }
 
@@ -5892,7 +5895,7 @@ ImmModel::schemaNameCheck(const std::string& name) const
     if(isdigit(chr)) {
         LOG_IN("Bad class/attribute name starts with number: '%s' (%c): pos=%u", 
             name.c_str(), chr, 0);
-        return false;	    
+        return false;
     }
 
     return true;
@@ -6411,7 +6414,7 @@ ImmModel::getAdminOwnerIdsForCon(SaUint32T dead, IdVector& cv)
     }
 }
 
-bool
+SaUint32T
 ImmModel::cleanTheBasement(unsigned int seconds, InvocVector& admReqs,
     InvocVector& searchReqs, IdVector& ccbs, IdVector& pbePrtoReqs,
     bool iAmCoord)
@@ -6420,7 +6423,8 @@ ImmModel::cleanTheBasement(unsigned int seconds, InvocVector& admReqs,
     ContinuationMap2::iterator ci2;
     CcbVector::iterator i3;
     CcbVector ccbsToGc;
-    bool ccbsStuck=false;
+    SaUint32T ccbsStuck=0; /* 0 or 1 */
+    SaUint32T pbeRtRegress=0; /* 0 or 2 */
     
     for(ci2=sAdmReqContinuationMap.begin(); 
         ci2!=sAdmReqContinuationMap.end();
@@ -6492,7 +6496,7 @@ ImmModel::cleanTheBasement(unsigned int seconds, InvocVector& admReqs,
                 if((*i3)->mState == IMM_CCB_CRITICAL) {
                     LOG_NO("Critical transaction backloged! ccb:%u",
                         (*i3)->mId);
-                    ccbsStuck=true;
+                    ccbsStuck=1;
                 } else {
                     ccbs.push_back((*i3)->mId); /*Non critical ccb to abort.*/
                 }
@@ -6523,7 +6527,63 @@ ImmModel::cleanTheBasement(unsigned int seconds, InvocVector& admReqs,
         }
     }
 
-    return ccbsStuck;
+    /* Check for progress on PbeRtMutations. */
+    if(sPbeRtMutations.empty()) {
+        if(sPbeRtMinContId) {
+            TRACE_5("Progress: sPbeMinRtContId reset from %u to zero", sPbeRtMinContId);
+            sPbeRtMinContId = 0;
+        }
+
+        if(sPbeRtBacklog) {
+            TRACE_5("Progress: sPbeBacklog reset from %u to zero", sPbeRtBacklog);
+            sPbeRtBacklog = 0;
+        }
+    } else {
+        /* Check for blockage. */
+        SaUint32T pbeMinContinuationId=0xffffffff;
+        for(ObjectMutationMap::iterator omuti=sPbeRtMutations.begin(); 
+            omuti!=sPbeRtMutations.end(); ++omuti) {
+            if(omuti->second->mContinuationId < pbeMinContinuationId) {
+                pbeMinContinuationId = omuti->second->mContinuationId;
+            }
+        }
+
+        assert(pbeMinContinuationId);
+        assert(pbeMinContinuationId < 0xffffffff);
+        if(sPbeRtMinContId == pbeMinContinuationId) {
+            pbeRtRegress = 2; /* No progress on oldest continuation. */
+        } else {
+            TRACE_5("Progress: sPbeMinRtContId raised from %u to %u", sPbeRtMinContId,
+                pbeMinContinuationId);
+            sPbeRtMinContId = pbeMinContinuationId;
+
+            /* We are making progress but is backlog increasing? */
+            SaUint32T newBacklog = (SaUint32T) sPbeRtMutations.size();
+            if(newBacklog > sPbeRtBacklog) {
+                /* Backlog increased. */
+                TRACE_5("Backlog increased from %u to %u", sPbeRtBacklog, newBacklog);
+                sPbeRtBacklog = newBacklog;
+                pbeRtRegress = 2;
+            }
+        }
+    }
+
+
+    if(pbeRtRegress) {
+        if(++sPbeRegressPeriods < 15) {
+            /* Have some patience. */
+            pbeRtRegress = 0;
+            TRACE_5("sPbeRegressPeriods:%u", sPbeRegressPeriods);
+        } 
+    } else {
+        if(sPbeRegressPeriods) {
+            TRACE_5("Progress: sPbeRegressPeriods reset from %u to zero", 
+                sPbeRegressPeriods);
+            sPbeRegressPeriods = 0;
+        }
+    }
+	
+    return ccbsStuck + pbeRtRegress;
 }
 
 

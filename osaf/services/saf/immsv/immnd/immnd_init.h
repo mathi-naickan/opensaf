@@ -114,7 +114,7 @@ extern "C" {
 	SaAisErrorT
 	    immModel_classDescriptionGet(IMMND_CB *cb, const IMMSV_OCTET_STRING *clName, struct ImmsvOmClassDescr *res);
 
-	SaBoolT immModel_cleanTheBasement(IMMND_CB *cb,
+	SaUint32T immModel_cleanTheBasement(IMMND_CB *cb,
 		SaUint32T seconds,
 		SaInvocationT **admReqArr,
 		SaUint32T *admReqArrSize,

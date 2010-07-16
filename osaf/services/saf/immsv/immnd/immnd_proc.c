@@ -826,6 +826,8 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	uns32 rc = NCSCC_RC_SUCCESS;
 	SaBoolT ccbsStuckInCritical=SA_FALSE;
+	SaBoolT pbePrtoStuck=SA_FALSE;
+	SaUint32T stuck=0;
 	/*TRACE_ENTER(); */
 
 	if((cb->mRim == SA_IMM_KEEP_REPOSITORY) && !(cb->mPbeVeteran)) {
@@ -848,7 +850,7 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 		dequeue_outgoing(cb); /* function body in immnd_evt.c */
 	}
 
-	ccbsStuckInCritical = immModel_cleanTheBasement(cb,
+	stuck = immModel_cleanTheBasement(cb,
 		cb->mTimer,
 		&admReqArr,
 		&admReqArrSize,
@@ -859,6 +861,12 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 		&pbePrtoReqArr,
 		&pbePrtoReqArrSize,
 		iAmCoordNow);
+
+	if(stuck > 1) {
+		pbePrtoStuck = SA_TRUE;
+		stuck-=2;
+	}
+	ccbsStuckInCritical = stuck;
 
 	if (admReqArrSize) {
 		/* TODO: Correct for explicit continuation handling in the 
@@ -1060,6 +1068,13 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 			}
 		}
 		free(pbePrtoReqArr);
+	}
+
+	if(pbePrtoStuck) {
+		if(cb->pbePid > 0) {
+			LOG_ER("PBE process appears stuck on runtime data handling - restarting");
+			kill(cb->pbePid, SIGTERM);
+		}
 	}
 
 	/*TRACE_LEAVE(); */
