@@ -162,11 +162,11 @@ __attribute__ ((constructor)) static void saNtfInitialize_constructor(void)
 #if 0
 	/* this test case is for SA_AIS_ERR_LIBRARY, which will be passed when tipc 
 	*  is running and clma_create() will fail*/
-        test_case_add(1, saClmInitialize_13, "saClmInitialize & saClmInitialize_4 with  
-					      valid param");
+        test_case_add(1, saClmInitialize_13, "saClmInitialize & saClmInitialize_4 with"  
+					      "valid param");
 	/*this test case is for SA_AIS_ERR_TRY_AGAIN, which will be passed when tipc 
 	* is running but server is not */
-        test_case_add(1, saClmInitialize_14, "saClmInitialize & saClmInitialize_4 with 
-					      valid param");
+        test_case_add(1, saClmInitialize_14, "saClmInitialize & saClmInitialize_4 with"
+					      "valid param");
 #endif 
 }
