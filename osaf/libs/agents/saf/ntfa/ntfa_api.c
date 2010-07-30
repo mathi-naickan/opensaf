@@ -2642,6 +2642,8 @@ SaAisErrorT saNtfNotificationReadInitialize(SaNtfSearchCriteriaT searchCriteria,
 	reader_hdl_rec->reader_id = o_msg->info.api_resp_info.param.reader_init_rsp.readerId;
     /**                  UnLock ntfa_CB            **/
 	pthread_mutex_unlock(&ntfa_cb.cb_lock);
+	if (o_msg)
+		ntfa_msg_destroy(o_msg);
 
  done_give_client_hdl:
 	ncshm_give_hdl(client_hdl_rec->local_hdl);
@@ -2723,13 +2725,9 @@ SaAisErrorT saNtfNotificationReadFinalize(SaNtfReadHandleT readhandle)
 		goto done_give_hdls;
 	}
 
-	if (NULL != o_msg->info.api_resp_info.param.read_next_rsp.readNotification) {
-		free(o_msg->info.api_resp_info.param.read_next_rsp.readNotification);
-	}
-
 	oas_rc = ntfa_reader_hdl_rec_del(&client_hdl_rec->reader_list, reader_hdl_rec);
 	if (oas_rc != NCSCC_RC_SUCCESS) {
-		oas_rc = SA_AIS_ERR_LIBRARY;
+		rc = SA_AIS_ERR_LIBRARY;
 	}
 	if (o_msg)
 		ntfa_msg_destroy(o_msg);
@@ -2756,6 +2754,7 @@ SaAisErrorT saNtfNotificationReadNext(SaNtfReadHandleT readHandle,
 	ntfsv_read_next_req_t *send_param;
 	uns32 timeout = NTFS_WAIT_TIME;
 	ntfsv_send_not_req_t *read_not = NULL;
+	ntfa_notification_hdl_rec_t *notification_hdl_rec = NULL;
 
 	TRACE_ENTER();
 
@@ -2830,11 +2829,83 @@ SaAisErrorT saNtfNotificationReadNext(SaNtfReadHandleT readHandle,
 
 	/* Only alarm supported */
 	if (read_not->notificationType == SA_NTF_TYPE_ALARM) {
-		notification->notificationType = read_not->notificationType;
-		notification->notification.alarmNotification = read_not->notification.alarm;
+
+		notification->notificationType = SA_NTF_TYPE_ALARM;
+		rc = saNtfAlarmNotificationAllocate(reader_hdl_rec->ntfHandle,
+				&notification->notification.alarmNotification,
+				read_not->notification.alarm.notificationHeader.numCorrelatedNotifications,
+				read_not->notification.alarm.notificationHeader.lengthAdditionalText,
+				read_not->notification.alarm.notificationHeader.numAdditionalInfo,
+				read_not->notification.alarm.numSpecificProblems,
+				read_not->notification.alarm.numMonitoredAttributes,
+				read_not->notification.alarm.numProposedRepairActions,
+				read_not->variable_data.size);
+
+		if(rc != SA_AIS_OK) {
+			TRACE("saNtfAlarmNotificationAllocate (%d) failed", rc);
+			if(o_msg)
+				ntfa_msg_destroy(o_msg);
+			goto done_give_hdls;
+		}
+
+		pthread_mutex_lock(&ntfa_cb.cb_lock);
+		notification_hdl_rec = ncshm_take_hdl(NCS_SERVICE_ID_NTFA, notification->notification.
+							alarmNotification.notificationHandle);
+		if (notification_hdl_rec == NULL) {
+			pthread_mutex_unlock(&ntfa_cb.cb_lock);
+			TRACE("ncshm_take_hdl notificationHandle failed");
+			rc = saNtfNotificationFree(notification->notification.
+							alarmNotification.notificationHandle);
+			if(rc != SA_AIS_OK) 
+				TRACE("saNtfNotificationFree (%d) failed", rc);
+
+			rc = SA_AIS_ERR_BAD_HANDLE;
+			if(o_msg)
+				ntfa_msg_destroy(o_msg);
+			goto done_give_hdls;
+		}
+		rc = ntfsv_v_data_cp(&notification_hdl_rec->variable_data, &read_not->variable_data);
+		ncshm_give_hdl(notification->notification.alarmNotification.notificationHandle);
+		ntfsv_copy_ntf_alarm(&notification->notification.alarmNotification, &read_not->notification.alarm);
+		pthread_mutex_unlock(&ntfa_cb.cb_lock);
+
 	} else if(read_not->notificationType == SA_NTF_TYPE_SECURITY_ALARM){
-		notification->notificationType = read_not->notificationType;
-		notification->notification.securityAlarmNotification = read_not->notification.securityAlarm;
+
+		notification->notificationType = SA_NTF_TYPE_SECURITY_ALARM;
+		rc = saNtfSecurityAlarmNotificationAllocate(reader_hdl_rec->ntfHandle,
+				&notification->notification.securityAlarmNotification,
+				read_not->notification.securityAlarm.notificationHeader.numCorrelatedNotifications,
+				read_not->notification.securityAlarm.notificationHeader.lengthAdditionalText,
+				read_not->notification.securityAlarm.notificationHeader.numAdditionalInfo,
+				read_not->variable_data.size);
+
+		if(rc != SA_AIS_OK) {
+			TRACE("saNtfSecurityAlarmNotificationAllocate (%d) failed", rc);
+			if(o_msg)
+				ntfa_msg_destroy(o_msg);
+			goto done_give_hdls;
+		}
+
+		pthread_mutex_lock(&ntfa_cb.cb_lock);
+		notification_hdl_rec = ncshm_take_hdl(NCS_SERVICE_ID_NTFA, notification->notification.
+							securityAlarmNotification.notificationHandle);
+		if (notification_hdl_rec == NULL) {
+			pthread_mutex_unlock(&ntfa_cb.cb_lock);
+			TRACE("ncshm_take_hdl notificationHandle failed");
+			rc = saNtfNotificationFree(notification->notification.
+							securityAlarmNotification.notificationHandle);
+			if(rc != SA_AIS_OK)
+				TRACE("saNtfNotificationFree (%d) failed", rc);
+			rc = SA_AIS_ERR_BAD_HANDLE;
+			if(o_msg)
+				ntfa_msg_destroy(o_msg);
+			goto done_give_hdls;
+		}
+		rc = ntfsv_v_data_cp(&notification_hdl_rec->variable_data, &read_not->variable_data);
+		ncshm_give_hdl(notification->notification.securityAlarmNotification.notificationHandle);
+		ntfsv_copy_ntf_security_alarm(&notification->notification.securityAlarmNotification,
+						&read_not->notification.securityAlarm);
+		pthread_mutex_unlock(&ntfa_cb.cb_lock);
 	} else {
 		TRACE_1("Notification type (%d) is not alarm!", (int)read_not->notificationType);
 		rc = SA_AIS_ERR_NOT_SUPPORTED;

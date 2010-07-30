@@ -547,6 +547,25 @@ void ntfa_msg_destroy(ntfsv_msg_t *msg)
 			ntfsv_dealloc_notification(msg->info.cbk_info.param.notification_cbk);
 			free(msg->info.cbk_info.param.notification_cbk);
 		}
+	} else {
+		if(msg->info.api_resp_info.rc == SA_AIS_OK) {
+			if(msg->info.api_resp_info.type == NTFSV_READ_NEXT_RSP && 
+					(msg->info.api_resp_info.param.read_next_rsp.readNotification != NULL)) {
+				if(msg->info.api_resp_info.param.read_next_rsp.
+						readNotification->notificationType == SA_NTF_TYPE_ALARM)
+					ntfsv_dealloc_notification(msg->info.api_resp_info.param.
+							read_next_rsp.readNotification);
+				else if(msg->info.api_resp_info.param.read_next_rsp.
+						readNotification->notificationType == SA_NTF_TYPE_SECURITY_ALARM)
+					ntfsv_dealloc_notification(msg->info.api_resp_info.param.
+							read_next_rsp.readNotification);
+				else
+					TRACE("Reading of only Alarm and Security Alarm is supported");
+
+				if(msg->info.api_resp_info.param.read_next_rsp.readNotification != NULL)	
+					free(msg->info.api_resp_info.param.read_next_rsp.readNotification);
+			}
+		}
 	}
 	free(msg);
 }
