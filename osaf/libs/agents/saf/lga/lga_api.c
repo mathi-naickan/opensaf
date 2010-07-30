@@ -572,7 +572,7 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 	SaAisErrorT rc;
 	uns32 timeout;
 	uns32 log_stream_id;
-	uns32 log_header_type;
+	uns32 log_header_type = 0;
 
 	TRACE_ENTER();
 

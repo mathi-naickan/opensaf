@@ -770,7 +770,7 @@ void cpnd_restart_set_arrcb(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_node)
 
 uns32 cpnd_client_bitmap_set(SaCkptHandleT client_hdl)
 {
-	uns32 mask, counter, bitmap_value = 0;
+	uns32 mask = 0, counter, bitmap_value = 0;
 	for (counter = 0; counter <= client_hdl; counter++) {
 		mask = 0x1;
 		mask = mask << counter;
