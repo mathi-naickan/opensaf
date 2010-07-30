@@ -127,8 +127,8 @@ uns32 glsv_gla_callback_queue_write(GLA_CB *gla_cb, SaLckHandleT handle, GLSV_GL
 	client_info = (GLA_CLIENT_INFO *)ncs_patricia_tree_get(&gla_cb->gla_client_tree, (uns8 *)&handle);
 
 	if (client_info == NULL) {
-		/* recieved a callback for an non-existant client. so dump the callback info */
-		m_MMGR_FREE_GLA_CALLBACK_INFO(clbk_info);
+		/* recieved a callback for an non-existant client. so return failure */
+		return rc;
 	} else {
 		rc = m_NCS_IPC_SEND(&client_info->callbk_mbx, clbk_info, NCS_IPC_PRIORITY_NORMAL);
 	}

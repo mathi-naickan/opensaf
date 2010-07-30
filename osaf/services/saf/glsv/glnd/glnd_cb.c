@@ -45,7 +45,7 @@ NCSCONTEXT gl_glnd_task_hdl;
 GLND_CB *glnd_cb_create(uns32 pool_id)
 {
 	GLND_CB *glnd_cb = NULL;
-	NCS_PATRICIA_PARAMS params;
+	NCS_PATRICIA_PARAMS params = { 0 };
 	SaAmfHealthcheckKeyT healthy;
 	int8 *health_key = NULL;
 	SaAisErrorT amf_error;
@@ -141,10 +141,12 @@ GLND_CB *glnd_cb_create(uns32 pool_id)
 
 	health_key = (int8 *)getenv("GLSV_ENV_HEALTHCHECK_KEY");
 	if (health_key == NULL) {
-		strcpy((char *)healthy.key, "A1B2");
+		if (strlen("A1B2") < sizeof(healthy.key))
+			strncpy((char *)healthy.key, "A1B2", sizeof(healthy.key));
 		/* TBD Log the info */
 	} else {
-		strcpy((char *)healthy.key, (char *)health_key);
+		if (strlen((char *)health_key) <= sizeof(healthy.key))
+			strncpy((char *)healthy.key, (char *)health_key, SA_AMF_HEALTHCHECK_KEY_MAX - 1);
 	}
 	healthy.keyLen = strlen((char *)healthy.key);
 
@@ -331,7 +333,6 @@ void glnd_dump_cb()
 			     resource_list = resource_list->next) {
 				TRACE("Resource id - %d", (uns32)resource_list->rsc_info->resource_id);
 			}
-			client_info = glnd_client_node_find_next(glnd_cb, handle_id, agent_info->agent_mds_id);
 		}
 		TRACE("******************************************************** ");
 		agent_info =
@@ -344,39 +345,39 @@ void glnd_dump_cb()
 		res_id = res_info->resource_id;
 		TRACE("************ Resource info *************** ");
 		TRACE("resource id - %d \t Resource Name - %s ", (uns32)res_info->resource_id,
-		       res_info->resource_name.value);
+		      res_info->resource_name.value);
 		TRACE("local ref count - %d \t Mds Node id - %d ", res_info->lcl_ref_cnt,
-		       m_NCS_NODE_ID_FROM_MDS_DEST(res_info->master_mds_dest));
+		      m_NCS_NODE_ID_FROM_MDS_DEST(res_info->master_mds_dest));
 		TRACE("PR orphaned - %d \t EX Orphaned - %d ", res_info->lck_master_info.pr_orphaned,
-		       res_info->lck_master_info.ex_orphaned);
+		      res_info->lck_master_info.ex_orphaned);
 		if (res_info->status == GLND_RESOURCE_ACTIVE_MASTER) {
 			GLND_RES_LOCK_LIST_INFO *list;
 			TRACE("############ Master info #############");
 			TRACE("PR orphaned - %d \t EX Orphaned - %d ", res_info->lck_master_info.pr_orphaned,
-			       res_info->lck_master_info.ex_orphaned);
+			      res_info->lck_master_info.ex_orphaned);
 
 			TRACE("Grant list : ");
 			list = res_info->lck_master_info.grant_list;
 			while (list) {
 				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d ",
-				       (uns32)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
-				       (uns32)list->lock_info.handleId);
+				      (uns32)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
+				      (uns32)list->lock_info.handleId);
 				list = list->next;
 			}
 			TRACE("Wait Ex list : ");
 			list = res_info->lck_master_info.wait_exclusive_list;
 			while (list) {
 				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d ",
-				       (uns32)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
-				       (uns32)list->lock_info.handleId);
+				      (uns32)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
+				      (uns32)list->lock_info.handleId);
 				list = list->next;
 			}
 			TRACE("Wait PR list : ");
 			list = res_info->lck_master_info.wait_read_list;
 			while (list) {
 				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d ",
-				       (uns32)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
-				       (uns32)list->lock_info.handleId);
+				      (uns32)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
+				      (uns32)list->lock_info.handleId);
 				list = list->next;
 			}
 		} else {
@@ -384,7 +385,7 @@ void glnd_dump_cb()
 			TRACE("############ Non-Master info #############");
 			while (lock_list) {
 				TRACE("Lock Id : %d  App Handle : %d ", (uns32)lock_list->lock_info.lockid,
-				       (uns32)lock_list->lock_info.handleId);
+				      (uns32)lock_list->lock_info.handleId);
 				lock_list = lock_list->next;
 			}
 		}

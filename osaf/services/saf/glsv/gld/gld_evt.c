@@ -170,7 +170,10 @@ static uns32 gld_rsc_open(GLSV_GLD_EVT *evt)
 		snd_mds.info.svc_send.i_sendtype = MDS_SENDTYPE_SND;
 		snd_mds.info.svc_send.info.snd.i_to_dest = node_details->dest_id;
 
-		ncsmds_api(&snd_mds);
+		res = ncsmds_api(&snd_mds);
+		if (res != NCSCC_RC_SUCCESS) {
+			m_LOG_GLD_SVC_PRVDR(GLD_MDS_SEND_ERROR, NCSFL_SEV_ERROR, __FILE__, __LINE__);
+		}
 		goto err1;
 	}
 	m_LOG_GLD_EVT(GLD_EVT_RSC_OPEN, NCSFL_SEV_INFO, __FILE__, __LINE__, rsc_info->rsc_id, node_details->node_id);
@@ -553,8 +556,10 @@ static uns32 gld_send_res_master_info(GLSV_GLD_CB *gld_cb, GLSV_GLD_GLND_DETAILS
 	snd_mds.info.svc_send.i_sendtype = MDS_SENDTYPE_SND;
 	snd_mds.info.svc_send.info.snd.i_to_dest = dest_id;
 
-	ncsmds_api(&snd_mds);
-
+	if (ncsmds_api(&snd_mds) != NCSCC_RC_SUCCESS) {
+		m_LOG_GLD_SVC_PRVDR(GLD_MDS_SEND_ERROR, NCSFL_SEV_ERROR, __FILE__, __LINE__);
+		return NCSCC_RC_FAILURE;
+	}
 	if (no_of_glnd_res > 0)
 		m_MMGR_FREE_GLND_RES_MASTER_LIST_INFO(glnd_evt.info.rsc_master_info.rsc_master_list);
 

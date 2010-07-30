@@ -146,7 +146,9 @@ uns32 glnd_mds_register(GLND_CB *cb)
 		m_LOG_GLND_HEADLINE(GLND_MDS_REGISTER_FAILED, NCSFL_SEV_ERROR, __FILE__, __LINE__);
 		/* Uninstall with the mds */
 		svc_info.i_op = MDS_UNINSTALL;
-		ncsmds_api(&svc_info);
+		if (ncsmds_api(&svc_info) == NCSCC_RC_FAILURE) {
+			m_LOG_GLND_HEADLINE(GLND_MDS_UNREGISTER_FAILED, NCSFL_SEV_ERROR, __FILE__, __LINE__);
+		}
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -160,7 +162,9 @@ uns32 glnd_mds_register(GLND_CB *cb)
 		m_LOG_GLND_HEADLINE(GLND_MDS_REGISTER_FAILED, NCSFL_SEV_ERROR, __FILE__, __LINE__);
 		/* Uninstall with the mds */
 		svc_info.i_op = MDS_UNINSTALL;
-		ncsmds_api(&svc_info);
+		if (ncsmds_api(&svc_info) == NCSCC_RC_FAILURE) {
+			m_LOG_GLND_HEADLINE(GLND_MDS_UNREGISTER_FAILED, NCSFL_SEV_ERROR, __FILE__, __LINE__);
+		}
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -1334,14 +1338,14 @@ static uns32 glsv_dec_client_info_evt(NCS_UBAID *uba, GLSV_EVT_RESTART_CLIENT_IN
 	}
 
 	evt->client_handle_id = ncs_decode_64bit(&p8);
- 	evt->app_proc_id = ncs_decode_32bit(&p8);
- 	evt->agent_mds_dest = ncs_decode_64bit(&p8);
- 	evt->version.releaseCode = ncs_decode_8bit(&p8);
- 	evt->version.majorVersion = ncs_decode_8bit(&p8);
- 	evt->version.minorVersion = ncs_decode_8bit(&p8);
- 	evt->cbk_reg_info = ncs_decode_16bit(&p8);
- 	evt->no_of_res = ncs_decode_32bit(&p8);
- 	evt->resource_id = ncs_decode_32bit(&p8);
+	evt->app_proc_id = ncs_decode_32bit(&p8);
+	evt->agent_mds_dest = ncs_decode_64bit(&p8);
+	evt->version.releaseCode = ncs_decode_8bit(&p8);
+	evt->version.majorVersion = ncs_decode_8bit(&p8);
+	evt->version.minorVersion = ncs_decode_8bit(&p8);
+	evt->cbk_reg_info = ncs_decode_16bit(&p8);
+	evt->no_of_res = ncs_decode_32bit(&p8);
+	evt->resource_id = ncs_decode_32bit(&p8);
 
 	ncs_dec_skip_space(uba, size);
 	return NCSCC_RC_SUCCESS;

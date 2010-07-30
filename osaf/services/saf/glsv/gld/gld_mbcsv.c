@@ -625,6 +625,9 @@ static uns32 glsv_gld_mbcsv_dec_async_update(GLSV_GLD_CB *gld_cb, NCS_MBCSV_CB_A
 			goto end;
 		}
 		break;
+	default:
+		m_MMGR_FREE_GLSV_GLD_A2S_EVT(a2s_evt);
+		return NCSCC_RC_FAILURE;
 
 	}
  end:

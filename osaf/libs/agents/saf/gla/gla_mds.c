@@ -133,7 +133,9 @@ uns32 gla_mds_register(GLA_CB *cb)
 	if (ncsmds_api(&svc_info) == NCSCC_RC_FAILURE) {
 		/* Uninstall with the mds */
 		svc_info.i_op = MDS_UNINSTALL;
-		ncsmds_api(&svc_info);
+		if (ncsmds_api(&svc_info) != NCSCC_RC_SUCCESS) {
+			m_LOG_GLA_HEADLINE(GLA_MDS_REGISTER_FAILED, NCSFL_SEV_ERROR, __FILE__, __LINE__);
+		}
 		return NCSCC_RC_FAILURE;
 	}
 	return NCSCC_RC_SUCCESS;
@@ -554,8 +556,8 @@ static uns32 gla_mds_rcv(GLA_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 						/* add the resource id to the local tree */
 						if ((res_id_node =
 						     (GLA_RESOURCE_ID_INFO *)ncshm_take_hdl(NCS_SERVICE_ID_GLA,
-											    gla_callbk_info->resourceId)))
-						{
+											    gla_callbk_info->
+											    resourceId))) {
 							res_id_node->gbl_res_id = param->resourceId;
 							res_id_node->lock_handle_id = client_info->lock_handle_id;
 							ncshm_give_hdl(gla_callbk_info->resourceId);
@@ -566,6 +568,9 @@ static uns32 gla_mds_rcv(GLA_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 			}
 		}
 		m_MMGR_FREE_GLA_EVT(evt);
+		if (rc == NCSCC_RC_FAILURE) {
+			m_MMGR_FREE_GLA_CALLBACK_INFO(gla_callbk_info);
+		}
 		return rc;
 	} else {
 		if (evt)

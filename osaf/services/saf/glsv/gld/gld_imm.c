@@ -160,7 +160,7 @@ SaAisErrorT create_runtime_object(SaStringT rname, SaTimeT create_time, SaImmOiH
 		rdnstr = strtok(dndup, ",");
 		parent_name++;
 		parentName = &parent;
-		strcpy((char *)parent.value, parent_name);
+		strncpy((char *)parent.value, parent_name, sizeof(parent.value));
 		parent.length = strlen((char *)parent.value);
 	} else
 		rdnstr = rname;
@@ -254,14 +254,13 @@ void gld_imm_declare_implementer(GLSV_GLD_CB *cb)
 	}
 }
 
-
 /**
  * Initialize the OI interface and get a selection object. 
  * @param cb
  * 
  * @return SaAisErrorT
  */
-static void  *gld_imm_reinit_thread(void * _cb)
+static void *gld_imm_reinit_thread(void *_cb)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	GLSV_GLD_CB *cb = (GLSV_GLD_CB *)_cb;
@@ -272,9 +271,7 @@ static void  *gld_imm_reinit_thread(void * _cb)
 		/* If this is the active server, become implementer again. */
 		if (cb->ha_state == SA_AMF_HA_ACTIVE)
 			_gld_imm_declare_implementer(cb);
-	}
-	else
-	{
+	} else {
 
 		LOG_ER("gld_imm_initialize FAILED: %s", strerror(error));
 		exit(EXIT_FAILURE);
@@ -284,12 +281,11 @@ static void  *gld_imm_reinit_thread(void * _cb)
 	return NULL;
 }
 
-
 /**
  * Become object and class implementer, non-blocking.
  * @param cb
  */
-void gld_imm_reinit_bg(GLSV_GLD_CB * cb)
+void gld_imm_reinit_bg(GLSV_GLD_CB *cb)
 {
 	pthread_t thread;
 	pthread_attr_t attr;
@@ -305,4 +301,3 @@ void gld_imm_reinit_bg(GLSV_GLD_CB * cb)
 	pthread_attr_destroy(&attr);
 	TRACE_LEAVE();
 }
-

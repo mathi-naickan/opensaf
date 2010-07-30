@@ -214,10 +214,12 @@ uns32 gld_se_lib_init(NCS_LIB_REQ_INFO *req_info)
 	memset(&Healthy, 0, sizeof(Healthy));
 	health_key = (int8 *)getenv("GLSV_ENV_HEALTHCHECK_KEY");
 	if (health_key == NULL) {
-		strcpy((char *)Healthy.key, "A1B2");
+		if (strlen("A1B2") < sizeof(Healthy.key))
+			strncpy((char *)Healthy.key, "A1B2", sizeof(Healthy.key));
 		m_LOG_GLD_HEADLINE(GLD_HEALTH_KEY_DEFAULT_SET, NCSFL_SEV_INFO, __FILE__, __LINE__, 0);
 	} else {
-		strcpy((char *)Healthy.key, (char *)health_key);
+		if (strlen((char *)health_key) < sizeof(Healthy.key))
+			strncpy((char *)Healthy.key, (char *)health_key, SA_AMF_HEALTHCHECK_KEY_MAX - 1);
 	}
 	Healthy.keyLen = strlen((char *)Healthy.key);
 
@@ -491,7 +493,7 @@ static void gld_main_process(SYSF_MBX *mbx)
 		} else {
 			nfds = FD_IMM;
 		}
-		
+
 		int ret = poll(fds, nfds, -1);
 
 		if (ret == -1) {
@@ -583,6 +585,10 @@ void gld_dump_cb()
 	uns32 node_id = 0;
 
 	gld_cb = (NCSCONTEXT)ncshm_take_hdl(NCS_SERVICE_ID_GLD, gl_gld_hdl);
+	if (!gld_cb) {
+		m_LOG_GLD_HEADLINE(GLD_TAKE_HANDLE_FAILED, NCSFL_SEV_ERROR, __FILE__, __LINE__, 0);
+		return;
+	}
 
 	memset(&mds_dest_id, 0, sizeof(MDS_DEST));
 
@@ -601,8 +607,7 @@ void gld_dump_cb()
 	while ((rsc_info = (GLSV_GLD_RSC_INFO *)ncs_patricia_tree_getnext(&gld_cb->rsc_info_id, (uns8 *)&rsc_id))) {
 		GLSV_NODE_LIST *list;
 		rsc_id = rsc_info->rsc_id;
-		TRACE("Resource Id - : %d  Resource Name - %.10s ",
-		       (uns32)rsc_info->rsc_id, rsc_info->lck_name.value);
+		TRACE("Resource Id - : %d  Resource Name - %.10s ", (uns32)rsc_info->rsc_id, rsc_info->lck_name.value);
 		TRACE("Can Orphan - %d Mode - %d ", rsc_info->can_orphan, (uns32)rsc_info->orphan_lck_mode);
 		list = rsc_info->node_list;
 		TRACE("List of Nodes :");

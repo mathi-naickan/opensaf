@@ -56,6 +56,7 @@ uns32 gld_process_standby_evt(GLSV_GLD_CB *gld_cb, GLSV_GLD_A2S_CKPT_EVT *evt)
 {
 	if (gld_a2s_evt_dispatch_tbl[evt->evt_type] (evt) != NCSCC_RC_SUCCESS) {
 		m_LOG_GLD_HEADLINE(GLD_A2S_EVT_PROC_FAILED, NCSFL_SEV_ERROR, __FILE__, __LINE__, 0);
+		gld_a2s_evt_destroy(evt);
 		return NCSCC_RC_FAILURE;
 	}
 	gld_a2s_evt_destroy(evt);

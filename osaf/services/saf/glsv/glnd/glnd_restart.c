@@ -287,7 +287,9 @@ static uns32 glnd_restart_add_res_lock_to_resource_tree(GLND_CB *glnd_cb,
 		if (client_info != NULL) {
 			glnd_client_node_resource_lock_req_add(client_info, res_info, lck_list_info);
 		}
-	}
+	} else
+		m_MMGR_FREE_GLND_RES_LOCK_LIST_INFO(lck_list_info);
+
 	return NCSCC_RC_SUCCESS;
 }
 

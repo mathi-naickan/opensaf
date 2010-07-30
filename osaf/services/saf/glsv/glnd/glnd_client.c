@@ -174,10 +174,6 @@ uns32 glnd_client_node_del(GLND_CB *glnd_cb, GLND_CLIENT_INFO *client_info)
 
 			glnd_restart_resource_info_ckpt_overwrite(glnd_cb, res_info);
 
-			if (res_info->lcl_ref_cnt == 0
-			    && glnd_resource_grant_list_orphan_locks(res_info, &mode) == FALSE) {
-				glnd_resource_node_destroy(glnd_cb, res_info, orphan);
-			}
 			if (tmp_res_list->open_ref_cnt > 1) {
 				memset(&gld_evt, 0, sizeof(GLSV_GLD_EVT));
 
@@ -186,6 +182,10 @@ uns32 glnd_client_node_del(GLND_CB *glnd_cb, GLND_CLIENT_INFO *client_info)
 				gld_evt.info.rsc_details.lcl_ref_cnt = tmp_res_list->open_ref_cnt;
 				glnd_mds_msg_send_gld(glnd_cb, &gld_evt, glnd_cb->gld_mdest_id);
 
+			}
+			if (res_info->lcl_ref_cnt == 0
+			    && glnd_resource_grant_list_orphan_locks(res_info, &mode) == FALSE) {
+				glnd_resource_node_destroy(glnd_cb, res_info, orphan);
 			}
 		}
 	}
@@ -365,28 +365,28 @@ uns32 glnd_client_node_lcl_resource_del(GLND_CB *glnd_cb,
 						/* send request to orphan the lock */
 						m_GLND_RESOURCE_NODE_LCK_INFO_FILL(glnd_evt,
 										   GLSV_GLND_EVT_LCK_REQ_ORPHAN,
+										   lock_req_list->lck_req->res_info->
+										   resource_id,
 										   lock_req_list->lck_req->
-										   res_info->resource_id,
-										   lock_req_list->
-										   lck_req->lcl_resource_id,
-										   lock_req_list->lck_req->
-										   lock_info.handleId,
-										   lock_req_list->lck_req->
-										   lock_info.lockid,
-										   lock_req_list->lck_req->
-										   lock_info.lock_type,
-										   lock_req_list->lck_req->
-										   lock_info.lockFlags, 0, 0, 0, 0,
-										   lock_req_list->lck_req->
-										   lock_info.lcl_lockid, 0);
+										   lcl_resource_id,
+										   lock_req_list->lck_req->lock_info.
+										   handleId,
+										   lock_req_list->lck_req->lock_info.
+										   lockid,
+										   lock_req_list->lck_req->lock_info.
+										   lock_type,
+										   lock_req_list->lck_req->lock_info.
+										   lockFlags, 0, 0, 0, 0,
+										   lock_req_list->lck_req->lock_info.
+										   lcl_lockid, 0);
 
 						glnd_evt.info.node_lck_info.glnd_mds_dest = glnd_cb->glnd_mdest_id;
 						glnd_mds_msg_send_glnd(glnd_cb, &glnd_evt, res_info->master_mds_dest);
 					} else {
 						/* unset any orphan count */
 						lock_type = lock_req_list->lck_req->lock_info.lock_type;
-						if ((lock_req_list->lck_req->
-						     lock_info.lockFlags & SA_LCK_LOCK_ORPHAN) == SA_LCK_LOCK_ORPHAN)
+						if ((lock_req_list->lck_req->lock_info.
+						     lockFlags & SA_LCK_LOCK_ORPHAN) == SA_LCK_LOCK_ORPHAN)
 							local_orphan_lock = TRUE;
 					}
 					del_req_list = lock_req_list;
