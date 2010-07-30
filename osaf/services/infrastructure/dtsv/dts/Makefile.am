@@ -50,7 +50,9 @@ osafdtd_SOURCES = \
 	dts_sysf_log.c \
 	dts_tgt.c
 
-osafdtd_LDFLAGS = -Wl,--export-dynamic
+osafdtd_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-Wl,--export-dynamic
 
 osafdtd_LDADD = \
 	$(top_builddir)/osaf/libs/core/libopensaf_core.la \

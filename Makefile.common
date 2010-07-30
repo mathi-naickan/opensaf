@@ -20,8 +20,9 @@ AM_CPPFLAGS = \
 	$(CORE_INCLUDES) \
 	$(all_includes)
 
-AM_CFLAGS = -Wall -fno-strict-aliasing -Werror -fPIC -lpthread
+AM_CFLAGS = -Wall -fno-strict-aliasing -Werror -fPIC
 AM_CXXFLAGS = -Wall -fno-strict-aliasing -Werror -fPIC
+AM_LDFLAGS = -ldl -lrt -lpthread
 
 #
 # Define some useful directory prefixes/suffixes

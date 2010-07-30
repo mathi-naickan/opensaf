@@ -80,7 +80,9 @@ osafsmfd_SOURCES = \
 	SmfCampaignInit.cc \
 	SmfCampaignWrapup.cc
 
-osafsmfd_LDFLAGS = @XML2_LIBS@
+osafsmfd_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	@XML2_LIBS@
 
 osafsmfd_LDADD = \
 	$(top_builddir)/osaf/libs/saf/libSaAmf/libSaAmf.la \

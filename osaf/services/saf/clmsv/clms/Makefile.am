@@ -49,6 +49,7 @@ osafclmd_SOURCES = \
 	clms_mds.c
 
 osafclmd_LDADD = \
+	$(top_builddir)/osaf/libs/core/libopensaf_core.la \
 	$(top_builddir)/osaf/libs/common/clmsv/libclmsv_common.la \
 	$(top_builddir)/osaf/libs/saf/libSaAmf/libSaAmf.la \
 	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOi.la \
@@ -62,7 +63,6 @@ if ENABLE_AIS_PLM
 osafclmd_SOURCES += clms_plm.c
 
 osafclmd_LDADD += \
-	$(top_builddir)/osaf/libs/core/libopensaf_core.la \
 	$(top_builddir)/osaf/libs/saf/libSaPlm/libSaPlm.la
 
 endif
