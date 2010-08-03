@@ -255,9 +255,15 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 				TRACE("fixedLogRecordSize: %u", stream->fixedLogRecordSize);
 			} else if (!strcmp(attribute->attrName, "saLogStreamLogFullAction")) {
 				SaLogFileFullActionT logFullAction = *((SaUint32T *)value);
-				if (logFullAction > SA_LOG_FILE_FULL_ACTION_ROTATE) {
+				if ((logFullAction < SA_LOG_FILE_FULL_ACTION_WRAP) || 
+						(logFullAction > SA_LOG_FILE_FULL_ACTION_ROTATE)){
 					LOG_ER("logFullAction out of range");
 					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				}
+				if ((logFullAction == SA_LOG_FILE_FULL_ACTION_WRAP) ||(logFullAction == SA_LOG_FILE_FULL_ACTION_HALT)){
+					LOG_ER("logFullAction:Current Implementation doesn't support  Wrap and halt");
+					rc = SA_AIS_ERR_NOT_SUPPORTED;
 					goto done;
 				}
 				TRACE("logFullAction: %u", logFullAction);
