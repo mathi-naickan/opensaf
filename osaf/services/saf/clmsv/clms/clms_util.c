@@ -592,12 +592,13 @@ void clms_clmresp_error_timeout(CLMS_CB * cb, CLMS_CLUSTER_NODE * node)
 		node->change = SA_CLM_NODE_SHUTDOWN;
 
 	++(cb->cluster_view_num);
-	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED);
 
 	/*Update IMMSV before returning with ERR_PENDING */
 	clms_node_update_rattr(node);
 	clms_admin_state_update_rattr(node);
 	clms_cluster_update_rattr(osaf_cluster);
+
+	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED);
 
 	node->stat_change = SA_FALSE;
 	node->admin_op = 0;
@@ -812,6 +813,17 @@ uns32 clms_clmresp_ok(CLMS_CB * cb, CLMS_CLUSTER_NODE * op_node, CLMS_TRACK_INFO
 				goto done;
 			}
 			TRACE("PLM Track Response Send Succedeed");
+
+			/*Update the runtime change to IMMSv */
+			clms_node_update_rattr(op_node);
+			clms_admin_state_update_rattr(op_node);
+			clms_cluster_update_rattr(osaf_cluster);
+
+			/*Checkpoint node data */
+			ckpt_node_rec(op_node);
+
+			/*Checkpoint Cluster data */
+			ckpt_cluster_rec();
 		}
 #endif
 
@@ -830,6 +842,13 @@ uns32 clms_clmresp_ok(CLMS_CB * cb, CLMS_CLUSTER_NODE * op_node, CLMS_TRACK_INFO
 			++(cb->cluster_view_num);
 			op_node->admin_state = SA_CLM_ADMIN_LOCKED;
 			op_node->member = SA_FALSE;
+
+			/*Update the runtime change to IMMSv */
+			/*Updating immsv before sending completed callback to clm agents*/
+			clms_node_update_rattr(op_node);
+			clms_admin_state_update_rattr(op_node);
+			clms_cluster_update_rattr(osaf_cluster);
+
 			/* Send track callback to all start client */
 			clms_send_cbk_start_sub(cb, op_node);
 
@@ -852,19 +871,14 @@ uns32 clms_clmresp_ok(CLMS_CB * cb, CLMS_CLUSTER_NODE * op_node, CLMS_TRACK_INFO
 				TRACE("clms_send_is_member_info failed %u", rc);
 				goto done;
 			}
+
+			/*Checkpoint node data */
+			ckpt_node_rec(op_node);
+
+			/*Checkpoint Cluster data */
+			ckpt_cluster_rec();			
 		}
 	}
-	/*Update the runtime change to IMMSv */
-	clms_node_update_rattr(op_node);
-	clms_admin_state_update_rattr(op_node);
-	clms_cluster_update_rattr(osaf_cluster);
-
-	/*Checkpoint node data */
-	ckpt_node_rec(op_node);
-
-	/*Checkpoint Cluster data */
-	ckpt_cluster_rec();
-
  done:
 	TRACE_LEAVE();
 	return rc;

@@ -633,7 +633,6 @@ static void clms_imm_admin_op_callback(SaImmOiHandleT immOiHandle,
 			LOG_ER("clms_imm_node_unlock failed");
 			goto done;
 		}
-		clms_admin_state_update_rattr(nodeop);
 		break;
 	case SA_CLM_ADMIN_SHUTDOWN:
 		nodeop->admin_op = IMM_SHUTDOWN;
@@ -648,9 +647,6 @@ static void clms_imm_admin_op_callback(SaImmOiHandleT immOiHandle,
 		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_NOT_SUPPORTED);
 		goto done;
 	}
-
-	clms_node_update_rattr(nodeop);
-	clms_cluster_update_rattr(osaf_cluster);
 
 	/*CheckPoint the node data */
 	ckpt_node_rec(nodeop);
@@ -1367,7 +1363,6 @@ SaAisErrorT clms_node_ccb_apply_modify(CcbUtilOperationData_t * opdata)
 	}
 	node->change = SA_CLM_NODE_NO_CHANGE;
 
-	clms_node_update_rattr(node);
 	ckpt_node_rec(node);
 	ckpt_cluster_rec();
 
@@ -1683,6 +1678,11 @@ static uns32 clms_lock_send_no_start_cbk(CLMS_CLUSTER_NODE * nodeop)
 	nodeop->admin_state = SA_CLM_ADMIN_LOCKED;
 	++(clms_cb->cluster_view_num);
 
+	/* Update immsv before sending completed callback to clm agents*/
+	clms_admin_state_update_rattr(nodeop);
+	clms_node_update_rattr(nodeop);
+	clms_cluster_update_rattr(osaf_cluster);
+
 	clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED);
 
 	/*Clear admin_op and stat_change */
@@ -1759,13 +1759,19 @@ uns32 clms_imm_node_lock(CLMS_CLUSTER_NODE * nodeop)
 				TRACE("clms_lock_send_no_start_cbk failed");
 				goto done;
 			}
-			clms_admin_state_update_rattr(nodeop);
 		}
 	} else {
 		TRACE("Node is not a member node");
 		nodeop->admin_state = SA_CLM_ADMIN_LOCKED;
 		nodeop->admin_op = 0;
 		nodeop->stat_change = SA_FALSE;
+
+		/*except admin state other update are not */
+		/*required */
+		clms_admin_state_update_rattr(nodeop);
+		clms_node_update_rattr(nodeop);
+		clms_cluster_update_rattr(osaf_cluster);
+
 		(void)immutil_saImmOiAdminOperationResult(clms_cb->immOiHandle, nodeop->curr_admin_inv, SA_AIS_OK);
 
 		/*Send Notification */
@@ -1774,8 +1780,6 @@ uns32 clms_imm_node_lock(CLMS_CLUSTER_NODE * nodeop)
 			TRACE("clms_node_admin_state_change_ntf failed %u", rc);
 			goto done;
 		}
-		clms_admin_state_update_rattr(nodeop);
-
 	}
  done:
 	TRACE_LEAVE();
@@ -1815,6 +1819,11 @@ uns32 clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop)
 				nodeop->stat_change = SA_TRUE;
 				nodeop->change = SA_CLM_NODE_JOINED;
 
+				/*update immsv*/
+				clms_admin_state_update_rattr(nodeop);
+				clms_node_update_rattr(nodeop);
+				clms_cluster_update_rattr(osaf_cluster);
+
 				/*Send Callback to its clienst */
 				clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED);
 
@@ -1844,6 +1853,11 @@ uns32 clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop)
 				nodeop->stat_change = SA_TRUE;
 				nodeop->change = SA_CLM_NODE_JOINED;
 
+				/*update immsv*/
+				clms_admin_state_update_rattr(nodeop);
+				clms_node_update_rattr(nodeop);
+				clms_cluster_update_rattr(osaf_cluster);
+
 				/*Send Callback to its clients */
 				clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED);
 
@@ -1865,6 +1879,10 @@ uns32 clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop)
 				nodeop->member = SA_FALSE;
 				nodeop->admin_state = SA_CLM_ADMIN_UNLOCKED;
 				/*clms_send_is_member_info should not be called, node is down*/
+				/*update immsv*/
+				clms_admin_state_update_rattr(nodeop);
+				clms_node_update_rattr(nodeop);
+				clms_cluster_update_rattr(osaf_cluster);
 
 			}
 #endif
@@ -1943,6 +1961,11 @@ uns32 clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop)
 			nodeop->change = SA_CLM_NODE_SHUTDOWN;
 			++(clms_cb->cluster_view_num);
 
+			/*update immsv*/
+			clms_admin_state_update_rattr(nodeop);
+			clms_node_update_rattr(nodeop);
+			clms_cluster_update_rattr(osaf_cluster);
+
 			clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED);
 
 			/*Clear Admin_op and stat_change */
@@ -1967,7 +1990,6 @@ uns32 clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop)
 				TRACE("clms_send_is_member_info failed %u", rc);
 				goto done;
 			}
-			clms_admin_state_update_rattr(nodeop);
 		}
 	}
  done:
