@@ -586,7 +586,11 @@ void clms_clmresp_error_timeout(CLMS_CB * cb, CLMS_CLUSTER_NODE * node)
 		--(osaf_cluster->num_nodes);
 	}
 	node->member = SA_FALSE;
-	node->change = SA_CLM_NODE_LEFT;
+	if (node->admin_op == IMM_LOCK) {
+		node->change = SA_CLM_NODE_LEFT;
+	} else if (node->admin_op == IMM_SHUTDOWN)
+		node->change = SA_CLM_NODE_SHUTDOWN;
+
 	++(cb->cluster_view_num);
 	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED);
 
