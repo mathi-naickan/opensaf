@@ -589,6 +589,20 @@ static void clms_imm_admin_op_callback(SaImmOiHandleT immOiHandle,
 		LOG_ER("Admin Operation on invalid node_name");
 		assert(0);
 	}
+	
+	if (nodeop->admin_state == SA_CLM_ADMIN_SHUTTING_DOWN) {
+		switch (opId) {
+	
+			case SA_CLM_ADMIN_LOCK:
+			case SA_CLM_ADMIN_UNLOCK:
+				/* Empty the previous track response list if not null */
+				if (ncs_patricia_tree_size(&nodeop->trackresp) != 0)
+			                clms_node_trackresplist_empty(nodeop);
+				immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INTERRUPT);
+				nodeop->admin_op = 0; /* suspending previous shutdown admin openration */	
+				break;
+		}
+	}
 
 	/* Don't proceed: already admin op is in progress on this node */
 	if (nodeop->admin_op != 0) {
