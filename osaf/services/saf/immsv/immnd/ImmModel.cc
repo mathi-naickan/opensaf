@@ -291,6 +291,12 @@ static SaUint32T        sPbeRtMinContId = 0; /* Monitors that no PbePrto gets st
 static SaUint32T        sPbeRtBacklog = 0;   /* Monitors PbePrto capacity problems. */
 static SaUint32T        sPbeRegressPeriods = 0; 
 
+static IdVector         sNodesDeadDuringSync; // Keep track of implementers/nodes that
+static IdVector         sImplsDeadDuringSync; // die after finalizeSync is sent by coord,
+                                              // but before it arrives over fevs. 
+                                              // This to avoid apparent implementor
+                                              // re-create by finalizeSync (at non coord). 
+
 static SaUint32T        sLastContinuationId = 0;
 
 static ImmNodeState     sImmNodeState = IMM_NODE_UNKNOWN;
@@ -2666,45 +2672,45 @@ ImmModel::ccbResult(SaUint32T ccbId)
         LOG_WA("CCB %u does not exist- probably removed already", ccbId);
         err = SA_AIS_ERR_NO_RESOURCES;
     } else {
-		switch ((*i)->mState) {
+        switch ((*i)->mState) {
 
-			case IMM_CCB_ABORTED:
-			case IMM_CCB_PBE_ABORT:
-				TRACE_5("Fetch ccb result: CCB %u was aborted", ccbId);
-				err = SA_AIS_ERR_FAILED_OPERATION;
-				break; //Normal
+            case IMM_CCB_ABORTED:
+            case IMM_CCB_PBE_ABORT:
+                TRACE_5("Fetch ccb result: CCB %u was aborted", ccbId);
+                err = SA_AIS_ERR_FAILED_OPERATION;
+                break; //Normal
 
-			case IMM_CCB_COMMITTED:
-				TRACE_5("Fetch ccb result: CCB %u was committed", ccbId);
-				err = SA_AIS_OK;
-				break; //Normal
+            case IMM_CCB_COMMITTED:
+                TRACE_5("Fetch ccb result: CCB %u was committed", ccbId);
+                err = SA_AIS_OK;
+                break; //Normal
  
-			case IMM_CCB_EMPTY:
-			case IMM_CCB_READY:
-			case IMM_CCB_CREATE_OP:
-			case IMM_CCB_MODIFY_OP:
-			case IMM_CCB_DELETE_OP:
-				LOG_WA("ccbResult: CCB %u is active! state:%u.", ccbId, (*i)->mState);
-				err = SA_AIS_ERR_TRY_AGAIN;
-				break; //Unusual
+            case IMM_CCB_EMPTY:
+            case IMM_CCB_READY:
+            case IMM_CCB_CREATE_OP:
+            case IMM_CCB_MODIFY_OP:
+            case IMM_CCB_DELETE_OP:
+                LOG_WA("ccbResult: CCB %u is active! state:%u.", ccbId, (*i)->mState);
+                    err = SA_AIS_ERR_TRY_AGAIN;
+                break; //Unusual
 
-			case IMM_CCB_PREPARE:
-				LOG_WA("ccbResult: CCB %u in prepare! Commit/abort in progress?", 
-					ccbId);
-				err = SA_AIS_ERR_TRY_AGAIN;
-				break; //Unusual
+            case IMM_CCB_PREPARE:
+                LOG_WA("ccbResult: CCB %u in prepare! Commit/abort in progress?", 
+                    ccbId);
+                err = SA_AIS_ERR_TRY_AGAIN;
+                break; //Unusual
 
-			case IMM_CCB_CRITICAL:
-				LOG_WA("ccbResult: CCB %u in critical state! Commit/apply in progress?", ccbId);
-				err = SA_AIS_ERR_TRY_AGAIN;
-				break; //Can happen if PBE crashes.
+            case IMM_CCB_CRITICAL:
+                LOG_WA("ccbResult: CCB %u in critical state! Commit/apply in progress?", ccbId);
+                err = SA_AIS_ERR_TRY_AGAIN;
+                break; //Can happen if PBE crashes.
 
-        default:
-            LOG_ER("ccbResult: Illegal state %u in ccb %u", (*i)->mState, ccbId);
-            assert(0);
-		}
-	}
-	return err;
+            default:
+                LOG_ER("ccbResult: Illegal state %u in ccb %u", (*i)->mState, ccbId);
+                assert(0);
+        }
+    }
+    return err;
 }
 /** 
  * Commits a CCB
@@ -3109,7 +3115,7 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
     ccb->mImplementers.clear();
 
     if(ccb->mMutations.empty() && pbeNodeIdPtr) {
-        LOG_IN("Ccb %u being aborted is empty, avoid involving PBE", ccbId);
+        TRACE_5("Ccb %u being aborted is empty, avoid involving PBE", ccbId);
         pbeNodeIdPtr = NULL;
     }
 
@@ -4842,7 +4848,7 @@ ImmModel::ccbWaitForCompletedAck(SaUint32T ccbId, SaAisErrorT* err,
     }
 
     if(ccb->mMutations.empty() && pbeNodeIdPtr) {
-        LOG_IN("Ccb %u being applied is empty, avoid involving PBE", ccbId);
+        TRACE_5("Ccb %u being applied is empty, avoid involving PBE", ccbId);
         pbeNodeIdPtr = NULL;
     }
 
@@ -6116,9 +6122,29 @@ ImmModel::getImplementerId(SaUint32T localConn)
 void
 ImmModel::discardNode(unsigned int deadNode, IdVector& cv)
 {
-    TRACE_ENTER();
-    //Discard implementers from that node.
     ImplementerVector::iterator i;
+    AdminOwnerVector::iterator i2;
+    CcbVector::iterator i3;
+    TRACE_ENTER();
+
+    if(sImmNodeState == IMM_NODE_W_AVAILABLE) {
+        /* Sync is ongoing and we are a sync client.
+           Remember the death of the node. 
+        */
+        TRACE_7("Sync client notes death of node %x", deadNode);
+        sNodesDeadDuringSync.push_back(deadNode);
+        goto done; /* Postpone discardNode untill after finalizeSync. */
+    }
+
+    if(sImmNodeState == IMM_NODE_R_AVAILABLE) {
+        /* Sync is ongoing but we are not a sync client.
+           Remember the death of the node for verify in finalizeSync
+        */
+        TRACE_7("Death of node %x noted during on-going sync", deadNode);
+        sNodesDeadDuringSync.push_back(deadNode);
+    }
+
+    //Discard implementers from that node.
     for(i = sImplementerVector.begin(); i != sImplementerVector.end(); ++i) {
         ImplementerInfo* info = (*i);
         if(info->mNodeId == deadNode) {
@@ -6147,7 +6173,6 @@ ImmModel::discardNode(unsigned int deadNode, IdVector& cv)
     }
     
     //Discard AdminOwners
-    AdminOwnerVector::iterator i2;
     i2 = sOwnerVector.begin();
     while(i2 != sOwnerVector.end()) {
         AdminOwnerInfo* ainfo = (*i2);
@@ -6164,14 +6189,13 @@ ImmModel::discardNode(unsigned int deadNode, IdVector& cv)
     }
     
     //Fetch CcbIds for Ccbs originating at the departed node.
-    CcbVector::iterator i3;
     for(i3=sCcbVector.begin(); i3!=sCcbVector.end(); ++i3) {
         if(((*i3)->mOriginatingNode == deadNode) && ((*i3)->isActive())) {
             cv.push_back((*i3)->mId);
             assert((*i3)->mOriginatingConn == 0); //Dead node can not be us!!
         }
     }
-    
+ done:    
     TRACE_LEAVE();
 }
 
@@ -6201,7 +6225,12 @@ ImmModel::discardImplementer(unsigned int implHandle, bool reallyDiscard)
             //But we have a problem of ever growing number of distinct
             //implementers. Possible solution is to here iterate through all
             //classes and objects. If none point to this object then we can
-            //actually remove it. 
+            //actually remove it.
+           if(sImmNodeState == IMM_NODE_R_AVAILABLE) {
+                /* Sync is ongoing but we are not a sync client. 
+                   Remember the death of the implementer. */
+                sImplsDeadDuringSync.push_back(implHandle);
+            }
         } else {
             if(!info->mDying) {
                 LOG_IN("Implementer %u disconnected. Marking it as doomed "
@@ -6210,7 +6239,19 @@ ImmModel::discardImplementer(unsigned int implHandle, bool reallyDiscard)
                 info->mDying = true;
             }
         }
+    } else { /* implementer not found */
+        if(sImmNodeState == IMM_NODE_W_AVAILABLE) {
+            /* Sync is ongoing and we are a sync client.
+               Remember the death of the implementer. 
+            */
+            TRACE_7("Sync client notes death of implementer %u", implHandle);
+            sImplsDeadDuringSync.push_back(implHandle);
+        } else {
+            LOG_WA("discardImplementer: Implementer %u is missing - ignoring", implHandle);
+            /* Should not happen */
+        }
     }
+    
     TRACE_LEAVE();
 }
 
@@ -6582,7 +6623,7 @@ ImmModel::cleanTheBasement(unsigned int seconds, InvocVector& admReqs,
             sPbeRegressPeriods = 0;
         }
     }
-	
+
     return ccbsStuck + pbeRtRegress;
 }
 
@@ -7312,6 +7353,13 @@ ImmModel::implementerClear(const struct ImmsvOiImplSetReq* req,
     
     ImplementerInfo* info = findImplementer(req->impl_id);
     if(!info) {
+        if(sImmNodeState == IMM_NODE_W_AVAILABLE) {
+            /* Sync is ongoing and we are a sync client.
+               Remember the death of the implementer. 
+            */
+            discardImplementer(req->impl_id, true);
+            goto done;
+        }
         LOG_IN("ERR_BAD_HANDLE: Not a correct implementer handle? %llu id:%u", 
             req->client_hdl,
             req->impl_id);
@@ -7326,6 +7374,7 @@ ImmModel::implementerClear(const struct ImmsvOiImplSetReq* req,
         }
     }
     
+ done:
     TRACE_LEAVE();
     return err;
 }
@@ -9170,6 +9219,17 @@ ImmModel::objectSync(const ImmsvOmObjectSync* req)
     }
     
  objectSyncExit:
+    sImplsDeadDuringSync.clear();
+    sNodesDeadDuringSync.clear();
+    /* Clear the "tombstones" for Implementers and Nodes for each sync message
+       received. The tiny hole that we need to plug only exists after the
+       last sync message, when coord sends the finalizeSync message until
+       everyone receives it. Nodes may receive discardImplementer or
+       discardNode messages over fevs before receiving finalizeSync.
+       These nodes/implementers will still be part of the finalizeSync 
+       message, causing apparent verification failure in veterans and 
+       incorrectly installed implementers in sync clients. 
+     */
     TRACE_LEAVE(); 
     return err;
 }
@@ -9218,7 +9278,7 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
     
     if(isCoord) {//Produce the checkpoint 
         CcbVector::iterator ccbItr;
-        
+
         sImmNodeState = IMM_NODE_FULLY_AVAILABLE;
         LOG_IN("NODE STATE-> IMM_NODE_FULLY_AVAILABLE %u", __LINE__);
         /*WARNING the controller node here goes to writable state
@@ -9304,26 +9364,27 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             if((*i2)->mDying) {
                 ii->id = 0;
                 ii->nodeId = 0;
+                ii->mds_dest = 0LL;
+
                 /* Note that here the finalize sync message is bypassing
                    any discardImplementer over fevs. Old clients receiving
                    this message will need to discard implementer on the 
                    basis of the incoming 'id' being zero.
                  */
             } else {
-                ii->id = (*i2)->mId;
+                ii->id = (*i2)->mId; /* id is zero if dead. */
                 ii->nodeId = (*i2)->mNodeId;
+                ii->mds_dest = (*i2)->mMds_dest;
             }
             ii->implementerName.size = (*i2)->mImplementerName.size();
             ii->implementerName.buf = 
                 strndup((char *) (*i2)->mImplementerName.c_str(), 
                     ii->implementerName.size);
             
-            ii->mds_dest = (*i2)->mMds_dest;
-            
             ii->next = req->implementers;
             req->implementers = ii;
         }
-        
+
         LOG_NO("finalizeSync message contains %u implementers", 
             (unsigned int) sImplementerVector.size());
         
@@ -9421,19 +9482,35 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             ImmsvImplList* ii = req->implementers;
             while(ii) {
                 ImplementerInfo* info = new ImplementerInfo;
+                IdVector::iterator ivi = sImplsDeadDuringSync.begin();
+                for(;ivi != sImplsDeadDuringSync.end(); ++ivi) {
+                    if((*ivi) == ii->id) {
+                        LOG_NO("Avoiding re-create of implementer %u in finalizeSync",
+                            ii->id);
+                        /* The coord generated finalizeSync just before a discardImplementer
+                           arrived. Zero parts of incoming data, making it appear as if
+                           discardImplementer arrived before generation of finalizeSync.
+                        */
+                        ii->id = 0; 
+                        ii->nodeId = 0;
+                        ii->mds_dest = 0LL;
+                        break;/* out of inner for-loop */
+                    }
+                }
+
                 info->mId = ii->id;
                 info->mNodeId = ii->nodeId;
                 info->mConn = 0;
+                info->mMds_dest = ii->mds_dest;
                 info->mDying = false; //only relevant on the implementers node.
                 info->mImplementerName.append((const char *) 
                     ii->implementerName.buf,
                     (size_t) ii->implementerName.size);
-                info->mMds_dest = ii->mds_dest;
                 info->mAdminOpBusy=0;
                 sImplementerVector.push_back(info);
                 ii = ii->next;
             }
-            
+
             //Attach object implementers using the implementer-name attribute.
             ObjectMap::iterator oi;
             std::string implAttr(SA_IMM_ATTR_IMPLEMENTER_NAME);
@@ -9515,9 +9592,19 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             this->setLoader(0); 
             //Opens for OM and OI connections to this node.
             //immnd must also set cb->mAccepted=SA_TRUE
+
+            if(!sNodesDeadDuringSync.empty()) {
+                IdVector::iterator ivi = sNodesDeadDuringSync.begin();
+                for(;ivi != sNodesDeadDuringSync.end(); ++ivi) {
+                    ConnVector cv;
+                    LOG_NO("Sync client re-executing discardNode for node %x", (*ivi));
+                    this->discardNode((*ivi), cv);
+                    assert(cv.empty());
+                }
+            }
         } else {
             CcbVector::iterator ccbItr;
-            //verify the checkpoint
+            //verify the checkpoint at veteran nodes (not coord & not sync-client)
 
             
             sImmNodeState = IMM_NODE_FULLY_AVAILABLE;
@@ -9619,18 +9706,51 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 assert(info!=NULL);
                 
                 if(info->mId != (unsigned int) ii->id) {
+                    bool explained = false;
                     if(ii->id == 0) {
-                        LOG_NO("Sync-verify: Established node has different "
-                            "Implementer-id %u for name%s, should be 0. "
-                            "Discarding it.",
+                        LOG_NO("Sync-verify: Veteran node has different "
+                            "Implementer-id %u for name%s, should be 0 "
+                            "according to sync-verify. Discarding it.",
                             info->mId, implName.c_str());
                         /*Does not delete struct that info points to.*/
                         discardImplementer(info->mId, true);
-                    } else {
+                        explained = true;
+                    } else if(info->mId == 0) {
+                        /* Here info->mid == 0 i.e. veteran claims dead implementer 
+                           but coord claims non-dead implementer. This can happen
+                           when implementer is deleted just after coord sends 
+                           finalizeSync. Checking for this.
+                        */
+                        IdVector::iterator ivi = sImplsDeadDuringSync.begin();
+                        for(;ivi != sImplsDeadDuringSync.end(); ++ivi) {
+                            if((*ivi) == ii->id) {
+                                LOG_NO("Detected dead implementer %u in "
+                                      "finalizeSync message - ignoring.", ii->id);
+                                explained = true;
+                                break;
+                            }
+                        }
+
+                        if(ivi == sImplsDeadDuringSync.end() && 
+                           !(sNodesDeadDuringSync.empty()) && ii->nodeId) {
+                            /* Could be dead node instead. */
+                            ivi = sNodesDeadDuringSync.begin();
+                            for(;ivi != sNodesDeadDuringSync.end(); ++ivi) {
+                                if((*ivi) == ii->nodeId) {
+                                    LOG_NO("Detected implementer from dead node %u in "
+                                        "finalizeSync message - ignoring", ii->nodeId);
+                                    explained = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if(!explained) {
                         LOG_ER("Sync-verify: Established node has different "
-                            "Implementer-id: %u for name%s, sync says %u. "
-                            "Released?", info->mId, implName.c_str(), ii->id);
-                        assert(0);
+                               "Implementer-id: %u for name%s, sync says %u. ",
+                               info->mId, implName.c_str(), ii->id);
+                        abort();
                     }
                 }
                 
@@ -9638,7 +9758,7 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                     LOG_ER("Sync-verify: Missmatch on node-id "
                         "%x for implementer %s, sync says %x",
                         info->mNodeId, implName.c_str(), ii->nodeId);
-                    assert(0);
+                    abort();
                 }
                 ii = ii->next;
             }
@@ -9698,6 +9818,8 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
         }
     }
 
+    sImplsDeadDuringSync.clear(); /* for coord, sync-client & veterans. */
+    sNodesDeadDuringSync.clear(); /* should only be relevant for sync-client. */
  done:
     TRACE_LEAVE();
     return err;
