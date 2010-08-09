@@ -1,0 +1,806 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ *      -*- OpenSAF  -*-
+ *
+ * (C) Copyright 2009 The OpenSAF Foundation
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+ * under the GNU Lesser General Public License Version 2.1, February 1999.
+ * The complete license can be accessed from the following location:
+ * http://opensource.org/licenses/lgpl-license.php
+ * See the Copying file included with the OpenSAF distribution for full
+ * licensing terms.
+ *
+ * Author(s): Ericsson
+ *
+
+- This file is prepared for initial loading, loaded by IMM at startup. Merge this 
+file with the main imm.xml using the immxml-merge tool.
+
+- If this file is to be loaded dynamically using e.g. 'immcfg -f', the SUs must have admin state
+unlocked instantiation (3). Uncomment the commented saAmfSUAdminState sections below.
+
+-->
+
+<imm:IMM-contents xmlns:imm="http://www.saforum.org/IMMSchema" xsi:noNamespaceSchemaLocation="SAI-AIS-IMM-XSD-A.01.01.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<object class="SaAmfAppBaseType">
+		<dn>safAppType=AmfTestApp</dn>
+	</object>
+	<object class="SaAmfAppType">
+		<dn>safVersion=4.0.0,safAppType=AmfTestApp</dn>
+		<attr>
+			<name>saAmfApptSGTypes</name>
+			<value>safVersion=4.0.0,safSgType=amfTestSG</value>
+			<value>safVersion=4.0.0,safSgType=amfAdditionalTestSG</value>
+		</attr>
+	</object>
+
+	<object class="SaAmfApplication">
+		<dn>safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfAppType</name>
+			<value>safVersion=4.0.0,safAppType=AmfTestApp</value>
+		</attr>
+	</object>
+
+    <object class="SaAmfNodeGroup">
+        <dn>safAmfNodeGroup=OnlyPL-3,safAmfCluster=myAmfCluster</dn>
+        <attr>
+            <name>saAmfNGNodeList</name>
+            <value>safAmfNode=PL-3,safAmfCluster=myAmfCluster</value>
+        </attr>
+    </object>
+
+    <object class="SaAmfNodeGroup">
+        <dn>safAmfNodeGroup=Payloads,safAmfCluster=myAmfCluster</dn>
+        <attr>
+            <name>saAmfNGNodeList</name>
+            <value>safAmfNode=PL-3,safAmfCluster=myAmfCluster</value>
+            <value>safAmfNode=PL-4,safAmfCluster=myAmfCluster</value>
+        </attr>
+    </object>
+
+	<object class="SaAmfNodeSwBundle">
+		<dn>safInstalledSwBundle=safBundle=amfTestSw,safAmfNode=PL-4,safAmfCluster=myAmfCluster</dn>
+		<attr>
+			<name>saAmfNodeSwBundlePathPrefix</name>
+			<value>[PATH_TO_INSTALL]/amfscripts/</value>
+		</attr>
+	</object>
+	<object class="SaAmfNodeSwBundle">
+		<dn>safInstalledSwBundle=safBundle=amfTestSw,safAmfNode=PL-3,safAmfCluster=myAmfCluster</dn>
+		<attr>
+			<name>saAmfNodeSwBundlePathPrefix</name>
+			<value>[PATH_TO_INSTALL]/amfscripts/</value>
+		</attr>
+	</object>
+
+<!--  amfTest SG, SU, SI, CSI -->
+	<object class="SaAmfHealthcheckType">
+		<dn>safHealthcheckKey=24,safVersion=4.0.0,safCompType=amfTestComp</dn>
+		<attr>
+			<name>saAmfHctDefPeriod</name>
+			<value>13000</value>
+		</attr>
+		<attr>
+			<name>saAmfHctDefMaxDuration</name>
+			<value>15000</value>
+		</attr>
+	</object>
+	<object class="SaAmfHealthcheckType">
+		<dn>safHealthcheckKey=12,safVersion=4.0.0,safCompType=amfTestComp</dn>
+		<attr>
+			<name>saAmfHctDefPeriod</name>
+			<value>5000</value>
+		</attr>
+		<attr>
+			<name>saAmfHctDefMaxDuration</name>
+			<value>1000</value>
+		</attr>
+	</object>
+	<object class="SaAmfCtCsType">
+		<dn>safSupportedCsType=safVersion=4.0.0\,safCSType=amfTest,safVersion=4.0.0,safCompType=amfTestComp</dn>
+		<attr>
+			<name>saAmfCtCompCapability</name>
+			<value>1</value>
+		</attr>
+        <attr>
+            <name>saAmfCtDefNumMaxActiveCSIs</name>
+            <value>3</value>
+        </attr>
+        <attr>
+            <name>saAmfCtDefNumMaxStandbyCSIs</name>
+            <value>3</value>
+        </attr>
+	</object>
+	<object class="SaAmfSutCompType">
+		<dn>safMemberCompType=safVersion=4.0.0\,safCompType=amfTestComp,safVersion=4.0.0,safSuType=amfTest</dn>
+	</object>
+	<object class="SaAmfSvcTypeCSTypes">
+	  <dn>safMemberCSType=safVersion=4.0.0\,safCSType=amfTest,safVersion=4.0.0,safSvcType=amfTestSvc</dn>
+	</object>
+	<object class="SaAmfCSType">
+		<dn>safVersion=4.0.0,safCSType=amfTest</dn>
+	</object>
+	<object class="SaAmfCompType">
+		<dn>safVersion=4.0.0,safCompType=amfTestComp</dn>
+		<attr>
+			<name>saAmfCtCompCategory</name>
+			<value>1</value>
+		</attr>
+		<attr>
+			<name>saAmfCtSwBundle</name>
+			<value>safBundle=amfTestSw</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefClcCliTimeout</name>
+			<value>100000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefCallbackTimeout</name>
+			<value>300000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfCtRelPathInstantiateCmd</name>
+			<value>java_comp_inst.sh</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefInstantiateCmdArgv</name>
+			<value>org.opensaf.ais.amf.test.AmfTestComponent</value>
+		</attr>
+		<attr>
+			<name>saAmfCtRelPathCleanupCmd</name>
+			<value>java_comp_term.sh</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefCleanupCmdArgv</name>
+			<value>cleanup</value>
+		</attr>
+        <attr>
+            <name>saAmfCtRelPathTerminateCmd</name>
+            <value>java_comp_term.sh</value>
+        </attr>
+        <attr>
+            <name>saAmfCtDefTerminateCmdArgv</name>
+            <value></value>
+        </attr>
+		<attr>
+			<name>saAmfCtDefRecoveryOnError</name>
+			<value>5</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefDisableRestart</name>
+			<value>0</value>
+		</attr>
+        <attr>
+            <name>saAmfCtDefInstantiationLevel</name>
+            <value>1</value>
+        </attr>
+	</object>
+	<object class="SaAmfSUType">
+		<dn>safVersion=4.0.0,safSuType=amfTest</dn>
+		<attr>
+			<name>saAmfSutIsExternal</name>
+			<value>0</value>
+		</attr>
+		<attr>
+			<name>saAmfSutDefSUFailover</name>
+			<value>1</value>
+		</attr>
+		<attr>
+			<name>saAmfSutProvidesSvcTypes</name>
+			<value>safVersion=4.0.0,safSvcType=amfTestSvc</value>
+		</attr>
+	</object>
+	<object class="SaAmfSGType">
+		<dn>safVersion=4.0.0,safSgType=amfTestSG</dn>
+		<attr>
+			<name>saAmfSgtRedundancyModel</name>
+			<value>1</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtValidSuTypes</name>
+			<value>safVersion=4.0.0,safSuType=amfTest</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefAutoAdjustProb</name>
+			<value>1000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefCompRestartProb</name>
+			<value>1000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefCompRestartMax</name>
+			<value>4</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefSuRestartProb</name>
+			<value>2000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefSuRestartMax</name>
+			<value>1</value>
+		</attr>
+	</object>
+	<object class="SaAmfSvcType">
+	    <dn>safVersion=4.0.0,safSvcType=amfTestSvc</dn>
+	</object>
+	<object class="SaAmfSvcBaseType">
+	    <dn>safSvcType=amfTestSvc</dn>
+	</object>
+	<object class="SaAmfSUBaseType">
+		<dn>safSuType=amfTest</dn>
+	</object>
+	<object class="SaAmfSGBaseType">
+		<dn>safSgType=amfTestSG</dn>
+	</object>
+	<object class="SaAmfCSBaseType">
+	    <dn>safCSType=amfTest</dn>
+	</object>
+	<object class="SaAmfSG">
+		<dn>safSg=amfTestSG,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSGType</name>
+			<value>safVersion=4.0.0,safSgType=amfTestSG</value>
+		</attr>
+		<attr>
+			<name>saAmfSGSuHostNodeGroup</name>
+			<value>safAmfNodeGroup=OnlyPL-3,safAmfCluster=myAmfCluster</value>
+		</attr>
+		<attr>
+			<name>saAmfSGAutoRepair</name>
+			<value>0</value>
+		</attr>
+		<attr>
+			<name>saAmfSGAutoAdjust</name>
+			<value>0</value>
+		</attr>
+		<attr>
+			<name>saAmfSGNumPrefInserviceSUs</name>
+			<value>2</value>
+		</attr>
+		<attr>
+			<name>saAmfSGNumPrefAssignedSUs</name>
+			<value>2</value>
+		</attr>
+		<attr>
+			<name>saAmfSGMaxActiveSIsperSU</name>
+			<value>1</value>
+		</attr>
+		<attr>
+			<name>saAmfSGMaxStandbySIsperSU</name>
+			<value>0</value>
+		</attr>
+	</object>
+	<object class="SaAmfSI">
+		<dn>safSi=amfTestSI_1,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSvcType</name>
+			<value>safVersion=4.0.0,safSvcType=amfTestSvc</value>
+		</attr>
+		<attr>
+			<name>saAmfSIProtectedbySG</name>
+			<value>safSg=amfTestSG,safApp=AmfTestApp</value>
+		</attr> 
+		<attr>
+			<name>saAmfSIPrefActiveAssignments</name>
+			<value>1</value>
+		</attr> 
+		<attr>
+			<name>saAmfSIPrefStandbyAssignments</name>
+			<value>0</value>
+		</attr> 
+	</object>
+	<object class="SaAmfCSI">
+	    <dn>safCsi=amfTestCSI_1,safSi=amfTestSI_1,safApp=AmfTestApp</dn>
+	    <attr>
+		<name>saAmfCSType</name>
+		<value>safVersion=4.0.0,safCSType=amfTest</value>
+	    </attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=maxClients,safCsi=amfTestCSI_1,safSi=amfTestSI_1,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>0</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=theLastOne,safCsi=amfTestCSI_1,safSi=amfTestSI_1,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>zZ</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=stillNotEnough,safCsi=amfTestCSI_1,safSi=amfTestSI_1,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>OneMorePlease</value>
+		</attr>
+	</object>
+	<object class="SaAmfSI">
+		<dn>safSi=amfTestSI_2,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSvcType</name>
+			<value>safVersion=4.0.0,safSvcType=amfTestSvc</value>
+		</attr>
+		<attr>
+			<name>saAmfSIProtectedbySG</name>
+			<value>safSg=amfTestSG,safApp=AmfTestApp</value>
+		</attr> 
+		<attr>
+			<name>saAmfSIPrefActiveAssignments</name>
+			<value>1</value>
+		</attr> 
+		<attr>
+			<name>saAmfSIPrefStandbyAssignments</name>
+			<value>0</value>
+		</attr> 
+	</object>
+	<object class="SaAmfCSI">
+	    <dn>safCsi=amfTestCSI_2,safSi=amfTestSI_2,safApp=AmfTestApp</dn>
+	    <attr>
+		<name>saAmfCSType</name>
+		<value>safVersion=4.0.0,safCSType=amfTest</value>
+	    </attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=maxClients,safCsi=amfTestCSI_2,safSi=amfTestSI_2,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>20</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=anotherAttribute,safCsi=amfTestCSI_2,safSi=amfTestSI_2,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>21</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=yetAnother,safCsi=amfTestCSI_2,safSi=amfTestSI_2,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>22</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=stillNotEnough,safCsi=amfTestCSI_2,safSi=amfTestSI_2,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>23</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=theLastOne,safCsi=amfTestCSI_2,safSi=amfTestSI_2,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>24</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=theLastOneForJussi,safCsi=amfTestCSI_2,safSi=amfTestSI_2,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>25</value>
+		</attr>
+	</object>
+	<object class="SaAmfSI">
+		<dn>safSi=amfTestSI_3,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSvcType</name>
+			<value>safVersion=4.0.0,safSvcType=amfTestSvc</value>
+		</attr>
+		<attr>
+			<name>saAmfSIProtectedbySG</name>
+			<value>safSg=amfTestSG,safApp=AmfTestApp</value>
+		</attr> 
+		<attr>
+			<name>saAmfSIPrefActiveAssignments</name>
+			<value>1</value>
+		</attr> 
+		<attr>
+			<name>saAmfSIPrefStandbyAssignments</name>
+			<value>0</value>
+		</attr> 
+	</object>
+	<object class="SaAmfCSI">
+	    <dn>safCsi=amfTestCSI_3,safSi=amfTestSI_3,safApp=AmfTestApp</dn>
+	    <attr>
+		<name>saAmfCSType</name>
+		<value>safVersion=4.0.0,safCSType=amfTest</value>
+	    </attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=maxClients,safCsi=amfTestCSI_3,safSi=amfTestSI_3,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>30</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=yetAnother,safCsi=amfTestCSI_3,safSi=amfTestSI_3,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>Promontor</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=stillNotEnough,safCsi=amfTestCSI_3,safSi=amfTestSI_3,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>Pirci</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=theLastOne,safCsi=amfTestCSI_3,safSi=amfTestSI_3,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>Omega</value>
+		</attr>
+	</object>
+	<object class="SaAmfCSBaseType">
+	    <dn>safCSType=amfTestCSType</dn>
+	</object>
+	<object class="SaAmfCompBaseType">
+		<dn>safCompType=amfTestComp</dn>
+	</object>
+	<object class="SaAmfSU">
+		<dn>safSu=amfTestSU1,safSg=amfTestSG,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSUType</name>
+			<value>safVersion=4.0.0,safSuType=amfTest</value>
+		</attr>
+<!--
+		<attr>
+			<name>saAmfSUAdminState</name>
+			<value>3</value>
+		</attr>
+-->
+        <attr>
+            <name>saAmfSURank</name>
+            <value>1</value>
+        </attr>
+	</object>
+	<object class="SaAmfComp">
+	    <dn>safComp=amfTestComp,safSu=amfTestSU1,safSg=amfTestSG,safApp=AmfTestApp</dn>
+	    <attr>
+		<name>saAmfCompType</name>
+		<value>safVersion=4.0.0,safCompType=amfTestComp</value>
+	    </attr>
+        <attr>
+        <name>saAmfCompInstantiationLevel</name>
+        <value>1</value>
+        </attr>
+        <attr>
+            <name>saAmfCompNumMaxInstantiateWithoutDelay</name>
+            <value>2</value>
+        </attr>
+        <attr>
+            <name>saAmfCompInstantiateTimeout</name>
+            <value>100000000000</value>
+        </attr>
+	</object>
+	<object class="SaAmfCompCsType">
+	    <dn>safSupportedCsType=safVersion=4.0.0\,safCSType=amfTest,safComp=amfTestComp,safSu=amfTestSU1,safSg=amfTestSG,safApp=AmfTestApp</dn>
+	</object>
+	<object class="SaAmfSU">
+		<dn>safSu=amfTestSU2,safSg=amfTestSG,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSUType</name>
+			<value>safVersion=4.0.0,safSuType=amfTest</value>
+		</attr>
+<!--
+		<attr>
+			<name>saAmfSUAdminState</name>
+			<value>3</value>
+		</attr>
+-->
+        <attr>
+            <name>saAmfSURank</name>
+            <value>2</value>
+        </attr>
+	</object>
+	<object class="SaAmfComp">
+	    <dn>safComp=amfTestComp,safSu=amfTestSU2,safSg=amfTestSG,safApp=AmfTestApp</dn>
+	    <attr>
+		<name>saAmfCompType</name>
+		<value>safVersion=4.0.0,safCompType=amfTestComp</value>
+	    </attr>
+        <attr>
+        <name>saAmfCompInstantiationLevel</name>
+        <value>1</value>
+        </attr>
+        <attr>
+            <name>saAmfCompNumMaxInstantiateWithoutDelay</name>
+            <value>2</value>
+        </attr>
+        <attr>
+            <name>saAmfCompInstantiateTimeout</name>
+            <value>100000000000</value>
+        </attr>
+	</object>
+	<object class="SaAmfCompCsType">
+	    <dn>safSupportedCsType=safVersion=4.0.0\,safCSType=amfTest,safComp=amfTestComp,safSu=amfTestSU2,safSg=amfTestSG,safApp=AmfTestApp</dn>
+	</object>
+
+
+
+<!--  amfAdditionalTest SG, SU, SI, CSI -->
+	<object class="SaAmfSGType">
+		<dn>safVersion=4.0.0,safSgType=amfAdditionalTestSG</dn>
+		<attr>
+			<name>saAmfSgtRedundancyModel</name>
+			<value>1</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtValidSuTypes</name>
+			<value>safVersion=4.0.0,safSuType=amfAdditionalTest</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefAutoAdjustProb</name>
+			<value>1000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefCompRestartProb</name>
+			<value>1000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefCompRestartMax</name>
+			<value>4</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefSuRestartProb</name>
+			<value>2000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfSgtDefSuRestartMax</name>
+			<value>1</value>
+		</attr>
+	</object>
+	<object class="SaAmfCtCsType">
+		<dn>safSupportedCsType=safVersion=4.0.0\,safCSType=amfAdditionalTest,safVersion=4.0.0,safCompType=amfAdditionalTestComp</dn>
+		<attr>
+			<name>saAmfCtCompCapability</name>
+			<value>2</value>
+		</attr>
+        <attr>
+            <name>saAmfCtDefNumMaxActiveCSIs</name>
+            <value>1</value>
+        </attr>
+        <attr>
+            <name>saAmfCtDefNumMaxStandbyCSIs</name>
+            <value>1</value>
+        </attr>
+	</object>
+	<object class="SaAmfHealthcheckType">
+		<dn>safHealthcheckKey=67,safVersion=4.0.0,safCompType=amfAdditionalTestComp</dn>
+		<attr>
+			<name>saAmfHctDefPeriod</name>
+			<value>50000</value>
+		</attr>
+		<attr>
+			<name>saAmfHctDefMaxDuration</name>
+			<value>10000</value>
+		</attr>
+	</object>
+	<object class="SaAmfSvcTypeCSTypes">
+	  <dn>safMemberCSType=safVersion=4.0.0\,safCSType=amfAdditionalTest,safVersion=4.0.0,safSvcType=amfAdditionalTestSvc</dn>
+	</object>
+	<object class="SaAmfSutCompType">
+		<dn>safMemberCompType=safVersion=4.0.0\,safCompType=amfAdditionalTestComp,safVersion=4.0.0,safSuType=amfAdditionalTest</dn>
+	</object>
+	<object class="SaAmfCSType">
+		<dn>safVersion=4.0.0,safCSType=amfAdditionalTest</dn>
+	</object>
+	<object class="SaAmfCompType">
+		<dn>safVersion=4.0.0,safCompType=amfAdditionalTestComp</dn>
+		<attr>
+			<name>saAmfCtCompCategory</name>
+			<value>1</value>
+		</attr>
+		<attr>
+			<name>saAmfCtSwBundle</name>
+			<value>safBundle=amfTestSw</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefClcCliTimeout</name>
+			<value>100000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefCallbackTimeout</name>
+			<value>300000000000</value>
+		</attr>
+		<attr>
+			<name>saAmfCtRelPathInstantiateCmd</name>
+			<value>java_comp_inst.sh</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefInstantiateCmdArgv</name>
+			<value>org.opensaf.ais.amf.test.AmfTestRunner</value>
+		</attr>
+		<attr>
+			<name>saAmfCtRelPathCleanupCmd</name>
+			<value>java_comp_term.sh</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefCleanupCmdArgv</name>
+			<value></value>
+		</attr>
+        <attr>
+            <name>saAmfCtRelPathTerminateCmd</name>
+            <value>java_comp_term.sh</value>
+        </attr>
+        <attr>
+            <name>saAmfCtDefTerminateCmdArgv</name>
+            <value></value>
+        </attr>
+		<attr>
+			<name>saAmfCtDefRecoveryOnError</name>
+			<value>5</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefDisableRestart</name>
+			<value>0</value>
+		</attr>
+	</object>
+	<object class="SaAmfSUType">
+		<dn>safVersion=4.0.0,safSuType=amfAdditionalTest</dn>
+		<attr>
+			<name>saAmfSutIsExternal</name>
+			<value>0</value>
+		</attr>
+		<attr>
+			<name>saAmfSutDefSUFailover</name>
+			<value>1</value>
+		</attr>
+		<attr>
+			<name>saAmfSutProvidesSvcTypes</name>
+			<value>safVersion=4.0.0,safSvcType=amfAdditionalTestSvc</value>
+		</attr>
+	</object>
+	<object class="SaAmfSvcType">
+	    <dn>safVersion=4.0.0,safSvcType=amfAdditionalTestSvc</dn>
+	</object>
+	<object class="SaAmfSvcBaseType">
+	    <dn>safSvcType=amfAdditionalTestSvc</dn>
+	</object>
+	<object class="SaAmfSUBaseType">
+		<dn>safSuType=amfAdditionalTest</dn>
+	</object>
+	<object class="SaAmfCSBaseType">
+	    <dn>safCSType=amfAdditionalTest</dn>
+	</object>
+	<object class="SaAmfSGBaseType">
+		<dn>safSgType=amfAdditionalTestSG</dn>
+	</object>
+	<object class="SaAmfSG">
+		<dn>safSg=amfAdditionalTestSG,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSGType</name>
+			<value>safVersion=4.0.0,safSgType=amfAdditionalTestSG</value>
+		</attr>
+		<attr>
+			<name>saAmfSGSuHostNodeGroup</name>
+			<value>safAmfNodeGroup=Payloads,safAmfCluster=myAmfCluster</value>
+		</attr>
+		<attr>
+			<name>saAmfSGAutoRepair</name>
+			<value>0</value>
+		</attr>
+		<attr>
+			<name>saAmfSGAutoAdjust</name>
+			<value>0</value>
+		</attr>
+		<attr>
+			<name>saAmfSGNumPrefInserviceSUs</name>
+			<value>2</value>
+		</attr>
+		<attr>
+			<name>saAmfSGNumPrefAssignedSUs</name>
+			<value>10</value>
+		</attr>
+		<attr>
+			<name>saAmfSGMaxActiveSIsperSU</name>
+			<value>1</value>
+		</attr>
+		<attr>
+			<name>saAmfSGMaxStandbySIsperSU</name>
+			<value>0</value>
+		</attr>
+	</object>
+	<object class="SaAmfSI">
+		<dn>safSi=amfAdditionalTestSI,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSvcType</name>
+			<value>safVersion=4.0.0,safSvcType=amfAdditionalTestSvc</value>
+		</attr>
+		<attr>
+			<name>saAmfSIProtectedbySG</name>
+			<value>safSg=amfAdditionalTestSG,safApp=AmfTestApp</value>
+		</attr> 
+		<attr>
+			<name>saAmfSIPrefActiveAssignments</name>
+			<value>1</value>
+		</attr> 
+		<attr>
+			<name>saAmfSIPrefStandbyAssignments</name>
+			<value>0</value>
+		</attr> 
+	</object>
+	<object class="SaAmfCSBaseType">
+	    <dn>safCSType=amfAdditionalTestCSType</dn>
+	</object>
+	<object class="SaAmfCompBaseType">
+		<dn>safCompType=amfAdditionalTestComp</dn>
+	</object>
+	<object class="SaAmfCSI">
+	    <dn>safCsi=amfAdditionalTestCSI,safSi=amfAdditionalTestSI,safApp=AmfTestApp</dn>
+	    <attr>
+		<name>saAmfCSType</name>
+		<value>safVersion=4.0.0,safCSType=amfAdditionalTest</value>
+	    </attr>
+        <attr>
+            <name>saAmfCSIDependencies</name>
+            <value>safCsi=amfTestCSI_1,safSi=amfTestSI_1,safApp=AmfTestApp</value>
+
+<!-- Commented since AMF currently does not handle multiple csi dependencies -->
+<!--            <value>safCsi=amfTestCSI_2,safSi=amfTestSI_2,safApp=AmfTestApp</value> -->
+<!--            <value>safCsi=amfTestCSI_3,safSi=amfTestSI_3,safApp=AmfTestApp</value> -->
+        </attr>            
+	</object>
+	<object class="SaAmfCSIAttribute">
+		<dn>safCsiAttr=thisShouldNotBeNeeded,safCsi=amfAdditionalTestCSI,safSi=amfAdditionalTestSI,safApp=AmfTestApp</dn>
+		<attr>
+				<name>saAmfCSIAttriValue</name>
+				<value>thisShouldNotBeNeeded</value>
+		</attr>
+	</object>
+	<object class="SaAmfNodeSwBundle">
+		<dn>safInstalledSwBundle=safBundle=amfTestSw,safAmfNode=SC-2,safAmfCluster=myAmfCluster</dn>
+		<attr>
+			<name>saAmfNodeSwBundlePathPrefix</name>
+			<value>[PATH_TO_INSTALL]/amfscripts/</value>
+		</attr>
+	</object>
+	<object class="SaAmfSU">
+		<dn>safSu=amfAdditionalTestSU2,safSg=amfAdditionalTestSG,safApp=AmfTestApp</dn>
+		<attr>
+			<name>saAmfSUType</name>
+			<value>safVersion=4.0.0,safSuType=amfAdditionalTest</value>
+		</attr>
+<!--
+		<attr>
+			<name>saAmfSUAdminState</name>
+			<value>3</value>
+		</attr>
+-->
+	</object>
+	<object class="SaAmfComp">
+	    <dn>safComp=amfAdditionalTestComp,safSu=amfAdditionalTestSU2,safSg=amfAdditionalTestSG,safApp=AmfTestApp</dn>
+	    <attr>
+		<name>saAmfCompType</name>
+		<value>safVersion=4.0.0,safCompType=amfAdditionalTestComp</value>
+	    </attr>
+        <attr>
+        <name>saAmfCompInstantiationLevel</name>
+        <value>1</value>
+        </attr>
+        <attr>
+            <name>saAmfCompNumMaxInstantiateWithoutDelay</name>
+            <value>2</value>
+        </attr>
+        <attr>
+            <name>saAmfCompInstantiateTimeout</name>
+            <value>100000000000</value>
+        </attr>
+	</object>
+	<object class="SaAmfCompCsType">
+	    <dn>safSupportedCsType=safVersion=4.0.0\,safCSType=amfAdditionalTest,safComp=amfAdditionalTestComp,safSu=amfAdditionalTestSU2,safSg=amfAdditionalTestSG,safApp=AmfTestApp</dn>
+	</object>
+</imm:IMM-contents>

@@ -31,9 +31,9 @@ if [ $? -ne 0 ]; then
 fi
 
 
-echo "Setting AppConfig.xml"
-rm -f $SYSCONFDIR/AppConfig.xml
-ln -s $INSTALLDIR/config/AppConfig.xml $SYSCONFDIR/AppConfig.xml
+echo "Setting amf-test-config.xml"
+rm -f $SYSCONFDIR/amf-test-config.xml
+ln -s $INSTALLDIR/config/amf-test-config.xml $SYSCONFDIR/amf-test-config.xml
 
 echo "Resetting PSSV"
 sed "s/PSS/XML/" -i $LOCALSTATEDIR/pssv_spcn_list

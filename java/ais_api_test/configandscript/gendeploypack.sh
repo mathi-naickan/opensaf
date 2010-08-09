@@ -52,8 +52,8 @@ mkdir -p $OUTDIR/amfscripts
 
 echo $INSTALLDIR > $OUTDIR/.installConf
 
-echo "2. Generating AppConfig.xml."
-cat AppConfig.xml.template | sed "s|\[PATH_TO_INSTALL\]|$INSTALLDIR|" > $OUTDIR/config/AppConfig.xml
+echo "2. Generating amf-test-config.xml."
+cat amf-test-config.xml.template | sed "s|\[PATH_TO_INSTALL\]|$INSTALLDIR|" > $OUTDIR/config/amf-test-config.xml
 
 echo "3. Generating common script config."
 cat scripts.conf.template | sed "s|\[PATH_TO_INSTALL]|$INSTALLDIR|" > $OUTDIR/config/scripts.conf
