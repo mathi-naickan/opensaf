@@ -679,10 +679,27 @@ void immnd_adjustEpoch(IMMND_CB *cb, SaBoolT increment)
 
 static void immnd_abortLoading(IMMND_CB *cb)
 {
-	TRACE_ENTER();
-	/* Here we should send a fevs message informing all parties that the 
-	   loading failed. */
-	TRACE_LEAVE();
+	uns32 rc = NCSCC_RC_SUCCESS;
+	IMMSV_EVT send_evt;
+	memset(&send_evt, '\0', sizeof(IMMSV_EVT));
+
+	if (!immnd_is_immd_up(cb)) {
+		LOG_ER("IMMD IS DOWN - Coord can not send 'loading failed' message to IMMD");
+		return;
+	}
+
+	send_evt.type = IMMSV_EVT_TYPE_IMMD;
+	send_evt.info.immd.type = IMMD_EVT_ND2D_LOADING_FAILED;
+	send_evt.info.immd.info.ctrl_msg.ndExecPid = cb->mMyPid;
+	send_evt.info.immd.info.ctrl_msg.epoch = cb->mMyEpoch;
+	send_evt.info.immd.info.ctrl_msg.pbeEnabled = 
+		cb->mPbeFile && (cb->mRim == SA_IMM_KEEP_REPOSITORY);
+
+	rc = immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt);
+
+	if (rc != NCSCC_RC_SUCCESS) {
+		LOG_ER("Coord failed to send 'laoding failed' message to IMMD");
+	}
 }
 
 SaBoolT immnd_syncComplete(IMMND_CB *cb, SaBoolT coordinator, SaUint32T step)

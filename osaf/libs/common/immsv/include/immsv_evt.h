@@ -210,6 +210,8 @@ typedef enum immd_evt_type {
 
 	IMMD_EVT_ND2D_PBE_PRTO_PURGE_MUTATIONS = 21, /* Broadcast for cleanup*/
 
+	IMMD_EVT_ND2D_LOADING_FAILED = 22, /* Loading failed. */
+
 	IMMD_EVT_MAX
 } IMMD_EVT_TYPE;
 /* Make sure the string array in immsv_evt.c matches the IMMD_EVT_TYPE enum. */

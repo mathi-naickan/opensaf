@@ -38,6 +38,8 @@ static uns32 immd_evt_proc_immnd_announce_sync(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 
 static uns32 immd_evt_proc_immnd_abort_sync(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO *sinfo);
 
+static uns32 immd_evt_proc_immnd_loading_failed(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO *sinfo);
+
 static uns32 immd_evt_proc_immnd_prto_purge_mutations(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO *sinfo);
 
 static uns32 immd_evt_proc_immnd_announce_dump(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO *sinfo);
@@ -111,6 +113,9 @@ void immd_process_evt(void)
 		break;
 	case IMMD_EVT_ND2D_SYNC_ABORT:
 		rc = immd_evt_proc_immnd_abort_sync(cb, &evt->info.immd, &evt->sinfo);
+		break;
+	case IMMD_EVT_ND2D_LOADING_FAILED:
+		rc = immd_evt_proc_immnd_loading_failed(cb, &evt->info.immd, &evt->sinfo);
 		break;
 	case IMMD_EVT_ND2D_PBE_PRTO_PURGE_MUTATIONS:
 		rc = immd_evt_proc_immnd_prto_purge_mutations(cb, &evt->info.immd,
@@ -851,6 +856,44 @@ uns32 immd_evt_proc_immnd_abort_sync(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO
 
 			LOG_IN("Successfully aborted sync. Epoch:%u", cb->mRulingEpoch);
 		}
+	} else {
+		LOG_ER("Node not found %llu", sinfo->dest);
+		proc_rc = NCSCC_RC_FAILURE;
+	}
+	TRACE_LEAVE();
+	return proc_rc;
+}
+
+/****************************************************************************
+ * Name          : immd_evt_proc_immnd_loading_failed
+ *
+ * Description   : Function to process the IMMD_EVT_ND2D_LOADING_FAILED event 
+ *
+ * Arguments     : IMMD_CB *cb - IMMD CB pointer
+ *                 IMMSV_EVT *evt - Received Event structure
+ *
+ * Return Values : NCSCC_RC_SUCCESS/Error.
+ *
+ ****************************************************************************/
+uns32 immd_evt_proc_immnd_loading_failed(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO *sinfo)
+{
+	uns32 proc_rc = NCSCC_RC_SUCCESS;
+	IMMD_IMMND_INFO_NODE *node_info = NULL;
+	TRACE_ENTER();
+	immd_immnd_info_node_get(&cb->immnd_tree, &sinfo->dest, &node_info);
+	if (node_info) {
+		if (node_info->immnd_execPid != evt->info.ctrl_msg.ndExecPid) {
+			LOG_ER("Loading Failed: wrong PID %u != %u",
+			       node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
+			proc_rc = NCSCC_RC_FAILURE;
+		}
+
+		if (node_info->immnd_key != cb->immnd_coord) {
+			LOG_ER("Loading failed: not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
+			proc_rc = NCSCC_RC_FAILURE;
+		}
+
+		LOG_ER("******** LOADING FAILED. File(s) possibly missing, inaccessible or corrupt .. ? *********");
 	} else {
 		LOG_ER("Node not found %llu", sinfo->dest);
 		proc_rc = NCSCC_RC_FAILURE;
