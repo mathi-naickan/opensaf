@@ -561,6 +561,11 @@ JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_
                                     "org/saforum/ais/AisNoResourcesException",
                                     AIS_ERR_NO_RESOURCES_MSG );
                 break;
+            case SA_AIS_ERR_NOT_EXIST:
+                JNU_throwNewByName( jniEnv,
+                                    "org/saforum/ais/AisNotExistException",
+                                    AIS_ERR_NOT_EXIST_MSG );
+                break;
             default:
                 // this should not happen here!
 

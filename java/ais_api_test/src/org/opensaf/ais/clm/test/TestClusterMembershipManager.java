@@ -20,6 +20,7 @@ import org.opensaf.ais.test.*;
 import org.saforum.ais.AisException;
 import org.saforum.ais.AisInitException;
 import org.saforum.ais.AisInvalidParamException;
+import org.saforum.ais.AisNotExistException;
 import org.saforum.ais.AisStatus;
 import org.saforum.ais.AisTimeoutException;
 import org.saforum.ais.Consts;
@@ -52,6 +53,8 @@ public class TestClusterMembershipManager extends TestCase implements
     public static final long GET_CLUSTER_NODE_TIMEOUT = ( 50 * Consts.SA_TIME_ONE_MICROSECOND );
 
     private static long s_invocation = 123;
+
+    private static int INVALID_NODE_ID = 133;
 
     // STATIC METHODS
 
@@ -524,12 +527,12 @@ public class TestClusterMembershipManager extends TestCase implements
     public final void testGetClusterNode_InvalidNodeId() {
         System.out.println( "JAVA TEST: Executing testGetClusterNode_InvalidNodeId()..." );
         try {
-			clusterNode = clmManagerNullNull.getClusterNode(133, 1);
+			clusterNode = clmManagerNullNull.getClusterNode(INVALID_NODE_ID, 1);
 		} catch (AisException e) {
 			aisExc = e;
 		}
 		Assert.assertNull(clusterNode);
-		Assert.assertTrue(aisExc instanceof AisInvalidParamException);
+		Assert.assertTrue(aisExc instanceof AisNotExistException);
     }
 
     /*
