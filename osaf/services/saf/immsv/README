@@ -17,20 +17,21 @@
 
 GENERAL
 
-This directory (services/immsv) contains an implementation of the SAF IMM 
-service version A.02.01.
+This directory (osaf/services/saf/immsv) contains an implementation of the
+SAF IMM service version A.02.01.
 
 Application programmers intending to interface with immsv should primarily read
-the document "OpenSAF IMM Service Release 3 Programmer's Reference" and of
+the document "OpenSAF IMM Service Release 4 Programmer's Reference" and of
 course the IMM standard (SAI-AIS-IMM-A.02.01).
 
 This document provides an overview of the design and internals of the immsv. 
 It is intended for maintainers or trouble-shooters of the immsv in OpenSAF.
-Familiarity with the IMM standard is obviously also helpful in understanding
+Familiarity with the IMM standard is obviously also needed for understanding
 this document. 
 
 The IMM service follows the three tier OpenSAF "Service Director" framework
-(see OpenSAF Overview User's Guide). As such, the process structure consists of:
+(see OpenSAF Overview User's Guide).
+As such, the process structure consists of:
 
         * The IMM Director process type (IMMD).
         * The IMM Node Director process type (IMMND).
@@ -173,12 +174,7 @@ allowing any IMMND to become coordinator once the IMMNDs have loaded.
 The current limitation, that the IMMND coordinator must reside on a controller,
 has a downside.  If the IMMNDs at both controllers fail, the IMMD can not elect
 any coordinator. Instead the IMMD has to order all IMMNDs to restart, which 
-currently causes a reload of the entire IMMSv from the current imm.xml file. 
-Such a cluster restart of the IMM service, without a cluster restart of the 
-entire cluster, or at least a restart of components dependent on the immsv,
-is an anomaly. We hope to resolve this anomaly in the near future by a proper
-escalation, by the AMF, when the IMMSv needs to restart. The degree of
-persistence supported is central to this problem.   
+currently causes a cluster restart.
 
 
 IMMA
@@ -207,14 +203,14 @@ crash or termination of that IMMND will cause the IMMA library instantiations
 at the node to mark all its handles as stale. Even global handles allocated via
 the crashed IMMND are effectively stale because they depend on the local handles. 
 
-The restart of an IMMND should still usually be transparent to the clients 
+The restart of an IMMND should still normally be transparent to the clients 
 at that node. The IMMA library tries to resurrect the handles once the IMMND
 at the node has restarted. In some cases the IMMA will not be able to 
 resurrect the handle. One example is if the handle is related to an admin-owner
 handle with the 'release-on-finalize' option set ot true. 
 Some clients may then get their handles invalidated. Any attempt by a client
 to use such a stale and unsuccessfully resurected handle will result in a
-reply of SA_AIS_ERR_INVALID_HANDLE. 
+reply of SA_AIS_ERR_BAD_HANDLE. 
 
 Note that it is at least not necessary for the client applications to restart.
 They may reconnect by simply allocating a new handle. Of course, CCBs that
@@ -235,38 +231,30 @@ message sequence.
 PERSISTENCE
 The IMM standard mandates that configuration attributes and persistent runtime
 attributes shall be persistent in the sense that such values must survive a
-cluster restart and that this must hold for every applied CCB. The current
-implementation of the IMMSv in OpenSAF does not fully support persistence at the
-CCB granularity. Instead it supports persistence at the coarse granularity of
-dump/backup. Thus the user must ensure that the IMM is dumped after important
-changes are made to such data. The configuration data and persistent runtime
-data will survive cluster restart, but only the latest dumped version will be
-recovered.
+cluster restart and that this must hold for every applied CCB. 
 
-To fully replace the MASv/PSSv as repository for the AMF, the IMMSv should
-provide the same degree of persistence. So we clearly have the intention of 
-fixing this one way or another.
+The default option for the current implementation of the IMMSv in OpenSAF is
+that it does not fully support persistence at the CCB granularity. Instead
+it supports persistence at the coarse granularity of dump/backup. Thus the
+user must ensure that the IMM is dumped after important changes are made to
+such data. The configuration data and persistent runtime data will survive
+cluster restart, but only the latest dumped version will be recovered.
+
+One of the main new immsv features available in OpenSAF4.0 is the 
+Persistent Back-End (PBE). By default this feature is not enabled.
+See the instructions below for how to enable it. The reason it
+is not enabled by default is that the feature is not yet extensively
+tested. In addition, use of the PBE has a signifigant impact on
+performance for CCBs and persitent runtime data, both response time
+and throughput. By making the feature available in OpenSAF4.0 we
+hope that some users will try to use it, or at least test it and
+give us feedback on problems. This also means that the PBE is 
+a "supported feature" of OpenSAF4.0. It is then possible to write
+tickets on this functionality. If the ticket is valid and of
+sufficient priority (according to OpenSAF), then will get fixed. 
 
 
 -----------------------------------------------
-Note March 4 2010: 
-Third drop of IMM Persistent Back-End (IMM_PBE) has been made based on 
-sqlite.
-
-This drop allows the user to: 
-	* dump imm contents to an sqlite3 database file.
-	* load the imm-service from an sqlite3 database file
-	(generated by a dump).
-	* Enable and Disable the PBE feature at runtime.
-        * Restart of a crashed PBE will restart and re-generate disk-rep.
-	* CCBs commits are persistified by the PBE as part of the commit
-	protocol.
-
-Still to implement:
-	* Persistification of persistent runtime attributes.
-        * Escalation of immsv reload to cluster restart when PBE is
-	not enabled.
-
 
 The IMM-PBE feature is intended to be an optional feature.
 To enable this feature the folowing three steps are needed. 
@@ -277,15 +265,15 @@ To enable this feature the folowing three steps are needed.
 
 	./configure --enable-imm-pbe
 
-	You may of course also give other options to configure at the saem time.
+	You would typically also give other options to configure at the same time.
 
 	Ensure that OpenSAF builds without problems. In particular that it finds
-	the sqlite3 include files and the sqlite3 library.
+	the sqlite3 include files and the sqlite3 library, which is used by PBE.
 
 	2) ++++++CONFIGURE PBE DEPLOYMENT+++++++++
 
-	Edit 'osaf/services/saf/immsv/config/imm.conf' or in the 
-	deployed system typically '/etc/opensaf/imm.conf'.
+	Edit 'osaf/services/saf/immsv/config/immnd.conf' or in the 
+	deployed system typically '/etc/opensaf/immnd.conf'.
 
 	Ensure the IMMSV_ROOT_DIRECTORY points to a shared file system,
 	the sqlite3 database file has to be accessible from both controllers!
@@ -339,24 +327,6 @@ immsv depends of the following other services:
 - libxml2
 
 
-DIRECTORY STRUCTURE
-
-include                 Standard public header files:saImm.h saImmOi.h saImmOm.h
-config	                The imm.xml default start file, the imm.conf
-                        deployment file
-services/immsv/inc      Common header files used by imma, immd and immnd
-services/immsv/common   Common code (msg encode/decode) used by imma, immd and
-                        immnd
-services/immsv/imma     IMM library implementation, both OM and OI
-services/immsv/immd     IMM Director implementation
-services/immsv/immnd    IMM Node Director implementation
-services/immsv/utils    Code for the immload, immdump, immfind, immlist, immcfg,
-                        immadm
-lib/lib_SaImm           IMM library staging: libSaImmOm & libSaImmOi
-scripts                 opensaf_imm.in source start script
-tests/immsv/            Function tests for IMM-OM and IMM-OI
-
-
 DATA STRUCTURES
 
 The most important data structures for the IMMD process type are:
@@ -391,8 +361,8 @@ The most important data structures for the IMMA library are:
                                 admin-op
  IMMA_CB.imma_continuations:    Collection of IMMA_CONTINUATION_RECORDs
 
-Common message types and message layouts are found under services/immsv/inc/
-in the files immsv_evt.h and immsv_evt_model.h
+Common message types and message layouts are found under
+osaf/libs/common/immsv/include in the files immsv_evt.h and immsv_evt_model.h
 
 
 STATE MACHINES
@@ -510,10 +480,9 @@ To enable traces from the very start, uncomment:
 
         #args="--tracemask=0xffffffff"
 
-in imm.conf and restart the cluster.
+in immd.conf/immnd.conf and restart the cluster.
 
 Errors, warnings and notice level messages are logged to the syslog.
-
 
 To enable traces in the IMM library, export the variable IMMA_TRACE_PATHNAME
 with a valid pathname before starting the application using the IMM library.
@@ -525,6 +494,13 @@ $ ./immomtest
 $ cat /tmp/imm.trace
 
 
+It is also possible to trace slave processes forked by the IMMND.
+This would be processes for loading, sync and dump/pbe.
+To enable such trace uncomment:
+
+	#export IMMSV_TRACE_PATHNAME=$pkglogdir/osafimmnd
+
+
 TEST
 
 Currently a "tetware like" test suite can be found in 'tests/immsv/'. 
@@ -534,24 +510,20 @@ See tests/immsv/README for instructions.
 TODO
 
 - Revisit MDS reliability, implement FEVS re-send by IMMD.
-- Provide CCB level persistence.
-- Review HA state handling, possibly simplify.
 - Implement version handling for MDS messages.
 - Revisit escalation problem.
-- Implement missing API functions:
-	saImmOmAdminOperationContinue()
-	saImmOmAdminOperationContinueAsync()
-	saImmOmAdminOperationContinueClear()
 - Cleanup "TODO" comments
 - Revisit trace statements, cleanup
-- Implement "7 IMM Service Administration API"
-- Distributed testing, samples/immsv.
+See:
+	 http://devel.opensaf.org/report
 
 
 CONTRIBUTORS/MAINTAINERS
 
 Anders Bjornerstedt <Anders.Bjornerstedt@ericsson.com>
 Hans Feldt <Hans.Feldt@ericsson.com>
+Peter Strand <peter.strand@ericsson.com>
+Mahesh Alla <VAlla@goahead.com>
 
 The IMM service OpenSAF framework was originally cloned from the OpenSAF
 check-point service. 
