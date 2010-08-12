@@ -414,18 +414,18 @@ int SmfCampaignThread::sendStateNotification(const std::string & dn, uns32 class
 
 	/* Notifying object */
 	SaUint16T length = sizeof(SMF_NOTIFYING_OBJECT);
-	if (length > SA_MAX_NAME_LENGTH) {
+	if (length >= SA_MAX_NAME_LENGTH) {
 		TRACE("notifyingObject length was %d, truncated to 256", length);
-		length = 256;
+		length = 255;
 	}
 	ntfStateNot.notificationHeader.notifyingObject->length = length - 1;
 	strncpy((char *)ntfStateNot.notificationHeader.notifyingObject->value, SMF_NOTIFYING_OBJECT, length);
 
 	/* Notification object */
 	length = dn.length();
-	if (length > SA_MAX_NAME_LENGTH) {
+	if (length >= SA_MAX_NAME_LENGTH) {
 		TRACE("notificationHeader length was %d, truncated to 256", length);
-		length = 256;
+		length = 255;
 	}
 	ntfStateNot.notificationHeader.notificationObject->length = length;
 	strncpy((char *)ntfStateNot.notificationHeader.notificationObject->value, dn.c_str(), length);

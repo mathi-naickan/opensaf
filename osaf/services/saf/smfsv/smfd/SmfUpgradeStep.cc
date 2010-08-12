@@ -1100,6 +1100,7 @@ SmfUpgradeStep::saveImmContent()
 
 	std::string cmd = "immdump /etc/opensaf/imm.xml";
 	if (getenv("SMF_IMM_PERSIST_CMD") != NULL) {
+		cmd.clear();	
 		cmd = getenv("SMF_IMM_PERSIST_CMD");
 	}
 
