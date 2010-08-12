@@ -70,7 +70,7 @@ SaAisErrorT mqd_create_runtime_MqGrpObj(MQD_OBJ_NODE *pNode, SaImmOiHandleT immO
 		rdnstr = strtok(dndup, ",");
 		parent_name++;
 		parentName = &parent;
-		strcpy((char *)parent.value, parent_name);
+		strncpy((char *)parent.value, parent_name, SA_MAX_NAME_LENGTH-1);
 		parent.length = strlen((char *)parent.value);
 	} else {
 		rdnstr = (char *)pNode->oinfo.name.value;

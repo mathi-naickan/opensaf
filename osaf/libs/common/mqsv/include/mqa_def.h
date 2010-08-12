@@ -51,7 +51,7 @@
 /* to memset the name->value[length] to remaining bytes till the end of the array */
 #define m_MQSV_SET_SANAMET(name) \
 {\
-   memset((void *)&name->value[name->length],0,(size_t)(SA_MAX_NAME_LENGTH - name->length-1)); \
+   memset((void *)&name->value[name->length],0,(size_t)(SA_MAX_NAME_LENGTH - name->length)); \
 }
 
 /* Struct for reading One Byte */

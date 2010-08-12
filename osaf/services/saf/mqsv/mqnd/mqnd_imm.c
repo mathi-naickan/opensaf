@@ -287,7 +287,7 @@ SaAisErrorT mqnd_create_runtime_MsgQobject(SaStringT rname, SaTimeT create_time,
 		rdnstr = strtok(dndup, ",");
 		parent_name++;
 		parentName = &parent;
-		strncpy((char *)parent.value, parent_name, SA_MAX_NAME_LENGTH);
+		strncpy((char *)parent.value, parent_name, SA_MAX_NAME_LENGTH-1);
 		parent.length = strlen((char *)parent.value);
 	} else
 		rdnstr = rname;
