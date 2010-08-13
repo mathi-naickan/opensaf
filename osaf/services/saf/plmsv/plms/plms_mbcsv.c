@@ -1567,11 +1567,9 @@ SaUint32T plms_mbcsv_decode_cold_sync_data(NCS_MBCSV_CB_ARG *cbk_arg)
 				memset(trk_step_info,0,sizeof(PLMS_CKPT_TRACK_STEP_INFO));
 				--num_rec;
 			} /* end of while loop. Track step info record */
-			free(data);
-//			return NCSCC_RC_SUCCESS;
 		}
 
-		if (data->header.msg_type == PLMS_A2S_MSG_ENT_GRP_INFO)
+		else if (data->header.msg_type == PLMS_A2S_MSG_ENT_GRP_INFO)
 		{
 			/* Process the data */
 			num_rec = data->header.num_records;
@@ -1611,10 +1609,8 @@ SaUint32T plms_mbcsv_decode_cold_sync_data(NCS_MBCSV_CB_ARG *cbk_arg)
 					list_ptr1 = list_ptr2;
 				}
 			}
-			free(data);
-//			return NCSCC_RC_SUCCESS;
 		} /* End of PLMS_A2S_MSG_ENT_GRP_INTO */
-		if (data->header.msg_type == PLMS_A2S_MSG_CLIENT_INFO ||
+		else if (data->header.msg_type == PLMS_A2S_MSG_CLIENT_INFO ||
 			data->header.msg_type == PLMS_A2S_MSG_CLIENT_DOWN_INFO)
 		{
 			/* Process the data */
@@ -1644,8 +1640,6 @@ SaUint32T plms_mbcsv_decode_cold_sync_data(NCS_MBCSV_CB_ARG *cbk_arg)
 				--num_rec;
 				/* FIXME :: UPDATE ASYNC COUNT */
 			} /* end of while loop.  */
-			free(data);
-//			return NCSCC_RC_SUCCESS;
 		} /* End of PLMS_A2S_MSG_CLIENT_INFO */
 
 		if (cbk_arg->info.decode.i_msg_type == 
@@ -1660,6 +1654,7 @@ SaUint32T plms_mbcsv_decode_cold_sync_data(NCS_MBCSV_CB_ARG *cbk_arg)
 			ncs_dec_skip_space(&cbk_arg->info.decode.i_uba, 4);
 			TRACE("Async update count received : %d",cb->async_update_cnt);
 		}
+		free(data);
 		TRACE_LEAVE();
 		return NCSCC_RC_SUCCESS;
 	

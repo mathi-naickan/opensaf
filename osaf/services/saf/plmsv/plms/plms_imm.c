@@ -1086,8 +1086,12 @@ static SaAisErrorT plms_imm_ccb_obj_modify_cbk(SaImmOiHandleT imm_oi_hdl,
 		plm_ent = (PLMS_ENTITY *)
 		ncs_patricia_tree_get(&plms_cb->entity_info, (SaUint8T *)
 					obj_name);
-		if ((plm_ent == NULL)|| (plm_ent->entity.ee_entity.
-			saPlmEEPresenceState != 
+		if (NULL == plm_ent){
+			TRACE_LEAVE2("ncs_patricia_tree_get Failed.");
+			return SA_AIS_ERR_BAD_OPERATION;
+		}
+		
+		if ((plm_ent->entity.ee_entity.saPlmEEPresenceState != 
 			SA_PLM_EE_PRESENCE_UNINSTANTIATED)) {
 			TRACE_LEAVE2("EE's presence state: %u, modify cannot be\
 				done", plm_ent->entity.ee_entity.

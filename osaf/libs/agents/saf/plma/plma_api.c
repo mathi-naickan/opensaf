@@ -543,8 +543,7 @@ SaUint32T saPlmInitialize  (SaPlmHandleT *plmHandle,
 			LOG_ER("PLMA : FINALIZE REQUEST FAILED");
 			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto no_resp;
-		}
-		if(!plm_fin_res){
+		}else{
 			plms_free_evt(plm_fin_res);
 		}
 	resp_err:

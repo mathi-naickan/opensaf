@@ -1501,6 +1501,9 @@ SaUint32T plms_plmc_mbx_evt_process(PLMS_EVT *evt)
 			tmp,evt->req_evt.plms_plmc_evt.plmc_evt_type);
 			return ret_err;
 		}
+	}else {
+		LOG_ER("evt->req_evt.plms_plmc_evt.ee_id.length is ZERO");
+		return ret_err;
 	}
 
 

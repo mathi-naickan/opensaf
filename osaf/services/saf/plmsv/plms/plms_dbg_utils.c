@@ -40,6 +40,7 @@ plms_cb_dump_routine ()
 	PLMS_ENTITY_GROUP_INFO *group_info;
 	PLMS_INVOCATION_TO_TRACK_INFO *track_info;
 	char tmp[SA_MAX_NAME_LENGTH +1]="",count;
+	SaUint8T max = 0;
 	PLMS_CB *cb = plms_cb;
 
 	ee_base_info = (PLMS_EE_BASE_INFO *)ncs_patricia_tree_getnext(&cb->base_ee_info,NULL);
@@ -146,7 +147,8 @@ plms_cb_dump_routine ()
 			else {	
 				while (group_list)	{
 					fprintf(fp,":%llu",(unsigned long long)group_list->ent_grp_inf->entity_grp_hdl);
-				}	group_list = group_list->next;
+					group_list = group_list->next;
+				}
 			}
 			if (ent->invoke_callback == SA_FALSE)
 				fprintf(fp,"\n Invoke Callback: SA_FALSE");
@@ -276,15 +278,22 @@ plms_cb_dump_routine ()
 					fprintf(fp,"\n safHE:%s",ent->entity.he_entity.safHE);
 				else	
 					fprintf(fp,"\n safHE:NULL");
-				if (ent->entity.he_entity.saPlmHEBaseHEType.value)	
+				if (ent->entity.he_entity.saPlmHEBaseHEType.length)	
 					fprintf(fp,"\n saPlmHEBaseHEType:%s",ent->entity.he_entity.saPlmHEBaseHEType.value);
 				else 
 					fprintf(fp,"\n safHEBaseHEType:NULL");
-				if (ent->entity.he_entity.saPlmHEEntityPaths)	
-					fprintf(fp,"\n saPlmHEEntityPaths:%s",*(ent->entity.he_entity.saPlmHEEntityPaths));
-				else
-					fprintf(fp,"\n saPlmHEEntityPaths:NULL");
-				if (ent->entity.he_entity.saPlmHECurrHEType.value)	
+					
+				for (max=0; max < SAHPI_MAX_ENTITY_PATH; max++){
+					if (NULL == ent->entity.he_entity.saPlmHEEntityPaths[max]){
+						fprintf(fp,"\n saPlmHEEntityPaths:NULL");
+						break;
+					}else {
+						fprintf(fp,"\n saPlmHEEntityPaths:%s",
+						(ent->entity.he_entity.saPlmHEEntityPaths[max]));
+					}
+				}
+				
+				if (ent->entity.he_entity.saPlmHECurrHEType.length)	
 					fprintf(fp,"\n saPlmHECurrHEType:%s",ent->entity.he_entity.saPlmHECurrHEType.value);
 				else 
 					fprintf(fp,"\n saPlmHECurrHEType:NULL");
@@ -335,7 +344,7 @@ plms_cb_dump_routine ()
 					fprintf(fp,"\n safEE:%s",ent->entity.ee_entity.safEE);
 				else
 					fprintf(fp,"\n safEE:NULL");
-				if (ent->entity.ee_entity.saPlmEEType.value)	
+				if (ent->entity.ee_entity.saPlmEEType.length)	
 					fprintf(fp,"\n saPlmEEType:%s",ent->entity.ee_entity.saPlmEEType.value);
 				else
 					fprintf(fp,"\n saPlmEEType:NULL");

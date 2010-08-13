@@ -609,7 +609,7 @@ SaUint32T plms_perform_pending_admin_shutdown(
 {
         uns32 ret_err = NCSCC_RC_FAILURE;
         PLMS_GROUP_ENTITY *aff_ent_list = NULL, *head = NULL;
-	PLMS_ENTITY_GROUP_INFO_LIST *group_info_list;
+	PLMS_ENTITY_GROUP_INFO_LIST *group_info_list = NULL;
 
 	TRACE_ENTER2("Entity:%s",ent->dn_name_str);
 
@@ -688,6 +688,9 @@ SaUint32T plms_perform_pending_admin_shutdown(
 	/* Clear the expected readines state */
 	plms_ent_exp_rdness_status_clear(ent);
 	plms_aff_ent_exp_rdness_status_clear(aff_ent_list);
+
+	plms_ent_list_free(aff_ent_list);
+	plms_ent_grp_list_free(group_info_list);
 
 	TRACE_LEAVE2("ret_err: %d",ret_err);
 	return NCSCC_RC_SUCCESS;
@@ -830,8 +833,10 @@ SaUint32T plms_perform_pending_admin_lock(
 	plms_perform_pending_admin_clbk(group_info_list, aff_ent_list, 
 							track_step);
 
+	plms_ent_list_free(aff_ent_list);
+	plms_ent_grp_list_free(group_info_list);
+	
 	TRACE_LEAVE2("ret_err: %d",ret_err);
-
         return NCSCC_RC_SUCCESS;
 }
 /***********************************************************************
@@ -850,9 +855,9 @@ SaUint32T plms_perform_pending_admin_deactivate(
 				PLMS_ENTITY   *ent)
 {
         uns32 ret_err;
-        PLMS_GROUP_ENTITY *aff_ent_list, *head;
+        PLMS_GROUP_ENTITY *aff_ent_list = NULL, *head;
         PLMS_GROUP_ENTITY *temp_ent_list;
-	PLMS_ENTITY_GROUP_INFO_LIST *group_info_list;
+	PLMS_ENTITY_GROUP_INFO_LIST *group_info_list = NULL;
 
 	/* This should be performed only on HEs which are in
 	Locked admin state */

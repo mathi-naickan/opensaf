@@ -263,7 +263,8 @@ SaUint32T convert_entitypath_to_string(SaHpiEntityPathT *entity_path,
 			found = TRUE;
 		}
 
-		if(entity_path->Entry[i].EntityType > SAHPI_ENT_AMC ){
+		if((entity_path->Entry[i].EntityType > SAHPI_ENT_AMC) && 
+		(entity_path->Entry[i].EntityType <= SAHPI_ENT_OEM)){
 			temp_value = entity_path->Entry[i].EntityType -
 				SAHPI_ENT_AMC;
 			temp_index = SAHPI_ENT_AMC_INDEX + temp_value;
@@ -424,12 +425,13 @@ SaUint32T convert_string_to_epath(SaInt8T *epath_str,
 			if (0 == strcmp(tok, hpi_ent_type_list[entity_type_index].etype_str))
 			break;
 		}
-
-		entity_type = hpi_ent_type_list[entity_type_index].etype_val;
-
-		if(SAHPI_ENT_UNSPECIFIED == entity_type){
-                        rc = NCSCC_RC_FAILURE;
-                        break;
+		
+		if (num_entity_types == entity_type_index){
+			entity_type = SAHPI_ENT_UNSPECIFIED;
+			rc = NCSCC_RC_FAILURE;
+			break;
+		}else{
+			entity_type = hpi_ent_type_list[entity_type_index].etype_val;
 		}
 
                 /* fill corresponding value of entity type in the structure */

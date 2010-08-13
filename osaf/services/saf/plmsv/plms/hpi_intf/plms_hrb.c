@@ -273,7 +273,7 @@ static SaUint32T hrb_process_hpi_req( PLMS_HPI_REQ  *hpi_req )
 	PLMS_HRB_CB        *cb = hrb_cb;
 	SaHpiResourceIdT   resourceid = 0;
 	PLMS_HPI_RSP       *response = NULL;
-	PLMS_INV_DATA  	   *inv_data = NULL; 
+	PLMS_INV_DATA  	   inv_data; 
 	SaHpiRptEntryT     rpt_entry;
 	SaUint32T	   rc = NCSCC_RC_SUCCESS;
 	SaHpiSessionIdT    session_id;
@@ -381,14 +381,13 @@ static SaUint32T hrb_process_hpi_req( PLMS_HPI_REQ  *hpi_req )
 
 		case PLMS_HPI_CMD_RESOURCE_IDR_GET:
 			/* Retrieve IDR info */
-			rc = hsm_get_idr_info(&rpt_entry,inv_data);
+			rc = hsm_get_idr_info(&rpt_entry,&inv_data); 
 			break;
 
 		default:
 			LOG_ER("HRB:Invalid request from PLMS");
+			free(response);
 			return NCSCC_RC_FAILURE;
-
-			break;
 	}
 	TRACE("Processing Status for hpi request for res:%u HPI resp:%u",
 			resourceid,rc);
@@ -400,7 +399,7 @@ static SaUint32T hrb_process_hpi_req( PLMS_HPI_REQ  *hpi_req )
 
 	rc = hrb_mds_msg_send(response, hpi_req->mds_context);
 	
-
+	free(response);
 	TRACE_LEAVE2("RET VAL:%d",rc);
 	return rc;
 }

@@ -242,7 +242,7 @@ PLMS_GROUP_ENTITY *plm_get_aff_ent_list(PLMS_GROUP_ENTITY_ROOT_LIST *entity_list
 		node = (PLMS_GROUP_ENTITY *)malloc(sizeof(PLMS_GROUP_ENTITY));
 		if(!node){
 			LOG_CR("PLMS : PLMS_GROUP_ENTITY memory alloc failed, error val:%s",strerror(errno));
-			return NULL;
+			assert(0);
 		}
 		node->plm_entity = entity_list->plm_entity;
 		node->next = NULL;
@@ -353,12 +353,6 @@ void  plms_process_agent_initialize(PLMS_EVT *plm_evt)
 	TRACE_ENTER();
 
 	memset(&resp_evt , 0 , sizeof(PLMS_EVT));
-	if (!plm_evt)
-	{
-		LOG_ER("PLMS : PLMA INVALID EVENT STRUCTURE");
-		rc = SA_AIS_ERR_INVALID_PARAM;
-		goto send_resp;
-	}
 	client_info = (PLMS_CLIENT_INFO *)malloc(sizeof(PLMS_CLIENT_INFO));
 	if (!client_info)
 	{
@@ -454,12 +448,6 @@ void plms_process_agent_finalize(PLMS_EVT *plm_evt)
 	PLMS_MBCSV_MSG mbcsv_msg;
 	SaUint32T proc_rc = NCSCC_RC_SUCCESS; 
 	TRACE_ENTER();
-
-	if (!plm_evt)
-	{
-		LOG_ER("PLMS : PLMA INVALID EVENT STRUCTURE");
-		rc = SA_AIS_ERR_TRY_AGAIN;
-	}
 
 	client_info = (PLMS_CLIENT_INFO *)ncs_patricia_tree_get(
 			&cb->client_info, 
@@ -955,14 +943,7 @@ void plms_process_grp_create_evt(PLMS_EVT *plm_evt)
 
 	TRACE_ENTER();
 
-	if (!plm_evt)
-	{
-		LOG_ER("PLMS : Invalid Evt structure ");
-		rc = SA_AIS_ERR_TRY_AGAIN;
-		return;
-	}
 	memset(&plm_resp, 0, sizeof(PLMS_EVT));
-
 	client_info = (PLMS_CLIENT_INFO *)ncs_patricia_tree_get(
 			&cb->client_info, 
 			(uns8 *)&plm_evt->req_evt.agent_grp_op.plm_handle);
@@ -977,8 +958,7 @@ void plms_process_grp_create_evt(PLMS_EVT *plm_evt)
 					sizeof(PLMS_ENTITY_GROUP_INFO));
 	if (!grp_info){
 		LOG_CR("PLMS :  PLMS_ENTITY_GROUP_INFO memory alloc failed, error val:%s",strerror(errno));
-		rc = SA_AIS_ERR_NO_MEMORY;
-		goto send_resp;
+		assert(0);
 	}
 	memset(grp_info, 0, sizeof(PLMS_ENTITY_GROUP_INFO));
 
@@ -1085,7 +1065,7 @@ SaUint32T plm_rem_entity(PLMS_GROUP_ENTITY_ROOT_LIST **new_entity_list,
 				sizeof(PLMS_GROUP_ENTITY_ROOT_LIST));
 		if(!node){
 			LOG_CR("PLMS :  PLMS_GROUP_ENTITY_ROOT_LIST memory alloc failed, error val:%s",strerror(errno));
-			return NCSCC_RC_FAILURE;
+			assert(0);
 		}
 		memset(node ,0, sizeof(PLMS_GROUP_ENTITY_ROOT_LIST));
 		node->plm_entity = list_start->plm_entity;
@@ -1116,7 +1096,7 @@ SaUint32T plm_rem_entity(PLMS_GROUP_ENTITY_ROOT_LIST **new_entity_list,
 				malloc(sizeof(PLMS_GROUP_ENTITY_ROOT_LIST));
 					if(!node){
 						LOG_CR("PLMS :  PLMS_GROUP_ENTITY_ROOT_LIST memory alloc failed, error val:%s",strerror(errno));
-						return NCSCC_RC_FAILURE;
+						assert(0);
 					}
 					memset(node, 0, 
 					sizeof(PLMS_GROUP_ENTITY_ROOT_LIST));
@@ -1232,6 +1212,7 @@ PLMS_CKPT_ENTITY_LIST *plm_get_ckpt_ent_list(PLMS_GROUP_ENTITY_ROOT_LIST *ent_li
 		node = (PLMS_CKPT_ENTITY_LIST *)malloc(sizeof(PLMS_CKPT_ENTITY_LIST));
 		if(!node){
 			LOG_CR("PLMS :  PLMS_CKPT_ENTITY_LIST memory alloc failed, error val:%s",strerror(errno));
+			assert(0);
 		}
 		memset(node, 0, sizeof(PLMS_CKPT_ENTITY_LIST));
 		node->entity_name = list->plm_entity->dn_name;
@@ -1275,14 +1256,8 @@ void plms_process_grp_rem_evt(PLMS_EVT *plm_evt)
 
 	TRACE_ENTER();
 
-
-	if (!plm_evt)
-	{
-		LOG_ER("PLMS :INVALID PLM EVT STRUCTURE");
-		rc = SA_AIS_ERR_TRY_AGAIN;
-		goto send_resp;
-	}
-
+	
+	memset(&trk_info, 0, sizeof(PLMS_TRACK_INFO));
 	/* Check if handle is valid and group is created */
 	grp_info = (PLMS_ENTITY_GROUP_INFO *)ncs_patricia_tree_get(
 				&cb->entity_group_info,
@@ -1339,7 +1314,6 @@ void plms_process_grp_rem_evt(PLMS_EVT *plm_evt)
 		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto send_resp;
 	}
-	memset(&trk_info, 0, sizeof(PLMS_TRACK_INFO));
 	if(grp_info->track_flags){	
 		trk_info.root_entity = NULL;
 		trk_info.change_step = SA_PLM_CHANGE_COMPLETED;
@@ -1399,10 +1373,10 @@ void plms_process_grp_rem_evt(PLMS_EVT *plm_evt)
 		plm_free_ckpt_ent_list(mbcsv_msg.info.ent_grp_info.entity_list);
 	}
 
+send_resp:
 	free_aff_ent_list(trk_info.aff_ent_list);
 	free_ent_root_list(del_list);
 	
-send_resp:
 	memset(&plm_resp, 0, sizeof(PLMS_EVT));
 	plm_resp.req_res = PLMS_RES;
 		
@@ -1947,6 +1921,7 @@ void plms_clean_agent_db(MDS_DEST agent_mdest_id,SaAmfHAStateT ha_state)
 					client_node = (PLMS_CKPT_CLIENT_INFO_LIST *)malloc(sizeof(PLMS_CKPT_CLIENT_INFO_LIST));
 					if(!client_node){
 						LOG_CR("PLMS : PLMS_CKPT_CLIENT_INFO_LIST memory alloc failed, error val:%s",strerror(errno));
+						assert(0);
 					}
 					memset(client_node, 0, 
 						sizeof(PLMS_CKPT_CLIENT_INFO_LIST));
