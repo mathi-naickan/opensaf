@@ -126,6 +126,7 @@ ImmSearchOp::nextResult(IMMSV_OM_RSP_SEARCH_NEXT** rsp, SaUint32T* connp,
                     //but is not writable now. But the case of non-cached and
                     //persistent is being removed in A.02.01.
                     mRtsToFetch.push_back(*i);
+                    mRtsToFetch.back().valuep=NULL;/*Unused & crashes destructor.*/
                     *rtsToFetch = &mRtsToFetch;
                     *connp = obj.implConn;
                     *nodeIdp = obj.implNodeId;
@@ -173,3 +174,15 @@ ImmSearchOp::nextResult(IMMSV_OM_RSP_SEARCH_NEXT** rsp, SaUint32T* connp,
     return err;
 }
 
+
+SearchObject::~SearchObject()
+{
+    /* Not strictly necessary, but does not hurt. */
+    attributeList.clear(); 
+}
+
+SearchAttribute::~SearchAttribute()
+{
+    delete valuep;
+    valuep = NULL;
+}

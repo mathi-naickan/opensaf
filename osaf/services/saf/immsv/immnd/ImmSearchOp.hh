@@ -33,6 +33,8 @@ struct SearchAttribute
     ImmAttrValue*     valuep;
     SaImmValueTypeT  valueType;
     SaUint32T flags;
+
+    ~SearchAttribute();
 };
 typedef std::list<SearchAttribute> AttributeList;
 
@@ -45,6 +47,8 @@ struct SearchObject
     SaUint32T implConn;
     unsigned int implNodeId;
     SaUint64T implDest;
+
+    ~SearchObject();
 };
 typedef std::list<SearchObject> ResultList;
 
