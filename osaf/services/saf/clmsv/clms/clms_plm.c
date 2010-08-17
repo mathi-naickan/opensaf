@@ -96,6 +96,15 @@ static void clms_plm_readiness_track_callback(SaPlmEntityGroupHandleT entityGrpH
 						TRACE("PLM Track Response Send Succedeed");
 					}
 				}
+			} else if(!node->nodeup &&
+					trackedEntities->entities[i].expectedReadinessStatus.readinessState ==
+					SA_PLM_READINESS_OUT_OF_SERVICE){
+				ais_er = saPlmReadinessTrackResponse(clms_cb->ent_group_hdl, invocation,SA_PLM_CALLBACK_RESPONSE_OK);
+				if (ais_er != SA_AIS_OK) {
+					TRACE("saPlmReadinessTrackResponse FAILED");
+					goto done;
+				}
+				TRACE("Step = %d, 1/2/3 = validate/start/aborted, nodeup is zero", step);
 			}
 			/* Checkpoint node data */
 			ckpt_node_rec(node);
@@ -200,6 +209,9 @@ static void clms_plm_readiness_track_callback(SaPlmEntityGroupHandleT entityGrpH
 						ckpt_cluster_rec();
 					}
 				}
+			} else { /* nodeup is zero but ee of node has changed, update to standby*/
+				ckpt_node_rec(node);
+				TRACE("Step = %d, completed, nodeup is zero", step);
 			}
 		}
 
