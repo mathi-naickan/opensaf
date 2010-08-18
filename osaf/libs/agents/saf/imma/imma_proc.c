@@ -784,7 +784,7 @@ static void imma_proc_ccb_completed(IMMA_CB *cb, IMMA_EVT *evt)
 {
 	IMMA_CALLBACK_INFO *callback;
 	IMMA_CLIENT_NODE *cl_node = NULL;
-	SaBoolT isPrtObj=(evt->info.objDelete.ccbId == 0);
+	SaBoolT isPrtObj=(evt->info.ccbCompl.ccbId == 0);
 
 	SaImmOiHandleT implHandle = evt->info.ccbCompl.immHandle;
 

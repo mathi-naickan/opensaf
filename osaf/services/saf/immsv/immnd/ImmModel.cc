@@ -4690,12 +4690,19 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
         /*
           TODO: fix to allow delete on top of modify. Possibly also delete on 
           create. Delete on create is dangerous, must check if there are
-          children creates.
+          children creates. But allow delete on top of delete.
         */
-        LOG_IN("ERR_BAD_OPERATION: Object '%s' already subject of another "
-            "operation in same ccb. can not handle chained delete in same ccb "
-            "currently", oi->first.c_str());
-        return SA_AIS_ERR_BAD_OPERATION;
+        if(omuti->second->mOpType == IMM_DELETE) {
+            /* Delete already registered on object. */
+            if(doIt) {
+                return SA_AIS_OK;
+            }
+        } else {
+            LOG_IN("ERR_BAD_OPERATION: Object '%s' already subject of another "
+                "operation in same ccb. Currently can not handle delete chained "
+                "on top of create or update in same ccb.", oi->first.c_str());
+            return SA_AIS_ERR_BAD_OPERATION;
+	}
     }
 
     if(oi->second->mObjFlags & IMM_RT_UPDATE_LOCK) {
