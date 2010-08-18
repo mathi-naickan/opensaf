@@ -73,7 +73,7 @@ static void usage(const char *progname)
 
 	printf("\nEXAMPLE\n");
 	printf("\timmadm -o 2 safAmfNode=SC-2,safAmfCluster=myAmfCluster\n");
-	printf("\timmadm -o 1 -p SA_PLM_ADMIN_LOCK_OPTION:SA_STRING_T:trylock  safEE=SC-1,safDomain=domain_1\n");
+	printf("\timmadm -o 1 -p lockOption:SA_STRING_T:trylock  safEE=SC-1,safDomain=domain_1\n");
 }
 
 static SaImmValueTypeT str2_saImmValueTypeT(const char *str)
