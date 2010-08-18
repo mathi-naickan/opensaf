@@ -4619,7 +4619,7 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
     unsigned int pbeIsLocal)
 {
     /*TRACE_ENTER();*/
-    
+    bool configObj = true;    
     std::string objAdminOwnerName;
     SaUint32T ccbIdOfObj = 0;
     CcbVector::iterator i1;
@@ -4644,14 +4644,40 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
     }
     
     if(oi->second->mClassInfo->mCategory != SA_IMM_CLASS_CONFIG) {
-        LOG_IN("ERR_BAD_OPERATION: object '%s' is not a configuration object",
-            oi->first.c_str());
-        /*return SA_AIS_ERR_INVALID_PARAM;*/
-        return SA_AIS_ERR_BAD_OPERATION;
+        if(doIt) {
+            LOG_IN("Runtime object '%s' will be deleted as a side effect, "
+                "if ccb %u is applied", oi->first.c_str(), ccb->mId);
+
+            if(!(oi->second->mObjFlags & IMM_PRTO_FLAG)) {
+                AttrMap::iterator i4 =
+                    std::find_if(oi->second->mClassInfo->mAttrMap.begin(),
+                            oi->second->mClassInfo->mAttrMap.end(),
+                            AttrFlagIncludes(SA_IMM_ATTR_PERSISTENT));
+                if(i4 != oi->second->mClassInfo->mAttrMap.end()) {
+                    oi->second->mObjFlags |= IMM_PRTO_FLAG;
+                }
+            }
+        }
+        configObj = false;
+
+
+        /* Check for possible interference with RTO create or delete */
+        if(!doIt && !ccbIdOfObj) {
+            if(oi->second->mObjFlags & IMM_CREATE_LOCK) {
+                TRACE_7("ERR_TRY_AGAIN: sub-object '%s' registered for creation "
+                    "but not yet applied by PRTO PBE ?", oi->first.c_str());
+                return SA_AIS_ERR_TRY_AGAIN;
+            } else if(oi->second->mObjFlags & IMM_DELETE_LOCK) {
+                TRACE_7("ERR_TRY_AGAIN: sub-object '%s' already registered for delete "
+                        "but not yet applied by PRTO PBE ?", oi->first.c_str());
+                return SA_AIS_ERR_TRY_AGAIN;
+            }
+        }
     }
     
     if(!(oi->second->mImplementer && oi->second->mImplementer->mNodeId) &&
-        (ccb->mCcbFlags & SA_IMM_CCB_REGISTERED_OI)) {
+        (ccb->mCcbFlags & SA_IMM_CCB_REGISTERED_OI) && configObj) {
+
         TRACE_7("ERR_NOT_EXIST: object '%s' has no implementer yet flag "
             "SA_IMM_CCB_REGISTERED_OI is set in ccb", 
             oi->first.c_str());
@@ -4691,7 +4717,8 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
         //oMut->mBeforeImage = oi->second;
         ccb->mOpCount++;
 
-        if(oi->second->mImplementer && oi->second->mImplementer->mNodeId) {
+        if(oi->second->mImplementer && oi->second->mImplementer->mNodeId && configObj) {
+            /* Not sending implementer ccb-delete upcalls for RTOs persistent or not. */
             ccb->mState = IMM_CCB_DELETE_OP;
             
             CcbImplementerMap::iterator ccbi = 
@@ -4734,10 +4761,13 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
                     localImpl = true;
                 }
             } 
-        } 
+        }
 
-        if(pbeIsLocal && !localImpl) {
-            /* No regular and local implementer, but we have a PBE. */
+        if(pbeIsLocal && !localImpl && 
+          (configObj || (oi->second->mObjFlags |= IMM_PRTO_FLAG))) {
+            /* No regular and local implementer, but we have a PBE. 
+               The object is a config object or a persistent RT object.
+            */
             if(oi->second->mObjFlags & IMM_DN_INTERNAL_REP) {
                 std::string objectName(oi->first);
                 nameToExternal(objectName);

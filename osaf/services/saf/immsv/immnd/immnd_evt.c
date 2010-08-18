@@ -4674,6 +4674,11 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 		} else {
 			/* We have obtained PBE handle & dest info for PBE. 
 			   Iterate through objNameArray and send delete upcalls to PBE.
+			   PBE delete upcalls are generated for all config objects plus
+			   any PERSISTENT runtime objects that are deleted as a side 
+			   effect. No PBE delete upcalls are generated for cached
+			   non-persistent runtime objects that are delete as a side
+			   effect. 
 			 */
 			int ix = 0;
 			for (; ix < arrSize && err == SA_AIS_OK; ++ix) {
@@ -4725,6 +4730,10 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 					err = SA_AIS_ERR_FAILED_OPERATION;
 					delayedReply = SA_FALSE;
 				} else {
+					/* Generate an implementer upcall for each deleted config object. 
+					   No implementer upcalls are generated for any runtime objects
+					   (persistent or not) that are deleted as a side effect.
+					 */
 					send_evt.info.imma.info.objDelete.objectName.size = strlen(objNameArr[ix]);
 					send_evt.info.imma.info.objDelete.objectName.buf = objNameArr[ix];
 					send_evt.info.imma.info.objDelete.adminOwnerId = invocArr[ix];
