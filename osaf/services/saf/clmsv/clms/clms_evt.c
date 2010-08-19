@@ -262,7 +262,7 @@ CLMS_CLIENT_INFO *clms_client_new(MDS_DEST mds_dest, uns32 client_id)
 uns32 proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 {
 	clmsv_clms_node_up_info_t *nodeup_info = &(evt->info.msg.info.api_info.param).nodeup_info;
-	CLMS_CLUSTER_NODE *node = NULL, *node_tmp = NULL;
+	CLMS_CLUSTER_NODE *node = NULL;
 	SaUint32T nodeid;
 	uns32 rc = NCSCC_RC_SUCCESS;
 	SaNameT node_name = { 0 };
@@ -311,7 +311,7 @@ uns32 proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 	
 
 	/* Self Node needs to be added tp patricia tree before hand during init */
-	if (NULL == (node_tmp = clms_node_get_by_id(nodeid))) {
+	if (NULL ==  clms_node_get_by_id(nodeid)) {
 		node->node_id = evt->info.msg.info.api_info.param.nodeup_info.node_id;
 
 		TRACE("node->node_id %u node->nodeup %d", node->node_id, node->nodeup);
@@ -791,50 +791,51 @@ static uns32 proc_track_start_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 	}
 
 	/*Send only the local node data */
-	if ((client->track_flags & SA_TRACK_LOCAL) && (client->track_flags & SA_TRACK_CURRENT)) {
+	if (client != NULL){
+		if ((client->track_flags & SA_TRACK_LOCAL) && (client->track_flags & SA_TRACK_CURRENT)) {
 
-		TRACE("Send track response for the local node");
-		rc = clms_track_current_resp(cb, node, param->sync_resp, &evt->fr_dest, &evt->mds_ctxt, param->client_id, ais_rc);
-		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("Sending response for TRACK_LOCAL failed %u", (unsigned int)rc);
-			goto done;
-		}
+			TRACE("Send track response for the local node");
+			rc = clms_track_current_resp(cb, node, param->sync_resp, &evt->fr_dest, &evt->mds_ctxt, param->client_id, ais_rc);
+			if (rc != NCSCC_RC_SUCCESS) {
+				TRACE("Sending response for TRACK_LOCAL failed %u", (unsigned int)rc);
+				goto done;
+			}
 
-	} else if (client->track_flags & SA_TRACK_CURRENT) {
-		TRACE("Send response for SA_TRACK_CURRENT");
-		if (node != NULL) {
-			if (node->member == SA_FALSE) {
-				TRACE("Send reponse when the node is not a cluster member");
-				rc = clms_track_current_resp(cb, node, param->sync_resp, &evt->fr_dest, &evt->mds_ctxt,
-						param->client_id, ais_rc);
-			} else {
-				TRACE("Send response for the node being cluster member");
-				rc = clms_track_current_resp(cb, NULL, param->sync_resp, &evt->fr_dest, &evt->mds_ctxt,
-						param->client_id, ais_rc);
+		} else if (client->track_flags & SA_TRACK_CURRENT) {
+			TRACE("Send response for SA_TRACK_CURRENT");
+			if (node != NULL) {
+				if (node->member == SA_FALSE) {
+					TRACE("Send reponse when the node is not a cluster member");
+					rc = clms_track_current_resp(cb, node, param->sync_resp, &evt->fr_dest, &evt->mds_ctxt,
+							param->client_id, ais_rc);
+				} else {
+					TRACE("Send response for the node being cluster member");
+					rc = clms_track_current_resp(cb, NULL, param->sync_resp, &evt->fr_dest, &evt->mds_ctxt,
+							param->client_id, ais_rc);
+				}
+			}
+
+			if (rc != NCSCC_RC_SUCCESS) {
+				TRACE("Sending response for TRACK_CURRENT failed %d", (unsigned int)rc);
+				goto done;
 			}
 		}
 
-		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("Sending response for TRACK_CURRENT failed %d", (unsigned int)rc);
-			goto done;
+		/*Checkpoint the client trackflags */
+		if ((client != NULL) && (cb->ha_state == SA_AMF_HA_ACTIVE) && (ais_rc == SA_AIS_OK)) {
+
+			memset(&ckpt, 0, sizeof(CLMS_CKPT_REC));
+			ckpt.header.type = CLMS_CKPT_TRACK_CHANGES_REC;
+			ckpt.header.num_ckpt_records = 1;
+			ckpt.header.data_len = 1;
+			ckpt.param.client_rec.client_id = param->client_id;
+			ckpt.param.client_rec.track_flags = client->track_flags;
+
+			rc = clms_send_async_update(clms_cb, &ckpt, NCS_MBCSV_ACT_ADD);
+			if (rc != NCSCC_RC_SUCCESS)
+				TRACE("send_async_update FAILED");
 		}
 	}
-
-	/*Checkpoint the client trackflags */
-	if ((cb->ha_state == SA_AMF_HA_ACTIVE) && (ais_rc == SA_AIS_OK)) {
-
-		memset(&ckpt, 0, sizeof(CLMS_CKPT_REC));
-		ckpt.header.type = CLMS_CKPT_TRACK_CHANGES_REC;
-		ckpt.header.num_ckpt_records = 1;
-		ckpt.header.data_len = 1;
-		ckpt.param.client_rec.client_id = param->client_id;
-		ckpt.param.client_rec.track_flags = client->track_flags;
-
-		rc = clms_send_async_update(clms_cb, &ckpt, NCS_MBCSV_ACT_ADD);
-		if (rc != NCSCC_RC_SUCCESS)
-			TRACE("send_async_update FAILED");
-	}
-
  done:
 	TRACE_LEAVE();
 
@@ -1094,12 +1095,14 @@ static uns32 proc_initialize_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 	msg.evt_type = CLMSV_CLMS_TO_CLMA_API_RESP_MSG;
 	msg.info.api_resp_info.type = CLMSV_INITIALIZE_RESP;
 	msg.info.api_resp_info.rc = ais_rc;
-	msg.info.api_resp_info.param.client_id = client->client_id;
+	if (client != NULL)
+		msg.info.api_resp_info.param.client_id = client->client_id;
 
 	rc = clms_mds_msg_send(cb, &msg, &evt->fr_dest, &evt->mds_ctxt, MDS_SEND_PRIORITY_HIGH, NCSMDS_SVC_ID_CLMA);
 	if (rc != NCSCC_RC_SUCCESS) {
 		TRACE_LEAVE2("clms_mds_msg_send FAILED rc = %u", (unsigned int)rc);
-		clms_client_delete(client->client_id);
+		if (client != NULL)
+			clms_client_delete(client->client_id);
 		return rc;
 	}
 
@@ -1113,19 +1116,22 @@ static uns32 proc_initialize_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 		}
 	}
 
-	if ((cb->ha_state == SA_AMF_HA_ACTIVE) && (ais_rc == SA_AIS_OK)) {
+	if (client != NULL){
 
-		memset(&ckpt, 0, sizeof(CLMS_CKPT_REC));
-		ckpt.header.type = CLMS_CKPT_CLIENT_INFO_REC;
-		ckpt.header.num_ckpt_records = 1;
-		ckpt.header.data_len = 1;
-		ckpt.param.client_rec.client_id = client->client_id;
-		ckpt.param.client_rec.mds_dest = client->mds_dest;
+		if ((cb->ha_state == SA_AMF_HA_ACTIVE) && (ais_rc == SA_AIS_OK)) {
 
-		rc = clms_send_async_update(clms_cb, &ckpt, NCS_MBCSV_ACT_ADD);
-		if (rc != NCSCC_RC_SUCCESS)
-			TRACE("clms_send_async_update FAILED rc = %u", (unsigned int)rc);
+			memset(&ckpt, 0, sizeof(CLMS_CKPT_REC));
+			ckpt.header.type = CLMS_CKPT_CLIENT_INFO_REC;
+			ckpt.header.num_ckpt_records = 1;
+			ckpt.header.data_len = 1;
+			ckpt.param.client_rec.client_id = client->client_id;
+			ckpt.param.client_rec.mds_dest = client->mds_dest;
 
+			rc = clms_send_async_update(clms_cb, &ckpt, NCS_MBCSV_ACT_ADD);
+			if (rc != NCSCC_RC_SUCCESS)
+				TRACE("clms_send_async_update FAILED rc = %u", (unsigned int)rc);
+
+		}
 	}
 
 	TRACE_LEAVE();

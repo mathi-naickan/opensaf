@@ -644,23 +644,26 @@ uns32 clms_clmresp_rejected(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, CLMS_TRACK_I
 
 			clms_clear_node_dep_list(node);
 			client = clms_client_get_by_id(trk->client_id);
-			if (client->track_flags & SA_TRACK_VALIDATE_STEP) {
-				ais_er =
-				    saPlmReadinessTrackResponse(cb->ent_group_hdl, node->plm_invid,
+			if (client != NULL){
+				if (client->track_flags & SA_TRACK_VALIDATE_STEP) {
+					ais_er =
+						saPlmReadinessTrackResponse(cb->ent_group_hdl, node->plm_invid,
 								SA_CLM_CALLBACK_RESPONSE_REJECTED);
-				if (ais_er != SA_AIS_OK) {
-					LOG_ER("saPlmReadinessTrackResponse FAILED ais_er = %u", ais_er);
-					goto done;
-				}
+					if (ais_er != SA_AIS_OK) {
+						LOG_ER("saPlmReadinessTrackResponse FAILED ais_er = %u", ais_er);
+						goto done;
+					}
+				} 
 			} else {
 				ais_er =
-				    saPlmReadinessTrackResponse(cb->ent_group_hdl, node->plm_invid,
-								SA_CLM_CALLBACK_RESPONSE_ERROR);
+					saPlmReadinessTrackResponse(cb->ent_group_hdl, node->plm_invid,
+							SA_CLM_CALLBACK_RESPONSE_ERROR);
 				if (ais_er != SA_AIS_OK) {
 					LOG_ER("saPlmReadinessTrackResponse FAILED ais_er = %u", ais_er);
 					goto done;
 				}
 			}
+			
 #endif
 			break;
 		}
@@ -889,15 +892,9 @@ uns32 clms_clmresp_ok(CLMS_CB * cb, CLMS_CLUSTER_NODE * op_node, CLMS_TRACK_INFO
 
 			/*Checkpoint Cluster data */
 			ckpt_cluster_rec();			
-			if(op_node->disable_reboot == SA_FALSE) {
-				if (clms_cb->reg_with_plm == SA_TRUE){
-					opensaf_reboot(op_node->node_id, (char *)op_node->ee_name.value,
-							"Clm lock:start subscriber responds ok and  disable reboot set to false");
-				} /* Without PLM in system,till now there is no mechanism to reboot remote node*/
-			}
 		}
 	}
-done:
+ done:
 	TRACE_LEAVE();
 	return rc;
 

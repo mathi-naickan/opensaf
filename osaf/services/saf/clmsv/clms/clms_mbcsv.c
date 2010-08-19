@@ -436,7 +436,6 @@ static uns32 ckpt_proc_node_rec(CLMS_CB * cb, CLMS_CKPT_REC * data)
 {
 	CLMSV_CKPT_NODE_RUNTIME_INFO *param = &data->param.node_rec;
 	CLMS_CLUSTER_NODE *node = NULL;
-	CLMS_CLUSTER_NODE *tmp_node = NULL;
 
 	TRACE_ENTER2("node_id %u", param->node_id);
 
@@ -463,7 +462,7 @@ static uns32 ckpt_proc_node_rec(CLMS_CB * cb, CLMS_CKPT_REC * data)
 #endif
 
 	if (node->node_id != 0){
-		if (NULL == (tmp_node = clms_node_get_by_id(node->node_id))) {
+		if (NULL ==  clms_node_get_by_id(node->node_id)) {
 
 			if (clms_node_add(node, 0) != NCSCC_RC_SUCCESS) {
 				LOG_ER("Patricia tree add failed");
@@ -493,13 +492,13 @@ static uns32 ckpt_proc_node_rec(CLMS_CB * cb, CLMS_CKPT_REC * data)
 
 static uns32 process_ckpt_data(CLMS_CB * cb, CLMS_CKPT_REC * data)
 {
-	TRACE_ENTER2("data->header.type %d", data->header.type);
-
 	uns32 rc = NCSCC_RC_SUCCESS;
 	if ((!cb) || (data == NULL)) {
 		TRACE("FAILED: (!cb) || (data == NULL)");
 		return (rc = NCSCC_RC_FAILURE);
 	}
+
+	TRACE_ENTER2("data->header.type %d", data->header.type);
 
 	if ((cb->ha_state == SA_AMF_HA_STANDBY) || (cb->ha_state == SA_AMF_HA_QUIESCED)) {
 		if (data->header.type >= CLMS_CKPT_MSG_MAX) {

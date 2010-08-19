@@ -472,19 +472,22 @@ int main(int argc, char *argv[])
 
 			if (o_msg != NULL) {
 				rc = o_msg->info.api_resp_info.rc;
-				free(o_msg);
 			} else
 				rc = SA_AIS_ERR_NO_RESOURCES;
 
 			if (rc == SA_AIS_ERR_NOT_EXIST) {
 				LOG_ER("Node : %s is Not a member of cluster",
 				       o_msg->info.api_resp_info.param.node_name.value);
+				free(o_msg);
 				goto done;
 			}
 
 			if (rc == SA_AIS_OK)
 				LOG_NO("Node : %s has Joined the cluster",
 				       o_msg->info.api_resp_info.param.node_name.value);
+
+			if (o_msg != NULL) 
+					free(o_msg);
 
 			break;	/*get out of while loop */
 		}

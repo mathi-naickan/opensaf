@@ -201,8 +201,8 @@ CLMS_CLUSTER_NODE *clms_node_new(SaNameT *name, const SaImmAttrValuesT_2 **attrs
 			node->node_addr.family = *((SaUint32T *)value);
 
 		} else if (!strcmp(attr->attrName, "saClmNodeAddress")) {
-			strcpy((char *)node->node_addr.value, *((char **)value));
-			node->node_addr.length = (SaUint16T)strlen((char *)node->node_addr.value);
+			node->node_addr.length = (SaUint16T)strlen(*((char **)value));
+			strncpy((char *)node->node_addr.value, *((char **)value),node->node_addr.length);
 
 		} else if (!strcmp(attr->attrName, "saClmNodeEE")) {
 			SaNameT *name = (SaNameT *)value;
@@ -1542,13 +1542,12 @@ void clms_node_add_to_model(CLMS_CLUSTER_NODE * node)
 {
 
 	TRACE_ENTER();
-	CLMS_CLUSTER_NODE *tmp_node = NULL;
 
 	assert(node != NULL);
 	if (node->ee_name.length != 0)
 	{
 		/*If the Node is already added to patricia tree;then ignore it */
-		if ((tmp_node = clms_node_get_by_eename(&node->ee_name)) == NULL) {
+		if (clms_node_get_by_eename(&node->ee_name) == NULL) {
 			if (clms_cb->reg_with_plm == SA_TRUE) {
 				if (clms_node_add(node, 1) != NCSCC_RC_SUCCESS) {
 					assert(0);
@@ -1558,7 +1557,7 @@ void clms_node_add_to_model(CLMS_CLUSTER_NODE * node)
 	}
 
 	/*If Cluster Node already is already added to patricia tree;then ignore it  */
-	if ((tmp_node = clms_node_get_by_name(&node->node_name)) == NULL) {
+	if (clms_node_get_by_name(&node->node_name) == NULL) {
 		TRACE("Not in patricia tree");
 
 		if (clms_node_add(node, 2) != NCSCC_RC_SUCCESS) {
@@ -1714,13 +1713,6 @@ static uns32 clms_lock_send_no_start_cbk(CLMS_CLUSTER_NODE * nodeop)
 	rc = clms_send_is_member_info(clms_cb, nodeop->node_id, nodeop->member, TRUE);
 	if (rc != NCSCC_RC_SUCCESS) {
 		TRACE("clms_send_is_member_info %u", rc);
-	}
-
-	if(nodeop->disable_reboot == SA_FALSE) {
-		 if (clms_cb->reg_with_plm == SA_TRUE){
-			opensaf_reboot(nodeop->node_id, (char *)nodeop->ee_name.value,
-                                               "Clm lock:no start subscriber and  disable reboot set to false");
-		} /* Without PLM in system,till now there is no mechanism to reboot remote node*/
 	}
  done:
 	TRACE_LEAVE();
@@ -2003,13 +1995,6 @@ uns32 clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop)
 			if (rc != NCSCC_RC_SUCCESS) {
 				TRACE("clms_send_is_member_info failed %u", rc);
 				goto done;
-			}
-			
-			if(nodeop->disable_reboot == SA_FALSE) {
-				if (clms_cb->reg_with_plm == SA_TRUE){
-					opensaf_reboot(nodeop->node_id, (char *)nodeop->ee_name.value,
-							"Clm Shutdown:no start subscriber and  disable reboot set to false");
-				} /* Without PLM in system,till now there is no mechanism to reboot remote node*/
 			}
 		}
 	}
