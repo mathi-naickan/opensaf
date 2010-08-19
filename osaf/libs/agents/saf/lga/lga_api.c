@@ -530,13 +530,13 @@ static SaAisErrorT validate_open_params(SaLogHandleT logHandle,
 	/* Check implementation specific string length */
 	if (NULL != logFileCreateAttributes) {
 		len = strlen(logFileCreateAttributes->logFileName);
-		if (len > NAME_MAX) {
+		if ((len == 0) || (len > NAME_MAX)) {
 			TRACE("logFileName");
 			return SA_AIS_ERR_INVALID_PARAM;
 		}
 		if (logFileCreateAttributes->logFilePathName != NULL) {
 			len = strlen(logFileCreateAttributes->logFilePathName);
-			if (len > PATH_MAX) {
+			if ((len == 0) || (len > PATH_MAX)) {
 				TRACE("logFilePathName");
 				return SA_AIS_ERR_INVALID_PARAM;
 			}
