@@ -507,21 +507,32 @@ uns32 clms_client_del_trackresp(SaUint32T client_id)
 			while (trkrsp_rec != NULL) {
 				inv_id = trkrsp_rec->inv_id;
 				if (trkrsp_rec->client_id == client_id) {
-
-					if (NCSCC_RC_SUCCESS !=
-					    ncs_patricia_tree_del(&node->trackresp, &trkrsp_rec->pat_node)) {
-						TRACE("ncs_patricia_tree_del FAILED");
-						rc = NCSCC_RC_FAILURE;
-						goto done;
+					if(ncs_patricia_tree_size(&node->trackresp) == 1) {
+						/*We need to send callback for completed step if all client 
+						  has send response for start step but the client which has 
+						  gone down or did finalize has not send response*/
+						rc = clms_clmresp_ok(clms_cb, node, trkrsp_rec);
+						if(rc != NCSCC_RC_SUCCESS) {
+							TRACE("clms_clmresp_ok FAILED");
+							goto done;
+						}
+					} else {
+						if (NCSCC_RC_SUCCESS !=
+								ncs_patricia_tree_del(&node->trackresp, &trkrsp_rec->pat_node)) {
+							TRACE("ncs_patricia_tree_del FAILED");
+							rc = NCSCC_RC_FAILURE;
+							goto done;
+						}
+						free(trkrsp_rec); 
 					}
-					free(trkrsp_rec);
+					break;
 				}
 				trkrsp_rec =
-				    (CLMS_TRACK_INFO *) ncs_patricia_tree_getnext(&node->trackresp, (uns8 *)&inv_id);
+					(CLMS_TRACK_INFO *) ncs_patricia_tree_getnext(&node->trackresp, (uns8 *)&inv_id);
 			}
 		}
 	}
- done:
+done:
 	return rc;
 }
 
@@ -795,6 +806,7 @@ uns32 clms_clmresp_ok(CLMS_CB * cb, CLMS_CLUSTER_NODE * op_node, CLMS_TRACK_INFO
 			rc = NCSCC_RC_FAILURE;
 			goto done;
 		}
+		free(trkrec);
 	}
 
 	TRACE("op_node->admin_op %d", op_node->admin_op);
@@ -1010,8 +1022,10 @@ void clms_adminop_pending(void)
 	/*Crosscheck: Break after getting the node and send trackcallback out of the loop */
 	while (NULL != (node = clms_node_getnext_by_id(nodeid))) {
 		nodeid = node->node_id;
-		if ((node->admin_op != PLM) && (node->admin_op != 0))
+		if ((node->admin_op != PLM) && (node->admin_op != 0)) {
 			clms_send_track(clms_cb, node, SA_CLM_CHANGE_ABORTED);
+			node->admin_op = 0;
+		}
 	}
 
 }

@@ -758,7 +758,11 @@ void clms_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, SaClmChangeStepT st
 					TRACE("Sending track callback failed for SA_CLM_CHANGE_START");
 				}
 
-				clms_create_track_resp_list(node, rec);
+				/* rc == NCSCC_RC_SUCCESS is true then add rec into track response list*/
+				if(rc == NCSCC_RC_SUCCESS) { 
+					clms_create_track_resp_list(node, rec);
+					TRACE("patricia tree add succeeded for start step");
+				}
 
 			}
 		} else if (step == SA_CLM_CHANGE_VALIDATE) {
@@ -793,8 +797,11 @@ void clms_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, SaClmChangeStepT st
 					TRACE("Sending track callback failed for SA_CLM_CHANGE_VALIDATE");
 				}
 
-				clms_create_track_resp_list(node, rec);
-				TRACE("patricia tree add succeeded for validate step");
+				/*rc == NCSCC_RC_SUCCESS is true then add rec into track response list*/
+				if(rc == NCSCC_RC_SUCCESS) {
+					clms_create_track_resp_list(node, rec);
+					TRACE("patricia tree add succeeded for validate step");
+				}
 
 			}
 		} else if (step == SA_CLM_CHANGE_COMPLETED) {

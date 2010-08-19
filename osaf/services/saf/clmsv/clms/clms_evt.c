@@ -158,10 +158,18 @@ uns32 clms_client_delete_by_mds_dest(MDS_DEST mds_dest)
 	client = (CLMS_CLIENT_INFO *) ncs_patricia_tree_getnext(&clms_cb->client_db, (uns8 *)0);
 
 	while (client != NULL) {
-	/** Store the client_id for get Next  */
+		/** Store the client_id for get Next  */
 		client_id = m_NCS_OS_HTONL(client->client_id);
-		if (m_NCS_MDS_DEST_EQUAL(&client->mds_dest, &mds_dest))
+		if (m_NCS_MDS_DEST_EQUAL(&client->mds_dest, &mds_dest)) {
 			rc = clms_client_delete(client->client_id);
+
+			/* Delete this client data from the clmresp tracking list */
+			rc = clms_client_del_trackresp(client->client_id);
+			if (rc != NCSCC_RC_SUCCESS) {
+				TRACE("clms_client_delete_trackresp FAILED: %u", rc);
+			}
+			break;
+		}
 
 		client = (CLMS_CLIENT_INFO *) ncs_patricia_tree_getnext(&clms_cb->client_db, (uns8 *)&client_id);
 	}
