@@ -4552,6 +4552,12 @@ ImmModel::ccbObjectDelete(const ImmsvOmCcbObjectDelete* req,
         goto ccbObjectDeleteExit;
     }
 
+    if(oi->second->mClassInfo->mCategory != SA_IMM_CLASS_CONFIG) {
+        LOG_IN("ERR_BAD_OPERATION: object '%s' is not a configuration object",
+            objectName.c_str());
+        return SA_AIS_ERR_BAD_OPERATION;
+    }
+
     // Prepare for call on PersistentBackEnd
 
     if((err == SA_AIS_OK) && pbeNodeIdPtr) {
@@ -4654,6 +4660,7 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
                             oi->second->mClassInfo->mAttrMap.end(),
                             AttrFlagIncludes(SA_IMM_ATTR_PERSISTENT));
                 if(i4 != oi->second->mClassInfo->mAttrMap.end()) {
+                    TRACE_7("Setting PRTO flag for %s", oi->first.c_str());
                     oi->second->mObjFlags |= IMM_PRTO_FLAG;
                 }
             }
@@ -4771,7 +4778,7 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
         }
 
         if(pbeIsLocal && !localImpl && 
-          (configObj || (oi->second->mObjFlags |= IMM_PRTO_FLAG))) {
+          (configObj || (oi->second->mObjFlags & IMM_PRTO_FLAG))) {
             /* No regular and local implementer, but we have a PBE. 
                The object is a config object or a persistent RT object.
             */
