@@ -105,7 +105,7 @@ log_client_t *lgs_client_new(MDS_DEST mds_dest, uns32 client_id, lgs_stream_list
 	}
 
     /** Initialize the record **/
-	if ((lgs_cb->ha_state == SA_AMF_HA_STANDBY) && (client_id > lgs_cb->last_client_id))
+	if ((lgs_cb->ha_state == SA_AMF_HA_STANDBY) || (lgs_cb->ha_state == SA_AMF_HA_QUIESCED))
 		lgs_cb->last_client_id = client_id;
 	client->client_id = lgs_cb->last_client_id;
 	client->mds_dest = mds_dest;
