@@ -947,18 +947,15 @@ void avd_shutdown_app_su_resp_evh(AVD_CL_CB *cb, AVD_EVT *evt)
  */
 void avd_tmr_snd_hb_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 {
-	AVD_DND_MSG *msg;
+	AVD_DND_MSG msg = {0};
 	static uns32 seq_id;
 
 	TRACE_ENTER2("seq_id=%u", seq_id);
 
-	msg = calloc(1, sizeof(*msg));
-	assert(msg);
-	msg->msg_type = AVSV_D2N_HEARTBEAT_MSG;
-	msg->msg_info.d2n_hb_info.seq_id = seq_id++;
-	if (avd_mds_send(NCSMDS_SVC_ID_AVND, cb->local_avnd_adest, msg) != NCSCC_RC_SUCCESS) {
+	msg.msg_type = AVSV_D2N_HEARTBEAT_MSG;
+	msg.msg_info.d2n_hb_info.seq_id = seq_id++;
+	if (avd_mds_send(NCSMDS_SVC_ID_AVND, cb->local_avnd_adest,(NCSCONTEXT)(&msg)) != NCSCC_RC_SUCCESS) {
 		LOG_WA("%s failed to send HB msg", __FUNCTION__);
-		free(msg);
 	}
 
 	avd_stop_tmr(cb, &cb->heartbeat_tmr);

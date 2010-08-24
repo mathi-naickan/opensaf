@@ -148,7 +148,7 @@ static int is_config_valid(const SaNameT *dn, CcbUtilOperationData_t *opdata)
 	/* This is an association class, the parent (SaAmfComp) should come after the second comma */
 	if ((parent = strchr((char*)dn->value, ',')) == NULL) {
 		LOG_ER("No parent to '%s' ", dn->value);
-		return 0;
+		goto free_cstype_name;
 	}
 
 	parent++;
@@ -156,7 +156,7 @@ static int is_config_valid(const SaNameT *dn, CcbUtilOperationData_t *opdata)
 	/* Second comma should be the parent */
 	if ((parent = strchr(parent, ',')) == NULL) {
 		LOG_ER("No parent to '%s' ", dn->value);
-		return 0;
+		goto free_cstype_name;
 	}
 
 	parent++;
@@ -164,7 +164,7 @@ static int is_config_valid(const SaNameT *dn, CcbUtilOperationData_t *opdata)
 	/* Should be children to SaAmfComp */
 	if (strncmp(parent, "safComp=", 8) != 0) {
 		LOG_ER("Wrong parent '%s'", parent);
-		return 0;
+		goto free_cstype_name;
 	}
 
 	/* 
@@ -182,13 +182,13 @@ static int is_config_valid(const SaNameT *dn, CcbUtilOperationData_t *opdata)
 
 		if (opdata == NULL) {
 			LOG_ER("'%s' does not exist in model", comp_name.value);
-			return 0;
+			goto free_cstype_name;
 		}
 
 		if ((tmp = ccbutil_getCcbOpDataByDN(opdata->ccbId, &comp_name)) == NULL) {
 			assert(0);
 			LOG_ER("'%s'does not exist in existing model or in CCB", comp_name.value);
-			return 0;
+			goto free_cstype_name;
 		}
 
 		comptype_name = immutil_getNameAttr(tmp->param.create.attrValues, "saAmfCompType", 0);
@@ -204,16 +204,21 @@ static int is_config_valid(const SaNameT *dn, CcbUtilOperationData_t *opdata)
 	if (avd_ctcstype_get(&ctcstype_name) == NULL) {
 		if (opdata == NULL) {
 			LOG_ER("'%s' does not exist in model", ctcstype_name.value);
-			return 0;
+			goto free_cstype_name;
 		}
 
 		if (ccbutil_getCcbOpDataByDN(opdata->ccbId, &ctcstype_name) == NULL) {
 			LOG_ER("'%s' does not exist in existing model or in CCB", ctcstype_name.value);
-			return 0;
+			goto free_cstype_name;
 		}
 	}
 
+	free(cstype_name);
 	return 1;
+
+free_cstype_name:
+	free(cstype_name);
+	return 0;
 }
 
 static AVD_COMPCS_TYPE *compcstype_create(const SaNameT *dn, const SaImmAttrValuesT_2 **attributes)
@@ -265,6 +270,7 @@ static AVD_COMPCS_TYPE *compcstype_create(const SaNameT *dn, const SaImmAttrValu
 done:
 	if (rc != 0)
 		avd_compcstype_delete(&compcstype);
+	free(cstype_name);
 
 	return compcstype;
 }
