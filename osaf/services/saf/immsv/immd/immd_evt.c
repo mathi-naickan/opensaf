@@ -1849,7 +1849,8 @@ static uns32 immd_evt_proc_lga_callback(IMMD_CB *cb, IMMD_EVT *evt)
 	uns32 rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
-	if (evt->info.rda_info.io_role == PCS_RDA_ACTIVE) {
+	if ((cb->ha_state != SA_AMF_HA_ACTIVE) &&
+		(evt->info.rda_info.io_role == PCS_RDA_ACTIVE)) {
 		cb->mds_role = V_DEST_RL_ACTIVE;
 		cb->ha_state = SA_AMF_HA_ACTIVE;
 
