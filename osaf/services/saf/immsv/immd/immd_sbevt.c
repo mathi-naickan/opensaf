@@ -178,7 +178,7 @@ uns32 immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 			}
 		}
 	} else {
-		LOG_ER("Standby IMMD could not find node with nodeId:%u", ctrl->nodeId);
+		LOG_WA("Standby IMMD could not find node with nodeId:%u", ctrl->nodeId);
 	}
 	TRACE_LEAVE();
 	immd_cb_dump();

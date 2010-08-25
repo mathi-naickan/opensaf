@@ -58,7 +58,7 @@ uns32 immd_mbcsv_sync_update(IMMD_CB *cb, IMMD_MBCSV_MSG *msg)
 	/*send the message using MBCSv */
 	rc = ncs_mbcsv_svc(&arg);
 	if (rc != SA_AIS_OK) {
-		LOG_ER("IMMD - MBCSv Sync Update Send Failed");
+		LOG_WA("IMMD - MBCSv Sync Update Send Failed");
 	}
 	TRACE_LEAVE();
 	return rc;
@@ -97,7 +97,7 @@ uns32 immd_mbcsv_async_update(IMMD_CB *cb, IMMD_MBCSV_MSG *msg)
 	/*send the message using MBCSv */
 	rc = ncs_mbcsv_svc(&arg);
 	if (rc != SA_AIS_OK) {
-		LOG_ER("IMMD - MBCSv Async Update Send Failed");
+		LOG_WA("IMMD - MBCSv Async Update Send Failed");
 	}
 	TRACE_LEAVE();
 	return rc;
@@ -298,7 +298,7 @@ uns32 immd_mbcsv_chgrole(IMMD_CB *cb)
 	   will assign the state */
 
 	if (ncs_mbcsv_svc(&arg) != SA_AIS_OK) {
-		LOG_ER(" IMMD - MBCSv Change Role Failed");
+		LOG_WA(" IMMD - MBCSv Change Role Failed");
 		rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -325,7 +325,7 @@ uns32 immd_mbcsv_close(IMMD_CB *cb)
 	arg.info.close.i_ckpt_hdl = cb->o_ckpt_hdl;
 
 	if (ncs_mbcsv_svc(&arg) != SA_AIS_OK) {
-		LOG_ER("IMMD - MBCSv Close Failed");
+		LOG_WA("IMMD - MBCSv Close Failed");
 		rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -354,7 +354,7 @@ uns32 immd_mbcsv_finalize(IMMD_CB *cb)
 	arg.i_op = NCS_MBCSV_OP_FINALIZE;
 	arg.i_mbcsv_hdl = cb->mbcsv_handle;
 	if (ncs_mbcsv_svc(&arg) != SA_AIS_OK) {
-		LOG_ER("IMMD - MBCSv Finalize Failed");
+		LOG_WA("IMMD - MBCSv Finalize Failed");
 		rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -374,7 +374,7 @@ uns32 immd_mbcsv_dispatch(IMMD_CB *cb)
 	arg.i_mbcsv_hdl = immd_cb->mbcsv_handle;
 	arg.info.dispatch.i_disp_flags = SA_DISPATCH_ALL;
 	if (ncs_mbcsv_svc(&arg) != SA_AIS_OK) {
-		LOG_ER("IMMD - MBCSv Dispatch Failed");
+		LOG_WA("IMMD - MBCSv Dispatch Failed");
 		rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -400,7 +400,7 @@ uns32 immd_mbcsv_callback(NCS_MBCSV_CB_ARG *arg)
 
 	if (arg == NULL) {
 		rc = NCSCC_RC_FAILURE;
-		LOG_ER("IMMD - MBCSv Callback Failed");
+		LOG_WA("IMMD - MBCSv Callback NULL arg received");
 		return rc;
 	}
 
@@ -782,13 +782,13 @@ uns32 immd_mbcsv_encode_proc(NCS_MBCSV_CB_ARG *arg)
 
 		case NCS_MBCSV_MSG_WARM_SYNC_REQ:
 			if (++immd_silence_count < 10) {
-				TRACE_5("MBCSV_MSG_WARM_SYNC_REQ - should not happen");
+				TRACE_5("MBCSV_MSG_WARM_SYNC_REQ - problem with MBCSV - ignoring");
 			}
 			break;
 
 		case NCS_MBCSV_MSG_WARM_SYNC_RESP:
 			if (++immd_silence_count < 10) {
-				LOG_ER("MBCSV_MSG_WARM_SYNC_RESP - should not happen");
+				LOG_WA("MBCSV_MSG_WARM_SYNC_RESP - problem with MBCSV - ignoring");
 			}
 			/*rc = mbcsv_enc_warm_sync_resp(cb,arg); */
 			break;
@@ -838,7 +838,7 @@ static uns32 mbcsv_dec_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 
 	immd_msg = (IMMD_MBCSV_MSG *)calloc(1, sizeof(IMMD_MBCSV_MSG));
 	if (immd_msg == NULL) {
-		LOG_ER("IMMD - IMMD Mbcsv Msg Alloc Failed");
+		LOG_ER("IMMD - IMMD Mbcsv calloc Failed");
 		return NCSCC_RC_FAILURE;
 	}
 	memset(immd_msg, 0, sizeof(IMMD_MBCSV_MSG));
@@ -883,7 +883,7 @@ static uns32 mbcsv_dec_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		rc = immd_process_sb_fevs(cb, &(immd_msg->info.fevsReq));
 
 		if (rc != NCSCC_RC_SUCCESS) {
-			LOG_ER("Processing of mbcsv msg at standby failed");
+			LOG_WA("Processing of mbcsv msg at standby failed");
 			goto end;
 		}
 		if (immd_msg->info.fevsReq.msg.buf) {
@@ -902,7 +902,7 @@ static uns32 mbcsv_dec_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 
 		rc = immd_process_sb_count(cb, immd_msg->info.count, evt_type);
 		if (rc != NCSCC_RC_SUCCESS) {
-			LOG_ER("Processing of mbcsv msg at standby failed");
+			LOG_WA("Processing of mbcsv msg at standby failed");
 			goto end;
 		}
 		break;
@@ -945,7 +945,7 @@ static uns32 mbcsv_dec_async_update(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 
 		rc = immd_process_node_accept(cb, &immd_msg->info.ctrl);
 		if (rc != NCSCC_RC_SUCCESS) {
-			LOG_ER("Processing of mbcsv msg at standby failed");
+			LOG_WA("Processing of mbcsv msg at standby failed");
 			goto end;
 		}
 		break;
@@ -1134,14 +1134,14 @@ static uns32 immd_mbcsv_decode_proc(NCS_MBCSV_CB_ARG *arg)
 
 		case NCS_MBCSV_MSG_WARM_SYNC_REQ:
 			if (++immd_silence_count < 10) {
-				LOG_ER("MBCSV_MSG_WARM_SYNC_REQ - should be turned off");
+				LOG_WA("MBCSV_MSG_WARM_SYNC_REQ - should be turned off");
 			}
 			break;
 
 		case NCS_MBCSV_MSG_WARM_SYNC_RESP:
 		case NCS_MBCSV_MSG_WARM_SYNC_RESP_COMPLETE:
 			if (++immd_silence_count < 10) {
-				LOG_ER("MBCSV_MSG_WARM_SYNC_RESP/COMPLETE - should be off");
+				LOG_WA("MBCSV_MSG_WARM_SYNC_RESP/COMPLETE - should be off");
 			}
 			break;
 

@@ -77,13 +77,13 @@ void immd_process_evt(void)
 	evt = (IMMSV_EVT *)ncs_ipc_non_blk_recv(&immd_cb->mbx);
 
 	if (evt == NULL) {
-		LOG_ER("No mbx message although indicated in fd!");
+		LOG_WA("No mbx message although indicated in fd!");
 		TRACE_LEAVE();
 		return;
 	}
 
 	if (evt->type != IMMSV_EVT_TYPE_IMMD) {
-		LOG_ER("Received a non IMMD message!");
+		LOG_WA("Received a non IMMD message!");
 		TRACE_LEAVE();
 		return;
 	}
@@ -267,7 +267,7 @@ uns32 immd_evt_proc_fevs_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO *sinfo,
 			   Is there any way to check this  in the cb ?
 			   In any case we do NOT want to disturb this active IMMD
 			 */
-			LOG_ER("failed to replicate message to stdby send_count:%llu",
+			LOG_WA("failed to replicate message to stdby send_count:%llu",
 			       send_evt.info.immnd.info.fevsReq.sender_count);
 			/*Revert the fevs count since we will not send this message. */
 			--(cb->fevsSendCount);
@@ -345,7 +345,7 @@ static void immd_start_sync_ok(IMMD_CB *cb, SaUint32T rulingEpoch, IMMD_IMMND_IN
 
 	proc_rc = immd_mbcsv_sync_update(cb, &mbcp_msg);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("failed to replicate start_sync_ok message to stdby err:%u", proc_rc);
+		LOG_WA("failed to replicate start_sync_ok message to stdby err:%u", proc_rc);
 		TRACE_LEAVE();
 		return;
 	}
@@ -390,7 +390,7 @@ static void immd_abort_sync_ok(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info)
 
 	proc_rc = immd_mbcsv_sync_update(cb, &mbcp_msg);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("failed to replicate start_sync_ok message to stdby err:%u", proc_rc);
+		LOG_WA("failed to replicate start_sync_ok message to stdby err:%u", proc_rc);
 		TRACE_LEAVE();
 		return;
 	}
@@ -464,7 +464,7 @@ static int immd_dump_ok(IMMD_CB *cb, SaUint32T rulingEpoch, IMMD_IMMND_INFO_NODE
 
 	proc_rc = immd_mbcsv_sync_update(cb, &mbcp_msg);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("failed to replicate dump_ok message to stdby err:%u", proc_rc);
+		LOG_WA("failed to replicate dump_ok message to stdby err:%u", proc_rc);
 		TRACE_LEAVE();
 		return 0;
 	}
@@ -502,7 +502,7 @@ static void immd_announce_load_ok(IMMD_CB *cb, SaUint32T rulingEpoch)
 	proc_rc = immd_mds_bcast_send(cb, &load_evt, NCSMDS_SVC_ID_IMMND);
 
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed to send message to IMMNDs");
+		LOG_WA("Failed to send message to IMMNDs");
 	}
 	TRACE_LEAVE();
 }
@@ -542,7 +542,7 @@ static void immd_req_sync(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info)
 		node_info->immnd_key, cb->mRulingEpoch, node_info->isOnController);
 	proc_rc = immd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMND, node_info->immnd_dest, &rqsync_evt);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed to send rqsync message err:%u back to requesting IMMND %x",
+		LOG_WA("Failed to send rqsync message err:%u back to requesting IMMND %x",
 		       proc_rc, node_info->immnd_key);
 		goto done;
 	}
@@ -561,21 +561,21 @@ static void immd_req_sync(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info)
 		proc_rc = immd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMND, cb->loc_immnd_dest, &rqsync_evt);
 
 		if (proc_rc != NCSCC_RC_SUCCESS) {
-			LOG_ER("Failed to send rqsync message err:%u to coord IMMND (%x)",
+			LOG_WA("Failed to send rqsync message err:%u to coord IMMND (%x)",
 			       proc_rc, node_info->immnd_key);
 			goto done;
 		}
 	} else {		/*Coord immnd is at remote, i.e. at standby SC. */
 
 		if (!(cb->is_rem_immnd_up)) {
-			LOG_ER("No coordinator IMMND known - ignoring sync request");
+			LOG_WA("No coordinator IMMND known - ignoring sync request");
 			goto done;
 		}
 
 		TRACE_5("Send-3 SYNC_REQ to remote coord IMMND at standby SC, dest:%llu", cb->rem_immnd_dest);
 		proc_rc = immd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMND, cb->rem_immnd_dest, &rqsync_evt);
 		if (proc_rc != NCSCC_RC_SUCCESS) {
-			LOG_ER("Failed to send rqsync message err:%u to coord IMMND "
+			LOG_WA("Failed to send rqsync message err:%u to coord IMMND "
 			       "at standby dest:%llu", proc_rc, cb->rem_immnd_dest);
 			goto done;
 		}
@@ -628,7 +628,7 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info, NCS_B
 	proc_rc = immd_mbcsv_sync_update(cb, &mbcp_msg);
 
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("failed to replicate node accept message to stdby err:%u", proc_rc);
+		LOG_WA("failed to replicate node accept message to stdby err:%u", proc_rc);
 		goto done;
 	}
 
@@ -697,7 +697,7 @@ static uns32 immd_evt_proc_immnd_announce_dump(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 	immd_immnd_info_node_get(&cb->immnd_tree, &sinfo->dest, &node_info);
 	if (node_info) {
 		if (node_info->immnd_execPid != evt->info.ctrl_msg.ndExecPid) {
-			LOG_ER("Wrong PID %u != %u", node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
+			LOG_WA("Wrong PID %u != %u", node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
@@ -715,12 +715,12 @@ static uns32 immd_evt_proc_immnd_announce_dump(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 
 
 		if (node_info->epoch != cb->mRulingEpoch) {
-			LOG_ER("Wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
+			LOG_WA("Wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
 		if (evt->info.ctrl_msg.epoch != cb->mRulingEpoch) {
-			LOG_ER("Wrong Epoch %u!=%u in request dump message ",
+			LOG_WA("Wrong Epoch %u!=%u in request dump message ",
 			       evt->info.ctrl_msg.epoch, cb->mRulingEpoch);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
@@ -745,7 +745,7 @@ static uns32 immd_evt_proc_immnd_announce_dump(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 			}
 		}
 	} else {
-		LOG_ER("Node not found %llu", sinfo->dest);
+		LOG_WA("Node not found %llu", sinfo->dest);
 		proc_rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -773,24 +773,24 @@ static uns32 immd_evt_proc_immnd_announce_sync(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 	if (node_info) {
 		if (node_info->immnd_execPid != evt->info.ctrl_msg.ndExecPid) {
 			/* TODO: Return error to coord, remove coord designation ?? */
-			LOG_ER("Wrong PID %u != %u", node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
+			LOG_WA("Wrong PID %u != %u", node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
 		if (node_info->immnd_key != cb->immnd_coord) {
-			LOG_ER("Not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
+			LOG_WA("Not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
 			/* TODO: Return error to coord, remove coord designation ?? */
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
 		if (node_info->epoch != cb->mRulingEpoch) {
-			LOG_ER("Wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
+			LOG_WA("Wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
 			/* TODO: Return error to coord, remove coord designation ?? */
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
 		if (evt->info.ctrl_msg.epoch != cb->mRulingEpoch + 1) {
-			LOG_ER("Wrong new Epoch %u!=%u +1", evt->info.ctrl_msg.epoch, cb->mRulingEpoch);
+			LOG_WA("Wrong new Epoch %u!=%u +1", evt->info.ctrl_msg.epoch, cb->mRulingEpoch);
 			/* TODO: Return error to coord, remove coord designation ?? */
 			proc_rc = NCSCC_RC_FAILURE;
 		}
@@ -809,7 +809,7 @@ static uns32 immd_evt_proc_immnd_announce_sync(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 			LOG_IN("Successfully announced sync. New ruling epoch:%u", cb->mRulingEpoch);
 		}
 	} else {
-		LOG_ER("Node not found %llu", sinfo->dest);
+		LOG_WA("Node not found %llu", sinfo->dest);
 		proc_rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -835,18 +835,18 @@ uns32 immd_evt_proc_immnd_abort_sync(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO
 	immd_immnd_info_node_get(&cb->immnd_tree, &sinfo->dest, &node_info);
 	if (node_info) {
 		if (node_info->immnd_execPid != evt->info.ctrl_msg.ndExecPid) {
-			LOG_ER("Abort sync: wrong PID %u != %u",
+			LOG_WA("Abort sync: wrong PID %u != %u",
 			       node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
 		if (node_info->immnd_key != cb->immnd_coord) {
-			LOG_ER("Abort sync: not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
+			LOG_WA("Abort sync: not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
 		if (node_info->epoch != cb->mRulingEpoch) {
-			LOG_ER("Abort sync: wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
+			LOG_WA("Abort sync: wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
@@ -857,7 +857,7 @@ uns32 immd_evt_proc_immnd_abort_sync(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO
 			LOG_IN("Successfully aborted sync. Epoch:%u", cb->mRulingEpoch);
 		}
 	} else {
-		LOG_ER("Node not found %llu", sinfo->dest);
+		LOG_WA("Node not found %llu", sinfo->dest);
 		proc_rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -930,18 +930,18 @@ uns32 immd_evt_proc_immnd_prto_purge_mutations(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 	immd_immnd_info_node_get(&cb->immnd_tree, &sinfo->dest, &node_info);
 	if (node_info) {
 		if (node_info->immnd_execPid != evt->info.ctrl_msg.ndExecPid) {
-			LOG_ER("Prto purge mutations: wrong PID %u != %u",
+			LOG_WA("Prto purge mutations: wrong PID %u != %u",
 			       node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
 		if (node_info->immnd_key != cb->immnd_coord) {
-			LOG_ER("Prto purge mutations: not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
+			LOG_WA("Prto purge mutations: not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
 		if (node_info->epoch > cb->mRulingEpoch) {
-			LOG_ER("Prto purge mutations: wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
+			LOG_WA("Prto purge mutations: wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
 			proc_rc = NCSCC_RC_FAILURE;
 		}
 
@@ -951,7 +951,7 @@ uns32 immd_evt_proc_immnd_prto_purge_mutations(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 			LOG_IN("Purge prto mutations broadcast. Epoch:%u", cb->mRulingEpoch);
 		}
 	} else {
-		LOG_ER("Node not found %llu", sinfo->dest);
+		LOG_WA("Node not found %llu", sinfo->dest);
 		proc_rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -980,27 +980,27 @@ static uns32 immd_evt_proc_immnd_announce_load(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 	if (node_info) {
 		if (node_info->immnd_execPid != evt->info.ctrl_msg.ndExecPid) {
 			/*TODO Return error to coord, remove coord designation ?? */
-			LOG_ER("Wrong PID %u != %u", node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
+			LOG_WA("Wrong PID %u != %u", node_info->immnd_execPid, evt->info.ctrl_msg.ndExecPid);
 			proc_rc = NCSCC_RC_FAILURE;
 			goto fail;
 		}
 
 		if (node_info->immnd_key != cb->immnd_coord) {
-			LOG_ER("Not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
+			LOG_WA("Not Coord! %x != %x", node_info->immnd_key, cb->immnd_coord);
 			proc_rc = NCSCC_RC_FAILURE;
 			goto fail;
 			/*TODO Return error to coord, remove coord designation ?? */
 		}
 
 		if (node_info->epoch != cb->mRulingEpoch) {
-			LOG_ER("Wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
+			LOG_WA("Wrong Epoch %u != %u", node_info->epoch, cb->mRulingEpoch);
 			proc_rc = NCSCC_RC_FAILURE;
 			goto fail;
 			/*TODO Return error to coord, remove coord designation ?? */
 		}
 
 		if (evt->info.ctrl_msg.epoch != cb->mRulingEpoch + 1) {
-			LOG_ER("Wrong new Epoch %u!=%u +1", evt->info.ctrl_msg.epoch, cb->mRulingEpoch);
+			LOG_WA("Wrong new Epoch %u!=%u +1", evt->info.ctrl_msg.epoch, cb->mRulingEpoch);
 			proc_rc = NCSCC_RC_FAILURE;
 			goto fail;
 			/*TODO Return error to coord, remove coord designation ?? */
@@ -1013,7 +1013,7 @@ static uns32 immd_evt_proc_immnd_announce_load(IMMD_CB *cb, IMMD_EVT *evt, IMMSV
 		immd_announce_load_ok(cb, cb->mRulingEpoch);
 		LOG_IN("Successfully announced loading. New ruling epoch:%u", cb->mRulingEpoch);
 	} else {
-		LOG_ER("Node not found %llu", sinfo->dest);
+		LOG_WA("Node not found %llu", sinfo->dest);
 		proc_rc = NCSCC_RC_FAILURE;
 	}
  fail:
@@ -1078,7 +1078,7 @@ static uns32 immd_evt_proc_immnd_req_sync(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND
 		LOG_IN("Node %x request sync sync-pid:%d epoch:%u ",
 		       node_info->immnd_key, node_info->immnd_execPid, node_info->epoch);
 	} else {
-		LOG_ER("Node not found %llu", sinfo->dest);
+		LOG_WA("Node not found %llu", sinfo->dest);
 		proc_rc = NCSCC_RC_FAILURE;
 	}
 
@@ -1180,7 +1180,7 @@ static uns32 immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_IN
 			immd_accept_node(cb, node_info, TRUE);
 		}
 	} else {
-		LOG_ER("Node not found %llu", sinfo->dest);
+		LOG_WA("Node not found %llu", sinfo->dest);
 		proc_rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE();
@@ -1238,7 +1238,7 @@ static uns32 immd_evt_proc_adminit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_IN
 		   We apparently failed to replicate the message to stby.
 		   This could be because the standby is crashed ?
 		   Is there any way to check this towards the cb. */
-		LOG_ER("Failed to replicate message to stdby send_count:%u", globalId);
+		LOG_WA("Failed to replicate message to stdby send_count:%u", globalId);
 		goto fail;
 	}
 	TRACE_5("Global Admin owner ID:%u", globalId);
@@ -1253,14 +1253,14 @@ static uns32 immd_evt_proc_adminit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_IN
 
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed init ubaid");
+		LOG_WA("Failed init ubaid");
 		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed encode fevs");
+		LOG_WA("Failed encode fevs");
 		uba.start = NULL;
 		goto fail;
 	}
@@ -1344,7 +1344,7 @@ static uns32 immd_evt_proc_impl_set_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_I
 		   We apparently failed to replicate the message to stby.
 		   This could be because the standby is crashed ?
 		   Is there any way to check this in cb ? */
-		LOG_ER("Failed to replicate message to stdby send_count:%u", globalId);
+		LOG_WA("Failed to replicate message to stdby send_count:%u", globalId);
 		goto fail;
 	}
 
@@ -1362,14 +1362,14 @@ static uns32 immd_evt_proc_impl_set_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_I
 
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed init ubaid");
+		LOG_WA("Failed init ubaid");
 		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed encode fevs");
+		LOG_WA("Failed encode fevs");
 		uba.start = NULL;
 		goto fail;
 	}
@@ -1438,14 +1438,14 @@ static uns32 immd_evt_proc_discard_impl(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_I
 
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed init ubaid");
+		LOG_WA("Failed init ubaid");
 		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed encode fevs");
+		LOG_WA("Failed encode fevs");
 		uba.start = NULL;
 		goto fail;
 	}
@@ -1509,14 +1509,14 @@ static uns32 immd_evt_proc_abort_ccb(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO
 
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed init ubaid");
+		LOG_WA("Failed init ubaid");
 		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed encode fevs");
+		LOG_WA("Failed encode fevs");
 		uba.start = NULL;
 		goto fail;
 	}
@@ -1580,14 +1580,14 @@ static uns32 immd_evt_proc_admo_hard_finalize(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_
 
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed init ubaid");
+		LOG_WA("Failed init ubaid");
 		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed encode fevs");
+		LOG_WA("Failed encode fevs");
 		uba.start = NULL;
 		goto fail;
 	}
@@ -1664,7 +1664,7 @@ static uns32 immd_evt_proc_ccbinit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_IN
 	rc = immd_mbcsv_async_update(cb, &mbcp_msg);
 
 	if (rc != SA_AIS_OK) {
-		LOG_ER("Failed to replicate message to stdby send_count:%u", globalId);
+		LOG_WA("Failed to replicate message to stdby send_count:%u", globalId);
 		goto fail;
 	}
 
@@ -1681,13 +1681,13 @@ static uns32 immd_evt_proc_ccbinit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_IN
 
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed init ubaid");
+		LOG_WA("Failed init ubaid");
 		uba.start = NULL;
 		goto fail;
 	}
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed encode fevs");
+		LOG_WA("Failed encode fevs");
 		uba.start = NULL;
 		goto fail;
 	}
@@ -1770,14 +1770,14 @@ static uns32 immd_evt_proc_rt_modify_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_
 
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed init ubaid");
+		LOG_WA("Failed init ubaid");
 		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("Failed encode fevs");
+		LOG_WA("Failed encode fevs");
 		uba.start = NULL;
 		goto fail;
 	}
@@ -1857,12 +1857,12 @@ static uns32 immd_evt_proc_lga_callback(IMMD_CB *cb, IMMD_EVT *evt)
 		LOG_NO("ACTIVE request");
 
 		if ((rc = immd_mds_change_role(cb)) != NCSCC_RC_SUCCESS) {
-			LOG_ER("immd_mds_change_role FAILED");
+			LOG_WA("immd_mds_change_role FAILED");
 			goto done;
 		}
 
 		if (immd_mbcsv_chgrole(cb) != NCSCC_RC_SUCCESS) {
-			LOG_ER("immd_mbcsv_chgrole FAILED");
+			LOG_WA("immd_mbcsv_chgrole FAILED");
 			goto done;
 		}
 
@@ -1895,12 +1895,12 @@ static uns32 immd_evt_mds_quiesced_ack_rsp(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEN
 
 		/* Inform mbcsv about the changed role */
 		if (immd_mbcsv_chgrole(cb) != NCSCC_RC_SUCCESS)
-			LOG_ER("mbcsv_chgrole FAILED");
+			LOG_WA("mbcsv_chgrole to quiesced FAILED");
 
 		/* Finally respond to AMF */
 		saAmfResponse(cb->amf_hdl, cb->amf_invocation, SA_AIS_OK);
 	} else
-		LOG_ER("Received IMMD_EVT_MDS_QUIESCED_ACK_RSP message but " "is_quiesced_set==false");
+		LOG_WA("Received IMMD_EVT_MDS_QUIESCED_ACK_RSP message but " "is_quiesced_set==false");
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
@@ -1936,7 +1936,7 @@ static uns32 immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 	else if (mds_info->svc_id == NCSMDS_SVC_ID_IMMD)
 		TRACE_5("Received IMMD service event");
 	else {
-		LOG_ER("Received a service event for an unknown service %u", mds_info->svc_id);
+		LOG_WA("Received a service event for an unknown service %u", mds_info->svc_id);
 		return NCSCC_RC_SUCCESS;
 	}
 

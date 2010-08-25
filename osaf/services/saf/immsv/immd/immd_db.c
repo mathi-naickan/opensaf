@@ -102,6 +102,7 @@ void immd_immnd_info_node_getnext(NCS_PATRICIA_TREE *immnd_tree, MDS_DEST *dest,
   Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
   Notes         : The caller takes the cb lock before calling this function
 *****************************************************************************/
+#if 0 /*CURRENTLY NOT CALLED */
 uns32 immd_immnd_info_node_add(NCS_PATRICIA_TREE *immnd_tree, IMMD_IMMND_INFO_NODE *immnd_info_node)
 {
 	/* Store the client_info pointer as msghandle. */
@@ -112,12 +113,13 @@ uns32 immd_immnd_info_node_add(NCS_PATRICIA_TREE *immnd_tree, IMMD_IMMND_INFO_NO
 	immnd_info_node->patnode.key_info = (uns8 *)&key;
 
 	if (ncs_patricia_tree_add(immnd_tree, &immnd_info_node->patnode) != NCSCC_RC_SUCCESS) {
-		LOG_ER("IMMD - IMMND Info Node Add Failed");
+		LOG_ER("IMMD - ncs_patricia_tree_add failed");
 		return NCSCC_RC_FAILURE;
 	}
 
 	return NCSCC_RC_SUCCESS;
 }
+#endif
 
 /****************************************************************************
   Name          : immd_immnd_info_node_find_add
@@ -140,7 +142,7 @@ uns32 immd_immnd_info_node_find_add(NCS_PATRICIA_TREE *immnd_tree,
 	if ((*immnd_info_node == NULL) && (*add_flag == TRUE)) {
 		*immnd_info_node = calloc(1, sizeof(IMMD_IMMND_INFO_NODE));
 		if (*immnd_info_node == NULL) {
-			LOG_ER("IMMD - Immnd_Dest_Info_Alloc_Failed");
+			LOG_ER("IMMD - calloc returned NULL");
 			return NCSCC_RC_FAILURE;
 		}
 
@@ -149,7 +151,7 @@ uns32 immd_immnd_info_node_find_add(NCS_PATRICIA_TREE *immnd_tree,
 		(*immnd_info_node)->patnode.key_info = (uns8 *)&((*immnd_info_node)->immnd_key);
 
 		if (ncs_patricia_tree_add(immnd_tree, &(*immnd_info_node)->patnode) != NCSCC_RC_SUCCESS) {
-			LOG_ER("immd_immnd_info_node_find_add FAILED");
+			LOG_ER("ncs_patricia_tree_add FAILED");
 			free(*immnd_info_node);
 			*immnd_info_node = NULL;
 			return NCSCC_RC_FAILURE;
@@ -173,7 +175,7 @@ uns32 immd_immnd_info_node_delete(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info_
 
 	/* Remove the Node from the client tree */
 	if (ncs_patricia_tree_del(&cb->immnd_tree, &immnd_info_node->patnode) != NCSCC_RC_SUCCESS) {
-		LOG_ER("IMMD - IMMND INFO NODE DELETE FROM PAT TREE FAILED");
+		LOG_WA("IMMD - IMMND INFO NODE DELETE FROM PAT TREE FAILED");
 		rc = NCSCC_RC_FAILURE;
 	}
 

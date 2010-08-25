@@ -71,7 +71,7 @@ uns32 immd_mds_vdest_create(IMMD_CB *cb)
 	/* Create VDEST */
 	rc = ncsvda_api(&arg);
 	if (NCSCC_RC_SUCCESS != rc) {
-		LOG_ER("NCSVDA_VDEST_CREATE failed");
+		LOG_WA("NCSVDA_VDEST_CREATE failed");
 		return rc;
 	}
 
@@ -340,9 +340,9 @@ static uns32 immd_mds_enc(IMMD_CB *cb, MDS_CALLBACK_ENC_INFO *enc_info)
 					  IMMD_WRT_IMMND_SUBPART_VER_MIN,
 					  IMMD_WRT_IMMND_SUBPART_VER_MAX, immd_immnd_msg_fmt_table);
 	} else if (enc_info->i_to_svc_id == NCSMDS_SVC_ID_IMMA_OM) {
-		LOG_ER("IMMD can not communicate directly with IMMA OM");
+		LOG_WA("IMMD can not communicate directly with IMMA OM");
 	} else if (enc_info->i_to_svc_id == NCSMDS_SVC_ID_IMMA_OI) {
-		LOG_ER("IMMD can not communicate directly with IMMA OI");
+		LOG_WA("IMMD can not communicate directly with IMMA OI");
 	}
 
 	if (1 /*enc_info->o_msg_fmt_ver */ ) {	/*Does not work. */
@@ -432,9 +432,9 @@ static uns32 immd_mds_enc_flat(IMMD_CB *cb, MDS_CALLBACK_ENC_FLAT_INFO *info)
 					  IMMD_WRT_IMMND_SUBPART_VER_MIN,
 					  IMMD_WRT_IMMND_SUBPART_VER_MAX, immd_immnd_msg_fmt_table);
 	} else if (info->i_to_svc_id == NCSMDS_SVC_ID_IMMA_OM) {
-		LOG_ER("IMMD can not communicate directly with IMMA OM");
+		LOG_WA("IMMD can not communicate directly with IMMA OM");
 	} else if (info->i_to_svc_id == NCSMDS_SVC_ID_IMMA_OI) {
-		LOG_ER("IMMD can not communicate directly with IMMA OI");
+		LOG_WA("IMMD can not communicate directly with IMMA OI");
 	}
 
 	if (1 /*info->o_msg_fmt_ver */ ) {	/* Does not work */
@@ -483,7 +483,7 @@ static uns32 immd_mds_dec_flat(IMMD_CB *cb, MDS_CALLBACK_DEC_FLAT_INFO *info)
 	if (1 /*is_valid_msg_fmt */ ) {	/* ABT Does not work */
 		evt = (IMMSV_EVT *)calloc(1, sizeof(IMMSV_EVT));
 		if (evt == NULL) {
-			LOG_ER("IMMD - Evt Alloc Failed");
+			LOG_ER("IMMD - Evt calloc Failed");
 			return NCSCC_RC_FAILURE;
 		}
 		info->o_msg = evt;
@@ -529,7 +529,7 @@ static uns32 immd_mds_rcv(IMMD_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 	/* Put it in IMMD's Event Queue */
 	rc = m_NCS_IPC_SEND(&cb->mbx, (NCSCONTEXT)pEvt, NCS_IPC_PRIORITY_NORMAL);
 	if (NCSCC_RC_SUCCESS != rc) {
-		LOG_ER("IMMD - IPC SEND FAILED");
+		LOG_WA("IMMD - IPC SEND FAILED");
 	}
 
 	return rc;
@@ -557,7 +557,7 @@ static uns32 immd_mds_svc_evt(IMMD_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 	evt = calloc(1, sizeof(IMMSV_EVT));
 
 	if (!evt) {
-		LOG_ER("IMMD - Evt Alloc Failed");
+		LOG_ER("IMMD - Evt calloc Failed");
 		return NCSCC_RC_OUT_OF_MEM;
 	}
 
@@ -573,7 +573,7 @@ static uns32 immd_mds_svc_evt(IMMD_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 	/* Put it in IMMD's Event Queue */
 	rc = m_NCS_IPC_SEND(&cb->mbx, (NCSCONTEXT)evt, NCS_IPC_PRIORITY_HIGH);
 	if (NCSCC_RC_SUCCESS != rc) {
-		LOG_ER("IMMD - IPC SEND FAILED");
+		LOG_WA("IMMD - IPC SEND FAILED");
 		free(evt);
 	}
 
@@ -600,7 +600,7 @@ uns32 immd_mds_quiesced_ack_process(IMMD_CB *cb)
 		LOG_IN("HA STATE CHANGED TO QUIESCED");
 		evt = calloc(1, sizeof(IMMSV_EVT));
 		if (!evt) {
-			LOG_ER("IMMD - Evt Alloc Failed");
+			LOG_ER("IMMD - Evt calloc Failed");
 			return NCSCC_RC_OUT_OF_MEM;
 		}
 
@@ -610,7 +610,7 @@ uns32 immd_mds_quiesced_ack_process(IMMD_CB *cb)
 
 		rc = m_NCS_IPC_SEND(&cb->mbx, evt, NCS_IPC_PRIORITY_NORMAL);
 		if (NCSCC_RC_SUCCESS != rc) {
-			LOG_ER("IMMD - IPC SEND FAILED");
+			LOG_WA("IMMD - IPC SEND FAILED");
 			free(evt);	/*ABT leaks ?? */
 			return rc;
 		}
@@ -654,7 +654,7 @@ uns32 immd_mds_send_rsp(IMMD_CB *cb, IMMSV_SEND_INFO *s_info, IMMSV_EVT *evt)
 	/* send the message */
 	rc = ncsmds_api(&mds_info);
 	if (rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("IMMD - IPC SEND FAILED");
+		LOG_WA("IMMD - IPC SEND FAILED");
 	}
 
 	return rc;
@@ -704,7 +704,7 @@ uns32 immd_mds_msg_sync_send(IMMD_CB *cb, uns32 to_svc, MDS_DEST to_dest,
 	if (rc == NCSCC_RC_SUCCESS)
 		*o_evt = mds_info.info.svc_send.info.sndrsp.o_rsp;
 	else {
-		LOG_ER("IMMD - IPC SEND FAILED");
+		LOG_WA("IMMD - IPC SEND FAILED");
 	}
 
 	return rc;
@@ -751,7 +751,7 @@ uns32 immd_mds_msg_send(IMMD_CB *cb, uns32 to_svc, MDS_DEST to_dest, IMMSV_EVT *
 	rc = ncsmds_api(&mds_info);
 
 	if (rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("IMMD - MDS Send Failed");
+		LOG_WA("IMMD - MDS Send Failed");
 	}
 	return rc;
 }
@@ -793,7 +793,7 @@ uns32 immd_mds_bcast_send(IMMD_CB *cb, IMMSV_EVT *evt, NCSMDS_SVC_ID to_svc)
 
 	res = ncsmds_api(&info);
 	if (res != NCSCC_RC_SUCCESS) {
-		LOG_ER("IMMD - MDS Send Failed");
+		LOG_WA("IMMD - MDS Send Failed");
 	}
 
 	TRACE_LEAVE();

@@ -125,7 +125,7 @@ EXTERN_C uns32 immd_immnd_info_node_get(NCS_PATRICIA_TREE *immnd_tree,
 EXTERN_C void immd_immnd_info_node_getnext(NCS_PATRICIA_TREE *immnd_tree,
 					   MDS_DEST *dest, IMMD_IMMND_INFO_NODE **immnd_info_node);
 
-EXTERN_C uns32 immd_immnd_info_node_add(NCS_PATRICIA_TREE *immnd_tree, IMMD_IMMND_INFO_NODE *immnd_info_node);
+/*EXTERN_C uns32 immd_immnd_info_node_add(NCS_PATRICIA_TREE *immnd_tree, IMMD_IMMND_INFO_NODE *immnd_info_node);*/
 
 EXTERN_C uns32 immd_immnd_info_node_delete(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info_node);
 

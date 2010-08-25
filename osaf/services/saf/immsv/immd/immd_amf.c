@@ -233,7 +233,7 @@ static void immd_saf_csi_set_cb(SaInvocationT invocation,
 
 	if (role_change) {
 		if ((rc = immd_mds_change_role(cb)) != NCSCC_RC_SUCCESS) {
-			LOG_ER("immd_mds_change_role FAILED");
+			LOG_WA("immd_mds_change_role FAILED");
 			error = SA_AIS_ERR_FAILED_OPERATION;
 			goto response;
 		}
@@ -242,7 +242,7 @@ static void immd_saf_csi_set_cb(SaInvocationT invocation,
 			(new_haState == SA_AMF_HA_ACTIVE) ? "ACTIVE" : "STANDBY");
 
 		if (immd_mbcsv_chgrole(cb) != NCSCC_RC_SUCCESS) {
-			LOG_ER("Failed to change role");
+			LOG_WA("immd_mbcsv_chgrole FAILED");
 			error = SA_AIS_ERR_FAILED_OPERATION;
 			goto response;
 		}

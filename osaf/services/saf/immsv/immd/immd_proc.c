@@ -31,7 +31,7 @@ void immd_proc_immd_reset(IMMD_CB *cb, NCS_BOOL active)
 	TRACE_ENTER();
 
 	if (active) {
-		LOG_ER("Active IMMD has to restart the IMMSv. " "All IMMNDs will restart");
+		LOG_ER("Active IMMD has to restart the IMMSv. All IMMNDs will restart");
 		/* Make standby aware of IMMND reset order. */
 		memset(&mbcp_msg, 0, sizeof(IMMD_MBCSV_MSG));
 		mbcp_msg.type = IMMD_A2S_MSG_RESET;
@@ -54,7 +54,7 @@ void immd_proc_immd_reset(IMMD_CB *cb, NCS_BOOL active)
 			exit(1);
 		}
 	} else {
-		LOG_ER("Standby IMMD recieved reset message. " "All IMMNDs will restart.");
+		LOG_ER("Standby IMMD recieved reset message. All IMMNDs will restart.");
 	}
 
 	/* Reset relevant parts of of IMMD CB so we get a cluster wide restart
