@@ -44,7 +44,7 @@
 
 const MDS_CLIENT_MSG_FORMAT_VER avd_avnd_msg_fmt_map_table[AVD_AVND_SUBPART_VER_MAX] =
     { AVSV_AVD_AVND_MSG_FMT_VER_1, AVSV_AVD_AVND_MSG_FMT_VER_2 };
-const MDS_CLIENT_MSG_FORMAT_VER avd_avd_msg_fmt_map_table[AVD_AVD_SUBPART_VER_MAX] = { AVD_AVD_MSG_FMT_VER_1 };
+const MDS_CLIENT_MSG_FORMAT_VER avd_avd_msg_fmt_map_table[AVD_AVD_SUBPART_VER_MAX] = { AVD_AVD_MSG_FMT_VER_1, AVD_AVD_MSG_FMT_VER_2};
 
 /* fwd decl */
 

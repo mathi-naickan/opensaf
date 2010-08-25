@@ -38,10 +38,11 @@
 #define AVD_AVND_SUBPART_VER_MAX   2
 
 #define AVD_AVD_SUBPART_VER_MIN    1
-#define AVD_AVD_SUBPART_VER_MAX    1
+#define AVD_AVD_SUBPART_VER_MAX    2
 
 /* Message format versions */
 #define AVD_AVD_MSG_FMT_VER_1    1
+#define AVD_AVD_MSG_FMT_VER_2    2
 
 EXTERN_C uns32 avd_mds_set_vdest_role(struct cl_cb_tag *cb, SaAmfHAStateT role);
 EXTERN_C uns32 avd_mds_init(struct cl_cb_tag *cb);

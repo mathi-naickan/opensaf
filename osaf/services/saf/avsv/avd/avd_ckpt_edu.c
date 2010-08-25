@@ -373,7 +373,7 @@ uns32 avsv_edp_ckpt_msg_su(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 	AVD_SU *struct_ptr = NULL, **d_ptr = NULL;
 	uns16 ver_compare = 0;
 
-	ver_compare = AVD_MBCSV_SUB_PART_VERSION;
+	ver_compare = AVSV_AVD_AVND_MSG_FMT_VER_2;
 
 	EDU_INST_SET avsv_ckpt_msg_su_rules[] = {
 		{EDU_START, avsv_edp_ckpt_msg_su, 0, 0, 0, sizeof(AVD_SU), 0, NULL},

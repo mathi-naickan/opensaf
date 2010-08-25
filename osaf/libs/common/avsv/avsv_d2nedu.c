@@ -562,7 +562,7 @@ uns32 avsv_edp_su_info_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 	AVSV_SU_INFO_MSG *struct_ptr = NULL, **d_ptr = NULL;
 	uns16 ver_compare = 0;
 
-	ver_compare = AVND_MDS_SUB_PART_VERSION;
+	ver_compare = AVSV_AVD_AVND_MSG_FMT_VER_2;
 
 	EDU_INST_SET avsv_su_info_msg_rules[] = {
 		{EDU_START, avsv_edp_su_info_msg, EDQ_LNKLIST, 0, 0,
