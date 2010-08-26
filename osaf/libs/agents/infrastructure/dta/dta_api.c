@@ -928,8 +928,8 @@ uns32 ncs_logmsg_int(SS_SVC_ID svc_id,
 		case 'F':
 			{
 				char str[DTS_MAX_DBL_DIGITS] = "";
-				sprintf(str, "%f", va_arg(argp, double));
-				if (NULL == str) {
+				int num_chars = sprintf(str, "%f", va_arg(argp, double));
+				if (num_chars == 0) {
 					warning_rmval =
 					    m_DTA_DBG_SINK(NCSCC_RC_FAILURE,
 							   "ncs_logmsg: Float to string conversion gives NULL");
@@ -948,6 +948,7 @@ uns32 ncs_logmsg_int(SS_SVC_ID svc_id,
 		case 'N':
 			{
 				char str[DTS_MAX_DBL_DIGITS] = "";
+				int num_chars = 0;
 
 				/* Check for compatibility with receiving DTS version
 				   and set the minimum DTS version required */
@@ -960,9 +961,9 @@ uns32 ncs_logmsg_int(SS_SVC_ID svc_id,
 						min_dts_ver = 2;
 				}
 
-				sprintf(str, "%lld", va_arg(argp, long long));
+				num_chars = sprintf(str, "%lld", va_arg(argp, long long));
 
-				if (NULL == str) {
+                                if (num_chars == 0) {
 					warning_rmval =
 					    m_DTA_DBG_SINK(NCSCC_RC_FAILURE,
 							   "ncs_logmsg: long long to string conversion gives NULL");
@@ -982,6 +983,7 @@ uns32 ncs_logmsg_int(SS_SVC_ID svc_id,
 		case 'U':
 			{
 				char str[DTS_MAX_DBL_DIGITS] = "";
+				int num_chars = 0;
 
 				/* Check for compatibility with receiving DTS version
 				   and set the minimum DTS version required */
@@ -994,8 +996,8 @@ uns32 ncs_logmsg_int(SS_SVC_ID svc_id,
 						min_dts_ver = 2;
 				}
 
-				sprintf(str, "%llu", va_arg(argp, unsigned long long));
-				if (NULL == str) {
+				num_chars = sprintf(str, "%llu", va_arg(argp, unsigned long long));
+                                if (num_chars == 0) {
 					warning_rmval =
 					    m_DTA_DBG_SINK(NCSCC_RC_FAILURE,
 							   "ncs_logmsg: unsigned long long to string conversion gives NULL");
@@ -1015,6 +1017,7 @@ uns32 ncs_logmsg_int(SS_SVC_ID svc_id,
 		case 'X':
 			{
 				char str[DTS_MAX_DBL_DIGITS] = "";
+				int num_chars = 0;
 
 				/* Check for compatibility with receiving DTS version
 				   and set the minimum DTS version required */
@@ -1027,9 +1030,9 @@ uns32 ncs_logmsg_int(SS_SVC_ID svc_id,
 						min_dts_ver = 2;
 				}
 
-				sprintf(str, "Ox%016llx", va_arg(argp, long long));
+				num_chars = sprintf(str, "Ox%016llx", va_arg(argp, long long));
 
-				if (NULL == str) {
+                                if (num_chars == 0) {
 					warning_rmval =
 					    m_DTA_DBG_SINK(NCSCC_RC_FAILURE,
 							   "ncs_logmsg: 64bit hex to string conversion gives NULL");
