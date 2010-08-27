@@ -387,6 +387,7 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 			} else if (!strcmp(attribute->attrName, "saLogStreamMaxFilesRotated")) {
 				SaUint32T maxFilesRotated = *((SaUint32T *)value);
 				stream->maxFilesRotated = maxFilesRotated;
+				new_cfg_file_needed = 1;
 			} else if (!strcmp(attribute->attrName, "saLogStreamLogFileFormat")) {
 				char *logFileFormat = *((char **)value);
 				if (stream->logFileFormat != NULL)
