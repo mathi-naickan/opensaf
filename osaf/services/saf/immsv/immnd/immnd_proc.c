@@ -1115,8 +1115,13 @@ static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T step)
 {
 	assert(cb->mIsCoord);
 	if (cb->mPendSync) {
-		TRACE("ccbsTerminated false because cb->mPendSync is still FALSE");
+		TRACE("ccbsTerminated false because cb->mPendSync is still TRUE");
 		return SA_FALSE;
+	}
+
+	if(!immModel_immNotWritable(cb)) {
+		/* Immmodel is writable. => sync completed here at coord. */
+		return SA_TRUE;
 	}
 
 	SaBoolT ccbsTerminated = immModel_ccbsTerminated(cb);
