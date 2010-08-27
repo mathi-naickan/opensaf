@@ -316,12 +316,18 @@ SmfCampaign::adminOperation(const SaImmAdminOperationIdT opId, const SaImmAdminO
 		{
 			switch (m_cmpgState) {
 			case SA_SMF_CMPG_INITIAL:
+				if (SmfCampaignThread::instance() != NULL) {
+					LOG_NO("Campaign execute operation rejected, prerequisites check/backup ongoing (%s)",
+					       SmfCampaignThread::instance()->campaign()->getDn().c_str());
+					return SA_AIS_ERR_BUSY;
+				}
+				break;
 			case SA_SMF_CMPG_EXECUTION_SUSPENDED:
 				break;
 			default:
 				{
-					LOG_ER("Failed to execute campaign, wrong state %u", m_cmpgState);
-					return SA_AIS_ERR_CAMPAIGN_ERROR_DETECTED;
+					LOG_NO("Campaign execute operation rejected, wrong state (%u)", m_cmpgState);
+					return SA_AIS_ERR_BAD_OPERATION;
 				}
 			}
 

@@ -1445,6 +1445,7 @@ SmfUpgradeStep::callAdminOperation(unsigned int i_operation,
 			} else if (rc != SA_AIS_OK) {
 				LOG_ER("Failed to call admin operation %u on %s", i_operation, (*dnit).c_str());
 				result = false;
+				goto done;
 			}
 			break;
 		case SA_AMF_ADMIN_UNLOCK:
@@ -1453,6 +1454,7 @@ SmfUpgradeStep::callAdminOperation(unsigned int i_operation,
 			} else if (rc != SA_AIS_OK) {
 				LOG_ER("Failed to call admin operation %u on %s", i_operation, (*dnit).c_str());
 				result = false;
+				goto done;
 			}
 			break;
 		case SA_AMF_ADMIN_LOCK_INSTANTIATION:
@@ -1461,6 +1463,7 @@ SmfUpgradeStep::callAdminOperation(unsigned int i_operation,
 			} else if (rc != SA_AIS_OK) {
 				LOG_ER("Failed to call admin operation %u on %s", i_operation, (*dnit).c_str());
 				result = false;
+				goto done;
 			}
 			break;
 		case SA_AMF_ADMIN_UNLOCK_INSTANTIATION:
@@ -1469,21 +1472,25 @@ SmfUpgradeStep::callAdminOperation(unsigned int i_operation,
 			} else if (rc != SA_AIS_OK) {
 				LOG_ER("Failed to call admin operation %u on %s", i_operation, (*dnit).c_str());
 				result = false;
+				goto done;
 			}
 			break;
 		case SA_AMF_ADMIN_RESTART:
 			if (rc != SA_AIS_OK) {
 				LOG_ER("Failed to call admin operation %u on %s", i_operation, (*dnit).c_str());
 				result = false;
+				goto done;
 			}
 			break;
 		default:
 			LOG_ER("Unknown admin operation %u on %s", i_operation, (*dnit).c_str());
 			result = false;
+			goto done;
 			break;
 		}
 	}
 
+done:
 	TRACE_LEAVE();
 	return result;
 }
