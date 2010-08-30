@@ -1207,7 +1207,7 @@ static void charactersHandler(void* userData,
                      * call for same value */
                     assert(state->attrDefaultValueSet);
                     int newlen = strlen(state->attrDefaultValueBuffer)+len;
-                    state->attrDefaultValueBuffer = (char*) realloc((void*)state->attrDefaultValueBuffer, (size_t) newlen);
+                    state->attrDefaultValueBuffer = (char*) realloc((void*)state->attrDefaultValueBuffer, (size_t) newlen+1);
                     strncat(state->attrDefaultValueBuffer,
                 	                        (const char*)chars,
                 	                        (size_t)len);
