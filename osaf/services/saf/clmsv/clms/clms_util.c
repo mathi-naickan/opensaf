@@ -741,8 +741,7 @@ uns32 clms_clmresp_error(CLMS_CB * cb, CLMS_CLUSTER_NODE * node)
 
 			/*you have to reboot the node in case of imm */
 			if (clms_cb->reg_with_plm == SA_TRUE)
-				opensaf_reboot(node->node_id, (char *)node->ee_name.value,
-					       "client responded with error during admin lock");
+				clms_reboot_remote_node(node,"client responded with error during admin lock");
 			break;
 		}
 	case IMM_SHUTDOWN:
@@ -760,8 +759,7 @@ uns32 clms_clmresp_error(CLMS_CB * cb, CLMS_CLUSTER_NODE * node)
 
 			/*you have to reboot the node in case of imm */
 			if (clms_cb->reg_with_plm == SA_TRUE)
-				opensaf_reboot(node->node_id, (char *)node->ee_name.value,
-					       "client responded with error during admin shutdown");
+				clms_reboot_remote_node(node,"client responded with error during admin shutdown");
 			break;
 		}
 	case PLM:
@@ -789,6 +787,40 @@ uns32 clms_clmresp_error(CLMS_CB * cb, CLMS_CLUSTER_NODE * node)
 	TRACE_LEAVE();
 	return rc;
 
+}
+
+void * clms_rem_reboot(void * _reboot_info)
+{
+	TRACE_ENTER();
+	CLMS_REM_REBOOT_INFO * rem_reb = (CLMS_REM_REBOOT_INFO *)_reboot_info;
+	opensaf_reboot(rem_reb->node->node_id, (char *)rem_reb->node->ee_name.value,(char *)rem_reb->str);
+	free(rem_reb->str);
+	free(rem_reb);
+
+	TRACE_LEAVE();
+	return NULL;
+}
+
+void clms_reboot_remote_node(CLMS_CLUSTER_NODE * op_node, char *str)
+{
+	TRACE_ENTER();
+	CLMS_REM_REBOOT_INFO * rem_reb = NULL;
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	rem_reb = malloc(sizeof(CLMS_REM_REBOOT_INFO));
+	rem_reb->node = op_node;
+	rem_reb->str = malloc(strlen(str));
+	strcpy(rem_reb->str,str);
+
+	if (pthread_create(&thread, &attr, clms_rem_reboot, (void *)rem_reb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		TRACE_LEAVE();
+		exit(EXIT_FAILURE);
+	}
+	pthread_attr_destroy(&attr);
+	TRACE_LEAVE();
 }
 
 /**
@@ -892,9 +924,14 @@ uns32 clms_clmresp_ok(CLMS_CB * cb, CLMS_CLUSTER_NODE * op_node, CLMS_TRACK_INFO
 
 			/*Checkpoint Cluster data */
 			ckpt_cluster_rec();			
+			if(op_node->disable_reboot == SA_FALSE) {
+				if (clms_cb->reg_with_plm == SA_TRUE){
+					clms_reboot_remote_node(op_node,"Clm lock:start subscriber responds ok and  disable reboot set to false");
+				} /* Without PLM in system,till now there is no mechanism to reboot remote node*/
+			}
 		}
 	}
- done:
+done:
 	TRACE_LEAVE();
 	return rc;
 

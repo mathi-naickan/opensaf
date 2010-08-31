@@ -1714,6 +1714,12 @@ static uns32 clms_lock_send_no_start_cbk(CLMS_CLUSTER_NODE * nodeop)
 	if (rc != NCSCC_RC_SUCCESS) {
 		TRACE("clms_send_is_member_info %u", rc);
 	}
+
+	if(nodeop->disable_reboot == SA_FALSE) {
+		 if (clms_cb->reg_with_plm == SA_TRUE){
+			 clms_reboot_remote_node(nodeop,"Clm lock:no start subscriber and  disable reboot set to false");
+		} /* Without PLM in system,till now there is no mechanism to reboot remote node*/
+	}
  done:
 	TRACE_LEAVE();
 	return rc;
@@ -1995,6 +2001,12 @@ uns32 clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop)
 			if (rc != NCSCC_RC_SUCCESS) {
 				TRACE("clms_send_is_member_info failed %u", rc);
 				goto done;
+			}
+			
+			if(nodeop->disable_reboot == SA_FALSE) {
+				if (clms_cb->reg_with_plm == SA_TRUE){
+					clms_reboot_remote_node(nodeop,"Clm Shutdown:no start subscriber and  disable reboot set to false");
+				} /* Without PLM in system,till now there is no mechanism to reboot remote node*/
 			}
 		}
 	}
