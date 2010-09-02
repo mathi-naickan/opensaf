@@ -1159,7 +1159,8 @@ uns32 cpa_proc_build_data_access_evt(const SaCkptIOVectorElementT *ioVector,
 					if ((ioVector[numberOfElements - 1].dataSize > maxSectionSize)
 					    || (ioVector[numberOfElements - 1].dataOffset +
 						ioVector[numberOfElements - 1].dataSize) > maxSectionSize) {
-						*errflag = (numberOfElements - 1);
+						if (errflag != NULL)
+							*errflag = (numberOfElements - 1);
 						return NCSCC_RC_FAILURE;
 					} else
 					tmp_ckpt_data->dataSize = ioVector[numberOfElements - 1].dataSize;
@@ -1271,10 +1272,8 @@ uns32 cpa_proc_replica_read(CPA_CB *cb, SaUint32T numberOfElements,
 
 	for (; iter < numberOfElements; iter++) {
 		if (read_map[iter].offset_index == -1) {
-			if (*erroneousVectorIndex == NULL) {
-				(*erroneousVectorIndex) = m_MMGR_ALLOC_CPA_DEFAULT(sizeof(SaUint32T));
-			}
-			(*erroneousVectorIndex)[0] = iter;
+			if (*erroneousVectorIndex != NULL) 
+				(*erroneousVectorIndex)[0] = iter;
 			return NCSCC_RC_FAILURE;
 		}
 
@@ -1326,10 +1325,8 @@ uns32 cpa_proc_rmt_replica_read(SaUint32T numberOfElements,
 
 	for (iter = 0; iter < numberOfElements; iter++) {
 		if (read_data[iter].err == 1) {
-			if (*erroneousVectorIndex == NULL) {
-				(*erroneousVectorIndex) = (SaUint32T *)malloc(sizeof(SaUint32T));
-			}
-			(**erroneousVectorIndex) = (uns32)iter;
+			if (*erroneousVectorIndex != NULL) 
+				(**erroneousVectorIndex) = (uns32)iter;
 			return NCSCC_RC_FAILURE;
 		} else {
 			if (read_data[iter].read_size == 0)

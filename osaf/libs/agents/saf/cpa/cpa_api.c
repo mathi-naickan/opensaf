@@ -3234,6 +3234,10 @@ SaAisErrorT saCkptCheckpointWrite(SaCkptCheckpointHandleT checkpointHandle,
 		return rc;
 	}
 
+	if (erroneousVectorIndex != NULL)
+		*erroneousVectorIndex = 0;
+
+
 	/* retrieve CPA CB */
 	m_CPA_RETRIEVE_CB(cb);
 	if (!cb) {
@@ -3278,7 +3282,9 @@ SaAisErrorT saCkptCheckpointWrite(SaCkptCheckpointHandleT checkpointHandle,
 	}
 	proc_rc = cpa_proc_check_iovector(cb, lc_node, ioVector, numberOfElements, &err_flag);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
-		*erroneousVectorIndex = err_flag;
+		if (erroneousVectorIndex != NULL)
+			*erroneousVectorIndex = err_flag;
+	
 		rc = SA_AIS_ERR_INVALID_PARAM;
 		m_LOG_CPA_CCLLF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
 				"CkptWrite", __FILE__, __LINE__, rc, checkpointHandle);
@@ -3375,7 +3381,9 @@ SaAisErrorT saCkptCheckpointWrite(SaCkptCheckpointHandleT checkpointHandle,
    
    if(out_evt)
    {
-      erroneousVectorIndex=&out_evt->info.cpa.info.sec_data_rsp.error_index;
+	if (erroneousVectorIndex != NULL)
+      		*erroneousVectorIndex = out_evt->info.cpa.info.sec_data_rsp.error_index;
+
       if (out_evt->info.cpa.info.sec_data_rsp.num_of_elmts == -1)
       {
          rc=out_evt->info.cpa.info.sec_data_rsp.error;
@@ -3650,6 +3658,9 @@ SaAisErrorT saCkptCheckpointRead(SaCkptCheckpointHandleT checkpointHandle,
 		return rc;
 	}
 
+	if (erroneousVectorIndex != NULL)
+		*erroneousVectorIndex = 0;
+
 	/* DataBuffer is not Null but the dataSize is 0 ,ie no data to read , so return INVALID_PARAM */
 	while (counter < numberOfElements) {
 		if ((ioVector[counter].dataBuffer != NULL) && (ioVector[counter].dataSize == 0))
@@ -3793,7 +3804,9 @@ SaAisErrorT saCkptCheckpointRead(SaCkptCheckpointHandleT checkpointHandle,
    {
       if(out_evt->info.cpa.info.sec_data_rsp.num_of_elmts == -1)
       {
-         erroneousVectorIndex=&out_evt->info.cpa.info.sec_data_rsp.error_index;
+	if (erroneousVectorIndex != NULL)
+         	*erroneousVectorIndex = out_evt->info.cpa.info.sec_data_rsp.error_index;
+
          rc=out_evt->info.cpa.info.sec_data_rsp.error;
       }
       else 
