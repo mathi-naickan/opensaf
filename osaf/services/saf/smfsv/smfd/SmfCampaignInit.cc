@@ -82,6 +82,15 @@ SmfCampaignInit::addAddToImm(SmfImmOperation * i_operation)
 	m_addToImm.push_back(i_operation);
 }
 
+//------------------------------------------------------------------------------
+// getAddToImm()
+//------------------------------------------------------------------------------
+const std::list < SmfImmOperation * >&
+SmfCampaignInit::getAddToImm()
+{
+	return m_addToImm;
+}
+
 #if 0
 //------------------------------------------------------------------------------
 // addCallbackAtInit()

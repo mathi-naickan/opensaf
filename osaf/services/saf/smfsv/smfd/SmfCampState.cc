@@ -27,12 +27,14 @@
 #include "SmfCampState.hh"
 #include "SmfProcState.hh"
 #include "SmfUpgradeProcedure.hh"
+#include "SmfUpgradeMethod.hh"
+#include "SmfTargetTemplate.hh"
 #include "SmfCampaignThread.hh"
 #include "SmfCampaign.hh"
 #include "SmfProcedureThread.hh"
 #include <immutil.h>
 #include <sstream>
-
+#include <iostream>
 /* ========================================================================
  *   DEFINITIONS
  * ========================================================================
@@ -222,6 +224,16 @@ SmfCampStateInitial::execute(SmfUpgradeCampaign * i_camp)
 	std::string error;
 	std::string s;
 	std::stringstream out;
+	std::vector < SmfUpgradeProcedure * >::iterator procIter;
+
+	std::list < std::string > bundleInstallDnCamp;
+	std::list < std::string > notFoundInstallDn;
+	std::list < std::string > bundleRemoveDnCamp;
+	std::list < std::string > notFoundRemoveDn;
+	std::list < std::string >::iterator dnIter;
+
+        SaImmAttrValuesT_2 **attributes;
+        SmfImmUtils immUtil;
 
 	TRACE("SmfCampStateInitial::execute implementation");
 
@@ -230,19 +242,11 @@ SmfCampStateInitial::execute(SmfUpgradeCampaign * i_camp)
 	//Reset error string in case the previous prerequsites check failed
         //In such case an error string is present in initial state
 	SmfCampaignThread::instance()->campaign()->setError("");
-#if 0
-	std::vector < SmfUpgradeProcedure * >::iterator iter;
 
-	//Set the DN of the procedures
-	iter = i_camp->m_procedure.begin();
-	while (iter != i_camp->m_procedure.end()) {
-		//Set the DN of the procedure
-		std::string dn = (*iter)->getProcName() + "," + SmfCampaignThread::instance()->campaign()->getDn();
-		(*iter)->setDn(dn);
+	//Prerequisite  check 1 "The Software Management Framework is operational"
+	//If executing here, it is operational
 
-		iter++;
-	}
-#endif
+	//Prerequisite  check 2 "The software repository is accessable"
 	LOG_NO("CAMP: Check SMF repository %s", i_camp->getCampaignName().c_str());
 	if (smfd_cb->repositoryCheckCmd != NULL) {
 		TRACE("Executing SMF repository check cmd %s", smfd_cb->repositoryCheckCmd);
@@ -261,6 +265,308 @@ SmfCampStateInitial::execute(SmfUpgradeCampaign * i_camp)
 		goto exit_error;
 	}
 
+	//Prerequisite  check 3 "There is no other upgrade campaign in progress"
+	//If executing here, this was checked before this campaign was started
+
+
+	//Prerequisite  check 5 "The specifics of the upgrade campaign have been provided, and the campaign is still applicable"
+	//TBD
+
+	//Prerequisite  check 4 "The current running version of the software is available in the software repository"
+	//Prerequisite  check 6 "The desired version of the software is available in the software repository, 
+        //                       and all the dependencies of the required packages have been checked and are satisfied"
+
+	//Below is the current implementation of prerequisite check 4 and 6. 
+	//For bundles included in any <swAdd> portion of the campaign:
+	//1) The IMM is searched for existing SW bundle objects
+	//2) If not found in IMM, the campaign xml <softwareBundle> portion is searched to see if the swBundle
+        //   objects are going to be created by the campaign.
+
+	//For bundles included in any <swRemove> portion of the campaign:
+	//1) The IMM is searched for existing SW bundle objects
+	
+	//Check that bundles to install is available in the software repository
+	LOG_NO("CAMP: Check bundles to install and remove.");
+	//Find out which SW Bundles to install
+	TRACE("Find out which SW Bundles to install");
+	procIter = i_camp->m_procedure.begin();
+	while (procIter != i_camp->m_procedure.end()) {
+		//Fetch the list of SW to add from each procedure
+		SaSmfUpgrMethodT upType = (*procIter)->getUpgradeMethod()->getUpgradeMethod();
+		if (upType == SA_SMF_ROLLING) {
+			TRACE("SA_SMF_ROLLING procedure detected");
+			const std::list < SmfBundleRef * > b = ((SmfByTemplate*)(*procIter)->getUpgradeMethod()->
+								getUpgradeScope())->getTargetNodeTemplate()->getSwInstallList();
+
+			std::list< SmfBundleRef* >::const_iterator bIter;
+			bIter = b.begin();
+			while (bIter != b.end()) {
+				bundleInstallDnCamp.push_back((*bIter)->getBundleDn());
+				bIter++;
+			}
+		} else if (upType == SA_SMF_SINGLE_STEP) {
+			TRACE("SA_SMF_SINGLE_STEP procedure detected");
+			const SmfUpgradeScope * scope = (*procIter)->getUpgradeMethod()->getUpgradeScope();
+
+			//Cast to valid upgradeScope
+			const SmfForModify* modify = dynamic_cast<const SmfForModify*>(scope);
+			const SmfForAddRemove* addRemove = dynamic_cast<const SmfForAddRemove*>(scope);
+			
+			if(modify != 0) { //Check if the upgradeScope is SmfForModify
+				TRACE("SA_SMF_SINGLE_STEP procedure with scope forModify detected");
+				const std::list < SmfBundleRef > b = modify->getActivationUnit()->getSwAdd();
+				std::list< SmfBundleRef >::const_iterator bIter;
+				bIter = b.begin();
+				while (bIter != b.end()) {
+					bundleInstallDnCamp.push_back((*bIter).getBundleDn());
+					bIter++;
+				}
+			}else if(addRemove != 0) { //Check if the upgradeScope is SmfForAddRemove
+				TRACE("SA_SMF_SINGLE_STEP procedure with scope forAddRemove detected");
+				const std::list < SmfBundleRef > b = addRemove->getActivationUnit()->getSwAdd();
+				std::list< SmfBundleRef >::const_iterator bIter;
+				bIter = b.begin();
+				while (bIter != b.end()) {
+					bundleInstallDnCamp.push_back((*bIter).getBundleDn());
+					bIter++;
+				}
+			} else {
+				TRACE("Unknown procedure scope");
+				error = "CAMP: Unknown procedure scope";
+				goto exit_error;
+			}
+		} else {
+			TRACE("SA_SMF_SINGLE_STEP unknown procedure type");
+			error = "CAMP: Unknown procedure type";
+			goto exit_error;
+		}
+
+
+		procIter++;
+	}
+
+	bundleInstallDnCamp.sort();
+	bundleInstallDnCamp.unique();
+
+	//Find out which SW Bundles to remove
+	TRACE("Find out which SW Bundles to remove");
+	procIter = i_camp->m_procedure.begin();
+	while (procIter != i_camp->m_procedure.end()) {
+		//Fetch the list of SW to add from each procedure
+		SaSmfUpgrMethodT upType = (*procIter)->getUpgradeMethod()->getUpgradeMethod();
+		if (upType == SA_SMF_ROLLING) {
+			TRACE("SA_SMF_ROLLING procedure detected");
+			const std::list < SmfBundleRef * > b = ((SmfByTemplate*)(*procIter)->getUpgradeMethod()->
+								getUpgradeScope())->getTargetNodeTemplate()->getSwRemoveList();
+
+			std::list< SmfBundleRef* >::const_iterator bIter;
+			bIter = b.begin();
+			while (bIter != b.end()) {
+				bundleRemoveDnCamp.push_back((*bIter)->getBundleDn());
+				bIter++;
+			}
+		} else if (upType == SA_SMF_SINGLE_STEP) {
+			TRACE("SA_SMF_SINGLE_STEP procedure detected");
+			const SmfUpgradeScope * scope = (*procIter)->getUpgradeMethod()->getUpgradeScope();
+
+			//Cast to valid upgradeScope
+			const SmfForModify* modify = dynamic_cast<const SmfForModify*>(scope);
+			const SmfForAddRemove* addRemove = dynamic_cast<const SmfForAddRemove*>(scope);
+			
+			if(modify != 0) { //Check if the upgradeScope is SmfForModify
+				TRACE("SA_SMF_SINGLE_STEP procedure with scope forModify detected");
+				const std::list < SmfBundleRef > b = modify->getActivationUnit()->getSwRemove();
+				std::list< SmfBundleRef >::const_iterator bIter;
+				bIter = b.begin();
+				while (bIter != b.end()) {
+					bundleRemoveDnCamp.push_back((*bIter).getBundleDn());
+					bIter++;
+				}
+			}else if(addRemove != 0) { //Check if the upgradeScope is SmfForAddRemove
+				TRACE("SA_SMF_SINGLE_STEP procedure with scope forAddRemove detected");
+				const std::list < SmfBundleRef > b = addRemove->getDeactivationUnit()->getSwRemove();
+				std::list< SmfBundleRef >::const_iterator bIter;
+				bIter = b.begin();
+				while (bIter != b.end()) {
+					bundleRemoveDnCamp.push_back((*bIter).getBundleDn());
+					bIter++;
+				}
+			} else {
+				TRACE("Unknown procedure scope");
+				error = "CAMP: Unknown procedure scope";
+				goto exit_error;
+			}
+		} else {
+			error = "CAMP: Unknown procedure type";
+			goto exit_error;
+		}
+
+		procIter++;
+	}
+
+	bundleRemoveDnCamp.sort();
+	bundleRemoveDnCamp.unique();
+
+	TRACE("Total number of bundles to install in the campaign = %d", bundleInstallDnCamp.size());
+	TRACE("Total number of bundles to remove in the campaign = %d", bundleRemoveDnCamp.size());
+
+	//Check if SW Bundles to install can be found in IMM
+	TRACE("Check if SW Bundles to install can be found in IMM");
+	for (dnIter=bundleInstallDnCamp.begin(); dnIter != bundleInstallDnCamp.end(); ++dnIter) {
+		if (immUtil.getObject((*dnIter), &attributes) == true) { //found
+			TRACE("SW Bundle to install %s found in IMM", (*dnIter).c_str());
+		} else {
+			TRACE("SW Bundle to install %s NOT found in IMM", (*dnIter).c_str());
+			notFoundInstallDn.push_back(*dnIter);
+		}
+	}
+
+	//If bundles are not found in IMM, check if the budles are specified to be installed in 
+	//the <addToImm> portion of the campaign
+	if (notFoundInstallDn.size() > 0) {
+		TRACE("All bundles was not found in IMM, check if they will be created by the campaign");
+		//Find all bundles to be created my the campaign
+		std::list < std::string > addToImmBundleDn;
+		std::list < SmfImmOperation * > immOper;
+		std::list < SmfImmOperation * >::iterator operIter;
+
+		immOper = i_camp->m_campInit.getAddToImm();
+		operIter = immOper.begin();
+		while (operIter != immOper.end()) {
+			SmfImmCreateOperation* ico = dynamic_cast<SmfImmCreateOperation*>((*operIter));
+			if (ico != NULL) {
+				if (ico->getClassName() == "SaSmfSwBundle") {                //This is sw bundle
+					std::list <SmfImmAttribute> attr = ico->getValues(); //Get all instance attributes
+					std::list <SmfImmAttribute>::iterator attrIter;
+					attrIter = attr.begin();
+					while (attrIter != attr.end()) {                     //Search for safSmfBundle attribute
+						if( (*attrIter).getName() == "safSmfBundle") {
+							std::string  val = (*attrIter).getValues().front(); //Only one value
+							if (ico->getParentDn().size() > 0) {
+								val += "," + ico->getParentDn();
+							}
+							TRACE("SW Bundle to add %s will be created by campaign", val.c_str());
+							addToImmBundleDn.push_back(val);
+						}
+						attrIter++;
+					}
+				}
+			}
+			operIter++;
+		}
+		addToImmBundleDn.sort();
+		addToImmBundleDn.unique();
+
+		//Match found bundles to be created with the remaining list of bundles to install
+		std::list < std::string >::iterator strIter;
+		strIter = addToImmBundleDn.begin();
+		while (strIter != addToImmBundleDn.end()) {
+			TRACE("Remove SW Bundle %s from list of missing SW Bundles", (*strIter).c_str());
+			notFoundInstallDn.remove(*strIter);
+			strIter++;
+		}
+	}
+
+	TRACE("Check if SW Bundles to remove are found in IMM");
+	//Check if SW Bundles to remove are found in IMM
+	for (dnIter=bundleRemoveDnCamp.begin(); dnIter != bundleRemoveDnCamp.end(); ++dnIter) {
+		if (immUtil.getObject((*dnIter), &attributes) == true) { //found
+			TRACE("SW Bundle to remove %s found in IMM", (*dnIter).c_str());
+		} else {
+			TRACE("SW Bundle to remove %s NOT found in IMM", (*dnIter).c_str());
+			notFoundRemoveDn.push_back(*dnIter);
+		}
+	}
+
+	//If bundles are not found in IMM, check if the budles to remove are specified to be added in 
+	//the <addToImm> portion of the campaign
+	if (notFoundRemoveDn.size() > 0) {
+		TRACE("All bundles was not found in IMM, check if they will be created by the campaign");
+		//Find all bundles to be created my the campaign
+		std::list < std::string > addToImmBundleDn;
+		std::list < SmfImmOperation * > immOper;
+		std::list < SmfImmOperation * >::iterator operIter;
+
+		immOper = i_camp->m_campInit.getAddToImm();
+		operIter = immOper.begin();
+		while (operIter != immOper.end()) {
+			SmfImmCreateOperation* ico = dynamic_cast<SmfImmCreateOperation*>((*operIter));
+			if (ico != NULL) {
+				if (ico->getClassName() == "SaSmfSwBundle") {                //This is sw bundle
+					std::list <SmfImmAttribute> attr = ico->getValues(); //Get all instance attributes
+					std::list <SmfImmAttribute>::iterator attrIter;
+					attrIter = attr.begin();
+					while (attrIter != attr.end()) {                     //Search for safSmfBundle attribute
+						if( (*attrIter).getName() == "safSmfBundle") {
+							std::string  val = (*attrIter).getValues().front(); //Only one value
+							if (ico->getParentDn().size() > 0) {
+								val += "," + ico->getParentDn();
+							}
+							TRACE("SW Bundle to remove %s will be created by campaign", val.c_str());
+							addToImmBundleDn.push_back(val);
+						}
+						attrIter++;
+					}
+				}
+			}
+			operIter++;
+		}
+		addToImmBundleDn.sort();
+		addToImmBundleDn.unique();
+
+		//Match found bundles to be created with the remaining list of bundles to install
+		std::list < std::string >::iterator strIter;
+		strIter = addToImmBundleDn.begin();
+		while (strIter != addToImmBundleDn.end()) {
+			TRACE("Remove SW Bundle %s from list of missing SW Bundles", (*strIter).c_str());
+			notFoundRemoveDn.remove(*strIter);
+			strIter++;
+		}
+	}
+
+	//Here are the lists of bundles to install and remove. Shall be empty if all bundles was found 
+	//in Imm or was prepared to be created in <addToImm> portion of the campaigm
+	if ((notFoundInstallDn.size() > 0) || (notFoundRemoveDn.size() > 0)) {
+		std::list < std::string >::iterator strIter;
+		if (notFoundInstallDn.size() > 0) {
+			LOG_ER("CAMP: The following SW bundles to add was not found in system or campaign:");
+			strIter = notFoundInstallDn.begin();
+			while (strIter != notFoundInstallDn.end()) {
+                                LOG_ER("CAMP: %s", (*strIter).c_str());
+				strIter++;
+			}
+		}
+
+		if (notFoundRemoveDn.size() > 0) {
+			LOG_ER("CAMP: The following SW bundles to remove was not found in system:");
+			strIter = notFoundRemoveDn.begin();
+			while (strIter != notFoundRemoveDn.end()) {
+                                LOG_ER("CAMP: %s", (*strIter).c_str());
+				strIter++;
+			}
+
+		}
+
+		error = "CAMP: Bundles to add/remove was not found in system or campaign";
+		goto exit_error;
+	}
+
+	//Prerequisite  check 7 "All affected nodes are able to provide the resources (for instance, sufficient disk space 
+	//                       and proper access rights) needed to perform the upgrade campaign"
+	//TBD
+
+	//Prerequisite  check 8 "The Software Management Framework is able to obtain the administrative ownership 
+	//                       for all necessary information model objects"
+	//TBD
+
+	//Prerequisite  check 9 "The target system is in a state such that the expected service outage does not exceed 
+	//                       the acceptable service outage defined for the campaig"
+	//TBD
+
+	//Prerequisite  check 10 "Upgrade-aware entities are ready for an upgrade campaign"
+	//TBD
+
+	//Prerequisite  check 11 "All neccessary backup is created"
 	LOG_NO("CAMP: Create system backup %s", i_camp->getCampaignName().c_str());
 	if (smfd_cb->backupCreateCmd != NULL) {
 		std::string backupCmd = smfd_cb->backupCreateCmd;

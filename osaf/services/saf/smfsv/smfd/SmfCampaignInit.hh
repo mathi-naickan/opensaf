@@ -71,6 +71,13 @@ class SmfCampaignInit {
 ///
 	void addAddToImm(SmfImmOperation * i_operation);
 
+///
+/// Purpose: Get operations from the campaign xml addToImm section.
+/// @param   None
+/// @return  A list of SmfImmOperation*
+///
+	const std::list < SmfImmOperation * >& getAddToImm();
+
 #if 0
 ///
 /// Purpose: Add a callback to be issued at init.

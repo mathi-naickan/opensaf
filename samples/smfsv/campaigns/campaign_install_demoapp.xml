@@ -211,6 +211,9 @@
           <attribute name="saAmfSIPrefActiveAssignments" type="SA_IMM_ATTR_SAUINT32T">
             <value>1</value>
           </attribute>
+          <attribute name="saAmfSIAdminState" type="SA_IMM_ATTR_SAUINT32T">
+            <value>2</value>
+          </attribute>
         </create>
         <create objectClassName="SaAmfSU" parentObjectDN="safSg=AmfDemo,safApp=AmfDemo1">
           <attribute name="safSu" type="SA_IMM_ATTR_SASTRINGT">

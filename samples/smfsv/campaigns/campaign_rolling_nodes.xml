@@ -55,7 +55,6 @@
 	</campaignInfo>
 	<campaignInitialization>
 		<addToImm>
-			<!--softwareBundle name="safSmfBundle=bundleA"-->
 			<softwareBundle name="safSmfBundle=bundleA,safApp=safSmfService">
 				<removal>
 					<offline command="/hostfs/offline_remove.sh" args="bundleA" saSmfBundleRemoveOfflineScope="4"></offline>
@@ -124,6 +123,7 @@
 				<upgradeScope>
 					<byTemplate>
 						<targetNodeTemplate objectDN="safAmfNodeGroup=SCs,safAmfCluster=myAmfCluster">
+							<swRemove bundleDN="safSmfBundle=AmfDemo"/>
 							<swAdd bundleDN="safSmfBundle=bundleA,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
 						</targetNodeTemplate>
 						<targetEntityTemplate>
@@ -152,6 +152,7 @@
 				<upgradeScope>
 					<byTemplate>
 						<targetNodeTemplate objectDN="safAmfNodeGroup=PLs,safAmfCluster=myAmfCluster">
+							<swRemove bundleDN="safSmfBundle=AmfDemo"/>
 							<swAdd bundleDN="safSmfBundle=bundleA,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
 						</targetNodeTemplate>
 						<targetEntityTemplate>
@@ -180,7 +181,8 @@
 				<upgradeScope>
 					<byTemplate>
 						<targetNodeTemplate objectDN="safAmfCluster=myAmfCluster">
-							<swAdd bundleDN="safSmfBundle=bundleA,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+							<swRemove bundleDN="safSmfBundle=bundleA,safApp=safSmfService" />
+							<swAdd bundleDN="safSmfBundle=AmfDemo"  pathnamePrefix="/opt/amf_demo"/>
 						</targetNodeTemplate>
 						<targetEntityTemplate>
 							<type objectDN="safVersion=4.0.0,safSuType=AmfDemo1"></type>

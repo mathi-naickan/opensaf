@@ -107,7 +107,7 @@ unlocked instantiation (3). Uncomment the commented saAmfSUAdminState sections b
 		</attr>
 		<attr>
 			<name>saAmfCtSwBundle</name>
-			<value>safSmfBundle=AmfDemo1</value>
+			<value>safSmfBundle=AmfDemo</value>
 		</attr>
 		<attr>
 			<name>saAmfCtDefClcCliTimeout</name>
@@ -231,10 +231,10 @@ unlocked instantiation (3). Uncomment the commented saAmfSUAdminState sections b
 	    </attr>
 	</object>
 	<object class="SaSmfSwBundle">
-			<dn>safSmfBundle=AmfDemo1</dn>
+			<dn>safSmfBundle=AmfDemo</dn>
 	</object>
 	<object class="SaAmfNodeSwBundle">
-		<dn>safInstalledSwBundle=safSmfBundle=AmfDemo1,safAmfNode=SC-1,safAmfCluster=myAmfCluster</dn>
+		<dn>safInstalledSwBundle=safSmfBundle=AmfDemo,safAmfNode=SC-1,safAmfCluster=myAmfCluster</dn>
 		<attr>
 			<name>saAmfNodeSwBundlePathPrefix</name>
 			<value>/opt/amf_demo</value>
@@ -272,7 +272,7 @@ unlocked instantiation (3). Uncomment the commented saAmfSUAdminState sections b
 	    <dn>safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1,safComp=AmfDemo,safSu=SU1,safSg=AmfDemo,safApp=AmfDemo1</dn>
 	</object>
 	<object class="SaAmfNodeSwBundle">
-		<dn>safInstalledSwBundle=safSmfBundle=AmfDemo1,safAmfNode=SC-2,safAmfCluster=myAmfCluster</dn>
+		<dn>safInstalledSwBundle=safSmfBundle=AmfDemo,safAmfNode=SC-2,safAmfCluster=myAmfCluster</dn>
 		<attr>
 			<name>saAmfNodeSwBundlePathPrefix</name>
 			<value>/opt/amf_demo</value>
