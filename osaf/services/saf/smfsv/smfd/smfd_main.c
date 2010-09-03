@@ -35,6 +35,10 @@
 #include <nid_api.h>
 #include <ncs_main_papi.h>
 
+#include <saAis.h>
+#include <saImmOm.h>
+#include <immutil.h>
+
 #include "smfd.h"
 #include "smfsv_defs.h"
 #include "smfd_evt.h"
@@ -208,6 +212,24 @@ static void main_process(void)
 
 	TRACE_ENTER();
 
+	/*
+	  The initialization of the IMM OM handle below is done to use a feature in the
+	  IMM implementation. As long as one handle is initialized, IMM will not release the 
+	  MDS subscription just reused it for new handles.
+	  When SMF uses SmfImmUtils new handles are created and released during the execution.
+	  If the campaign is big the MDS system limit of max number of subscriptions may be exceeded
+	  i.e. "ERR    |MDTM: SYSTEM has crossed the max =500 subscriptions"
+	  The code below will ensure there is always one IMM OM handle initialized.
+	*/
+	SaImmHandleT omHandle;
+	SaVersionT immVersion = { 'A', 2, 1 };
+	SaAisErrorT rc = immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
+	if (rc != SA_AIS_OK) {
+		LOG_ER("immutil_saImmOmInitialize faild, rc = %d", rc);
+		return;
+	}
+	/* end of IMM featue code */
+
 	mbx_fd = ncs_ipc_get_sel_obj(&smfd_cb->mbx);
 
 	/* Set up all file descriptors to listen to */
@@ -310,6 +332,11 @@ static void main_process(void)
 				}
 			}
 		}
+	}
+
+	rc = immutil_saImmOmAdminOwnerFinalize(omHandle);
+	if (rc != SA_AIS_OK) {
+		LOG_ER("immutil_saImmOmAdminOwnerFinalize faild, rc = %d", rc);
 	}
 }
 
