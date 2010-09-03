@@ -407,8 +407,8 @@ SmfCampStateInitial::execute(SmfUpgradeCampaign * i_camp)
 	bundleRemoveDnCamp.sort();
 	bundleRemoveDnCamp.unique();
 
-	TRACE("Total number of bundles to install in the campaign = %d", bundleInstallDnCamp.size());
-	TRACE("Total number of bundles to remove in the campaign = %d", bundleRemoveDnCamp.size());
+	TRACE("Total number of bundles to install in the campaign = %zd", bundleInstallDnCamp.size());
+	TRACE("Total number of bundles to remove in the campaign = %zd", bundleRemoveDnCamp.size());
 
 	//Check if SW Bundles to install can be found in IMM
 	TRACE("Check if SW Bundles to install can be found in IMM");
