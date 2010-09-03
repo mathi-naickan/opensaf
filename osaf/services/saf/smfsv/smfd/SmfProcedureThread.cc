@@ -370,6 +370,10 @@ SmfProcedureThread::createImmProcedure(SmfUpgradeProcedure * procedure)
 	SaNameT saSmfProcAcceptSIOutage = { 0 };
 	uns32 saSmfProcMaxNumSIsOutage = 0;
 	uns32 saSmfProcUpgrMethod = 0;
+
+//TODO: Parse and read the saSmfProcDisableSimultanExec attribute from the campaign.xml
+//      Handle the the content i.e. do not execute in parallel 
+	uns32 saSmfProcDisableSimultanExec = 1;
 	SaTimeT saSmfProcPeriod = 0;
 	uns32 saSmfProcState = SA_SMF_PROC_INITIAL;
 	char *saSmfProcError = (char*)"";
@@ -424,28 +428,36 @@ SmfProcedureThread::createImmProcedure(SmfUpgradeProcedure * procedure)
 		arr6
 	};
 
-	void *arr7[] = { &saSmfProcPeriod };
-	const SaImmAttrValuesT_2 attr_saSmfProcPeriod = {
-		(char*)"saSmfProcPeriod",
-		SA_IMM_ATTR_SATIMET,
+	void *arr7[] = { & saSmfProcDisableSimultanExec};
+	const SaImmAttrValuesT_2 attr_saSmfProcDisableSimultanExec = {
+		(char*)"saSmfProcDisableSimultanExec",
+		SA_IMM_ATTR_SAUINT32T,
 		1,
 		arr7
 	};
 
-	void *arr8[] = { &saSmfProcState };
-	const SaImmAttrValuesT_2 attr_saSmfProcState = {
-		(char*)"saSmfProcState",
-		SA_IMM_ATTR_SAUINT32T,
+	void *arr8[] = { &saSmfProcPeriod };
+	const SaImmAttrValuesT_2 attr_saSmfProcPeriod = {
+		(char*)"saSmfProcPeriod",
+		SA_IMM_ATTR_SATIMET,
 		1,
 		arr8
 	};
 
-	void *arr9[] = { &saSmfProcError };
+	void *arr9[] = { &saSmfProcState };
+	const SaImmAttrValuesT_2 attr_saSmfProcState = {
+		(char*)"saSmfProcState",
+		SA_IMM_ATTR_SAUINT32T,
+		1,
+		arr9
+	};
+
+	void *arr10[] = { &saSmfProcError };
 	const SaImmAttrValuesT_2 attr_saSmfProcError = {
 		(char*)"saSmfProcError",
 		SA_IMM_ATTR_SASTRINGT,
 		1,
-		arr9
+		arr10
 	};
 
 	const SaImmAttrValuesT_2 *attrValues[] = {
@@ -455,6 +467,7 @@ SmfProcedureThread::createImmProcedure(SmfUpgradeProcedure * procedure)
 		&attr_saSmfProcAcceptSIOutage,
 		&attr_saSmfProcMaxNumSIsOutage,
 		&attr_saSmfProcUpgrMethod,
+		&attr_saSmfProcDisableSimultanExec,
 		&attr_saSmfProcPeriod,
 		&attr_saSmfProcState,
 		&attr_saSmfProcError,
