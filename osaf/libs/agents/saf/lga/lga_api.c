@@ -522,6 +522,11 @@ static SaAisErrorT validate_open_params(SaLogHandleT logHandle,
 				TRACE("haProperty");
 				return SA_AIS_ERR_INVALID_PARAM;
 			}
+			
+			if(logFileCreateAttributes->maxLogRecordSize > logFileCreateAttributes->maxLogFileSize){
+                                TRACE("maxLogRecordSize is greater than the maxLogFileSize");
+                                return SA_AIS_ERR_INVALID_PARAM;
+                        }
 		}
 
 		*header_type = (uns32)SA_LOG_GENERIC_HEADER;
