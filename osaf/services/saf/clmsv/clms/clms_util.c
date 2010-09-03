@@ -578,6 +578,7 @@ void clms_clear_node_dep_list(CLMS_CLUSTER_NODE * node)
 		new_node = node->dep_node_list;
 		new_node->stat_change = SA_FALSE;
 		new_node->admin_op = 0;
+		new_node->change = SA_CLM_NODE_NO_CHANGE;
 		ckpt_node_rec(new_node);
 		node->dep_node_list = node->dep_node_list->next;
 		new_node->next = NULL;
@@ -912,6 +913,7 @@ uns32 clms_clmresp_ok(CLMS_CB * cb, CLMS_CLUSTER_NODE * op_node, CLMS_TRACK_INFO
 			op_node->admin_op = 0;
 			op_node->stat_change = SA_FALSE;
 			(void)immutil_saImmOiAdminOperationResult(cb->immOiHandle, op_node->curr_admin_inv, SA_AIS_OK);
+			op_node->change = SA_CLM_NODE_NO_CHANGE; 
 
 			rc = clms_send_is_member_info(clms_cb, op_node->node_id, op_node->member, TRUE);
 			if (rc != NCSCC_RC_SUCCESS) {

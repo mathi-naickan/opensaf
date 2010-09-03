@@ -1697,6 +1697,8 @@ static uns32 clms_lock_send_no_start_cbk(CLMS_CLUSTER_NODE * nodeop)
 
 	(void)immutil_saImmOiAdminOperationResult(clms_cb->immOiHandle, nodeop->curr_admin_inv, SA_AIS_OK);
 
+	nodeop->change = SA_CLM_NODE_NO_CHANGE;
+
 	/* Send node leave notification */
 	rc = clms_node_admin_state_change_ntf(clms_cb, nodeop, SA_CLM_ADMIN_LOCKED);
 	if (rc != NCSCC_RC_SUCCESS) {
@@ -1851,6 +1853,7 @@ uns32 clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop)
 					TRACE("clms_send_is_member_info failed %u", rc);
 					goto done;
 				}
+				nodeop->change = SA_CLM_NODE_NO_CHANGE;
 			}
 		} else {
 #ifdef ENABLE_AIS_PLM
@@ -1885,6 +1888,7 @@ uns32 clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop)
 					TRACE("clms_send_is_member_info failed %u", rc);
 					goto done;
 				}
+				nodeop->change = SA_CLM_NODE_NO_CHANGE;
 
 			} else if (nodeop->ee_red_state != SA_PLM_READINESS_IN_SERVICE) {
 
@@ -1986,6 +1990,8 @@ uns32 clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop)
 
 			(void)immutil_saImmOiAdminOperationResult(clms_cb->immOiHandle, nodeop->curr_admin_inv,
 								  SA_AIS_OK);
+
+			nodeop->change = SA_CLM_NODE_NO_CHANGE;
 
 			rc = clms_node_exit_ntf(clms_cb, nodeop);
 			if (rc != NCSCC_RC_SUCCESS) {
