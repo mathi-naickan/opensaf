@@ -585,7 +585,6 @@ SmfProcedureThread::processEvt(void)
 
 typedef enum {
 	PROC_MBX_FD,
-	PROC_OI_FD,
 	PROC_MAX_FD
 } proc_pollfd_t;
 
@@ -604,8 +603,6 @@ SmfProcedureThread::handleEvents(void)
 	/* Set up all file descriptors to listen to */
 	fds[PROC_MBX_FD].fd = mbx_fd.rmv_obj;
 	fds[PROC_MBX_FD].events = POLLIN;
-//	fds[PROC_OI_FD].fd = m_procSelectionObject;
-//	fds[PROC_OI_FD].events = POLLIN;
 
 	TRACE("Procedure thread %s waiting for events", m_procedure->getDn().c_str());
 
@@ -625,15 +622,6 @@ SmfProcedureThread::handleEvents(void)
 			/* dispatch MBX events */
 			processEvt();
 		}
-#if 0
-		/* Process the Imm callback events */
-		if (fds[PROC_OI_FD].revents & POLLIN) {
-			SaAisErrorT rc = SA_AIS_OK;
-			if ((rc = saImmOiDispatch(m_procOiHandle, SA_DISPATCH_ALL)) != SA_AIS_OK) {
-				LOG_ER("saImmOiDispatch FAILED: %u", rc);
-			}
-		}
-#endif
 	}
 
 	return 0;
