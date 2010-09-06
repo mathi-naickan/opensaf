@@ -32,8 +32,6 @@
 #define MQSV_SHM_QUEUESTATS
 
 #include <sys/mman.h>
-#include <sys/sysctl.h>
-#include <linux/sysctl.h>
 
 /*defines*/
 #define SHM_QUEUE_INFO_VALID 1

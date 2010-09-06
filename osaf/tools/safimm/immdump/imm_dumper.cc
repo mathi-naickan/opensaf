@@ -25,6 +25,7 @@
 #include <libxml/parser.h>
 #include <getopt.h>
 #include <assert.h>
+#include <libgen.h>
 
 #define XML_VERSION "1.0"
 

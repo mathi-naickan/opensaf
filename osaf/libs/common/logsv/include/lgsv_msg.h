@@ -21,6 +21,7 @@
 #ifndef LGSV_MSG_H
 #define LGSV_MSG_H
 
+#include <limits.h>
 #include "saLog.h"
 
 /* Message type enums */

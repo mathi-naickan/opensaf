@@ -46,11 +46,8 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <time.h>
-#include <grp.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/ipc.h>		/* Added for message-queues : PM : 28/10/03 */
 #include <sys/msg.h>		/* Added for message-queues : PM : 28/10/03 */
 #include <syslog.h>
 #ifndef __USE_GNU
@@ -60,17 +57,9 @@ struct msgbuf {
 };
 #endif   /* else defined in <sys/msg.h> */
 #include <sys/time.h>
-#include <sys/file.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
-#include <net/if.h>
 #include <netinet/in.h>
-#include <netinet/ip.h>
-#include <linux/if_ether.h>
-#include <netpacket/packet.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/resource.h>
 
 #include <signal.h>
 #include <pthread.h>
@@ -79,11 +68,8 @@ struct msgbuf {
 #include <errno.h>
 /*#include <asm/ioctls.h>*/
 #include <sys/ioctl.h>
-#include <sys/uio.h>
 #include <ctype.h>
 #include <termios.h>
-
-#include <math.h>
 
 /* includes for DLL */
 #include <dlfcn.h>

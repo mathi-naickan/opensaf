@@ -2055,7 +2055,7 @@ static void clms_lock_send_start_cbk(CLMS_CLUSTER_NODE * nodeop)
 	TRACE("Timer creation successful");
 
 	/* Assumed that the timer expiration value be specified in nanoseconds */
-	timer.it_value.tv_sec = (__time_t)(nodeop->lck_cbk_timeout / sec_to_nanosec);
+	timer.it_value.tv_sec = (time_t)(nodeop->lck_cbk_timeout / sec_to_nanosec);
 	timer.it_value.tv_nsec = (long int)(nodeop->lck_cbk_timeout % sec_to_nanosec);
 	timer.it_interval.tv_sec = 0;
 	timer.it_interval.tv_nsec = 0;

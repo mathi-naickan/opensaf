@@ -21,8 +21,6 @@
 #include "glnd_evt.h"
 
 #include <sys/mman.h>
-#include <sys/sysctl.h>
-#include <linux/sysctl.h>
 
 /*defines*/
 #define GLND_SHM_INFO_VALID 1

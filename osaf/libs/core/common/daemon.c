@@ -36,6 +36,8 @@
 #include "daemon.h"
 #include "logtrace.h"
 
+#include "ncsgl_defs.h"
+
 
 #define DEFAULT_RUNAS_USERNAME	"opensaf"
 

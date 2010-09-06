@@ -40,6 +40,7 @@
 #include <immutil.h>
 
 #include "saf_error.h"
+#include "ncsgl_defs.h"
 
 static SaVersionT immVersion = { 'A', 2, 1 };
 int verbose = 0;

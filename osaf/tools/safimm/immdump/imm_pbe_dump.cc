@@ -2091,6 +2091,7 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T epo
 unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* db_handle)
 {
 	assert(0);
+	return 0;
 }
 
 void purgeCcbCommitsFromPbe(void* sDbHandle, SaUint32T currentEpoch)

@@ -51,6 +51,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/poll.h>
+#include <poll.h>
 #include <time.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -772,7 +773,7 @@ unsigned int ncs_os_lock(NCS_OS_LOCK * lock, NCS_OS_LOCK_REQUEST request, unsign
 		if (pthread_mutexattr_init(&mutex_attr) != 0)
 			return (NCSCC_RC_FAILURE);
 
-		if (pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_RECURSIVE_NP) != 0)
+		if (pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_RECURSIVE) != 0)
 			return (NCSCC_RC_FAILURE);
 
 		if (pthread_mutex_init(&lock->lock, &mutex_attr) != 0) {
@@ -1015,7 +1016,7 @@ uns32 ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req)
 				return NCSCC_RC_FAILURE;
 
 			req->info.attr.o_attr.mq_curmsgs = buf.msg_qnum;	/* No of messages in Q */
-			req->info.attr.o_attr.mq_msgsize = buf.msg_cbytes;	/* Current Q size */
+			req->info.attr.o_attr.mq_msgsize = buf.__msg_cbytes;	/* Current Q size */
 			req->info.attr.o_attr.mq_stime = buf.msg_stime;
 			req->info.attr.o_attr.mq_maxmsg = buf.msg_qbytes;	/* Maximum Q size */
 		}
@@ -2226,7 +2227,7 @@ uns32 ncs_os_process_execute_timed(NCS_OS_PROC_EXECUTE_TIMED_INFO *req)
 			int i;
 
 			/* Close all inherited file descriptors */
-			for (i = getdtablesize(); i >= 0; --i)
+			for (i = sysconf(_SC_OPEN_MAX); i >= 0; --i)
 				close(i);	/* close all descriptors */
 
 			/* Reopen standard file descriptors and connect to a harmless device */
@@ -2370,7 +2371,6 @@ sighandler_t ncs_os_signal(int signum, sighandler_t handler)
 uns32 ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj)
 {
 	int s_pair[2];
-	int enable_nbio = 1;
 	int flags = 0;
 
 	m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_LOCK, 0);
@@ -2399,7 +2399,8 @@ uns32 ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj)
 	/* Raising indications should be a non-blocking operation. Otherwise, 
 	   it can lead to deadlocks among reader and writer applications. 
 	 */
-	ioctl(o_sel_obj->raise_obj, FIONBIO, &enable_nbio);
+	flags = fcntl(o_sel_obj->raise_obj, F_GETFL, 0);
+	fcntl(o_sel_obj->raise_obj, F_SETFL, (flags | O_NONBLOCK));
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -2458,6 +2459,7 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, NCS_BOOL nonblock, NCS_BOOL one_a
 	char tmp[MAX_INDS_AT_A_TIME];
 	int ind_count, tot_inds_rmvd;
 	int num_at_a_time;
+	int raise_non_block_flag_set = 0, rmv_non_block_flag_set = 0, flags = 0;
 
 	tot_inds_rmvd = 0;
 	num_at_a_time = (one_at_a_time ? 1 : MAX_INDS_AT_A_TIME);
@@ -2469,8 +2471,18 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, NCS_BOOL nonblock, NCS_BOOL one_a
 	 * If one_at_a_time == TRUE,  then quit the infinite loop 
 	 * after removing at most 1 indication.
 	 */
+	flags = fcntl(i_ind_obj.raise_obj, F_GETFL, 0);
+	if ((flags & O_NONBLOCK) != O_NONBLOCK) {
+		fcntl(i_ind_obj.raise_obj, F_SETFL, (flags | O_NONBLOCK));
+		raise_non_block_flag_set = TRUE;
+	}
+	flags = fcntl(i_ind_obj.rmv_obj, F_GETFL, 0);
+	if ((flags & O_NONBLOCK) != O_NONBLOCK) {
+		fcntl(i_ind_obj.rmv_obj, F_SETFL, (flags | O_NONBLOCK));
+		rmv_non_block_flag_set = TRUE;
+	}
 	for (;;) {
-		ind_count = recv(i_ind_obj.rmv_obj, &tmp, num_at_a_time, MSG_DONTWAIT);
+		ind_count = recv(i_ind_obj.rmv_obj, &tmp, num_at_a_time, 0);
 
 		DIAG1("RMV_IND:ind_count in nonblock-recv = %d\n", ind_count);
 
@@ -2498,6 +2510,17 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, NCS_BOOL nonblock, NCS_BOOL one_a
 			}
 		}
 	}			/* End of infinite loop */
+
+	if (raise_non_block_flag_set == TRUE) {
+		flags = fcntl(i_ind_obj.raise_obj, F_GETFL, 0);
+		flags = flags & ~(O_NONBLOCK);
+		fcntl(i_ind_obj.raise_obj, F_SETFL, flags);	
+	}
+	if (rmv_non_block_flag_set == TRUE) {
+		flags = fcntl(i_ind_obj.rmv_obj, F_GETFL, 0);
+		flags = flags & ~(O_NONBLOCK);
+		fcntl(i_ind_obj.rmv_obj, F_SETFL, flags);	
+	}
 
 	/* Reaching here implies that all pending indications have been removed 
 	 * and "tot_inds_rmvd" contains a count of indications removed. 

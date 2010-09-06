@@ -549,6 +549,7 @@ smf_stringToImmType(char *i_type)
 		TRACE("SmfUtils::smf_stringToImmType type %s not found", i_type);
 		assert(0);
 	}
+	return (SaImmValueTypeT)0;
 }
 
 // ------------------------------------------------------------------------------
@@ -567,6 +568,7 @@ smf_stringToImmAttrModType(char *i_type)
 		TRACE("SmfUtils::smf_stringToImmAttrModType type %s not found", i_type);
 		assert(0);
 	}
+	return (SaImmAttrModificationTypeT)0;
 }
 
 //------------------------------------------------------------------------------
@@ -720,6 +722,7 @@ smf_opStringToInt(const char *i_str)
 		TRACE("SmfUtils::smf_opStringToInt type %s not found", i_str);
 		assert(0);
 	}
+	return (SaAmfAdminOperationIdT)0;
 }
 
 //------------------------------------------------------------------------------

@@ -316,6 +316,7 @@ static AVSV_AMF_CLASS_ID class_name_to_class_type(const SaImmClassNameT classNam
 	}
 
 	assert(0);
+	return AVSV_SA_AMF_CLASS_INVALID;
 }
 
 /*****************************************************************************

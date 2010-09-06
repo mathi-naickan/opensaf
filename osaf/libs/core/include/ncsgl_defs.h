@@ -433,6 +433,18 @@ extern "C" {
 */
 #define m_NCS_NODE_ID_FROM_MDS_DEST(mdsdest) ((uns32) (((uns64)(mdsdest))>>32))
 
+#ifndef NAME_MAX
+#define NAME_MAX 255
+#endif
+
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 64
+#endif
+
+#ifndef PTHREAD_MUTEX_RECURSIVE
+#define PTHREAD_MUTEX_RECURSIVE 1
+#endif
+
 #ifdef  __cplusplus
 }
 #endif

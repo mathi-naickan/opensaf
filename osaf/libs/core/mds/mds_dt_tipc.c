@@ -31,6 +31,7 @@
 #include "ncssysf_mem.h"
 
 #include <sys/poll.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -629,7 +630,7 @@ static uns32 mdtm_process_recv_events(void)
 	 */
 
 	while (1) {
-		uint pollres;
+		unsigned int pollres;
 		struct pollfd pfd[3];
 		struct tipc_event event;
 

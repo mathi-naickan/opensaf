@@ -76,8 +76,8 @@ static void output(const char *file, unsigned int line, int priority, int catego
 	strftime(log_string, sizeof(log_string), "%b %e %k:%M:%S", localtime(&tv.tv_sec));
 	i = snprintf(preamble, sizeof(preamble), "%s.%06ld %s ", log_string, tv.tv_usec, ident);
 
-	snprintf(&preamble[i], sizeof(preamble) - i, "[%ld:%s:%04u] %s %s",
-		syscall(SYS_gettid), file, line, prefix_name[priority + category], format);
+	snprintf(&preamble[i], sizeof(preamble) - i, "[%d:%s:%04u] %s %s",
+		getpid(), file, line, prefix_name[priority + category], format);
 	i = vsnprintf(log_string, sizeof(log_string), preamble, ap);
 
 	/* Add line feed if not there already */

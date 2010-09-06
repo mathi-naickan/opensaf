@@ -18,6 +18,7 @@
 #ifndef __LGS_STREAM_H
 #define __LGS_STREAM_H
 
+#include <limits.h>
 #include "lgs_fmt.h"
 
 /**
