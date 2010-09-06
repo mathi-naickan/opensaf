@@ -677,9 +677,9 @@ uns32 avd_node_admin_lock_instantiation(AVD_AVND *node)
 	su = node->list_of_su;
 	while (su != NULL) {
 		if ((su->saAmfSUPreInstantiable == TRUE) &&
-		    (su->saAmfSUPresenceState != SA_AMF_PRESENCE_UNINSTANTIATED ||
-		     su->saAmfSUPresenceState != SA_AMF_PRESENCE_INSTANTIATION_FAILED ||
-		     su->saAmfSUPresenceState != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+		    (su->saAmfSUPresenceState != SA_AMF_PRESENCE_UNINSTANTIATED) &&
+		    (su->saAmfSUPresenceState != SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
+		    (su->saAmfSUPresenceState != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
 
 			if (avd_snd_presence_msg(avd_cb, su, TRUE) == NCSCC_RC_SUCCESS) {
 				m_AVD_SET_SU_TERM(avd_cb, su, TRUE);
@@ -1153,8 +1153,15 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 
 		/* now do the lock_instantiation of the node */
 		if (NCSCC_RC_SUCCESS == avd_node_admin_lock_instantiation(node)) {
-			node->admin_node_pend_cbk.admin_oper = operationId;
-			node->admin_node_pend_cbk.invocation = invocation;
+			/* Check if we have pending admin operations
+			 * Otherwise reply to IMM immediately*/
+			if( node->su_cnt_admin_oper != 0)
+			{
+				node->admin_node_pend_cbk.admin_oper = operationId;
+				node->admin_node_pend_cbk.invocation = invocation;
+			}
+			else
+				immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 		} else {
 			rc = SA_AIS_ERR_REPAIR_PENDING;
 			LOG_WA("LOCK_INSTANTIATION FAILED");
@@ -1191,8 +1198,15 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 
 		/* now do the unlock_instantiation of the node */
 		if (NCSCC_RC_SUCCESS == node_admin_unlock_instantiation(node)) {
-			node->admin_node_pend_cbk.admin_oper = operationId;
-			node->admin_node_pend_cbk.invocation = invocation;
+			/* Check if we have pending admin operations.
+			 * Otherwise reply to IMM immediately*/
+			if( node->su_cnt_admin_oper != 0)
+			{
+				node->admin_node_pend_cbk.admin_oper = operationId;
+				node->admin_node_pend_cbk.invocation = invocation;
+			}
+			else
+				immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 		} else {
 			rc = SA_AIS_ERR_TIMEOUT;
 			LOG_WA("UNLOCK_INSTANTIATION FAILED");
