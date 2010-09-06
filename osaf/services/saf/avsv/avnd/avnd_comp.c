@@ -1179,6 +1179,8 @@ uns32 avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *csi)
 	curr_csi = (csi) ? csi : m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
 	if (curr_csi && (SA_AMF_HA_STANDBY == curr_csi->si->curr_state) &&
 			(true == avnd_comp_cap_x_act_or_1_act_check(&comp->saAmfCompType, &curr_csi->saAmfCSType))) {
+		m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi, AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
 		rc = avnd_comp_csi_assign_done(cb, comp, csi);
 		goto done;
 	}
