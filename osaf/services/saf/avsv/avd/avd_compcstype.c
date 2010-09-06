@@ -186,8 +186,8 @@ static int is_config_valid(const SaNameT *dn, CcbUtilOperationData_t *opdata)
 		}
 
 		if ((tmp = ccbutil_getCcbOpDataByDN(opdata->ccbId, &comp_name)) == NULL) {
-			assert(0);
 			LOG_ER("'%s'does not exist in existing model or in CCB", comp_name.value);
+			assert(0);
 			goto free_cstype_name;
 		}
 
