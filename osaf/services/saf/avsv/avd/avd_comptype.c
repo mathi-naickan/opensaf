@@ -209,7 +209,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	** The saAmfCtSwBundle/saAmfCtRelPathInstantiateCmd "attribute is mandatory for all
 	** non-proxied local components".
 	*/
-	if (!IS_COMP_PROXIED(category) && IS_COMP_LOCAL(category)) {
+	if (!(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category)) && IS_COMP_LOCAL(category)) {
 
 		if (immutil_getAttr("saAmfCtSwBundle", attributes, 0, &name) != SA_AIS_OK) {
 			LOG_ER("Required attribute saAmfCtSwBundle not configured for '%s'", dn->value);
@@ -226,7 +226,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	** The saAmfCtDefTerminateCmdArgv "attribute is mandatory for local non-proxied,
 	** non-SA-aware components".
 	*/
-	if (IS_COMP_LOCAL(category) && !IS_COMP_PROXIED(category) && !IS_COMP_SAAWARE(category) &&
+	if (IS_COMP_LOCAL(category) && !(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category)) && !IS_COMP_SAAWARE(category) &&
 	    (immutil_getStringAttr(attributes, "saAmfCtDefTerminateCmdArgv", 0) == NULL)) {
 		LOG_ER("Required attribute saAmfCtDefTerminateCmdArgv not configured for '%s', cat=%x", dn->value, category);
 		return 0;	

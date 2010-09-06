@@ -665,7 +665,7 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 						SA_MAX_NAME_LENGTH - 1);
 					m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVSV_CKPT_COMP_CURR_PROXY_NAME);
 					avd_saImmOiRtObjectUpdate(&comp->comp_info.name,
-								  "saAmfCompCurrProxyName", SA_IMM_ATTR_SAUINT32T,
+								  "saAmfCompCurrProxyName", SA_IMM_ATTR_SANAMET,
 								  &comp->saAmfCompCurrProxyName);
 				} else {
 					/* log error that a the  value len is invalid */
