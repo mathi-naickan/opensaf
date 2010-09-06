@@ -752,6 +752,7 @@ sed -i '/isHpiSupported/{N;s|<value>0</value>|<value>1</value>|g}' \
 %if !%is_ais_plm
 sed -i '/plmd/d'  %{_pkgsysconfdir}/nodeinit.conf.controller
 %endif
+/usr/lib/lsb/install_initd %{_initddir}/fmd
 %{__ln_s} -f %{_pkgsysconfdir}/nodeinit.conf.controller %{_pkgsysconfdir}/nodeinit.conf
 echo "controller" > %{_pkgsysconfdir}/node_type
 hostname -s >  %{_pkgsysconfdir}/node_name
@@ -760,6 +761,7 @@ echo "For information on how to configure the initial imm.xml file check the rea
 
 %preun controller
 %{__rm} -f %{_pkgsysconfdir}/nodeinit.conf
+/usr/lib/lsb/remove_initd %{_initddir}/fmd
 
 %postun controller -p /sbin/ldconfig
 
@@ -1194,6 +1196,7 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkgimmxml_svcdir}/rde_sc_template.xml
 %{_pkgimmxml_svcdir}/fm_objects.xml
 %{_pkgimmxml_svcdir}/fm_sc_template.xml
+%{_initddir}/fmd
 
 
 %files payload

@@ -311,7 +311,7 @@ static uns32 fm_get_args(FM_CB *fm_cb)
 /* Update fm_cb configuration fields */
 	fm_cb->node_id = m_NCS_GET_NODE_ID;
 
-	fm_cb->active_promote_tmr_val = 500;
+	fm_cb->active_promote_tmr_val = atoi(getenv("FMS_PROMOTE_ACTIVE_TIMER"));
 
 /* Set timer variables */
 	fm_cb->promote_active_tmr.type = FM_TMR_PROMOTE_ACTIVE;

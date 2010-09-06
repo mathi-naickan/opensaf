@@ -20,3 +20,6 @@ MAINTAINERCLEANFILES = Makefile.in
 
 nodist_pkgclccli_SCRIPTS = \
 	$(top_builddir)/osaf/services/infrastructure/fm/fms/scripts/osaf-fmd
+
+nodist_lsbinit_SCRIPTS = \
+	$(top_builddir)/osaf/services/infrastructure/fm/fms/scripts/fmd
