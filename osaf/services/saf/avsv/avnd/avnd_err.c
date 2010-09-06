@@ -103,8 +103,10 @@ static const char *g_comp_rcvr[] = {
 	"nodeFailover(5)",
 	"nodeFailfast(6)",
 	"clusterReset(7)",
-	"suRestart(8)",
-	"suFailover(9)"
+	"applicationRestart(8)",
+	"containerRestart(9)",
+	"suRestart(10)",
+	"suFailover(11)"
 };
 
 /****************************************************************************
