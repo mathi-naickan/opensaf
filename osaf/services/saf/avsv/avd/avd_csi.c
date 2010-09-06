@@ -64,11 +64,14 @@ static SaAisErrorT csiass_config_get(const SaNameT *csi_name, AVD_CSI *csi)
 		avsv_sanamet_init(&csiass_name, &si_name, "safSi");
 		avsv_sanamet_init_from_association_dn(&csiass_name, &su_name, "safSu", "safCsi");
 		susi = avd_susi_find(avd_cb, &su_name, &si_name);
-		avsv_sanamet_init_from_association_dn(&csiass_name, &comp_name, "safComp", "safCsi");
-		comp = avd_comp_get(&comp_name);
-		compcsi = avd_compcsi_create(susi, csi, comp, false);
+		if (susi != NULL) {
+			avsv_sanamet_init_from_association_dn(&csiass_name, &comp_name, "safComp", "safCsi");
+			comp = avd_comp_get(&comp_name);
+			compcsi = avd_compcsi_create(susi, csi, comp, false);
+		} else {
+			LOG_ER("SUSI does not exist for CompCsi : '%s'", csiass_name.value);
+		}
 	}
-
 	error = SA_AIS_OK;
 
 	(void)immutil_saImmOmSearchFinalize(searchHandle);
