@@ -164,25 +164,6 @@ AC_ARG_WITH([initscriptdir],
 
 AC_SUBST([initscriptdir], ["$with_initscriptdir"])
 
-#
-# When cross-compiling you might have issue detecting/running the target copy of
-# xml2-config, if it's your case, force the location of the xml2-config script
-# to get the proper value for your target.
-#
-AC_ARG_WITH([xml2-config-bin],
-        [AS_HELP_STRING([--with-xml2-config-bin=@<:@FILE@:>@],
-                [use FILE as the target specific xml2-config script])],
-        [
-        if test -x $withval; then
-                with_xml2_config_bin=$withval
-        else
-                AC_ERROR([$withval is an invalid filename])
-        fi
-        ],
-        [with_xml2_config_bin=xml2-config])
-
-AC_SUBST([XML2_CONFIG_BIN], ["$with_xml2_config_bin"])
-
 
 #
 # Enable/disable the Java AIS interface mapping components
@@ -353,11 +334,6 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_YACC
 
-if test "$cross_compiling" = no; then
-        AC_CHECK_PROG([ac_check_xml2_config], [$with_xml2_config_bin],
-                [found], [missing])
-fi
-
 if test "$enable_java" = yes; then
         AC_JAVA_WITH_JDK
 
@@ -398,6 +374,8 @@ AC_SUBST([MDS_WORD_ARCH_FLAGS], [" -DMDS_ARCH_TYPE=$mdsarchtype"])
 #############################################
 # Checks for libraries.
 #############################################
+PKG_CHECK_MODULES([XML2], [libxml-2.0])
+
 if test "$enable_ais_plm" = yes; then
     PKG_CHECK_MODULES([HPI], [openhpi])
 
@@ -446,17 +424,6 @@ if test "$enable_ais_plm" = yes; then
        fi
     fi
 fi
-
-
-if test "$ac_check_xml2_config" = missing; then
-        AC_ERROR([Can't find the libxml2 development package])
-else
-        XML2_LIBS=`${XML2_CONFIG_BIN} --libs`
-        XML2_CFLAGS=`${XML2_CONFIG_BIN} --cflags`
-        AC_SUBST([XML2_LIBS])
-        AC_SUBST([XML2_CFLAGS])
-fi
-
 
 if test "$enable_imm_pbe" = yes; then
 	PKG_CHECK_MODULES([SQLITE3], [sqlite3])

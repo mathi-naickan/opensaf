@@ -349,8 +349,6 @@ are available w.r.t enabling/disabling the build for a particular OpenSAF servic
   --with-initscriptdir=[DIR]
                           use DIR as the directory containing the init.d
                           scripts. [default=/etc/init.d]
-  --with-xml2-config-bin=[FILE]
-                          use FILE as the target specific xml2-config script
   --with-pic              try to use only PIC/non-PIC objects [default=use
                           both]
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
@@ -409,10 +407,6 @@ autodetection.
 By using `./configure --disable-rpm-target', you are masking out the `make rpm'
 target, some build systems provide their own `make rpm` rule, it would then be
 clashing with the OpenSAF rule.
-
-By using `./configure --with-xml2-config-bin', you inform the build system
-where to find the `xml2-config' script. It's not possible to autodetect the
-proper one when cross-compiling, force its location in this case.
 
 
 Building `OpenSAF' RPMS
