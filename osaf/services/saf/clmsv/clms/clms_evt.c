@@ -400,7 +400,7 @@ static uns32 proc_node_lock_tmr_exp_msg(CLMSV_CLMS_EVT * evt)
 
 	/*you have to reboot the node in case of imm */
 	if (clms_cb->reg_with_plm == SA_TRUE)
-		opensaf_reboot(op_node->node_id, (char *)op_node->ee_name.value, "Rebooting, timer expired");
+		clms_reboot_remote_node(op_node,"Rebooting,timer expired for start step callback response");
 
 	/*Checkpoint */
 
