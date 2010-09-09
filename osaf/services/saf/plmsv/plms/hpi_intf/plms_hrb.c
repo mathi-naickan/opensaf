@@ -386,7 +386,6 @@ static SaUint32T hrb_process_hpi_req( PLMS_HPI_REQ  *hpi_req )
 
 		default:
 			LOG_ER("HRB:Invalid request from PLMS");
-			free(response);
 			return NCSCC_RC_FAILURE;
 	}
 	TRACE("Processing Status for hpi request for res:%u HPI resp:%u",
@@ -399,7 +398,6 @@ static SaUint32T hrb_process_hpi_req( PLMS_HPI_REQ  *hpi_req )
 
 	rc = hrb_mds_msg_send(response, hpi_req->mds_context);
 	
-	free(response);
 	TRACE_LEAVE2("RET VAL:%d",rc);
 	return rc;
 }
