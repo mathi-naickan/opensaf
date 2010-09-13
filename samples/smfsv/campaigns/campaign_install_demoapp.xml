@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<upgradeCampaign xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-  xsi:noNamespaceSchemaLocation="file:///home/uablrek/SMF/SAI-AIS-SMF-UCS-A.01.01.04_modified.xsd"
-  safSmfCampaign="safSmfCampaign=campaign_install_demoapp">
-<!--
+<!-- Created with Liquid XML Studio - FREE Community Edition 7.1.6.1440 (http://www.liquid-technologies.com) -->
+<upgradeCampaign xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file://H:/xsd/SAI-AIS-SMF-UCS-A.01.02_modified.xsd" safSmfCampaign="safSmfCampaign=campaign_install_demoapp">
+	<!--
 
     Installation campaign for the AmfDemo application.
 
@@ -45,278 +44,274 @@
         # Online/offline scripts should have been executed.
 
   -->
-  <campaignInfo>
-    <campaignPeriod/>
-  </campaignInfo>
-  <campaignInitialization>
-    <addToImm>
-      <softwareBundle name="safSmfBundle=AmfDemo">
-        <removal>
-          <offline command="/bin/logger" args="-t SMF AmfDemo removal offline" 
-            saSmfBundleRemoveOfflineScope="1"/>
-          <online command="/bin/logger" args="-t SMF AmfDemo removal online"/>
-        </removal>
-        <installation>
-          <offline command="/bin/logger" args="-t SMF AmfDemo installation offline" 
-            saSmfBundleInstallOfflineScope="2"/>
-          <online command="/bin/logger" args="-t SMF AmfDemo installation online"/>
-        </installation>
-        <defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000"/>
-      </softwareBundle>
-      <amfEntityTypes>
-        <AppBaseType safAppType="safAppType=AmfDemo1">
-          <AppType safVersion="safVersion=4.0.0">
-            <serviceGroupType saAmfApptSGTypes="safVersion=4.0.0,safSgType=AmfDemo1"/>
-          </AppType>
-        </AppBaseType>
-        <SGBaseType safSgType="safSgType=AmfDemo1">
-          <SGType safVersion="safVersion=4.0.0">
-            <suType saAmfSgtValidSuTypes="safVersion=4.0.0,safSuType=AmfDemo1"/>
-            <redundancy saAmfSgtRedundancyModel="1"/>
-            <compRestart saAmfSgtDefCompRestartProb="4000000" saAmfSgtDefCompRestartMax="10"/>
-            <suRestart saAmfSgtDefSuRestartProb="4000000" saAmfSgtDefSuRestartMax="10"/>
-            <autoAttrs safAmfSgtDefAutoAdjust="0" safAmfSgtDefAutoRepair="1" 
-              saAmfSgtDefAutoAdjustProb="10000000"/>
-          </SGType>
-        </SGBaseType>
-        <SUBaseType safSuType="safSuType=AmfDemo1">
-          <SUType safVersion="safVersion=4.0.0">
-            <mandatoryAttrs saAmfSutIsExternal="0" saAmfSutDefSUFailover="1"/>
-            <componentType saAmfSutMinNumComponents="1" 
-              safMemberCompType="safMemberCompType=safVersion=4.0.0\,safCompType=AmfDemo1"/>
-            <supportedSvcType saAmfSutProvidesSvcType="safVersion=4.0.0,safSvcType=AmfDemo1"/>
-          </SUType>
-        </SUBaseType>
-        <CompBaseType safCompType="safCompType=AmfDemo1">
-          <CompType safVersion="safVersion=4.0.0">
-            <providesCSType safSupportedCsType="safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1" saAmfCtCompCapability="1"/>
-            <compTypeDefaults saAmfCtCompCategory="1" 
-              saAmfCtDefDisableRestart="0" 
-              saAmfCtDefClcCliTimeout="10000000000" 
-              saAmfCtDefCallbackTimeout="10000000000" 
-              saAmfCtDefRecoveryOnError="2"/>
-            <instantiateCmd saAmfCtRelPathInstantiateCmd="amf_demo_script">
-              <cmdArgv>instantiate</cmdArgv>
-            </instantiateCmd>
-            <cleanupCmd saAmfCtRelPathCleanupCmd="amf_demo_script">
-              <cmdArgv>cleanup</cmdArgv>
-            </cleanupCmd>
-            <healthCheck safHealthcheckKey="safHealthcheckKey=AmfDemo" saAmfHealthcheckPeriod="10000000000" saAmfHealthcheckMaxDuration="6000000000"/>
-            <swBundle saAmfCtSwBundle="safSmfBundle=AmfDemo"/>
-          </CompType>
-        </CompBaseType>
-        <CSBaseType safCSType="safCSType=AmfDemo1">
-          <CSType safVersion="safVersion=4.0.0"/>
-        </CSBaseType>
-        <ServiceBaseType safSvcType="safSvcType=AmfDemo1">
-          <ServiceType safVersion="safVersion=4.0.0">
-            <csType safMemberCSType="safMemberCSType=safVersion=4.0.0\,safCSType=AmfDemo1"/>
-          </ServiceType>
-        </ServiceBaseType>
-      </amfEntityTypes>
-    </addToImm>
-  </campaignInitialization>
-  <upgradeProcedure safSmfProcedure="safSmfProc=InstallAmfDemo">
-    <outageInfo>
-      <acceptableServiceOutage>
-        <all/>
-      </acceptableServiceOutage>
-      <procedurePeriod saSmfProcPeriod="60000000000"/>
-    </outageInfo>
-    <procInitAction>
-      <immCCB ccbFlags="0">
-        <create objectClassName="SaAmfNodeSwBundle" parentObjectDN="safAmfNode=SC-1,safAmfCluster=myAmfCluster">
-          <attribute name="safInstalledSwBundle" type="SA_IMM_ATTR_SANAMET">
-            <value>safInstalledSwBundle=safSmfBundle=AmfDemo</value>
-          </attribute>
-          <attribute name="saAmfNodeSwBundlePathPrefix" type="SA_IMM_ATTR_SASTRINGT">
-            <value>/opt/amf_demo</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfNodeSwBundle" parentObjectDN="safAmfNode=SC-2,safAmfCluster=myAmfCluster">
-          <attribute name="safInstalledSwBundle" type="SA_IMM_ATTR_SANAMET">
-            <value>safInstalledSwBundle=safSmfBundle=AmfDemo</value>
-          </attribute>
-          <attribute name="saAmfNodeSwBundlePathPrefix" type="SA_IMM_ATTR_SASTRINGT">
-            <value>/opt/amf_demo</value>
-          </attribute>
-        </create>
-      </immCCB>
-    </procInitAction>
-    <procInitAction>
-      <immCCB ccbFlags="0">
-        <create objectClassName="SaAmfApplication" parentObjectDN="=">
-          <attribute name="safApp" type="SA_IMM_ATTR_SASTRINGT">
-            <value>safApp=AmfDemo1</value>
-          </attribute>
-          <attribute name="saAmfAppType" type="SA_IMM_ATTR_SANAMET">
-            <value>safVersion=4.0.0,safAppType=AmfDemo1</value>
-          </attribute>
-        </create>
-      </immCCB>
-    </procInitAction>
-    <procInitAction>
-      <immCCB ccbFlags="0">
-        <create objectClassName="SaAmfSG" parentObjectDN="safApp=AmfDemo1">
-          <attribute name="safSg" type="SA_IMM_ATTR_SASTRINGT">
-            <value>safSg=AmfDemo</value>
-          </attribute>
-          <attribute name="saAmfSGType" type="SA_IMM_ATTR_SANAMET">
-            <value>safVersion=4.0.0,safSgType=AmfDemo1</value>
-          </attribute>
-          <attribute name="saAmfSGSuHostNodeGroup" type="SA_IMM_ATTR_SANAMET">
-            <value>safAmfNodeGroup=SCs,safAmfCluster=myAmfCluster</value>
-          </attribute>
-          <attribute name="saAmfSGNumPrefStandbySUs" type="SA_IMM_ATTR_SAUINT32T">
-            <value>1</value>
-          </attribute>
-          <attribute name="saAmfSGNumPrefInserviceSUs" type="SA_IMM_ATTR_SAUINT32T">
-            <value>10</value>
-          </attribute>
-          <attribute name="saAmfSGNumPrefAssignedSUs" type="SA_IMM_ATTR_SAUINT32T">
-            <value>10</value>
-          </attribute>
-          <attribute name="saAmfSGNumPrefActiveSUs" type="SA_IMM_ATTR_SAUINT32T">
-            <value>1</value>
-          </attribute>
-          <attribute name="saAmfSGMaxStandbySIsperSU" type="SA_IMM_ATTR_SAUINT32T">
-            <value>1</value>
-          </attribute>
-          <attribute name="saAmfSGMaxActiveSIsperSU" type="SA_IMM_ATTR_SAUINT32T">
-            <value>1</value>
-          </attribute>
-          <attribute name="saAmfSGAutoRepair" type="SA_IMM_ATTR_SAUINT32T">
-            <value>0</value>
-          </attribute>
-          <attribute name="saAmfSGAutoAdjust" type="SA_IMM_ATTR_SAUINT32T">
-            <value>0</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfSI" parentObjectDN="safApp=AmfDemo1">
-          <attribute name="safSi" type="SA_IMM_ATTR_SASTRINGT">
-            <value>safSi=AmfDemo</value>
-          </attribute>
-          <attribute name="saAmfSvcType" type="SA_IMM_ATTR_SANAMET">
-            <value>safVersion=4.0.0,safSvcType=AmfDemo1</value>
-          </attribute>
-          <attribute name="saAmfSIRank" type="SA_IMM_ATTR_SAUINT32T">
-            <value>0</value>
-          </attribute>
-          <attribute name="saAmfSIProtectedbySG" type="SA_IMM_ATTR_SANAMET">
-            <value>safSg=AmfDemo,safApp=AmfDemo1</value>
-          </attribute>
-          <attribute name="saAmfSIPrefStandbyAssignments" type="SA_IMM_ATTR_SAUINT32T">
-            <value>1</value>
-          </attribute>
-          <attribute name="saAmfSIPrefActiveAssignments" type="SA_IMM_ATTR_SAUINT32T">
-            <value>1</value>
-          </attribute>
-          <attribute name="saAmfSIAdminState" type="SA_IMM_ATTR_SAUINT32T">
-            <value>2</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfSU" parentObjectDN="safSg=AmfDemo,safApp=AmfDemo1">
-          <attribute name="safSu" type="SA_IMM_ATTR_SASTRINGT">
-            <value>safSu=SU1</value>
-          </attribute>
-          <attribute name="saAmfSUType" type="SA_IMM_ATTR_SANAMET">
-            <value>safVersion=4.0.0,safSuType=AmfDemo1</value>
-          </attribute>
-          <attribute name="saAmfSUHostNodeOrNodeGroup" type="SA_IMM_ATTR_SANAMET">
-            <value>safAmfNode=SC-1,safAmfCluster=myAmfCluster</value>
-          </attribute>
-          <attribute name="saAmfSUAdminState" type="SA_IMM_ATTR_SAUINT32T">
-            <value>3</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfSU" parentObjectDN="safSg=AmfDemo,safApp=AmfDemo1">
-          <attribute name="safSu" type="SA_IMM_ATTR_SASTRINGT">
-            <value>safSu=SU2</value>
-          </attribute>
-          <attribute name="saAmfSUType" type="SA_IMM_ATTR_SANAMET">
-            <value>safVersion=4.0.0,safSuType=AmfDemo1</value>
-          </attribute>
-          <attribute name="saAmfSUHostNodeOrNodeGroup" type="SA_IMM_ATTR_SANAMET">
-            <value>safAmfNode=SC-2,safAmfCluster=myAmfCluster</value>
-          </attribute>
-          <attribute name="saAmfSUAdminState" type="SA_IMM_ATTR_SAUINT32T">
-            <value>3</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfComp" parentObjectDN="safSu=SU1,safSg=AmfDemo,safApp=AmfDemo1">
-          <attribute name="safComp" type="SA_IMM_ATTR_SASTRINGT">
-            <value>safComp=AmfDemo</value>
-          </attribute>
-          <attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
-            <value>safVersion=4.0.0,safCompType=AmfDemo1</value>
-          </attribute>
-          <attribute name="saAmfCompInstantiateCmdArgv" type="SA_IMM_ATTR_SASTRINGT">
-            <value>comparg1</value>
-            <value>SC-1</value>
-          </attribute>
-          <attribute name="saAmfCompDisableRestart" type="SA_IMM_ATTR_SAUINT32T">
-            <value>0</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfCompCsType" parentObjectDN="safComp=AmfDemo,safSu=SU1,safSg=AmfDemo,safApp=AmfDemo1">
-          <attribute name="safSupportedCsType" type="SA_IMM_ATTR_SANAMET">
-            <value>safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfComp" parentObjectDN="safSu=SU2,safSg=AmfDemo,safApp=AmfDemo1">
-          <attribute name="safComp" type="SA_IMM_ATTR_SASTRINGT">
-            <value>safComp=AmfDemo</value>
-          </attribute>
-          <attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
-            <value>safVersion=4.0.0,safCompType=AmfDemo1</value>
-          </attribute>
-          <attribute name="saAmfCompInstantiateCmdArgv" type="SA_IMM_ATTR_SASTRINGT">
-            <value>comparg2</value>
-            <value>SC-2</value>
-          </attribute>
-          <attribute name="saAmfCompDisableRestart" type="SA_IMM_ATTR_SAUINT32T">
-            <value>0</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfCompCsType" parentObjectDN="safComp=AmfDemo,safSu=SU2,safSg=AmfDemo,safApp=AmfDemo1">
-          <attribute name="safSupportedCsType" type="SA_IMM_ATTR_SANAMET">
-            <value>safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1</value>
-          </attribute>
-        </create>
-        <create objectClassName="SaAmfCSI" parentObjectDN="safSi=AmfDemo,safApp=AmfDemo1">
-          <attribute name="safCsi" type="SA_IMM_ATTR_SASTRINGT">
-            <value>safCsi=AmfDemo</value>
-          </attribute>
-          <attribute name="saAmfCSType" type="SA_IMM_ATTR_SANAMET">
-            <value>safVersion=4.0.0,safCSType=AmfDemo1</value>
-          </attribute>
-        </create>
-      </immCCB>
-    </procInitAction>
-    <upgradeMethod>
-      <singleStepUpgrade>
-        <upgradeScope>
-          <forAddRemove>
-            <deactivationUnit/>
-            <activationUnit>
-              <actedOn>
-                <byName objectDN="safSu=SU1,safSg=AmfDemo,safApp=AmfDemo1"/>
-                <byName objectDN="safSu=SU2,safSg=AmfDemo,safApp=AmfDemo1"/>
-              </actedOn>
-              <swAdd bundleDN="safSmfBundle=AmfDemo" pathnamePrefix="/opt/amf_demo">
-                <plmExecEnv amfNode="safAmfNode=SC-1,safAmfCluster=myAmfCluster"/>
-                <plmExecEnv amfNode="safAmfNode=SC-2,safAmfCluster=myAmfCluster"/>
-              </swAdd>
-            </activationUnit>
-          </forAddRemove>
-        </upgradeScope>
-        <upgradeStep/>
-      </singleStepUpgrade>
-    </upgradeMethod>
-  </upgradeProcedure>
-  <campaignWrapup>
-    <waitToCommit/>
-    <waitToAllowNewCampaign/>
-    <removeFromImm/>
-  </campaignWrapup>
+	<campaignInfo>
+		<campaignPeriod />
+	</campaignInfo>
+	<campaignInitialization>
+		<addToImm>
+			<softwareBundle name="safSmfBundle=AmfDemo">
+				<removal>
+					<offline command="/bin/logger" args="-t SMF AmfDemo removal offline" saSmfBundleRemoveOfflineScope="1" />
+					<online command="/bin/logger" args="-t SMF AmfDemo removal online" />
+				</removal>
+				<installation>
+					<offline command="/bin/logger" args="-t SMF AmfDemo installation offline" saSmfBundleInstallOfflineScope="2" />
+					<online command="/bin/logger" args="-t SMF AmfDemo installation online" />
+				</installation>
+				<defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000" />
+			</softwareBundle>
+			<amfEntityTypes>
+				<AppBaseType safAppType="safAppType=AmfDemo1">
+					<AppType safVersion="safVersion=4.0.0">
+						<serviceGroupType saAmfApptSGTypes="safVersion=4.0.0,safSgType=AmfDemo1" />
+					</AppType>
+				</AppBaseType>
+				<SGBaseType safSgType="safSgType=AmfDemo1">
+					<SGType safVersion="safVersion=4.0.0">
+						<suType saAmfSgtValidSuTypes="safVersion=4.0.0,safSuType=AmfDemo1" />
+						<redundancy saAmfSgtRedundancyModel="1" />
+						<compRestart saAmfSgtDefCompRestartProb="4000000" saAmfSgtDefCompRestartMax="10" />
+						<suRestart saAmfSgtDefSuRestartProb="4000000" saAmfSgtDefSuRestartMax="10" />
+						<autoAttrs safAmfSgtDefAutoAdjust="0" safAmfSgtDefAutoRepair="1" saAmfSgtDefAutoAdjustProb="10000000" />
+					</SGType>
+				</SGBaseType>
+				<SUBaseType safSuType="safSuType=AmfDemo1">
+					<SUType safVersion="safVersion=4.0.0">
+						<mandatoryAttrs saAmfSutIsExternal="0" saAmfSutDefSUFailover="1" />
+						<componentType saAmfSutMinNumComponents="1" safMemberCompType="safMemberCompType=safVersion=4.0.0\,safCompType=AmfDemo1" />
+						<supportedSvcType saAmfSutProvidesSvcType="safVersion=4.0.0,safSvcType=AmfDemo1" />
+					</SUType>
+				</SUBaseType>
+				<CompBaseType safCompType="safCompType=AmfDemo1">
+					<CompType safVersion="safVersion=4.0.0">
+						<providesCSType safSupportedCsType="safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1" saAmfCtCompCapability="1" />
+						<compTypeDefaults saAmfCtCompCategory="1" saAmfCtDefDisableRestart="0" saAmfCtDefClcCliTimeout="10000000000" saAmfCtDefCallbackTimeout="10000000000" saAmfCtDefRecoveryOnError="2" />
+						<instantiateCmd saAmfCtRelPathInstantiateCmd="amf_demo_script">
+							<cmdArgv>instantiate</cmdArgv>
+						</instantiateCmd>
+						<cleanupCmd saAmfCtRelPathCleanupCmd="amf_demo_script">
+							<cmdArgv>cleanup</cmdArgv>
+						</cleanupCmd>
+						<healthCheck safHealthcheckKey="safHealthcheckKey=AmfDemo" saAmfHealthcheckPeriod="10000000000" saAmfHealthcheckMaxDuration="6000000000" />
+						<swBundle saAmfCtSwBundle="safSmfBundle=AmfDemo" />
+					</CompType>
+				</CompBaseType>
+				<CSBaseType safCSType="safCSType=AmfDemo1">
+					<CSType safVersion="safVersion=4.0.0" />
+				</CSBaseType>
+				<ServiceBaseType safSvcType="safSvcType=AmfDemo1">
+					<ServiceType safVersion="safVersion=4.0.0">
+						<csType safMemberCSType="safMemberCSType=safVersion=4.0.0\,safCSType=AmfDemo1" />
+					</ServiceType>
+				</ServiceBaseType>
+			</amfEntityTypes>
+		</addToImm>
+	</campaignInitialization>
+	<upgradeProcedure safSmfProcedure="safSmfProc=InstallAmfDemo">
+		<outageInfo>
+			<acceptableServiceOutage>
+				<all />
+			</acceptableServiceOutage>
+			<procedurePeriod saSmfProcPeriod="60000000000" />
+		</outageInfo>
+		<!--procInitAction>
+			<immCCB ccbFlags="0">
+				<create objectClassName="SaAmfNodeSwBundle" parentObjectDN="safAmfNode=SC-1,safAmfCluster=myAmfCluster">
+					<attribute name="safInstalledSwBundle" type="SA_IMM_ATTR_SANAMET">
+						<value>safInstalledSwBundle=safSmfBundle=AmfDemo</value>
+					</attribute>
+					<attribute name="saAmfNodeSwBundlePathPrefix" type="SA_IMM_ATTR_SASTRINGT">
+						<value>/opt/amf_demo</value>
+					</attribute>
+				</create>
+				<create objectClassName="SaAmfNodeSwBundle" parentObjectDN="safAmfNode=SC-2,safAmfCluster=myAmfCluster">
+					<attribute name="safInstalledSwBundle" type="SA_IMM_ATTR_SANAMET">
+						<value>safInstalledSwBundle=safSmfBundle=AmfDemo</value>
+					</attribute>
+					<attribute name="saAmfNodeSwBundlePathPrefix" type="SA_IMM_ATTR_SASTRINGT">
+						<value>/opt/amf_demo</value>
+					</attribute>
+				</create>
+			</immCCB>
+		</procInitAction>
+		<procInitAction>
+			<immCCB ccbFlags="0">
+				<create objectClassName="SaAmfApplication" parentObjectDN="=">
+					<attribute name="safApp" type="SA_IMM_ATTR_SASTRINGT">
+						<value>safApp=AmfDemo1</value>
+					</attribute>
+					<attribute name="saAmfAppType" type="SA_IMM_ATTR_SANAMET">
+						<value>safVersion=4.0.0,safAppType=AmfDemo1</value>
+					</attribute>
+				</create>
+			</immCCB>
+		</procInitAction-->
+		<upgradeMethod>
+			<singleStepUpgrade>
+				<upgradeScope>
+					<forAddRemove>
+						<deactivationUnit />
+						<activationUnit>
+							<actedOn>
+								<byName objectDN="safSu=SU1,safSg=AmfDemo,safApp=AmfDemo1" />
+								<byName objectDN="safSu=SU2,safSg=AmfDemo,safApp=AmfDemo1" />
+							</actedOn>
+							<added objectClassName="SaAmfApplication" parentObjectDN="=">
+								<attribute name="safApp" type="SA_IMM_ATTR_SASTRINGT">
+									<value>safApp=AmfDemo1</value>
+								</attribute>
+								<attribute name="saAmfAppType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=4.0.0,safAppType=AmfDemo1</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfSG" parentObjectDN="safApp=AmfDemo1">
+								<attribute name="safSg" type="SA_IMM_ATTR_SASTRINGT">
+									<value>safSg=AmfDemo</value>
+								</attribute>
+								<attribute name="saAmfSGType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=4.0.0,safSgType=AmfDemo1</value>
+								</attribute>
+								<attribute name="saAmfSGSuHostNodeGroup" type="SA_IMM_ATTR_SANAMET">
+									<value>safAmfNodeGroup=SCs,safAmfCluster=myAmfCluster</value>
+								</attribute>
+								<attribute name="saAmfSGNumPrefStandbySUs" type="SA_IMM_ATTR_SAUINT32T">
+									<value>1</value>
+								</attribute>
+								<attribute name="saAmfSGNumPrefInserviceSUs" type="SA_IMM_ATTR_SAUINT32T">
+									<value>10</value>
+								</attribute>
+								<attribute name="saAmfSGNumPrefAssignedSUs" type="SA_IMM_ATTR_SAUINT32T">
+									<value>10</value>
+								</attribute>
+								<attribute name="saAmfSGNumPrefActiveSUs" type="SA_IMM_ATTR_SAUINT32T">
+									<value>1</value>
+								</attribute>
+								<attribute name="saAmfSGMaxStandbySIsperSU" type="SA_IMM_ATTR_SAUINT32T">
+									<value>1</value>
+								</attribute>
+								<attribute name="saAmfSGMaxActiveSIsperSU" type="SA_IMM_ATTR_SAUINT32T">
+									<value>1</value>
+								</attribute>
+								<attribute name="saAmfSGAutoRepair" type="SA_IMM_ATTR_SAUINT32T">
+									<value>0</value>
+								</attribute>
+								<attribute name="saAmfSGAutoAdjust" type="SA_IMM_ATTR_SAUINT32T">
+									<value>0</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfSI" parentObjectDN="safApp=AmfDemo1">
+								<attribute name="safSi" type="SA_IMM_ATTR_SASTRINGT">
+									<value>safSi=AmfDemo</value>
+								</attribute>
+								<attribute name="saAmfSvcType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=4.0.0,safSvcType=AmfDemo1</value>
+								</attribute>
+								<attribute name="saAmfSIRank" type="SA_IMM_ATTR_SAUINT32T">
+									<value>0</value>
+								</attribute>
+								<attribute name="saAmfSIProtectedbySG" type="SA_IMM_ATTR_SANAMET">
+									<value>safSg=AmfDemo,safApp=AmfDemo1</value>
+								</attribute>
+								<attribute name="saAmfSIPrefStandbyAssignments" type="SA_IMM_ATTR_SAUINT32T">
+									<value>1</value>
+								</attribute>
+								<attribute name="saAmfSIPrefActiveAssignments" type="SA_IMM_ATTR_SAUINT32T">
+									<value>1</value>
+								</attribute>
+								<attribute name="saAmfSIAdminState" type="SA_IMM_ATTR_SAUINT32T">
+									<value>2</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfSU" parentObjectDN="safSg=AmfDemo,safApp=AmfDemo1">
+								<attribute name="safSu" type="SA_IMM_ATTR_SASTRINGT">
+									<value>safSu=SU1</value>
+								</attribute>
+								<attribute name="saAmfSUType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=4.0.0,safSuType=AmfDemo1</value>
+								</attribute>
+								<attribute name="saAmfSUHostNodeOrNodeGroup" type="SA_IMM_ATTR_SANAMET">
+									<value>safAmfNode=SC-1,safAmfCluster=myAmfCluster</value>
+								</attribute>
+								<attribute name="saAmfSUAdminState" type="SA_IMM_ATTR_SAUINT32T">
+									<value>3</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfSU" parentObjectDN="safSg=AmfDemo,safApp=AmfDemo1">
+								<attribute name="safSu" type="SA_IMM_ATTR_SASTRINGT">
+									<value>safSu=SU2</value>
+								</attribute>
+								<attribute name="saAmfSUType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=4.0.0,safSuType=AmfDemo1</value>
+								</attribute>
+								<attribute name="saAmfSUHostNodeOrNodeGroup" type="SA_IMM_ATTR_SANAMET">
+									<value>safAmfNode=SC-2,safAmfCluster=myAmfCluster</value>
+								</attribute>
+								<attribute name="saAmfSUAdminState" type="SA_IMM_ATTR_SAUINT32T">
+									<value>3</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfComp" parentObjectDN="safSu=SU1,safSg=AmfDemo,safApp=AmfDemo1">
+								<attribute name="safComp" type="SA_IMM_ATTR_SASTRINGT">
+									<value>safComp=AmfDemo</value>
+								</attribute>
+								<attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=4.0.0,safCompType=AmfDemo1</value>
+								</attribute>
+								<attribute name="saAmfCompInstantiateCmdArgv" type="SA_IMM_ATTR_SASTRINGT">
+									<value>comparg1</value>
+									<value>SC-1</value>
+								</attribute>
+								<attribute name="saAmfCompDisableRestart" type="SA_IMM_ATTR_SAUINT32T">
+									<value>0</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfCompCsType" parentObjectDN="safComp=AmfDemo,safSu=SU1,safSg=AmfDemo,safApp=AmfDemo1">
+								<attribute name="safSupportedCsType" type="SA_IMM_ATTR_SANAMET">
+									<value>safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfComp" parentObjectDN="safSu=SU2,safSg=AmfDemo,safApp=AmfDemo1">
+								<attribute name="safComp" type="SA_IMM_ATTR_SASTRINGT">
+									<value>safComp=AmfDemo</value>
+								</attribute>
+								<attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=4.0.0,safCompType=AmfDemo1</value>
+								</attribute>
+								<attribute name="saAmfCompInstantiateCmdArgv" type="SA_IMM_ATTR_SASTRINGT">
+									<value>comparg2</value>
+									<value>SC-2</value>
+								</attribute>
+								<attribute name="saAmfCompDisableRestart" type="SA_IMM_ATTR_SAUINT32T">
+									<value>0</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfCompCsType" parentObjectDN="safComp=AmfDemo,safSu=SU2,safSg=AmfDemo,safApp=AmfDemo1">
+								<attribute name="safSupportedCsType" type="SA_IMM_ATTR_SANAMET">
+									<value>safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1</value>
+								</attribute>
+							</added>
+							<added objectClassName="SaAmfCSI" parentObjectDN="safSi=AmfDemo,safApp=AmfDemo1">
+								<attribute name="safCsi" type="SA_IMM_ATTR_SASTRINGT">
+									<value>safCsi=AmfDemo</value>
+								</attribute>
+								<attribute name="saAmfCSType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=4.0.0,safCSType=AmfDemo1</value>
+								</attribute>
+							</added>
+							<swAdd bundleDN="safSmfBundle=AmfDemo" pathnamePrefix="/opt/amf_demo">
+								<plmExecEnv amfNode="safAmfNode=SC-1,safAmfCluster=myAmfCluster" />
+								<plmExecEnv amfNode="safAmfNode=SC-2,safAmfCluster=myAmfCluster" />
+							</swAdd>
+						</activationUnit>
+					</forAddRemove>
+				</upgradeScope>
+				<upgradeStep />
+			</singleStepUpgrade>
+		</upgradeMethod>
+	</upgradeProcedure>
+	<campaignWrapup>
+		<waitToCommit />
+		<waitToAllowNewCampaign />
+		<removeFromImm />
+	</campaignWrapup>
 </upgradeCampaign>
