@@ -721,8 +721,12 @@ send_resp:
 			trk_info.grp_op = SA_PLM_GROUP_NO_CHANGE;
 			proc_rc = plms_cbk_call(&trk_info, 1);
 			free_aff_ent_list(trk_info.aff_ent_list);
-			
-			grp_info->track_cookie = orig_tc;
+		
+			/* If the flag is only current then restore the prev cookie.*/
+			if (!m_PLM_IS_SA_TRACK_CHANGES_SET(track_flags) && 
+			!m_PLM_IS_SA_TRACK_CHANGES_ONLY_SET(track_flags)){	
+				grp_info->track_cookie = orig_tc;
+			}
 		
 		} /* Current */
 		

@@ -1665,14 +1665,16 @@ SaAisErrorT saPlmReadinessTrack(SaPlmEntityGroupHandleT entityGroupHandle,
 
 	/** 
 	 * Return error if entities pointer is not NULL and 
-	 * numberOfEntities is 0.
+	 * numberOfEntities is 0 and only if current flag is passed.
 	 */
-	if(trackedEntities){
-		if ((trackedEntities->entities != NULL) && 
-				(trackedEntities->numberOfEntities == 0)){
-			LOG_ER("PLMA: INVALID INPUT PARAM. entities pointer != NULL and numberOfEntities = 0 ");
-			rc = SA_AIS_ERR_INVALID_PARAM;
-			goto end;	
+	if (m_PLM_IS_SA_TRACK_CURRENT_SET(trackFlags)){ 
+		if(trackedEntities){
+			if ((trackedEntities->entities != NULL) && 
+					(trackedEntities->numberOfEntities == 0)){
+				LOG_ER("PLMA: INVALID INPUT PARAM. entities pointer != NULL and numberOfEntities = 0 ");
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				goto end;	
+			}
 		}
 	}
 	/** 
