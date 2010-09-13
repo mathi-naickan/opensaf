@@ -4376,6 +4376,11 @@ SaUint32T plms_cbk_call(PLMS_TRACK_INFO *trk_info,SaUint8T add_root)
 
 	while (grp_list){
 
+		if (!grp_list->ent_grp_inf->track_flags && (SA_PLM_CAUSE_STATUS_INFO != trk_info->track_cause)){
+			grp_list = grp_list->next;
+			continue;
+		}
+		
 		is_validate = 0;
 		/* Application is interested in validate or start cbk. 
 		Spec:Page-87,88 */

@@ -1796,7 +1796,9 @@ SaAisErrorT saPlmReadinessTrack(SaPlmEntityGroupHandleT entityGroupHandle,
 			goto end;
 		}
 		group_info->trk_strt_stop = 1;	
-		if (!m_PLM_IS_SA_TRACK_CURRENT_SET(trackFlags)){
+		/* Dont set is_trk_enable flag if the flag is only current.*/
+		if ((m_PLM_IS_SA_TRACK_CHANGES_SET(trackFlags) || 
+			m_PLM_IS_SA_TRACK_CHANGES_ONLY_SET(trackFlags))){
 			group_info->is_trk_enabled = 1;
 		}
 		goto end;
@@ -1995,7 +1997,12 @@ SaAisErrorT saPlmReadinessTrackStop(SaPlmEntityGroupHandleT entityGroupHandle)
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		goto end;
 	}
-
+	
+	if (!group_info->is_trk_enabled){
+		LOG_ER("PLMA: TRACK NOT STARTED.");
+		rc = SA_AIS_ERR_NOT_EXIST;
+		goto end;
+	}
 	
 	memset(&plm_in_evt, 0, sizeof(PLMS_EVT));
 
