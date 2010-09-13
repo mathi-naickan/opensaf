@@ -136,7 +136,6 @@ uns32 plm_process_single_dispatch(PLMA_CLIENT_INFO *client_info)
 					      (uns8 *)&grp_hdl);
 			if(!group_info){
 				LOG_ER("PLMA : INVALID GRP HDL.");
-				proc_rc = NCSCC_RC_FAILURE;
 				goto end;
 			}
 			if(group_info->trk_strt_stop){
@@ -160,7 +159,6 @@ uns32 plm_process_single_dispatch(PLMA_CLIENT_INFO *client_info)
 			}
 		}else{
 			LOG_ER("PLMA : INVALID MSG FORMAT");
-			proc_rc = NCSCC_RC_FAILURE;
 			goto end;
 		}
 
@@ -208,7 +206,6 @@ uns32 plm_process_dispatch_all(PLMA_CLIENT_INFO *client_info)
 					      (uns8 *)&grp_hdl);
 			if(!group_info){
 				LOG_ER("PLMA : INVALID GRP HDL.");
-				proc_rc = NCSCC_RC_FAILURE;
 				plms_free_evt(msg);
 				continue;	
 			}
@@ -234,12 +231,9 @@ uns32 plm_process_dispatch_all(PLMA_CLIENT_INFO *client_info)
 			}
 		}else{
 			LOG_ER("PLMA : INVALID MSG FORMAT");
-			proc_rc = NCSCC_RC_FAILURE;
 		}
 			
 		plms_free_evt(msg);
-	
-		continue;
 	}
 	
 	TRACE_LEAVE();
@@ -280,7 +274,6 @@ uns32 plm_process_blocking_dispatch(PLMA_CLIENT_INFO *client_info)
 					      (uns8 *)&grp_hdl);
 			if(!group_info){
 				LOG_ER("PLMA : INVALID GRP HDL.");
-				proc_rc = NCSCC_RC_FAILURE;
 				plms_free_evt(msg);
 				continue;	
 			}
@@ -303,12 +296,9 @@ uns32 plm_process_blocking_dispatch(PLMA_CLIENT_INFO *client_info)
 			}
 		}else{
 			LOG_ER("PLMA : INVALID MSG FORMAT");
-			proc_rc = NCSCC_RC_FAILURE;
 		}
 	
 		plms_free_evt(msg);
-
-		continue;
 	}
 
 	TRACE_LEAVE();
