@@ -24,6 +24,7 @@
 #include <ncssysf_ipc.h>
 #include <ncssysf_tsk.h>
 #include <logtrace.h>
+#include <rda_papi.h>
 
 #include "SmfCampaignThread.hh"
 #include "SmfCampaign.hh"
@@ -31,6 +32,8 @@
 #include "SmfUpgradeProcedure.hh"
 
 SmfCampaignThread *SmfCampaignThread::s_instance = NULL;
+
+#define SMF_RDA_RETRY_COUNT 25 /* This is taken as the csi's are assigned in parallel */
 
 /*====================================================================*/
 /*  Data Declarations                                                 */
@@ -602,21 +605,42 @@ void SmfCampaignThread::main(void)
 {
 	TRACE_ENTER();
 	if (this->init() == 0) {
+		uns32 rc = NCSCC_RC_SUCCESS; 
+		unsigned int numOfTries = SMF_RDA_RETRY_COUNT; 
+		SaAmfHAStateT smfd_rda_role = SA_AMF_HA_STANDBY;
+
 		/* Mark the thread started */
 		sem_post(&m_semaphore);
 
 		if (initNtf() != 0) {
 			LOG_ER("initNtf failed");
 		}
+	
+		while (numOfTries > 0) {
+			/* Rda get Role */
+			if ((rc = rda_get_role(&smfd_rda_role)) != NCSCC_RC_SUCCESS) {
+				LOG_ER("rda_get_role FAILED in SmfCampaignThread::main ,retrying to get the RDA role");
+			} 
 
-		this->handleEvents();	/* runs forever until stopped */
+			if (smfd_rda_role == SA_AMF_HA_ACTIVE) {
+				LOG_NO("rda_get_role: Active");
+				break;
+			}
+			sleep(1);
+			numOfTries--;
+		}
+		if ( (numOfTries == 0) && (smfd_rda_role != SA_AMF_HA_ACTIVE)) {
+			LOG_ER("Failed to get Active RDA role");
+		}
 
-		/* Mark the thread terminated */
-		sem_post(&m_semaphore);
 	} else {
 		sem_post(&m_semaphore);
 		LOG_ER("init failed");
+		return;
 	}
+	this->handleEvents();	/* runs forever until stopped */
+	/* Mark the thread terminated */
+	sem_post(&m_semaphore);
 
 	TRACE_LEAVE();
 }

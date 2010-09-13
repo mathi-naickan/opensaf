@@ -37,6 +37,10 @@
 #include <saAmf.h>
 #include "ncsgl_defs.h"		/* uns32 */
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /*
 ** Return/error codes
 */
@@ -130,5 +134,9 @@ extern uns32 rda_get_role(SaAmfHAStateT *ha_state);
  * @return uns32 NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
  */
 extern uns32 rda_register_callback(uns32 cb_handle, PCS_RDA_CB_PTR rda_cb_ptr);
+
+#ifdef  __cplusplus
+}
+#endif
 
 #endif   /* PCS_RDA_PAPI_H */

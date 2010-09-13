@@ -940,10 +940,6 @@ uns32 amfd_switch_stdby_actv(AVD_CL_CB *cb)
 		return NCSCC_RC_FAILURE;
 	}
 	
-	if (NCSCC_RC_SUCCESS != avd_rde_set_role(SA_AMF_HA_ACTIVE)) {
-		LOG_ER("rde role change failed from stdy -> Active");
-	}
-
 	/* Time to send fail-over messages to all the AVND's */
 	avd_fail_over_event(cb);
 
@@ -966,6 +962,10 @@ uns32 amfd_switch_stdby_actv(AVD_CL_CB *cb)
 		LOG_ER("AMFD: Switch Standby --> Active, imm implement failed");
 		avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
 		return NCSCC_RC_FAILURE;
+	}
+
+	if (NCSCC_RC_SUCCESS != avd_rde_set_role(SA_AMF_HA_ACTIVE)) {
+		LOG_ER("rde role change failed from stdy -> Active");
 	}
 
 	if(avd_clm_track_start() != SA_AIS_OK) {
