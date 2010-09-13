@@ -221,6 +221,8 @@ typedef struct avd_amf_sg_type_tag {
 		sg->sg_fsm_state = state;\
 		m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, sg, AVSV_CKPT_SG_FSM_STATE);\
 	}\
+	if (state == AVD_SG_FSM_STABLE) \
+		avd_sg_screen_si_si_dependencies(cb, sg); \
 }
 
 #define m_AVD_SET_SG_ADMIN_SI(cb,si) {\

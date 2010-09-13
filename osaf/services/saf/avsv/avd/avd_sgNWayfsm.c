@@ -363,9 +363,10 @@ uns32 avd_sg_nway_susi_sucss_func(AVD_CL_CB *cb,
 		return NCSCC_RC_FAILURE;
 	}			/* switch */
 
-	if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE)
+	if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE) {
 		avd_sg_app_su_inst_func(cb, su->sg_of_su);
-
+		avd_sg_screen_si_si_dependencies(cb, su->sg_of_su);
+	}
 	return rc;
 }
 
@@ -637,9 +638,10 @@ void avd_sg_nway_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 		return;
 	}			/* switch */
 
-	if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE)
+	if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE) {
 		avd_sg_app_su_inst_func(cb, su->sg_of_su);
-
+		avd_sg_screen_si_si_dependencies(cb, su->sg_of_su);
+	}
 	return;
 }
 
@@ -2865,9 +2867,10 @@ void avd_sg_nway_node_fail_stable(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 	avd_sg_su_asgn_del_util(cb, su, TRUE, FALSE);
 
 	/* if sg is still in stable state, initiate si assignments */
-	if (AVD_SG_FSM_STABLE == sg->sg_fsm_state)
+	if (AVD_SG_FSM_STABLE == sg->sg_fsm_state) {
 		avd_sg_nway_si_assign(cb, sg);
-
+		avd_sg_screen_si_si_dependencies(cb, sg);
+	}
 	return;
 }
 

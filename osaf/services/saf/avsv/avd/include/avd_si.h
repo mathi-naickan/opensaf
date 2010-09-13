@@ -100,6 +100,7 @@ typedef struct avd_si_tag {
 	struct avd_su_si_rel_tag *list_of_sisu;	/* the list of su si relationship elements */
 	AVD_SI_DEP_STATE si_dep_state;	/* SI-SI dep state of this SI */
 	struct avd_spons_si_tag *spons_si_list;
+	uns32 num_dependents; /* number of dependent SIs */
 	uns32 tol_timer_count;
 	struct avd_amf_svc_type_tag *svc_type;
 	struct avd_si_tag *si_list_svc_type_next;

@@ -39,12 +39,6 @@ typedef enum {
 	AVD_SI_DEP_SPONSOR_UNASSIGNED
 } AVD_SI_DEP_SPONSOR_SI_STATE;
 
-/* Spons-SI node of the spons-list in SI struct */
-typedef struct avd_spons_si_tag {
-	struct avd_si_tag *si;
-	struct avd_spons_si_tag *next;
-} AVD_SPONS_SI_NODE;
-
 /*
  * Following struct is used to make a list which is used while checking the
  * SI-SI dependencies are CYCLIC.
@@ -61,10 +55,10 @@ typedef struct avd_si_dep_name_list {
  * database (si_dep: dep_anchor, spons_anchor) defined AvD CB .
  */
 typedef struct avd_si_si_dep_indx_tag {
-	/* primary-key: SI name, either of sponsor SI or dependent SI  */
+	/* primary-key: sponsor SI name */
 	SaNameT si_name_prim;
 
-	/* secondary-key: SI name, other than primary */
+	/* secondary-key: dependant SI name */
 	SaNameT si_name_sec;
 } AVD_SI_SI_DEP_INDX;
 
@@ -88,6 +82,13 @@ typedef struct avd_si_si_dep {
 	NCS_BOOL unassign_event;
 } AVD_SI_SI_DEP;
 
+/* Spons-SI node of the spons-list in SI struct */
+typedef struct avd_spons_si_tag {
+	struct avd_si_tag *si;
+	AVD_SI_SI_DEP *sidep_rec;
+	struct avd_spons_si_tag *next;
+} AVD_SPONS_SI_NODE;
+
 #define AVD_SI_SI_DEP_NULL ((AVD_SI_SI_DEP *)0)
 
 #define m_AVD_SET_SI_DEP_STATE(cb, si, state) {\
@@ -98,7 +99,7 @@ if (state == AVD_SI_SPONSOR_UNASSIGNED)  \
    avd_screen_sponsor_si_state(cb, si, FALSE); \
 }
 
-EXTERN_C uns32 avd_si_dep_spons_list_add(AVD_CL_CB *avd_cb, struct avd_si_tag *dep_si, struct avd_si_tag *spons_si);
+EXTERN_C uns32 avd_si_dep_spons_list_add(AVD_CL_CB *avd_cb, struct avd_si_tag *dep_si, struct avd_si_tag *spons_si, AVD_SI_SI_DEP *sidep);
 EXTERN_C void avd_si_dep_delete(AVD_CL_CB *cb, struct avd_si_tag *si);
 EXTERN_C void avd_si_dep_spons_list_del(AVD_CL_CB *cb, AVD_SI_SI_DEP *si_dep_rec);
 EXTERN_C AVD_SI_SI_DEP *avd_si_si_dep_struc_crt(AVD_CL_CB *cb, AVD_SI_SI_DEP_INDX *indx);
