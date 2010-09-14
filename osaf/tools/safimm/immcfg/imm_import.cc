@@ -279,7 +279,7 @@ void setAdminOwnerHelper(ParserState* state, SaNameT *parentOfObject)
 	{
 		// this is a root object, no need to set AdminOwner
 	    LOG_IN("  This is a root object, no need to call saImmOmAdminOwnerSet");
-	    state->adminOwnerSetSet.insert(state->objectName);
+	    // state->adminOwnerSetSet.insert(state->objectName);
 		return;
 	}
 
