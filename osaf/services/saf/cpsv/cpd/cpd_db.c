@@ -1250,5 +1250,6 @@ void cpd_clm_cluster_track_cb(const SaClmClusterNotificationBufferT *notificatio
 			}
 		}
 	}
+	m_CPD_GIVEUP_CB;
 	return;
 }

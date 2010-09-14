@@ -24,6 +24,8 @@
 typedef struct cpa_client_node {
 	NCS_PATRICIA_NODE patnode;
 	SaCkptHandleT cl_hdl;	/* index for the tree */
+	uns8 stale;		/*Loss of connection with cpnd because of clm node left
+				  will set this to true for the connection. */
 	SaCkptCallbacksT ckpt_callbk;
 	SYSF_MBX callbk_mbx;	/* Mailbox Queue for client messages */
 	ncsCkptCkptArrivalCallbackT ckptArrivalCallback;	/* NCS callback extention */
@@ -201,4 +203,5 @@ EXTERN_C void cpa_sect_iter_node_getnext(NCS_PATRICIA_TREE *sect_iter_tree,
 					 SaCkptSectionIterationHandleT *sect_iter_hdl,
 					 CPA_SECT_ITER_NODE **sect_iter_node);
 
+EXTERN_C void cpa_client_tree_mark_stale(CPA_CB *cb);
 #endif

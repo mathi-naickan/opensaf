@@ -1073,6 +1073,7 @@ void cpnd_clm_cluster_track_cb(const SaClmClusterNotificationBufferT *notificati
 						m_LOG_CPND_CL(CPND_CLM_NODE_GET_FAILED, CPND_FC_HDLN, NCSFL_SEV_ERROR,
 							      __FILE__, __LINE__);
 					}
+					cpnd_proc_cpd_down(cb);
 				}
 				TRACE("node_left -%d -%s line-%d clusterChange-%d", node_id, __FILE__, __LINE__,
 				       notificationBuffer->notification[counter].clusterChange);

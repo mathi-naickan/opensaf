@@ -641,3 +641,28 @@ uns32 cpa_db_destroy(CPA_CB *cb)
 
 	return NCSCC_RC_SUCCESS;
 }
+
+/****************************************************************************
+  Name          : cpa_client_tree_mark_stale
+  Description   : This routine mark  the CPA Client tree as stale
+  Arguments     : CPA_CB *cb - CPA Control Block.
+  Return Values : None
+  Notes         : None
+******************************************************************************/
+void cpa_client_tree_mark_stale(CPA_CB *cb)
+{
+	CPA_CLIENT_NODE *clnode = NULL;
+	SaCkptHandleT *temp_ptr = NULL;
+	SaCkptHandleT temp_hdl = 0;
+
+	/* scan the entire handle db & mark each record as stale*/
+	while ((clnode = (CPA_CLIENT_NODE *)
+		ncs_patricia_tree_getnext(&cb->client_tree, (uns8 *)temp_ptr))) {
+		clnode->stale = TRUE;
+		/* mark the client info */
+		temp_hdl = clnode->cl_hdl;
+		temp_ptr = &temp_hdl;
+			
+	}
+	return;
+}

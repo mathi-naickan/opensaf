@@ -663,6 +663,7 @@ static uns32 cpa_proc_ckpt_clm_status_changed(CPA_CB *cb, CPSV_EVT *evt)
 	}
 	if (evt->info.cpa.type == CPA_EVT_ND2A_CKPT_CLM_NODE_LEFT) {
 		cb->is_cpnd_joined_clm = FALSE;
+		cpa_client_tree_mark_stale(cb);
 	} else if (evt->info.cpa.type == CPA_EVT_ND2A_CKPT_CLM_NODE_JOINED) {
 		cb->is_cpnd_joined_clm = TRUE;
 	}
