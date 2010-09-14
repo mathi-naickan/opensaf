@@ -350,6 +350,7 @@ static void imma_proc_admop(IMMA_CB *cb, IMMA_EVT *evt)
 		if(cl_node->isPbe) {
 			TRACE_3("PBE-OI received PBE admin operation");
 		} else {
+			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 			LOG_ER("Apparent PBE class create received at OI which is not PBE- ignoring");
 			return;
 		}
@@ -806,6 +807,7 @@ static void imma_proc_ccb_completed(IMMA_CB *cb, IMMA_EVT *evt)
 		if(cl_node->isPbe) {
 			TRACE_3("PBE-OI received runtime object deletes completed");
 		} else {
+			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 			LOG_ER("Apparent runtime object deletes completed received at OI "
 				"which is not PBE - ignoring");
 			return;
@@ -972,6 +974,7 @@ static void imma_proc_obj_delete(IMMA_CB *cb, IMMA_EVT *evt)
 		if(cl_node->isPbe) {
 			TRACE_3("PBE-OI received runtime object delete");
 		} else {
+			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 			LOG_ER("Apparent runtime object delete received at OI which is not PBE - ignoring");
 			return;
 		}
@@ -1041,6 +1044,7 @@ static void imma_proc_obj_create(IMMA_CB *cb, IMMA_EVT *evt)
 		if(cl_node->isPbe) {
 			TRACE_3("PBE-OI received runtime object create");
 		} else {
+			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 			LOG_ER("Apparent runtime object create received at OI which is not PBE - ignoring");
 			return;
 		}
@@ -1125,6 +1129,7 @@ static void imma_proc_obj_modify(IMMA_CB *cb, IMMA_EVT *evt)
 		if(cl_node->isPbe) {
 			TRACE_3("PBE-OI received runtime attributes update");
 		} else {
+			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 			LOG_ER("Apparent runtime attributes update received at OI which is not PBE - ignoring");
 			return;
 		}
