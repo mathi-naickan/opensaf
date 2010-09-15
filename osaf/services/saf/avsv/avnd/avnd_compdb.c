@@ -93,7 +93,7 @@ static SaImmAttrNameT compConfigAttributes[] = {
 	"saAmfCompDelayBetweenInstantiateAttempts",
 	"saAmfCompTerminateCmdArgv",
 	"saAmfCompTerminateTimeout",
-	"saAmfCompCleanupCmdArgv"
+	"saAmfCompCleanupCmdArgv",
 	"saAmfCompCleanupTimeout",
 	"saAmfCompAmStartCmdArgv",
 	"saAmfCompAmStartTimeout",
