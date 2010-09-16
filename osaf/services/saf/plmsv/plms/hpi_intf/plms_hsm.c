@@ -347,15 +347,35 @@ static void *plms_hsm(void)
 		if(rc == NCSCC_RC_FAILURE){
 			continue;
 		}
+		if( hotswap_state_model == PLMS_HPI_TWO_HOTSWAP_MODEL || 
+			hotswap_state_model == PLMS_HPI_THREE_HOTSWAP_MODEL ){
 
-		/* Get the hotswap state */
-		rc = saHpiHotSwapStateGet(cb->session_id,rpt_entry.ResourceId,&state);
-		if( SA_OK != rc )
-		{
-			LOG_ER("HSM:saHpiHotSwapStateGet failed for a res with state model as:%d and ret val:%d",hotswap_state_model,rc);
-			continue;
+			/* Get the Power state */
+			rc = saHpiResourcePowerStateGet(cb->session_id,rpt_entry.ResourceId,&state);
+			if( SA_OK != rc){
+				LOG_ER("HSM1:saHpiResourcePowerStateGet failed for res:%u with ret val:%d",
+								rpt_entry.ResourceId,rc);
+				continue;
+			}
+			TRACE("HSM:saHpiResourcePowerStateGet succeeded for res:%u with ret val:%d state:%d",
+								rpt_entry.ResourceId,rc,state);
+
+			if (state == SAHPI_POWER_ON) {
+				state = SAHPI_HS_STATE_ACTIVE;
+			} else {
+				state = SAHPI_HS_STATE_INACTIVE;
+			}
+		} else {
+			/* Get the hotswap state */
+			rc = saHpiHotSwapStateGet(cb->session_id,rpt_entry.ResourceId,&state);
+			if( SA_OK != rc )
+			{
+				LOG_ER("HSM:saHpiHotSwapStateGet failed for res with state model as:%d and ret val:%d",
+											hotswap_state_model,rc);
+				continue;
+			}
+			TRACE("HSM:Hotswap state of res:%u is :%u",rpt_entry.ResourceId,state);
 		}
-		TRACE("HSM:Hotswap state of res:%u is :%u",rpt_entry.ResourceId,state);
 
 		/* If it is a resource restore event( communication lost and
 		got restored immediately ) ,retrieve the hotswap state after
@@ -467,8 +487,7 @@ static SaUint32T hsm_discover_and_dispatch()
 	do{
 		current = next;
 		/* Get the RPT entry */
-		rc = saHpiRptEntryGet(cb->session_id, current,
-						&next, &rpt_entry);
+		rc = saHpiRptEntryGet(cb->session_id, current,&next, &rpt_entry);
 		if (SA_OK != rc){
 			 /* error getting RPT entry */
 			 if (SA_ERR_HPI_NOT_PRESENT == rc) {
@@ -545,14 +564,36 @@ static SaUint32T hsm_discover_and_dispatch()
 			}
 		  
 		}
-		
-		/* Get the hotswap state */
-		rc = saHpiHotSwapStateGet(cb->session_id,rpt_entry.ResourceId,&state);
-		if( SA_OK != rc){
-			LOG_ER("HSM:saHpiHotSwapStateGet failed for res:%u with ret val:%d",rpt_entry.ResourceId,rc);
-			continue;
+
+		if( hotswap_state_model == PLMS_HPI_TWO_HOTSWAP_MODEL || 
+			hotswap_state_model == PLMS_HPI_THREE_HOTSWAP_MODEL ){
+
+			/* Get the Power state */
+			rc = saHpiResourcePowerStateGet(cb->session_id,rpt_entry.ResourceId,&state);
+			if( SA_OK != rc){
+				LOG_ER("HSM1:saHpiResourcePowerStateGet failed for res:%u with ret val:%d",
+								rpt_entry.ResourceId,rc);
+				continue;
+			}
+			TRACE("HSM:saHpiResourcePowerStateGet Succeded for res:%u with ret val:%d state:%d",
+								rpt_entry.ResourceId,rc,state);
+
+			if (state == SAHPI_POWER_ON) {
+				state = SAHPI_HS_STATE_ACTIVE;
+			} else {
+				state = SAHPI_HS_STATE_INACTIVE;
+			}
+
+		} else {
+			/* Get the hotswap state */
+			rc = saHpiHotSwapStateGet(cb->session_id,rpt_entry.ResourceId,&state);
+			if( SA_OK != rc){
+				LOG_ER("HSM:saHpiHotSwapStateGet failed for res:%u with ret val:%d",
+								rpt_entry.ResourceId,rc);
+				continue;
+			}
+			TRACE("Hotswap state of res:%u is :%u", rpt_entry.ResourceId,state);
 		}
-		TRACE("Hotswap state of res:%u is :%u", rpt_entry.ResourceId,state);
 		/* Retrieve IDR info if the state is 
 		SAHPI_HS_STATE_INSERTION_PENDING or SAHPI_HS_STATE_ACTIVE */
 		if ( SAHPI_HS_STATE_INSERTION_PENDING == state ||
@@ -636,19 +677,26 @@ static SaUint32T hsm_get_hotswap_model(SaHpiRptEntryT *rpt_entry,
 			else
 			{
 				/*Set the capability as HPI_TWO_HOTSWAP_MODEL */
-				*hotswap_state_model = 
+				*hotswap_state_model =
 				PLMS_HPI_TWO_HOTSWAP_MODEL;
 			}
 		}
 
 	}
 	else{
-		TRACE("Resource :%d is not a FRU",rpt_entry->ResourceId);
-		return NCSCC_RC_FAILURE;
+		if(rpt_entry->ResourceCapabilities & SAHPI_CAPABILITY_POWER)
+		{
+			/*Set the capability as PLMS_HPI_THREE_HOTSWAP_MODEL */
+			*hotswap_state_model = PLMS_HPI_THREE_HOTSWAP_MODEL; 
+			TRACE("Resource :%d is not a FRU but has power capability",rpt_entry->ResourceId);
+		} else{
+			TRACE("Resource :%d is not a FRU",rpt_entry->ResourceId);
+			return NCSCC_RC_FAILURE;
+		}
 	}
-	TRACE("Hotswap State model for res:%u is:%u res_capab is:%x",
+	TRACE("Hotswap State model for res:%u is:%u res_capab is:%x entity_type is:%u",
 	      		rpt_entry->ResourceId,*hotswap_state_model,
-	      		rpt_entry->ResourceCapabilities);
+	      		rpt_entry->ResourceCapabilities,rpt_entry->ResourceEntity.Entry[0].EntityType);
 	
 	return NCSCC_RC_SUCCESS;
 }
