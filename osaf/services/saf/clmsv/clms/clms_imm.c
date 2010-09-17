@@ -161,13 +161,10 @@ CLMS_CLUSTER_NODE *clms_node_new(SaNameT *name, const SaImmAttrValuesT_2 **attrs
 
 	TRACE_ENTER();
 
-	/*If Cluster Node already exists,no need to calloc,just populate it */
-	if ((node = clms_node_get_by_name(name)) == NULL) {
-		node = (CLMS_CLUSTER_NODE *) malloc(sizeof(CLMS_CLUSTER_NODE));
-		if (node == NULL) {
-			LOG_ER("Calloc failed");
-			goto done;
-		}
+	node = (CLMS_CLUSTER_NODE *) malloc(sizeof(CLMS_CLUSTER_NODE));
+	if (node == NULL) {
+		LOG_ER("Calloc failed");
+		goto done;
 	}
 
 	memset(node, 0, sizeof(CLMS_CLUSTER_NODE));
@@ -209,6 +206,13 @@ CLMS_CLUSTER_NODE *clms_node_new(SaNameT *name, const SaImmAttrValuesT_2 **attrs
 			TRACE("saClmNodeEE attribute name's length %d", name->length);
 
 			if (name->length != 0) {
+				if (strncmp((const char *)name->value,"safEE=",6)){
+					LOG_ER("Please provide the saf compliant ee name");
+					free(node);
+					node = NULL;
+					goto done;
+				}
+
 				if (((ncs_patricia_tree_size(&clms_cb->ee_lookup)) >= 1) && (clms_cb->reg_with_plm == SA_FALSE))
 					LOG_ER("Incomplete Configuration: EE attribute is not specified for some CLM nodes");
 				clms_cb->reg_with_plm = SA_TRUE;
@@ -1402,7 +1406,6 @@ SaAisErrorT clms_node_ccb_apply_cb(CcbUtilOperationData_t * opdata)
 		if(clms_cb->reg_with_plm == SA_TRUE) {
 
 			if (node->ee_name.length != 0){
-
 				entityNames = (SaNameT *)malloc(sizeof(SaNameT));
 				memset(entityNames,0,sizeof(SaNameT));
 				entityNames->length = node->ee_name.length;
@@ -1468,7 +1471,9 @@ SaAisErrorT clms_node_ccb_apply_cb(CcbUtilOperationData_t * opdata)
 			goto done;
 		}
 
-		clms_node_delete(node, 0);
+		 if (ncs_patricia_tree_get(&clms_cb->id_lookup,(uns8 *)&node->node_id)){
+			clms_node_delete(node, 0);
+		}
 		clms_node_delete(node, 1);
 		clms_node_delete(node, 2);
 		clms_cluster_update_rattr(osaf_cluster);
@@ -1527,7 +1532,6 @@ static void clms_imm_ccb_apply_callback(SaImmOiHandleT immOiHandle, SaImmOiCcbId
 		rc = clms_node_ccb_apply_cb(opdata);
 		if (rc != SA_AIS_OK) {
 			LOG_EM("clms_node_ccb_apply_cb failed");
-			assert(0);
 		}
 	}
 
