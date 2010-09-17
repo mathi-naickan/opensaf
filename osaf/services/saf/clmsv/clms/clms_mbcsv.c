@@ -308,7 +308,10 @@ static uns32 ckpt_proc_node_del_rec(CLMS_CB * cb, CLMS_CKPT_REC * data)
 {
 	CLMSV_CKPT_NODE_DEL_REC *param = &data->param.node_del_rec;
 	CLMS_CLUSTER_NODE *node = NULL;
-
+#ifdef ENABLE_AIS_PLM
+	SaNameT *entityNames = NULL;
+	SaAisErrorT rc = SA_AIS_OK;
+#endif
 	/*dude do you wanna have extra chekc in NULL case */
 	/*Delete it from the plm entity group */
 	if ((node = clms_node_get_by_name(&param->node_name)) == NULL)
@@ -316,6 +319,17 @@ static uns32 ckpt_proc_node_del_rec(CLMS_CB * cb, CLMS_CKPT_REC * data)
 	clms_node_delete(node, 0);
 	clms_node_delete(node, 1);
 	clms_node_delete(node, 2);
+#ifdef ENABLE_AIS_PLM
+	/*Delete it from the plm entity group */
+	entityNames = &node->ee_name;
+	if(clms_cb->reg_with_plm == SA_TRUE) {
+		rc = saPlmEntityGroupRemove(clms_cb->ent_group_hdl, entityNames,1);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("saPlmEntityGroupAdd FAILED rc = %d", rc);
+			return rc;
+		}
+	}
+#endif
 	free(node);
 
 	TRACE_LEAVE();
