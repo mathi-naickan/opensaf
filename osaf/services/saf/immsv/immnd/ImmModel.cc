@@ -7818,10 +7818,28 @@ ImmModel::rtObjectCreate(const struct ImmsvOmCcbObjectCreate* req,
             AttrInfo* attr = i4->second;
             
             if((attr->mFlags & SA_IMM_ATTR_CACHED) && attrValue->empty()) {
-                LOG_NO("ERR_INVALID_PARAM: attr '%s' is cached "
-                    "yet no value provided in the object create call", 
-                    attrName.c_str());
-                err = SA_AIS_ERR_INVALID_PARAM;
+                /* #1531 Check that the attribute was at least in the input list.
+                   This is a questionable rule from the standard (still in A.03.01),
+                   which says that INVALID_PARAM should be returned for this case.
+                   But this restriction does not apply to RTAs defined in config
+                   classes!
+                */
+                attrValues = req->attrValues;
+                while(attrValues) {
+                    sz = strnlen((char *) attrValues->n.attrName.buf, 
+                        (size_t)attrValues->n.attrName.size);
+                    std::string inpAttrName((const char*)attrValues->n.attrName.buf, sz);
+                    if(inpAttrName == attrName) {
+                        break;
+                    }
+                    attrValues = attrValues->next;
+                }
+                if(!attrValues) {
+                    LOG_NO("ERR_INVALID_PARAM: attr '%s' is cached "
+                        "but not included in the rt object create call", 
+                        attrName.c_str());
+                    err = SA_AIS_ERR_INVALID_PARAM;
+                }
             }
         }
         
