@@ -733,7 +733,7 @@ std::string valueToString(SaImmAttrValueT value, SaImmValueTypeT type)
             for (unsigned int i = 0; i < anyp->bufferSize; i++)
             {
                 ost << std::hex
-                    << (((int)anyp->bufferAddr[i] < 10)? "0":"")
+                    << (((int)anyp->bufferAddr[i] < 0x10)? "0":"")
                 << (int)anyp->bufferAddr[i];
             }
 
