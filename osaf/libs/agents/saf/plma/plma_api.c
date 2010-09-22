@@ -1783,6 +1783,9 @@ SaAisErrorT saPlmReadinessTrack(SaPlmEntityGroupHandleT entityGroupHandle,
 			goto end;
 		}
 		if (plm_out_res->res_evt.error != SA_AIS_OK){
+			if (SA_AIS_ERR_NO_SPACE == plm_out_res->res_evt.error)
+				trackedEntities->numberOfEntities = plm_out_res->res_evt.entities->numberOfEntities;
+
 			LOG_ER("PLMA: ERR RESPONSE FOR READINESS TRACK REQUEST");
 			rc = plm_out_res->res_evt.error;
 			goto end;
