@@ -1533,17 +1533,17 @@ SmfUpgradeStep::nodeReboot(const std::string & i_node)
 	}
 #endif
 
-	//Wait for the node to be down
-	TRACE("SmfUpgradeStep::nodeReboot: Waiting for the node to teardown");
-	cmd      = "true";              //Command "true" should be available on all Linux systems
-	timeout  = rebootTimeout / 2;   //Use half of the reboot timeout for teardown
-	interval = 2;                   //Retry interval is 2 seconds
-	rc = smfnd_remote_cmd(cmd.c_str(), nodeDest, cliTimeout);
-	while(rc != -1){
+	//Wait for the node to be down i.e. the node detination to disappear
+	timeout  = rebootTimeout; //seconds
+	interval = 1;
+	LOG_NO("SmfUpgradeStep::nodeReboot: Waiting for node destination to disappear");
+	nodeDest = getNodeDestination(i_node);
+	while (nodeDest != 0) {
+		TRACE("SmfUpgradeStep::nodeReboot: Destination has not yet disappear, check again wait %d seconds", interval);
 		sleep(interval);
-		rc = smfnd_remote_cmd(cmd.c_str(), nodeDest, cliTimeout);
+		nodeDest = getNodeDestination(i_node);
 		if (timeout <= 0) {
-			LOG_ER("SmfUpgradeStep::nodeReboot: teardown timeout on node '%s'", i_node.c_str());
+			LOG_ER("SmfUpgradeStep::nodeReboot: node destination has not disappear within time frame for node %s", i_node.c_str());
 			result = false;
 			goto done;
 		}
@@ -1551,11 +1551,13 @@ SmfUpgradeStep::nodeReboot(const std::string & i_node)
 		timeout -= interval;
 	}
 
+	sleep(5);
+
 	//The node has stop answering commands, wait for the node to start answering commands
 	//Try to get the node detination
 	timeout  = rebootTimeout; //seconds
 	interval = 5;
-	TRACE("SmfUpgradeStep::nodeReboot: Waiting to get node destination");
+	LOG_NO("SmfUpgradeStep::nodeReboot: Waiting to get node destination");
 	nodeDest = getNodeDestination(i_node);
 	while (nodeDest == 0) {
 		TRACE("SmfUpgradeStep::nodeReboot: No destination found, try again wait %d seconds", interval);
@@ -1574,7 +1576,7 @@ SmfUpgradeStep::nodeReboot(const std::string & i_node)
 	cmd      = "true";              //Command "true" should be available on all Linux systems
 	timeout  = rebootTimeout / 2;   //Use half of the reboot timeoot
 	interval = 5;
-	TRACE("SmfUpgradeStep::nodeReboot: Waiting for the node to accept command 'true'");
+	LOG_NO("SmfUpgradeStep::nodeReboot: Waiting for the node to accept command 'true'");
 	rc = smfnd_remote_cmd(cmd.c_str(), nodeDest, cliTimeout);
 	while(rc != -1){
 		sleep(interval);

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<upgradeCampaign xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:noNamespaceSchemaLocation="file://H:/xsd/SAI-AIS-SMF-UCS-A.01.02_modified.xsd" 
+  safSmfCampaign="safSmfCampaign=campaign_single_comp">
+  <!--
+    This campaign updates a component in the AmfDemo application
+    with a single-step upgrade using node as AU/DU.
+
+    Prerequisites;
+    ==============
+    The AmfDemo application is up and running.
+
+    Execution;
+    ==========
+    immcfg -c SaSmfCampaign -a saSmfCmpgFileUri=/hostfs/campaign_single_node.xml\
+      safSmfCampaign=campaign_single_node,safApp=safSmfService
+    immadm -o 1 safSmfCampaign=campaign_single_node,safApp=safSmfService
+    immlist safSmfCampaign=campaign_single_node,safApp=safSmfService
+    immadm -o 4 safSmfCampaign=campaign_single_node,safApp=safSmfService
+
+    Expected outcome;
+    =================
+    immlist safSmfBundle=bundleA
+        # The new bundle object should exist
+    immlist safVersion=5.5.5,safCompType=AmfDemoCompType
+        # The new component type should exist
+    immlist safHealthcheckKey=AmfDemo,safVersion=5.5.5,safCompType=AmfDemoCompType
+        # The new health-check object should exist
+    immlist safComp=AmfDemo,safSu=SU1,safSg=AmfDemo,safApp=AmfDemo
+    immlist safComp=AmfDemo,safSu=SU2,safSg=AmfDemo,safApp=AmfDemo
+        # "saAmfCompType" should refere to the new type
+
+    grep SMF: rootfs/var/SC_2_*/log/messages
+        # The "installation offline" should have been executed
+
+    immfind -c SaAmfNodeSwBundle
+        # The bundleA objects should exist under the SC's.
+
+    Expected future outcome;
+    ========================
+    The old version types and the old bundle should be cleaned.
+    This does not work yet because of missing AMF features.
+  -->
+  <campaignInfo>
+    <campaignPeriod/>
+  </campaignInfo>
+  <campaignInitialization>
+    <addToImm>
+      <softwareBundle name="safSmfBundle=bundleA">
+        <removal>
+          <offline command="/bin/logger" args="-t SMF bundleA removal offline" 
+            saSmfBundleRemoveOfflineScope="1"/>
+          <online command="/bin/logger" args="-t SMF bundleA removal online"/>
+        </removal>
+        <installation>
+          <offline command="/bin/logger" args="-t SMF bundleA installation offline" 
+            saSmfBundleInstallOfflineScope="2"/>
+          <online command="/bin/logger" args="-t SMF bundleA installation online"/>
+        </installation>
+        <defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000"/>
+      </softwareBundle>
+      <amfEntityTypes>
+        <CompBaseType safCompType="safCompType=AmfDemo1">
+          <CompType safVersion="safVersion=5.5.5">
+            <providesCSType 
+              safSupportedCsType="safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemoCsType" 
+              saAmfCtCompCapability="1" saAmfCtDefNumMaxActiveCsi="1" 
+              saAmfCtDefNumMaxStandbyCsi="1"/>
+            <compTypeDefaults saAmfCtCompCategory="1" 
+              saAmfCtDefRecoveryOnError="2"
+              saAmfCtDefClcCliTimeout="10000000000" 
+              saAmfCtDefCallbackTimeout="10000000000" saAmfCtDefDisableRestart="0">
+            </compTypeDefaults>
+            <instantiateCmd saAmfCtRelPathInstantiateCmd="amf_demo_script">
+              <cmdArgv>instantiate</cmdArgv>
+            </instantiateCmd>
+            <cleanupCmd saAmfCtRelPathCleanupCmd="amf_demo_script">
+              <cmdArgv>cleanup</cmdArgv>
+            </cleanupCmd>
+            <healthCheck 
+              safHealthcheckKey="safHealthcheckKey=AmfDemo"
+              saAmfHealthcheckPeriod="10000000000"
+              saAmfHealthcheckMaxDuration="6000000000"/>
+            <swBundle saAmfCtSwBundle="safSmfBundle=bundleA"/>
+          </CompType>
+        </CompBaseType>
+      </amfEntityTypes>
+    </addToImm>
+  </campaignInitialization>
+  <upgradeProcedure safSmfProcedure="safSmfProc=SingleStepComp" saSmfExecLevel="2">
+    <outageInfo>
+      <acceptableServiceOutage>
+        <all/>
+      </acceptableServiceOutage>
+      <procedurePeriod saSmfProcPeriod="60000000000"/>
+    </outageInfo>
+    <upgradeMethod>
+      <singleStepUpgrade>
+        <upgradeScope>
+          <forModify>
+            <activationUnit>
+              <actedOn>
+				<byName objectDN="safAmfNode=SC-1,safAmfCluster=myAmfCluster"/>
+				<byName objectDN="safAmfNode=SC-2,safAmfCluster=myAmfCluster"/>
+              </actedOn>
+              <swRemove bundleDN="safSmfBundle=AmfDemo" pathnamePrefix="/opt/amf_demo"/>
+              <swAdd bundleDN="safSmfBundle=bundleA" pathnamePrefix="/opt/amf_demo"/>
+            </activationUnit>
+			<targetEntityTemplate>
+               	<parent objectDN="safSg=AmfDemo,safApp=AmfDemo1"></parent>
+          		<type objectDN="safVersion=4.0.0,safSuType=AmfDemo1"></type>
+                <modifyOperation objectRDN="safComp=AmfDemo" operation="SA_IMM_ATTR_VALUES_REPLACE">
+                        <attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+                                <value>safVersion=5.5.5,safCompType=AmfDemo1</value>
+                        </attribute>
+                </modifyOperation>
+        	</targetEntityTemplate>
+            <!--targetEntityTemplate>
+              <type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"/>
+              <modifyOperation operation="SA_IMM_ATTR_VALUES_REPLACE">
+                <attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+                  <value>safVersion=5.5.5,safCompType=AmfDemo1</value>
+                </attribute>
+              </modifyOperation>
+            </targetEntityTemplate>
+            <targetEntityTemplate>
+              <type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"/>
+              <modifyOperation operation="SA_IMM_ATTR_VALUES_REPLACE">
+                <attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+                  <value>safVersion=5.5.5,safCompType=AmfDemo1</value>
+                </attribute>
+              </modifyOperation>
+            </targetEntityTemplate-->
+          </forModify>
+        </upgradeScope>
+        <upgradeStep/>
+      </singleStepUpgrade>
+    </upgradeMethod>
+  </upgradeProcedure>
+  <campaignWrapup>
+    <waitToCommit/>
+    <waitToAllowNewCampaign/>
+    <removeFromImm/>
+  </campaignWrapup>
+</upgradeCampaign>

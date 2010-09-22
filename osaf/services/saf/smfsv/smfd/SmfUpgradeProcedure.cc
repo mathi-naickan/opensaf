@@ -808,10 +808,39 @@ bool SmfUpgradeProcedure::calculateSingleStep(SmfSinglestepUpgrade* i_upgrade)
 				}
 			} else {
 				assert(e->getName().length() > 0);
-				std::string node = getNodeForCompSu(e->getName());
-				if (node.length() > 0) nodeList.push_back(node);
-				newStep->addDeactivationUnit(e->getName());
-				newStep->addActivationUnit(e->getName());
+				//Find out what type of object the actedOn points to
+				SmfImmUtils immUtil;
+				SaImmAttrValuesT_2 **attributes;
+				const char *className;
+				if (immUtil.getObject(e->getName(), &attributes) == false) {
+					LOG_ER("SmfUpgradeProcedure::calculateSingleStep:failed to get imm object %s", e->getName().c_str());
+					TRACE_LEAVE();
+					return false;
+				}
+
+				className = immutil_getStringAttr((const SaImmAttrValuesT_2 **)
+                                          attributes, SA_IMM_ATTR_CLASS_NAME, 0);
+				if (className == NULL) {
+					LOG_ER("SmfUpgradeProcedure::calculateSingleStep:class name not found for version type %s", e->getName().c_str());
+					TRACE_LEAVE();
+					return false;
+				}
+
+				if ((strcmp(className, "SaAmfSU") == 0) ||
+				    (strcmp(className, "SaAmfComp") == 0)) {
+					std::string node = getNodeForCompSu(e->getName());
+					if (node.length() > 0) nodeList.push_back(node);
+					newStep->addDeactivationUnit(e->getName());
+					newStep->addActivationUnit(e->getName());
+				} else if (strcmp(className, "SaAmfNode") == 0) {
+					nodeList.push_back(e->getName());
+					newStep->addDeactivationUnit(e->getName());
+					newStep->addActivationUnit(e->getName());
+				} else {
+					LOG_ER("Wrong class %s, can only handle SaAmfSU,SaAmfComp and SaAmfNode", className);
+					TRACE_LEAVE();
+					return false;
+				}
 			}
 		}
 
@@ -1380,30 +1409,82 @@ SmfUpgradeProcedure::addStepModificationsSuComp(SmfUpgradeStep * i_newStep, cons
 				TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Check SU %s for modifications", (*objit).c_str());
 				if (immUtil.getObject((*objit), &attributes) == true) {
 					const SaNameT *typeRef =
-					    immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes, "saAmfSUType", 0);
+						immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes, "saAmfSUType", 0);
 
-					if ((typeRef != NULL)
-					    && (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0)) {
+
+					if ((typeRef != NULL) && (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0)) {
 						/* This SU is of the correct version type */
                                                 //For all AU/DU in the step, check if the SU DN is within the AU/DU DN
                                                 for (auEntityIt = auEntityList.begin(); auEntityIt != auEntityList.end(); ++auEntityIt) {
-                                                        if((*objit).find(*auEntityIt) != std::string::npos) {
-                                                                //The auEntityIt DN is a substring of objit i.e. the object 
-                                                                //to modify within the AU/DU domain
-                                                                //Add object modifications
+							//If the auEntity is an amf node it must be find out if the SU is hosted on the node
+							SaImmAttrValuesT_2 **auAttributes;
+							if (immUtil.getObject(*auEntityIt, &auAttributes) == false) {
+								LOG_ER("addStepModificationsSuComp:Failed to get actedOn object %s in IMM", (*auEntityIt).c_str());
+								TRACE_LEAVE();
+								return false;
+							}
 
-                                                                TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", (*objit).c_str(),(*auEntityIt).c_str());
+							className = immutil_getStringAttr((const SaImmAttrValuesT_2 **)
+											  auAttributes, SA_IMM_ATTR_CLASS_NAME, 0);
+							if (className == NULL) {
+								LOG_ER("addStepModificationsSuComp:class name not found for actedOn object %s", (*auEntityIt).c_str());
+								TRACE_LEAVE();
+								return false;
+							}
+
+							if (strcmp(className, "SaAmfNode") == 0) {  
+								//The auEntity is a node.
+								//Find out if the instance of the SaAmfSUType is located on the node
+								if (immUtil.getObject((*objit), &attributes) == false) {
+									LOG_ER("addStepModificationsSuComp: Can not read object %s", (*objit).c_str());
+									return false;
+								}
+
+							       	const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+														  "saAmfSUHostedByNode",
+														  0);
+								
+								if (hostedByNode == NULL) {
+									LOG_ER("addStepModificationsSuComp:No hostedByNode attribute set for %s", (*objit).c_str());  
+									return false;
+								}
+
+								//Match "hostedByNode" with the auEntity
+								if (strcmp((*auEntityIt).c_str(), (char *)hostedByNode->value) == 0) {
+								       	TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", 
+									      (*objit).c_str(),
+									      (*auEntityIt).c_str());
+
+									if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+										LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
+										return false;
+									}
+									break;
+								} else {
+									TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:NO MATCH Modification DN=%s, AU/DU=%s", (*objit).c_str(),(*auEntityIt).c_str());
+								}
+							} else {
+								//The auEntity is NOT a node.
+								//If the auEntity is a SU, string matching can be used
+								if((*objit).find(*auEntityIt) != std::string::npos) {
+									//The auEntityIt DN is a substring of objit i.e. the object 
+									//to modify within the AU/DU domain
+									//Add object modifications
+
+									TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", 
+									      (*objit).c_str(),
+									      (*auEntityIt).c_str());
                                                    
-                                                                if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
-                                                                        LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
-                                                                        return false;
-                                                                }
-                                                                break;
-
-                                                        } else {
-                                                                TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:NO MATCH Modification DN=%s, AU/DU=%s", (*objit).c_str(),(*auEntityIt).c_str());
-                                                        }
-                                                }
+									if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+										LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
+										return false;
+									}
+									break;
+								} else {
+									TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:NO MATCH Modification DN=%s, AU/DU=%s", (*objit).c_str(),(*auEntityIt).c_str());
+								}
+							} 
+						}
 					}
 				}
 			}
@@ -1424,68 +1505,180 @@ SmfUpgradeProcedure::addStepModificationsSuComp(SmfUpgradeStep * i_newStep, cons
 						/* This component is of the correct version type */
                                                 //For all objects found of this type, match DNs to see if it is within the act/deact unit
 						for (auEntityIt = auEntityList.begin(); auEntityIt != auEntityList.end(); ++auEntityIt) {
-							if((*objit).find(*auEntityIt) != std::string::npos) {
-								//The auEntityIt DN is a substring of objit i.e. the object 
-								//to modify within the AU/DU domain
-								//Add object modifications
 
-								TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", (*objit).c_str(),(*auEntityIt).c_str());
+							//If the auEntity is an amf node it must be found out if the SU is hosted on the node
+							SaImmAttrValuesT_2 **auAttributes;
+							if (immUtil.getObject(*auEntityIt, &auAttributes) == false) {
+								LOG_ER("addStepModificationsSuComp:Failed to get actedOn object %s in IMM", (*auEntityIt).c_str());
+								TRACE_LEAVE();
+								return false;
+							}
 
-								if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
-									LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
+							className = immutil_getStringAttr((const SaImmAttrValuesT_2 **)
+											  auAttributes, SA_IMM_ATTR_CLASS_NAME, 0);
+							if (className == NULL) {
+								LOG_ER("addStepModificationsSuComp:class name not found for actedOn object %s", (*auEntityIt).c_str());
+								TRACE_LEAVE();
+								return false;
+							}
+
+							if (strcmp(className, "SaAmfNode") == 0) {  
+								//The auEntity is a node.
+								//Find out if the instance of the SaAmfCompType is located on the node
+
+								//Find the parent SU to this component
+								if (immUtil.getParentObject((*objit), &attributes) == false) {
+									LOG_ER("addStepModificationsSuComp:No parent found to %s", (*objit).c_str());
 									return false;
 								}
-								break;
 
+								const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+														  "saAmfSUHostedByNode", 
+														  0);
+								if (hostedByNode == NULL) {
+									LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
+									return false;
+								}
+
+								//Match "hostedByNode" with the auEntity
+								if (strcmp((*auEntityIt).c_str(), (char *)hostedByNode->value) == 0) {
+									TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", 
+									      (*objit).c_str(),
+									      (*auEntityIt).c_str());
+
+									if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+										LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
+										return false;
+									}
+									break;
+								} else {
+									TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:NO MATCH Modification DN=%s, AU/DU=%s", 
+									      (*objit).c_str(),
+									      (*auEntityIt).c_str());
+								}
+								
 							} else {
-								TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:NO MATCH Modification DN=%s, AU/DU=%s", (*objit).c_str(),(*auEntityIt).c_str());
+								//The auEntity is NOT a node.
+								//If the auEntity is a SU, string matching can be used
+								if((*objit).find(*auEntityIt) != std::string::npos) {
+									//The auEntityIt DN is a substring of objit i.e. the object 
+									//to modify within the AU/DU domain
+									//Add object modifications
+
+									TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", 
+									      (*objit).c_str(),
+									      (*auEntityIt).c_str());
+                                                   
+									if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+										LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
+										return false;
+									}
+									break;
+
+								} else {
+									TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:NO MATCH Modification DN=%s, AU/DU=%s", (*objit).c_str(),(*auEntityIt).c_str());
+								}
 							}
-						}
+						}//END for (auEntityIt = auEntityList.begin()
 					}
-				}
+				} //END for (objit = objectList.begin();
 			}
-                } else {
-                        LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:class name %s for type %s not valid as type",
-                               className,
-                               i_parentType->getTypeDn().c_str());
-                        return false;
-                }
-        } else if (i_parentType->getParentDn().size() > 0) { //Parent only is set, no type
-                /* Parent was specified */
-                TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Check SU children to parent %s for modifications", i_parentType->getParentDn().c_str());
+		 } else {
+			   LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:class name %s for type %s not valid as type",
+					     className,
+					      i_parentType->getTypeDn().c_str());
+			    return false;
+		   }
+		} else if (i_parentType->getParentDn().size() > 0) { //Parent only is set, no type
+			/* Parent was specified */
+			TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Check SU children to parent %s for modifications", i_parentType->getParentDn().c_str());
 
-                /* Parent SG but no type specified, find all child SU's to the parent SG */
-                (void)immUtil.getChildren(i_parentType->getParentDn(), objectList, SA_IMM_SUBLEVEL, "SaAmfSU");
+			/* Parent SG but no type specified, find all child SU's to the parent SG */
+			(void)immUtil.getChildren(i_parentType->getParentDn(), objectList, SA_IMM_SUBLEVEL, "SaAmfSU");
 
-                for (objit = objectList.begin(); objit != objectList.end(); ++objit) {
-                        for (auEntityIt = auEntityList.begin(); auEntityIt != auEntityList.end(); ++auEntityIt) {
-                                if((*objit).find(*auEntityIt) != std::string::npos) {
-                                        //The auEntityIt DN is a substring of objit i.e. the object 
-                                        //to modify within the AU/DU domain
-                                        //Add object modifications
+			for (objit = objectList.begin(); objit != objectList.end(); ++objit) {
+				for (auEntityIt = auEntityList.begin(); auEntityIt != auEntityList.end(); ++auEntityIt) {
+					//If the auEntity is an amf node it must be found out if the SU is hosted on the node
+					SaImmAttrValuesT_2 **auAttributes;
+					if (immUtil.getObject(*auEntityIt, &auAttributes) == false) {
+						LOG_ER("addStepModificationsSuComp:Failed to get actedOn object %s in IMM", (*auEntityIt).c_str());
+						TRACE_LEAVE();
+						return false;
+					}
 
-                                        TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", (*objit).c_str(),(*auEntityIt).c_str());
+					className = immutil_getStringAttr((const SaImmAttrValuesT_2 **)
+									  auAttributes, SA_IMM_ATTR_CLASS_NAME, 0);
+					if (className == NULL) {
+						LOG_ER("addStepModificationsSuComp:class name not found for actedOn object %s", (*auEntityIt).c_str());
+						TRACE_LEAVE();
+						return false;
+					}
 
-                                        if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
-                                                LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
-                                                return false;
-                                        }
+					if (strcmp(className, "SaAmfNode") == 0) {  
+						//The auEntity is a node.
+						//Find out if the instance of the SaAmfCompType is located on the node
 
-                                        break;
-                                }
+						//Find the parent SU to this component
+						if (immUtil.getParentObject((*objit), &attributes) == false) {
+							LOG_ER("addStepModificationsSuComp:No parent found to %s", (*objit).c_str());
+							return false;
+						}
 
-                        }
-                }
-        } else {
+						const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+												  "saAmfSUHostedByNode", 
+												  0);
+						if (hostedByNode == NULL) {
+							LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
+							return false;
+						}
 
-                //No parent type was set, apply the modifications on the entity pointed out by the activation units.
-                //The optional modifyOperation RDN attribute if added when applying the modification
-                std::list < std::string >::const_iterator auEntityIt;
-                for (auEntityIt = auEntityList.begin(); auEntityIt != auEntityList.end(); ++auEntityIt) {
-                        if (!addStepModificationList(i_newStep, *auEntityIt, i_modificationList)) {
-                                LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
-                                return false;
-                        }
+						//Match "hostedByNode" with the auEntity
+						if (strcmp((*auEntityIt).c_str(), (char *)hostedByNode->value) == 0) {
+							TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", 
+							      (*objit).c_str(),
+							      (*auEntityIt).c_str());
+
+							if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+								LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
+								return false;
+							}
+							break;
+						}
+					} else {
+						//The auEntity is NOT a node.
+						//If the auEntity is a SU, string matching can be used
+						if((*objit).find(*auEntityIt) != std::string::npos) {
+							//The auEntityIt DN is a substring of objit i.e. the object 
+							//to modify within the AU/DU domain
+							//Add object modifications
+
+							TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", 
+							      (*objit).c_str(),
+							      (*auEntityIt).c_str());
+                                                   
+							if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+								LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
+								return false;
+							}
+							break;
+						} else {
+							TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:NO MATCH Modification DN=%s, AU/DU=%s", 
+							      (*objit).c_str(),
+							      (*auEntityIt).c_str());
+						}
+					} 
+				} //END for (auEntityIt = auEntityList.begin()
+			} //END for (objit = objectList.begin()
+		} else {
+
+			//No parent type was set, apply the modifications on the entity pointed out by the activation units.
+			//The optional modifyOperation RDN attribute if added when applying the modification
+			std::list < std::string >::const_iterator auEntityIt;
+			for (auEntityIt = auEntityList.begin(); auEntityIt != auEntityList.end(); ++auEntityIt) {
+				if (!addStepModificationList(i_newStep, *auEntityIt, i_modificationList)) {
+					LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp:addStepModificationList fails");
+					return false;
+				}
                 }
         }
 
