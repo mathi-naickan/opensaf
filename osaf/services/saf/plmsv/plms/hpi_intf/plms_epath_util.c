@@ -447,9 +447,10 @@ SaUint32T convert_string_to_epath(SaInt8T *epath_str,
 
                 /* put the entity instance value in the epath_ptr structure */
                 sscanf(tok, "%d", &epath_ptr->Entry[entity_index].EntityLocation);
+                ++entity_index;
                 if ((tok = ptr+1) >= end_char)
                         break;
-                if (++entity_index >= SAHPI_MAX_ENTITY_PATH)
+                if (entity_index >= SAHPI_MAX_ENTITY_PATH)
                         break;
         }
 
