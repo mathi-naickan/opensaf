@@ -27,6 +27,7 @@
 #include "plms_notifications.h"
 #include "plms_mbcsv.h"
 #include "plms_utils.h"
+#include "immutil.h"
 
 /******************************************************************************
 @brief		: If admin_op_in_progress is set for any the following then
@@ -2585,7 +2586,7 @@ SaUint32T plms_attr_imm_update(PLMS_ENTITY *ent,SaInt8T *attr_name,
 	imm_attr[0] = &temp;
 	imm_attr[1] = NULL;
 
-	err = saImmOiRtObjectUpdate_2(cb->oi_hdl,&(ent->dn_name),imm_attr);
+	err = immutil_saImmOiRtObjectUpdate_2(cb->oi_hdl,&(ent->dn_name),imm_attr);
 	if (SA_AIS_OK != err){
 		LOG_ER("IMM Updation FAILED. Ret_val: %d",err);
 		return NCSCC_RC_FAILURE;
@@ -2628,7 +2629,7 @@ SaInt8T *attr_name,SaNameT val,SaImmAttrModificationTypeT mod_type)
 	imm_attr[0] = &temp;
 	imm_attr[1] = NULL;
 
-	err = saImmOiRtObjectUpdate_2(cb->oi_hdl,&(ent->dn_name),imm_attr);
+	err = immutil_saImmOiRtObjectUpdate_2(cb->oi_hdl,&(ent->dn_name),imm_attr);
 	if (SA_AIS_OK != err){
 		LOG_ER("IMM attr update failed.Ent: %s, attr_name: %s, val: %s\
 		,ret_val: %d",ent->dn_name_str,attr_name,he_type,err);
@@ -2669,7 +2670,7 @@ SaUint32T plms_attr_sastring_imm_update(PLMS_ENTITY *ent,
 	imm_attr[0] = &temp;
 	imm_attr[1] = NULL;
 
-	err = saImmOiRtObjectUpdate_2(cb->oi_hdl,&(ent->dn_name),imm_attr);
+	err = immutil_saImmOiRtObjectUpdate_2(cb->oi_hdl,&(ent->dn_name),imm_attr);
 	if (SA_AIS_OK != err){
 		LOG_ER("IMM Updation FAILED. Ret_val: %d",err);
 		return NCSCC_RC_FAILURE;
