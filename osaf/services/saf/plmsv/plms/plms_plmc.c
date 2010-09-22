@@ -2421,6 +2421,9 @@ SaUint32T plms_ee_inst_failed_tmr_exp(PLMS_ENTITY *ent)
 	
 	if ((NULL != ent->trk_info) && (SA_PLM_CAUSE_EE_RESTART == 
 	ent->trk_info->root_entity->adm_op_in_progress)){
+
+		ent->trk_info->root_entity->adm_op_in_progress = FALSE;
+		ent->trk_info->root_entity->am_i_aff_ent = FALSE;
 		
 		ret_err = saImmOiAdminOperationResult(cb->oi_hdl,
 		ent->trk_info->inv_id,SA_AIS_ERR_FAILED_OPERATION);
@@ -2434,6 +2437,7 @@ SaUint32T plms_ee_inst_failed_tmr_exp(PLMS_ENTITY *ent)
 		/* Free the trk info and send failure to IMM.*/
 		head = ent->trk_info->aff_ent_list;
 		while(head){
+			head->plm_entity->am_i_aff_ent = FALSE;
 			head->plm_entity->trk_info = NULL;
 		}
 		
