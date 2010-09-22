@@ -1257,6 +1257,7 @@ void plms_process_grp_rem_evt(PLMS_EVT *plm_evt)
 	PLMS_TRACK_INFO trk_info;
 	PLMS_MBCSV_MSG mbcsv_msg;
 	SaNameT *key_dn;
+	PLMS_ENTITY *ent;
 
 	TRACE_ENTER();
 
@@ -1309,6 +1310,22 @@ void plms_process_grp_rem_evt(PLMS_EVT *plm_evt)
 				
 	}
 	
+	/* If the entity to be removed is in mid of any admin context, then reject and return try_again.*/
+	for (ii = 0; ii < plm_evt->req_evt.agent_grp_op.entity_names_number; ii++){
+		key_dn = &plm_evt->req_evt.agent_grp_op.entity_names[ii];
+		ent  = (PLMS_ENTITY *)ncs_patricia_tree_get(&(cb->entity_info),(SaUint8T *)key_dn);
+		if (NULL == ent){
+			LOG_ER("The entity %s does not exist in PLMS database tree.", key_dn->value);
+			rc = SA_AIS_ERR_NOT_EXIST;
+			goto send_resp;
+		}
+
+		if ( ent->am_i_aff_ent || ent->adm_op_in_progress){
+			LOG_ER("The ent: %s is in admin context. Can not be removed.",ent->dn_name_str);
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			goto send_resp;
+		}
+	}
 	
 	if(NCSCC_RC_SUCCESS != plm_rem_entity(&del_list, 
 		grp_info->plm_entity_list, 
