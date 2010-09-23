@@ -704,6 +704,8 @@ uns32 avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_FSM
 			LOG_ER("%s termination failed", comp->name.value);
 			opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
 					"Stopping OpenSAF failed");
+			LOG_ER("Amfnd is exiting (due to comp term failed) to aid fast reboot");
+			exit(0);
 			break;
 		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC:
 			m_AVND_COMP_PRES_STATE_SET(comp, SA_AMF_PRESENCE_UNINSTANTIATED);

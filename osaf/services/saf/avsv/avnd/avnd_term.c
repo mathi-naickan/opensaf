@@ -79,12 +79,16 @@ static void avnd_last_step_clean(AVND_CB *cb)
 				LOG_ER("%s in termination failed state", comp->name.value);
 				opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
 						"Stopping OpenSAF failed");
+				LOG_ER("Amfnd is exiting (due to comp term failed) to aid fast reboot");
+				exit(0);
 			}
 
 			if (comp->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) {
 				LOG_ER("%s in instantiation failed state", comp->name.value);
 				opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
 						"Stopping OpenSAF failed");
+				LOG_ER("Amfnd is exiting (due to comp int failed) to aid fast reboot");
+				exit(0);
 			}
 
 			avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
