@@ -48,6 +48,7 @@ static uns32 avnd_comp_reg_prc(AVND_CB *, AVND_COMP *, AVND_COMP *, AVSV_AMF_COM
 
 static uns32 avnd_avd_comp_updt_on_fover(AVND_CB *cb, AVSV_D2N_REG_COMP_MSG_INFO *info);
 static void avnd_comp_hdl_finalize(AVND_CB *, AVND_COMP *, AVSV_AMF_FINALIZE_PARAM *, AVSV_AMF_API_INFO *);
+static SaAisErrorT  avnd_validate_comp_and_createdb(AVND_CB *cb, SaNameT *comp_dn);
 
 /****************************************************************************
   Name          : avnd_evt_avd_reg_comp_msg
@@ -637,6 +638,15 @@ void avnd_comp_reg_val(AVND_CB *cb,
 	    && (FALSE == msg_from_avnd)) {
 
 		if ((0 == (*o_comp = m_AVND_COMPDB_REC_GET(cb->compdb, reg->comp_name)))) {
+			/* Proxied Component may belong to the same node but not available right now because they might
+			   not have got instantiated(In SU presence command only we read all comp of SUs).
+			   We need to construct data base if comp belong to the same node for the registration
+			   to proceed.*/
+			if (SA_AIS_OK == avnd_validate_comp_and_createdb(cb, &reg->comp_name)) {
+				*o_comp = m_AVND_COMPDB_REC_GET(cb->compdb, reg->comp_name);
+				goto proceed;
+			}
+
 			/* It might be an internode or external component. */
 			*o_amf_rc = SA_AIS_ERR_INVALID_PARAM;
 			*int_ext_comp_flag = TRUE;
@@ -655,12 +665,23 @@ void avnd_comp_reg_val(AVND_CB *cb,
 			}
 		}
 	}
-
+proceed:
 	if ((0 == (*o_comp = m_AVND_COMPDB_REC_GET(cb->compdb, reg->comp_name))) && ((TRUE == msg_from_avnd))) {
+		/* This is case when msg_from_avnd is TRUE i.e. internode proxied comp.
+		   Proxied Component may belong to this node but not available right now because they might
+		   not have got instantiated(In SU presence command only we read all comp of SUs).
+		   We need to construct data base if comp belong to the node for the registration
+		   to proceed.*/
+		if (SA_AIS_OK == avnd_validate_comp_and_createdb(cb, &reg->comp_name)) {
+			*o_comp = m_AVND_COMPDB_REC_GET(cb->compdb, reg->comp_name);
+			goto proceed_next;
+		}
 		/* It might be an internode or external component. */
 		*o_amf_rc = SA_AIS_ERR_INVALID_PARAM;
 		return;
 	}
+
+proceed_next:
 
 	if (NULL == (*o_comp)) {
 		*o_amf_rc = SA_AIS_ERR_INVALID_PARAM;
@@ -2811,3 +2832,39 @@ uns32 avnd_evt_comp_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 	return rc;   
 }
 
+/****************************************************************************
+  Name          : avnd_validate_comp_and_createdb 
+
+  Description   : This routine checks whether the comp belong to the same node.
+                  If this is the case then it creates comp db. 
+
+  Arguments     : cb   - ptr to the AvND control block
+                  comp - ptr to comp dn name
+
+  Return Values : None.
+
+  Notes         : This function will be called in local as well as internode 
+                  comp scenario.
+******************************************************************************/
+static SaAisErrorT  avnd_validate_comp_and_createdb(AVND_CB *cb, SaNameT *comp_dn)
+{
+	SaNameT su_dn;
+	char *p;
+	AVND_SU *su;
+
+	memset(&su_dn, 0, sizeof(SaNameT));
+        p = strstr((char*)comp_dn->value, "safSu");
+        assert(p);
+        su_dn.length = strlen(p);
+        memcpy(su_dn.value, p, comp_dn->length);
+
+	/* We got the name of SU, check whether this SU exists or not in our DB. */
+	if(NULL == (su = m_AVND_SUDB_REC_GET(cb->sudb, su_dn)))
+		return SA_AIS_ERR_NOT_EXIST;
+
+	/* We got it, so create comp db. */
+	if (avnd_comp_config_get_su(su) != NCSCC_RC_SUCCESS) {
+		return SA_AIS_ERR_NOT_EXIST;
+	}
+	return SA_AIS_OK;
+}

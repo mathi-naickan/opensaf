@@ -1585,7 +1585,7 @@ static uns32 avsv_encode_ckpt_comp_proxy_comp_name(AVD_CL_CB *cb, NCS_MBCSV_CB_E
 	if (NCS_MBCSV_ACT_UPDATE == enc->io_action) {
 		status = m_NCS_EDU_SEL_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_comp, &enc->io_uba,
 						EDP_OP_TYPE_ENC, (AVD_COMP *)(NCS_INT64_TO_PTR_CAST(enc->io_reo_hdl)),
-						&ederror, enc->i_peer_version, 2, 1, 23);
+						&ederror, enc->i_peer_version, 2, 1, 6);
 
 		if (status != NCSCC_RC_SUCCESS)
 			LOG_ER("%s: encode failed, ederror=%u", __FUNCTION__, ederror);

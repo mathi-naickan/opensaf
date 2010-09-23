@@ -2081,7 +2081,7 @@ static uns32 avsv_decode_ckpt_comp_proxy_comp_name(AVD_CL_CB *cb, NCS_MBCSV_CB_D
 	 * Action in this case is just to update.
 	 */
 	status = ncs_edu_exec(&cb->edu_hdl, avsv_edp_ckpt_msg_comp,
-	      &dec->i_uba, EDP_OP_TYPE_DEC, (AVD_COMP **)&comp_ptr, &ederror, 2, 1, 23);
+	      &dec->i_uba, EDP_OP_TYPE_DEC, (AVD_COMP **)&comp_ptr, &ederror, 2, 1, 6);
 
 	if (status != NCSCC_RC_SUCCESS)
 		assert(0);
