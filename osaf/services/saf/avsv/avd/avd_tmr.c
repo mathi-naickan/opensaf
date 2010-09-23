@@ -158,7 +158,7 @@ void avd_tmr_exp(void *uarg)
 		evt->info.tmr = *tmr;
 		evt->rcv_evt = (tmr->type - AVD_TMR_CL_INIT) + AVD_EVT_TMR_CL_INIT;
 
-		if (m_NCS_IPC_SEND(&cb->avd_mbx, evt, NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+		if (m_NCS_IPC_SEND(&cb->avd_mbx, evt, NCS_IPC_PRIORITY_VERY_HIGH) != NCSCC_RC_SUCCESS) {
 			LOG_ER("avd_tmp_exp: ipc send failed");
 			free(evt);
 		}

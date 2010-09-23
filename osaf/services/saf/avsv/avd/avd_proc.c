@@ -486,10 +486,12 @@ void avd_main_proc(void)
 			if (cb->avd_fover_state) {
 				/* 
 				 * We are in fail-over, so process only 
-				 * verify ack/nack and timer expiry events. Enqueue
-				 * all other events.
+				 * verify ack/nack and timer expiry events and
+				 * MDS down events. Enqueue all other events.
 				 */
-				if (evt->rcv_evt == AVD_EVT_VERIFY_ACK_NACK_MSG) {
+				if ((evt->rcv_evt == AVD_EVT_VERIFY_ACK_NACK_MSG) ||
+				    (evt->rcv_evt == AVD_EVT_MDS_AVND_DOWN) ||
+				    (evt->rcv_evt == AVD_EVT_TMR_SND_HB)) {
 					avd_process_event(cb, evt);
 				} else {
 					AVD_EVT_QUEUE *queue_evt;

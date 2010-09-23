@@ -90,11 +90,14 @@ AVND_EVT *avnd_evt_create(AVND_CB *cb,
 	case AVND_EVT_AVD_COMP_VALIDATION_RESP_MSG:
 	case AVND_EVT_AVD_ROLE_CHANGE_MSG:
 	case AVND_EVT_AVD_ADMIN_OP_REQ_MSG:
-	case AVND_EVT_AVD_HEARTBEAT_MSG:
 	case AVND_EVT_AVD_REBOOT_MSG:
 		evt->info.avd = (AVSV_DND_MSG *)info;
 		break;
 
+	case AVND_EVT_AVD_HEARTBEAT_MSG:
+		evt->priority = NCS_IPC_PRIORITY_HIGH;
+		evt->info.avd = (AVSV_DND_MSG *)info;
+		break;
 		/* AvA event types */
 	case AVND_EVT_AVA_FINALIZE:
 	case AVND_EVT_AVA_COMP_REG:

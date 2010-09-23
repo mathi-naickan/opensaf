@@ -407,6 +407,20 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		avd_node_delete_nodeid(node);
 	}
 
+	if(cb->avd_fover_state) {
+		/* Find if node is there in the f-over node list.
+		 * If yes then remove entry
+		 */
+		AVD_FAIL_OVER_NODE *node_fovr;
+		node_fovr = (AVD_FAIL_OVER_NODE *)ncs_patricia_tree_get(&cb->node_list,
+					(uns8 *)&evt->info.node_id);
+
+		if (NULL != node_fovr) {
+			ncs_patricia_tree_del(&cb->node_list, &node_fovr->tree_node_id_node);
+			free(node_fovr);
+		}
+	}
+
 	TRACE_LEAVE();
 }
 
