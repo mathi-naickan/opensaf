@@ -126,7 +126,6 @@ typedef struct avd_su_tag {
 	struct avd_comp_tag *list_of_comp;	/* the list of  components in this SU */
 	struct avd_su_tag *sg_list_su_next;	/* the next SU in the SG */
 	struct avd_su_tag *avnd_list_su_next;	/* the next SU in the AvND */
-	struct avd_su_tag *su_list_sg_next;
 	struct avd_sg_tag *sg;
 	struct avd_sutype *su_type;
 	struct avd_su_tag *su_list_su_type_next;
