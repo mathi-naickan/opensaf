@@ -780,9 +780,9 @@ static uns32 sg_app_sg_admin_lock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 	su = sg->list_of_su;
 	while (su != NULL) {
 		if ((su->saAmfSUPreInstantiable == TRUE) &&
-			(su->saAmfSUPresenceState != SA_AMF_PRESENCE_UNINSTANTIATED ||
-			 su->saAmfSUPresenceState != SA_AMF_PRESENCE_INSTANTIATION_FAILED ||
-			 su->saAmfSUPresenceState != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+			(su->saAmfSUPresenceState != SA_AMF_PRESENCE_UNINSTANTIATED) &&
+			(su->saAmfSUPresenceState != SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
+			(su->saAmfSUPresenceState != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
 
 			if (avd_snd_presence_msg(cb, su, TRUE) == NCSCC_RC_SUCCESS) {
 				m_AVD_SET_SU_TERM(cb, su, TRUE);
@@ -791,7 +791,7 @@ static uns32 sg_app_sg_admin_lock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 				LOG_WA("Failed Termination '%s'", su->name.value);
 			}
 		}
-		su = su->su_list_sg_next;
+		su = su->sg_list_su_next;
 	}
 
 	TRACE_LEAVE2("%u", rc);
@@ -829,7 +829,7 @@ static uns32 sg_app_sg_admin_unlock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 			}
 		}
-		su = su->su_list_sg_next;
+		su = su->sg_list_su_next;
 	}
 
 	TRACE_LEAVE2("'%d'", rc);
