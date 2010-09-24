@@ -553,6 +553,10 @@ SaAisErrorT immutil_get_attrValueType(const SaImmClassNameT className,
 void *immutil_new_attrValue(SaImmValueTypeT attrValueType, const char *str)
 {
 	void *attrValue = NULL;
+	size_t len;
+	unsigned int i;
+	char byte[5];
+	char* endMark;
 
 	switch (attrValueType) {
 	case SA_IMM_ATTR_SAINT32T:
@@ -606,7 +610,38 @@ void *immutil_new_attrValue(SaImmValueTypeT attrValueType, const char *str)
 			break;
 		}
 	case SA_IMM_ATTR_SAANYT:
-		/* Cannot handle this one... */
+		{
+			SaBoolT even = SA_TRUE;
+			len = strlen(str);
+			if(len % 2) {
+				len = len/2 + 1;
+				even = SA_FALSE;
+			} else {
+				len = len/2;
+			}
+			attrValue = malloc(sizeof(SaAnyT));
+			((SaAnyT*)attrValue)->bufferAddr = 
+				(SaUint8T*)malloc(sizeof(SaUint8T) * len);
+			((SaAnyT*)attrValue)->bufferSize = len;
+
+			byte[0] = '0';
+			byte[1] = 'x';
+			byte[4] = '\0';
+
+			endMark = byte + 4;
+
+			for (i = 0; i < len; i++)
+			{
+				byte[2] = str[2*i];
+				if(even || (i + 1 < len)) {
+					byte[3] = str[2*i + 1];
+				} else {
+					byte[3] = '0';
+				}
+				((SaAnyT*)attrValue)->bufferAddr[i] = 
+					(SaUint8T)strtod(byte, &endMark);
+			}
+		}
 	default:
 		break;
 	}
@@ -705,7 +740,7 @@ static void copySaImmAttrValuesT(struct Chunk *clist, SaImmAttrValuesT_2 *copy, 
 		valueSize = sizeof(SaStringT);
 		break;
 	case SA_IMM_ATTR_SAANYT:
-		assert(0);
+		valueSize = sizeof(SaAnyT);
 		break;
 	}
 
@@ -716,6 +751,14 @@ static void copySaImmAttrValuesT(struct Chunk *clist, SaImmAttrValuesT_2 *copy, 
 			char *cporig = *((char **)original->attrValues[i]);
 			char **cpp = (char **)databuffer;
 			*cpp = dupStr(clist, cporig);
+		} else if(original->attrValueType == SA_IMM_ATTR_SAANYT) {
+			SaAnyT* cporig = (SaAnyT *) original->attrValues[i];
+			SaAnyT* cpdest = (SaAnyT *) copy->attrValues[i];
+			cpdest->bufferSize = cporig->bufferSize;
+			if(cpdest->bufferSize) {
+				cpdest->bufferAddr = clistMalloc(clist, cpdest->bufferSize);
+				memcpy(cpdest->bufferAddr, cporig->bufferAddr, cpdest->bufferSize);
+			}
 		} else {
 			memcpy(databuffer, original->attrValues[i], valueSize);
 		}

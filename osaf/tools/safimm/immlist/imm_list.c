@@ -87,7 +87,7 @@ static void print_attr_value_raw(SaImmValueTypeT attrValueType, SaImmAttrValueT 
 		printf("%f", *((SaFloatT *)attrValue));
 		break;
 	case SA_IMM_ATTR_SADOUBLET:
-		printf("%lf", *((SaDoubleT *)attrValue));
+		printf("%17.15f", *((SaDoubleT *)attrValue));
 		break;
 	case SA_IMM_ATTR_SANAMET: {
 		SaNameT *myNameT = (SaNameT *)attrValue;
@@ -97,6 +97,23 @@ static void print_attr_value_raw(SaImmValueTypeT attrValueType, SaImmAttrValueT 
 	case SA_IMM_ATTR_SASTRINGT:
 		printf("%s", *((char **)attrValue));
 		break;
+	case SA_IMM_ATTR_SAANYT: {
+		SaAnyT *anyp = (SaAnyT *)attrValue;
+		unsigned int i = 0;
+		if(anyp->bufferSize == 0) {
+			printf("-empty-");
+		} else {
+			printf("0x");
+			for (; i < anyp->bufferSize; i++)
+			{
+				if(((int) anyp->bufferAddr[i]) < 0x10) {
+					printf("0");
+				}
+				printf("%x", (int)anyp->bufferAddr[i]);
+			}
+		}
+		break;
+	}
 	default:
 		printf("Unknown");
 		break;
@@ -132,7 +149,7 @@ static void print_attr_value(SaImmValueTypeT attrValueType, SaImmAttrValueT *att
 		printf("%f ", *((SaFloatT *)attrValue));
 		break;
 	case SA_IMM_ATTR_SADOUBLET:
-		printf("%lf ", *((SaDoubleT *)attrValue));
+		printf("%17.15f", *((SaDoubleT *)attrValue));
 		break;
 	case SA_IMM_ATTR_SANAMET:
 		{
@@ -143,6 +160,23 @@ static void print_attr_value(SaImmValueTypeT attrValueType, SaImmAttrValueT *att
 	case SA_IMM_ATTR_SASTRINGT:
 		printf("%s ", *((char **)attrValue));
 		break;
+	case SA_IMM_ATTR_SAANYT: {
+		SaAnyT *anyp = (SaAnyT *)attrValue;
+		unsigned int i = 0;
+		if(anyp->bufferSize) {
+			printf("0x");
+			for (; i < anyp->bufferSize; i++)
+			{
+				if(((int) anyp->bufferAddr[i]) < 0x10) {
+					printf("0");
+				}
+				printf("%x", (int)anyp->bufferAddr[i]);
+			}
+		}
+		printf(" size(%u)", (unsigned int) anyp->bufferSize);
+
+		break;
+	}
 	default:
 		printf("Unknown");
 		break;

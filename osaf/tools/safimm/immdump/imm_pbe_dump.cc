@@ -1286,9 +1286,9 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 		sql22.append(class_name);
 		sql22.append(" set ");
 		sql22.append(attrValue->attrName);
-		sql22.append(" = ");
+		sql22.append(" = '");
 		sql22.append(valueToString(attrValue->attrValues[0], attrValue->attrValueType));
-		sql22.append(" where obj_id = ");
+		sql22.append("' where obj_id = ");
 		sql22.append(object_id);
 		sqlite3_free_table(result2);
 
