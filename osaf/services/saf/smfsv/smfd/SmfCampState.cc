@@ -749,7 +749,7 @@ SmfCampStateExecuting::executeInit(SmfUpgradeCampaign * i_camp)
 	TRACE_ENTER();
 	TRACE("SmfCampStateExecuting::executeInit, Running campaign init actions");
 
-	if (i_camp->m_campInit.execute() == false) {
+	if (i_camp->m_campInit.execute() != SA_AIS_OK) {
 		std::string error = "Campaign init failed";
 		LOG_ER("%s", error.c_str());
 		SmfCampaignThread::instance()->campaign()->setError(error);

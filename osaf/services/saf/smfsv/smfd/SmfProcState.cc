@@ -296,7 +296,7 @@ SmfProcStateExecuting::executeInit(SmfUpgradeProcedure * i_proc)
 	TRACE("SmfProcStateExecuting::executeInit: Execute init actions");
 	std::vector < SmfUpgradeAction * >::iterator iter;
 	for (iter = i_proc->m_procInitAction.begin(); iter != i_proc->m_procInitAction.end(); ++iter) {
-                if ((*iter)->execute() != 0) {
+                if ((*iter)->execute() != SA_AIS_OK) {
 			changeState(i_proc, SmfProcStateExecFailed::instance());
                         LOG_ER("SmfProcStateExecuting::executeInit:init action %d failed", (*iter)->getId());
                         CAMPAIGN_EVT *errevt = new CAMPAIGN_EVT();
@@ -473,7 +473,7 @@ SmfProcStateExecuting::executeWrapup(SmfUpgradeProcedure * i_proc)
 
 	std::vector < SmfUpgradeAction * >::iterator iter;
 	for (iter = i_proc->m_procWrapupAction.begin(); iter != i_proc->m_procWrapupAction.end(); ++iter) {
-		if ((*iter)->execute() != 0) {
+		if ((*iter)->execute() != SA_AIS_OK) {
 			changeState(i_proc, SmfProcStateExecFailed::instance());
 			LOG_ER("wrapup action %d failed", (*iter)->getId());
 			TRACE("SmfProcStateExecuting::executeWrapup, Sending CAMPAIGN_EVT_PROCEDURE_RC event to campaign thread. RC=PROCEDURE_FAILED");

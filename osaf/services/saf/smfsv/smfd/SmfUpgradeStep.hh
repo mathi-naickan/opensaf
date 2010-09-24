@@ -406,7 +406,7 @@ class SmfUpgradeStep {
 /// @param    - 
 /// @return   true on success else false
 ///
-	bool modifyInformationModel();
+	SaAisErrorT modifyInformationModel();
 
 ///
 /// Purpose:  setMaintenanceState  

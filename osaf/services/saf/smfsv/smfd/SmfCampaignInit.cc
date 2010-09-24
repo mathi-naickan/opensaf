@@ -19,6 +19,7 @@
  *   INCLUDE FILES
  * ========================================================================
  */
+#include <saAis.h>
 #include <immutil.h>
 #include "logtrace.h"
 #include "SmfCampaignInit.hh"
@@ -141,7 +142,7 @@ SmfCampaignInit::execute()
 
 	if (m_addToImm.size() > 0) {
 		SmfImmUtils immUtil;
-		if (immUtil.doImmOperations(m_addToImm) == false) {
+		if (immUtil.doImmOperations(m_addToImm) != SA_AIS_OK) {
 			LOG_ER("SmfCampaignInit add to IMM failed");
 			return false;
 		}
@@ -154,8 +155,8 @@ SmfCampaignInit::execute()
 	std::list < SmfUpgradeAction * >::iterator upActiter;
 	upActiter = m_campInitAction.begin();
 	while (upActiter != m_campInitAction.end()) {
-		int rc = (*upActiter)->execute();
-		if (rc != 0) {
+		SaAisErrorT rc = (*upActiter)->execute();
+		if (rc != SA_AIS_OK) {
 			LOG_ER("SmfCampaignInit init action %d failed, rc = %d", (*upActiter)->getId(), rc);
 			return false;
 		}

@@ -69,11 +69,11 @@ SmfUpgradeAction::~SmfUpgradeAction()
 //------------------------------------------------------------------------------
 // execute()
 //------------------------------------------------------------------------------
-int
+SaAisErrorT
 SmfUpgradeAction::execute()
 {
 	LOG_ER("execute must be specialised");
-	return -1;
+	return SA_AIS_ERR_NOT_EXIST;
 }
 
 //------------------------------------------------------------------------------
@@ -153,10 +153,10 @@ SmfCliCommandAction::setUndoCmdArgs(const std::string & i_cmdArgs)
 //------------------------------------------------------------------------------
 // execute()
 //------------------------------------------------------------------------------
-int 
+SaAisErrorT
 SmfCliCommandAction::execute()
 {
-	int result = 0;
+	SaAisErrorT result = SA_AIS_OK;
 	SaTimeT timeout = smfd_cb->cliTimeout;	/* Default timeout */
 	std::string command;
 	std::list <SmfPlmExecEnv>::iterator it;
@@ -174,7 +174,7 @@ SmfCliCommandAction::execute()
 		MDS_DEST nodeDest = getNodeDestination(n);
 		if (nodeDest == 0) {
 			LOG_ER("SmfCliCommandAction no node destination found for node %s", n.c_str());
-			result = 1;
+			result = SA_AIS_ERR_NOT_EXIST;
 			goto done;
 		}
 
@@ -185,7 +185,7 @@ SmfCliCommandAction::execute()
 		if (rc != 0) {
 			LOG_ER("executing command '%s' on node '%s' failed with rc %d", command.c_str(), n.c_str(),
 			       rc);
-			result = 1;
+			result = SA_AIS_ERR_FAILED_OPERATION;
 			goto done;
 		}
 	}
@@ -333,7 +333,7 @@ SmfAdminOperationAction::addUndoParameter(const std::string & i_name, const std:
 //------------------------------------------------------------------------------
 // execute()
 //------------------------------------------------------------------------------
-int
+SaAisErrorT
 SmfAdminOperationAction::execute()
 {
 	TRACE_ENTER();
@@ -354,7 +354,7 @@ SmfAdminOperationAction::execute()
         const SaImmAdminOperationParamsT_2 **params = createAdmOperParams(m_doParameters);
 
 	SmfImmUtils siu;
-        int rc = siu.callAdminOperation(m_doDn, m_doOpId, params, smfd_cb->adminOpTimeout);
+        SaAisErrorT rc = siu.callAdminOperation(m_doDn, m_doOpId, params, smfd_cb->adminOpTimeout);
 
 	TRACE_LEAVE();
 
@@ -417,18 +417,16 @@ SmfImmCcbAction::addOperation(SmfImmOperation * i_op)
 //------------------------------------------------------------------------------
 // execute()
 //------------------------------------------------------------------------------
-int 
+SaAisErrorT 
 SmfImmCcbAction::execute()
 {
-	int result = 0;
+	SaAisErrorT result = SA_AIS_OK;
 	TRACE_ENTER();
 
 	TRACE("Imm ccb actions %zu", m_operations.size());
 	if (m_operations.size() > 0) {
 		SmfImmUtils immUtil;
-		if (immUtil.doImmOperations(m_operations) == false) {
-			result = 1;
-		}
+		result = immUtil.doImmOperations(m_operations);
 	}
 
 	TRACE_LEAVE();

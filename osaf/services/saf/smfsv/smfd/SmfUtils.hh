@@ -153,7 +153,7 @@ class SmfImmUtils {
 /// @param   i_immOperationList A list of Imm operations to be done.
 /// @return  True if successful, otherwise false
 ///
-	bool doImmOperations(std::list < SmfImmOperation * >&i_immOperationList);
+	SaAisErrorT doImmOperations(std::list < SmfImmOperation * >&i_immOperationList);
 
  private:
 	 bool initialize(void);

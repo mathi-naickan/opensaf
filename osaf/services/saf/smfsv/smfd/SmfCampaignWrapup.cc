@@ -133,7 +133,7 @@ SmfCampaignWrapup::executeCampWrapup()
 	LOG_NO("CAMP: Campaign wrapup, start campWrapupActions (%zu)", m_campWrapupAction.size());
 	std::list < SmfUpgradeAction * >::iterator iter;
 	for (iter = m_campWrapupAction.begin(); iter != m_campWrapupAction.end(); ++iter) {
-		if ((*iter)->execute() != 0) {
+		if ((*iter)->execute() != SA_AIS_OK) {
 			LOG_ER("SmfCampaignWrapup campWrapupActions %d failed", (*iter)->getId());
 		}
 	}
@@ -141,7 +141,7 @@ SmfCampaignWrapup::executeCampWrapup()
 	LOG_NO("CAMP: Campaign wrapup , start remove from IMM (%zu)", m_removeFromImm.size());
 	if (m_removeFromImm.size() > 0) {
 		SmfImmUtils immUtil;
-		if (immUtil.doImmOperations(m_removeFromImm) == false) {
+		if (immUtil.doImmOperations(m_removeFromImm) != SA_AIS_OK) {
 			LOG_ER("SmfCampaignWrapup remove from IMM failed");
 		}
 	}
@@ -181,7 +181,7 @@ SmfCampaignWrapup::executeCampWrapup()
 		}
         }
 
-        if (!immUtil.doImmOperations(operations)) {
+        if (immUtil.doImmOperations(operations) != SA_AIS_OK) {
                 LOG_ER("SmfUpgradeStep::setMaintenanceState(), fails to reset all saAmfSUMaintenanceCampaign attr");
         }
 
@@ -211,7 +211,7 @@ SmfCampaignWrapup::executeCampComplete()
 	std::list < SmfUpgradeAction * >::iterator iter;
 	iter = m_campCompleteAction.begin();
 	while (iter != m_campCompleteAction.end()) {
-		if ((*iter)->execute() != 0) {
+		if ((*iter)->execute() != SA_AIS_OK) {
 			LOG_ER("SmfCampaignWrapup campCompleteAction %d failed", (*iter)->getId());
 			return false;
 		}

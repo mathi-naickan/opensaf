@@ -627,7 +627,7 @@ SmfStepStateExecuting::executeAuLock(SmfUpgradeStep * i_step)
 
 	/* Modify information model and set maintenance status */
 	LOG_NO("STEP: Modify information model and set maintenance status");
-	if (i_step->modifyInformationModel() == false) {
+	if (i_step->modifyInformationModel() != SA_AIS_OK) {
 		LOG_ER("Failed to Modify information model in step=%s",i_step->getRdn().c_str());
 		changeState(i_step, SmfStepStateFailed::instance());
 		return false;
@@ -740,7 +740,7 @@ SmfStepStateExecuting::executeAuLockAct(SmfUpgradeStep * i_step)
 
 	/* Modify information model and set maintenance status */
 	LOG_NO("STEP: Modify information model and set maintenance status");
-	if (i_step->modifyInformationModel() == false) {
+	if (i_step->modifyInformationModel() != SA_AIS_OK) {
 		LOG_ER("Failed to Modify information model in step=%s",i_step->getRdn().c_str());
 		changeState(i_step, SmfStepStateFailed::instance());
 		return false;
@@ -846,7 +846,7 @@ SmfStepStateExecuting::executeAuRestart(SmfUpgradeStep * i_step)
 
 	/* Modify information model and set maintenance status */
 	LOG_NO("STEP: Modify information model and set maintenance status");
-	if (i_step->modifyInformationModel() == false) {
+	if (i_step->modifyInformationModel() != SA_AIS_OK) {
 		LOG_ER("Failed to Modify information model");
 		changeState(i_step, SmfStepStateFailed::instance());
 		return false;
@@ -916,7 +916,7 @@ SmfStepStateExecuting::executeAuRestartAct(SmfUpgradeStep * i_step)
 
 	/* Modify information model and set maintenance status */
 	LOG_NO("STEP: Modify information model and set maintenance status");
-	if (i_step->modifyInformationModel() == false) {
+	if (i_step->modifyInformationModel() != SA_AIS_OK) {
 		LOG_ER("Failed to Modify information model");
 		changeState(i_step, SmfStepStateFailed::instance());
 		return false;
@@ -1038,7 +1038,7 @@ SmfStepStateExecuting::executeNodeReboot(SmfUpgradeStep * i_step)
 
 		/* Modify information model and set maintenance status */
 		LOG_NO("STEP: Modify information model and set maintenance status");
-		if (i_step->modifyInformationModel() == false) {
+		if (i_step->modifyInformationModel() != SA_AIS_OK) {
 			LOG_ER("Failed to Modify information model in step=%s",i_step->getRdn().c_str());
 			changeState(i_step, SmfStepStateFailed::instance());
 			return false;
@@ -1359,7 +1359,7 @@ SmfStepStateExecuting::executeNodeRebootAct(SmfUpgradeStep * i_step)
 
 		/* Modify information model and set maintenance status */
 		LOG_NO("STEP: Modify information model and set maintenance status");
-		if (i_step->modifyInformationModel() == false) {
+		if (i_step->modifyInformationModel() != SA_AIS_OK) {
 			LOG_ER("Failed to Modify information model in step=%s",i_step->getRdn().c_str());
 			changeState(i_step, SmfStepStateFailed::instance());
 			return false;

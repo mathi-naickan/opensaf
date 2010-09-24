@@ -26,6 +26,8 @@
 #include <string>
 #include <list>
 
+#include <saAis.h>
+
 #include <saImmOm.h>
 #include "SmfImmOperation.hh"
 
@@ -72,7 +74,7 @@ class SmfUpgradeAction {
 /// @param   None
 /// @return  0 on success, otherwise failure.
 ///
-	virtual int execute();
+	virtual SaAisErrorT execute();
 
 ///
 /// Purpose: Rollback the upgrade action (to be specialized).
@@ -131,7 +133,7 @@ class SmfCliCommandAction:public SmfUpgradeAction {
 /// @return  0 on success, otherwise failure.
 ///
 
-	int execute();
+	SaAisErrorT execute();
 
 ///
 /// Purpose: Rollback the CLI command action.
@@ -221,7 +223,7 @@ class SmfAdminOperationAction:public SmfUpgradeAction {
 /// @param   None.
 /// @return  0 on success, otherwise failure.
 ///
-	int execute();
+	SaAisErrorT execute();
 
 ///
 /// Purpose: Rollback the admin operation action.
@@ -337,7 +339,7 @@ class SmfImmCcbAction:public SmfUpgradeAction {
 /// @param   None.
 /// @return  0 on success, otherwise failure.
 ///
-	int execute();
+	SaAisErrorT execute();
 
 ///
 /// Purpose: Rollback the IMM CCB action.

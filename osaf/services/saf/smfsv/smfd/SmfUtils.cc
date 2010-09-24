@@ -468,7 +468,7 @@ done:
 // ------------------------------------------------------------------------------
 // doImmOperations()
 // ------------------------------------------------------------------------------
-bool 
+SaAisErrorT 
 SmfImmUtils::doImmOperations(std::list < SmfImmOperation * >&i_immOperationList)
 {
 	/* Initialize CCB and get the IMM CCB handle */
@@ -484,7 +484,7 @@ SmfImmUtils::doImmOperations(std::list < SmfImmOperation * >&i_immOperationList)
 	if (result != SA_AIS_OK) {
 		LOG_ER("SmfImmUtils::doImmOperations:saImmOmCcbInitialize failed  SaAisErrorT=%u", result);
                 immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
-		return false;
+		return result;
 	}
 
 	std::list < SmfImmOperation * >::iterator iter;
@@ -493,9 +493,10 @@ SmfImmUtils::doImmOperations(std::list < SmfImmOperation * >&i_immOperationList)
 	for (iter = i_immOperationList.begin(); iter != i_immOperationList.end(); ++iter) {
 		(*iter)->setImmOwnerHandle(m_ownerHandle);
 		(*iter)->setCcbHandle(immCcbHandle);
-		if ((*iter)->execute() != SA_AIS_OK){
+		result = (*iter)->execute();
+		if (result != SA_AIS_OK){
 			LOG_ER("SmfImmUtils::doImmOperations:execute failed SaAisErrorT=%u", result);
-			return false;
+			return result;
 		}
 	}
 
@@ -504,7 +505,7 @@ SmfImmUtils::doImmOperations(std::list < SmfImmOperation * >&i_immOperationList)
 	if (result != SA_AIS_OK) {
 		LOG_ER("SmfImmUtils::doImmOperations:saImmOmCcbApply failed SaAisErrorT=%u", result);
                 immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
-		return false;
+		return result;
 	}
 
 	/* Finalize CCB and release the IMM CCB handle */
@@ -512,11 +513,11 @@ SmfImmUtils::doImmOperations(std::list < SmfImmOperation * >&i_immOperationList)
 	if (result != SA_AIS_OK) {
 		LOG_ER("SmfImmUtils::doImmOperations:saImmOmCcbFinalize failed SaAisErrorT=%u", result);
                 immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
-		return false;
+		return result;
 	}
 
         immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
-	return true;
+	return result;
 }
 
 // ------------------------------------------------------------------------------

@@ -599,7 +599,7 @@ SmfUpgradeStep::restartActivationUnits()
 //------------------------------------------------------------------------------
 // modifyInformationModel()
 //------------------------------------------------------------------------------
-bool 
+SaAisErrorT 
 SmfUpgradeStep::modifyInformationModel()
 {
 	if (m_modificationList.size() > 0) {
@@ -609,8 +609,9 @@ SmfUpgradeStep::modifyInformationModel()
 	}
 
 	TRACE("Nothing to modify in information model");
-	return true;
+	return SA_AIS_OK;
 }
+
 //------------------------------------------------------------------------------
 // setMaintenanceState()
 //------------------------------------------------------------------------------
