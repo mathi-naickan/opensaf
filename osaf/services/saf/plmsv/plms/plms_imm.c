@@ -853,6 +853,62 @@ static SaAisErrorT plms_imm_ccb_obj_create_cbk(SaImmOiHandleT imm_oi_hdl,
 			/* RDN attribute, store the name and value */
 			obj_rdn = *(SaStringT *)*((attr[j])->attrValues);
 			TRACE_2("Object RDN: %s", obj_rdn);
+			if ((strncmp(obj_rdn, "safDomain", 9) !=0 ) && 
+				(strncmp(obj_rdn, "safHpiCfg", 9) !=0 ) && 
+					(parent_name == NULL)) {
+				TRACE_LEAVE2("Invalid DN, object cannot be created");
+				return SA_AIS_ERR_BAD_OPERATION;
+			}
+			if (((strncmp(obj_rdn, "safDomain", 9) ==0 ) || 
+				(strncmp(obj_rdn, "safHpiCfg", 9) ==0 )) && 
+					(parent_name != NULL)) {
+				TRACE_LEAVE2("Invalid DN, object cannot be created");
+				return SA_AIS_ERR_BAD_OPERATION;
+			}
+			else if (strncmp(obj_rdn, "safHEType", 9) == 0) {
+				if ((parent_name->length != strlen("safApp=safPlmService")) || 
+					(strncmp((char *)parent_name->value, "safApp=safPlmService", 
+					parent_name->length) != 0)) {
+						TRACE_LEAVE2("Invalid DN, object cannot be created");
+						return SA_AIS_ERR_BAD_OPERATION;
+				}
+			}
+			else if (strncmp(obj_rdn, "safEEType", 9) == 0) {
+				if ((parent_name->length != strlen("safApp=safPlmService")) || 
+					(strncmp((char *)parent_name->value, "safApp=safPlmService", 
+					parent_name->length) != 0)) {
+						TRACE_LEAVE2("Invalid DN, object cannot be created");
+						return SA_AIS_ERR_BAD_OPERATION;
+				}
+			}
+			else if (strncmp(obj_rdn, "safHE", 5) == 0) {
+				if ((strncmp((char *)parent_name->value, "safDomain", 9) != 0) && 
+					(strncmp((char *)parent_name->value, "safHE", 5) != 0)) {
+						TRACE_LEAVE2("Invalid DN, object cannot be created");
+						return SA_AIS_ERR_BAD_OPERATION;
+				}
+			}
+			else if (strncmp(obj_rdn, "safEE", 5) == 0) {
+				if ((strncmp((char *)parent_name->value, "safDomain", 9) != 0) && 
+					(strncmp((char *)parent_name->value, "safHE", 5) != 0)) {
+						TRACE_LEAVE2("Invalid DN, object cannot be created");
+						return SA_AIS_ERR_BAD_OPERATION;
+				}
+			}
+			else if (strncmp(obj_rdn, "safVersion", 10) == 0) {
+				if ((strncmp((char *)parent_name->value, "safHEType", 9) != 0) && 
+					(strncmp((char *)parent_name->value, "safEEType", 9) != 0)) {
+						TRACE_LEAVE2("Invalid DN, object cannot be created");
+						return SA_AIS_ERR_BAD_OPERATION;
+				}
+			}
+			else if (strncmp(obj_rdn, "safDependency", 13) == 0) {
+				if ((strncmp((char *)parent_name->value, "safHE=", 6) != 0) && 
+					(strncmp((char *)parent_name->value, "safEE=", 6) != 0)) {
+						TRACE_LEAVE2("Invalid DN, object cannot be created");
+						return SA_AIS_ERR_BAD_OPERATION;
+				}
+			}
 		}
 	}
 	if ((ccb_util_ccb_data = ccbutil_getCcbData(ccb_id)) == NULL) {
