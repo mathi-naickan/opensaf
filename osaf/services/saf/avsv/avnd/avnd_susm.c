@@ -199,7 +199,8 @@ AVND_SU_SIQ_REC *avnd_su_siq_rec_buf(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM 
 	uns32 rc = NCSCC_RC_SUCCESS;
 
 	/* buffer the msg, if SU is inst-failed and all comps are not terminated */
-	if ((su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) && (!m_AVND_SU_IS_ALL_TERM(su))) {
+	if (((su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) && (!m_AVND_SU_IS_ALL_TERM(su))) ||
+			(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN)) {
 		siq = avnd_su_siq_rec_add(cb, su, param, &rc);
 		return siq;
 	}
@@ -811,6 +812,12 @@ uns32 avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	/* dont process unless AvD is up */
 	if (!m_AVND_CB_IS_AVD_UP(cb))
+		goto done;
+
+	/* since AMFND is going down no need to process SU instantiate/terminate msg 
+	 * because SU instantiate will cause component information to be read from IMMND
+	 * and IMMND might have been already terminated and in that case AMFND will assert */
+	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN)
 		goto done;
 
 	info = &evt->info.avd->msg_info.d2n_prsc_su;
