@@ -71,6 +71,7 @@ extern "C" {
 	uns32 campaign_oi_activate(smfd_cb_t * cb);
 	uns32 campaign_oi_deactivate(smfd_cb_t * cb);
 	uns32 campaign_oi_init(smfd_cb_t * cb);
+	uns32 read_config_and_set_control_block(smfd_cb_t * cb);
 	extern  void smfd_coi_reinit_bg(smfd_cb_t *cb); 
 	uns32 updateImmAttr(const char *dn,
 			    SaImmAttrNameT attributeName,

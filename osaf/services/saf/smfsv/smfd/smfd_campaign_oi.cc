@@ -46,6 +46,7 @@ extern struct ImmutilWrapperProfile immutilWrapperProfile;
 static const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) "safSmfService";
 
 static const SaImmClassNameT campaignClassName = (SaImmClassNameT) "SaSmfCampaign";
+static const SaImmClassNameT smfConfigClassName = (SaImmClassNameT) "OpenSafSmfConfig";
 
 /**
  * Campaign Admin operation handling. This function is executed as an
@@ -180,20 +181,29 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 		switch (ccbUtilOperationData->operationType) {
 		case CCBUTIL_CREATE:
 			{
-				SmfCampaign test(ccbUtilOperationData->param.create.parentName,
-						 ccbUtilOperationData->param.create.attrValues);
+				if (strcmp(ccbUtilOperationData->param.create.className, "SaSmfCampaign") == 0) {
+					SmfCampaign test(ccbUtilOperationData->param.create.parentName,
+							 ccbUtilOperationData->param.create.attrValues);
 
-				TRACE("Create campaign %s", test.getDn().c_str());
-				/* Creation always allowed */
+					TRACE("Create campaign %s", test.getDn().c_str());
+					/* Creation always allowed */
+				} else {
+					LOG_ER("Objects of class %s, can't be created",
+					       ccbUtilOperationData->param.create.className);
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				}
 				break;
 			}
 
 		case CCBUTIL_DELETE:
-			{
+		{
+			//Handle the campaign object
+			if (strncmp((char *)ccbUtilOperationData->param.modify.objectName->value, "safSmfCampaign=", 15) == 0) {
 				TRACE("Delete campaign %s", ccbUtilOperationData->param.deleteOp.objectName->value);
 
 				SmfCampaign *campaign =
-				    SmfCampaignList::instance()->get(ccbUtilOperationData->param.deleteOp.objectName);
+					SmfCampaignList::instance()->get(ccbUtilOperationData->param.deleteOp.objectName);
 				if (campaign == NULL) {
 					LOG_ER("Campaign %s doesn't exists, can't be deleted",
 					       ccbUtilOperationData->param.deleteOp.objectName->value);
@@ -207,29 +217,63 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
 				}
-				break;
+			//Handle the OpenSAFSmfConfig object
+			}else if (strncmp((char*)ccbUtilOperationData->param.modify.objectName->value, "smfConfig=", 10) == 0) {
+				LOG_ER("Deletion of SMF configuration object %s, not allowed",
+				       ccbUtilOperationData->param.deleteOp.objectName->value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			//Handle any unknown object
+			} else {
+				LOG_ER("Unknown object %s, can't be deleted",
+				       ccbUtilOperationData->param.deleteOp.objectName->value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
 			}
+			break;
+		}
 
 		case CCBUTIL_MODIFY:
 			{
-				TRACE("Modify campaign %s", ccbUtilOperationData->param.modify.objectName->value);
+				//Handle the campaign object
+				if (strncmp((char *)ccbUtilOperationData->param.modify.objectName->value, "safSmfCampaign=", 15) == 0) {
+					TRACE("Modify campaign %s", ccbUtilOperationData->param.modify.objectName->value);
 
-				/* Find Campaign object */
-				SmfCampaign *campaign =
-				    SmfCampaignList::instance()->get(ccbUtilOperationData->param.modify.objectName);
-				if (campaign == NULL) {
-					LOG_ER("Campaign %s not found, can't be modified",
+					/* Find Campaign object */
+					SmfCampaign *campaign =
+						SmfCampaignList::instance()->get(ccbUtilOperationData->param.modify.objectName);
+					if (campaign == NULL) {
+						LOG_ER("Campaign %s not found, can't be modified",
+						       ccbUtilOperationData->param.modify.objectName->value);
+						rc = SA_AIS_ERR_BAD_OPERATION;
+						goto done;
+					}
+
+					rc = campaign->verify(ccbUtilOperationData->param.modify.attrMods);
+					if (rc != SA_AIS_OK) {
+						LOG_ER("Campaign %s attribute modification fail, wrong state or parameter content",
+						       ccbUtilOperationData->param.modify.objectName->value);
+						goto done;
+					}
+				//Handle the OpenSAFSmfConfig object
+				} else if (strncmp((char*)ccbUtilOperationData->param.modify.objectName->value, "smfConfig=", 10) == 0) {
+					TRACE("Modification of object %s", ccbUtilOperationData->param.modify.objectName->value);
+					//Check if any campaign is executing
+					if (SmfCampaignThread::instance() != NULL) {
+						LOG_ER("Modification not allowed, campaign %s is executing, ",
+						       SmfCampaignThread::instance()->campaign()->getDn().c_str());
+						rc = SA_AIS_ERR_BAD_OPERATION;
+						goto done;
+					}
+
+				//Handle any unknown object
+				} else {
+					LOG_ER("Unknown object %s, can't be modified",
 					       ccbUtilOperationData->param.modify.objectName->value);
 					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
 				}
 
-				rc = campaign->verify(ccbUtilOperationData->param.modify.attrMods);
-				if (rc != SA_AIS_OK) {
-					LOG_ER("Campaign %s attribute modification fail, wrong state or parameter content",
-					       ccbUtilOperationData->param.modify.objectName->value);
-					goto done;
-				}
 				break;
 			}
 		}
@@ -243,7 +287,6 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 
 static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId)
 {
-	SaAisErrorT rc = SA_AIS_OK;
 	struct CcbUtilCcbData *ccbUtilCcbData;
 	struct CcbUtilOperationData *ccbUtilOperationData;
 
@@ -258,41 +301,55 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 	while (ccbUtilOperationData != NULL) {
 		switch (ccbUtilOperationData->operationType) {
 		case CCBUTIL_CREATE:
-			{
-				SmfCampaign *newCampaign =
-				    new SmfCampaign(ccbUtilOperationData->param.create.parentName,
-						    ccbUtilOperationData->param.create.attrValues);
+		{
+			SmfCampaign *newCampaign =
+				new SmfCampaign(ccbUtilOperationData->param.create.parentName,
+						ccbUtilOperationData->param.create.attrValues);
 
-				TRACE("Adding campaign %s", newCampaign->getDn().c_str());
-				rc = SmfCampaignList::instance()->add(newCampaign);
-				break;
-			}
+			TRACE("Adding campaign %s", newCampaign->getDn().c_str());
+			SmfCampaignList::instance()->add(newCampaign);
+			break;
+		}
 
 		case CCBUTIL_DELETE:
-			{
-				TRACE("Deleting campaign %s", ccbUtilOperationData->param.deleteOp.objectName->value);
+		{
+			TRACE("Deleting campaign %s", ccbUtilOperationData->param.deleteOp.objectName->value);
 
-				rc = SmfCampaignList::instance()->del(ccbUtilOperationData->param.deleteOp.objectName);
-				break;
-			}
+			SmfCampaignList::instance()->del(ccbUtilOperationData->param.deleteOp.objectName);
+			break;
+		}
 
 		case CCBUTIL_MODIFY:
-			{
+		{
+			//Handle the campaign object
+			if (strncmp((char *)ccbUtilOperationData->param.modify.objectName->value, "safSmfCampaign=", 15) == 0) {
 				TRACE("Modifying campaign %s", ccbUtilOperationData->param.modify.objectName->value);
 
 				/* Find Campaign object */
 				SmfCampaign *campaign =
-				    SmfCampaignList::instance()->get(ccbUtilOperationData->param.modify.objectName);
+					SmfCampaignList::instance()->get(ccbUtilOperationData->param.modify.objectName);
 				if (campaign == NULL) {
 					LOG_ER("Campaign %s not found",
 					       ccbUtilOperationData->param.modify.objectName->value);
-					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
 				}
 
-				rc = campaign->modify(ccbUtilOperationData->param.modify.attrMods);
-				break;
+				campaign->modify(ccbUtilOperationData->param.modify.attrMods);
+
+				//Handle the OpenSAFSmfConfig object
+			}else if (strncmp((char*)ccbUtilOperationData->param.modify.objectName->value, "smfConfig=", 10) == 0) {
+				TRACE("Modifying configuration object %s", ccbUtilOperationData->param.modify.objectName->value);
+				//Reread the SMF config object
+			        read_config_and_set_control_block(smfd_cb);
+
+				//Handle any unknown object
+			} else {
+				LOG_ER("Unknown object %s, can't be modified",
+				       ccbUtilOperationData->param.modify.objectName->value);
+				goto done;
 			}
+			break;
+		}
 		}
 		ccbUtilOperationData = ccbUtilOperationData->next;
 	}
@@ -468,6 +525,11 @@ uns32 campaign_oi_activate(smfd_cb_t * cb)
 		return NCSCC_RC_FAILURE;
 	}
 
+	rc = immutil_saImmOiClassImplementerSet(cb->campaignOiHandle, smfConfigClassName);
+	if (rc != SA_AIS_OK) {
+		return NCSCC_RC_FAILURE;
+	}
+
 	/* Create all Campaign objects found in the IMM  */
 	if (create_campaign_objects(cb) != NCSCC_RC_SUCCESS) {
 		return NCSCC_RC_FAILURE;
@@ -487,6 +549,11 @@ uns32 campaign_oi_deactivate(smfd_cb_t * cb)
 	TRACE_ENTER();
 
 	rc = immutil_saImmOiClassImplementerRelease(cb->campaignOiHandle, campaignClassName);
+	if (rc != SA_AIS_OK) {
+		return NCSCC_RC_FAILURE;
+	}
+
+	rc = immutil_saImmOiClassImplementerRelease(cb->campaignOiHandle, smfConfigClassName);
 	if (rc != SA_AIS_OK) {
 		return NCSCC_RC_FAILURE;
 	}
@@ -513,9 +580,8 @@ uns32 campaign_oi_deactivate(smfd_cb_t * cb)
  */
 uns32 campaign_oi_init(smfd_cb_t * cb)
 {
-	SaAisErrorT rc = SA_AIS_OK;
+	SaAisErrorT rc;
 	SmfImmUtils immutil;
-	SaImmAttrValuesT_2 **attributes;
 
 	TRACE_ENTER();
 	immutilWrapperProfile.errorsAreFatal = 0;
@@ -528,6 +594,22 @@ uns32 campaign_oi_init(smfd_cb_t * cb)
 	if (rc != SA_AIS_OK) {
 		return NCSCC_RC_FAILURE;
 	}
+
+	/* Read SMF configuration data and set cb data structure */
+	uns32 ret = read_config_and_set_control_block(cb);
+	TRACE_LEAVE();
+	return ret;
+}
+
+/**
+ * read SMF configuration object and set control block data accordingly.
+ * @param cb
+ */
+uns32 read_config_and_set_control_block(smfd_cb_t * cb)
+{
+	TRACE_ENTER();
+	SmfImmUtils immutil;
+	SaImmAttrValuesT_2 **attributes;
 
 	if (immutil.getObject(SMF_CONFIG_OBJECT_DN, &attributes) == false) {
 		LOG_ER("Could not get SMF config object from IMM %s", SMF_CONFIG_OBJECT_DN);
@@ -672,7 +754,13 @@ void* smfd_coi_reinit_thread(void * _cb)
 
 		rc = immutil_saImmOiClassImplementerSet(cb->campaignOiHandle, campaignClassName);
 		if (rc != SA_AIS_OK) {
-			LOG_ER("immutil_saImmOiClassImplementerSet failed %u", rc);
+			LOG_ER("immutil_saImmOiClassImplementerSet campaignClassName failed %u", rc);
+			exit(EXIT_FAILURE);
+		}
+
+		rc = immutil_saImmOiClassImplementerSet(cb->campaignOiHandle, smfConfigClassName);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("immutil_saImmOiClassImplementerSet smfConfigOiHandle failed %u", rc);
 			exit(EXIT_FAILURE);
 		}
 	}
