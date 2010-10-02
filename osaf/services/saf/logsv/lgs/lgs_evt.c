@@ -114,11 +114,13 @@ log_client_t *lgs_client_new(MDS_DEST mds_dest, uns32 client_id, lgs_stream_list
 	client->stream_list_root = stream_list;
 
     /** Insert the record into the patricia tree **/
-	if (NCSCC_RC_SUCCESS != ncs_patricia_tree_add(&lgs_cb->client_tree, &client->pat_node)) {
-		LOG_WA("FAILED: ncs_patricia_tree_add, client_id %u", client_id);
-		free(client);
-		client = NULL;
-		goto done;
+	if (NULL == ncs_patricia_tree_get(&lgs_cb->client_tree,client->pat_node.key_info)){
+		if (NCSCC_RC_SUCCESS != ncs_patricia_tree_add(&lgs_cb->client_tree, &client->pat_node)) {
+			LOG_WA("FAILED: ncs_patricia_tree_add, client_id %u", client_id);
+			free(client);
+			client = NULL;
+			goto done;
+		}
 	}
 
  done:
@@ -157,14 +159,15 @@ int lgs_client_delete(uns32 client_id)
 		cur_rec = tmp_rec;
 	}
 
-	if (NCSCC_RC_SUCCESS != ncs_patricia_tree_del(&lgs_cb->client_tree, &client->pat_node)) {
-		TRACE("ncs_patricia_tree_del FAILED");
-		status = -2;
-		goto done;
+	if (ncs_patricia_tree_get(&lgs_cb->client_tree,client->pat_node.key_info)){
+		if (NCSCC_RC_SUCCESS != ncs_patricia_tree_del(&lgs_cb->client_tree, &client->pat_node)) {
+			TRACE("ncs_patricia_tree_del FAILED");
+			status = -2;
+			goto done;
+		}
+
+		free(client);
 	}
-
-	free(client);
-
  done:
 	TRACE_LEAVE();
 	return status;

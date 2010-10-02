@@ -124,11 +124,13 @@ static uns32 log_stream_add(NCS_PATRICIA_NODE *node, const char *key)
 
 	node->key_info = (uns8 *)key;
 
-	rc = ncs_patricia_tree_add(&stream_dn_tree, node);
-	if (rc != NCSCC_RC_SUCCESS) {
-		LOG_WA("ncs_patricia_tree_add FAILED for '%s' %u", key, rc);
-		node->key_info = NULL;
-		goto done;
+	if ( NULL == ncs_patricia_tree_get(&stream_dn_tree,node->key_info)){
+		rc = ncs_patricia_tree_add(&stream_dn_tree, node);
+		if (rc != NCSCC_RC_SUCCESS) {
+			LOG_WA("ncs_patricia_tree_add FAILED for '%s' %u", key, rc);
+			node->key_info = NULL;
+			goto done;
+		}
 	}
 
  done:
@@ -146,10 +148,12 @@ static uns32 log_stream_remove(const char *key)
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
-
-	if ((rc = ncs_patricia_tree_del(&stream_dn_tree, &stream->pat_node)) != NCSCC_RC_SUCCESS) {
-		TRACE("ncs_patricia_tree_del FAILED");
-		goto done;
+	
+	if (ncs_patricia_tree_get(&stream_dn_tree,stream->pat_node.key_info)){
+		if ((rc = ncs_patricia_tree_del(&stream_dn_tree, &stream->pat_node)) != NCSCC_RC_SUCCESS) {
+			TRACE("ncs_patricia_tree_del FAILED");
+			goto done;
+		}
 	}
 
  done:

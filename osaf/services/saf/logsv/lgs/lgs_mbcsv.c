@@ -678,13 +678,8 @@ static uns32 ckpt_decode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg)
 
 	case NCS_MBCSV_MSG_ASYNC_UPDATE:
 		TRACE_2(" ASYNC UPDATE DECODE called");
-		if (lgs_cb->ckpt_state != COLD_SYNC_COMPLETE) {
-			TRACE("Error: Recieved Async Update before coldsync, dropping it");
-			rc = NCSCC_RC_FAILURE;
-		} else {
-			if ((rc = ckpt_decode_async_update(lgs_cb, cbk_arg)) != NCSCC_RC_SUCCESS)
-				TRACE("ckpt_decode_async_update FAILED %u", rc);
-		}
+		if ((rc = ckpt_decode_async_update(lgs_cb, cbk_arg)) != NCSCC_RC_SUCCESS)
+			TRACE("ckpt_decode_async_update FAILED %u", rc);
 		break;
 
 	case NCS_MBCSV_MSG_WARM_SYNC_REQ:
