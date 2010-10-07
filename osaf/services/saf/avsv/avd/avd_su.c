@@ -965,6 +965,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 
 		/* For non-preinstantiable SU lock-inst is same as lock */
 		if ( su->saAmfSUPreInstantiable == FALSE ) {
+			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
 			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			goto done;
 		}
