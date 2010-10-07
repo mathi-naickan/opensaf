@@ -1129,20 +1129,27 @@ uns32 avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceState
 		}
 	}
 
-	/*if((SA_AMF_PRESENCE_ORPHANED == prv_st) */
-	/* inform avd of the change in presence state */
-	memset(&param, 0, sizeof(AVSV_PARAM_INFO));
-	param.class_id = AVSV_SA_AMF_COMP;
-	param.attr_id = saAmfCompPresenceState_ID;
-	param.name = comp->name;
-	param.act = AVSV_OBJ_OPR_MOD;
-	*((uns32 *)param.value) = m_NCS_OS_HTONL(comp->pres);
-	param.value_len = sizeof(uns32);
+	/* inform avd of the change in presence state for all 
+	 * Component Presence state trasitions except 
+	 * INSTANTIATED -> ORPHANED -> INSTANTIATED */
+	if ((SA_AMF_PRESENCE_ORPHANED == final_st) ||
+			((SA_AMF_PRESENCE_INSTANTIATED == final_st) &&
+			 (SA_AMF_PRESENCE_ORPHANED == prv_st))) {
+		TRACE("'%s' presence state changed from '%u' => '%u'",
+				comp->name.value, prv_st, final_st);
+	} else {
+		memset(&param, 0, sizeof(AVSV_PARAM_INFO));
+		param.class_id = AVSV_SA_AMF_COMP;
+		param.attr_id = saAmfCompPresenceState_ID;
+		param.name = comp->name;
+		param.act = AVSV_OBJ_OPR_MOD;
+		*((uns32 *)param.value) = m_NCS_OS_HTONL(comp->pres);
+		param.value_len = sizeof(uns32);
 
-	rc = avnd_di_object_upd_send(cb, &param);
-	if (NCSCC_RC_SUCCESS != rc)
-		goto done;
-
+		rc = avnd_di_object_upd_send(cb, &param);
+		if (NCSCC_RC_SUCCESS != rc)
+			goto done;
+	}
 	/* 
 	 * Trigger the SU FSM.
 	 * Only PI comps in a PI SU send event to the SU FSM.
