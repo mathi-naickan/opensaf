@@ -312,14 +312,17 @@ static void clm_track_cb(const SaClmClusterNotificationBufferT_4 *notificationBu
 					TRACE("Node Joined '%s' '%x'", 
 						notifItem->clusterNode.nodeName.value,
 						notifItem->clusterNode.nodeName.length);
-				}
 
-				node->node_info.member = SA_TRUE;
-				m_AVSV_SEND_CKPT_UPDT_ASYNC_ADD(avd_cb, node, AVSV_CKPT_AVD_NODE_CONFIG);
-				if (node->node_state == AVD_AVND_STATE_PRESENT) {
-					TRACE("Node already up and configured");
-					/* now try to instantiate all the SUs that need to be */
-					clm_node_join_complete(node);
+					node->node_info.member = SA_TRUE;
+					m_AVSV_SEND_CKPT_UPDT_ASYNC_ADD(avd_cb, node, AVSV_CKPT_AVD_NODE_CONFIG);
+					if (node->node_state == AVD_AVND_STATE_PRESENT) {
+						TRACE("Node already up and configured");
+						/* now try to instantiate all the SUs that need to be */
+						clm_node_join_complete(node);
+					}
+				} else {
+					LOG_NO("AMF-node not configured on this CLM-node '%s'",
+							notifItem->clusterNode.nodeName.value);
 				}
 			}
 			else
