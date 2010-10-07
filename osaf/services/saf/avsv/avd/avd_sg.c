@@ -658,20 +658,6 @@ static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartMax_ID);
 				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartProb_ID);
 				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartMax_ID);
-			}
-			attr_mod = opdata->param.modify.attrMods[i++];
-		}		/* while (attr_mod != NULL) */
-
-		/* Modifications can be done for any parameters. */
-		attr_mod = opdata->param.modify.attrMods[i++];
-		while (attr_mod != NULL) {
-			void *value;
-			const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
-
-			value = attribute->attrValues[0];
-
-			if (!strcmp(attribute->attrName, "saAmfSGType")) {
-				/*  Just for the sake of avoiding else. */
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoRepair")) {
 				avd_sg->saAmfSGAutoRepair = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoAdjust")) {
@@ -692,12 +678,16 @@ static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 				avd_sg->saAmfSGAutoAdjustProb = *((SaTimeT *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartProb")) {
 				avd_sg->saAmfSGCompRestartProb = *((SaTimeT *)value);
+				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartProb_ID);
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartMax")) {
 				avd_sg->saAmfSGCompRestartMax = *((SaUint32T *)value);
+				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartMax_ID);
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
 				avd_sg->saAmfSGSuRestartProb = *((SaTimeT *)value);
+				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartProb_ID);
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
 				avd_sg->saAmfSGSuRestartMax = *((SaUint32T *)value);
+				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartMax_ID);
 			} else {
 				assert(0);
 			}
