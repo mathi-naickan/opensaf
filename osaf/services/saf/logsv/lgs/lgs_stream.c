@@ -120,7 +120,7 @@ static int rotate_if_needed(log_stream_t *stream)
 
 static uns32 log_stream_add(NCS_PATRICIA_NODE *node, const char *key)
 {
-	uns32 rc;
+	uns32 rc = NCSCC_RC_SUCCESS;
 
 	node->key_info = (uns8 *)key;
 
@@ -139,7 +139,7 @@ static uns32 log_stream_add(NCS_PATRICIA_NODE *node, const char *key)
 
 static uns32 log_stream_remove(const char *key)
 {
-	uns32 rc;
+	uns32 rc = NCSCC_RC_SUCCESS;
 	log_stream_t *stream;
 
 	stream = (log_stream_t *)ncs_patricia_tree_get(&stream_dn_tree, (uns8 *)key);
