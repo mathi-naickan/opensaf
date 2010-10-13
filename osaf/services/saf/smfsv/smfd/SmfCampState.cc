@@ -50,8 +50,6 @@
  * ========================================================================
  */
 
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
-
 /* ========================================================================
  *   FUNCTION PROTOTYPES
  * ========================================================================
@@ -1033,8 +1031,6 @@ SmfCampStateExecCompleted::commit(SmfUpgradeCampaign * i_camp)
 	}
 
 	/* Remove smfRestartInfo runtime object */
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
 
 	SaNameT objectName;
 	std::string dn = "smfRestartInfo=info," + SmfCampaignThread::instance()->campaign()->getDn(); 
@@ -1048,8 +1044,6 @@ SmfCampStateExecCompleted::commit(SmfUpgradeCampaign * i_camp)
 	if (rc != SA_AIS_OK) {
 		LOG_ER("immutil_saImmOiRtObjectDelete returned %u for %s, continuing", rc, dn.c_str());
 	}
-
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 
 	changeState(i_camp, SmfCampStateCommitted::instance());
 	LOG_NO("CAMP: Upgrade campaign committed %s", i_camp->getCampaignName().c_str());

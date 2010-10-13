@@ -42,7 +42,6 @@
 #include "SmfCampState.hh"
 
 static SaVersionT immVersion = { 'A', 2, 1 };
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
 static const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) "safSmfService";
 
 static const SaImmClassNameT campaignClassName = (SaImmClassNameT) "SaSmfCampaign";
@@ -517,16 +516,19 @@ uns32 campaign_oi_activate(smfd_cb_t * cb)
 
 	rc = immutil_saImmOiImplementerSet(cb->campaignOiHandle, implementerName);
 	if (rc != SA_AIS_OK) {
+		TRACE("immutil_saImmOiImplementerSet fail, rc = %d inplementer name=%s", rc, (char*)implementerName);
 		return NCSCC_RC_FAILURE;
 	}
 
 	rc = immutil_saImmOiClassImplementerSet(cb->campaignOiHandle, campaignClassName);
 	if (rc != SA_AIS_OK) {
+		TRACE("immutil_saImmOiClassImplementerSet fail, rc = %d, classname=%s", rc, (char*)campaignClassName);
 		return NCSCC_RC_FAILURE;
 	}
 
 	rc = immutil_saImmOiClassImplementerSet(cb->campaignOiHandle, smfConfigClassName);
 	if (rc != SA_AIS_OK) {
+		TRACE("immutil_saImmOiClassImplementerSet fail, rc = %d classname=%s", rc, (char*)smfConfigClassName);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -550,16 +552,19 @@ uns32 campaign_oi_deactivate(smfd_cb_t * cb)
 
 	rc = immutil_saImmOiClassImplementerRelease(cb->campaignOiHandle, campaignClassName);
 	if (rc != SA_AIS_OK) {
+		TRACE("immutil_saImmOiClassImplementerRelease fail, rc = %d, classname=%s", rc, (char*)campaignClassName);
 		return NCSCC_RC_FAILURE;
 	}
 
 	rc = immutil_saImmOiClassImplementerRelease(cb->campaignOiHandle, smfConfigClassName);
 	if (rc != SA_AIS_OK) {
+		TRACE("immutil_saImmOiClassImplementerRelease fail, rc = %d, classname=%s", rc, (char*)smfConfigClassName);
 		return NCSCC_RC_FAILURE;
 	}
 
 	rc = immutil_saImmOiImplementerClear(cb->campaignOiHandle);
 	if (rc != SA_AIS_OK) {
+		TRACE("immutil_saImmOiImplementerClear fail, rc = %d", rc);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -584,14 +589,15 @@ uns32 campaign_oi_init(smfd_cb_t * cb)
 	SmfImmUtils immutil;
 
 	TRACE_ENTER();
-	immutilWrapperProfile.errorsAreFatal = 0;
 	rc = immutil_saImmOiInitialize_2(&cb->campaignOiHandle, &callbacks, &immVersion);
 	if (rc != SA_AIS_OK) {
+		TRACE("immutil_saImmOiInitialize_2 fail, rc = %d", rc);
 		return NCSCC_RC_FAILURE;
 	}
 
 	rc = immutil_saImmOiSelectionObjectGet(cb->campaignOiHandle, &cb->campaignSelectionObject);
 	if (rc != SA_AIS_OK) {
+		TRACE("immutil_saImmOiSelectionObjectGet fail, rc = %d", rc);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -732,7 +738,6 @@ void* smfd_coi_reinit_thread(void * _cb)
 	TRACE_ENTER();
 	smfd_cb_t * cb = (smfd_cb_t *)_cb;
 
-	immutilWrapperProfile.errorsAreFatal = 0;
 	rc = immutil_saImmOiInitialize_2(&cb->campaignOiHandle, &callbacks, &immVersion);
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saImmOiInitialize_2 failed %u", rc);
@@ -748,19 +753,19 @@ void* smfd_coi_reinit_thread(void * _cb)
 	if (cb->ha_state == SA_AMF_HA_ACTIVE) {
 		rc = immutil_saImmOiImplementerSet(cb->campaignOiHandle, implementerName);
 		if (rc != SA_AIS_OK) {
-			LOG_ER("immutil_saImmOiImplementerSet failed %u", rc);
+			LOG_ER("immutil_saImmOiImplementerSet failed rc=%u implementer name =%s", rc, (char*)implementerName);
 			exit(EXIT_FAILURE);
 		}
 
 		rc = immutil_saImmOiClassImplementerSet(cb->campaignOiHandle, campaignClassName);
 		if (rc != SA_AIS_OK) {
-			LOG_ER("immutil_saImmOiClassImplementerSet campaignClassName failed %u", rc);
+			LOG_ER("immutil_saImmOiClassImplementerSet campaignClassName failed rc=%u class name=%s", rc, (char*)campaignClassName);
 			exit(EXIT_FAILURE);
 		}
 
 		rc = immutil_saImmOiClassImplementerSet(cb->campaignOiHandle, smfConfigClassName);
 		if (rc != SA_AIS_OK) {
-			LOG_ER("immutil_saImmOiClassImplementerSet smfConfigOiHandle failed %u", rc);
+			LOG_ER("immutil_saImmOiClassImplementerSet smfConfigOiHandle failed rc=%u class name=%s", rc, (char*)smfConfigClassName);
 			exit(EXIT_FAILURE);
 		}
 	}

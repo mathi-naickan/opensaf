@@ -47,6 +47,7 @@
  *   DEFINITIONS
  * ========================================================================
  */
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 /* ========================================================================
  *   TYPE DEFINITIONS
@@ -177,6 +178,11 @@ static uns32 initialize_smfd(void)
 			goto done;
 		}
 	}
+
+	/* Set the behaviour of SMF-IMM interactions */
+	immutilWrapperProfile.errorsAreFatal = 0;   /* False, no reboot when fail */
+	immutilWrapperProfile.nTries         = 500; /* Times */
+	immutilWrapperProfile.retryInterval  = 400; /* MS */
 
  done:
 	TRACE_LEAVE();

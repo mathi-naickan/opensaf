@@ -38,7 +38,6 @@ SmfCampaignThread *SmfCampaignThread::s_instance = NULL;
 /*====================================================================*/
 /*  Data Declarations                                                 */
 /*====================================================================*/
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 /*====================================================================*/
 /*  Class SmfCampaignThread                                           */
@@ -303,9 +302,6 @@ SmfCampaignThread::createImmHandle(SmfCampaign *i_campaign)
 
 	TRACE_ENTER();
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	rc = immutil_saImmOiInitialize_2(&m_campOiHandle, NULL, &immVersion);
 	while (rc == SA_AIS_ERR_TRY_AGAIN) {
 		sleep(1);
@@ -339,7 +335,6 @@ SmfCampaignThread::createImmHandle(SmfCampaign *i_campaign)
 	}
 
 	done:
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 	TRACE_LEAVE();
 	return rc;
 }
@@ -354,8 +349,6 @@ SmfCampaignThread::deleteImmHandle()
 	SaAisErrorT rc = SA_AIS_OK;
 
 	TRACE_ENTER();
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
 
 	rc = immutil_saImmOiImplementerClear(m_campOiHandle);
 	while (rc == SA_AIS_ERR_TRY_AGAIN) {
@@ -379,7 +372,6 @@ SmfCampaignThread::deleteImmHandle()
 	}
 
 	done:
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 	TRACE_LEAVE();
 	return rc;
 }

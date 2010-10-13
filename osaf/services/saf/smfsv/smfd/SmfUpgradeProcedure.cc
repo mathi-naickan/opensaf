@@ -2147,7 +2147,7 @@ SmfUpgradeProcedure::getImmStepsRolling()
 				}
 
 				//For the SaAmfActivationUnit read the attribute saSmfAuActedOn and store it in step
-				TRACE("For the SaAmfActivationUnit read the saSmfAuActedOnand store it in step");
+				TRACE("For the SaAmfActivationUnit read the saSmfAuActedOn and store it in step");
 				const SaNameT * au;
 				for(ix = 0; (au = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes, 
 								      "saSmfAuActedOn", ix)) != NULL; ix++) {

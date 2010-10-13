@@ -36,8 +36,6 @@
 /*  Data Declarations                                                 */
 /*====================================================================*/
 
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
-
 /*====================================================================*/
 /*  Class SmfProcedureThread                                          */
 /*====================================================================*/
@@ -225,9 +223,6 @@ SmfProcedureThread::createImmHandle(SmfUpgradeProcedure * procedure)
 
 	TRACE_ENTER();
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	rc = immutil_saImmOiInitialize_2(&m_procOiHandle, NULL, &immVersion);
 	while (rc == SA_AIS_ERR_TRY_AGAIN) {
 		sleep(1);
@@ -261,7 +256,6 @@ SmfProcedureThread::createImmHandle(SmfUpgradeProcedure * procedure)
 	}
 
 	done:
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 	TRACE_LEAVE();
 	return rc;
 }
@@ -276,8 +270,6 @@ SmfProcedureThread::deleteImmHandle()
 	SaAisErrorT rc = SA_AIS_OK;
 
 	TRACE_ENTER();
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
 
 	rc = immutil_saImmOiImplementerClear(m_procOiHandle);
 	while (rc == SA_AIS_ERR_TRY_AGAIN) {
@@ -304,7 +296,6 @@ SmfProcedureThread::deleteImmHandle()
 
 	done:
 	m_procOiHandle = 0;
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 	TRACE_LEAVE();
 	return rc;
 }
@@ -478,11 +469,7 @@ SmfProcedureThread::createImmProcedure(SmfUpgradeProcedure * procedure)
 	strncpy((char *)parentName.value, campaign->getDn().c_str(), parentName.length);
 	parentName.value[parentName.length] = 0;
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	rc = immutil_saImmOiRtObjectCreate_2(m_procOiHandle, (char*)"SaSmfProcedure", &parentName, attrValues);
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 
 	if (rc != SA_AIS_OK) {
 		TRACE("saImmOiRtObjectCreate_2 returned %u for %s, parent %s", rc, procedure->getProcName().c_str(),

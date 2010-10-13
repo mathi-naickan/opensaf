@@ -36,8 +36,6 @@
  * ========================================================================
  */
 
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
-
 /* ========================================================================
  *   TYPE DEFINITIONS
  * ========================================================================
@@ -886,15 +884,10 @@ SmfImmRTCreateOperation::execute()
 	strncpy((char *)parentName.value, m_parentDn.c_str(), parentName.length);
 	parentName.value[parentName.length] = 0;
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	result = immutil_saImmOiRtObjectCreate_2(m_immHandle,
                                                  (char*)className, 
                                                  &parentName, 
                                                  (const SaImmAttrValuesT_2**)m_immAttrValues);
-
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 
 	if (result != SA_AIS_OK) {
 		TRACE("saImmOiRtObjectCreate_2 returned %u for %s, parent %s", result, className, parentName.value);
@@ -1036,15 +1029,9 @@ SmfImmRTUpdateOperation::execute()
 	strncpy((char *)objectName.value, m_dn.c_str(), objectName.length);
 	objectName.value[objectName.length] = 0;
 
-
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	result = immutil_saImmOiRtObjectUpdate_2(m_immHandle,
                                                  &objectName, 
                                                  (const SaImmAttrModificationT_2**)m_immAttrMods);
-
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 
 	if (result != SA_AIS_OK) {
 		TRACE("saImmOiRtObjectUpdate_2 returned %u for %s", result, objectName.value);

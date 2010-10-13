@@ -36,8 +36,6 @@
  * ========================================================================
  */
 
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
-
 /* ========================================================================
  *   TYPE DEFINITIONS
  * ========================================================================
@@ -571,9 +569,6 @@ SmfProcStateExecutionCompleted::commit(SmfUpgradeProcedure * i_proc)
 	   -OpenSafSmfSingleStepInfo
 	*/
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	objectName.length = i_proc->getDn().length();
 	strncpy((char *)objectName.value, i_proc->getDn().c_str(), objectName.length);
 	objectName.value[objectName.length] = 0;
@@ -584,8 +579,6 @@ SmfProcStateExecutionCompleted::commit(SmfUpgradeProcedure * i_proc)
 	if (rc != SA_AIS_OK) {
 		LOG_ER("immutil_saImmOiRtObjectDelete returned %u for %s", rc, i_proc->getDn().c_str());
 	}
-
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 
 	TRACE_LEAVE();
 }

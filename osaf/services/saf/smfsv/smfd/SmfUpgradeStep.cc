@@ -704,7 +704,7 @@ SmfUpgradeStep::setMaintenanceState()
 		}
         }
         
-        if (!immUtil.doImmOperations(operations)) {
+        if (immUtil.doImmOperations(operations) != SA_AIS_OK) {
                 LOG_ER("SmfUpgradeStep::setMaintenanceState(), fails to set saAmfSUMaintenanceCampaign");
                 rc = false;
         }

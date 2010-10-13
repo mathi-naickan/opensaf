@@ -38,8 +38,6 @@
  * ========================================================================
  */
 
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
-
 /* ========================================================================
  *   TYPE DEFINITIONS
  * ========================================================================
@@ -221,13 +219,9 @@ SmfImmUtils::finalize(void)
 bool 
 SmfImmUtils::getClassDescription(const std::string & i_className, SaImmAttrDefinitionT_2 *** o_attributeDefs)
 {
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
 	SaImmClassCategoryT classCategory;
         SaAisErrorT rc = immutil_saImmOmClassDescriptionGet_2(
 		m_omHandle, (SaImmClassNameT)i_className.c_str(), &classCategory, o_attributeDefs);
-
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saImmOmClassDescriptionGet_2 for [%s], rc = %d", i_className.c_str(), rc);
@@ -244,15 +238,10 @@ bool
 SmfImmUtils::classDescriptionMemoryFree(SaImmAttrDefinitionT_2 ** i_attributeDefs)
 {
 	SaAisErrorT rc = SA_AIS_OK;
-
-//	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-//	immutilWrapperProfile.errorsAreFatal = 0;
-
         rc = immutil_saImmOmClassDescriptionMemoryFree_2(m_omHandle, i_attributeDefs);
 
-//	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
-
 	if (rc != SA_AIS_OK) {
+		LOG_ER("saImmOmClassDescriptionMemoryFree_2 failed, rc = %d", rc);
 		return false;
 	}
 
@@ -267,18 +256,15 @@ SmfImmUtils::getObject(const std::string & i_dn, SaImmAttrValuesT_2 *** o_attrib
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	SaNameT objectName;
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
 
 	objectName.length = i_dn.length();
 	strncpy((char *)objectName.value, i_dn.c_str(), objectName.length);
 	objectName.value[objectName.length] = 0;
 
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	rc = immutil_saImmOmAccessorGet_2(m_accessorHandle, &objectName, NULL, o_attributes);
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 
 	if (rc != SA_AIS_OK) {
+		LOG_ER("saImmOmAccessorGet_2 failed, rc=%d object name=%s", rc, i_dn.c_str());
 		return false;
 	}
 
@@ -293,16 +279,12 @@ SmfImmUtils::getObjectAisRC(const std::string & i_dn, SaImmAttrValuesT_2 *** o_a
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	SaNameT objectName;
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
 
 	objectName.length = i_dn.length();
 	strncpy((char *)objectName.value, i_dn.c_str(), objectName.length);
 	objectName.value[objectName.length] = 0;
 
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	rc = immutil_saImmOmAccessorGet_2(m_accessorHandle, &objectName, NULL, o_attributes);
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 
 	return rc;
 }
@@ -333,8 +315,6 @@ SmfImmUtils::getChildren(const std::string & i_dn, std::list < std::string > &o_
 	const SaStringT className = (const SaStringT)i_className;
 	SaImmAttrValuesT_2 **attributes;
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-
 	TRACE_ENTER();
 
 	if (i_dn.size() > 0) {
@@ -343,8 +323,6 @@ SmfImmUtils::getChildren(const std::string & i_dn, std::list < std::string > &o_
 		objectName.value[objectName.length] = 0;
 		objectNamePtr = &objectName;
 	}
-
-	immutilWrapperProfile.errorsAreFatal = 0;
 
 	if (i_className != NULL) {
 		/* Search for all objects of class i_className */
@@ -392,7 +370,6 @@ SmfImmUtils::getChildren(const std::string & i_dn, std::list < std::string > &o_
 	}
 
 done:
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 	TRACE_LEAVE();
 	return rc;
 }
@@ -407,7 +384,6 @@ SmfImmUtils::callAdminOperation(const std::string & i_dn, unsigned int i_operati
 	SaAisErrorT rc;
 	SaAisErrorT returnValue;
 	SaNameT objectName;
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
 	int retry          = 100;
 
 	/* First set admin owner on the object */
@@ -424,8 +400,6 @@ SmfImmUtils::callAdminOperation(const std::string & i_dn, unsigned int i_operati
         } else {
                 TRACE("contains NO parameters");
         }
-
-	immutilWrapperProfile.errorsAreFatal = 0;
 
 	rc = immutil_saImmOmAdminOwnerSet(m_ownerHandle, objectNames, SA_IMM_ONE);
 	if ( rc != SA_AIS_OK) {
@@ -460,7 +434,6 @@ SmfImmUtils::callAdminOperation(const std::string & i_dn, unsigned int i_operati
 	rc = returnValue;
 
 done:
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 	return rc;
 }	
 
@@ -475,15 +448,11 @@ SmfImmUtils::doImmOperations(std::list < SmfImmOperation * >&i_immOperationList)
 	SaAisErrorT result;
 	SaImmCcbHandleT immCcbHandle;
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-
 	SaImmCcbFlagsT ccbFlags = 0;
 
 	result = immutil_saImmOmCcbInitialize(m_ownerHandle, ccbFlags, &immCcbHandle);
 	if (result != SA_AIS_OK) {
 		LOG_ER("SmfImmUtils::doImmOperations:saImmOmCcbInitialize failed  SaAisErrorT=%u", result);
-                immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 		return result;
 	}
 
@@ -504,7 +473,6 @@ SmfImmUtils::doImmOperations(std::list < SmfImmOperation * >&i_immOperationList)
 	result = immutil_saImmOmCcbApply(immCcbHandle);
 	if (result != SA_AIS_OK) {
 		LOG_ER("SmfImmUtils::doImmOperations:saImmOmCcbApply failed SaAisErrorT=%u", result);
-                immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 		return result;
 	}
 
@@ -512,11 +480,9 @@ SmfImmUtils::doImmOperations(std::list < SmfImmOperation * >&i_immOperationList)
 	result = immutil_saImmOmCcbFinalize(immCcbHandle);
 	if (result != SA_AIS_OK) {
 		LOG_ER("SmfImmUtils::doImmOperations:saImmOmCcbFinalize failed SaAisErrorT=%u", result);
-                immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 		return result;
 	}
 
-        immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
 	return result;
 }
 
