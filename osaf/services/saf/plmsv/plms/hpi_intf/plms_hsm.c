@@ -222,6 +222,7 @@ static void *plms_hsm(void)
 	SaHpiEventT	  event;
 	SaHpiRdrT   	  rdr;
 	SaHpiHsStateT  	  state;
+	SaHpiPowerStateT  power_state;
 	SaUint32T	  retriev_idr_info = 0;
 	SaInt32T	  rc,ret;
 	SaInt32T	  got_new_active = FALSE;
@@ -351,16 +352,16 @@ static void *plms_hsm(void)
 			hotswap_state_model == PLMS_HPI_THREE_HOTSWAP_MODEL ){
 
 			/* Get the Power state */
-			rc = saHpiResourcePowerStateGet(cb->session_id,rpt_entry.ResourceId,&state);
+			rc = saHpiResourcePowerStateGet(cb->session_id,rpt_entry.ResourceId,&power_state);
 			if( SA_OK != rc){
 				LOG_ER("HSM1:saHpiResourcePowerStateGet failed for res:%u with ret val:%d",
 								rpt_entry.ResourceId,rc);
 				continue;
 			}
 			TRACE("HSM:saHpiResourcePowerStateGet succeeded for res:%u with ret val:%d state:%d",
-								rpt_entry.ResourceId,rc,state);
+								rpt_entry.ResourceId,rc,power_state);
 
-			if (state == SAHPI_POWER_ON) {
+			if (power_state == SAHPI_POWER_ON) {
 				state = SAHPI_HS_STATE_ACTIVE;
 			} else {
 				state = SAHPI_HS_STATE_INACTIVE;
@@ -452,6 +453,7 @@ static SaUint32T hsm_discover_and_dispatch()
 	PLMS_HPI_STATE_MODEL  hotswap_state_model;
 	SaHpiRptEntryT    rpt_entry;
 	SaHpiHsStateT  	  state;
+	SaHpiPowerStateT  power_state;
 	SaHpiHsStateT  	  previous_state = 0;
 	SaUint32T	  retriev_idr_info = FALSE;
 	SaUint32T	  prev_domain_op_status = NCSCC_RC_SUCCESS;
@@ -569,16 +571,16 @@ static SaUint32T hsm_discover_and_dispatch()
 			hotswap_state_model == PLMS_HPI_THREE_HOTSWAP_MODEL ){
 
 			/* Get the Power state */
-			rc = saHpiResourcePowerStateGet(cb->session_id,rpt_entry.ResourceId,&state);
+			rc = saHpiResourcePowerStateGet(cb->session_id,rpt_entry.ResourceId,&power_state);
 			if( SA_OK != rc){
 				LOG_ER("HSM1:saHpiResourcePowerStateGet failed for res:%u with ret val:%d",
 								rpt_entry.ResourceId,rc);
 				continue;
 			}
 			TRACE("HSM:saHpiResourcePowerStateGet Succeded for res:%u with ret val:%d state:%d",
-								rpt_entry.ResourceId,rc,state);
+								rpt_entry.ResourceId,rc,power_state);
 
-			if (state == SAHPI_POWER_ON) {
+			if (power_state == SAHPI_POWER_ON) {
 				state = SAHPI_HS_STATE_ACTIVE;
 			} else {
 				state = SAHPI_HS_STATE_INACTIVE;
