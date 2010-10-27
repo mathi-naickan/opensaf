@@ -1319,7 +1319,7 @@ SmfUpgradeStep::callBundleScript(SmfInstallRemoveT i_order,
 			LOG_NO("STEP: Attribute %s is NULL or empty in bundle %s",
 			       cmdAttr.c_str(), curBundleDN.c_str());
 			/* cmd is not a must so don't set result = false */
-			goto done;
+			continue;
 		}
 		command = cmd;
 

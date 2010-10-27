@@ -48,6 +48,8 @@
     ========================
     The old version types and the old bundle should be cleaned.
     This does not work yet because of missing AMF features.
+	
+	Verify that all installation/removal commands of the "NotEmpty" bundle has been executed. (Ticket #1561)
   -->
 	<campaignInfo>
 		<campaignPeriod saSmfCmpgExpectedTime="123456789" />
@@ -63,6 +65,27 @@
 				<installation>
 					<offline command="/hostfs/offline_install.sh" args="bundleA" saSmfBundleInstallOfflineScope="2"></offline>
 					<online command="/hostfs/online_install.sh" args="bundleA"></online>
+				</installation>
+				<defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000" />
+			</softwareBundle>
+			<!--
+				The Emty NotEmty bundles are put in to be shure all commands will be run also after an empy bundle.
+			-->
+			<softwareBundle name="safSmfBundle=Empty,safApp=safSmfService">
+				<removal>
+				</removal>
+				<installation>
+				</installation>
+				<defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000" />
+			</softwareBundle>
+			<softwareBundle name="safSmfBundle=NotEmpty,safApp=safSmfService">
+				<removal>
+					<offline command="/hostfs/offline_remove.sh" args="NotEmpty" saSmfBundleRemoveOfflineScope="2"></offline>
+					<online command="/hostfs/online_remove.sh" args="NotEmpty"></online>
+				</removal>
+				<installation>
+					<offline command="/hostfs/offline_install.sh" args="NotEmpty" saSmfBundleInstallOfflineScope="2"></offline>
+					<online command="/hostfs/online_install.sh" args="NotEmpty"></online>
 				</installation>
 				<defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000" />
 			</softwareBundle>
@@ -124,6 +147,8 @@
 					<byTemplate>
 						<targetNodeTemplate objectDN="safAmfNodeGroup=SCs,safAmfCluster=myAmfCluster">
 							<swRemove bundleDN="safSmfBundle=AmfDemo"/>
+							<swAdd bundleDN="safSmfBundle=Empty,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+							<swAdd bundleDN="safSmfBundle=NotEmpty,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
 							<swAdd bundleDN="safSmfBundle=bundleA,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
 						</targetNodeTemplate>
 						<targetEntityTemplate>
@@ -152,6 +177,8 @@
 				<upgradeScope>
 					<byTemplate>
 						<targetNodeTemplate objectDN="safAmfNodeGroup=PLs,safAmfCluster=myAmfCluster">
+							<swRemove bundleDN="safSmfBundle=Empty,safApp=safSmfService"/>
+							<swRemove bundleDN="safSmfBundle=NotEmpty,safApp=safSmfService"/>
 							<swRemove bundleDN="safSmfBundle=AmfDemo"/>
 							<swAdd bundleDN="safSmfBundle=bundleA,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
 						</targetNodeTemplate>
@@ -182,6 +209,8 @@
 					<byTemplate>
 						<targetNodeTemplate objectDN="safAmfCluster=myAmfCluster">
 							<swRemove bundleDN="safSmfBundle=bundleA,safApp=safSmfService" />
+							<swAdd bundleDN="safSmfBundle=Empty,safApp=safSmfService"  pathnamePrefix="/opt/amf_demo"/>
+							<swAdd bundleDN="safSmfBundle=NotEmpty,safApp=safSmfService"  pathnamePrefix="/opt/amf_demo"/>
 							<swAdd bundleDN="safSmfBundle=AmfDemo"  pathnamePrefix="/opt/amf_demo"/>
 						</targetNodeTemplate>
 						<targetEntityTemplate>
