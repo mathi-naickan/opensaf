@@ -67,7 +67,7 @@ SmfUpgradeStep::SmfUpgradeStep():
    m_state(SmfStepStateInitial::instance()),
    m_maxRetry(0), 
    m_retryCount(0), 
-   m_restartOption(0), 
+   m_restartOption(1), //True 
    m_procedure(NULL),
    m_stepType(SMF_STEP_UNKNOWN),
    m_switchOver(false)

@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Created with Liquid XML Studio - FREE Community Edition 7.1.6.1440 (http://www.liquid-technologies.com) -->
+<upgradeCampaign xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:noNamespaceSchemaLocation="file:///C:/Users/eingber/SA-forum/SMF/SMF%20schema/SAI-AIS-SMF-UCS-A.01.02_modified.xsd" 
+safSmfCampaign="safSmfCampaign=campaign_rolling_comp">
+  <!--
+    This campaign updates a component in the AmfDemo application
+    with a rolling upgrade.
+	The campaign consists of six procedures
+	1) RollingCompFromType_CompTypeAsEntTempl_SuLock, 		exec level 2
+	   	Change the AmfDemo component 4.0.0 to 5.5.5, operates 
+		on SU level since saSmfStepRestartOption="0"
+	
+	2) RollingCompfromParentAndType_CompRestart, 			exec level 3
+		Change the AmfDemo component 5.5.5 to 6.6.6, operates 
+		on Comp level (restart) since saSmfStepRestartOption="1"
+
+	3) RollingCompFromParentAndType_SuLock,        			exec level 4
+		Change the AmfDemo component 6.6.6 to 7.7.7, operates 
+		on SU level since saSmfStepRestartOption="0"
+
+	4) RollingSUfromNoExistingSG_ParExec1_CompRestart,   	exec level 5
+	   Will not change anything since the SG does not exist
+	5) RollingSUfromNoExistingSG_ParExec2_CompRestart,     	exec level 5
+	   Will not change anything since the SG does not exist
+	
+	6) RollingCompFromType_CompRestart_2,        			exec level 6
+		Change the AmfDemo component 7.7.7 to 5.5.5, operates 
+		on Comp level (restart) since saSmfStepRestartOption="1"
+
+	The procedures uses different methods to filter out the "safComp=AmfDemo"
+	component and set the versioned type.
+	
+	Two procedures executes in parallel, the procedures will get no match 
+	since the the parent SG does not exist. Just for testing parallel execution. 
+	
+    Prerequisites;
+    ==============
+    The AmfDemo application is up and running.
+
+    Execution;
+    ==========
+    immcfg -c SaSmfCampaign -a saSmfCmpgFileUri=/hostfs/campaign_rolling_comp.xml\
+      safSmfCampaign=campaign_rolling_comp,safApp=safSmfService
+    immadm -o 1 safSmfCampaign=campaign_rolling_comp,safApp=safSmfService
+    immlist safSmfCampaign=campaign_rolling_comp,safApp=safSmfService
+    immadm -o 4 safSmfCampaign=campaign_rolling_comp,safApp=safSmfService
+
+    Expected outcome;
+    =================
+    immlist safSmfBundle=5.5.5,safApp=safSmfServic
+        # The new bundle object should exist
+    immlist safVersion=5.5.5,safCompType=AmfDemoCompType
+        # The new component type should exist
+    immlist safHealthcheckKey=AmfDemo,safVersion=5.5.5,safCompType=AmfDemoCompType
+        # The new health-check object should exist
+    immlist safComp=AmfDemo,safSu=SU1,safSg=AmfDemo,safApp=AmfDemo
+    immlist safComp=AmfDemo,safSu=SU2,safSg=AmfDemo,safApp=AmfDemo
+        # "saAmfCompType" should refere to the new type
+
+    grep SMF: rootfs/var/SC_2_*/log/messages
+        # The "installation online" should have been executed
+
+    immfind -c SaAmfNodeSwBundle
+        # The 5.5.5 objects shall exist under all nodes.
+
+    Expected future outcome;
+    ========================
+    The old version types and the old bundle should be cleaned.
+    This does not work yet because of missing AMF features.
+  -->
+	<campaignInfo>
+		<campaignPeriod saSmfCmpgExpectedTime="123456789" />
+		<configurationBase saSmfCmpgConfigBase="9876543" />
+	</campaignInfo>
+	<campaignInitialization>
+		<addToImm>
+			<softwareBundle name="safSmfBundle=5.5.5,safApp=safSmfService">
+				<removal>
+					<offline command="/hostfs/offline_remove.sh" args="5.5.5" saSmfBundleRemoveOfflineScope="1"></offline>
+					<online command="/hostfs/online_remove.sh" args="5.5.5"></online>
+				</removal>
+				<installation>
+					<offline command="/hostfs/offline_install.sh" args="5.5.5" saSmfBundleInstallOfflineScope="2"></offline>
+					<online command="/hostfs/online_install.sh" args="5.5.5"></online>
+				</installation>
+				<defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000" />
+			</softwareBundle>
+			<softwareBundle name="safSmfBundle=6.6.6,safApp=safSmfService">
+				<removal>
+					<offline command="/hostfs/offline_remove.sh" args="6.6.6" saSmfBundleRemoveOfflineScope="1"></offline>
+					<online command="/hostfs/online_remove.sh" args="6.6.6"></online>
+				</removal>
+				<installation>
+					<offline command="/hostfs/offline_install.sh" args="6.6.6" saSmfBundleInstallOfflineScope="2"></offline>
+					<online command="/hostfs/online_install.sh" args="6.6.6"></online>
+				</installation>
+				<defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000" />
+			</softwareBundle>
+			<softwareBundle name="safSmfBundle=7.7.7,safApp=safSmfService">
+				<removal>
+					<offline command="/hostfs/offline_remove.sh" args="7.7.7" saSmfBundleRemoveOfflineScope="1"></offline>
+					<online command="/hostfs/online_remove.sh" args="7.7.7"></online>
+				</removal>
+				<installation>
+					<offline command="/hostfs/offline_install.sh" args="7.7.7" saSmfBundleInstallOfflineScope="2"></offline>
+					<online command="/hostfs/online_install.sh" args="7.7.7"></online>
+				</installation>
+				<defaultCliTimeout saSmfBundleDefaultCmdTimeout="60000000000" />
+			</softwareBundle>
+			<!--
+				Note: Component typ 5.5.5 (below) restart is enabled.
+			-->
+			<amfEntityTypes>
+				<CompBaseType safCompType="safCompType=AmfDemo1">
+					<CompType safVersion="safVersion=5.5.5">
+						<providesCSType safSupportedCsType="safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1" saAmfCtCompCapability="1" saAmfCtDefNumMaxActiveCsi="1" saAmfCtDefNumMaxStandbyCsi="1" />
+						<compTypeDefaults saAmfCtCompCategory="1" saAmfCtDefRecoveryOnError="2" saAmfCtDefClcCliTimeout="10000000000" saAmfCtDefCallbackTimeout="10000000000" saAmfCtDefDisableRestart="0">
+						</compTypeDefaults>
+						<instantiateCmd saAmfCtRelPathInstantiateCmd="amf_demo_script">
+							<cmdArgv>instantiate</cmdArgv>
+						</instantiateCmd>
+						<cleanupCmd saAmfCtRelPathCleanupCmd="amf_demo_script">
+							<cmdArgv>cleanup</cmdArgv>
+						</cleanupCmd>
+						<healthCheck safHealthcheckKey="safHealthcheckKey=AmfDemo" saAmfHealthcheckPeriod="10000000000" saAmfHealthcheckMaxDuration="6000000000"/>
+						<swBundle saAmfCtSwBundle="safSmfBundle=5.5.5,safApp=safSmfService" />
+					</CompType>
+				</CompBaseType>
+			<!--
+				Note: Component typ 6.6.6 (below) restart is disabled.
+			-->
+				<CompBaseType safCompType="safCompType=AmfDemo1">
+					<CompType safVersion="safVersion=6.6.6">
+						<providesCSType safSupportedCsType="safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1" saAmfCtCompCapability="1" saAmfCtDefNumMaxActiveCsi="1" saAmfCtDefNumMaxStandbyCsi="1" />
+						<compTypeDefaults saAmfCtCompCategory="1" saAmfCtDefRecoveryOnError="2" saAmfCtDefClcCliTimeout="10000000000" saAmfCtDefCallbackTimeout="10000000000" saAmfCtDefDisableRestart="1">
+						</compTypeDefaults>
+						<instantiateCmd saAmfCtRelPathInstantiateCmd="amf_demo_script">
+							<cmdArgv>instantiate</cmdArgv>
+						</instantiateCmd>
+						<cleanupCmd saAmfCtRelPathCleanupCmd="amf_demo_script">
+							<cmdArgv>cleanup</cmdArgv>
+						</cleanupCmd>
+						<healthCheck safHealthcheckKey="safHealthcheckKey=AmfDemo" saAmfHealthcheckPeriod="10000000000" saAmfHealthcheckMaxDuration="6000000000"/>
+						<swBundle saAmfCtSwBundle="safSmfBundle=6.6.6,safApp=safSmfService" />
+					</CompType>
+				</CompBaseType>
+			<!--
+				Note: Component typ 7.7.7 (below) restart is enabled.
+			-->
+				<CompBaseType safCompType="safCompType=AmfDemo1">
+					<CompType safVersion="safVersion=7.7.7">
+						<providesCSType safSupportedCsType="safSupportedCsType=safVersion=4.0.0\,safCSType=AmfDemo1" saAmfCtCompCapability="1" saAmfCtDefNumMaxActiveCsi="1" saAmfCtDefNumMaxStandbyCsi="1" />
+						<compTypeDefaults saAmfCtCompCategory="1" saAmfCtDefRecoveryOnError="2" saAmfCtDefClcCliTimeout="10000000000" saAmfCtDefCallbackTimeout="10000000000" saAmfCtDefDisableRestart="0">
+						</compTypeDefaults>
+						<instantiateCmd saAmfCtRelPathInstantiateCmd="amf_demo_script">
+							<cmdArgv>instantiate</cmdArgv>
+						</instantiateCmd>
+						<cleanupCmd saAmfCtRelPathCleanupCmd="amf_demo_script">
+							<cmdArgv>cleanup</cmdArgv>
+						</cleanupCmd>
+						<healthCheck safHealthcheckKey="safHealthcheckKey=AmfDemo" saAmfHealthcheckPeriod="10000000000" saAmfHealthcheckMaxDuration="6000000000"/>
+						<swBundle saAmfCtSwBundle="safSmfBundle=7.7.7,safApp=safSmfService" />
+					</CompType>
+				</CompBaseType>
+			</amfEntityTypes>
+		</addToImm>
+		<campInitAction>
+			<doCliCommand command="$OSAFCAMPAIGNROOT/campaign_script.sh" args="arg1" ></doCliCommand>
+			<undoCliCommand command="$OSAFCAMPAIGNROOT/campaign_script.sh" args="arg1"></undoCliCommand>
+			<plmExecEnv amfNode="safAmfNode=SC-1,safAmfCluster=myAmfCluster"></plmExecEnv>
+			<plmExecEnv amfNode="safAmfNode=PL-3,safAmfCluster=myAmfCluster"></plmExecEnv>
+		</campInitAction>
+		<campInitAction>
+			<doCliCommand command="/hostfs/campaign_script.sh" args="arg1" ></doCliCommand>
+			<undoCliCommand command="/hostfs/campaign_script.sh" args="arg1"></undoCliCommand>
+			<plmExecEnv amfNode="safAmfNode=SC-2,safAmfCluster=myAmfCluster"></plmExecEnv>
+			<plmExecEnv amfNode="safAmfNode=PL-4,safAmfCluster=myAmfCluster"></plmExecEnv>
+		</campInitAction>
+	</campaignInitialization>
+	<!--  
+	The first procedure updates the component from 4.0.0 to 5.5.5. 
+	saSmfStepRestartOption is set to false (0), which means the components shall NOT be restarted, locking shall be on SU level.
+	-->
+	<upgradeProcedure safSmfProcedure="safSmfProc=RollingCompFromType_CompTypeAsEntTempl_SuLock" saSmfExecLevel="2">
+		<outageInfo>
+			<acceptableServiceOutage>
+				<all />
+			</acceptableServiceOutage>
+			<procedurePeriod saSmfProcPeriod="12345678" />
+		</outageInfo>
+		<upgradeMethod>
+			<rollingUpgrade>
+				<upgradeScope>
+					<byTemplate>
+						<targetNodeTemplate objectDN="safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster">
+							<activationUnitTemplate>
+								<type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"></type>
+							</activationUnitTemplate>
+							<swAdd bundleDN="safSmfBundle=5.5.5,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+						</targetNodeTemplate>
+						<targetEntityTemplate>
+							<type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"></type>
+							<modifyOperation operation="SA_IMM_ATTR_VALUES_REPLACE">
+								<attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=5.5.5,safCompType=AmfDemo1</value>
+								</attribute>
+							</modifyOperation>
+						</targetEntityTemplate>
+					</byTemplate>
+				</upgradeScope>
+				<upgradeStep saSmfStepRestartOption="0" saSmfStepMaxRetry="8"/>
+			</rollingUpgrade>
+		</upgradeMethod>
+	</upgradeProcedure>
+	<!--  
+	The second procedure updates the component from 5.5.5 to 6.6.6. 
+	saSmfStepRestartOption is set to true (1), which means the components shall be restarted.
+	-->
+	<upgradeProcedure safSmfProcedure="safSmfProc=RollingCompfromParentAndType_CompRestart" saSmfExecLevel="3">
+		<outageInfo>
+			<acceptableServiceOutage>
+				<all />
+			</acceptableServiceOutage>
+			<procedurePeriod saSmfProcPeriod="12345678" />
+		</outageInfo>
+		<upgradeMethod>
+			<rollingUpgrade>
+				<upgradeScope>
+					<byTemplate>
+						<targetNodeTemplate objectDN="safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster">
+							<activationUnitTemplate>
+								<parent objectDN="safSg=AmfDemo,safApp=AmfDemo1"></parent>
+								<type objectDN="safVersion=5.5.5,safCompType=AmfDemo1"></type>
+							</activationUnitTemplate>
+							<swRemove bundleDN="safSmfBundle=5.5.5,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+							<swAdd bundleDN="safSmfBundle=6.6.6,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+						</targetNodeTemplate>
+						<targetEntityTemplate>
+							<parent objectDN="safSg=AmfDemo,safApp=AmfDemo1"></parent>
+							<type objectDN="safVersion=5.5.5,safCompType=AmfDemo1"></type>
+							<modifyOperation operation="SA_IMM_ATTR_VALUES_REPLACE">
+								<attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=6.6.6,safCompType=AmfDemo1</value>
+								</attribute>
+							</modifyOperation>
+						</targetEntityTemplate>
+					</byTemplate>
+				</upgradeScope>
+				<upgradeStep saSmfStepRestartOption="1" saSmfStepMaxRetry="8"/>
+			</rollingUpgrade>
+		</upgradeMethod>
+	</upgradeProcedure>
+	<!--  
+	The third procedure updates the component from 6.6.6 to 7.7.7. 
+	saSmfStepRestartOption is set to false (0), which means the components shall NOT be restarted, locking shall be on SU level.
+	-->
+	<upgradeProcedure safSmfProcedure="safSmfProc=RollingCompFromParentAndType_SuLock" saSmfExecLevel="4">
+		<outageInfo>
+			<acceptableServiceOutage>
+				<all />
+			</acceptableServiceOutage>
+			<procedurePeriod saSmfProcPeriod="12345678" />
+		</outageInfo>
+		<upgradeMethod>
+			<rollingUpgrade>
+				<upgradeScope>
+					<byTemplate>
+						<targetNodeTemplate objectDN="safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster">
+							<activationUnitTemplate>
+								<parent objectDN="safSg=AmfDemo,safApp=AmfDemo1"></parent>
+								<type objectDN="safVersion=6.6.6,safCompType=AmfDemo1"></type>
+							</activationUnitTemplate>
+							<swRemove bundleDN="safSmfBundle=6.6.6,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+							<swAdd bundleDN="safSmfBundle=7.7.7,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+						</targetNodeTemplate>
+						<targetEntityTemplate>
+							<type objectDN="safVersion=6.6.6,safCompType=AmfDemo1"></type>
+							<modifyOperation operation="SA_IMM_ATTR_VALUES_REPLACE">
+								<attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=7.7.7,safCompType=AmfDemo1</value>
+								</attribute>
+							</modifyOperation>
+						</targetEntityTemplate>
+					</byTemplate>
+				</upgradeScope>
+				<upgradeStep saSmfStepRestartOption="0" saSmfStepMaxRetry="8"/>
+			</rollingUpgrade>
+		</upgradeMethod>
+	</upgradeProcedure>
+	<!--  
+	The procedure 4 and 5 are executing in parallell and updates the component from 7.7.7 to 5.5.5. 
+	saSmfStepRestartOption is set to true (1), which means the components shall be restarted.
+	The SG does not exist, so the procedures will do nothing.
+	-->
+	<upgradeProcedure safSmfProcedure="safSmfProc=RollingSUfromNoExistingSG_ParExec1_CompRestart" saSmfExecLevel="5">
+		<outageInfo>
+			<acceptableServiceOutage>
+				<all />
+			</acceptableServiceOutage>
+			<procedurePeriod saSmfProcPeriod="12345678" />
+		</outageInfo>
+		<upgradeMethod>
+			<rollingUpgrade>
+				<upgradeScope>
+					<byTemplate>
+						<targetNodeTemplate objectDN="safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster">
+							<activationUnitTemplate>
+								<parent objectDN="safSg=SG_dummy_2n,safApp=2nApp "></parent>
+								<type objectDN="safVersion=7.7.7,safCompType=AmfDemo1"></type>
+							</activationUnitTemplate>
+						</targetNodeTemplate>
+						<targetEntityTemplate>
+							<type objectDN="safVersion=7.7.7,safCompType=AmfDemo1"></type>
+							<modifyOperation operation="SA_IMM_ATTR_VALUES_REPLACE">
+								<attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=5.5.5,safCompType=AmfDemo1</value>
+								</attribute>
+							</modifyOperation>
+						</targetEntityTemplate>
+					</byTemplate>
+				</upgradeScope>
+				<upgradeStep saSmfStepRestartOption="1" saSmfStepMaxRetry="8"/>
+			</rollingUpgrade>
+		</upgradeMethod>
+	</upgradeProcedure>
+	<!--  
+	The procedure 4 and 5 are executing in parallell and updates the component from 7.7.7 to 5.5.5. 
+	saSmfStepRestartOption is set to true (1), which means the components shall be restarted.
+	The SG does not exist, so the procedures will do nothing.
+	-->
+	<upgradeProcedure safSmfProcedure="safSmfProc=RollingSUfromNoExistingSG_ParExec2_CompRestart" saSmfExecLevel="5">
+		<outageInfo>
+			<acceptableServiceOutage>
+				<all />
+			</acceptableServiceOutage>
+			<procedurePeriod saSmfProcPeriod="12345678" />
+		</outageInfo>
+		<upgradeMethod>
+			<rollingUpgrade>
+				<upgradeScope>
+					<byTemplate>
+						<targetNodeTemplate objectDN="safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster">
+							<activationUnitTemplate>
+								<parent objectDN="safSg=SG_dummy_2n,safApp=2nApp "></parent>
+								<type objectDN="safVersion=7.7.7,safCompType=AmfDemo1"></type>
+							</activationUnitTemplate>
+							<swRemove bundleDN="safSmfBundle=AmfDemo"/>
+						</targetNodeTemplate>
+						<targetEntityTemplate>
+							<type objectDN="safVersion=7.7.7,safCompType=AmfDemo1"></type>
+							<modifyOperation operation="SA_IMM_ATTR_VALUES_REPLACE">
+								<attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=5.5.5,safCompType=AmfDemo1</value>
+								</attribute>
+							</modifyOperation>
+						</targetEntityTemplate>
+					</byTemplate>
+				</upgradeScope>
+				<upgradeStep saSmfStepRestartOption="1" saSmfStepMaxRetry="8"/>
+			</rollingUpgrade>
+		</upgradeMethod>
+	</upgradeProcedure>
+    <!--  
+	The procedure 6 updates the component from 7.7.7 to 5.5.5. 
+	saSmfStepRestartOption is set to true (1), which means the components shall be restarted.
+	-->
+	<upgradeProcedure safSmfProcedure="safSmfProc=RollingCompFromType_CompRestart_2" saSmfExecLevel="6">
+		<outageInfo>
+			<acceptableServiceOutage>
+				<all />
+			</acceptableServiceOutage>
+			<procedurePeriod saSmfProcPeriod="12345678" />
+		</outageInfo>
+		<upgradeMethod>
+			<rollingUpgrade>
+				<upgradeScope>
+					<byTemplate>
+						<targetNodeTemplate objectDN="safAmfNodeGroup=AllNodes,safAmfCluster=myAmfCluster">
+							<activationUnitTemplate>
+								<type objectDN="safVersion=7.7.7,safCompType=AmfDemo1"></type>
+							</activationUnitTemplate>
+							<swRemove bundleDN="safSmfBundle=7.7.7,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+							<swAdd bundleDN="safSmfBundle=5.5.5,safApp=safSmfService" pathnamePrefix="/opt/amf_demo" />
+						</targetNodeTemplate>
+						<targetEntityTemplate>
+							<type objectDN="safVersion=7.7.7,safCompType=AmfDemo1"></type>
+							<modifyOperation operation="SA_IMM_ATTR_VALUES_REPLACE">
+								<attribute name="saAmfCompType" type="SA_IMM_ATTR_SANAMET">
+									<value>safVersion=5.5.5,safCompType=AmfDemo1</value>
+								</attribute>
+							</modifyOperation>
+						</targetEntityTemplate>
+					</byTemplate>
+				</upgradeScope>
+				<upgradeStep saSmfStepRestartOption="1" saSmfStepMaxRetry="8"/>
+			</rollingUpgrade>
+		</upgradeMethod>
+	</upgradeProcedure>
+	<campaignWrapup>
+		<waitToCommit time="123456" />
+		<waitToAllowNewCampaign time="10000"></waitToAllowNewCampaign>
+		<removeFromImm>
+        </removeFromImm>
+	</campaignWrapup>
+</upgradeCampaign>

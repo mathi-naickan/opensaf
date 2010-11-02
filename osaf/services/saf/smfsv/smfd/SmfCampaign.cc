@@ -450,7 +450,7 @@ SmfCampaign::adminOpExecute(void)
 			LOG_ER("%s", error.c_str());
 			setError(error);
 			setState(SA_SMF_CMPG_INITIAL);	/* Set initial state to allow reexecution */
-			return SA_AIS_OK;
+			return SA_AIS_ERR_CAMPAIGN_ERROR_DETECTED;
 		}
 
 		//The directory where the campaign.xml file is stored
@@ -465,7 +465,7 @@ SmfCampaign::adminOpExecute(void)
 			LOG_ER("%s", error.c_str());
 			setError(error);
 			setState(SA_SMF_CMPG_INITIAL);	/* Set initial state to allow reexecution */
-			return SA_AIS_OK;
+			return SA_AIS_ERR_CAMPAIGN_ERROR_DETECTED;
 		}
 
 		//Initiate the campaign with the current campaign object state

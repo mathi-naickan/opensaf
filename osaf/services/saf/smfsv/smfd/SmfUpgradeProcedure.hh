@@ -420,6 +420,21 @@ class SmfUpgradeProcedure {
 ///
 	bool setEntitiesToAddRemMod(SmfUpgradeStep * i_step, SmfImmAttribute* io_smfEntityToAddRemove);
 
+///
+/// Purpose:  Check if the component pointed out by DN is restartable
+/// @param    i_compDN The DN of the components
+/// @return   True if restartable otherwise false.
+///
+	bool isCompRestartable(const std::string &i_compDN);
+
+///
+/// Purpose:  Analyze the act/deact unit and resturn the resulting act/deact unit and node
+/// @param    i_dn The DN of the act/deact unit
+/// @param    io_units The resulting act/deact unit
+/// @param    io_nodes The hosting node
+/// @return   True if restartable otherwise false.
+///
+	bool getActDeactUnitsAndNodes(const std::string &i_dn, std::string& io_unit, std::string& io_node);
 
 	friend class SmfProcState;
 	friend class SmfProcStateInitial;

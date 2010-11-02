@@ -488,7 +488,10 @@ void SmfCampaignThread::processEvt(void)
 
 		case CAMPAIGN_EVT_EXECUTE:
 			{
-				m_campaign->adminOpExecute();
+				if(m_campaign->adminOpExecute() != SA_AIS_OK) {
+					m_running = false; //Terminate the campaign thread
+				}
+
 				break;
 			}
 

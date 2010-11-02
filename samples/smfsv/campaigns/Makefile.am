@@ -24,6 +24,7 @@ EXTRA_DIST = \
 	campaign_rolling_nodes.xml \
 	campaign_rolling_su.xml \
 	campaign_single_comp.xml \
+	campaign_rolling_comp.xml \
 	install_bundles_testcampaign.xml \
 	README \
 	remove_bundles_testcampaign.xml
