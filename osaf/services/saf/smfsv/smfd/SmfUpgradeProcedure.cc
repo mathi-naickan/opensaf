@@ -724,25 +724,10 @@ bool SmfUpgradeProcedure::calculateSingleStep(SmfSinglestepUpgrade* i_upgrade)
 				}
 			} else {
 				assert(e->getName().length() > 0);
-#if 0
+				//This a single step acted on list without template
 				std::string node = getNodeForCompSu(e->getName());
 				if (node.length() > 0) nodeList.push_back(node);
-				newStep->addActivationUnit(e->getName());
-#endif
-				std::string actUnit;
-				std::string node;
-				if(getActDeactUnitsAndNodes(e->getName(), actUnit, node) == false) {
-					LOG_ER("getActDeactUnitsAndNodes failes for DN=%s",e->getName().c_str());
-					TRACE_LEAVE();
-					return false;
-				}
-
-//TODO check the node list, should it not be different lists for add/remove???
-				if (node.length() > 0) {
-					nodeList.push_back(node);
-				}
-
-				entityList.push_back(actUnit);
+				entityList.push_back(e->getName());
 			}
 		}
 
@@ -2544,7 +2529,7 @@ SmfUpgradeProcedure::getActDeactUnitsAndNodes(const std::string &i_dn, std::stri
 	bool rc = true;
 
 	if (immUtil.getObject(i_dn, &attributes) == false) {
-		LOG_ER("SmfUpgradeProcedure::calculateSingleStep:failed to get imm object %s", i_dn.c_str());
+		LOG_ER("SmfUpgradeProcedure::getActDeactUnitsAndNodes:failed to get imm object %s", i_dn.c_str());
 		rc =  false;
 		goto done;
 	}
@@ -2552,7 +2537,7 @@ SmfUpgradeProcedure::getActDeactUnitsAndNodes(const std::string &i_dn, std::stri
 	className = immutil_getStringAttr((const SaImmAttrValuesT_2 **)
 					  attributes, SA_IMM_ATTR_CLASS_NAME, 0);
 	if (className == NULL) {
-		LOG_ER("SmfUpgradeProcedure::calculateSingleStep:class name not found for version type %s", i_dn.c_str());
+		LOG_ER("SmfUpgradeProcedure::getActDeactUnitsAndNodes:class name not found for version type %s", i_dn.c_str());
 		rc =  false;
 		goto done;
 	}
