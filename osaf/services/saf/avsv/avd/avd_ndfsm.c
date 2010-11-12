@@ -163,7 +163,7 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	}
 
 	/* checkpoint the node. */
-	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, avnd, AVSV_CKPT_AVND_NODE_UP_INFO);
+	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, avnd, AVSV_CKPT_AVD_NODE_CONFIG);
 
 done:
 	avsv_dnd_msg_free(n2d_msg);
