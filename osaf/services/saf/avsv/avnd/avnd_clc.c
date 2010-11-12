@@ -833,10 +833,20 @@ uns32 avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceState
 	}
 
 	if (comp->su->is_ncs == TRUE) {
-		if(SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st) 
-			syslog(LOG_ERR, "%s got Inst failed", comp->name.value);
-		if(SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)
-			syslog(LOG_ERR, "%s got Term failed", comp->name.value);
+		if(SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st) {
+			LOG_ER("%s got Inst failed", comp->name.value);
+			opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
+					"NCS component Instantiation failed");
+			LOG_ER("Amfnd is exiting (due to ncs comp inst failed) to aid fast reboot");
+			exit(0);
+		}
+		if(SA_AMF_PRESENCE_TERMINATION_FAILED == final_st) {
+			LOG_ER("%s got Term failed", comp->name.value);
+			opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
+					"NCS component Termination failed");
+			LOG_ER("Amfnd is exiting (due to ncs comp term failed) to aid fast reboot");
+			exit(0);
+		}
 	}
 
 	/* pi comp in pi su */
