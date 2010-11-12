@@ -870,20 +870,50 @@ done:
 
 static void avnd_comptype_delete(amf_comp_type_t *compt)
 {
+	int arg_counter;
+	char *argv;
+
 	if (!compt)
 		return;
 
 	free(compt->saAmfCtDefCmdEnv);
 	free(compt->saAmfCtRelPathInstantiateCmd);
+
+	/* Free saAmfCtDefInstantiateCmdArgv[i] before freeing saAmfCtDefInstantiateCmdArgv */
+	arg_counter = 0;
+	while ((argv = compt->saAmfCtDefInstantiateCmdArgv[arg_counter++]) != NULL)
+		free(argv);
 	free(compt->saAmfCtDefInstantiateCmdArgv);
+
 	free(compt->saAmfCtRelPathTerminateCmd);
+
+	/* Free saAmfCtDefTerminateCmdArgv[i] before freeing saAmfCtDefTerminateCmdArgv */
+	arg_counter = 0;
+	while ((argv = compt->saAmfCtDefTerminateCmdArgv[arg_counter++]) != NULL)
+		free(argv);
 	free(compt->saAmfCtDefTerminateCmdArgv);
+
 	free(compt->saAmfCtRelPathCleanupCmd);
+	/* Free saAmfCtDefCleanupCmdArgv[i] before freeing saAmfCtDefCleanupCmdArgv */
+	arg_counter = 0;
+	while ((argv = compt->saAmfCtDefCleanupCmdArgv[arg_counter++]) != NULL)
+		free(argv);
 	free(compt->saAmfCtDefCleanupCmdArgv);
+
 	free(compt->saAmfCtRelPathAmStartCmd);
+	/* Free saAmfCtDefAmStartCmdArgv[i] before freeing saAmfCtDefAmStartCmdArgv */
+	arg_counter = 0;
+	while ((argv = compt->saAmfCtDefAmStartCmdArgv[arg_counter++]) != NULL)
+		free(argv);
 	free(compt->saAmfCtDefAmStartCmdArgv);
+
 	free(compt->saAmfCtRelPathAmStopCmd);
+	/* Free saAmfCtDefAmStopCmdArgv[i] before freeing saAmfCtDefAmStopCmdArgv */
+	arg_counter = 0;
+	while ((argv = compt->saAmfCtDefAmStopCmdArgv[arg_counter++]) != NULL)
+		free(argv);
 	free(compt->saAmfCtDefAmStopCmdArgv);
+
 	free(compt);
 }
 
