@@ -200,7 +200,7 @@ AVND_SU_SIQ_REC *avnd_su_siq_rec_buf(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM 
 
 	/* buffer the msg, if SU is inst-failed and all comps are not terminated */
 	if (((su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) && (!m_AVND_SU_IS_ALL_TERM(su))) ||
-			(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN)) {
+			(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN) || (m_AVND_SU_IS_RESTART(su))) {
 		siq = avnd_su_siq_rec_add(cb, su, param, &rc);
 		return siq;
 	}
