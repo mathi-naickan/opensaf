@@ -1,7 +1,8 @@
 #!/bin/sh
+#
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2008 The OpenSAF Foundation
+# (C) Copyright 2010 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -18,252 +19,236 @@
 HG=`which hg`
 
 if [ -z $EDITOR ]; then
-        EDITOR="vi"
+	EDITOR="vi"
 fi
 
-dryrun=0; mq=0; cs=0; og=0;
+dryrun=0; mq=0; cs=0;
 
-usage="Usage: submit-review.sh [-t] [-q|-c|-o] [-r rev] [-d dest]"
+usage="Usage: submit-review.sh [-t] [-q|-r rev] [-d dest]"
 
 while getopts ":tqcor:d:" opt; do
-        case $opt in
-                t ) dryrun=1 ;;
-                q ) mq=1 ;;
-                c ) cs=1 ;;
-                o ) og=1 ;;
-                r ) rev=$OPTARG ;;
-                d ) dest=$OPTARG ;;
-                \?) echo $usage
-                    exit 1 ;;
-        esac
+	case $opt in
+		t ) dryrun=1 ;;
+		q ) mq=1 ;;
+		r ) rev=$OPTARG; cs=1 ;;
+		d ) dest=$OPTARG ;;
+		\?) echo $usage
+		exit 1 ;;
+	esac
 done
 
 shift $(($OPTIND -1))
 
-if [ $mq -eq 0 ] && [ $cs -eq 0 ] && [ $og -eq 0 ]; then
-        cs=1
+if [ $mq -eq 0 ] && [ $cs -eq 0 ]; then
+	cs=1
 fi
 
 patchbomb_check=`hg email --help > /dev/null 2>&1`
 if [ $? -eq 255 ]; then
-        echo "The patchbomb extension isn't enabled in your .hgrc profile"
-        echo "Add 'hgext.patchbomb =' to the '[extensions]' section"
-        exit 1
+	echo "The patchbomb extension isn't enabled in your .hgrc profile"
+	echo "Add 'hgext.patchbomb =' to the '[extensions]' section"
+	exit 1
 fi
 
 if [ $mq -eq 1 ]; then
-        mq_check=`hg qseries --help > /dev/null 2>&1`
-        if [ $? -eq 255 ]; then
-                echo "The MQ extension isn't enabled in your .hgrc profile"
-                echo "Add 'hgext.mq =' to the '[extensions]' section"
-                exit 1
-        fi
+	mq_check=`hg qseries --help > /dev/null 2>&1`
+	if [ $? -eq 255 ]; then
+		echo "The MQ extension isn't enabled in your .hgrc profile"
+		echo "Add 'hgext.mq =' to the '[extensions]' section"
+		exit 1
+	fi
 fi
 
 if [ -z "$dest" ]; then
-        rr=`mktemp -d`
-        if [ $? != 0 ]; then
-                echo "$0: mktemp failed"
-                exit 1
-        fi
+	rr=`mktemp -d`
+	if [ $? != 0 ]; then
+		echo "$0: mktemp failed"
+		exit 1
+	fi
 else
-        rr=$dest
-        if [ ! -d "$rr" ]; then
-                mkdir $rr
-                if [ $? != 0 ]; then
-                        echo "$0: mkdir $rr failed"
-                        exit 1
-                fi
-        fi
+	rr=$dest
+	if [ ! -d "$rr" ]; then
+		mkdir -p $rr
+		if [ $? != 0 ]; then
+			echo "$0: mkdir $rr failed"
+			exit 1
+		fi
+	fi
 fi
 
 if [ $dryrun -eq 1 ]; then
-        echo "WARNING: Running in dry-run mode, nothing will be emailed"
+	echo "***** Running in dry-run mode, nothing will be emailed *****"
 fi
 
-if [ $og -eq 1 ]; then
-        if hg outgoing > /dev/null 2>&1; then
-                echo "Exporting all outgoing changes for review"
-        else
-                echo "No changes found, nothing to review!"
-                rm -rf $rr
-                exit 1
-        fi
-elif [ $cs -eq 1 ]; then
-        if [ -z "$rev" ]; then
-                rev="tip"
-        fi
-        echo "Exporting changeset(s) '$rev' for review"
+if [ $cs -eq 1 ]; then
+	if [ -z "$rev" ]; then
+		rev="tip"
+	fi
+	echo "Exporting changeset(s) '$rev' for review"
 elif [ $mq -eq 1 ]; then
-        qseries=`hg qseries`
-        qapplied=`hg qapplied`
-        if [ -z "$qseries" ]; then
-                echo "Patch queue empty, nothing to review!"
-                rm -rf $rr
-                exit 1
-        fi
+	qseries=`hg qseries`
+	qapplied=`hg qapplied`
+	if [ -z "$qseries" ]; then
+		echo "ERROR: Patch queue empty, nothing to review."
+		rm -rf $rr
+		exit 1
+	fi
 
-        if [ "$qseries" != "$qapplied" ]; then
-                echo "Patch series needs to be fully applied before review!"
-                rm -rf $rr
-                exit 1
-        fi
-
-        echo "Exporting the patch queue for review"
+	if [ "$qseries" != "$qapplied" ]; then
+		echo "ERROR: The patch queue needs to be fully applied before sending for review."
+		rm -rf $rr
+		exit 1
+	fi
+	rev="qbase:qtip"
 fi
 
-echo "The review package will be placed under $rr"
+echo "The review package is exported into $rr"
 
 hgroot=`$HG root`
 
-if [ $og -eq 1 ]; then
-        $HG outgoing -M -p > $rr/outgoing.patch
-        cd $rr
-        ls -1 *.patch >> series
-        cd - > /dev/null 2>&1
-elif [ $mq -eq 1 ]; then
-        if [ ! -d "$hgroot/.hg/patches" ]; then
-                echo "Did you qinit the patch queue properly?"
-                rm -rf $rr
-                exit 1
-        else
-                cp $hgroot/.hg/patches/*.patch $rr
-                cp $hgroot/.hg/patches/series $rr
-        fi
+if [ $mq -eq 1 ]; then
+	if [ ! -d "$hgroot/.hg/patches" ]; then
+		echo "ERROR: Did you qinit the patch queue properly?"
+		rm -rf $rr
+		exit 1
+	else
+		cp $hgroot/.hg/patches/*.patch $rr
+		cp $hgroot/.hg/patches/series $rr
+	fi
 elif [ $cs -eq 1 ]; then
-        $HG export -g -o $rr/%R.patch $rev
-        cd $rr
-        ls -1 *.patch >> series
-        cd - > /dev/null 2>&1
+	$HG export -g -o $rr/%R.patch $rev
+	cd $rr
+	ls -1 *.patch >> series
+	cd - > /dev/null 2>&1
 fi
 
 cat <<ETX >> $rr/rr
-Summary: <<FILL_ME>>
-Review request for Trac Ticket(s): <<IF_ANY_LIST_THE_#>>
-Peer Reviewer(s): <<FILL_ME>>
-Maintainer: <<FILL_ME>>
-Development branch: <<IF_ANY_GIVE_THE_URL>>
-Affected branch(es): <<LIST_AFFECTED_BRANCH(ES)>>
+Summary: <<FILL ME>>
+Review request for Trac Ticket(s): <<IF ANY LIST THE #>>
+Peer Reviewer(s): <<FILL ME>>
+Maintainer: <<FILL ME>>
+Affected branch(es): <<LIST ALL AFFECTED BRANCH(ES)>>
+Development branch: <<IF ANY GIVE THE REPO URL>>
 
 --------------------------------
 Impacted area       Impact y/n
 --------------------------------
  Docs                    n
- Tests                   n
  Build system            n
  RPM/packaging           n
  Configuration files     n
  Startup scripts         n
- Samples                 n
  SAF services            n
- non-SAF services        n
+ OpenSAF services        n
+ Core libraries          n
+ Samples                 n
+ Tests                   n
  Other                   n
 
 
 Comments (indicate scope for each "y" above):
 ---------------------------------------------
+ <<EXPLAIN/COMMENT THE PATCH SERIES HERE>>
+
 ETX
-series=`cat $rr/series`
-for l in $series; do
-        echo " $l:"
-        echo ""
-        echo "  <<PATCH_COMMENTS_HERE>>"
-        echo ""
-done >> $rr/rr
+$HG log --template 'changeset {node}\nAuthor:\t{author}\nDate:\t{date|rfc822date}\n\n\t{desc|strip|fill76|tabindent}\n\n' -r $rev >> $rr/rr
+cat <<ETX >> $rr/rr
+ETX
+new=`egrep -A 2 -s '^new file mode ' $rr/*.patch | grep -s '\+++ b/' | awk -F "b/" '{ print $2 }' | sort -u`
+if [ -n "$new" ]; then
+	echo "" >> $rr/rr
+	echo "Added Files:" >> $rr/rr
+	echo "------------" >> $rr/rr
+	for l in $new; do
+		echo " $l"
+	done >> $rr/rr
+	echo "" >> $rr/rr
+fi
+cat <<ETX >> $rr/rr
+ETX
+del=`egrep -A 1 -s '^deleted file mode ' $rr/*.patch | grep -s '\--- a/' | awk -F "a/" '{ print $2 }' | sort -u`
+if [ -n "$del" ]; then
+	echo "" >> $rr/rr
+	echo "Removed Files:" >> $rr/rr
+	echo "--------------" >> $rr/rr
+	for l in $del; do
+		echo " $l"
+	done >> $rr/rr
+	echo "" >> $rr/rr
+fi
 cat <<ETX >> $rr/rr
 
-Added Files:
-------------
+Complete diffstat:
+------------------
 ETX
-new=`egrep -A 2 -s '^new file mode ' $rr/*.patch | grep -s '^+++ ' | awk '{ print $2 }' | sort -u`
-for l in $new; do
-        echo " $l"
-done >> $rr/rr
-
-cat <<ETX >> $rr/rr
-
-
-Removed Files:
---------------
-ETX
-del=`egrep -A 1 -s '^deleted file mode ' $rr/*.patch | grep -s '^--- ' | awk '{ print $2 }' | sort -u`
-for l in $del; do
-        echo " $l"
-done >> $rr/rr
-
-cat <<ETX >> $rr/rr
-
-
-Remaining Changes (diffstat):
------------------------------
-ETX
-if [ $og -eq 1 ]; then
-        $HG outgoing -M -p | diffstat >> $rr/rr
-else
-        if [ $mq -eq 1 ]; then
-                $HG diff -r $(hg parents -r qbase --template '{rev}') -r qtip | diffstat >> $rr/rr
-        elif [ $cs -eq 1 ]; then
-                $HG export -g $rev | diffstat >> $rr/rr
-        fi
+if [ $mq -eq 1 ]; then
+	$HG diff --stat -r $(hg parents -r qbase --template '{rev}') -r qtip >> $rr/rr
+elif [ $cs -eq 1 ]; then
+	if echo $rev | grep -q ":"; then
+		cs1=`echo $rev | awk -F ":" '{ print $1 }'`
+		cs1=$(($cs1-1))
+		cs2=`echo $rev | awk -F ":" '{ print $2 }'`
+		$HG diff --stat -g -r ${cs1}:${cs2} >> $rr/rr
+	else
+		$HG diff --stat -g -c $rev >> $rr/rr
+	fi
 fi
 cat <<ETX >> $rr/rr
 
 
 Testing Commands:
 -----------------
- <<FILL_ME>>
+ <<LIST THE COMMAND LINE TOOLS/STEPS TO TEST YOUR CHANGES>>
 
 
 Testing, Expected Results:
 --------------------------
- <<FILL_ME>>
+ <<PASTE COMMAND OUTPUTS / TEST RESULTS>>
 
 
 Conditions of Submission:
 -------------------------
- <<FILL_ME>>
+ <<HOW MANY DAYS BEFORE PUSHING, CONSENSUS ETC.>>
 
 
-Arch    Built      Started     Linux distro
+Arch      Built     Started    Linux distro
 -------------------------------------------
-MIPS      n         n
-MIPS64    n         n
-x86       n         n
-x86_64    n         n
-PPC       n         n
-PPC64     n         n
-SPARC     n         n
-SPARC64   n         n
+mips        n          n
+mips64      n          n
+x86         n          n
+x86_64      n          n
+powerpc     n          n
+powerpc64   n          n
 ETX
 
 $EDITOR $rr/rr
 
 while [ -z "$subject" ]; do
-        read -p "Subject: Review Request for " -e subject
+	read -p "Subject: Review Request for " -e subject
 done
 
 while [ -z "$toline" ]; do
-        read -p "To: " -e toline
+	read -p "To: " -e toline
 done
 
-COMMAND="$HG email -s 'Review Request for $subject' --intro --desc $rr/rr --to '$toline' --cc devel@list.opensaf.org"
+COMMAND="$HG email --plain -gd -s 'Review Request for $subject' --intro --desc \
+	$rr/rr --to '$toline' --cc devel@list.opensaf.org"
 
 if [ $dryrun -eq 1 ]; then
-        COMMAND+=" -n"
+	COMMAND="${COMMAND} -n"
 fi
 
-if [ $og -eq 1 ]; then
-        COMMAND+=" -o"
-elif [ $mq -eq 1 ]; then
-        COMMAND+=" qbase:qtip"
-elif [ $cs -eq 1 ]; then
-        COMMAND+=" $rev"
-fi
+COMMAND="${COMMAND} $rev"
+
+for l in `cat $rr/series`; do
+	COMMAND="y|${COMMAND}"
+done
+COMMAND="y|${COMMAND}"
 
 if [ $dryrun -eq 1 ]; then
-        echo "Email will be dumped as $rr/review.mail"
-        eval $COMMAND > $rr/review.mail
+	echo "Email thread dumped into $rr/review.mbox"
+	eval $COMMAND 1>$rr/review.mbox 2>/dev/null
 else
-        eval $COMMAND
+	eval $COMMAND 2>/dev/null
 fi
 
