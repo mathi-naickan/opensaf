@@ -62,7 +62,7 @@ static void usage(const char *progname)
 	printf("\nEXAMPLE\n");
 	printf("\timmlist -a saAmfApplicationAdminState safApp=OpenSAF\n");
 	printf("\timmlist safApp=myApp1 safApp=myApp2\n");
-	printf("\timmlist --pretty-print=no saAmfSUPresenceState safApp=OpenSAF\n");
+	printf("\timmlist --pretty-print=no -a saAmfAppType safApp=OpenSAF\n");
 }
 
 static void print_attr_value_raw(SaImmValueTypeT attrValueType, SaImmAttrValueT *attrValue)
