@@ -98,6 +98,7 @@
 			<flag>SA_PERSISTENT</flag>
 			<flag>SA_CACHED</flag>
 		</attr>
+<!--
 		<attr>
 			<name>saSmfProcDisableSimultanExec</name>
 			<type>SA_UINT32_T</type>
@@ -105,6 +106,7 @@
 			<flag>SA_PERSISTENT</flag>
 			<flag>SA_CACHED</flag>
 		</attr>
+-->
 		<attr>
 			<name>saSmfProcPeriod</name>
 			<type>SA_TIME_T</type>

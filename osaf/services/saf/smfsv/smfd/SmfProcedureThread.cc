@@ -364,7 +364,7 @@ SmfProcedureThread::createImmProcedure(SmfUpgradeProcedure * procedure)
 
 //TODO: Parse and read the saSmfProcDisableSimultanExec attribute from the campaign.xml
 //      Handle the the content i.e. do not execute in parallel 
-	uns32 saSmfProcDisableSimultanExec = 1;
+//Disabled	uns32 saSmfProcDisableSimultanExec = 1;
 	SaTimeT saSmfProcPeriod = 0;
 	uns32 saSmfProcState = SA_SMF_PROC_INITIAL;
 	char *saSmfProcError = (char*)"";
@@ -419,6 +419,8 @@ SmfProcedureThread::createImmProcedure(SmfUpgradeProcedure * procedure)
 		arr6
 	};
 
+#if 0
+Disabled
 	void *arr7[] = { & saSmfProcDisableSimultanExec};
 	const SaImmAttrValuesT_2 attr_saSmfProcDisableSimultanExec = {
 		(char*)"saSmfProcDisableSimultanExec",
@@ -426,7 +428,7 @@ SmfProcedureThread::createImmProcedure(SmfUpgradeProcedure * procedure)
 		1,
 		arr7
 	};
-
+#endif
 	void *arr8[] = { &saSmfProcPeriod };
 	const SaImmAttrValuesT_2 attr_saSmfProcPeriod = {
 		(char*)"saSmfProcPeriod",
@@ -458,7 +460,7 @@ SmfProcedureThread::createImmProcedure(SmfUpgradeProcedure * procedure)
 		&attr_saSmfProcAcceptSIOutage,
 		&attr_saSmfProcMaxNumSIsOutage,
 		&attr_saSmfProcUpgrMethod,
-		&attr_saSmfProcDisableSimultanExec,
+//Disabled		&attr_saSmfProcDisableSimultanExec,
 		&attr_saSmfProcPeriod,
 		&attr_saSmfProcState,
 		&attr_saSmfProcError,
