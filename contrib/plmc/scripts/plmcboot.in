@@ -15,6 +15,9 @@
 prog="plmcd"
 binary=@sbindir@/$prog
 configfile=@sysconfdir@/plmcd.conf
+lockfile=/var/lock/subsys/plmcboot
+timeout=10
+
 
 # Source LSB functions library
 . /lib/lsb/init-functions
@@ -30,14 +33,61 @@ RETVAL=0
 start() {
         [ -x $binary ] || exit 5
         echo -n "Starting $prog: "
+        if [ -f $lockfile ]
+        then
+              echo ""
+              return $RETVAL
+        fi
         start_daemon $binary -c $configfile -s
-        return $?
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]; then
+              touch $lockfile
+              log_success_msg
+        else
+              log_failure_msg
+        fi
+        return $RETVAL
+
 }
 
 stop() {
         echo -n "Stopping $prog: "
+        # If there is no lock file plmcboot was never run. Just return
+        if [ ! -f $lockfile ]
+        then
+                echo ""
+                return 1
+        fi
+
+        # If plmcd is still running get out. Do not issue the message
+        ps -ef | grep $binary | grep -v grep >/tmp/plmcboot 2>&1
+        RETVAL=$?
+        while [ $RETVAL -eq 0 ]
+        do
+                sleep 1
+                ps -ef | grep $binary  | grep -v grep >/dev/null 2>&1
+                RETVAL=$?
+                let timeout=$timeout-1
+                if [ $timeout -le 0 ]
+                then
+                     break
+                fi
+        done
+
+        if [ $RETVAL -eq 0 ]; then
+                echo "Starting $prog failed as $binary is still running"
+                return 1
+        fi
+     
         start_daemon $binary -c $configfile -x
-        return $?
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]; then
+		rm -f $lockfile
+		log_success_msg
+	else
+		log_failure_msg
+	fi
+        return $RETVAL
 }
 
 restart() {

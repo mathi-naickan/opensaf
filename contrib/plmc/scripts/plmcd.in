@@ -2,8 +2,8 @@
 #
 ### BEGIN INIT INFO
 # Provides: plmcd
-# Required-Start: $local_fs $remote_fs $network $syslog
-# Required-Stop: $local_fs $remote_fs $network $syslog
+# Required-Start: $local_fs $remote_fs $network $syslog $plmcboot
+# Required-Stop: $local_fs $remote_fs $network $syslog $plmcboot
 # Should-Start: 
 # Should-Stop: 
 # Default-Start: 2 3 4 5
@@ -16,7 +16,9 @@ prog="plmcd"
 configfile=@sysconfdir@/plmcd.conf
 binary=@sbindir@/$prog
 lockfile=@localstatedir@/lock/subsys/$prog
+bootlockfile=/var/lock/subsys/plmcboot
 pidfile=@localstatedir@/run/$prog.pid
+timeout=10
 
 # Source LSB functions library
 . /lib/lsb/init-functions
@@ -32,6 +34,31 @@ RETVAL=0
 start() {
         [ -x $binary ] || exit 5
         echo -n "Starting $prog: "
+        if [ ! -f $bootlockfile ]
+        then
+                RETVAL=1
+        fi
+        while [ $RETVAL -eq 1 ]
+        do
+                sleep 1
+                if [ ! -f $bootlockfile ]
+                then
+                      RETVAL=1
+                else
+                      RETVAL=0
+                fi
+                let timeout=$timeout-1
+                if [ $timeout -le 0 ]
+                then
+                     break
+                fi
+        done
+
+        if [ $RETVAL -eq 1 ]; then
+                echo "Starting $prog failed. Run plmcboot start first"
+                return 1
+        fi
+     
         start_daemon $binary -c $configfile
         RETVAL=$?
         if [ $RETVAL -eq 0 ]; then
