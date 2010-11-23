@@ -267,7 +267,7 @@ uns8 *ncs_enc_reserve_space(NCS_UBAID *uba, int32 res)
 
 void ncs_enc_claim_space(NCS_UBAID *uba, int32 used)
 {
-	uba->ttl = (uns16)(uba->ttl + used);	/* keep our grand total */
+	uba->ttl = (uba->ttl + used);  /* keep our grand total as uns32 */
 
 	/* Free up unused portion which was reserved  */
 	m_MMGR_REMOVE_FROM_END(uba->ub, (uns32)(uba->res - used));
