@@ -369,7 +369,11 @@ typedef struct avsv_n2d_reg_comp_msg_info_tag {
 typedef struct avsv_n2d_operation_state_msg_info_tag {
 	uns32 msg_id;
 	SaClmNodeIdT node_id;
-	AVSV_ERR_RCVR rec_rcvr;
+	union {
+		uns32 raw;
+		AVSV_ERR_RCVR avsv_ext;
+		SaAmfRecommendedRecoveryT saf_amf;
+	} rec_rcvr;
 	SaAmfOperationalStateT node_oper_state;
 	SaNameT su_name;
 	SaAmfOperationalStateT su_oper_state;

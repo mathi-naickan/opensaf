@@ -594,7 +594,7 @@ uns32 avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 	if (comp) {
 		/* found the matching comp; trigger error processing */
 		err_info.src = AVND_ERR_SRC_AVA_DN;
-		err_info.rcvr = comp->err_info.def_rec;
+		err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
 		rc = avnd_err_process(cb, comp, &err_info);
 	}
 

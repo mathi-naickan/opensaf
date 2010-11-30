@@ -549,7 +549,7 @@ uns32 avnd_evt_tmr_clc_pxied_comp_reg_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	/* process comp failure */
 	err_info.src = AVND_ERR_SRC_PXIED_REG_TIMEOUT;
-	err_info.rcvr = SA_AMF_COMPONENT_FAILOVER;
+	err_info.rec_rcvr.saf_amf = SA_AMF_COMPONENT_FAILOVER;
 	rc = avnd_err_process(cb, comp, &err_info);
 
 done:

@@ -67,7 +67,7 @@ uns32 avnd_comp_am_start(AVND_CB *cb, AVND_COMP *comp)
 	} else {
       /*** comp error  processing  ***/
 		err.src = AVND_ERR_SRC_AM;
-		err.rcvr = comp->err_info.def_rec;
+		err.rec_rcvr.avsv_ext = comp->err_info.def_rec;
 		rc = avnd_err_process(cb, comp, &err);
 	}
 
@@ -176,7 +176,7 @@ uns32 avnd_comp_amstop_clc_res_process(AVND_CB *cb, AVND_COMP *comp, NCS_OS_PROC
 
 	/*** process error ***/
 			err.src = AVND_ERR_SRC_AM;
-			err.rcvr = comp->err_info.def_rec;
+			err.rec_rcvr.avsv_ext = comp->err_info.def_rec;
 			rc = avnd_err_process(cb, comp, &err);
 		}
 	}

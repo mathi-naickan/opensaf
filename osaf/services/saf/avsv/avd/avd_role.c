@@ -370,7 +370,7 @@ static uns32 avd_role_failover_qsd_actv(AVD_CL_CB *cb, SaAmfHAStateT role)
 	svc_to_mds_info.info.query_dest.info.query_for_role.i_anc = 0; // TODO?
 
 	if (ncsmds_api(&svc_to_mds_info) == NCSCC_RC_SUCCESS) {
-		if (svc_to_mds_info.info.query_dest.info.query_for_role.o_vdest_rl == SA_AMF_HA_ACTIVE) {
+		if (svc_to_mds_info.info.query_dest.info.query_for_role.o_vdest_rl == V_DEST_RL_ACTIVE) {
 			/* We were in middle of switch, but we had not progresses much with role switch functionality.
 			 * its ok to just change the NCS SU's who are already quiesced, back to Active. 
 			 * Post an evt on mailbox to set active role to all NCS SU 

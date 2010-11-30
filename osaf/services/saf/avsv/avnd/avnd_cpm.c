@@ -296,7 +296,7 @@ uns32 avnd_comp_pmstart_modify(AVND_CB *cb, AVSV_AMF_PM_START_PARAM *pm_start, A
 	/* fill the modified parameters */
 	rec->desc_tree_depth = pm_start->desc_tree_depth;
 	rec->err = pm_start->pm_err;
-	rec->rec_rcvr = pm_start->rec_rcvr;
+	rec->rec_rcvr.raw = pm_start->rec_rcvr.raw;
 
 	return rc;
 }
@@ -329,7 +329,7 @@ AVND_COMP_PM_REC *avnd_comp_new_rsrc_mon(AVND_CB *cb, AVND_COMP *comp, AVSV_AMF_
 	/* assign the pm params */
 	rec->desc_tree_depth = pm_start->desc_tree_depth;
 	rec->err = pm_start->pm_err;
-	rec->rec_rcvr = pm_start->rec_rcvr;
+	rec->rec_rcvr.raw = pm_start->rec_rcvr.raw;
 	rec->pid = pm_start->pid;
 	rec->req_hdl = pm_start->hdl;
 	/* store the comp bk ptr */
@@ -368,7 +368,7 @@ NCS_BOOL avnd_comp_pm_rec_cmp(AVSV_AMF_PM_START_PARAM *pm_start, AVND_COMP_PM_RE
 	if (pm_start->pm_err != rec->err)
 		return 1;
 
-	if (pm_start->rec_rcvr != rec->rec_rcvr)
+	if (pm_start->rec_rcvr.raw != rec->rec_rcvr.raw)
 		return 1;
 
 	return 0;

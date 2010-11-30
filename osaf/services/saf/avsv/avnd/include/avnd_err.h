@@ -82,7 +82,11 @@ typedef struct avnd_cerr_info_tag {
 /* wrapper structure used to carry error info across routines */
 typedef struct avnd_err_tag {
 	AVND_ERR_SRC src;	/* err-src */
-	AVSV_ERR_RCVR rcvr;	/* recovery action */
+	union {
+		uns32 raw;
+		AVSV_ERR_RCVR avsv_ext;
+		SaAmfRecommendedRecoveryT saf_amf;
+	} rec_rcvr;
 } AVND_ERR_INFO;
 
 /***************************************************************************

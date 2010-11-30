@@ -113,7 +113,7 @@ done:
 uns32 avnd_evt_avnd_avnd_api_msg_hdl(AVND_CB *cb, AVND_EVT *evt)
 {
 	uns32 res = NCSCC_RC_SUCCESS;
-	AVSV_AMF_API_TYPE evt_type;
+	AVND_EVT_TYPE evt_type;
 
 	/* The event is coming from AvND and not from AvA, so we need to 
 	   copy mds context information to evt so that we spoof it like 

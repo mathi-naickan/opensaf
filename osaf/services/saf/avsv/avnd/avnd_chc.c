@@ -113,7 +113,7 @@ uns32 avnd_evt_ava_hc_start_evh(AVND_CB *cb, AVND_EVT *evt)
  done:
 	if (NCSCC_RC_SUCCESS != rc) {
 		m_AVND_AVND_ERR_LOG("avnd_evt_ava_hc_start():Comp,Hdl,InvType and Err Rcvr are",
-				    &hc_start->comp_name, hc_start->hdl, hc_start->inv_type, hc_start->rec_rcvr, 0);
+				    &hc_start->comp_name, hc_start->hdl, hc_start->inv_type, hc_start->rec_rcvr.raw, 0);
 	}
 	TRACE_LEAVE();
 	return rc;
@@ -525,7 +525,7 @@ AVND_COMP_HC_REC *avnd_comp_hc_rec_add(AVND_CB *cb, AVND_COMP *comp, AVSV_AMF_HC
 
 	/* store the params sent by the component */
 	rec->inv = hc_start->inv_type;
-	rec->rec_rcvr = hc_start->rec_rcvr;
+	rec->rec_rcvr.raw = hc_start->rec_rcvr.raw;
 	rec->req_hdl = hc_start->hdl;
 	rec->dest = *dest;
 
@@ -761,7 +761,7 @@ uns32 avnd_comp_hc_rec_confirm(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_HC_REC *r
 	} else {
 		/* process comp failure */
 		err_info.src = AVND_ERR_SRC_HC;
-		err_info.rcvr = rec->rec_rcvr;
+		err_info.rec_rcvr.raw = rec->rec_rcvr.raw;
 		rc = avnd_err_process(cb, comp, &err_info);
 	}
 
@@ -798,7 +798,7 @@ uns32 avnd_comp_hc_rec_tmr_exp(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_HC_REC *r
 	} else {
 		/* process comp failure */
 		err_info.src = AVND_ERR_SRC_HC;
-		err_info.rcvr = rec->rec_rcvr;
+		err_info.rec_rcvr.raw = rec->rec_rcvr.raw;
 		rc = avnd_err_process(cb, comp, &err_info);
 	}
 

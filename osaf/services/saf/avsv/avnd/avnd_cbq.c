@@ -151,7 +151,7 @@ uns32 avnd_evt_ava_csi_quiescing_compl_evh(AVND_CB *cb, AVND_EVT *evt)
 	if (SA_AIS_OK != qsc->err) {
 		/* process comp-failure */
 		err_info.src = AVND_ERR_SRC_CBK_CSI_SET_FAILED;
-		err_info.rcvr = comp->err_info.def_rec;
+		err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
 		rc = avnd_err_process(cb, comp, &err_info);
 	} else {
 		if (!m_AVSV_SA_NAME_IS_NULL(cbk_rec->cbk_info->param.csi_set.csi_desc.csiName)) {
@@ -302,7 +302,7 @@ uns32 avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 			if (SA_AIS_OK != resp->err) {
 				/* process comp-failure */
 				if (hc_rec) {
-					err_info.rcvr = hc_rec->rec_rcvr;
+					err_info.rec_rcvr.raw = hc_rec->rec_rcvr.raw;
 					err_info.src = AVND_ERR_SRC_CBK_HC_FAILED;
 					rc = avnd_err_process(cb, comp, &err_info);
 				}
@@ -387,7 +387,7 @@ uns32 avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 			} else {
 				/* process comp-failure */
 				err_info.src = AVND_ERR_SRC_CBK_CSI_SET_FAILED;
-				err_info.rcvr = comp->err_info.def_rec;
+				err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
 				rc = avnd_err_process(cb, comp, &err_info);
 			}
 		} else {
@@ -426,7 +426,7 @@ uns32 avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 		/* perform err prc if resp fails */
 		if (SA_AIS_OK != resp->err) {
 			err_info.src = AVND_ERR_SRC_CBK_CSI_REM_FAILED;
-			err_info.rcvr = comp->err_info.def_rec;
+			err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
 			rc = avnd_err_process(cb, comp, &err_info);
 		}
 
@@ -543,9 +543,9 @@ uns32 avnd_evt_tmr_cbk_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 			hc_rec = m_AVND_COMPDB_REC_HC_GET(*(rec->comp), tmp_hc_rec);
 			if (!hc_rec)
 				goto done;
-			err_info.rcvr = hc_rec->rec_rcvr;
+			err_info.rec_rcvr.raw = hc_rec->rec_rcvr.raw;
 		} else
-			err_info.rcvr = rec->comp->err_info.def_rec;
+			err_info.rec_rcvr.avsv_ext = rec->comp->err_info.def_rec;
 
 		rc = avnd_err_process(cb, rec->comp, &err_info);
 	}

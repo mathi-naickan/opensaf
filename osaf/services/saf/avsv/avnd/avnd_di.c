@@ -479,7 +479,7 @@ uns32 avnd_di_oper_send(AVND_CB *cb, AVND_SU *su, uns32 rcvr)
 				TRACE("%s SU Oper state got disabled", su->name.value);
 		}
 
-		msg.info.avd->msg_info.n2d_opr_state.rec_rcvr = rcvr;
+		msg.info.avd->msg_info.n2d_opr_state.rec_rcvr.raw = rcvr;
 
 		/* send the msg to AvD */
 		rc = avnd_di_msg_send(cb, &msg);

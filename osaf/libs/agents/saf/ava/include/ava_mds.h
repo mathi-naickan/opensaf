@@ -104,7 +104,7 @@
                    (hck).key, (hck).keyLen); \
    (m).info.api_info.param.hc_start.hc_key.keyLen = (hck).keyLen; \
    (m).info.api_info.param.hc_start.inv_type = (inv); \
-   (m).info.api_info.param.hc_start.rec_rcvr = (rr); \
+   (m).info.api_info.param.hc_start.rec_rcvr.saf_amf = (rr); \
 }
 
 /* Macro to populate the 'healthcheck stop' message */
@@ -157,7 +157,7 @@
    (m).info.api_info.param.pm_start.pid = (processId); \
    (m).info.api_info.param.pm_start.desc_tree_depth = (depth); \
    (m).info.api_info.param.pm_start.pm_err = (pmErr); \
-   (m).info.api_info.param.pm_start.rec_rcvr = (rec); \
+   (m).info.api_info.param.pm_start.rec_rcvr.saf_amf = (rec); \
 }
 
 /* Macro to populate the 'Passive Monitoring stop' message */
@@ -227,7 +227,7 @@
                    (ec).value, (ec).length); \
    (m).info.api_info.param.err_rep.err_comp.length = (ec).length; \
    (m).info.api_info.param.err_rep.detect_time = (et); \
-   (m).info.api_info.param.err_rep.rec_rcvr = (rr); \
+   (m).info.api_info.param.err_rep.rec_rcvr.saf_amf = (rr); \
 }
 
 /* Macro to populate the 'error clear' message */

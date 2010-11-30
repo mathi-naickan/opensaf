@@ -217,7 +217,11 @@ typedef struct avnd_hc_rec_tag {
 	/* health check info */
 	SaAmfHealthcheckKeyT key;	/* health check key (index) */
 	SaAmfHealthcheckInvocationT inv;	/* invocation type */
-	AVSV_ERR_RCVR rec_rcvr;	/* recommended recovery */
+	union {
+		uns32 raw;
+		AVSV_ERR_RCVR avsv_ext;
+		SaAmfRecommendedRecoveryT saf_amf;
+	} rec_rcvr;
 
 	/* params used to locate the correct thread & process */
 	SaAmfHandleT req_hdl;	/* AMF handle value */
@@ -246,7 +250,11 @@ typedef struct avnd_pm_rec {
 	/* pm info */
 	SaInt32T desc_tree_depth;	/* descendent tree depth */
 	SaAmfPmErrorsT err;	/* error that is monitored */
-	AVSV_ERR_RCVR rec_rcvr;	/* recommended recovery */
+	union {
+		uns32 raw;
+		AVSV_ERR_RCVR avsv_ext;
+		SaAmfRecommendedRecoveryT saf_amf;
+	} rec_rcvr;
 
 	/* links to other entities */
 	struct avnd_comp_tag *comp;	/* back ptr to the comp */

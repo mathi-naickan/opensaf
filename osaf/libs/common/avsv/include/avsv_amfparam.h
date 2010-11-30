@@ -118,7 +118,11 @@ typedef struct avsv_amf_pm_start_param_tag {
 	SaUint64T pid;		/* prc id */
 	SaInt32T desc_tree_depth;	/* descendent tree depth */
 	SaAmfPmErrorsT pm_err;	/* pm errors */
-	SaAmfRecommendedRecoveryT rec_rcvr;	/* recommended recovery */
+	union {
+		uns32 raw;
+		AVSV_ERR_RCVR avsv_ext;
+		SaAmfRecommendedRecoveryT saf_amf;
+	} rec_rcvr;
 } AVSV_AMF_PM_START_PARAM;
 
 /* passive monitor stop */
@@ -137,7 +141,11 @@ typedef struct avsv_amf_hc_start_param_tag {
 	SaNameT proxy_comp_name;	/* proxy comp name */
 	SaAmfHealthcheckKeyT hc_key;	/* healthcheck key */
 	SaAmfHealthcheckInvocationT inv_type;	/* invocation type */
-	SaAmfRecommendedRecoveryT rec_rcvr;	/* recommended recovery */
+	union {
+		uns32 raw;
+		AVSV_ERR_RCVR avsv_ext;
+		SaAmfRecommendedRecoveryT saf_amf;
+	} rec_rcvr;
 } AVSV_AMF_HC_START_PARAM;
 
 /* healthcheck stop */
@@ -199,7 +207,11 @@ typedef struct avsv_amf_err_rep_param_tag {
 	SaAmfHandleT hdl;	/* AMF handle */
 	SaNameT err_comp;	/* erroneous comp */
 	SaTimeT detect_time;	/* error detect time */
-	SaAmfRecommendedRecoveryT rec_rcvr;	/* recommended recovery */
+	union {
+		uns32 raw;
+		AVSV_ERR_RCVR avsv_ext;
+		SaAmfRecommendedRecoveryT saf_amf;
+	} rec_rcvr;
 } AVSV_AMF_ERR_REP_PARAM;
 
 /* error clear */

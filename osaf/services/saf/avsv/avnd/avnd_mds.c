@@ -1356,7 +1356,7 @@ uns32 avnd_mds_set_vdest_role(AVND_CB *cb, SaAmfHAStateT role)
 {
 	NCSVDA_INFO vda_info;
 
-	if (V_DEST_RL_QUIESCED == role) {
+	if (SA_AMF_HA_QUIESCED == role) {
 		cb->is_quisced_set = TRUE;
 	}
 	memset(&vda_info, '\0', sizeof(NCSVDA_INFO));

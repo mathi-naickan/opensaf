@@ -221,7 +221,7 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	/* Verify that the SU and node oper state is diabled and rcvr is failfast */
 	if ((n2d_msg->msg_info.n2d_opr_state.su_oper_state == SA_AMF_OPERATIONAL_DISABLED) &&
 	    (n2d_msg->msg_info.n2d_opr_state.node_oper_state == SA_AMF_OPERATIONAL_DISABLED) &&
-	    (n2d_msg->msg_info.n2d_opr_state.rec_rcvr == SA_AMF_NODE_FAILFAST)) {
+	    (n2d_msg->msg_info.n2d_opr_state.rec_rcvr.saf_amf == SA_AMF_NODE_FAILFAST)) {
 		/* as of now do the same opearation as ncs su failure */
 		avd_su_oper_state_set(su, SA_AMF_OPERATIONAL_DISABLED);
 		if ((node->type == AVSV_AVND_CARD_SYS_CON) && (node->node_info.nodeId == cb->node_id_avd)) {
@@ -1230,10 +1230,10 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 			   when all SIs have been unassigned for a SU on the node undergoing 
 			   LOCK/SHUTDOWN or when successful SI assignment has happened for 
 			   a SU on the node undergoing UNLOCK */
-			if ((((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_LOCKED) ||
-			      (su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_SHUTTING_DOWN)) &&
+			if ((((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_LOCK) ||
+			      (su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK_INSTANTIATION)) &&
 			     (su->saAmfSUNumCurrActiveSIs == 0) && (su->saAmfSUNumCurrStandbySIs == 0)) ||
-			    ((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCKED) &&
+			    ((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK) &&
 			     ((su->saAmfSUNumCurrActiveSIs != 0) || (su->saAmfSUNumCurrStandbySIs != 0)))) {
 				su->su_on_node->su_cnt_admin_oper--;
 			}

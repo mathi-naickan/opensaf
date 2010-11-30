@@ -167,9 +167,9 @@ uns32 avnd_evt_ava_err_rep_evh(AVND_CB *cb, AVND_EVT *evt)
 		   Recommended recovery SA_AMF_NODE_SWITCHOVER, 
 		   SA_AMF_NODE_FAILOVER, SA_AMF_NODE_FAILFAST or SA_AMF_CLUSTER_RESET
 		   are not allowed for external component. */
-		if ((SA_AMF_NODE_SWITCHOVER == err_rep->rec_rcvr) ||
-		    (SA_AMF_NODE_FAILOVER == err_rep->rec_rcvr) ||
-		    (SA_AMF_NODE_FAILFAST == err_rep->rec_rcvr) || (SA_AMF_CLUSTER_RESET == err_rep->rec_rcvr))
+		if ((SA_AMF_NODE_SWITCHOVER == err_rep->rec_rcvr.saf_amf) ||
+		    (SA_AMF_NODE_FAILOVER == err_rep->rec_rcvr.saf_amf) ||
+		    (SA_AMF_NODE_FAILFAST == err_rep->rec_rcvr.saf_amf) || (SA_AMF_CLUSTER_RESET == err_rep->rec_rcvr.saf_amf))
 			amf_rc = SA_AIS_ERR_INVALID_PARAM;
 	}
 
@@ -188,14 +188,14 @@ uns32 avnd_evt_ava_err_rep_evh(AVND_CB *cb, AVND_EVT *evt)
 
       /*** process the error ***/
 		err.src = AVND_ERR_SRC_REP;
-		err.rcvr = err_rep->rec_rcvr;
+		err.rec_rcvr.raw = err_rep->rec_rcvr.raw;
 		rc = avnd_err_process(cb, comp, &err);
 	}
 
  done:
 	if (NCSCC_RC_SUCCESS != rc) {
 		m_AVND_AVND_ERR_LOG("avnd_evt_ava_err_rep():Comp,Hdl and rec_rcvr are",
-				    &err_rep->err_comp, err_rep->hdl, err_rep->rec_rcvr, 0, 0);
+				    &err_rep->err_comp, err_rep->hdl, err_rep->rec_rcvr.raw, 0, 0);
 	}
 
 	TRACE_LEAVE();
@@ -291,7 +291,7 @@ uns32 avnd_evt_ava_err_clear_evh(AVND_CB *cb, AVND_EVT *evt)
 ******************************************************************************/
 uns32 avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 {
-	AVSV_ERR_RCVR esc_rcvr = err_info->rcvr;
+	uns32 esc_rcvr = err_info->rec_rcvr.raw;
 	uns32 rc = NCSCC_RC_SUCCESS;
 
 	/* when undergoing admin oper do not process any component errors */
@@ -368,7 +368,7 @@ uns32 avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
  
   Notes         : None.
 ******************************************************************************/
-uns32 avnd_err_escalate(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, AVSV_ERR_RCVR *io_esc_rcvr)
+uns32 avnd_err_escalate(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, uns32 *io_esc_rcvr)
 {
 	uns32 rc = NCSCC_RC_SUCCESS;
 	if (comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED ||
@@ -422,7 +422,7 @@ uns32 avnd_err_escalate(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, AVSV_ERR_RCVR
  
   Notes         : None.
 ******************************************************************************/
-uns32 avnd_err_recover(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, AVSV_ERR_RCVR rcvr)
+uns32 avnd_err_recover(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, uns32 rcvr)
 {
 	uns32 rc = NCSCC_RC_SUCCESS;
 

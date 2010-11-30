@@ -424,7 +424,7 @@ uns32 avnd_evt_pid_exit_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	/* store the info */
 	err.src = AVND_ERR_SRC_PM;
-	err.rcvr = pm_rec->rec_rcvr;
+	err.rec_rcvr.raw = pm_rec->rec_rcvr.raw;
 	comp = pm_rec->comp;
 
 	/* free up the rec */
