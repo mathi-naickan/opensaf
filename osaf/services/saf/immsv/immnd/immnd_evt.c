@@ -7072,11 +7072,11 @@ static uns32 immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 		    evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OM)) {
 		TRACE_2("IMMA UP EVENT");
 	} else if ((evt->info.mds_info.change == NCSMDS_RED_UP) &&
-		   (evt->info.mds_info.role == SA_AMF_HA_ACTIVE) && evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD) {
+		   (evt->info.mds_info.role == V_DEST_RL_ACTIVE) && evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD) {
 		TRACE_2("IMMD new activeEVENT");
 		/*immnd_evt_immd_new_active(cb); */
 	} else if ((evt->info.mds_info.change == NCSMDS_CHG_ROLE) &&
-		   (evt->info.mds_info.role == SA_AMF_HA_ACTIVE) && (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
+		   (evt->info.mds_info.role == V_DEST_RL_ACTIVE) && (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD)) {
 
 		TRACE_2("IMMD FAILOVER");
 		/* The IMMD has failed over. */
