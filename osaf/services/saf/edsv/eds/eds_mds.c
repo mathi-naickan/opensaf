@@ -1004,7 +1004,7 @@ static uns32 eds_mds_enc(struct ncsmds_callback_info *info)
 		if (!p8) {
 			m_LOG_EDSV_S(EDS_MDS_FAILURE, NCSFL_LC_EDSV_INIT, NCSFL_SEV_ERROR, 0, __FILE__, __LINE__, 0);
 		}
-		ncs_encode_32bit(&p8, msg->info.api_resp_info.type);
+		ncs_encode_32bit(&p8, msg->info.api_resp_info.type.raw);
 		ncs_enc_claim_space(uba, 4);
 		total_bytes += 4;
 
@@ -1017,7 +1017,7 @@ static uns32 eds_mds_enc(struct ncsmds_callback_info *info)
 		ncs_enc_claim_space(uba, 4);
 		total_bytes += 4;
 
-		switch (msg->info.api_resp_info.type) {
+		switch (msg->info.api_resp_info.type.api_rsp) {
 		case EDSV_EDA_INITIALIZE_RSP_MSG:
 			total_bytes += eds_enc_initialize_rsp_msg(uba, msg);
 			break;
@@ -1033,7 +1033,7 @@ static uns32 eds_mds_enc(struct ncsmds_callback_info *info)
 			break;
 		default:
 			m_LOG_EDSV_S(EDS_MDS_FAILURE, NCSFL_LC_EDSV_INIT, NCSFL_SEV_ERROR, 0, __FILE__, __LINE__,
-				     msg->info.api_resp_info.type);
+				     msg->info.api_resp_info.type.raw);
 			break;
 		}
 	} else if (EDSV_EDS_CBK_MSG == msg->type) {
@@ -1048,7 +1048,7 @@ static uns32 eds_mds_enc(struct ncsmds_callback_info *info)
 		ncs_enc_claim_space(uba, 16);
 		total_bytes += 16;
 
-		switch (msg->info.api_resp_info.type) {
+		switch (msg->info.api_resp_info.type.cbk) {
 		case EDSV_EDS_CHAN_OPEN:
 			total_bytes += eds_enc_chan_open_cbk_msg(uba, msg);
 			break;
@@ -1060,7 +1060,7 @@ static uns32 eds_mds_enc(struct ncsmds_callback_info *info)
 			break;
 		default:
 			m_LOG_EDSV_S(EDS_MDS_FAILURE, NCSFL_LC_EDSV_INIT, NCSFL_SEV_ERROR, 0, __FILE__, __LINE__,
-				     msg->info.api_resp_info.type);
+				     msg->info.api_resp_info.type.raw);
 			break;
 		}
 	} else {

@@ -62,7 +62,7 @@ EXTERN_C uns32 eds_dec_publish_msg(NCS_UBAID *uba, long msg_hdl, uns8 ckpt_flag)
 do { \
    memset(&(m), 0, sizeof(EDSV_MSG)); \
    (m).type = EDSV_EDA_API_RESP_MSG; \
-   (m).info.api_resp_info.type = EDSV_EDA_INITIALIZE_RSP_MSG; \
+   (m).info.api_resp_info.type.api_rsp = EDSV_EDA_INITIALIZE_RSP_MSG; \
    (m).info.api_resp_info.rc = (rs); \
    if (rs == SA_AIS_OK);             \
    {                                 \
@@ -75,7 +75,7 @@ do { \
 do { \
    memset(&(m), 0, sizeof(EDSV_MSG)); \
    (m).type = EDSV_EDA_API_RESP_MSG; \
-   (m).info.api_resp_info.type = EDSV_EDA_LIMIT_GET_RSP_MSG; \
+   (m).info.api_resp_info.type.api_rsp = EDSV_EDA_LIMIT_GET_RSP_MSG; \
    (m).info.api_resp_info.rc = (rs); \
    if (rs == SA_AIS_OK);             \
    {                                 \
@@ -92,7 +92,7 @@ do { \
 do { \
    memset(&(m), 0, sizeof(EDSV_MSG)); \
    (m).type = EDSV_EDA_API_RESP_MSG; \
-   (m).info.api_resp_info.type = EDSV_EDA_CHAN_OPEN_SYNC_RSP_MSG; \
+   (m).info.api_resp_info.type.api_rsp = EDSV_EDA_CHAN_OPEN_SYNC_RSP_MSG; \
    (m).info.api_resp_info.rc = (rs); \
    (m).info.api_resp_info.param.chan_open_rsp.chan_id = (chanid); \
    (m).info.api_resp_info.param.chan_open_rsp.chan_open_id = (copenid); \
@@ -103,7 +103,7 @@ do { \
 do { \
    memset(&(m), 0, sizeof(EDSV_MSG)); \
    (m).type = EDSV_EDA_API_RESP_MSG; \
-   (m).info.api_resp_info.type = EDSV_EDA_CHAN_UNLINK_SYNC_RSP_MSG; \
+   (m).info.api_resp_info.type.api_rsp = EDSV_EDA_CHAN_UNLINK_SYNC_RSP_MSG; \
    (m).info.api_resp_info.rc = (rs); \
    (m).info.api_resp_info.param.chan_unlink_rsp.chan_name = (cname); \
   } while (0);
@@ -113,7 +113,7 @@ do { \
 do { \
    memset(&(m), 0, sizeof(EDSV_MSG)); \
    (m).type = EDSV_EDA_API_RESP_MSG; \
-   (m).info.api_resp_info.type = EDSV_EDA_CHAN_RETENTION_TIME_CLEAR_SYNC_RSP_MSG; \
+   (m).info.api_resp_info.type.api_rsp = EDSV_EDA_CHAN_RETENTION_TIME_CLEAR_SYNC_RSP_MSG; \
    (m).info.api_resp_info.rc = (rs); \
   } while (0);
 /* Macro to populate the 'EVT Channel Open' callback message */

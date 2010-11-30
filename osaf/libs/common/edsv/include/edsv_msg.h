@@ -290,7 +290,11 @@ typedef struct edsv_eda_publish_rsp_tag {
 /* wrapper structure for all API responses 
  */
 typedef struct edsv_api_rsp_info_tag {
-	EDSV_API_RSP_TYPE type;	/* callback type */
+	union {
+		uns32 raw;
+		EDSV_API_RSP_TYPE api_rsp;
+		EDSV_CBK_TYPE cbk;
+	} type;
 	SaAisErrorT rc;		/* return code */
 	union {
 		EDSV_EDA_INITIALIZE_RSP init_rsp;

@@ -1301,11 +1301,11 @@ static uns32 eda_mds_dec(struct ncsmds_callback_info *info)
 	case EDSV_EDA_API_RESP_MSG:
 		{
 			p8 = ncs_dec_flatten_space(uba, local_data, 8);
-			msg->info.api_resp_info.type = ncs_decode_32bit(&p8);
+			msg->info.api_resp_info.type.raw = ncs_decode_32bit(&p8);
 			msg->info.api_resp_info.rc = ncs_decode_32bit(&p8);
 			ncs_dec_skip_space(uba, 8);
 			total_bytes += 8;
-			switch (msg->info.api_resp_info.type) {
+			switch (msg->info.api_resp_info.type.api_rsp) {
 			case EDSV_EDA_INITIALIZE_RSP_MSG:
 				total_bytes += eda_dec_initialize_rsp_msg(uba, msg);
 				break;
