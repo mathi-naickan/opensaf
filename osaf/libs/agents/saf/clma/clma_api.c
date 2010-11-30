@@ -1231,6 +1231,7 @@ static SaAisErrorT clmaclusternodeget(SaClmHandleT clmHandle,
 	clma_client_hdl_rec_t *hdl_rec;
 	CLMSV_MSG msg, *o_msg = NULL;
 	SaAisErrorT rc = SA_AIS_OK;
+	uns32 ncs_rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
 
@@ -1296,8 +1297,8 @@ static SaAisErrorT clmaclusternodeget(SaClmHandleT clmHandle,
 	msg.info.api_info.param.node_get.client_id = hdl_rec->clms_client_id;
 	msg.info.api_info.param.node_get.node_id = node_id;
 
-	rc = clma_mds_msg_sync_send(&clma_cb, &msg, &o_msg, timeout);
-	switch (rc) {
+	ncs_rc = clma_mds_msg_sync_send(&clma_cb, &msg, &o_msg, timeout);
+	switch (ncs_rc) {
 	case NCSCC_RC_SUCCESS:
 		break;
 	case NCSCC_RC_REQ_TIMOUT:
