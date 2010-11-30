@@ -834,14 +834,14 @@ static uns32 mqd_asapi_track_hdlr(MQD_CB *pMqd, ASAPi_TRACK_INFO *track, MQSV_SE
 		if (NCSCC_RC_SUCCESS != rc) {
 			msg.info.tresp.err.flag = TRUE;
 			msg.info.tresp.err.errcode = rc;
-			if (pObjNode->oinfo.type == ASAPi_OBJ_QUEUE)
+			if (pObjNode->oinfo.type == MQSV_OBJ_QUEUE)
 				m_LOG_MQSV_D(MQD_ASAPi_QUEUE_MAKE_FAILED, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_ERROR, rc,
 					     __FILE__, __LINE__);
 			else
 				m_LOG_MQSV_D(MQD_ASAPi_QUEUE_MAKE_FAILED, NCSFL_LC_MQSV_QGRP_MGMT, NCSFL_SEV_ERROR, rc,
 					     __FILE__, __LINE__);
 		} else {
-			if (pObjNode->oinfo.type == ASAPi_OBJ_QUEUE)
+			if (pObjNode->oinfo.type == MQSV_OBJ_QUEUE)
 				m_LOG_MQSV_D(MQD_ASAPi_QUEUE_MAKE_SUCCESS, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_NOTICE, rc,
 					     __FILE__, __LINE__);
 			else
@@ -918,14 +918,14 @@ uns32 mqd_asapi_track_db_upd(MQD_CB *pMqd, ASAPi_TRACK_INFO *track, MQSV_SEND_IN
 		/* Enable tracking for the sender vis-a-vis object */
 		rc = mqd_track_add(&pObjNode->oinfo.tlist, &info->dest, info->to_svc);
 		if (rc == NCSCC_RC_SUCCESS) {
-			if (pObjNode->oinfo.type == ASAPi_OBJ_QUEUE)
+			if (pObjNode->oinfo.type == MQSV_OBJ_QUEUE)
 				m_LOG_MQSV_D(MQD_GROUP_TRACK_DB_UPDATE_SUCCESS, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_NOTICE,
 					     rc, __FILE__, __LINE__);
 			else
 				m_LOG_MQSV_D(MQD_GROUP_TRACK_DB_UPDATE_SUCCESS, NCSFL_LC_MQSV_QGRP_MGMT,
 					     NCSFL_SEV_NOTICE, rc, __FILE__, __LINE__);
 		} else {
-			if (pObjNode->oinfo.type == ASAPi_OBJ_QUEUE)
+			if (pObjNode->oinfo.type == MQSV_OBJ_QUEUE)
 				m_LOG_MQSV_D(MQD_GROUP_TRACK_DB_UPDATE_FAILURE, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_ERROR,
 					     rc, __FILE__, __LINE__);
 			else
@@ -936,14 +936,14 @@ uns32 mqd_asapi_track_db_upd(MQD_CB *pMqd, ASAPi_TRACK_INFO *track, MQSV_SEND_IN
 		/* Disable tracking for the sender vis-a-vis object */
 		rc = mqd_track_del(&pObjNode->oinfo.tlist, &info->dest);
 		if (rc == NCSCC_RC_SUCCESS) {
-			if (pObjNode->oinfo.type == ASAPi_OBJ_QUEUE)
+			if (pObjNode->oinfo.type == MQSV_OBJ_QUEUE)
 				m_LOG_MQSV_D(MQD_GROUP_TRACKSTOP_DB_UPDATE_SUCCESS, NCSFL_LC_MQSV_Q_MGMT,
 					     NCSFL_SEV_NOTICE, rc, __FILE__, __LINE__);
 			else
 				m_LOG_MQSV_D(MQD_GROUP_TRACKSTOP_DB_UPDATE_SUCCESS, NCSFL_LC_MQSV_QGRP_MGMT,
 					     NCSFL_SEV_NOTICE, rc, __FILE__, __LINE__);
 		} else {
-			if (pObjNode->oinfo.type == ASAPi_OBJ_QUEUE)
+			if (pObjNode->oinfo.type == MQSV_OBJ_QUEUE)
 				m_LOG_MQSV_D(MQD_GROUP_TRACKSTOP_DB_UPDATE_FAILURE, NCSFL_LC_MQSV_Q_MGMT,
 					     NCSFL_SEV_ERROR, rc, __FILE__, __LINE__);
 			else
@@ -991,7 +991,7 @@ static uns32 mqd_asapi_track_ntfy_send(MQD_OBJ_INFO *pObjInfo, ASAPi_OBJECT_OPR 
 
 	rc = mqd_asapi_queue_make(pObjInfo, &pQueue, &qcnt, FALSE);
 	if (NCSCC_RC_SUCCESS != rc) {
-		if (pObjInfo->type == ASAPi_OBJ_QUEUE)
+		if (pObjInfo->type == MQSV_OBJ_QUEUE)
 			m_LOG_MQSV_D(MQD_ASAPi_QUEUE_MAKE_FAILED, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_ERROR, rc, __FILE__,
 				     __LINE__);
 		else
@@ -999,7 +999,7 @@ static uns32 mqd_asapi_track_ntfy_send(MQD_OBJ_INFO *pObjInfo, ASAPi_OBJECT_OPR 
 				     __FILE__, __LINE__);
 		return rc;
 	} else {
-		if (pObjInfo->type == ASAPi_OBJ_QUEUE)
+		if (pObjInfo->type == MQSV_OBJ_QUEUE)
 			m_LOG_MQSV_D(MQD_ASAPi_QUEUE_MAKE_SUCCESS, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_NOTICE, rc, __FILE__,
 				     __LINE__);
 		else
@@ -1023,7 +1023,7 @@ static uns32 mqd_asapi_track_ntfy_send(MQD_OBJ_INFO *pObjInfo, ASAPi_OBJECT_OPR 
 
 		rc = mqd_asapi_resp_send(&msg, &info);
 		if (NCSCC_RC_SUCCESS != rc) {
-			if (pObjInfo->type == ASAPi_OBJ_QUEUE)
+			if (pObjInfo->type == MQSV_OBJ_QUEUE)
 				m_LOG_MQSV_D(MQD_ASAPi_TRACK_NTFY_MSG_ERR, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_ERROR, rc,
 					     __FILE__, __LINE__);
 			else
@@ -1033,7 +1033,7 @@ static uns32 mqd_asapi_track_ntfy_send(MQD_OBJ_INFO *pObjInfo, ASAPi_OBJECT_OPR 
 				cons_rc = rc;
 			continue;	/* Continue sending to the other dests */
 		}
-		if (pObjInfo->type == ASAPi_OBJ_QUEUE)
+		if (pObjInfo->type == MQSV_OBJ_QUEUE)
 			m_LOG_MQSV_D(MQD_ASAPi_TRACK_NTFY_MSG_SENT, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_NOTICE, rc,
 				     __FILE__, __LINE__);
 		else
@@ -1109,7 +1109,7 @@ static uns32 mqd_asapi_queue_make(MQD_OBJ_INFO *pObjInfo, ASAPi_QUEUE_PARAM **o_
 	if (MQSV_OBJ_QUEUE == pObjInfo->type) {
 		pQueue = m_MMGR_ALLOC_ASAPi_DEFAULT_VAL(sizeof(ASAPi_QUEUE_PARAM), asapi.my_svc_id);
 		if (!pQueue) {
-			if (pObjInfo->type == ASAPi_OBJ_QUEUE)
+			if (pObjInfo->type == MQSV_OBJ_QUEUE)
 				m_LOG_MQSV_D(MQD_MEMORY_ALLOC_FAIL, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_ERROR,
 					     SA_AIS_ERR_NO_MEMORY, __FILE__, __LINE__);
 			else
@@ -1130,7 +1130,7 @@ static uns32 mqd_asapi_queue_make(MQD_OBJ_INFO *pObjInfo, ASAPi_QUEUE_PARAM **o_
 				pOelm->pObject->info.q.adv = FALSE;	/* Reset the Advertisement flag */
 				pQueue = m_MMGR_ALLOC_ASAPi_DEFAULT_VAL(sizeof(ASAPi_QUEUE_PARAM), asapi.my_svc_id);
 				if (!pQueue) {
-					if (pObjInfo->type == ASAPi_OBJ_QUEUE)
+					if (pObjInfo->type == MQSV_OBJ_QUEUE)
 						m_LOG_MQSV_D(MQD_MEMORY_ALLOC_FAIL, NCSFL_LC_MQSV_Q_MGMT,
 							     NCSFL_SEV_ERROR, SA_AIS_ERR_NO_MEMORY, __FILE__, __LINE__);
 					else
@@ -1151,7 +1151,7 @@ static uns32 mqd_asapi_queue_make(MQD_OBJ_INFO *pObjInfo, ASAPi_QUEUE_PARAM **o_
 		if (qcnt) {
 			pQueue = m_MMGR_ALLOC_ASAPi_DEFAULT_VAL(qcnt * sizeof(ASAPi_QUEUE_PARAM), asapi.my_svc_id);
 			if (!pQueue) {
-				if (pObjInfo->type == ASAPi_OBJ_QUEUE)
+				if (pObjInfo->type == MQSV_OBJ_QUEUE)
 					m_LOG_MQSV_D(MQD_MEMORY_ALLOC_FAIL, NCSFL_LC_MQSV_Q_MGMT, NCSFL_SEV_ERROR,
 						     SA_AIS_ERR_NO_MEMORY, __FILE__, __LINE__);
 				else

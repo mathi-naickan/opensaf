@@ -751,8 +751,8 @@ uns32 mqa_mds_msg_sync_send_direct(uns32 mqa_mds_hdl,
 
 		if (pEvt->endianness != endianness) {
 
-			pEvt->type = m_MQSV_REVERSE_ENDIAN_L(&pEvt->type, endianness);
-			if (pEvt->type == MQP_EVT_SEND_MSG_RSP) {
+			pEvt->type.rsp_type = m_MQSV_REVERSE_ENDIAN_L(&pEvt->type, endianness);
+			if (pEvt->type.rsp_type == MQP_EVT_SEND_MSG_RSP) {
 				/* saMsgMessageSend response from MQND */
 				pEvt->info.sendMsgRsp.error =
 				    m_MQSV_REVERSE_ENDIAN_L(&pEvt->info.sendMsgRsp.error, endianness);
@@ -763,7 +763,7 @@ uns32 mqa_mds_msg_sync_send_direct(uns32 mqa_mds_hdl,
 
 				pEvt->agent_mds_dest = m_MQSV_REVERSE_ENDIAN_LL(&pEvt->agent_mds_dest, endianness);
 
-				switch (pEvt->type) {
+				switch (pEvt->type.req_type) {
 
 				case MQP_EVT_REPLY_MSG:
 					{

@@ -487,9 +487,9 @@ static uns32 mqnd_mds_direct_rcv(MQND_CB *pMqnd, MDS_CALLBACK_DIRECT_RECEIVE_INF
 	/* If the endianess of the source is different, decode to host order */
 	if (pEvt->endianness != endianness) {
 
-		pEvt->type = m_MQSV_REVERSE_ENDIAN_L(&pEvt->type, endianness);
+		pEvt->type.raw = m_MQSV_REVERSE_ENDIAN_L(&pEvt->type, endianness);
 
-		switch (pEvt->type) {
+		switch (pEvt->type.req_type) {
 
 		case MQP_EVT_SEND_MSG:
 			{

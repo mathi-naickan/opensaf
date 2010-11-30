@@ -1093,7 +1093,7 @@ static int mqsv_mqa_callback_test_type_fnc(NCSCONTEXT arg)
 		LCL_TEST_JUMP_OFFSET_MQSV_MSG_DELIVERED = 7,
 		LCL_TEST_JUMP_OFFSET_MQSV_MSG_RECEIVED = 8
 	} LCL_TEST_JUMP_OFFSET;
-	SaBoolT type;
+	MQP_ASYNC_RSP_TYPE type;
 
 	if (arg == NULL)
 		return EDU_FAIL;
@@ -1204,7 +1204,7 @@ static int mqsv_edp_mqd_ctrl_msg_test_type_fnc(NCSCONTEXT arg)
 	typedef enum {
 		LCL_TEST_JUMP_OFFSET_MQD_QGRP_CNT_GET = 1
 	} LCL_TEST_JUMP_OFFSET;
-	SaBoolT type;
+	MQD_MSG_TYPE type;
 
 	if (arg == NULL)
 		return EDU_FAIL;
@@ -1240,7 +1240,7 @@ static int mqsv_edp_mqnd_ctrl_msg_test_type_fnc(NCSCONTEXT arg)
 		LCL_TEST_JUMP_OFFSET_MQND_CTRL_EVT_QGRP_MEMBER_INFO = 4,
 		LCL_TEST_JUMP_OFFSET_MQND_CTRL_EVT_QGRP_CNT_RSP = 4 
 	} LCL_TEST_JUMP_OFFSET;
-	SaBoolT type;
+	MQND_CTRL_EVT_TYPE type;
 
 	if (arg == NULL)
 		return EDU_FAIL;

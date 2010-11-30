@@ -110,7 +110,7 @@ void mqnd_process_dsend_evt(MQSV_DSEND_EVT *evt)
 		return;
 	}
 
-	switch (evt->type) {
+	switch (evt->type.req_type) {
 	case MQP_EVT_SEND_MSG:
 	case MQP_EVT_SEND_MSG_ASYNC:
 		rc = mqnd_evt_proc_send_msg(cb, evt);
@@ -130,8 +130,8 @@ void mqnd_process_dsend_evt(MQSV_DSEND_EVT *evt)
 	ncshm_give_hdl(cb_hdl);
 
 	/* Free the Event */
-	if ((evt->type == MQP_EVT_SEND_MSG_ASYNC) ||
-	    (evt->type == MQP_EVT_SEND_MSG) || (evt->type == MQP_EVT_STAT_UPD_REQ))
+	if ((evt->type.req_type == MQP_EVT_SEND_MSG_ASYNC) ||
+	    (evt->type.req_type == MQP_EVT_SEND_MSG) || (evt->type.req_type == MQP_EVT_STAT_UPD_REQ))
 		mds_free_direct_buff((MDS_DIRECT_BUFF)evt);
 
 	return;
@@ -957,7 +957,7 @@ static uns32 mqnd_evt_proc_update_stats_shm(MQND_CB *cb, MQSV_DSEND_EVT *evt)
 	memset(direct_rsp_evt, 0, sizeof(MQSV_DSEND_EVT));
 
 	direct_rsp_evt->evt_type = MQSV_DSEND_EVENT;
-	direct_rsp_evt->type = MQP_EVT_STAT_UPD_RSP;
+	direct_rsp_evt->type.rsp_type = MQP_EVT_STAT_UPD_RSP;
 	direct_rsp_evt->endianness = machineEndianness();
 	direct_rsp_evt->msg_fmt_version = msg_fmt_ver;
 	direct_rsp_evt->src_dest_version = MQND_PVT_SUBPART_VERSION;
@@ -1027,7 +1027,7 @@ static uns32 mqnd_evt_proc_send_msg(MQND_CB *cb, MQSV_DSEND_EVT *evt)
 		goto send_resp;
 	}
 
-	if (evt->type == MQP_EVT_SEND_MSG)
+	if (evt->type.req_type == MQP_EVT_SEND_MSG)
 		snd_msg = &evt->info.snd_msg;
 	else
 		snd_msg = &evt->info.sndMsgAsync.SendMsg;
@@ -1187,7 +1187,7 @@ static uns32 mqnd_evt_proc_send_msg(MQND_CB *cb, MQSV_DSEND_EVT *evt)
 		if (((snd_msg->ackFlags & SA_MSG_MESSAGE_DELIVERED_ACK) == SA_MSG_MESSAGE_DELIVERED_ACK) ||
 		    ((snd_msg->messageInfo.sendReceive) && (rc != NCSCC_RC_SUCCESS))) {
 
-			if (evt->type == MQP_EVT_SEND_MSG) {
+			if (evt->type.req_type == MQP_EVT_SEND_MSG) {
 
 				direct_rsp_evt = (MQSV_DSEND_EVT *)mds_alloc_direct_buff(sizeof(MQSV_DSEND_EVT));
 				if (!direct_rsp_evt) {
@@ -1202,7 +1202,7 @@ static uns32 mqnd_evt_proc_send_msg(MQND_CB *cb, MQSV_DSEND_EVT *evt)
 				direct_rsp_evt->endianness = machineEndianness();
 				direct_rsp_evt->msg_fmt_version = msg_fmt_ver;
 				direct_rsp_evt->src_dest_version = MQND_PVT_SUBPART_VERSION;
-				direct_rsp_evt->type = MQP_EVT_SEND_MSG_RSP;
+				direct_rsp_evt->type.rsp_type = MQP_EVT_SEND_MSG_RSP;
 				direct_rsp_evt->info.sendMsgRsp.error = err;
 				direct_rsp_evt->info.sendMsgRsp.msgHandle = snd_msg->msgHandle;
 

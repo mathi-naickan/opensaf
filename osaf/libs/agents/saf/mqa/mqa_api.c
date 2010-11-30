@@ -2218,7 +2218,7 @@ SaAisErrorT mqa_send_message(SaMsgHandleT msgHandle,
 		queueHandle = asapi_or.info.dest.o_cache->info.qinfo.param.hdl;
 
 	if (param->async_flag == FALSE) {
-		qsend_evt->type = MQP_EVT_SEND_MSG;
+		qsend_evt->type.req_type = MQP_EVT_SEND_MSG;
 		qsend_evt->info.snd_msg.ackFlags = ackFlags;
 		qsend_evt->info.snd_msg.destination = *destination;
 
@@ -2241,7 +2241,7 @@ SaAisErrorT mqa_send_message(SaMsgHandleT msgHandle,
 		qsend_evt->info.snd_msg.queueHandle = queueHandle;
 
 	} else {
-		qsend_evt->type = MQP_EVT_SEND_MSG_ASYNC;
+		qsend_evt->type.req_type = MQP_EVT_SEND_MSG_ASYNC;
 		qsend_evt->info.sndMsgAsync.SendMsg.ackFlags = ackFlags;
 		qsend_evt->info.sndMsgAsync.invocation = param->info.invocation;
 		qsend_evt->info.sndMsgAsync.SendMsg.destination = *destination;
@@ -2916,7 +2916,7 @@ SaAisErrorT mqa_receive_message(SaMsgQueueHandleT queueHandle,
 	stats->endianness = machineEndianness();
 	stats->msg_fmt_version = o_msg_fmt_ver;
 	stats->src_dest_version = MQA_PVT_SUBPART_VERSION;
-	stats->type = MQP_EVT_STAT_UPD_REQ;
+	stats->type.req_type = MQP_EVT_STAT_UPD_REQ;
 	stats->agent_mds_dest = mqa_cb->mqa_mds_dest;
 
 	stats->info.statsReq.qhdl = queueHandle;
@@ -2951,7 +2951,7 @@ SaAisErrorT mqa_receive_message(SaMsgQueueHandleT queueHandle,
 
 	/* In case if STATS_UPDATE fails */
 	if (statsrsp) {
-		if ((statsrsp->type == MQP_EVT_STAT_UPD_RSP)) {
+		if ((statsrsp->type.rsp_type == MQP_EVT_STAT_UPD_RSP)) {
 
 			if (statsrsp->info.sendMsgRsp.error != SA_AIS_OK) {
 				rc = statsrsp->info.sendMsgRsp.error;
@@ -3289,7 +3289,7 @@ SaAisErrorT mqa_send_receive(MQA_CB *mqa_cb, MDS_DEST *mqnd_mds_dest,
 	/* In case if Sending to the destination queue fails then don't wait for the reply message to come
 	   Process the reply event received from the MQND */
 	if (*qreply_evt) {
-		if ((*qreply_evt)->type == MQP_EVT_SEND_MSG_RSP) {
+		if ((*qreply_evt)->type.rsp_type == MQP_EVT_SEND_MSG_RSP) {
 			if ((*qreply_evt)->info.sendMsgRsp.error != SA_AIS_OK)
 				rc = (*qreply_evt)->info.sendMsgRsp.error;
 
@@ -3458,7 +3458,7 @@ saMsgMessageSendReceive(SaMsgHandleT msgHandle,
 	memset(qsend_evt, 0, length);
 
 	qsend_evt->evt_type = MQSV_DSEND_EVENT;
-	qsend_evt->type = MQP_EVT_SEND_MSG;
+	qsend_evt->type.req_type = MQP_EVT_SEND_MSG;
 	qsend_evt->endianness = machineEndianness();
 	qsend_evt->src_dest_version = MQA_PVT_SUBPART_VERSION;
 	qsend_evt->agent_mds_dest = mqa_cb->mqa_mds_dest;
@@ -3578,7 +3578,7 @@ saMsgMessageSendReceive(SaMsgHandleT msgHandle,
 		goto done;
 	}
 
-	if (qreply_evt->type == MQP_EVT_REPLY_MSG_ASYNC)
+	if (qreply_evt->type.req_type == MQP_EVT_REPLY_MSG_ASYNC)
 		reply_msgsize = qreply_evt->info.replyAsyncMsg.reply.message.size;
 	else
 		reply_msgsize = qreply_evt->info.replyMsg.message.size;
@@ -3603,7 +3603,7 @@ saMsgMessageSendReceive(SaMsgHandleT msgHandle,
 		}
 	}
 
-	if (qreply_evt->type == MQP_EVT_REPLY_MSG_ASYNC) {
+	if (qreply_evt->type.req_type == MQP_EVT_REPLY_MSG_ASYNC) {
 		if (receiveMessage->senderName)
 			memcpy(receiveMessage->senderName,
 			       &qreply_evt->info.replyAsyncMsg.reply.message.senderName, sizeof(SaNameT));
@@ -3644,7 +3644,7 @@ saMsgMessageSendReceive(SaMsgHandleT msgHandle,
 		/* Send ack to the replyAsync. The replies to reply Sync call will be handled
 		 * in the MDS receive handler. MDS sends back the error of the MDS receive 
 		 * handler */
-		if ((qreply_evt->type == MQP_EVT_REPLY_MSG_ASYNC) &&
+		if ((qreply_evt->type.req_type == MQP_EVT_REPLY_MSG_ASYNC) &&
 		    (qreply_evt->info.replyAsyncMsg.reply.ackFlags & SA_MSG_MESSAGE_DELIVERED_ACK)) {
 
 			reply_mds_dest = qreply_evt->agent_mds_dest;
@@ -3953,7 +3953,7 @@ SaAisErrorT mqa_reply_message(SaMsgHandleT msgHandle,
 	qreply_evt->src_dest_version = MQA_PVT_SUBPART_VERSION;
 
 	if (param->async_flag == FALSE) {
-		qreply_evt->type = MQP_EVT_REPLY_MSG;
+		qreply_evt->type.req_type = MQP_EVT_REPLY_MSG;
 		qreply_evt->agent_mds_dest = mqa_cb->mqa_mds_dest;
 
 		qreply_evt->info.replyMsg.ackFlags = ackFlags;
@@ -3977,7 +3977,7 @@ SaAisErrorT mqa_reply_message(SaMsgHandleT msgHandle,
 		if (rc != SA_AIS_OK)
 			goto done;
 	} else {
-		qreply_evt->type = MQP_EVT_REPLY_MSG_ASYNC;
+		qreply_evt->type.req_type = MQP_EVT_REPLY_MSG_ASYNC;
 		qreply_evt->agent_mds_dest = mqa_cb->mqa_mds_dest;
 
 		qreply_evt->info.replyAsyncMsg.reply.ackFlags = ackFlags;

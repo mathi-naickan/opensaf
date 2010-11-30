@@ -597,7 +597,11 @@ typedef struct mqsv_direct_send_event {
 	uns8 endianness;
 	uns8 msg_fmt_version;
 	uns8 src_dest_version;
-	MQP_REQ_TYPE type;
+	union {
+		uns32 raw;
+		MQP_RSP_TYPE rsp_type;
+		MQP_REQ_TYPE req_type;
+	} type;
 	MQSV_DSEND_INFO sinfo;
 	MDS_DEST agent_mds_dest;
 	union {
