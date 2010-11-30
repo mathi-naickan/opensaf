@@ -2961,7 +2961,7 @@ void plms_move_chld_ent_to_insvc(PLMS_ENTITY *chld_ent,
 		chld_ent->entity.he_entity.saPlmHEAdminState )){
 		return ;
 	}else if ((PLMS_EE_ENTITY == chld_ent->entity_type) &&
-		(SA_PLM_HE_ADMIN_UNLOCKED != 
+		(SA_PLM_EE_ADMIN_UNLOCKED !=
 		chld_ent->entity.ee_entity.saPlmEEAdminState)){
 		return ;
 	}
@@ -3117,7 +3117,7 @@ void plms_move_dep_ent_to_insvc(PLMS_GROUP_ENTITY *dep_ent_list,
 		 dep_ent_list->plm_entity->entity.he_entity.saPlmHEAdminState)){
 		return ;
 	}else if ((PLMS_EE_ENTITY == dep_ent_list->plm_entity->entity_type) &&
-		(SA_PLM_HE_ADMIN_UNLOCKED != 
+		(SA_PLM_EE_ADMIN_UNLOCKED !=
 		 dep_ent_list->plm_entity->entity.ee_entity.saPlmEEAdminState)){
 		return ;
 	}

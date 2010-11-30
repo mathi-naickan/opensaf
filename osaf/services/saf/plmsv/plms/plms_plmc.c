@@ -973,7 +973,7 @@ SaUint32T plms_plmc_get_os_info_response(PLMS_ENTITY *ent,
 				}
 			}
 			
-			if (SA_PLM_HE_ADMIN_UNLOCKED != 
+			if (SA_PLM_EE_ADMIN_UNLOCKED !=
 				ent->entity.ee_entity.saPlmEEAdminState){
 
 				TRACE("Admin state of the entity %s is not \
