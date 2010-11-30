@@ -22,8 +22,6 @@
 
 #define CPSV_CPD_MBCSV_VERSION    1
 
-#define CPD_EVT_TIME_OUT 100
-
 #define m_CPND_IS_ON_SCXB(m,n) ((m==n)?1:0)
 
 #define m_CPD_IS_LOCAL_NODE(m,n)   (m == n) ? 1 : 0

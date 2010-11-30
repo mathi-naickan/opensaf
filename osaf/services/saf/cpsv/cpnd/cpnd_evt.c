@@ -3521,10 +3521,10 @@ static uns32 cpnd_evt_proc_mds_evt(CPND_CB *cb, CPND_EVT *evt)
 	} else if ((evt->info.mds_info.change == NCSMDS_UP) && evt->info.mds_info.svc_id == NCSMDS_SVC_ID_CPA) {
 		cpnd_proc_cpa_up(cb, evt->info.mds_info.dest);
 	} else if ((evt->info.mds_info.change == NCSMDS_RED_UP) &&
-		   (evt->info.mds_info.role == SA_AMF_HA_ACTIVE) && (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_CPD)) {
+		   (evt->info.mds_info.role == V_DEST_RL_ACTIVE) && (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_CPD)) {
 		cpnd_proc_cpd_new_active(cb);
 	} else if ((evt->info.mds_info.change == NCSMDS_CHG_ROLE) &&
-		   (evt->info.mds_info.role == SA_AMF_HA_ACTIVE) && (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_CPD)) {
+		   (evt->info.mds_info.role == V_DEST_RL_ACTIVE) && (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_CPD)) {
 		cpnd_proc_cpd_new_active(cb);
 	}
 

@@ -875,12 +875,12 @@ static uns32 cpnd_mds_svc_evt(CPND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 			break;
 
 		case NCSMDS_RED_UP:
-			if (svc_evt->i_role == SA_AMF_HA_ACTIVE) {
+			if (svc_evt->i_role == V_DEST_RL_ACTIVE) {
 
 				phy_slot_sub_slot = cpnd_get_slot_sub_slot_id_from_node_id(svc_evt->i_node_id);
 				cb->cpnd_active_id = phy_slot_sub_slot;
 				cb->is_cpd_up = TRUE;
-			} else if (svc_evt->i_role == SA_AMF_HA_STANDBY) {
+			} else if (svc_evt->i_role == V_DEST_RL_STANDBY) {
 
 				phy_slot_sub_slot = cpnd_get_slot_sub_slot_id_from_node_id(svc_evt->i_node_id);
 				cb->cpnd_standby_id = phy_slot_sub_slot;
@@ -894,12 +894,12 @@ static uns32 cpnd_mds_svc_evt(CPND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 				cb->is_cpd_up = FALSE;
 			break;
 		case NCSMDS_CHG_ROLE:
-			if (svc_evt->i_role == SA_AMF_HA_ACTIVE) {
+			if (svc_evt->i_role == V_DEST_RL_ACTIVE) {
 
 				phy_slot_sub_slot = cpnd_get_slot_sub_slot_id_from_node_id(svc_evt->i_node_id);
 				cb->cpnd_active_id = phy_slot_sub_slot;
 				cb->is_cpd_up = TRUE;
-			} else if (svc_evt->i_role == SA_AMF_HA_STANDBY) {
+			} else if (svc_evt->i_role == V_DEST_RL_STANDBY) {
 
 				phy_slot_sub_slot = cpnd_get_slot_sub_slot_id_from_node_id(svc_evt->i_node_id);
 				cb->cpnd_standby_id = phy_slot_sub_slot;
