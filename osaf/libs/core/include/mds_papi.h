@@ -320,6 +320,10 @@ extern "C" {
 		MDS_SENDTYPE_RRSP = 9,	/* Send a response to the message received thro REDRSP */
 		MDS_SENDTYPE_BCAST = 10,	/* Send a broadcast message to all primaries           */
 		MDS_SENDTYPE_RBCAST = 11,	/* Send a broadcast message to both anchors            */
+		MDS_SENDTYPE_EMPTY1 = 12,
+		MDS_SENDTYPE_EMPTY2 = 13,
+		MDS_SENDTYPE_ACK = 14,
+		MDS_SENDTYPE_RACK = 15,
 	} MDS_SENDTYPES;
 
 	typedef enum {

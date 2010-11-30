@@ -131,9 +131,6 @@ typedef enum {
 	MDS_PROCESS_INST_TYPE = 0x00050000,
 } MDS_MDTM_INST_TYPES;
 
-#define MDS_SENDTYPE_ACK     14
-#define MDS_SENDTYPE_RACK    15
-
 typedef enum {
 	MDTM_TX_TYPE_TIPC = 1,
 	/* MDTM_TX_TYPE_BLAH = 2, If new transport is there */
