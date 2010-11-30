@@ -368,22 +368,22 @@ uns32 ncs_mbscv_rcv_decode(PEER_INST *peer, MBCSV_EVT *evt)
 	parg.i_client_hdl = peer->my_ckpt_inst->client_hdl;
 	parg.i_ckpt_hdl = peer->my_ckpt_inst->ckpt_hdl;
 
-	if (NCSMBCSV_EVENT_NOTIFY == evt->info.peer_msg.info.client_msg.msg_sub_type) {
+	if (NCSMBCSV_EVENT_NOTIFY == evt->info.peer_msg.info.client_msg.type.evt_type) {
 		parg.i_op = NCS_MBCSV_CBOP_NOTIFY;
 		parg.info.notify.i_uba = evt->info.peer_msg.info.client_msg.uba;
 		parg.info.notify.i_peer_version = peer->version;
 	} else {
 		parg.i_op = NCS_MBCSV_CBOP_DEC;
-		parg.info.decode.i_msg_type = evt->info.peer_msg.info.client_msg.msg_sub_type;
+		parg.info.decode.i_msg_type = evt->info.peer_msg.info.client_msg.type.msg_sub_type;
 		parg.info.decode.i_uba = evt->info.peer_msg.info.client_msg.uba;
-		parg.info.decode.i_msg_type = evt->info.peer_msg.info.client_msg.msg_sub_type;
+		parg.info.decode.i_msg_type = evt->info.peer_msg.info.client_msg.type.msg_sub_type;
 		parg.info.decode.i_peer_version = peer->version;
 		parg.info.decode.i_action = evt->info.peer_msg.info.client_msg.action;
 		parg.info.decode.i_reo_type = evt->info.peer_msg.info.client_msg.reo_type;
 	}
 
 	status = mbc_inst->mbcsv_cb_func(&parg);
-	if (NCSMBCSV_EVENT_NOTIFY == evt->info.peer_msg.info.client_msg.msg_sub_type) {
+	if (NCSMBCSV_EVENT_NOTIFY == evt->info.peer_msg.info.client_msg.type.evt_type) {
 		evt->info.peer_msg.info.client_msg.uba = parg.info.notify.i_uba;
 	} else {
 		evt->info.peer_msg.info.client_msg.uba = parg.info.decode.i_uba;
@@ -565,7 +565,7 @@ void ncs_mbcsv_rcv_cold_sync_resp_cmplt(PEER_INST *peer, MBCSV_EVT *evt)
 
 	/* Start the send warm sync timer --- but ONLY if warm sync is enabled */
 
-	if ((peer->my_ckpt_inst->warm_sync_on == TRUE) && (peer->my_ckpt_inst->my_role == SA_AMF_STANDBY))
+	if ((peer->my_ckpt_inst->warm_sync_on == TRUE) && (peer->my_ckpt_inst->my_role == SA_AMF_HA_STANDBY))
 		ncs_mbcsv_start_timer(peer, NCS_MBCSV_TMR_SEND_WARM_SYNC);
 }
 
@@ -723,7 +723,7 @@ void ncs_mbcsv_rcv_entity_in_sync(PEER_INST *peer, MBCSV_EVT *evt)
 	/* Start the send warm sync timer only if warm_sync is enabled  */
 	/* and the current role is Standby                               */
 
-	if ((peer->my_ckpt_inst->warm_sync_on == TRUE) && (peer->my_ckpt_inst->my_role == SA_AMF_STANDBY))
+	if ((peer->my_ckpt_inst->warm_sync_on == TRUE) && (peer->my_ckpt_inst->my_role == SA_AMF_HA_STANDBY))
 		ncs_mbcsv_start_timer(peer, NCS_MBCSV_TMR_SEND_WARM_SYNC);
 
 }

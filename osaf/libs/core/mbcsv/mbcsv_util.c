@@ -215,9 +215,9 @@ uns32 mbcsv_process_chg_role(MBCSV_EVT *rcvd_evt, MBCSV_REG *mbc_inst)
 	old_role = ckpt->my_role;
 
 	switch (rcvd_evt->info.peer_msg.info.chg_role.new_role) {
-	case SA_AMF_ACTIVE:
+	case SA_AMF_HA_ACTIVE:
 		{
-			ckpt->my_role = SA_AMF_ACTIVE;
+			ckpt->my_role = SA_AMF_HA_ACTIVE;
 			ckpt->in_quiescing = FALSE;
 			ckpt->fsm = (NCS_MBCSV_STATE_ACTION_FUNC_PTR *)ncsmbcsv_active_state_tbl;
 
@@ -229,7 +229,7 @@ uns32 mbcsv_process_chg_role(MBCSV_EVT *rcvd_evt, MBCSV_REG *mbc_inst)
 			while (NULL != peer) {
 				if (peer->incompatible)
 					m_SET_NCS_MBCSV_STATE(peer, NCS_MBCSV_ACT_STATE_IDLE);
-				else if (SA_AMF_ACTIVE == peer->peer_role)
+				else if (SA_AMF_HA_ACTIVE == peer->peer_role)
 					m_SET_NCS_MBCSV_STATE(peer, NCS_MBCSV_ACT_STATE_MULTIPLE_ACTIVE);
 				else if (peer->cold_sync_done)
 					m_SET_NCS_MBCSV_STATE(peer, NCS_MBCSV_ACT_STATE_KEEP_STBY_IN_SYNC);
@@ -241,8 +241,8 @@ uns32 mbcsv_process_chg_role(MBCSV_EVT *rcvd_evt, MBCSV_REG *mbc_inst)
 		}
 		break;
 
-	case SA_AMF_STANDBY:
-	case SA_AMF_QUIESCED:
+	case SA_AMF_HA_STANDBY:
+	case SA_AMF_HA_QUIESCED:
 		{
 			ckpt->my_role = rcvd_evt->info.peer_msg.info.chg_role.new_role;
 			ckpt->in_quiescing = FALSE;
@@ -253,7 +253,7 @@ uns32 mbcsv_process_chg_role(MBCSV_EVT *rcvd_evt, MBCSV_REG *mbc_inst)
 			 */
 			peer = ckpt->peer_list;
 			while (NULL != peer) {
-				if (old_role == SA_AMF_ACTIVE) {
+				if (old_role == SA_AMF_HA_ACTIVE) {
 					mbcsv_close_old_session(peer);
 				}
 
@@ -413,7 +413,7 @@ uns32 mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send, CKPT_I
 		evt_msg.msg_type = MBCSV_EVT_INTERNAL;
 		evt_msg.rcvr_peer_key.svc_id = mbc_inst->svc_id;
 		evt_msg.info.peer_msg.type = MBCSV_EVT_INTERNAL_CLIENT;
-		evt_msg.info.peer_msg.info.client_msg.msg_sub_type = NCS_MBCSV_MSG_ASYNC_UPDATE;
+		evt_msg.info.peer_msg.info.client_msg.type.msg_sub_type = NCS_MBCSV_MSG_ASYNC_UPDATE;
 		evt_msg.info.peer_msg.info.client_msg.action = msg_to_send->i_action;
 		evt_msg.info.peer_msg.info.client_msg.reo_type = msg_to_send->i_reo_type;
 		evt_msg.info.peer_msg.info.client_msg.snd_type = msg_to_send->i_send_type;
@@ -500,7 +500,7 @@ uns32 mbcsv_send_notify_msg(uns32 msg_dest, CKPT_INST *ckpt_inst, MBCSV_REG *mbc
 	evt_msg.msg_type = MBCSV_EVT_INTERNAL;
 	evt_msg.rcvr_peer_key.svc_id = mbc_inst->svc_id;
 	evt_msg.info.peer_msg.type = MBCSV_EVT_INTERNAL_CLIENT;
-	evt_msg.info.peer_msg.info.client_msg.msg_sub_type = NCSMBCSV_EVENT_NOTIFY;
+	evt_msg.info.peer_msg.info.client_msg.type.evt_type = NCSMBCSV_EVENT_NOTIFY;
 
 	parg.i_client_hdl = ckpt_inst->client_hdl;
 	parg.i_ckpt_hdl = ckpt_inst->ckpt_hdl;
@@ -513,7 +513,7 @@ uns32 mbcsv_send_notify_msg(uns32 msg_dest, CKPT_INST *ckpt_inst, MBCSV_REG *mbc
 	switch (msg_dest) {
 	case NCS_MBCSV_ACTIVE:
 		{
-			if (SA_AMF_ACTIVE == ckpt_inst->my_role)
+			if (SA_AMF_HA_ACTIVE == ckpt_inst->my_role)
 				return m_MBCSV_DBG_SINK_SVC(NCSCC_RC_FAILURE,
 							    "Message destination type is incorrect ", mbc_inst->svc_id);
 
@@ -600,7 +600,7 @@ uns32 mbcsv_send_notify_msg(uns32 msg_dest, CKPT_INST *ckpt_inst, MBCSV_REG *mbc
 					continue;
 				}
 
-				if ((msg_dest == NCS_MBCSV_STANDBY) && (SA_AMF_STANDBY != peer->peer_role)) {
+				if ((msg_dest == NCS_MBCSV_STANDBY) && (SA_AMF_HA_STANDBY != peer->peer_role)) {
 					peer->notify_msg_sent = TRUE;
 					peer_count--;
 					peer = peer->next;
@@ -700,7 +700,7 @@ uns32 mbcsv_send_data_req(NCS_UBAID *uba, CKPT_INST *ckpt_inst, MBCSV_REG *mbc_i
 	evt_msg.msg_type = MBCSV_EVT_INTERNAL;
 	evt_msg.rcvr_peer_key.svc_id = mbc_inst->svc_id;
 	evt_msg.info.peer_msg.type = MBCSV_EVT_INTERNAL_CLIENT;
-	evt_msg.info.peer_msg.info.client_msg.msg_sub_type = NCS_MBCSV_MSG_DATA_REQ;
+	evt_msg.info.peer_msg.info.client_msg.type.msg_sub_type = NCS_MBCSV_MSG_DATA_REQ;
 
 	evt_msg.info.peer_msg.info.client_msg.uba = *uba;
 
@@ -745,7 +745,7 @@ uns32 mbcsv_send_client_msg(PEER_INST *peer, uns8 evt, uns32 action)
 	evt_msg->rcvr_peer_key.svc_id = peer->my_ckpt_inst->my_mbcsv_inst->svc_id;
 	evt_msg->rcvr_peer_key.peer_inst_hdl = peer->hdl;
 	evt_msg->info.peer_msg.type = MBCSV_EVT_INTERNAL_CLIENT;
-	evt_msg->info.peer_msg.info.client_msg.msg_sub_type = evt;
+	evt_msg->info.peer_msg.info.client_msg.type.raw = evt;
 	evt_msg->info.peer_msg.info.client_msg.action = action;
 
 	if (NCSCC_RC_SUCCESS != m_MBCSV_SND_MSG(&peer->my_ckpt_inst->my_mbcsv_inst->mbx,
@@ -894,7 +894,7 @@ uns32 mbcsv_send_msg(PEER_INST *peer, MBCSV_EVT *evt_msg, uns8 event)
 	evt_msg->rcvr_peer_key.svc_id = peer->my_ckpt_inst->my_mbcsv_inst->svc_id;
 	evt_msg->rcvr_peer_key.peer_inst_hdl = peer->peer_hdl;
 	evt_msg->info.peer_msg.type = MBCSV_EVT_INTERNAL_CLIENT;
-	evt_msg->info.peer_msg.info.client_msg.msg_sub_type = event;
+	evt_msg->info.peer_msg.info.client_msg.type.raw = event;
 	evt_msg->info.peer_msg.info.client_msg.reo_type = peer->call_again_reo_type;
 	evt_msg->info.peer_msg.info.client_msg.first_rsp = peer->new_msg_seq;
 
@@ -904,7 +904,7 @@ uns32 mbcsv_send_msg(PEER_INST *peer, MBCSV_EVT *evt_msg, uns8 event)
 						    peer->my_ckpt_inst->my_mbcsv_inst->svc_id);
 
 		evt_msg->info.peer_msg.info.client_msg.uba = uba;
-		evt_msg->info.peer_msg.info.client_msg.msg_sub_type = event;
+		evt_msg->info.peer_msg.info.client_msg.type.raw = event;
 		evt_msg->info.peer_msg.info.client_msg.action = peer->call_again_action;
 	}
 

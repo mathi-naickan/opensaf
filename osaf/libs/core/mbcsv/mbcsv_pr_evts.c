@@ -153,11 +153,11 @@ uns32 mbcsv_process_events(MBCSV_EVT *rcvd_evt, uns32 mbcsv_hdl)
 								    peer->peer_anchor, peer->state,
 								    (MBCSV_FSM_EV_DBG_NONE +
 								     rcvd_evt->info.peer_msg.info.client_msg.
-								     msg_sub_type));
+								     type.evt_type));
 
 						m_NCS_MBCSV_FSM_DISPATCH(peer,
 									 rcvd_evt->info.peer_msg.info.client_msg.
-									 msg_sub_type, rcvd_evt);
+									 type.evt_type, rcvd_evt);
 
 						m_MBCSV_GIVE_HANDLE(hdl_to_give);
 					} else

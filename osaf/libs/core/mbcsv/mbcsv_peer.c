@@ -156,7 +156,7 @@ uns32 mbcsv_shutdown_peer(PEER_INST *peer_ptr)
 	 * Check if my role is active and I am in middle of data response
 	 * with this peer then give error indication callback to clear contxt.
 	 */
-	if (SA_AMF_ACTIVE == peer_ptr->my_ckpt_inst->my_role) {
+	if (SA_AMF_HA_ACTIVE == peer_ptr->my_ckpt_inst->my_role) {
 		if (TRUE == peer_ptr->data_resp_process) {
 			m_MBCSV_INDICATE_ERROR(peer_ptr, peer_ptr->my_ckpt_inst->client_hdl,
 					       NCS_MBCSV_DATA_RESP_TERMINATED, FALSE,
@@ -326,7 +326,7 @@ PEER_INST *mbcsv_my_active_peer(CKPT_INST *ckpt)
 	peer = ckpt->peer_list;
 
 	while (peer != NULL) {
-		if (peer->peer_role == SA_AMF_ACTIVE)
+		if (peer->peer_role == SA_AMF_HA_ACTIVE)
 			break;
 		peer = peer->next;
 	}
@@ -419,7 +419,7 @@ void mbcsv_set_up_new_session(CKPT_INST *ckpt, PEER_INST *new_act_peer)
 {
 	if (new_act_peer->incompatible)
 		m_SET_NCS_MBCSV_STATE(new_act_peer, NCS_MBCSV_STBY_STATE_IDLE);
-	else if (ckpt->my_role == SA_AMF_QUIESCED) {
+	else if (ckpt->my_role == SA_AMF_HA_QUIESCED) {
 		m_SET_NCS_MBCSV_STATE(new_act_peer, NCS_MBCSV_STBY_STATE_STEADY_IN_SYNC);
 	} else if (new_act_peer->cold_sync_done) {
 		/* Send Warm sync req and set FSM state to wait to warm sync */
@@ -468,7 +468,7 @@ void mbcsv_set_peer_state(CKPT_INST *ckpt, PEER_INST *peer, NCS_BOOL peer_up)
 	PEER_INST *peer_ptr = NULL;
 
 	switch (ckpt->my_role) {
-	case SA_AMF_ACTIVE:	/* ckpt->my_role */
+	case SA_AMF_HA_ACTIVE:	/* ckpt->my_role */
 		{
 			if (peer_up) {
 				m_SET_NCS_MBCSV_STATE(peer, NCS_MBCSV_ACT_STATE_IDLE);
@@ -480,7 +480,7 @@ void mbcsv_set_peer_state(CKPT_INST *ckpt, PEER_INST *peer, NCS_BOOL peer_up)
 				 * If new peer's role is also ACTIVE  then
 				 * go to MULTIPLE ACTIVE state else go to IDLE state
 				 */
-			case SA_AMF_ACTIVE:	/*: peer->peer_role */
+			case SA_AMF_HA_ACTIVE:	/*: peer->peer_role */
 				{
 					ckpt->active_peer = peer;
 
@@ -492,8 +492,8 @@ void mbcsv_set_peer_state(CKPT_INST *ckpt, PEER_INST *peer, NCS_BOOL peer_up)
 				 * If new peer is standby then set the state of new peer to wait for cold
 				 * sync if peer is compatible else set to IDLE state.
 				 */
-			case SA_AMF_STANDBY:	/* : peer->peer_role */
-			case SA_AMF_QUIESCED:
+			case SA_AMF_HA_STANDBY:	/* : peer->peer_role */
+			case SA_AMF_HA_QUIESCED:
 				{
 					if ((NULL != ckpt->active_peer) &&
 					    (peer->peer_anchor == ckpt->active_peer->peer_anchor)) {
@@ -520,8 +520,8 @@ void mbcsv_set_peer_state(CKPT_INST *ckpt, PEER_INST *peer, NCS_BOOL peer_up)
 		}
 		break;
 
-	case SA_AMF_STANDBY:	/* ckpt->my_role */
-	case SA_AMF_QUIESCED:	/* ckpt->my_role */
+	case SA_AMF_HA_STANDBY:	/* ckpt->my_role */
+	case SA_AMF_HA_QUIESCED:	/* ckpt->my_role */
 		{
 			if (peer_up) {
 				m_SET_NCS_MBCSV_STATE(peer, NCS_MBCSV_STBY_STATE_IDLE);
@@ -531,7 +531,7 @@ void mbcsv_set_peer_state(CKPT_INST *ckpt, PEER_INST *peer, NCS_BOOL peer_up)
 			switch (peer->peer_role) {
 				/* If new peer's role is ACTIVE then establish session with this new peer
 				   and close old session */
-			case SA_AMF_ACTIVE:	/* peer->peer_role */
+			case SA_AMF_HA_ACTIVE:	/* peer->peer_role */
 				{
 					mbcsv_close_old_session(ckpt->active_peer);
 
@@ -543,8 +543,8 @@ void mbcsv_set_peer_state(CKPT_INST *ckpt, PEER_INST *peer, NCS_BOOL peer_up)
 				/* 
 				 * Peer's role is STANDBY/QUIESCED.
 				 */
-			case SA_AMF_STANDBY:	/* peer->peer_role */
-			case SA_AMF_QUIESCED:	/* peer->peer_role */
+			case SA_AMF_HA_STANDBY:	/* peer->peer_role */
+			case SA_AMF_HA_QUIESCED:	/* peer->peer_role */
 				{
 					if ((NULL != ckpt->active_peer) &&
 					    (peer->peer_anchor == ckpt->active_peer->peer_anchor)) {
@@ -720,17 +720,17 @@ uns32 mbcsv_process_peer_down(MBCSV_EVT *msg, CKPT_INST *ckpt)
 	mbcsv_rmv_peer(ckpt, msg->rcvr_peer_key.peer_anchor);
 
 	switch (ckpt->my_role) {
-	case SA_AMF_ACTIVE:
+	case SA_AMF_HA_ACTIVE:
 		{
-			if (role == SA_AMF_ACTIVE)
+			if (role == SA_AMF_HA_ACTIVE)
 				mbcsv_clear_multiple_active_state(ckpt);
 		}
 		break;
 
-	case SA_AMF_STANDBY:
-	case SA_AMF_QUIESCED:
+	case SA_AMF_HA_STANDBY:
+	case SA_AMF_HA_QUIESCED:
 		{
-			if (role == SA_AMF_ACTIVE) {
+			if (role == SA_AMF_HA_ACTIVE) {
 				/* Check if this was my ACTIVE peer? */
 				if (act_peer) {
 					/* Our Active peer is going down, close its session */

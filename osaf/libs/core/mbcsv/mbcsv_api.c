@@ -639,7 +639,7 @@ uns32 mbcsv_process_chg_role_request(NCS_MBCSV_ARG *arg)
 	 * setting role to active or standby. If no then indicate the error.
 	 */
 	if ((ckpt_inst->ftm_role_set == FALSE) &&
-	    ((arg->info.chg_role.i_ha_state != SA_AMF_ACTIVE) && (arg->info.chg_role.i_ha_state != SA_AMF_STANDBY))) {
+	    ((arg->info.chg_role.i_ha_state != SA_AMF_HA_ACTIVE) && (arg->info.chg_role.i_ha_state != SA_AMF_HA_STANDBY))) {
 		rc = m_MBCSV_DBG_SINK_SVC(SA_AIS_ERR_INVALID_PARAM,
 					  "NCS_MBCSV_OP_CHG_ROLE: Trying to set illigal role.", mbc_reg->svc_id);
 		goto err2;
@@ -655,9 +655,9 @@ uns32 mbcsv_process_chg_role_request(NCS_MBCSV_ARG *arg)
 	/*
 	 * Validate the role change.
 	 */
-	if (((SA_AMF_ACTIVE == ckpt_inst->my_role) &&
-	     (SA_AMF_STANDBY == arg->info.chg_role.i_ha_state)) ||
-	    ((SA_AMF_STANDBY == ckpt_inst->my_role) && (SA_AMF_QUIESCED == arg->info.chg_role.i_ha_state))) {
+	if (((SA_AMF_HA_ACTIVE == ckpt_inst->my_role) &&
+	     (SA_AMF_HA_STANDBY == arg->info.chg_role.i_ha_state)) ||
+	    ((SA_AMF_HA_STANDBY == ckpt_inst->my_role) && (SA_AMF_HA_QUIESCED == arg->info.chg_role.i_ha_state))) {
 		rc = m_MBCSV_DBG_SINK_SVC(SA_AIS_ERR_INVALID_PARAM,
 					  "NCS_MBCSV_OP_CHG_ROLE: Illigal role change.", mbc_reg->svc_id);
 		goto err2;
@@ -928,7 +928,7 @@ uns32 mbcsv_process_snd_data_req(NCS_MBCSV_ARG *arg)
 	 * Check whether my role is STANDBY. Only then allow to send this 
 	 * request. MBCSv client should not send this request in any other role.
 	 */
-	if ((SA_AMF_STANDBY != ckpt_inst->my_role) && (SA_AMF_QUIESCED != ckpt_inst->my_role)) {
+	if ((SA_AMF_HA_STANDBY != ckpt_inst->my_role) && (SA_AMF_HA_QUIESCED != ckpt_inst->my_role)) {
 		rc = m_MBCSV_DBG_SINK_SVC(SA_AIS_ERR_NOT_SUPPORTED,
 					  "NCS_MBCSV_OP_SEND_DATA_REQ: CSI role is not STANDBY & QUIESCED.",
 					  mbc_reg->svc_id);
@@ -1098,7 +1098,7 @@ uns32 mbcsv_process_set_request(NCS_MBCSV_ARG *arg)
 			if (ckpt_inst->warm_sync_on != arg->info.obj_set.i_val) {
 				ckpt_inst->warm_sync_on = arg->info.obj_set.i_val;
 
-				if (ckpt_inst->my_role == SA_AMF_STANDBY) {
+				if (ckpt_inst->my_role == SA_AMF_HA_STANDBY) {
 					for (peer_ptr = ckpt_inst->peer_list;
 					     peer_ptr != NULL; peer_ptr = peer_ptr->next) {
 						if ((ckpt_inst->warm_sync_on == TRUE) &&

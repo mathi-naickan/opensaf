@@ -68,7 +68,11 @@ typedef enum {
 } MBCSV_EVT_INTERNAL_TYPE;
 
 typedef struct mbcsv_client_msg {
-	NCS_MBCSV_MSG_TYPE msg_sub_type;
+	union {
+		uns32 raw;
+		NCS_MBCSV_MSG_TYPE msg_sub_type;
+		NCSMBCSV_EVENTS evt_type;
+	} type;
 	NCS_UBAID uba;
 	NCS_MBCSV_ACT_TYPE action;
 	NCS_MBCSV_SND_TYPE snd_type;

@@ -277,7 +277,7 @@ void ncs_mbcsv_send_cold_sync_tmr(PEER_INST *peer, MBCSV_EVT *evt)
 	/* Send a cold sync req  and start the send cold sync timer if the role is */
 	/* Standby and the RED is enabled                                           */
 
-	if (peer->my_ckpt_inst->my_role == SA_AMF_STANDBY) {
+	if (peer->my_ckpt_inst->my_role == SA_AMF_HA_STANDBY) {
 		m_MBCSV_SEND_CLIENT_MSG(peer, NCSMBCSV_SEND_COLD_SYNC_REQ, NCS_MBCSV_ACT_DONT_CARE);
 
 		/* Even if the message was not sent, we will try again later */
@@ -324,7 +324,7 @@ void ncs_mbcsv_send_warm_sync_tmr(PEER_INST *peer, MBCSV_EVT *evt)
 	/* Send a warm sync req  and start the send warm sync timer  */
 	/* if the role is Standby and the RED is enabled              */
 
-	if (peer->my_ckpt_inst->my_role == SA_AMF_STANDBY) {
+	if (peer->my_ckpt_inst->my_role == SA_AMF_HA_STANDBY) {
 
 		/* Tell the redundant entity about the timer expiration */
 		/* It can do smart things - if it cares */

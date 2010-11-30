@@ -604,7 +604,7 @@ uns32 mbcsv_mds_enc(MDS_CLIENT_HDL yr_svc_hdl, NCSCONTEXT msg,
 				return m_MBCSV_DBG_SINK(NCSCC_RC_FAILURE,
 							"mbcsv_mds_enc: ncs_enc_reserve_space returns NULL");
 
-			ncs_encode_8bit(&data, mm->info.peer_msg.info.client_msg.msg_sub_type);
+			ncs_encode_8bit(&data, mm->info.peer_msg.info.client_msg.type.evt_type);
 			ncs_encode_8bit(&data, mm->info.peer_msg.info.client_msg.action);
 			ncs_encode_32bit(&data, mm->info.peer_msg.info.client_msg.reo_type);
 			ncs_encode_32bit(&data, mm->info.peer_msg.info.client_msg.first_rsp);
@@ -613,7 +613,7 @@ uns32 mbcsv_mds_enc(MDS_CLIENT_HDL yr_svc_hdl, NCSCONTEXT msg,
 			ncs_enc_claim_space(uba, MBCSV_INT_CLIENT_MSG_SIZE);
 
 			/* Append user buffer */
-			if (mm->info.peer_msg.info.client_msg.msg_sub_type != NCS_MBCSV_MSG_SYNC_SEND_RSP)
+			if (mm->info.peer_msg.info.client_msg.type.evt_type != NCS_MBCSV_MSG_SYNC_SEND_RSP)
 				ncs_enc_append_usrbuf(uba, mm->info.peer_msg.info.client_msg.uba.start);
 
 			break;
@@ -804,7 +804,7 @@ uns32 mbcsv_mds_dec(MDS_CLIENT_HDL yr_svc_hdl, NCSCONTEXT *msg,
 							"mbcsv_mds_dec: ncs_dec_flatten_space returns NULL");
 			}
 
-			mm->info.peer_msg.info.client_msg.msg_sub_type = ncs_decode_8bit(&data);
+			mm->info.peer_msg.info.client_msg.type.evt_type = ncs_decode_8bit(&data);
 			mm->info.peer_msg.info.client_msg.action = ncs_decode_8bit(&data);
 			mm->info.peer_msg.info.client_msg.reo_type = ncs_decode_32bit(&data);
 			mm->info.peer_msg.info.client_msg.first_rsp = ncs_decode_32bit(&data);

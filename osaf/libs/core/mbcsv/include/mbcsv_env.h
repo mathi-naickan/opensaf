@@ -160,13 +160,6 @@ typedef enum ncs_mbcsv_fsm_states {
 
 } NCS_MBCSV_FSM_STATES;
 
-typedef enum {
-	SA_AMF_ACTIVE = SA_AMF_HA_ACTIVE,
-	SA_AMF_STANDBY = SA_AMF_HA_STANDBY,
-	SA_AMF_QUIESCED = SA_AMF_HA_QUIESCED,
-	SA_AMF_QUIESCING = SA_AMF_HA_QUIESCING
-} MBCSV_SAF_HA_ROLES;
-
 typedef uns32 (*MBCSV_PROCESS_REQ_FUNC_PTR) (struct ncs_mbcsv_arg *);
 
 /*

@@ -326,8 +326,8 @@ ncs_logmsg(NCS_SERVICE_ID_MBCSV, MBCSV_LID_API, MBCSV_FC_API, NCSFL_LC_API, \
    ncs_logmsg(NCS_SERVICE_ID_MBCSV, MBCSV_LID_FSM_EVT, MBCSV_FC_FSM_EVT, NCSFL_LC_STATE,  \
            NCSFL_SEV_INFO, "TILLCII", ha_state, svc, ckpt, log_str, \
           (f_state + ((ha_state==MBCSV_HA_ROLE_INIT)?MBCSV_FSM_STATE_NONE: \
-          ((ha_state==SA_AMF_ACTIVE)?(MBCSV_FSM_STATE_ACTIVE_IDLE-1): \
-          ((ha_state==SA_AMF_STANDBY)?(MBCSV_FSM_STATE_STBY_IDLE-1):  \
+          ((ha_state==SA_AMF_HA_ACTIVE)?(MBCSV_FSM_STATE_ACTIVE_IDLE-1): \
+          ((ha_state==SA_AMF_HA_STANDBY)?(MBCSV_FSM_STATE_STBY_IDLE-1):  \
             MBCSV_FSM_STATE_QUIESCED)))), evt); \
 }
 
