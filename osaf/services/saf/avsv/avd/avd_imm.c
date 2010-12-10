@@ -104,46 +104,60 @@ static SaVersionT immVersion = { 'A', 2, 1 };
 /* This string array must match the AVSV_AMF_CLASS_ID enum */
 static char *avd_class_names[] = {
 	"Invalid",
-	"SaAmfAppBaseType",
-	"SaAmfApplication",
-	"SaAmfAppType", 
-	"SaAmfCluster",
-	"SaAmfComp",
+
 	"SaAmfCompBaseType",
-	"SaAmfCompCsType",
-	"SaAmfCompGlobalAttributes",
-	"SaAmfCompType",
+	"SaAmfSUBaseType",
+	"SaAmfSGBaseType",
+	"SaAmfAppBaseType",
+	"SaAmfSvcBaseType",
 	"SaAmfCSBaseType",
-	"SaAmfCSI",
-	"SaAmfCSIAssignment",
-	"SaAmfCSIAttribute",
+	"SaAmfCompGlobalAttributes",
+
+	"SaAmfCompType",
 	"SaAmfCSType",
 	"SaAmfCtCsType",
-	"SaAmfHealthcheck",
 	"SaAmfHealthcheckType",
+	"SaAmfSvcType",
+	"SaAmfSvcTypeCSTypes",
+	"SaAmfSUType",
+	"SaAmfSutCompType",
+	"SaAmfSGType",
+	"SaAmfAppType", 
+
+	"SaAmfCluster",
 	"SaAmfNode",
 	"SaAmfNodeGroup",
 	"SaAmfNodeSwBundle",
+
+	"SaAmfApplication",
 	"SaAmfSG",
-	"SaAmfSGBaseType",
-	"SaAmfSGType",
 	"SaAmfSI",
-	"SaAmfSIAssignment",
+	"SaAmfCSI",
+	"SaAmfCSIAttribute",
+	"SaAmfSU",
+	"SaAmfComp",
+	"SaAmfHealthcheck",
+	"SaAmfCompCsType",
 	"SaAmfSIDependency",
 	"SaAmfSIRankedSU",
-	"SaAmfSU",
-	"SaAmfSUBaseType",
-	"SaAmfSutCompType",
-	"SaAmfSUType",
-	"SaAmfSvcBaseType",
-	"SaAmfSvcType",
-	"SaAmfSvcTypeCSTypes"
+
+	"SaAmfCSIAssignment",
+	"SaAmfSIAssignment"
 };
 
 static AvdImmOiCcbApplyCallbackT ccb_apply_callback[AVSV_SA_AMF_CLASS_MAX];
 static AvdImmOiCcbCompletedCallbackT ccb_completed_callback[AVSV_SA_AMF_CLASS_MAX];
 static SaImmOiAdminOperationCallbackT_2 admin_op_callback[AVSV_SA_AMF_CLASS_MAX];
 static SaImmOiRtAttrUpdateCallbackT rtattr_update_callback[AVSV_SA_AMF_CLASS_MAX];
+
+typedef struct avd_ccb_apply_ordered_list {
+	AvdImmOiCcbApplyCallbackT ccb_apply_cb;
+	CcbUtilOperationData_t *opdata;
+	AVSV_AMF_CLASS_ID class_type; 
+	struct avd_ccb_apply_ordered_list *next_ccb_to_apply;
+} AvdCcbApplyOrderedListT;
+
+static AvdCcbApplyOrderedListT *ccb_apply_list;
 
 /* ========================================================================
  *   FUNCTION PROTOTYPES
@@ -711,6 +725,121 @@ static void ccb_abort_cb(SaImmOiHandleT immoi_handle, SaImmOiCcbIdT ccb_id)
 
 	TRACE_LEAVE();
 }
+/*****************************************************************************
+ * Function: ccb_insert_ordered_list
+ *
+ * Purpose: This function sorts the Ccb apply callbacks for the correponding 
+ *          CCB operation in order of dependency/heirarchy
+ *
+ * Input: ccb_apply_cb - apply callback for specific object
+ * 	  opdata - Ccb Operation data
+ *
+ * Returns: None.
+ *
+ * NOTES: None.
+ *
+ **************************************************************************/
+static void ccb_insert_ordered_list(AvdImmOiCcbApplyCallbackT ccb_apply_cb,
+		CcbUtilOperationData_t *opdata, AVSV_AMF_CLASS_ID type)
+{
+	AvdCcbApplyOrderedListT *temp = NULL;
+	AvdCcbApplyOrderedListT *prev = NULL;
+	AvdCcbApplyOrderedListT *next = NULL;
+
+	/* allocate memory */
+
+	temp = malloc(sizeof(AvdCcbApplyOrderedListT));
+
+	temp->ccb_apply_cb = ccb_apply_cb;
+	temp->opdata = opdata;
+	temp->class_type = type;
+	temp->next_ccb_to_apply = NULL;
+
+	/* ccbs are sorted in top-down order in create/modify operations and
+	 * sorted in bottom-up order for delete operation. All the ccbs are 
+	 * appended to a single list in the order of create operations first
+	 * then modify operations and lastly delete operations
+	 */
+
+	switch (opdata->operationType) {
+	case CCBUTIL_CREATE:
+		next = ccb_apply_list;
+		while (next != NULL) {
+			if((next->opdata->operationType != CCBUTIL_CREATE) ||
+					(next->class_type > temp->class_type)) 
+				break;
+			prev = next;
+			next = next->next_ccb_to_apply;
+		}
+		/* insert the ccb */
+		if (prev != NULL) 
+			prev->next_ccb_to_apply = temp;
+		else 
+			ccb_apply_list = temp;
+
+		temp->next_ccb_to_apply = next;
+		break;
+
+	case CCBUTIL_MODIFY:
+		next = ccb_apply_list;
+
+		/* traverse to the end of all the create CCBs */
+		while (next && next->opdata->operationType == CCBUTIL_CREATE) {
+			prev = next;
+			next = next->next_ccb_to_apply;
+		}
+
+		while (next != NULL) {
+			if((next->opdata->operationType != CCBUTIL_MODIFY) ||
+					(next->class_type > temp->class_type)) 
+				break;
+			prev = next;
+			next = next->next_ccb_to_apply;
+		}
+		/* insert the ccb */
+		if (prev != NULL) 
+			prev->next_ccb_to_apply = temp;
+		else 
+			ccb_apply_list = temp;
+
+		temp->next_ccb_to_apply = next;
+		break;
+
+	case CCBUTIL_DELETE:
+		next = ccb_apply_list;
+
+		/* traverse to the end of all the create CCBs */
+		while (next && next->opdata->operationType == CCBUTIL_CREATE) {
+			prev = next;
+			next = next->next_ccb_to_apply;
+		}
+
+		/* traverse to the end of all the modify CCBs */
+		while (next && next->opdata->operationType == CCBUTIL_MODIFY) {
+			prev = next;
+			next = next->next_ccb_to_apply;
+		}
+
+		while (next != NULL) {
+			if(next->class_type < temp->class_type) 
+				break;
+			prev = next;
+			next = next->next_ccb_to_apply;
+		}
+		/* insert the ccb */
+		if (prev != NULL) 
+			prev->next_ccb_to_apply = temp;
+		else 
+			ccb_apply_list = temp;
+
+		temp->next_ccb_to_apply = next;
+		break;
+
+	default:
+		assert(0);
+			break;
+	}
+}
 
 /*****************************************************************************
  * Function: ccb_apply_cb
@@ -730,29 +859,47 @@ static void ccb_apply_cb(SaImmOiHandleT immoi_handle, SaImmOiCcbIdT ccb_id)
 	CcbUtilCcbData_t *ccb_util_ccb_data;
 	CcbUtilOperationData_t *opdata = NULL;
 	AVSV_AMF_CLASS_ID type;
+	AvdCcbApplyOrderedListT *next = NULL;
+	AvdCcbApplyOrderedListT *temp = NULL;
 
 	TRACE_ENTER2("CCB ID %llu", ccb_id);
 
 	while ((opdata = ccbutil_getNextCcbOp(ccb_id, opdata)) != NULL) {
 		type = object_name_to_class_type(&opdata->objectName);
 		/* Base types will not have an apply callback, skip empty ones */
-		if (ccb_apply_callback[type] != NULL)
-			ccb_apply_callback[type](opdata);
+		if (ccb_apply_callback[type] != NULL) {
+			/* insert the apply callback into the sorted list
+			 * to be applied later, after all the ccb apply 
+			 * callback are sorted as required by the internal
+			 * AMFD's information model
+			 */
+			ccb_insert_ordered_list(ccb_apply_callback[type], opdata, type);
 
-		switch (opdata->operationType) {
-		case CCBUTIL_CREATE:
-			saflog(LOG_NOTICE, amfSvcUsrName, "Created %s", opdata->objectName.value);
-			break;
-		case CCBUTIL_MODIFY:
-			saflog(LOG_NOTICE, amfSvcUsrName, "Modified %s", opdata->objectName.value);
-			break;
-		case CCBUTIL_DELETE:
-			saflog(LOG_NOTICE, amfSvcUsrName, "Deleted %s", opdata->objectName.value);
-			break;
-		default:
-			assert(0);
+			switch (opdata->operationType) {
+			case CCBUTIL_CREATE:
+				saflog(LOG_NOTICE, amfSvcUsrName, "Created %s", opdata->objectName.value);
+				break;
+			case CCBUTIL_MODIFY:
+				saflog(LOG_NOTICE, amfSvcUsrName, "Modified %s", opdata->objectName.value);
+				break;
+			case CCBUTIL_DELETE:
+				saflog(LOG_NOTICE, amfSvcUsrName, "Deleted %s", opdata->objectName.value);
+				break;
+			default:
+				assert(0);
+			}
 		}
 	}
+
+	/* Now apply all the CCBs in the sorted order */
+	next = ccb_apply_list;
+	while (next != NULL) {
+		next->ccb_apply_cb(next->opdata);
+		temp = next;
+		next = next->next_ccb_to_apply;
+		free(temp);
+	}
+	ccb_apply_list = NULL;
 
 	/* Return CCB container memory */
 	ccb_util_ccb_data = ccbutil_findCcbData(ccb_id);

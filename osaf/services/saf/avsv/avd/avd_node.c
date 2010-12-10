@@ -407,6 +407,9 @@ static SaAisErrorT node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	AVD_AVND *node = avd_node_get(&opdata->objectName);
+	AVD_SU *su; 
+	SaBoolT su_exist = SA_FALSE;
+	CcbUtilOperationData_t *t_opData;
 
 	TRACE_ENTER2("'%s'", opdata->objectName.value);
 
@@ -428,11 +431,26 @@ static SaAisErrorT node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata
 
 	/* Check to see that no SUs exists on this node */
 	if (node->list_of_su != NULL) {
-		LOG_ER("Node '%s' still has SUs", opdata->objectName.value);
-		return SA_AIS_ERR_BAD_OPERATION;
+		/* check whether there exists a delete operation for 
+		 * each of the SU in the node list in the current CCB 
+		 */                      
+		su = node->list_of_su;
+		while (su != NULL) {  
+			t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &su->name);
+			if ((t_opData == NULL) || (t_opData->operationType != CCBUTIL_DELETE)) {
+				su_exist = SA_TRUE;   
+				break;                  
+			}                       
+			su = su->avnd_list_su_next;
+		}                       
+		if (su_exist == SA_TRUE) {
+			LOG_ER("Node '%s' still has SUs", opdata->objectName.value);
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		}
 	}
-
 	opdata->userData = node;
+done:
 	TRACE_LEAVE();
 	return rc;
 }

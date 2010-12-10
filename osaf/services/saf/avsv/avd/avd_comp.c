@@ -1584,18 +1584,20 @@ static void comp_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
 	NCS_BOOL isPre;
 	AVD_AVND *su_node_ptr = NULL;
 	AVSV_PARAM_INFO param;
+	SaBoolT old_val;
+	SaBoolT su_delete = SA_FALSE;
+	struct CcbUtilOperationData *t_opData;
 
 	TRACE_ENTER();
 
 	comp = avd_comp_get(&opdata->objectName);
-	if (comp == NULL) {
-		/* 
-		** Normal case that happens if a parent of this component was
-		** the real delete target for the CCB.
-		*/
-		TRACE("already deleted!");
-		goto done;
-	}
+	/* comp should be found in the database even if it was 
+	 * due to parent su delete the changes are applied in 
+	 * bottom up order so all the component deletes are applied 
+	 * first and then parent SU delete is applied
+	 * just doing sanity check here
+	 **/
+	assert(comp != NULL);
 
 	/* verify if the max ACTIVE and STANDBY SIs of the SU 
 	 ** need to be changed
@@ -1635,6 +1637,8 @@ static void comp_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
 		comp->su->si_max_standby = min_si;
 	}
 
+	old_val = comp->su->saAmfSUPreInstantiable;
+
 	/* Verify if the SUs preinstan value need to be changed */
 	if ((AVSV_COMP_TYPE_SA_AWARE == comp->comp_info.category) ||
 	    (AVSV_COMP_TYPE_PROXIED_LOCAL_PRE_INSTANTIABLE == comp->comp_info.category) ||
@@ -1666,8 +1670,18 @@ static void comp_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
 		comp->su->saAmfSUPreInstantiable = TRUE;
 	}
 
-	avd_saImmOiRtObjectUpdate(&comp->su->name, "saAmfSUPreInstantiable", SA_IMM_ATTR_SAUINT32T,
-							  &comp->su->saAmfSUPreInstantiable);
+	/* check whether the SU is also undergoing delete operation */
+	t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &comp->su->name);
+	if (t_opData && t_opData->operationType == CCBUTIL_DELETE) {
+		su_delete = SA_TRUE;
+	}
+
+	/* if SU is not being deleted and the PreInstantiable state has changed
+	 * then update the IMM with the new value for saAmfSUPreInstantiable */
+	if (su_delete == SA_FALSE && old_val != comp->su->saAmfSUPreInstantiable) {
+		avd_saImmOiRtObjectUpdate(&comp->su->name, "saAmfSUPreInstantiable", SA_IMM_ATTR_SAUINT32T,
+				&comp->su->saAmfSUPreInstantiable);
+	}
 
 	/* send a message to the AVND deleting the
 	 * component.
@@ -1684,7 +1698,6 @@ static void comp_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
 	}
 
 	avd_comp_delete(comp);
-done:
 	TRACE_LEAVE();
 }
 

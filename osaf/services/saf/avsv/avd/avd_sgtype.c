@@ -321,7 +321,10 @@ SaAisErrorT avd_sgtype_config_get(void)
 static SaAisErrorT sgtype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
-	AVD_AMF_SG_TYPE *sgt = NULL;
+	AVD_AMF_SG_TYPE *sgt;
+	AVD_SG *sg; 
+	SaBoolT sg_exist = SA_FALSE;
+	CcbUtilOperationData_t *t_opData;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
@@ -337,8 +340,22 @@ static SaAisErrorT sgtype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 	case CCBUTIL_DELETE:
 		sgt = avd_sgtype_get(&opdata->objectName);
 		if (sgt->list_of_sg != NULL) {
-			LOG_ER("SGs exist of this SG type");
-			goto done;
+			/* check whether there exists a delete operation for 
+			 * each of the SG in the sg_type list in the current CCB 
+			 */                      
+			sg = sgt->list_of_sg;
+			while (sg != NULL) {  
+				t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &sg->name);
+				if ((t_opData == NULL) || (t_opData->operationType != CCBUTIL_DELETE)) {
+					sg_exist = SA_TRUE;   
+					break;                  
+				}                       
+				sg = sg->sg_list_sg_type_next;
+			}                       
+			if (sg_exist == SA_TRUE) {
+				LOG_ER("SGs exist of this SG type '%s'",sgt->name.value);
+				goto done;
+			}                       
 		}
 		opdata->userData = sgt;	/* Save for later use in apply */
 		rc = SA_AIS_OK;

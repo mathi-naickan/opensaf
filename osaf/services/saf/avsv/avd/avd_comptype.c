@@ -336,6 +336,9 @@ static SaAisErrorT comptype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
 	AVD_COMP_TYPE *comp_type;
+	AVD_COMP *comp;
+	SaBoolT comp_exist = SA_FALSE;
+	CcbUtilOperationData_t *t_opData;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
@@ -350,9 +353,22 @@ static SaAisErrorT comptype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 	case CCBUTIL_DELETE:
 		comp_type = avd_comptype_get(&opdata->objectName);
 		if (NULL != comp_type->list_of_comp) {
-			LOG_ER("SaAmfCompType is in use");
-			rc = SA_AIS_ERR_BAD_OPERATION;
-			goto done;
+			/* check whether there exists a delete operation for 
+			 * each of the Comp in the comp_type list in the current CCB
+			 */
+			comp = comp_type->list_of_comp;
+			while (comp != NULL) {
+				t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &comp->comp_info.name);
+				if ((t_opData == NULL) || (t_opData->operationType != CCBUTIL_DELETE)) {
+					comp_exist = SA_TRUE;
+					break;
+				}
+				comp = comp->comp_type_list_comp_next;
+			}
+			if (comp_exist == SA_TRUE) {
+				LOG_ER("SaAmfCompType '%s' is in use",comp_type->name.value);
+				goto done;
+			}
 		}
 		opdata->userData = comp_type;
 		rc = SA_AIS_OK;

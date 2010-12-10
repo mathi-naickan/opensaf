@@ -84,12 +84,12 @@ AVD_SU *avd_su_new(const SaNameT *dn)
  */
 void avd_su_delete(AVD_SU *su)
 {
-	AVD_COMP *comp;
-
 	TRACE_ENTER2("'%s'", su->name.value);
-
-	while ((comp = su->list_of_comp) != NULL)
-		avd_comp_delete(comp);
+	
+	/* All the components under this SU should have been deleted
+	 * by now, just do the sanity check to confirm it is done 
+	 */
+	assert(su->list_of_comp == NULL);
 
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(avd_cb, su, AVSV_CKPT_AVD_SU_CONFIG);
 	avd_node_remove_su(su);

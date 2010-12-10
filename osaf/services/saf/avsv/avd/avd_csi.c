@@ -389,14 +389,9 @@ static SaAisErrorT csi_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		break;
 	case CCBUTIL_DELETE:
 		csi = avd_csi_get(&opdata->objectName);
-		/* Check to see that the SI of which the CSI is a
-		 * part is in admin locked state before
-		 * making the row status as not in service or delete 
-		 */
-
-		if ((csi->si->saAmfSIAdminState != SA_AMF_ADMIN_UNLOCKED) ||
-		    (csi->si->list_of_sisu != NULL) || (csi->list_compcsi != NULL)) {
-			LOG_ER("SaAmfCSI is in use");
+		/* Check if this CSI is assigned to any comp*/
+		if (csi->list_compcsi != NULL) {
+			LOG_ER("SaAmfCSI is in use '%s'", csi->name.value);
 			rc = SA_AIS_ERR_BAD_OPERATION;
 			goto done;
 		}

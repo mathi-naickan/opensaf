@@ -114,6 +114,9 @@ AVD_SG *avd_sg_new(const SaNameT *dn)
 
 void avd_sg_delete(AVD_SG *sg)
 {
+	/* by now SU and SI should have been deleted */ 
+	assert(sg->list_of_su == NULL);
+	assert(sg->list_of_si == NULL);
 	sg_remove_from_model(sg);
 	free(sg);
 }
@@ -1005,7 +1008,10 @@ static SaAisErrorT sg_rt_attr_cb(SaImmOiHandleT immOiHandle,
 static SaAisErrorT sg_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
-	AVD_SG *sg = NULL;
+	AVD_SG *sg;
+	AVD_SI *si;
+	SaBoolT si_exist = SA_FALSE;
+	CcbUtilOperationData_t *t_opData;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
@@ -1019,17 +1025,27 @@ static SaAisErrorT sg_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		break;
 	case CCBUTIL_DELETE:
 		sg = avd_sg_get(&opdata->objectName);
-		if (sg->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
-			LOG_ER("SG admin state is not locked instantiation");
-			goto done;
-		}
-		if (sg->list_of_su != NULL) {
-			LOG_ER("SUs still exist in this SG");
-			goto done;
-		}
 		if (sg->list_of_si != NULL) {
-			LOG_ER("SIs still exist in this SG");
-			goto done;
+			/* check whether there is parent app delete */
+			t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &sg->app->name);
+			if (t_opData == NULL || t_opData->operationType != CCBUTIL_DELETE) {
+				/* check whether there exists a delete operation for 
+				 * each of the SIs in the SG's list in the current CCB
+				 */
+				si = sg->list_of_si;
+				while (si != NULL) {
+					t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &si->name);
+					if ((t_opData == NULL) || (t_opData->operationType != CCBUTIL_DELETE)) {
+						si_exist = SA_TRUE;
+						break;
+					}
+					si = si->sg_list_of_si_next;
+				}
+			}
+			if (si_exist == SA_TRUE) {
+				LOG_ER("SIs still exist in SG '%s'", sg->name.value);
+				goto done;
+			}
 		}
 		rc = SA_AIS_OK;
 		opdata->userData = sg;	/* Save for later use in apply */

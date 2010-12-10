@@ -143,7 +143,10 @@ static AVD_APP_TYPE *apptype_create(SaNameT *dn, const SaImmAttrValuesT_2 **attr
 static SaAisErrorT apptype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
-	AVD_APP_TYPE *app_type = NULL;
+	AVD_APP_TYPE *app_type;
+	AVD_APP *app;
+	SaBoolT app_exist = SA_FALSE;
+	CcbUtilOperationData_t *t_opData;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
@@ -158,8 +161,22 @@ static SaAisErrorT apptype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 	case CCBUTIL_DELETE:
 		app_type = avd_apptype_get(&opdata->objectName);
 		if (NULL != app_type->list_of_app) {
-			LOG_ER("SaAmfAppType is in use");
-			goto done;
+			/* check whether there exists a delete operation for 
+			 * each of the App in the app_type list in the current CCB
+			 */
+			app = app_type->list_of_app;
+			while (app != NULL) {
+				t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &app->name);
+				if ((t_opData == NULL) || (t_opData->operationType != CCBUTIL_DELETE)) {
+					app_exist = SA_TRUE;
+					break;
+				}
+				app = app->app_type_list_app_next;
+			}
+			if (app_exist == SA_TRUE) {
+				LOG_ER("SaAmfAppType '%s' is in use", app_type->name.value);
+				goto done;
+			}
 		}
 		opdata->userData = app_type;	/* Save for later use in apply */
 		rc = SA_AIS_OK;
@@ -190,7 +207,7 @@ static void apptype_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 		break;
 	default:
 		assert(0);
-		break;
+			break;
 	}
 }
 
@@ -211,8 +228,8 @@ SaAisErrorT avd_apptype_config_get(void)
 	searchParam.searchOneAttr.attrValue = &className;
 
 	error = immutil_saImmOmSearchInitialize_2(avd_cb->immOmHandle, NULL, SA_IMM_SUBTREE,
-		SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR, &searchParam,
-		NULL, &searchHandle);
+			SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR, &searchParam,
+			NULL, &searchHandle);
 
 	if (SA_AIS_OK != error) {
 		LOG_ER("No AMF app types found");
@@ -232,9 +249,9 @@ SaAisErrorT avd_apptype_config_get(void)
 	}
 
 	rc = SA_AIS_OK;
- done2:
+done2:
 	(void)immutil_saImmOmSearchFinalize(searchHandle);
- done1:
+done1:
 	TRACE_LEAVE2("%u", error);
 	return rc;
 }

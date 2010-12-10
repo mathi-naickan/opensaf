@@ -260,7 +260,6 @@ static SaAisErrorT app_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	const SaImmAttrModificationT_2 *attr_mod;
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
-	AVD_APP *app;
 	int i = 0;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
@@ -287,12 +286,9 @@ static SaAisErrorT app_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		}
 		break;
 	case CCBUTIL_DELETE:
-		app = avd_app_get(&opdata->objectName);
-		if ((app->list_of_sg != NULL) || (app->list_of_si != NULL)) {
-			LOG_ER("Application still has SGs or SIs");
-			goto done;
-		}
-		opdata->userData = app;	/* Save for later use in apply */
+		/* just return OK 
+		 * actual validation will be done at SU and SI level objects
+		 */
 		rc = SA_AIS_OK;
 		break;
 	default:
@@ -341,7 +337,14 @@ static void app_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 		break;
 	}
 	case CCBUTIL_DELETE:
-		avd_app_delete(opdata->userData);
+		app = avd_app_get(&opdata->objectName);
+		/* by this time all the SGs and SIs under this 
+		 * app object should have been *DELETED* just  
+		 * do a sanity check here
+		 */
+		assert(app->list_of_sg == NULL);
+		assert(app->list_of_si == NULL);
+		avd_app_delete(app);
 		break;
 	default:
 		assert(0);

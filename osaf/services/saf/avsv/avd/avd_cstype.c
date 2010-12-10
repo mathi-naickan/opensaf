@@ -208,7 +208,10 @@ done1:
 static SaAisErrorT cstype_ccb_completed_hdlr(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
-	avd_cstype_t *cst = NULL;
+	avd_cstype_t *cst;
+	AVD_CSI *csi; 
+	SaBoolT csi_exist = SA_FALSE;
+	CcbUtilOperationData_t *t_opData;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
@@ -223,10 +226,24 @@ static SaAisErrorT cstype_ccb_completed_hdlr(CcbUtilOperationData_t *opdata)
 	case CCBUTIL_DELETE:
 		cst = avd_cstype_get(&opdata->objectName);
 		if (cst->list_of_csi != NULL) {
-			LOG_ER("SaAmfCSType is in use");
-			rc = SA_AIS_ERR_BAD_OPERATION;
-			goto done;
+			/* check whether there exists a delete operation for 
+			 * each of the CSI in the cs_type list in the current CCB 
+			 */                      
+			csi = cst->list_of_csi;
+			while (csi != NULL) {  
+				t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &csi->name);
+				if ((t_opData == NULL) || (t_opData->operationType != CCBUTIL_DELETE)) {
+					csi_exist = SA_TRUE;   
+					break;                  
+				}                       
+				csi = csi->csi_list_cs_type_next;
+			}                       
+			if (csi_exist == SA_TRUE) {
+				LOG_ER("SaAmfCSType '%s' is in use", cst->name.value);
+				goto done;
+			}
 		}
+		opdata->userData = cst;	/* Save for later use in apply */
 		rc = SA_AIS_OK;
 		break;
 	default:
@@ -235,7 +252,6 @@ static SaAisErrorT cstype_ccb_completed_hdlr(CcbUtilOperationData_t *opdata)
 	}
 
 done:
-	opdata->userData = cst;	/* Save for later use in apply */
 	return rc;
 }
 

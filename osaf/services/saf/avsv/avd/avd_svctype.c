@@ -115,7 +115,10 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 static SaAisErrorT svctype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
-	AVD_SVC_TYPE *svc_type = NULL;
+	AVD_SVC_TYPE *svc_type;
+	AVD_SI *si;
+	SaBoolT si_exist = SA_FALSE;
+	CcbUtilOperationData_t *t_opData;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
@@ -129,11 +132,25 @@ static SaAisErrorT svctype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		break;
 	case CCBUTIL_DELETE:
 		svc_type = avd_svctype_get(&opdata->objectName);
-		if ((NULL != svc_type->list_of_si) || (NULL != svc_type->list_of_cs_type)) {
-			LOG_ER("SaAmfSvcType is in use");
-			rc = SA_AIS_ERR_BAD_OPERATION;
-			goto done;
+		if (NULL != svc_type->list_of_si) {
+			/* check whether there exists a delete operation for
+			 * each of the SI in the svc_type list in the current CCB
+			 */
+			si = svc_type->list_of_si;
+			while (si != NULL) {
+				t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &si->name);
+				if ((t_opData == NULL) || (t_opData->operationType != CCBUTIL_DELETE)) {
+					si_exist = SA_TRUE;
+					break;
+				}
+				si = si->si_list_svc_type_next;
+			}
+			if (si_exist == SA_TRUE) {
+				LOG_ER("SaAmfSvcType '%s' is in use",svc_type->name.value);
+				goto done;
+			}
 		}
+		opdata->userData = svc_type;
 		rc = SA_AIS_OK;
 		break;
 	default:
@@ -141,7 +158,6 @@ static SaAisErrorT svctype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		break;
 	}
 done:
-	opdata->userData = svc_type;
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }

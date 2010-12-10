@@ -175,6 +175,10 @@ void avd_si_delete(AVD_SI *si)
 	unsigned int rc;
 
 	TRACE_ENTER2("%s", si->name.value);
+	/* All CSI under this should have been deleted by now */
+	assert(si->list_of_csi == NULL);
+	/* All the SI Dependencies should have been unconfigured or deleted */
+	assert(si->spons_si_list == 0);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(avd_cb, si, AVSV_CKPT_AVD_SI_CONFIG);
 	avd_svctype_remove_si(si);
 	avd_app_remove_si(si->app, si);
@@ -697,15 +701,11 @@ static SaAisErrorT si_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		break;
 	case CCBUTIL_DELETE:
 		si = avd_si_get(&opdata->objectName);
-		if (NULL != si->list_of_csi) {
-			LOG_ER("SaAmfSI is in use");
+		if (NULL != si->list_of_sisu) {
+			LOG_ER("SaAmfSI is in use '%s'", si->name.value);
 			goto done;
 		}
 		/* check for any SI-SI dependency configurations */
-		if (NULL != si->spons_si_list) {
-			LOG_ER("SaAmfSIDependency objects exist for '%s'", si->name.value);
-			goto done;
-		}
 		if (0 != si->num_dependents) {
 			LOG_ER("Dependents Exist; Cannot delete '%s'", si->name.value);
 			goto done;

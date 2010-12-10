@@ -120,7 +120,6 @@ typedef struct avd_amf_svc_type_tag {
 	char **saAmfSvcDefActiveWeight;
 	char **saAmfSvcDefStandbyWeight;
 	struct avd_si_tag *list_of_si;
-	struct avd_svc_type_cs_type_tag *list_of_cs_type;
 
 } AVD_SVC_TYPE;
 
