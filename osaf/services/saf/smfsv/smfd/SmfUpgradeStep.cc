@@ -1579,7 +1579,7 @@ SmfUpgradeStep::nodeReboot(const std::string & i_node)
 	interval = 5;
 	LOG_NO("SmfUpgradeStep::nodeReboot: Waiting for the node to accept command 'true'");
 	rc = smfnd_remote_cmd(cmd.c_str(), nodeDest, cliTimeout);
-	while(rc != -1){
+	while(rc != 0){
 		sleep(interval);
 		rc = smfnd_remote_cmd(cmd.c_str(), nodeDest, cliTimeout);
 		if (timeout <= 0) {
