@@ -180,12 +180,14 @@ SmfProcedureThread::init(void)
 			return -1;
 		}
 	} else if (result == SA_AIS_OK) {
-		/* Procedure exists, get step data */
-		result = m_procedure->getImmSteps();
-		if (result != SA_AIS_OK) {
-			LOG_ER("getImmSteps FAILED %d", result);
-			return -1;
-		}
+		/* Procedure exists, get step data if procedure has started */
+                if (m_procedure->getState() != SA_SMF_PROC_INITIAL) {
+                        result = m_procedure->getImmSteps();
+                        if (result != SA_AIS_OK) {
+                                LOG_ER("getImmSteps FAILED %d", result);
+                                return -1;
+                        }
+                }
 	} else {
 		LOG_ER("getImmProcedure FAILED %d", result);
 		return -1;
