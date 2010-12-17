@@ -277,11 +277,6 @@ uns32 avd_si_dep_si_unassigned(AVD_CL_CB *cb, AVD_SI *si)
 	uns32 rc = NCSCC_RC_FAILURE;
 	AVD_SU_SI_STATE old_fsm_state;
 
-	if (si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) {
-		TRACE("SG not in STABLE state ");
-		return rc;
-	}
-
 	susi = si->list_of_sisu;
 	while (susi != AVD_SU_SI_REL_NULL) {
 		old_fsm_state = susi->fsm;
