@@ -145,11 +145,11 @@
 		<dn>safHealthcheckKey=A1B2,safVersion=4.0.0,safCompType=OpenSafCompTypeSMFND</dn>
 		<attr>
 			<name>saAmfHctDefPeriod</name>
-			<value>240000000000</value>
+			<value>660000000000</value>
 		</attr>
 		<attr>
 			<name>saAmfHctDefMaxDuration</name>
-			<value>180000000000</value>
+			<value>620000000000</value>
 		</attr>
 	</object>
 	<object class="SaAmfSutCompType">
