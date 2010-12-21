@@ -869,7 +869,7 @@ static uns32 cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO 
 				cpnd_evt_destroy(out_evt);
 				out_evt = NULL;
 			}
-	            goto agent_rsp2;	
+	            return rc;	
               }
 
  agent_rsp2:
@@ -922,19 +922,20 @@ static uns32 cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO 
  agent_rsp:
 	send_evt.type = CPSV_EVT_TYPE_CPA;
 	send_evt.info.cpa.type = CPA_EVT_ND2A_CKPT_OPEN_RSP;
-	send_evt.info.cpa.info.openRsp.lcl_ckpt_hdl = evt->info.openReq.lcl_ckpt_hdl;
-	send_evt.info.cpa.info.openRsp.sync_async = evt->info.openReq.sync_async;
+       send_evt.info.cpa.info.openRsp.lcl_ckpt_hdl=evt->info.openReq.lcl_ckpt_hdl;
 
+       if ( sinfo->stype == MDS_SENDTYPE_SNDRSP )
+       {
+               rc = cpnd_mds_send_rsp(cb, sinfo, &send_evt); }
+       else {
+               send_evt.info.cpa.info.openRsp.invocation= evt->info.openReq.invocation;
+               rc = cpnd_mds_msg_send(cb,sinfo->to_svc,sinfo->dest,&send_evt);
+       }
 
-        if(!send_evt.info.cpa.info.openRsp.sync_async)
-           send_evt.info.cpa.info.openRsp.invocation = evt->info.openReq.invocation;
-	
-	rc = cpnd_mds_msg_send(cb, sinfo->to_svc, sinfo->dest, &send_evt);
+       if(out_evt)
+                cpnd_evt_destroy(out_evt);
 
-	if (out_evt)
-		cpnd_evt_destroy(out_evt);
-
-	return rc;
+        return rc;
 }
 
 /****************************************************************************

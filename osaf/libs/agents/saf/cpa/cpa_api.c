@@ -630,13 +630,13 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	CPA_CB *cb = NULL;
-	CPSV_EVT evt;
+	CPSV_EVT evt, *out_evt = NULL;
 	CPA_LOCAL_CKPT_NODE *lc_node = NULL;
 	CPA_CLIENT_NODE *cl_node = NULL;
 	uns32 proc_rc = NCSCC_RC_SUCCESS;
 	NCS_BOOL locked = FALSE;
-        CPA_PROCESS_EVT_SYNC *node = NULL;
-        uns32 select_rc,time_out=0;
+        uns32 time_out=0;
+	CPA_GLOBAL_CKPT_NODE *gc_node = NULL;
 
 
 	if ((checkpointName == NULL) || (checkpointHandle == NULL) || (checkpointName->length == 0)) {
@@ -736,7 +736,6 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 	evt.info.cpnd.type = CPND_EVT_A2ND_CKPT_OPEN;
 	evt.info.cpnd.info.openReq.client_hdl = ckptHandle;
 	evt.info.cpnd.info.openReq.lcl_ckpt_hdl = lc_node->lcl_ckpt_hdl;
-	evt.info.cpnd.info.openReq.sync_async = TRUE;
 
 	evt.info.cpnd.info.openReq.ckpt_name = *checkpointName;
 
@@ -774,70 +773,88 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 		goto mds_send_fail;
 	}
 
-        NCS_SEL_OBJ_SET set;
-	m_NCS_LOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
+       /* Send the evt to CPND */
+       proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(cb->cpnd_mds_dest), &evt, &out_evt, timeout);
 
-	cb->cpnd_sync_awaited = TRUE;
+       /* Generate rc from proc_rc */
+       switch (proc_rc) {
+               case NCSCC_RC_SUCCESS:
+                       break;
+               case NCSCC_RC_REQ_TIMOUT:
+                       rc = SA_AIS_ERR_TIMEOUT;
+                       m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
+                                       "CkptOpen:MDS", __FILE__, __LINE__, proc_rc, ckptHandle, cb->cpnd_mds_dest);
+                       goto mds_send_fail;
+               default:
+                       rc = SA_AIS_ERR_TRY_AGAIN;
+                       m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
+                                       "CkptOpen:MDS", __FILE__, __LINE__, proc_rc, ckptHandle, cb->cpnd_mds_dest);
+                       goto mds_send_fail;
+       }
 
-	m_NCS_SEL_OBJ_CREATE(&cb->cpnd_sync_sel);
-	m_NCS_UNLOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
+       if(out_evt)
+       {
+               NCS_BOOL   add_flag = TRUE;
+               /* Process the received Event */
 
-	proc_rc = cpa_mds_msg_send(cb->cpa_mds_hdl, &cb->cpnd_mds_dest, &evt, NCSMDS_SVC_ID_CPND);
- 
-	/* Generate rc from proc_rc */
-	switch (proc_rc) {
-	case NCSCC_RC_SUCCESS:
-		break;
-	case NCSCC_RC_REQ_TIMOUT:
-		rc = SA_AIS_ERR_TIMEOUT;
-		m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-				 "CkptOpen:MDS", __FILE__, __LINE__, proc_rc, ckptHandle, cb->cpnd_mds_dest);
-		goto mds_send_fail;
-	default:
-		rc = SA_AIS_ERR_TRY_AGAIN;
-		m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-				 "CkptOpen:MDS", __FILE__, __LINE__, proc_rc, ckptHandle, cb->cpnd_mds_dest);
-		goto mds_send_fail;
-	}
-
-      
-        m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(cb->cpnd_sync_sel, &set);
-
-	select_rc = m_NCS_SEL_OBJ_SELECT(cb->cpnd_sync_sel, &set, 0, 0, &time_out);
-
-	if (select_rc == 0) {
-		rc = SA_AIS_ERR_TIMEOUT;
-		m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-				 "CkptOpen:MDS", __FILE__, __LINE__, proc_rc, ckptHandle, cb->cpnd_mds_dest);
-		goto mds_send_fail;
-	}
-
-	node = (CPA_PROCESS_EVT_SYNC *) m_MMGR_ALLOC_CPA_PROCESS_EVT_SYNC;
-
-	memset(node, 0, sizeof(CPA_PROCESS_EVT_SYNC));
-	node = (CPA_PROCESS_EVT_SYNC *) ncs_dequeue(&cb->cpa_evt_process_queue);
-
-	rc = node->error_code.info.cpa.info.openRsp.error;
-
-	m_MMGR_FREE_CPA_PROCESS_EVT_SYNC(node);
+               rc = out_evt->info.cpa.info.openRsp.error;
+               lc_node->gbl_ckpt_hdl = out_evt->info.cpa.info.openRsp.gbl_ckpt_hdl;
 
 
-        /* Destroy the sync - object */
-	m_NCS_LOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
+               if(rc != SA_AIS_OK)
+               {
+                       m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
+                                       "CkptOpen", __FILE__ ,__LINE__, rc , ckptHandle, 0);
+                       /* Free the Local Ckpt Node */
+                       m_MMGR_FREE_CPSV_EVT(out_evt, NCS_SERVICE_ID_CPA);
+                       goto lcl_ckpt_node_free;
+               }
 
-	cb->cpnd_sync_awaited = FALSE;
-	m_NCS_SEL_OBJ_DESTROY(cb->cpnd_sync_sel);
+               /* Take the CB lock */
+               if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS)
+               {
+                       rc = SA_AIS_ERR_LIBRARY;
+                       m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
+                                       "CkptOpen:LOCK", __FILE__ ,__LINE__, rc , ckptHandle, lc_node->gbl_ckpt_hdl);
+                       goto lock_fail1;
+               }
 
-	m_NCS_UNLOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
+               locked = TRUE;
 
-	if (rc != SA_AIS_OK) {
-		if (rc == SA_AIS_ERR_LIBRARY)
-			goto gl_node_add_fail;
-		goto lcl_ckpt_node_free;
-	}
+               proc_rc = cpa_gbl_ckpt_node_find_add(&cb->gbl_ckpt_tree,
+                               &lc_node->gbl_ckpt_hdl, &gc_node, &add_flag);
 
 
+               if(proc_rc != NCSCC_RC_SUCCESS)
+               {
+                       rc = SA_AIS_ERR_NO_MEMORY;
+                       m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
+                                       "CkptOpen", __FILE__ ,__LINE__, proc_rc , ckptHandle, lc_node->gbl_ckpt_hdl);
+                       goto gl_node_add_fail;
+               }
+
+               if ( add_flag == FALSE)
+               {
+                       SaSizeT ckpt_size=0;
+
+                       gc_node->open.info.open.o_addr=out_evt->info.cpa.info.openRsp.addr;
+                       gc_node->ckpt_creat_attri = out_evt->info.cpa.info.openRsp.creation_attr;
+
+                       /*To store the active MDS_DEST info of checkpoint */
+                       if(out_evt->info.cpa.info.openRsp.is_active_exists)
+                       {
+                               gc_node->is_active_exists = TRUE;
+                               gc_node->active_mds_dest = out_evt->info.cpa.info.openRsp.active_dest;
+                       }
+
+                       ckpt_size=sizeof(CPSV_CKPT_HDR)+(gc_node->ckpt_creat_attri.maxSections *
+                                       (sizeof(CPSV_SECT_HDR)+gc_node->ckpt_creat_attri.maxSectionSize));
+               }
+
+               gc_node->ref_cnt++;
+               /* Free the out event */
+               m_MMGR_FREE_CPSV_EVT(out_evt, NCS_SERVICE_ID_CPA);
+       }
 
        	*checkpointHandle = lc_node->lcl_ckpt_hdl;
 
@@ -851,7 +868,8 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 
 	/* Error Handling */
 
- gl_node_add_fail:
+lock_fail1: 
+gl_node_add_fail:
 
 	/* Call the Ckpt close Processing */
 	if (locked)
@@ -1030,7 +1048,6 @@ SaAisErrorT saCkptCheckpointOpenAsync(SaCkptHandleT ckptHandle, SaInvocationT in
 	evt.info.cpnd.type = CPND_EVT_A2ND_CKPT_OPEN;
 	evt.info.cpnd.info.openReq.client_hdl = ckptHandle;
 	evt.info.cpnd.info.openReq.lcl_ckpt_hdl = lc_node->lcl_ckpt_hdl;
-	evt.info.cpnd.info.openReq.sync_async = FALSE;
 
 	evt.info.cpnd.info.openReq.ckpt_name = *checkpointName;
 

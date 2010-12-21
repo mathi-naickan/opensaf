@@ -284,7 +284,6 @@ typedef struct cpsv_a2nd_open_req {
 	SaCkptCheckpointOpenFlagsT ckpt_flags;
 	SaInvocationT invocation;
 	SaTimeT timeout;
-        NCS_BOOL sync_async;
 } CPSV_A2ND_OPEN_REQ;
 
 typedef struct cpsv_a2nd_ckpt_close {
@@ -432,7 +431,6 @@ typedef struct cpsv_nd2a_open_rsp {
    CPSV_REQ_TYPE              req_type;*/
 	SaInvocationT invocation;
 	SaAisErrorT error;
-        NCS_BOOL sync_async;
 	/* TBD Shared memory details, Name, SHM start address */
 	void *addr;
 } CPSV_ND2A_OPEN_RSP;

@@ -285,7 +285,7 @@ uns32 cpa_ckpt_finalize_proc(CPA_CB *cb, CPA_CLIENT_NODE *cl_node)
   Return Values : None
   Notes         : None
 ******************************************************************************/
-static void cpa_proc_async_open_rsp(CPA_CB *cb, CPSV_EVT *evt)
+static void cpa_proc_async_open_rsp(CPA_CB *cb, CPA_EVT *evt)
 {
 	uns32 proc_rc = NCSCC_RC_SUCCESS;
 	SaAisErrorT rc = SA_AIS_OK;
@@ -294,109 +294,22 @@ static void cpa_proc_async_open_rsp(CPA_CB *cb, CPSV_EVT *evt)
 	CPA_LOCAL_CKPT_NODE *lc_node = NULL;
 	CPA_GLOBAL_CKPT_NODE *gc_node = NULL;
 	CPA_CLIENT_NODE *cl_node = NULL;
-        CPA_PROCESS_EVT_SYNC *node = NULL;
-        NCS_BOOL locked = FALSE;
-
-        	if ((evt != NULL) && evt->info.cpa.info.openRsp.sync_async) {
-		/* Take the CB lock */
-		if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
-			rc = SA_AIS_ERR_LIBRARY;
-			m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-					 "CkptOpen:LOCK", __FILE__, __LINE__, rc, 0,
-					 evt->info.cpa.info.openRsp.gbl_ckpt_hdl);
-			goto lock_fail1;
-		}
-
-		locked = TRUE;
-
-		rc = evt->info.cpa.info.openRsp.error;
-
-		cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &evt->info.cpa.info.openRsp.lcl_ckpt_hdl, &lc_node);
-		if (lc_node == NULL) {
-			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
-			m_LOG_CPA_CCLLFF(CPA_PROC_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-					 "cpa_proc_async_open_rsp", __FILE__, __LINE__,
-					 evt->info.cpa.info.openRsp.error, evt->info.cpa.info.openRsp.lcl_ckpt_hdl,
-					 evt->info.cpa.info.openRsp.gbl_ckpt_hdl);
-			goto end;
-		}
-
-		lc_node->gbl_ckpt_hdl = evt->info.cpa.info.openRsp.gbl_ckpt_hdl;
-
-		if (rc != SA_AIS_OK) {
-			m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-					 "cpa_proc_async_open_rsp", __FILE__, __LINE__, rc, 0, 0);
-
-			goto lock_fail1;
-		}
-
-		proc_rc = cpa_gbl_ckpt_node_find_add(&cb->gbl_ckpt_tree, &lc_node->gbl_ckpt_hdl, &gc_node, &add_flag);
-
-		if (proc_rc != NCSCC_RC_SUCCESS) {
-			rc = SA_AIS_ERR_NO_MEMORY;
-			m_LOG_CPA_CCLLFF(CPA_API_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-					 "cpa_proc_async_open_rsp", __FILE__, __LINE__, proc_rc, 0,
-					 lc_node->gbl_ckpt_hdl);
-			goto gl_node_add_fail;
-		}
-
-		if (add_flag == FALSE) {
-			SaSizeT ckpt_size = 0;
-
-			gc_node->open.info.open.o_addr = evt->info.cpa.info.openRsp.addr;
-			gc_node->ckpt_creat_attri = evt->info.cpa.info.openRsp.creation_attr;
-
-			/*To store the active MDS_DEST info of checkpoint */
-			if (evt->info.cpa.info.openRsp.is_active_exists) {
-				gc_node->is_active_exists = TRUE;
-				gc_node->active_mds_dest = evt->info.cpa.info.openRsp.active_dest;
-			}
-
-			ckpt_size = sizeof(CPSV_CKPT_HDR) + (gc_node->ckpt_creat_attri.maxSections *
-							     (sizeof(CPSV_SECT_HDR) +
-							      gc_node->ckpt_creat_attri.maxSectionSize));
-		}
-
-		gc_node->ref_cnt++;
-
- lock_fail1:
- gl_node_add_fail:
-		if (locked)
-			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
-		locked = FALSE;
-
- end:
-		node = (CPA_PROCESS_EVT_SYNC *) m_MMGR_ALLOC_CPA_PROCESS_EVT_SYNC;
-		memset(node, 0, sizeof(CPA_PROCESS_EVT_SYNC));
-
-		node->error_code.info.cpa.info.openRsp.error = rc;
-
-		ncs_enqueue(&cb->cpa_evt_process_queue, (void *)node);
-
-		m_NCS_LOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
-		if (cb->cpnd_sync_awaited == TRUE) {
-			m_NCS_SEL_OBJ_IND(cb->cpnd_sync_sel);
-		}
-		m_NCS_UNLOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
-
-		return;
-	}
 
 
 	/* get the CB Lock */
 	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 		m_LOG_CPA_CCLL(CPA_PROC_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-			       "async_open_rsp:LOCK", __FILE__, __LINE__, evt->info.cpa.info.openRsp.error);
+			       "async_open_rsp:LOCK", __FILE__, __LINE__, evt->info.openRsp.error);
 		return;
 	}
 
 	/* Get the local Ckpt Node */
-	cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &evt->info.cpa.info.openRsp.lcl_ckpt_hdl, &lc_node);
+	cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &evt->info.openRsp.lcl_ckpt_hdl, &lc_node);
 	if (lc_node == NULL) {
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		m_LOG_CPA_CCLLFF(CPA_PROC_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-				 "async_open_rsp", __FILE__, __LINE__, evt->info.cpa.info.openRsp.error,
-				 evt->info.cpa.info.openRsp.lcl_ckpt_hdl, evt->info.cpa.info.openRsp.gbl_ckpt_hdl);
+				 "async_open_rsp", __FILE__, __LINE__, evt->info.openRsp.error,
+				 evt->info.openRsp.lcl_ckpt_hdl, evt->info.openRsp.gbl_ckpt_hdl);
 		return;
 	}
 
@@ -408,17 +321,17 @@ static void cpa_proc_async_open_rsp(CPA_CB *cb, CPSV_EVT *evt)
 	if (!cl_node) {
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		m_LOG_CPA_CCLLFFF(CPA_PROC_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
-				  "async_open_rsp", __FILE__, __LINE__, evt->info.cpa.info.openRsp.error,
-				  lc_node->cl_hdl, evt->info.cpa.info.openRsp.lcl_ckpt_hdl,
-				  evt->info.cpa.info.openRsp.gbl_ckpt_hdl);
+				  "async_open_rsp", __FILE__, __LINE__, evt->info.openRsp.error,
+				  lc_node->cl_hdl, evt->info.openRsp.lcl_ckpt_hdl,
+				  evt->info.openRsp.gbl_ckpt_hdl);
 		return;
 	}
 
-	if (evt->info.cpa.info.openRsp.error == SA_AIS_OK) {
+	if (evt->info.openRsp.error == SA_AIS_OK) {
 		SaSizeT ckpt_size = 0;
 
 		/* We got all the data that we want, update it */
-		lc_node->gbl_ckpt_hdl = evt->info.cpa.info.openRsp.gbl_ckpt_hdl;
+		lc_node->gbl_ckpt_hdl = evt->info.openRsp.gbl_ckpt_hdl;
 
 		/* Update the info in the gbl_ckpt_tree */
 		proc_rc = cpa_gbl_ckpt_node_find_add(&cb->gbl_ckpt_tree, &lc_node->gbl_ckpt_hdl, &gc_node, &add_flag);
@@ -427,24 +340,24 @@ static void cpa_proc_async_open_rsp(CPA_CB *cb, CPSV_EVT *evt)
 			rc = SA_AIS_ERR_NO_MEMORY;
 			m_LOG_CPA_CCLLFFF(CPA_PROC_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
 					  "async_open_rsp", __FILE__, __LINE__, rc, lc_node->cl_hdl,
-					  evt->info.cpa.info.openRsp.lcl_ckpt_hdl, lc_node->gbl_ckpt_hdl);
+					  evt->info.openRsp.lcl_ckpt_hdl, lc_node->gbl_ckpt_hdl);
 			goto send_cb_evt;
 
 		} else if (proc_rc != NCSCC_RC_SUCCESS) {
 			rc = SA_AIS_ERR_NO_RESOURCES;
 			m_LOG_CPA_CCLLFFF(CPA_PROC_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
 					  "async_open_rsp", __FILE__, __LINE__, rc, lc_node->cl_hdl,
-					  evt->info.cpa.info.openRsp.lcl_ckpt_hdl, lc_node->gbl_ckpt_hdl);
+					  evt->info.openRsp.lcl_ckpt_hdl, lc_node->gbl_ckpt_hdl);
 			goto send_cb_evt;
 		}
 
 		if (add_flag == FALSE) {
 			gc_node->ref_cnt++;
-			gc_node->ckpt_creat_attri = evt->info.cpa.info.openRsp.creation_attr;
+			gc_node->ckpt_creat_attri = evt->info.openRsp.creation_attr;
 			/*To store the active MDS_DEST info of checkpoint */
-			if (evt->info.cpa.info.openRsp.is_active_exists) {
+			if (evt->info.openRsp.is_active_exists) {
 				gc_node->is_active_exists = TRUE;
-				gc_node->active_mds_dest = evt->info.cpa.info.openRsp.active_dest;
+				gc_node->active_mds_dest = evt->info.openRsp.active_dest;
 			}
 
 			ckpt_size = sizeof(CPSV_CKPT_HDR) + (gc_node->ckpt_creat_attri.maxSections *
@@ -460,7 +373,7 @@ static void cpa_proc_async_open_rsp(CPA_CB *cb, CPSV_EVT *evt)
 		proc_rc = NCSCC_RC_OUT_OF_MEM;
 		m_LOG_CPA_CCLLFFF(CPA_PROC_FAILED, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_ERROR,
 				  "async_open_rsp", __FILE__, __LINE__, rc, lc_node->cl_hdl,
-				  evt->info.cpa.info.openRsp.lcl_ckpt_hdl, lc_node->gbl_ckpt_hdl);
+				  evt->info.openRsp.lcl_ckpt_hdl, lc_node->gbl_ckpt_hdl);
 		goto done;
 	}
 
@@ -468,19 +381,19 @@ static void cpa_proc_async_open_rsp(CPA_CB *cb, CPSV_EVT *evt)
 		/* Fill the Call Back Info */
 		memset(callback, 0, sizeof(CPA_CALLBACK_INFO));
 		callback->type = CPA_CALLBACK_TYPE_OPEN;
-		callback->lcl_ckpt_hdl = evt->info.cpa.info.openRsp.lcl_ckpt_hdl;
-		callback->invocation = evt->info.cpa.info.openRsp.invocation;
+		callback->lcl_ckpt_hdl = evt->info.openRsp.lcl_ckpt_hdl;
+		callback->invocation = evt->info.openRsp.invocation;
 		if (proc_rc != NCSCC_RC_SUCCESS)
 			callback->sa_err = rc;
 		else
-			callback->sa_err = evt->info.cpa.info.openRsp.error;
+			callback->sa_err = evt->info.openRsp.error;
 
 		/* Send the event */
 		proc_rc = m_NCS_IPC_SEND(&cl_node->callbk_mbx, callback, NCS_IPC_PRIORITY_NORMAL);
 
 		m_LOG_CPA_CCLLFFF(CPA_PROC_SUCCESS, NCSFL_LC_CKPT_MGMT, NCSFL_SEV_INFO,
 				  "async_open_rsp", __FILE__, __LINE__, proc_rc, lc_node->cl_hdl,
-				  evt->info.cpa.info.openRsp.lcl_ckpt_hdl, lc_node->gbl_ckpt_hdl);
+				  evt->info.openRsp.lcl_ckpt_hdl, lc_node->gbl_ckpt_hdl);
 	}
  done:
 
@@ -816,7 +729,7 @@ uns32 cpa_process_evt(CPA_CB *cb, CPSV_EVT *evt)
 	uns32 rc = NCSCC_RC_SUCCESS;
 	switch (evt->info.cpa.type) {
 	case CPA_EVT_ND2A_CKPT_OPEN_RSP:
-		cpa_proc_async_open_rsp(cb,evt);
+		cpa_proc_async_open_rsp(cb, &evt->info.cpa);
 		break;
 
 	case CPA_EVT_ND2A_CKPT_SYNC_RSP:

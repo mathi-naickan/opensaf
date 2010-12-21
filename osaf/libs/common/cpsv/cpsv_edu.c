@@ -363,7 +363,6 @@ FUNC_DECLARATION(DS)
 		EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((DS *) 0)->ckpt_flags, 0, NULL}, {
 		EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((DS *) 0)->invocation, 0, NULL}, {
 		EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((DS *) 0)->timeout, 0, NULL}, {
-                EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0, (long)&((DS *) 0)->sync_async, 0, NULL},{
 	EDU_END, 0, 0, 0, 0, 0, 0, NULL},};
 	NCS_ENC_DEC_REM_FLOW(DS)
 }
@@ -427,7 +426,6 @@ FUNC_DECLARATION(DS)
 		EDU_EXEC, ncs_edp_mds_dest, 0, 0, 0, (long)&((DS *) 0)->active_dest, 0, NULL}, {
 		EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((DS *) 0)->invocation, 0, NULL}, {
 		EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((DS *) 0)->error, 0, NULL}, {
-                EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0, (long)&((DS *) 0)->sync_async, 0, NULL}, {
 	EDU_END, 0, 0, 0, 0, 0, 0, NULL},};
 	NCS_ENC_DEC_REM_FLOW(DS)
 }
