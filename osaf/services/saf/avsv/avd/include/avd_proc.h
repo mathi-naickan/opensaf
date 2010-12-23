@@ -72,6 +72,7 @@ EXTERN_C uns32 avd_sg_2n_sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg);
 EXTERN_C void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su);
 
 /* The following are for N-Way redundancy model */
+EXTERN_C uns32 avd_sg_nway_si_assign(AVD_CL_CB *, AVD_SG *);
 EXTERN_C uns32 avd_sg_nway_si_func(AVD_CL_CB *cb, AVD_SI *si);
 EXTERN_C uns32 avd_sg_nway_su_insvc_func(AVD_CL_CB *cb, AVD_SU *su);
 EXTERN_C uns32 avd_sg_nway_siswitch_func(AVD_CL_CB *cb, AVD_SI *si);
@@ -116,6 +117,7 @@ EXTERN_C uns32 avd_sg_nored_sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg);
 EXTERN_C void avd_sg_nored_node_fail_func(AVD_CL_CB *cb, AVD_SU *su);
 
 /* The following are for N-way Active redundancy model */
+EXTERN_C AVD_SU *avd_sg_nacvred_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg);
 EXTERN_C uns32 avd_sg_nacvred_si_func(AVD_CL_CB *cb, AVD_SI *si);
 EXTERN_C uns32 avd_sg_nacvred_su_insvc_func(AVD_CL_CB *cb, AVD_SU *su);
 EXTERN_C uns32 avd_sg_nacvred_su_fault_func(AVD_CL_CB *cb, AVD_SU *su);

@@ -51,7 +51,6 @@
 #include <avd.h>
 
 /* static function declarations */
-static uns32 avd_sg_nway_si_assign(AVD_CL_CB *, AVD_SG *);
 
 static uns32 avd_sg_nway_su_fault_stable(AVD_CL_CB *, AVD_SU *);
 static uns32 avd_sg_nway_su_fault_sg_realign(AVD_CL_CB *, AVD_SU *);

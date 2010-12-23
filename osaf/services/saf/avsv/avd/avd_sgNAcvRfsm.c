@@ -76,7 +76,7 @@
  * 
  **************************************************************************/
 
-static AVD_SU *avd_sg_nacvred_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
+AVD_SU *avd_sg_nacvred_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
 {
 	AVD_SU *i_su;
 	AVD_SI *i_si;

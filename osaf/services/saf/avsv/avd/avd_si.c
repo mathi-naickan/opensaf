@@ -28,6 +28,7 @@
 
 static NCS_PATRICIA_TREE si_db;
 static void avd_si_add_csi_db(struct avd_csi_tag* csi);
+static void si_update_ass_state(AVD_SI *si);
 
 static void avd_si_arrange_dep_csi(struct avd_csi_tag* csi)
 {
@@ -469,8 +470,33 @@ static SaAisErrorT si_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 	while ((attr_mod = opdata->param.modify.attrMods[i++]) != NULL) {
 		const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
 
-		if (strcmp(attribute->attrName, "saAmfSIPrefActiveAssignments") &&
-		    strcmp(attribute->attrName, "saAmfSIPrefStandbyAssignments")) {
+		if (!strcmp(attribute->attrName, "saAmfSIPrefActiveAssignments")) {
+			if (si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) {
+				LOG_ER("SG'%s' is not stable (%u)", si->sg_of_si->name.value, 
+						si->sg_of_si->sg_fsm_state);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				break;
+			}
+			if (si->sg_of_si->sg_redundancy_model != SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL) {
+				LOG_ER("Invalid modification,saAmfSIPrefActiveAssignments can be updated only for" 
+						" N_WAY_ACTIVE_REDUNDANCY_MODEL");
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				break;
+			}
+		} else if (!strcmp(attribute->attrName, "saAmfSIPrefStandbyAssignments")) {
+			if (si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) {
+				LOG_ER("SG'%s' is not stable (%u)", si->sg_of_si->name.value, 
+						si->sg_of_si->sg_fsm_state);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				break;
+			}
+			if( si->sg_of_si->sg_redundancy_model != SA_AMF_N_WAY_REDUNDANCY_MODEL ) {
+				LOG_ER("Invalid modification,saAmfSIPrefStandbyAssignments can be updated only for" 
+						" N_WAY_REDUNDANCY_MODEL");
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				break;
+			}
+		} else {
 			LOG_ER("Modification of attribute %s is not supported", attribute->attrName);
 			rc = SA_AIS_ERR_BAD_OPERATION;
 			break;
@@ -721,7 +747,125 @@ done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
+/*
+ * @brief  Readjust the SI assignments whenever PrefActiveAssignments  & PrefStandbyAssignments is updated
+ * 	   using IMM interface 
+ * 
+ * @param[in]  SI 
+ * 
+ * @return void 
+ */
+static void avd_si_adjust_si_assignments(AVD_SI *si)
+{
+	AVD_SU_SI_REL *sisu, *tmp_sisu;
+	uns32 no_of_sisus_to_delete;
+	AVD_SU_SI_STATE old_susi_state = AVD_SU_SI_STATE_ASGN;
+	uns32 i = 0;
 
+	TRACE_ENTER2("for SI:%s ", si->name.value);
+	
+	if( si->sg_of_si->sg_redundancy_model == SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL ) {
+		if( si->saAmfSIPrefActiveAssignments > si->saAmfSINumCurrActiveAssignments ) {
+			/* SI assignment is not yet complete, choose and assign to appropriate SUs */
+			if ( avd_sg_nacvred_su_chose_asgn(avd_cb, si->sg_of_si ) != NULL ) {
+				/* New assignments are been done in the SG.
+                                   change the SG FSM state to AVD_SG_FSM_SG_REALIGN */
+				m_AVD_SET_SG_FSM(avd_cb, si->sg_of_si, AVD_SG_FSM_SG_REALIGN);
+			} else {
+				/* No New assignments are been done in the SG
+				   reason might be no more inservice SUs to take new assignments or
+				   SUs are already assigned to saAmfSGMaxActiveSIsperSU capacity */
+				TRACE("No New assignments are been done SI:%s",si->name.value);
+			}
+		} else {
+			no_of_sisus_to_delete = si->saAmfSINumCurrActiveAssignments -
+						si->saAmfSIPrefActiveAssignments;
+
+			/* Get the sisu pointer from the  si->list_of_sisu list from which 
+			no of sisus need to be deleted based on SI ranked SU */
+			sisu = tmp_sisu = si->list_of_sisu;
+			for( i = 0; i < no_of_sisus_to_delete && NULL != tmp_sisu; i++ ) {
+				tmp_sisu = tmp_sisu->si_next;
+			}
+			while( tmp_sisu && (tmp_sisu->si_next != NULL) ) {
+				sisu = sisu->si_next;
+				tmp_sisu = tmp_sisu->si_next;
+			}
+
+			for( i = 0; i < no_of_sisus_to_delete && (NULL != sisu); i++ ) {
+				/* Send quiesced request for the sisu that needs tobe deleted */
+				old_susi_state = sisu->fsm;
+				sisu->state = SA_AMF_HA_QUIESCED;
+			        sisu->fsm = AVD_SU_SI_STATE_MODIFY;
+
+				if ( avd_snd_susi_msg( avd_cb, sisu->su, sisu, AVSV_SUSI_ACT_MOD ) == 
+										NCSCC_RC_FAILURE ) {
+					LOG_ER("susi msg send failed  SU:%s SI:%s",sisu->su->name.value,
+										sisu->si->name.value);
+					sisu->state = SA_AMF_HA_ACTIVE;
+					sisu->fsm = old_susi_state;
+				} else {
+					/* Add SU to su_opr_list */
+                                	avd_sg_su_oper_list_add(avd_cb, sisu->su, FALSE);
+
+					/* Checkpoint the sisu state change and send notification */
+					m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, sisu, AVSV_CKPT_AVD_SI_ASS);
+					avd_gen_su_ha_state_changed_ntf(avd_cb, sisu);
+				}
+				sisu = sisu->si_next;
+			}
+			/* Change the SG FSM to AVD_SG_FSM_SG_REALIGN SG to Stable state */
+			m_AVD_SET_SG_FSM(avd_cb,  si->sg_of_si, AVD_SG_FSM_SG_REALIGN);
+		}
+	} 
+	if( si->sg_of_si->sg_redundancy_model == SA_AMF_N_WAY_REDUNDANCY_MODEL ) {
+		if( si->saAmfSIPrefStandbyAssignments > si->saAmfSINumCurrStandbyAssignments ) {
+			/* SI assignment is not yet complete, choose and assign to appropriate SUs */
+			if( avd_sg_nway_si_assign(avd_cb, si->sg_of_si ) == NCSCC_RC_FAILURE ) {
+				LOG_ER("SI new assignmemts failed  SI:%s",si->name.value);
+			} 
+		} else {
+			no_of_sisus_to_delete = 0;
+			no_of_sisus_to_delete = si->saAmfSINumCurrStandbyAssignments -
+						si->saAmfSIPrefStandbyAssignments; 
+
+			/* Get the sisu pointer from the  si->list_of_sisu list from which 
+			no of sisus need to be deleted based on SI ranked SU */
+			sisu = tmp_sisu = si->list_of_sisu;
+			for(i = 0; i < no_of_sisus_to_delete && (NULL != tmp_sisu); i++) {
+				tmp_sisu = tmp_sisu->si_next;
+			}
+			while( tmp_sisu && (tmp_sisu->si_next != NULL) ) {
+				sisu = sisu->si_next;
+				tmp_sisu = tmp_sisu->si_next;
+			}
+
+			for( i = 0; i < no_of_sisus_to_delete && (NULL != sisu); i++ ) {
+				/* Delete Standby SI assignment & move it to Realign state */
+				old_susi_state = sisu->fsm;
+				sisu->fsm = AVD_SU_SI_STATE_UNASGN;
+				if(avd_snd_susi_msg( avd_cb,sisu->su, sisu, AVSV_SUSI_ACT_DEL ) == 
+											NCSCC_RC_FAILURE){
+					LOG_ER("sisu msg send failed  SU:%s SI:%s",sisu->su->name.value,
+									sisu->si->name.value);
+					sisu->state = SA_AMF_HA_STANDBY;
+					sisu->fsm = old_susi_state;
+				} else {
+					/* Add SU to su_opr_list */
+                                	avd_sg_su_oper_list_add(avd_cb, sisu->su, FALSE);
+
+					/* Checkpoint the sisu state change and send notification */
+					m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, sisu, AVSV_CKPT_AVD_SI_ASS);
+					avd_gen_su_ha_state_changed_ntf(avd_cb, sisu);
+				}
+				sisu = sisu->si_next;
+			}
+			/* Change the SG FSM to AVD_SG_FSM_SG_REALIGN */ 
+			m_AVD_SET_SG_FSM(avd_cb,  si->sg_of_si, AVD_SG_FSM_SG_REALIGN);
+		}
+	}
+	TRACE_LEAVE();	
+}
 static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 {
 	AVD_SI *si;
@@ -743,12 +887,29 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 
 		if (!strcmp(attribute->attrName, "saAmfSIPrefActiveAssignments")) {
 			si->saAmfSIPrefActiveAssignments = *((SaUint32T *)value);
+			/* Check if we need to readjust the SI assignments as PrefActiveAssignments
+				got changed */
+			if ( si->saAmfSIPrefActiveAssignments == si->saAmfSINumCurrActiveAssignments ) {
+				TRACE("Assignments are equal updating the SI status ");
+				si_update_ass_state(si);
+			} else {
+				avd_si_adjust_si_assignments(si);
+			}
 		} else if (!strcmp(attribute->attrName, "saAmfSIPrefStandbyAssignments")) {
 			si->saAmfSIPrefStandbyAssignments = *((SaUint32T *)value);
+			/* Check if we need to readjust the SI assignments as PrefStandbyAssignments
+			   got changed */
+			if ( si->saAmfSIPrefStandbyAssignments == si->saAmfSINumCurrStandbyAssignments ) {
+				TRACE("Assignments are equal updating the SI status ");
+				si_update_ass_state(si);
+			} else {
+				avd_si_adjust_si_assignments(si);
+			}
 		} else {
 			assert(0);
 		}
 	}
+	TRACE_LEAVE();	
 }
 
 static void si_ccb_apply_cb(CcbUtilOperationData_t *opdata)
