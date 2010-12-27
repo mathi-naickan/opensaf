@@ -1040,16 +1040,14 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 							if (susi->su->saAmfSUNumCurrStandbySIs != 0) {
 								avd_su_inc_curr_act_si(susi->su);
 								avd_su_dec_curr_stdby_si(susi->su);
-								avd_si_inc_curr_act_ass(susi->si);
-								avd_si_dec_curr_stdby_ass(susi->si);
+								avd_si_inc_curr_act_dec_std_ass(susi->si);
 							}
 
 						} else if (n2d_msg->msg_info.n2d_su_si_assign.ha_state ==
 							   SA_AMF_HA_STANDBY) {
 							avd_su_dec_curr_act_si(susi->su);
 							avd_su_inc_curr_stdby_si(susi->su);
-							avd_si_inc_curr_stdby_ass(susi->si);
-							avd_si_dec_curr_act_ass(susi->si);
+							avd_si_inc_curr_stdby_dec_act_ass(susi->si);
 						}
 					}
 
@@ -2152,11 +2150,9 @@ uns32 avd_sg_su_asgn_del_util(AVD_CL_CB *cb, AVD_SU *su, NCS_BOOL del_flag, NCS_
 
 				/* update the si counters */
 				if (SA_AMF_HA_ACTIVE == i_susi->state) {
-					avd_si_dec_curr_stdby_ass(i_susi->si);
-					avd_si_inc_curr_act_ass(i_susi->si);
+					avd_si_inc_curr_act_dec_std_ass(i_susi->si);
 				} else if (SA_AMF_HA_STANDBY == i_susi->state) {
-					avd_si_dec_curr_act_ass(i_susi->si);
-					avd_si_inc_curr_stdby_ass(i_susi->si);
+					avd_si_inc_curr_stdby_dec_act_ass(i_susi->si);
 				}
 
 				i_susi = i_susi->su_next;

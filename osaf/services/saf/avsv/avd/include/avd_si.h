@@ -170,6 +170,8 @@ extern void avd_si_inc_curr_act_ass(AVD_SI *si);
 extern void avd_si_dec_curr_act_ass(AVD_SI *si);
 extern void avd_si_inc_curr_stdby_ass(AVD_SI *si);
 extern void avd_si_dec_curr_stdby_ass(AVD_SI *si);
+extern void avd_si_inc_curr_stdby_dec_act_ass(AVD_SI *si);
+extern void avd_si_inc_curr_act_dec_std_ass(AVD_SI *si);
 extern void avd_si_admin_state_set(AVD_SI* si, SaAmfAdminStateT state);
 
 #endif
