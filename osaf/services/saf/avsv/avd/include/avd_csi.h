@@ -150,5 +150,6 @@ extern void avd_cstype_constructor(void);
 
 extern SaAisErrorT avd_csiattr_config_get(const SaNameT *csi_name, AVD_CSI *csi);
 extern void avd_csiattr_constructor(void);
+extern void avd_csi_delete(struct avd_csi_tag *csi);
 
 #endif

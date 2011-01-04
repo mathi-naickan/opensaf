@@ -96,16 +96,18 @@ static void csi_add_to_model(AVD_CSI *csi)
 	avd_si_add_csi(csi);
 }
 
-static void csi_delete(AVD_CSI *csi)
+void avd_csi_delete(AVD_CSI *csi)
 {
-	AVD_CSI_ATTR *i_csi_attr;
+	AVD_CSI_ATTR *i_csi_attr, *temp;
 	unsigned int rc;
 
 	/* Delete CSI attributes */
 	i_csi_attr = csi->list_attributes;
 	while (i_csi_attr != NULL) {
 		avd_csi_remove_csiattr(csi, i_csi_attr);
+		temp = i_csi_attr;
 		i_csi_attr = csi->list_attributes;
+		free(temp);
 	}
 
 	avd_cstype_remove_csi(csi);
@@ -423,7 +425,7 @@ static void ccb_apply_delete_hdlr(AVD_CSI *csi)
 	avd_pg_csi_node_del_all(avd_cb, csi);
 
 	/* free memory and remove from DB */
-	csi_delete(csi);
+	avd_csi_delete(csi);
 }
 
 /*****************************************************************************

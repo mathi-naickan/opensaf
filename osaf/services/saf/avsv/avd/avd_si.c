@@ -171,13 +171,32 @@ AVD_SI *avd_si_new(const SaNameT *dn)
 	return si;
 }
 
+static void si_delete_csis(AVD_SI *si)
+{
+	AVD_CSI *csi, *temp;
+
+	csi = si->list_of_csi; 
+	while (csi != NULL) {
+		temp = csi;
+		csi = csi->si_list_of_csi_next;
+		avd_csi_delete(temp);
+	}
+
+	si->list_of_csi = NULL;
+	si->num_csi = 0;
+}
+
 void avd_si_delete(AVD_SI *si)
 {
 	unsigned int rc;
 
 	TRACE_ENTER2("%s", si->name.value);
-	/* All CSI under this should have been deleted by now */
-	assert(si->list_of_csi == NULL);
+
+	/* All CSI under this should have been deleted by now on the active 
+	   director and on standby all the csi should be deleted because 
+	   csi delete is not checkpointed as and when it happens */
+	si_delete_csis(si);
+
 	/* All the SI Dependencies should have been unconfigured or deleted */
 	assert(si->spons_si_list == 0);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(avd_cb, si, AVSV_CKPT_AVD_SI_CONFIG);
@@ -331,8 +350,13 @@ static AVD_SI *si_create(SaNameT *si_name, const SaImmAttrValuesT_2 **attributes
 	if (NULL == (si = avd_si_get(si_name))) {
 		if ((si = avd_si_new(si_name)) == NULL)
 			goto done;
-	} else
+	} else {
 		TRACE("already created, refreshing config...");
+		/* here delete the whole csi configuration to refresh 
+		   since csi deletes are not checkpointed there may be 
+		   some CSIs that are deleted from previous data sync up */
+		si_delete_csis(si);
+	}
 
 	error = immutil_getAttr("saAmfSvcType", attributes, 0, &si->saAmfSvcType);
 	assert(error == SA_AIS_OK);
