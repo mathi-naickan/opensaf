@@ -4640,6 +4640,8 @@ SaAisErrorT saImmOmClassDelete(SaImmHandleT immHandle, const SaImmClassNameT cla
 		goto lock_fail;
 	}
 
+        locked = TRUE;
+
 	imma_client_node_get(&cb->client_tree, &immHandle, &cl_node);	
 	if (!(cl_node && cl_node->isOm)) {
 		/*rc = SA_AIS_ERR_BAD_HANDLE;*/
