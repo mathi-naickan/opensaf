@@ -321,7 +321,7 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_sta
                     (*jniEnv)->GetIntField( jniEnv,
                                             trackFlags,
                                             FID_TF_value );
-    _saTrackFlags |= SA_TRACK_CURRENT;
+
     // check track flags
     /*
     if( JNU_TrackFlagsForChanges_OK( jniEnv, trackFlags ) != JNI_TRUE ) {
