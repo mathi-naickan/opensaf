@@ -1,82 +1,113 @@
-Technical Leadership Council (TLC) Members
-==========================================
+=======================================================================
+| Maintainers                     | Components                        |
+=======================================================================
+| anders.bjornerstedt@ericsson.com| IMM                               |
+-----------------------------------------------------------------------
+| arne.r.eriksson@ericsson.com    | NTF                               |
+-----------------------------------------------------------------------
+| bertil.engelholm@ericsson.com   | SMF (P)                           |
+-----------------------------------------------------------------------
+| currie.reid@windriver.com       | Python bindings and Tests         |
+-----------------------------------------------------------------------
+| hans.feldt@ericsson.com         | AMF (P), LOG, RDE, UML (P)        |
+-----------------------------------------------------------------------
+| ingvar.bergstrom@ericsson.com   | SMF                               |
+-----------------------------------------------------------------------
+| johan.o.martensson@ericsson.com | Java mapping                      |
+-----------------------------------------------------------------------
+| jonas.arndt@hp.com              | PLMc                              |
+-----------------------------------------------------------------------
+| jonathan.fournier@windriver.com | Build, Documentation, Process     |
+-----------------------------------------------------------------------
+| lars.g.ekman@ericsson.com       | User Mode Linux                   |
+-----------------------------------------------------------------------
+| mnaickan@goahead.com            | EVT                               |
+-----------------------------------------------------------------------
+| mlalavat@goahead.com            | NTF (P)                           |
+-----------------------------------------------------------------------
+| nkumar@goahead.com              | AMF                               |
+-----------------------------------------------------------------------
+| peter.strand@ericsson.com       | IMM XML tools                     |
+-----------------------------------------------------------------------
+| rbetham@goahead.com             | DTSv, LEAP, MBCSv                 |
+-----------------------------------------------------------------------
+| sgarlapati@goahead.com          | MDS                               |
+-----------------------------------------------------------------------
+| smeena@goahead.com              | CLM, LOG (P)                      |
+-----------------------------------------------------------------------
+| valla@goahead.com               | CKPT, IMM (P)                     |
+-----------------------------------------------------------------------
+| vpamidipati@goahead.com         | PLM                               |
+-----------------------------------------------------------------------
+| ???                             | MSG                               |
+-----------------------------------------------------------------------
+| ???                             | LCK                               |
+=======================================================================
+| (P) = Peer maintainer                                               |
+=======================================================================
 
-Technical Co-Chair:
-    Mario Angelic       <mario.angelic@ericsson.com>
-    Jonas Arndt         <jonas.arndt@hp.com>
 
-OpenSAF Technical Evangelist:
-    Sayandeb Saha       <sayandeb.saha@emerson.com>
-
-    Jonathan Fournier   <jonathan.fournier@windriver.com>
-    Richar Zhang        <zx5337@huawei.com>
-    Ulrich Kleber       <ulrich.kleber@nsn.com>
-    Joe Kidder          <joe.kidder@enea.com>
+=======================================================================
+| Active Developers / Testers                                         |
+=======================================================================
+| Many! Add your name here :)                                         |
+=======================================================================
 
 
-Release Manager
-===============
+=======================================================================
+| Release Managers                | Versions                          |
+=======================================================================
+| jonathan.fournier@windriver.com | 4.0.x / 4.1                       |
+=======================================================================
 
-Release 2:
-Release 3:
-    Steve Constant      <steve.constant@hp.com>
+
+=======================================================================
+| TLC Members                     | Positions                         |
+=======================================================================
+| currie.reid@windriver.com       | Alternate                         |
+-----------------------------------------------------------------------
+| dfick@goahead.com               | Alternate                         |
+-----------------------------------------------------------------------
+| hans.feldt@ericsson.com         | Alternate                         |
+-----------------------------------------------------------------------
+| jonas.arndt@hp.com              | Primary                           |
+-----------------------------------------------------------------------
+| jonathan.fournier@windriver.com | Primary / TCC                     |
+-----------------------------------------------------------------------
+| mario.angelic@ericsson.com      | Primary                           |
+-----------------------------------------------------------------------
+| sesakonu@goahead.com            | Primary / TCC                     |
+-----------------------------------------------------------------------
+| ??? @oracle.com                 | Primary                           |
+-----------------------------------------------------------------------
+| ??? @huawei.com                 | Primary                           |
+-----------------------------------------------------------------------
+| ??? @montavista.com             | Primary                           |
+=======================================================================
 
 
-Module Owners
-=============
-
-Architecture:
-    Murthy Esaknou      <murthy.esakonu@emerson.com>
-
-Build Environment:
-    Jonathan Fournier   <jonathan.fournier@windriver.com>
-    Troy Heber          <troy.heber@hp.com>
-    Vishal Soni         <vishal.soni@emerson.com>
-
-Test Infrastucture:
-    Mahesh Alla         <mahesh.alla@emerson.com>
-
-User Mode Linux Infrastructure:
-    Hans Feldt          <hans.feldt@ericsson.com>
-
-Sample applications:
-    Mahesh Alla         <mahesh.alla@emerson.com>
-
-Documentation:
-    ???
-
-LEAP:
-MBCSv:
-DTSv:
-    Ramesh Betham       <ramesh.betham@emerson.com>
-
-SNMP SubAgent:
-PSSv:
-MASv:
-EDSv:
-    Mathivanan NP       <mathivanan.np@emerson.com>
-
-HiSv:
-    Mathivanan NP       <mathivanan.np@emerson.com>
-    Michael Bishop      <michael.bishop@hp.com>
-
-AvSv:
-    Nagendra Kumar      <nagendra.kumar@emerson.com>
-    Hans Feldt          <hans.feldt@ericsson.com>
-
-AvM:
-    Nagendra Kumar      <nagendra.kumar@emerson.com>
-
-MDS:
-    Vishal Soni         <vishal.soni@emerson.com>
-
-CPSv:
-    Mahesh Alla         <mahesh.alla@emerson.com>
-
-LOGSv:
-RDE:
-    Hans Feldt          <hans.feldt@ericsson.com>
-
-Java AIS Mapping:
-    József Biro         <jozsef.biro@nsn.com>
-
+=======================================================================
+| Past Contributors               | Areas of Contributions            |
+=======================================================================
+| frederic.herrmann@sun.com       | TLC                               |
+-----------------------------------------------------------------------
+| joe.kidder@enea.com             | TLC                               |
+-----------------------------------------------------------------------
+| john.wright@hp.com              | Sysadmin                          |
+-----------------------------------------------------------------------
+| jozsef.biro@nsn.com             | Java mapping                      |
+-----------------------------------------------------------------------
+| nicolas.thomas@hp.com           | TLC                               |
+-----------------------------------------------------------------------
+| sayandeb.saha@emerson.com       | TLC / OpenSAF architecture        |
+-----------------------------------------------------------------------
+| steve.constant@hp.com           | Release management                |
+-----------------------------------------------------------------------
+| troy.heber@hp.com               | Build / Code cleanup              |
+-----------------------------------------------------------------------
+| ulrich.kleber@nsn.com           | TLC / PLM                         |
+-----------------------------------------------------------------------
+| vishal.soni@emerson.com         | Build / MDS                       |
+-----------------------------------------------------------------------
+| zx5337@huawei.com               | TLC                               |
+=======================================================================
