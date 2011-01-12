@@ -9815,9 +9815,7 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                                info->mId, implName.c_str(), ii->id);
                         abort();
                     }
-                }
-                
-                if(info->mNodeId != ii->nodeId) {
+                } else if(info->mNodeId != ii->nodeId) {
                     LOG_ER("Sync-verify: Missmatch on node-id "
                         "%x for implementer %s, sync says %x",
                         info->mNodeId, implName.c_str(), ii->nodeId);
