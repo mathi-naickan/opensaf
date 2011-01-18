@@ -338,6 +338,8 @@ static AVD_SI *si_create(SaNameT *si_name, const SaImmAttrValuesT_2 **attributes
 {
 	int i, rc = -1;
 	AVD_SI *si;
+	AVD_SU_SI_REL *sisu;
+	AVD_COMP_CSI_REL *compcsi, *temp;
 	SaUint32T attrValuesNumber;
 	SaAisErrorT error;
 
@@ -356,6 +358,19 @@ static AVD_SI *si_create(SaNameT *si_name, const SaImmAttrValuesT_2 **attributes
 		   since csi deletes are not checkpointed there may be 
 		   some CSIs that are deleted from previous data sync up */
 		si_delete_csis(si);
+
+		/* delete the corresponding compcsi configuration also */
+		sisu = si->list_of_sisu;
+		while (sisu != NULL) {
+			compcsi = sisu->list_of_csicomp;
+			while (compcsi != NULL) {
+				temp = compcsi;
+				compcsi = compcsi->susi_csicomp_next;
+				free(temp);
+			}
+			sisu->list_of_csicomp = NULL;
+			sisu = sisu->si_next;
+		}
 	}
 
 	error = immutil_getAttr("saAmfSvcType", attributes, 0, &si->saAmfSvcType);
