@@ -191,6 +191,8 @@ extern "C" {
 
 	void immModel_fetchLastResult(void *searchOp, IMMSV_OM_RSP_SEARCH_NEXT **rsp);
 
+	void immModel_setAdmReqContinuation(IMMND_CB *cb, SaInvocationT invoc, SaUint32T reqCon);
+
 	void immModel_setSearchReqContinuation(IMMND_CB *cb, SaInvocationT invoc, SaUint32T reqCon);
 
 	void immModel_setSearchImplContinuation(IMMND_CB *cb, SaUint32T searchId,

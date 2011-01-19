@@ -2699,10 +2699,36 @@ SaAisErrorT imma_evt_fake_evs(IMMA_CB *cb,
 	memset(&fevs_evt, 0, sizeof(IMMSV_EVT));
 	fevs_evt.type = IMMSV_EVT_TYPE_IMMND;
 	fevs_evt.info.immnd.type = IMMND_EVT_A2ND_IMM_FEVS;
+
+	if((i_evt->info.immnd.type == IMMND_EVT_A2ND_IMM_ADMOP) ||
+		(i_evt->info.immnd.type == IMMND_EVT_A2ND_IMM_ADMOP_ASYNC)) {
+		/* Overloaded use of sender_count IMMA->IMMND we use values 
+		   larger than 1 as a marker for admop to pre-register
+		   request continuation, before forwarding request over fevs
+		   (see ticket #1690). This is to avoid the rare case of the
+		   reply, which does not use fevs, bypassing the request at
+		   the client processor.
+		*/
+		assert(!checkWritable);
+		SaInvocationT saInv = 
+			m_IMMSV_PACK_HANDLE(i_evt->info.immnd.info.admOpReq.adminOwnerId,
+				i_evt->info.immnd.info.admOpReq.invocation);
+
+		assert(saInv > 1);
+		fevs_evt.info.immnd.info.fevsReq.sender_count = (SaUint64T) saInv;
+	}
+
 	fevs_evt.info.immnd.info.fevsReq.client_hdl = immHandle;
-	/*Overloaded use of sender_count. IMMA->IMMND we use it as a marker
-	   if imm writability should be checked before sending to IMMD. */
-	fevs_evt.info.immnd.info.fevsReq.sender_count = checkWritable;
+
+	if(checkWritable) {
+		/*Overloaded use of sender_count IMMA->IMMND we use the value
+		  of 1 as a marker if imm writability should be checked before 
+		  forwarding request over fevs. This is a pure performance 
+		  enhancing feature.
+		*/
+		fevs_evt.info.immnd.info.fevsReq.sender_count = 0x1;
+ 	}
+
 	fevs_evt.info.immnd.info.fevsReq.msg.size = size;
 	fevs_evt.info.immnd.info.fevsReq.msg.buf = data;
 

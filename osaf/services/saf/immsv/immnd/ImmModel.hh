@@ -386,7 +386,7 @@ public:
                                ConnVector& connVector,
                                SaUint32T* client,
 			       unsigned int* pbeNodeIdPtr);
-    bool              cleanTheBasement(
+    SaUint32T         cleanTheBasement(
                                        unsigned int seconds, 
                                        InvocVector& admReqs,
                                        InvocVector& searchReqs,
@@ -405,6 +405,10 @@ public:
                                                  SaInvocationT& inv,
                                                  SaUint32T* reqConn); //in-out?
     void              setSearchReqContinuation(
+                                               SaInvocationT& inv,
+                                               SaUint32T conn);
+
+    void              setAdmReqContinuation(
                                                SaInvocationT& inv,
                                                SaUint32T conn);
     

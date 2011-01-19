@@ -2189,17 +2189,36 @@ static uns32 immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 		}
 	}
 
-	/*sender_count set to 1 if we are to check locally for writability
-	   before sending to IMMD. This to avoid broadcasting requests that 
-	   are doomed anyway.  */
-	if ((evt->info.fevsReq.sender_count && immModel_immNotWritable(cb))) {
-		if(asyncReq) {
-			TRACE("Rare case (?) of enqueueing async & write message due to on-going sync.");
-			immnd_enqueue_outgoing_fevs_msg(cb, client_hdl, &(evt->info.fevsReq.msg));
-			return NCSCC_RC_SUCCESS;
-		} else {
-			error = SA_AIS_ERR_TRY_AGAIN;
-			goto agent_rsp;
+	if (evt->info.fevsReq.sender_count) { /* Special handling before forwarding. */
+		if(evt->info.fevsReq.sender_count > 0x1) {
+			/* sender_count greater than 1 if this is an admop message.
+			   This is to generate a request continuation at the client
+			   node BEFORE sending the request over fevs. Otherwise there
+			   is a risk that the reply may arrive back at the request node,
+			   before the request arrives over fevs. This can happen because
+			   the reply is not sent over the fevs "bottleneck". 
+			*/
+			SaUint32T conn = m_IMMSV_UNPACK_HANDLE_HIGH(client_hdl);
+			SaInvocationT saInv = (SaInvocationT) evt->info.fevsReq.sender_count;
+
+			immModel_setAdmReqContinuation(cb, saInv, conn);
+
+		} else if((evt->info.fevsReq.sender_count == 0x1) && 
+			immModel_immNotWritable(cb)) {
+			/* sender_count set to 1 if we are to check locally for writability
+			  before sending to IMMD. This to avoid broadcasting requests that 
+			  are doomed anyway.  */
+
+			if(asyncReq) {
+				LOG_IN("Rare case (?) of enqueueing async & write message "
+					"due to on-going sync.");
+				immnd_enqueue_outgoing_fevs_msg(cb, client_hdl, 
+					&(evt->info.fevsReq.msg));
+				return NCSCC_RC_SUCCESS;
+			} else {
+				error = SA_AIS_ERR_TRY_AGAIN;
+				goto agent_rsp;
+			}
 		}
 	}
 
