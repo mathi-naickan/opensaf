@@ -25,12 +25,22 @@
 
 static NCS_PATRICIA_TREE nodegroup_db;
 
+/**
+ * Add a node group object to the db.
+ * @param ng
+ */
 static void ng_db_add(AVD_AMF_NG *ng)
 {
 	unsigned int rc = ncs_patricia_tree_add(&nodegroup_db, &ng->tree_node);
 	assert(rc == NCSCC_RC_SUCCESS);
 }
 
+/**
+ * Lookup object in db using dn
+ * @param dn
+ * 
+ * @return AVD_AMF_NG*
+ */
 AVD_AMF_NG *avd_ng_get(const SaNameT *dn)
 {
 	SaNameT tmp = {0};
@@ -39,6 +49,22 @@ AVD_AMF_NG *avd_ng_get(const SaNameT *dn)
 	memcpy(tmp.value, dn->value, tmp.length);
 
 	return (AVD_AMF_NG *)ncs_patricia_tree_get(&nodegroup_db, (uns8 *)&tmp);
+}
+
+/**
+ * Get next object from db using dn
+ * @param dn
+ * 
+ * @return AVD_AMF_NG*
+ */
+static AVD_AMF_NG *ng_getnext(const SaNameT *dn)
+{
+	SaNameT tmp = {0};
+
+	tmp.length = dn->length;
+	memcpy(tmp.value, dn->value, tmp.length);
+
+	return (AVD_AMF_NG *)ncs_patricia_tree_getnext(&nodegroup_db, (uns8 *)&tmp);
 }
 
 /**
@@ -143,6 +169,21 @@ done:
 }
 
 /**
+ * Delete a SaAmfNodeGroup object
+ * 
+ * @param ng
+ */
+static void ng_delete(AVD_AMF_NG *ng)
+{
+	unsigned int rc = ncs_patricia_tree_del(&nodegroup_db, &ng->tree_node);
+	assert(rc == NCSCC_RC_SUCCESS);
+
+	assert(ng);
+	free(ng->saAmfNGNodeList);
+	free(ng);
+}
+
+/**
  * Get configuration for all AMF node group objects from IMM and
  * create AVD internal objects.
  * 
@@ -159,6 +200,12 @@ SaAisErrorT avd_ng_config_get(void)
 	AVD_AMF_NG *ng;
 
 	TRACE_ENTER();
+
+	/* Could be here as a consequence of a fail/switch-over. Delete the DB
+	** since it is anyway not synced and needs to be rebuilt. */
+	dn.length = 0;
+	for (ng = ng_getnext(&dn); ng != NULL; ng = ng_getnext(&dn))
+		ng_delete(ng);
 
 	searchParam.searchOneAttr.attrName = "SaImmAttrClassName";
 	searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
@@ -179,12 +226,10 @@ SaAisErrorT avd_ng_config_get(void)
 			goto done2;
 		}
 
-		if((ng = avd_ng_get(&dn)) == NULL) {
-			if ((ng = ng_create(&dn, (const SaImmAttrValuesT_2 **)attributes)) == NULL)
-				goto done2;
+		if ((ng = ng_create(&dn, (const SaImmAttrValuesT_2 **)attributes)) == NULL)
+			goto done2;
 
-			ng_db_add(ng);
-		}
+		ng_db_add(ng);
 	}
 
 	rc = SA_AIS_OK;
@@ -196,6 +241,31 @@ done1:
 	return rc;
 }
 
+/**
+ * Determine if SU is mapped using node group
+ * @param su
+ * @param ng
+ * 
+ * @return bool
+ */
+static bool su_is_mapped_to_node_via_nodegroup(const AVD_SU *su, const AVD_AMF_NG *ng)
+{
+	if ((memcmp(&ng->ng_name, &su->saAmfSUHostNodeOrNodeGroup, sizeof(SaNameT)) == 0) ||
+	    (memcmp(&ng->ng_name, &su->sg->saAmfSGSuHostNodeGroup, sizeof(SaNameT)) == 0)) {
+		
+		TRACE("SU '%s' mapped using '%s'", su->name.value, ng->ng_name.value);
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Validate modification of node group
+ * @param opdata
+ * 
+ * @return SaAisErrorT
+ */
 static SaAisErrorT ng_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
@@ -205,8 +275,11 @@ static SaAisErrorT ng_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 	AVD_SU *su;
 	int delete_found = 0;
 	int add_found = 0;
+	AVD_AMF_NG *ng;
 
 	TRACE_ENTER();
+
+	ng = avd_ng_get(&opdata->objectName);
 
 	while ((mod = opdata->param.modify.attrMods[i++]) != NULL) {
 		if (mod->modType == SA_IMM_ATTR_VALUES_REPLACE) {
@@ -232,20 +305,24 @@ static SaAisErrorT ng_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 				TRACE("DEL %s", ((SaNameT *)mod->modAttr.attrValues[j])->value);
 
 				/* Ensure no SU is mapped to this node via the node group */
-				su = node->list_of_su;
-				while (su) {
-					if (memcmp(mod->modAttr.attrValues[j], &su->saAmfSUHostedByNode, sizeof(SaNameT)) == 0) {
-						if (memcmp(&opdata->objectName, &su->saAmfSUHostNodeOrNodeGroup, sizeof(SaNameT)) == 0) {
-							LOG_ER("SU '%s' is mapped to this node", su->name.value);
-							goto done;
-						}
 
-						if (memcmp(&opdata->objectName, &su->sg->saAmfSGSuHostNodeGroup, sizeof(SaNameT)) == 0) {
-							LOG_ER("SU '%s' is mapped to this node", su->name.value);
-							goto done;
-						}
+				/* for all OpenSAF SUs hosted by this node */
+				for (su = node->list_of_ncs_su; su; su = su->avnd_list_su_next) {
+					if (su_is_mapped_to_node_via_nodegroup(su, ng)) {
+						LOG_NO("Cannot delete '%s' from '%s'. An SU is mapped using node group",
+							node->name.value, ng->ng_name.value);
+						goto done;
+						
 					}
-					su = su->avnd_list_su_next;
+				}
+
+				/* for all application SUs hosted by this node */
+				for (su = node->list_of_su; su; su = su->avnd_list_su_next) {
+					if (su_is_mapped_to_node_via_nodegroup(su, ng)) {
+						LOG_NO("Cannot delete '%s' from '%s'. An SU is mapped using node group",
+							node->name.value, ng->ng_name.value);
+						goto done;
+					}
 				}
 			}
 		}
@@ -280,6 +357,83 @@ done:
 	return rc;
 }
 
+/**
+ * Determine if object specified with DN is deleted in the CCB
+ * @param ccbId
+ * @param dn
+ * 
+ * @return bool
+ */
+static bool is_deleted_in_ccb(SaImmOiCcbIdT ccbId, const SaNameT *dn)
+{
+	CcbUtilOperationData_t *opdata = ccbutil_getCcbOpDataByDN(ccbId, dn);
+
+	if ((opdata != NULL) && (opdata->operationType == CCBUTIL_DELETE))
+		return true;
+	else
+		return false;
+}
+
+/**
+ * Validate deletion of node group
+ * @param opdata
+ * 
+ * @return SaAisErrorT
+ */
+static SaAisErrorT ng_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
+{
+	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
+	AVD_SU *su;
+	AVD_AVND *node;
+	AVD_AMF_NG *ng = avd_ng_get(&opdata->objectName);
+	int i;
+
+	TRACE_ENTER2("%u", ng->number_nodes);
+
+	/* for all nodes in node group */
+	for (i = 0; i < ng->number_nodes; i++) {
+		node = avd_node_get(&ng->saAmfNGNodeList[i]);
+
+		TRACE("%s", node->name.value);
+
+		/*
+		** for all SUs hosted by this node, if any SU is mapped using
+		** the node group that is to be deleted AND
+		** the SU is not deleted in the same CCB (special case of
+		** application removal), reject the deletion.
+		** If no SU is mapped, deletion is OK.
+		*/
+
+		for (su = node->list_of_ncs_su; su; su = su->avnd_list_su_next) {
+			if (su_is_mapped_to_node_via_nodegroup(su, ng) &&
+			    is_deleted_in_ccb(opdata->ccbId, &su->name) == false) {
+				LOG_NO("Cannot delete '%s' because '%s' is mapped using it",
+					ng->ng_name.value, su->name.value);
+				goto done;
+			}
+		}
+
+		for (su = node->list_of_su; su; su = su->avnd_list_su_next) {
+			if (su_is_mapped_to_node_via_nodegroup(su, ng) &&
+			    is_deleted_in_ccb(opdata->ccbId, &su->name) == false) {
+				LOG_NO("Cannot delete '%s' because '%s' is mapped using it",
+					ng->ng_name.value, su->name.value);
+				goto done;
+			}
+		}
+	}
+
+	rc = SA_AIS_OK;
+
+done:
+	TRACE_LEAVE();
+	return rc;
+}
+
+/**
+ * Callback for CCB completed
+ * @param opdata
+ */
 static SaAisErrorT ng_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
@@ -293,22 +447,23 @@ static SaAisErrorT ng_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		break;
 	case CCBUTIL_MODIFY:
 		rc = ng_ccb_completed_modify_hdlr(opdata);
-		goto done;
 		break;
 	case CCBUTIL_DELETE:
-		LOG_ER("Deletion of SaAmfNodeGroup not supported");
-		goto done;
+		rc = ng_ccb_completed_delete_hdlr(opdata);
 		break;
 	default:
 		assert(0);
 		break;
 	}
 
-done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 
+/**
+ * Apply modify handler
+ * @param opdata
+ */
 static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 {
 	int i = 0, j;
@@ -365,6 +520,10 @@ static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 	TRACE_LEAVE();
 }
 
+/**
+ * Callback for CCB apply
+ * @param opdata
+ */
 static void ng_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 {
 	AVD_AMF_NG *ng;
@@ -380,6 +539,11 @@ static void ng_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 	case CCBUTIL_MODIFY:
 		ng_ccb_apply_modify_hdlr(opdata);
 		break;
+	case CCBUTIL_DELETE:
+		ng = avd_ng_get(&opdata->objectName);
+		ng_delete(ng);
+		TRACE("deleted %s", opdata->objectName.value);
+		break;
 	default:
 		assert(0);
 	}
@@ -387,6 +551,9 @@ static void ng_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 	TRACE_LEAVE();
 }
 
+/**
+ * Constructor for node group class. Should be called first of all.
+ */
 void avd_ng_constructor(void)
 {
 	NCS_PATRICIA_PARAMS patricia_params;
