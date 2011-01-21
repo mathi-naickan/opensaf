@@ -49,10 +49,6 @@ uns32 mds_log_init(char *log_file_name, char *line_prefix)
 	process_id = (uns32)getpid();
 
 	/* Copy the log-line-prefix */
-	if (strlen(line_prefix) + 1 > sizeof(log_line_prefix)) {
-		syslog(LOG_INFO, "MDS_LOG:Passed line prefix len is greater than the line prefix\n");
-	}
-
 	strncpy(log_line_prefix, line_prefix, sizeof(log_line_prefix) - 1);
 	log_line_prefix[sizeof(log_line_prefix) - 1] = 0;	/* Terminate string */
 
@@ -70,8 +66,7 @@ uns32 mds_log_init(char *log_file_name, char *line_prefix)
 		fclose(fh);
 		log_mds_notify("BEGIN MDS LOGGING| PID=%d|ARCH=%d|64bit=%ld\n",
 			       process_id, MDS_ARCH_TYPE, (long)MDS_WORD_SIZE_TYPE);
-	} else
-		syslog(LOG_ERR, "MDS_LOG:0");
+	}
 
 	return NCSCC_RC_SUCCESS;
 }
@@ -205,16 +200,19 @@ static void log_mds(const char *str)
 		i = snprintf(log_string, sizeof(log_string), "%s.%06ld %s %s",
 			     asc_tod, tv.tv_usec, log_line_prefix, str);
 
-		if (i >= sizeof(log_string))
-			log_string[i - 2] = '\n';
+		if (i >= sizeof(log_string)) {
+			i = sizeof(log_string);
+			log_string[i - 1] = '\n';
+		} else if (log_string[i - 1] != '\n') {
+			log_string[i] = '\n';
+			i++;
+		}
 
-		if (! fwrite(log_string, 1, i + 1, fp)) {
+		if (! fwrite(log_string, 1, i, fp)) {
 			fclose(fp);
 			return;
 		}
 
 		fclose(fp);
-	} else {
-		fprintf(stderr, "Unable to log to file %s - %s\n", lf, strerror(errno));
 	}
 }
