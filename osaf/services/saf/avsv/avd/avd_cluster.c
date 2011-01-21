@@ -284,35 +284,6 @@ SaAisErrorT avd_cluster_config_get(void)
 	return rc;
 }
 
-void avd_cluster_remove_ng(AVD_AMF_NG *node_gr)
-{
-	AVD_AMF_NG *i_node_gr = NULL;
-	AVD_AMF_NG *prev_node_gr = NULL;
-
-	if (node_gr->ng_on_cluster != NULL) {
-		/* remove Node from Cluster */
-		i_node_gr = node_gr->ng_on_cluster->list_of_avd_ng;
-
-		while ((i_node_gr != NULL) && (i_node_gr != node_gr)) {
-			prev_node_gr = i_node_gr;
-			i_node_gr = i_node_gr->cluster_list_ng_next;
-		}
-
-		if (i_node_gr != node_gr) {
-			/* Log a fatal error */
-		} else {
-			if (prev_node_gr == NULL) {
-				node_gr->ng_on_cluster->list_of_avd_ng = node_gr->cluster_list_ng_next;
-			} else {
-				prev_node_gr->cluster_list_ng_next = node_gr->cluster_list_ng_next;
-			}
-		}
-
-		node_gr->cluster_list_ng_next = NULL;
-		node_gr->ng_on_cluster = NULL;
-	}
-}
-
 void avd_cluster_constructor(void)
 {
 	avd_class_impl_set("SaAmfCluster", NULL, cluster_admin_op_cb,

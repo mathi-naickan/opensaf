@@ -32,16 +32,12 @@ typedef struct avd_cluster_tag {
 	SaNameT saAmfClusterClmCluster;
 	SaTimeT saAmfClusterStartupTimeout;
 	SaAmfAdminStateT saAmfClusterAdminState;
-
-	struct avd_ng_tag *list_of_avd_ng;
-
 } AVD_CLUSTER;
 
 extern AVD_CLUSTER *avd_cluster;
 
 extern SaAisErrorT avd_cluster_config_get(void);
 extern void avd_cluster_tmr_init_evh(AVD_CL_CB *cb, struct avd_evt_tag *evt);
-extern void avd_cluster_remove_ng(AVD_AMF_NG *node_gr);
 extern void avd_cluster_constructor(void);
 
 #endif
