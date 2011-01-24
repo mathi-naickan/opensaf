@@ -743,7 +743,7 @@ static AVD_COMP *comp_create(const SaNameT *dn, const SaImmAttrValuesT_2 **attri
 	}
 
 	if (immutil_getAttr("saAmfCompCleanupTimeout", attributes, 0, &comp->comp_info.clean_time) != SA_AIS_OK)
-		comp->comp_info.clean_time = comptype->saAmfCtDefCallbackTimeout;
+		comp->comp_info.clean_time = comptype->saAmfCtDefClcCliTimeout;
 
 	if (strlen(comptype->saAmfCtRelPathAmStartCmd) > 0) {
 		strcpy(comp->comp_info.amstart_info, comptype->saAmfCtRelPathAmStartCmd);

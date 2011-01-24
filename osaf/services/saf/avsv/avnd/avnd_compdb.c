@@ -1324,7 +1324,7 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes,
 
 	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_CLEANUP - 1];
 	if (immutil_getAttr("saAmfCompCleanupTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK)
-		cmd->timeout = comptype->saAmfCtDefCallbackTimeout;
+		cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
 
 	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_AMSTART - 1];
 	if (immutil_getAttr("saAmfCompAmStartTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK)
