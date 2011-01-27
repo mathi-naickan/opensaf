@@ -226,15 +226,15 @@ static void imma_proc_admin_op_async_rsp(IMMA_CB *cb, IMMA_EVT *evt)
 	SaInvocationT userInvoc;
 	SaInt32T inv = m_IMMSV_UNPACK_HANDLE_LOW(evt->info.admOpRsp.invocation);
 
-	/*NOTE: should get handle from immnd also and verify. */
-	if (!popAsyncAdmOpContinuation(cb, inv, &immHandleCont, &userInvoc)) {
-		TRACE_3("Missmatch on continuation for SaImmOmAdminOperationInvokeCallbackT");
-		return;
-	}
-
 	/* get the CB Lock */
 	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 		TRACE_3("Lock failure");
+		return;
+	}
+
+	/*NOTE: should get handle from immnd also and verify. */
+	if (!popAsyncAdmOpContinuation(cb, inv, &immHandleCont, &userInvoc)) {
+		TRACE_3("Missmatch on continuation for SaImmOmAdminOperationInvokeCallbackT");
 		return;
 	}
 
@@ -495,13 +495,13 @@ void imma_determine_clients_to_resurrect(IMMA_CB *cb, NCS_BOOL* locked)
     TRACE_LEAVE();
 }
 
-void imma_proc_terminate_critical_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
+void imma_proc_terminate_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 {
     TRACE_ENTER();
-	/* We are NOT LOCKED */
-	struct imma_oi_ccb_record *oiCcb = cl_node->activeOiCcbs;
-
+	/* We are NOT LOCKED on entry */
 	assert(m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS);
+
+	struct imma_oi_ccb_record *oiCcb = cl_node->activeOiCcbs;
 
 	while (oiCcb != NULL) {
 		SaAisErrorT err = SA_AIS_ERR_TIMEOUT;
@@ -511,13 +511,35 @@ void imma_proc_terminate_critical_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node
 			continue; /* Already processed or CCB created after resurrect. */
 		}
 
-		if (oiCcb->isCritical) {
+		oiCcb->isStale = FALSE; /* Avoid ccb termination upcall again. */
+
+		if (oiCcb->isCritical) {			
+			SaImmHandleT handle = cl_node->handle;
+			cl_node = NULL;
+
+			assert(m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS);
 			err = imma_proc_recover_ccb_result(cb, oiCcb->ccbId);
+			assert(m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS);
+
+			/* We have been unlocked. Look up the client_node & ccb-record again. 
+			   New ccb records are pushed on to top of list. Tail should be stable. 
+			 */
+			imma_client_node_get(&cb->client_tree, &handle, &cl_node);
+			if (!cl_node) {
+				LOG_WA("Client node removed (handle closed) during termination processing");
+				return;
+			}
+
+			if(!imma_oi_ccb_record_exists(cl_node, oiCcb->ccbId)) {
+				LOG_WA("Ccb OI record lost while recovering ccb result");
+				oiCcb =  cl_node->activeOiCcbs;
+				continue;
+			}
 		} else {
 			/* We expected non-critical stales to have been terminated by abort in 
 			   imma_proc_stale_dispatch() */
-			TRACE_3("WARNING: Discovered non critical and stale oi_ccb_record %u in "
-				"imma_proc_terminate_critical_oi_ccbs", oiCcb->ccbId);
+			LOG_WA("Discovered non critical and stale oi_ccb_record %u in "
+				"imma_proc_terminate_oi_ccbs", oiCcb->ccbId);
 			err = SA_AIS_ERR_FAILED_OPERATION;
 		}
 
@@ -546,9 +568,9 @@ void imma_proc_terminate_critical_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node
 			TRACE_4("Failed to post ccb %u stale-terminate ipc-message", oiCcb->ccbId);
 		} else {TRACE_3("Posted ccb %u stale-terminate ipc-message: %s", oiCcb->ccbId,
 					(err == SA_AIS_OK)?"APPLY":"ABORT");}
-		oiCcb->isStale = FALSE; /* Avoid sending the abort message again. */
+		assert(oiCcb->isStale == FALSE); 
 
-		TRACE_3("imma_proc_terminate_critical_oi_ccbs: oi_ccb_record for %u terminated",
+		TRACE_3("imma_proc_terminate_oi_ccbs: oi_ccb_record for %u terminated",
 			oiCcb->ccbId);
 		assert(imma_oi_ccb_record_terminate(cl_node, oiCcb->ccbId));
 		oiCcb = nextOiCcb;
@@ -2569,7 +2591,7 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 
 	case IMMA_CALLBACK_STALE_HANDLE:
         TRACE("Stale OI handle upcall completed");
-		imma_proc_terminate_critical_oi_ccbs(cb, cl_node);
+		imma_proc_terminate_oi_ccbs(cb, cl_node);
 		break;
 
 	default:
