@@ -521,7 +521,7 @@ SaAisErrorT fill_ntf_header_part_avd(SaNtfNotificationHeaderT *notificationHeade
 			return NCSCC_RC_FAILURE;
 		}
 
-		memcpy(dest_ptr,name->value,name->length);
+		memcpy(dest_ptr, name, sizeof(SaNameT));
 	}
 	return SA_AIS_OK;
 
