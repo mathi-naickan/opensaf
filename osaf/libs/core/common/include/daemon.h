@@ -31,4 +31,9 @@ extern "C" {
 
 extern void daemonize(int argc, char *argv[]);
 
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
