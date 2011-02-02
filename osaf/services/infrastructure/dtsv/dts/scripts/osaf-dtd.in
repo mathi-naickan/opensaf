@@ -82,9 +82,14 @@ start() {
 	export DTSV_COMP_NAME_FILE=$COMPNAMEFILE
 	[ -d $DTSV_ROOT_DIRECTORY ] || mkdir -p $DTSV_ROOT_DIRECTORY
 
-	if [ "$1" = "ROLE=1" ] && [ $DTSV_MAX_ARCHIVES -gt 0 ]; then
-		# Take a snapshot of the current set of files and store away for later use
-		(cd $DTSV_ROOT_DIRECTORY; find -name "*.log" -amin +1) > $FILESFROM
+	#get the role of RDE to rotate the log files
+	RDE_ROLE=`$bindir/rdegetrole`
+	EXIT_STATUS=$?
+	if [ $EXIT_STATUS -eq 0 ] ; then	
+		if [ $RDE_ROLE = "ACTIVE" ] && [ $DTSV_MAX_ARCHIVES -gt 0 ]; then
+			# Take a snapshot of the current set of files and store away for later use
+			(cd $DTSV_ROOT_DIRECTORY; find -name "*.log" -amin +1) > $FILESFROM
+		fi
 	fi
 
 	echo -n "Starting $prog: "
@@ -98,8 +103,10 @@ start() {
 		echo "$NID_MAGIC:$NIDSERV:$DAEMON_START_FAILED" > $NIDFIFO
 	fi
 
-	if [ "$1" = "ROLE=1" ] && [ $DTSV_MAX_ARCHIVES -gt 0 ]; then
-		archives_rotate
+	if [ $EXIT_STATUS -eq 0 ] ; then	
+		if [ $RDE_ROLE = "ACTIVE" ] && [ $DTSV_MAX_ARCHIVES -gt 0 ]; then
+			archives_rotate
+		fi
 	fi
 	return $RETVAL
 }
