@@ -1197,6 +1197,7 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkgimmxml_svcdir}/fm_objects.xml
 %{_pkgimmxml_svcdir}/fm_sc_template.xml
 %{_initddir}/fmd
+%{_bindir}/rdegetrole
 
 
 %files payload

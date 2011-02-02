@@ -777,6 +777,7 @@ AC_CONFIG_FILES([
         osaf/tools/safntf/include/Makefile
         osaf/tools/safntf/ntfsend/Makefile
         osaf/tools/safntf/ntfsubscribe/Makefile
+        osaf/tools/rde/Makefile
         pkgconfig/Makefile
         pkgconfig/opensaf.pc
         tests/immsv/implementer/Makefile
