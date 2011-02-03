@@ -52,7 +52,7 @@ unload_tipc() {
 check_tipc() {
 	# Exit if tipc-config is not installed
 	if [ ! -x /sbin/tipc-config ]; then
-		if [ which tipc-config >/dev/null 2>&1 ]; then
+		if ! [ which tipc-config >/dev/null 2>&1 ]; then
 			logger -s -t $prog "Can't find tipc-config in the PATH, exiting."
 			exit 5
 		fi
