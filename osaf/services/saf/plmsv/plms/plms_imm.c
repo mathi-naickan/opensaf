@@ -749,10 +749,10 @@ static SaAisErrorT plms_imm_ccb_obj_create_cbk(SaImmOiHandleT imm_oi_hdl,
 	CcbUtilOperationData_t *operation;
 	SaInt8T *obj_rdn = NULL;
 	SaAisErrorT rc;
-	SaUint8T j, k, dep_names_num = 0, dep_min_num = 0;
+	SaUint8T j, k, l, dep_names_num = 0, dep_min_num = 0;
 	SaPlmHEDeactivationPolicyT *attr_value;
 	SaUint32T len;
-	SaNameT *dep_name;
+	SaNameT *dep_name, *next_dep_name;
 	PLMS_ENTITY *dep_node;
 
 	TRACE_ENTER2("ccb_id: %llu, class_name: %s", ccb_id, class_name);
