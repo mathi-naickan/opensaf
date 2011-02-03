@@ -150,7 +150,12 @@ SaAisErrorT plms_state_change_ntf_send(SaNtfHandleT      plm_ntf_hdl,
 			                  (void**)&dest_ptr,
 			                  &(plm_notification.notificationHeader.additionalInfo[0].infoValue)
 			                  );
-		memcpy(dest_ptr,dn_name->value,dn_name->length);
+		if (ret != SA_AIS_OK) {
+			LOG_ER("saNtfPtrValAllocate Failed (%u)", ret);
+			saNtfNotificationFree(plm_notification.notificationHandle);
+			return ret;
+		}
+		memcpy(dest_ptr,dn_name,sizeof(SaNameT));
 	}
 
 	/* Send the notification */
