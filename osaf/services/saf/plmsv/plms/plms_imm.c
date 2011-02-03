@@ -793,7 +793,7 @@ static SaAisErrorT plms_imm_ccb_obj_create_cbk(SaImmOiHandleT imm_oi_hdl,
 						next_dep_name = (SaNameT *)*((attr[j]->
 								attrValues)+l);
 						if ( (dep_name->length == next_dep_name->length) && 
-						(strncmp(dep_name->value, next_dep_name->value, 
+						(strncmp((char *)dep_name->value, (char *)next_dep_name->value, 
 						dep_name->length)==0)) {
 							TRACE_LEAVE2("Duplicate DepNames exists"); 
 							return SA_AIS_ERR_BAD_OPERATION;
