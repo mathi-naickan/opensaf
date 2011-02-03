@@ -2309,7 +2309,9 @@ uns32 avd_sg_nway_susi_succ_sg_realign(AVD_CL_CB *cb,
 		for (curr_susi = tmp_susi.si->list_of_sisu;
 		     curr_susi && (SA_AMF_HA_ACTIVE != curr_susi->state); curr_susi = curr_susi->si_next) ;
 
-		if (!curr_susi && (SA_AMF_ADMIN_UNLOCKED == tmp_susi.si->saAmfSIAdminState)) {
+		if (!curr_susi && (SA_AMF_ADMIN_UNLOCKED == tmp_susi.si->saAmfSIAdminState)
+				&& ((tmp_susi.si->si_dep_state == AVD_SI_ASSIGNED) ||
+                                (tmp_susi.si->si_dep_state == AVD_SI_NO_DEPENDENCY))) {
 			/* no active present.. identify the highest ranked in-svc standby & 
 			   send active assignment to it */
 
