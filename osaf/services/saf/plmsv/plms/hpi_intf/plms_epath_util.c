@@ -143,6 +143,7 @@ static PLMS_ENTITY_TYPE_LIST  hpi_ent_type_list[] = {
 	{"SWITCH_BLADE",               SAHPI_ENT_SWITCH_BLADE},
 	{"SBC_BLADE",                  SAHPI_ENT_SBC_BLADE},
 	{"IO_BLADE",                   SAHPI_ENT_IO_BLADE},
+	{"DISK_BLADE",                 SAHPI_ENT_DISK_BLADE},
 	{"DISK_DRIVE",                 SAHPI_ENT_DISK_DRIVE},
 	{"FAN",                        SAHPI_ENT_FAN},
 	{"POWER_DISTRIBUTION_UNIT",    SAHPI_ENT_POWER_DISTRIBUTION_UNIT},
@@ -164,6 +165,7 @@ static PLMS_ENTITY_TYPE_LIST  hpi_ent_type_list[] = {
 	{"IPMC",                       SAHPI_ENT_IPMC},
 	{"MMC",                        SAHPI_ENT_MMC},
 	{"SHMC",                       SAHPI_ENT_SHMC},
+	{"CPLD",                       SAHPI_ENT_CPLD},
 	{"EPLD",                       SAHPI_ENT_EPLD},
 	{"FPGA",                       SAHPI_ENT_FPGA},
 	{"DASD",                       SAHPI_ENT_DASD},
@@ -343,7 +345,7 @@ static SaUint32T convert_entity_types(SaHpiEntityPathT *entity_path,
 		count = sprintf(ent_path_str, "%d",entity_path->Entry[i].EntityLocation); 
 		ent_path_str += count;
 
-		if(entity_path->Entry[i+1].EntityType == SAHPI_ENT_ROOT)
+		if(entity_path->Entry[i].EntityType == SAHPI_ENT_ROOT)
 			break;
 
 		*(ent_path_str++)= ',';
@@ -453,9 +455,6 @@ SaUint32T convert_string_to_epath(SaInt8T *epath_str,
                 if (entity_index >= SAHPI_MAX_ENTITY_PATH)
                         break;
         }
-
-	epath_ptr->Entry[entity_index].EntityType = SAHPI_ENT_ROOT;
-        epath_ptr->Entry[entity_index].EntityLocation = 0;
 
         /* free the duplicate string allocated for entity path */
         free(epath);
