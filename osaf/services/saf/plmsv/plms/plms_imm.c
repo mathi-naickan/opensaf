@@ -276,7 +276,7 @@ static void plms_handle_oi_init_try_again_err (SaImmOiHandleT *imm_oi_hdl)
 			break; /* from the do while */
 		}
 		++retry_cnt;
-		LOG_ER("OiInit Retry count %u", retry_cnt);
+		LOG_IN("OiInit Retry count %u", retry_cnt);
 	}while (1);
 	if (error != SA_AIS_OK) {
 		LOG_CR("OiInit returned error %u, so asserting now", error);
@@ -302,7 +302,7 @@ static void plms_handle_oi_sel_obj_get_try_again_err(SaSelectionObjectT
 			break; /* from the do while */
 		}
 		++retry_cnt;
-		LOG_ER("OiSelObjGet Retry count %u", retry_cnt);
+		LOG_IN("OiSelObjGet Retry count %u", retry_cnt);
 	}while (1);
 	if (error != SA_AIS_OK) {
 		LOG_CR("OiSelObjGet returned error %u, asserting now", error);
@@ -327,7 +327,7 @@ static void plms_handle_oi_impl_set_try_again_err()
 			break; /* from the do while */
 		}
 		++retry_cnt;
-		LOG_ER("OiImplSet Retry count %u", retry_cnt);
+		LOG_IN("OiImplSet Retry count %u", retry_cnt);
 	}while (1);
 	if (error != SA_AIS_OK) {
 		LOG_CR("OiImplSet returned error %u, so asserting now", error);
@@ -374,7 +374,7 @@ static void plms_handle_class_impl_set_try_again_err(SaImmClassNameT class_name)
 			break; /* from the do while */
 		}
 		++retry_cnt;
-		LOG_ER("OiClassImplSet Retry count %u", retry_cnt);
+		LOG_IN("OiClassImplSet Retry count %u", retry_cnt);
 	}while (1);
 	if (error != SA_AIS_OK) {
 		LOG_CR("OiClassImplSet returned error %u, asserting now",error);
@@ -400,7 +400,7 @@ static void plms_handle_om_init_try_again_err (SaImmHandleT *imm_om_hdl)
 			break; /* from the do while */
 		}
 		++retry_cnt;
-		LOG_ER("OmInit Retry count %u", retry_cnt);
+		LOG_IN("OmInit Retry count %u", retry_cnt);
 	}while (1);
 	if (error != SA_AIS_OK) {
 		LOG_CR("OmInit returned error %u, asserting now", error);
@@ -466,7 +466,7 @@ static void plms_handle_om_search_init_try_again_err(SaNameT *root_name,
 			break; /* from the do while */
 		}
 		++retry_cnt;
-		LOG_ER("OmSearchInit Retry count %u", retry_cnt);
+		LOG_IN("OmSearchInit Retry count %u", retry_cnt);
 	}while (1);
 	if (error != SA_AIS_OK) {
 		LOG_CR("OmSearchInit returned error %u, asserting now", error);
@@ -493,7 +493,7 @@ static void plms_handle_om_search_next_try_again_err(SaImmSearchHandleT
 			break; /* from the do while */
 		}
 		++retry_cnt;
-		LOG_ER("OmSearchNext Retry count %u", retry_cnt);
+		LOG_IN("OmSearchNext Retry count %u", retry_cnt);
 	}while (1);
 	if (error != SA_AIS_OK) {
 		LOG_CR("OmSearchNext returned error %u, asserting now", error);
@@ -775,12 +775,29 @@ static SaAisErrorT plms_imm_ccb_obj_create_cbk(SaImmOiHandleT imm_oi_hdl,
 				for (k=0; k < dep_names_num; k++) {
 					dep_name = (SaNameT *)*((attr[j]->
 							attrValues)+k);
+					if ((dep_name->length == parent_name->length) && 
+						(strncmp((char *)dep_name->value, 
+						(char *)parent_name->value, dep_name->length)==0)) {
+						TRACE_LEAVE2("DepName is same as parent name, \
+						rejecting the request"); 
+						return SA_AIS_ERR_BAD_OPERATION;
+					}
 					dep_node = (PLMS_ENTITY *)
 					ncs_patricia_tree_get(&plms_cb->
 					entity_info, (SaUint8T *)dep_name);
 					if (dep_node == NULL) {
-						TRACE_2("DepName not exists"); 
+						TRACE_LEAVE2("DepName not exists"); 
 						return SA_AIS_ERR_BAD_OPERATION;
+					}
+					for (l=k+1; l < dep_names_num; l++) {
+						next_dep_name = (SaNameT *)*((attr[j]->
+								attrValues)+l);
+						if ( (dep_name->length == next_dep_name->length) && 
+						(strncmp(dep_name->value, next_dep_name->value, 
+						dep_name->length)==0)) {
+							TRACE_LEAVE2("Duplicate DepNames exists"); 
+							return SA_AIS_ERR_BAD_OPERATION;
+						}
 					}
 				}
 			}
@@ -1305,6 +1322,32 @@ static SaAisErrorT plms_imm_ccb_obj_modify_cbk(SaImmOiHandleT imm_oi_hdl,
 						to be deleted is not present \
 						in the existing \
 						configured depNames");
+						return SA_AIS_ERR_BAD_OPERATION;
+						}
+					}
+					else if (attr_mods[j]->modType == 
+						SA_IMM_ATTR_VALUES_ADD) {
+						if (strcmp(dep_node->dn_name_str, 
+						parent_dn)==0) {
+							TRACE_LEAVE2("Given DepName is \
+							same as parent name");
+							return SA_AIS_ERR_BAD_OPERATION;
+						}
+						tmp_dep = plm_ent->
+							dependency_list;
+						while (tmp_dep != NULL) {
+							if (strcmp(tmp_dep->
+							plm_entity->dn_name_str,
+							dep_node->dn_name_str) 
+							== 0) {
+								break;
+							}
+							tmp_dep = tmp_dep->next;
+						}
+						if (tmp_dep != NULL) {
+						TRACE_LEAVE2("Given DepName \
+						to be added is already present \
+						in the existing configured depNames");
 						return SA_AIS_ERR_BAD_OPERATION;
 						}
 					}
