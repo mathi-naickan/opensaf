@@ -59,16 +59,16 @@ case $1 in
 		immadm -o $ADMIN_SI_SWAP $2
 		;;
 	"sg-adjust")
-		immadm -o ADMIN_SG_ADJUST $2
+		immadm -o $ADMIN_SG_ADJUST $2
 		;;
 	"repaired")
-		immadm -o ADMIN_REPAIRED $2
+		immadm -o $ADMIN_REPAIRED $2
 		;;
 	"eam-start")
-		immadm -o EAM_START $2
+		immadm -o $EAM_START $2
 		;;
 	"eam-stop")
-		immadm -o EAM_STOP $2
+		immadm -o $EAM_STOP $2
 		;;
 	*)
 		echo "illegal admin operation: $1"
