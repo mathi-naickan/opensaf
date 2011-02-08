@@ -1617,10 +1617,13 @@ static uns32 avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_R
 		m_AVD_SET_SU_SWITCH(cb, su->sg_of_su->su_oper_list.su, AVSV_SI_TOGGLE_STABLE);
 		avd_sg_su_oper_list_del(cb, su->sg_of_su->su_oper_list.su, FALSE);
 		m_AVD_SET_SG_FSM(cb, su->sg_of_su, AVD_SG_FSM_STABLE);
-		immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->list_of_susi->si->invocation, SA_AIS_OK);
-		su->list_of_susi->si->invocation = 0;
-		LOG_NO("%s Swap done", su->list_of_susi->si->name.value);
-		saflog(LOG_NOTICE, amfSvcUsrName, "%s Swap done", su->list_of_susi->si->name.value);
+		/* find the SI on which SWAP admin operation is pending */
+		for (l_susi = su->list_of_susi; l_susi != NULL && l_susi->si->invocation == 0; l_susi = l_susi->su_next);
+		assert(l_susi != NULL);
+		immutil_saImmOiAdminOperationResult(cb->immOiHandle, l_susi->si->invocation, SA_AIS_OK);
+		l_susi->si->invocation = 0;
+		LOG_NO("%s Swap done", l_susi->si->name.value);
+		saflog(LOG_NOTICE, amfSvcUsrName, "%s Swap done", l_susi->si->name.value);
 
 		if (su->sg_of_su->sg_ncs_spec)
 			amfd_switch(avd_cb);
@@ -2234,7 +2237,7 @@ uns32 avd_sg_2n_susi_sucss_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi, 
 
 uns32 avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi, AVSV_SUSI_ACT act, SaAmfHAStateT state)
 {
-	AVD_SU_SI_REL *s_susi, *o_susi;
+	AVD_SU_SI_REL *s_susi, *o_susi, *l_susi;
 	AVD_SU *a_su;
 	AVD_SU_SI_STATE old_fsm_state;
 	NCS_BOOL flag;
@@ -2295,9 +2298,13 @@ uns32 avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi, A
 
 			m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
 			m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle,
-				su->list_of_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
-			su->list_of_susi->si->invocation = 0;
+			for (l_susi = su->list_of_susi; l_susi != NULL; l_susi = l_susi->su_next) {
+				if (l_susi->si->invocation != 0) {
+					immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+							l_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
+					l_susi->si->invocation = 0;
+				}
+			}
 
 		} else if ((susi == AVD_SU_SI_REL_NULL) && (act == AVSV_SUSI_ACT_MOD) &&
 			 ((state == SA_AMF_HA_QUIESCED) || (state == SA_AMF_HA_QUIESCING)) &&
@@ -2328,10 +2335,12 @@ uns32 avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi, A
 				   (su->sg_of_su->su_oper_list.su == su)) */
 		else {
 			/* respond failed operation to IMM */
-			if (su->list_of_susi->si->invocation != 0) {
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle,
-					su->list_of_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
-				su->list_of_susi->si->invocation = 0;
+			for (l_susi = su->list_of_susi; l_susi != NULL; l_susi = l_susi->su_next) {
+				if (l_susi->si->invocation != 0) {
+					immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+							l_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
+					l_susi->si->invocation = 0;
+				}
 			}
 
 			/* Other cases log a informational message. AvND would treat that as
