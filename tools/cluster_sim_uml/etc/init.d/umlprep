@@ -2,7 +2,7 @@
 
 #      -*- OpenSAF  -*-
 #
-#  Copyright (c) 2007, Ericsson AB
+#  Copyright (c) 2007-2011, Ericsson AB
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,16 +23,16 @@ shadowrootcmd=`tr ' ' '\n' < /proc/cmdline | grep shadowroot`
 test -n "$shadowrootcmd" && eval $shadowrootcmd
 r=/hostfs/$shadowroot
 
-# If there is a var directory on the host, link /var to it
+# If there is a var directory on the host, link /var/log to it
 if test -e "$r/var"; then
-    rm -rf /var
+    rm -rf /var/log
     hostnamecmd=`tr ' ' '\n' < /proc/cmdline | grep hostname`
     test -n "$hostnamecmd" && eval $hostnamecmd
     hostname $hostname
-    mkdir -p $r/var/$hostname
-    ln -s $r/var/$hostname /var
+    mkdir -p $r/var/$hostname/log
+    ln -s $r/var/$hostname/log /var/log
 
-    # Create FHS required substructure
+    # Create FHS required substructure on RAM disk
     for n in cache lib local lock log opt run spool tmp; do
         mkdir -p /var/$n
     done
