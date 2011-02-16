@@ -255,9 +255,9 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		   unmodified rtObjectUpdate upcall.
 		*/
 		TRACE("Update of object with DN: %s", operation->param.modify.objectName->value);
+		objName.append((const char *) operation->param.modify.objectName->value);		
 		attrMods = operation->param.modify.attrMods;
 		while((attMod = attrMods[ix++]) != NULL) {
-			objName.append((const char *) operation->param.modify.objectName->value);
 			switch(attMod->modType) {
 				case SA_IMM_ATTR_VALUES_REPLACE:
 					objectModifyDiscardAllValuesOfAttrToPBE(sDbHandle, objName,
@@ -363,7 +363,6 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 	SaAisErrorT rc = SA_AIS_OK;
 	struct CcbUtilCcbData *ccbUtilCcbData;
 	struct CcbUtilOperationData *ccbUtilOperationData;
-	std::string objName;
 	TRACE_ENTER2("Completed callback for CCB:%llu", ccbId);
 
 	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) == NULL) {
@@ -383,6 +382,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 		const SaImmAttrModificationT_2 **attrMods = NULL;
 		const SaImmAttrModificationT_2 *attMod = NULL;
 		int ix=0;
+		std::string objName;
 						
 		switch (ccbUtilOperationData->operationType) {
 			case CCBUTIL_CREATE:
@@ -419,10 +419,11 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 				 */
 				TRACE("Modify of object with DN: %s",
 					ccbUtilOperationData->param.modify.objectName->value);
+
+				objName.append((const char *) ccbUtilOperationData->
+					param.modify.objectName->value);
 				attrMods = ccbUtilOperationData->param.modify.attrMods;
 				while((attMod = attrMods[ix++]) != NULL) {
-					objName.append((const char *) ccbUtilOperationData->
-						param.modify.objectName->value);
 					switch(attMod->modType) {
 						case SA_IMM_ATTR_VALUES_REPLACE:
 							objectModifyDiscardAllValuesOfAttrToPBE(sDbHandle, objName,
