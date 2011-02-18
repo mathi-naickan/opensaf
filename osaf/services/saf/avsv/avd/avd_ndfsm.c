@@ -399,15 +399,26 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	AVD_AVND *node = avd_node_find_nodeid(evt->info.node_id);
 
 	TRACE_ENTER2("%x, %p", evt->info.node_id, node);
-	if ((avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) && (node != NULL)) {
-		avd_node_mark_absent(node);
-		avd_node_susi_fail_func(avd_cb, node);
 
-		/* Remove the node from the node_id tree. */
-		avd_node_delete_nodeid(node);
+	if (node != NULL) {
+		if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+			/* failover this node */
+			avd_node_mark_absent(node);
+			avd_node_susi_fail_func(avd_cb, node);
+			avd_node_delete_nodeid(node);
+		} else {
+			/* Remove dynamic info for node but keep in nodeid tree.
+			 * Possibly used at the end of controller failover to
+			 * to failover payload nodes.
+			 */
+			node->node_state = AVD_AVND_STATE_ABSENT;
+			node->saAmfNodeOperState = SA_AMF_OPERATIONAL_DISABLED;
+			node->adest = 0;
+			node->node_info.member = SA_FALSE;
+		}
 	}
 
-	if(cb->avd_fover_state) {
+	if (cb->avd_fover_state) {
 		/* Find if node is there in the f-over node list.
 		 * If yes then remove entry
 		 */

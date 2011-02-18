@@ -399,6 +399,78 @@ static int retval_to_polltmo(AvdJobDequeueResultT job_exec_result)
 	return polltmo;
 }
 
+/**
+ * Handle events during failover state
+ * @param evt
+ */
+static void handle_event_in_failover_state(AVD_EVT *evt)
+{
+	AVD_CL_CB *cb = avd_cb;
+
+	assert(cb->avd_fover_state == TRUE);
+
+	TRACE_ENTER();
+
+	/* 
+	 * We are in fail-over, so process only 
+	 * verify ack/nack and timer expiry events and
+	 * MDS down events. Enqueue all other events.
+	 */
+	if ((evt->rcv_evt == AVD_EVT_VERIFY_ACK_NACK_MSG) ||
+	    (evt->rcv_evt == AVD_EVT_MDS_AVND_DOWN) ||
+	    (evt->rcv_evt == AVD_EVT_TMR_SND_HB)) {
+		avd_process_event(cb, evt);
+	} else {
+		AVD_EVT_QUEUE *queue_evt;
+		/* Enqueue this event */
+		if (NULL != (queue_evt = calloc(1, sizeof(AVD_EVT_QUEUE)))) {
+			queue_evt->evt = evt;
+			m_AVD_EVT_QUEUE_ENQUEUE(cb, queue_evt);
+		} else {
+			LOG_ER("%s: calloc failed", __FUNCTION__);
+			abort();
+		}
+	}
+
+	if (cb->node_list.n_nodes == 0) {
+		AVD_EVT_QUEUE *queue_evt;
+		AVD_AVND *node;
+		SaClmNodeIdT node_id = 0;
+
+		/* We have received the info from all the nodes. */
+		cb->avd_fover_state = FALSE;
+
+		/* Dequeue, all the messages from the queue
+		   and process them now */
+		m_AVD_EVT_QUEUE_DEQUEUE(cb, queue_evt);
+
+		while (NULL != queue_evt) {
+			avd_process_event(cb, queue_evt->evt);
+			free(queue_evt);
+			m_AVD_EVT_QUEUE_DEQUEUE(cb, queue_evt);
+		}
+
+		/* Walk through all the nodes to check if any of the nodes state is
+		 * AVD_AVND_STATE_ABSENT, if so means that node(payload) went down 
+		 * during the failover state and the susi failover is differed till
+		 * failover completes 
+		 */
+		while (NULL != (node = avd_node_getnext_nodeid(node_id))) {
+			node_id = node->node_info.nodeId;
+
+			if (AVD_AVND_STATE_ABSENT == node->node_state) {
+				/* Fail over all SI assignments */
+				avd_node_susi_fail_func(avd_cb, node);
+
+				/* Remove the node from the node_id tree. */
+				avd_node_delete_nodeid(node);
+			}
+		}
+	}
+
+	TRACE_LEAVE();
+}
+
 /*****************************************************************************
  * Function: avd_main_proc
  *
@@ -484,42 +556,7 @@ void avd_main_proc(void)
 			}
 
 			if (cb->avd_fover_state) {
-				/* 
-				 * We are in fail-over, so process only 
-				 * verify ack/nack and timer expiry events and
-				 * MDS down events. Enqueue all other events.
-				 */
-				if ((evt->rcv_evt == AVD_EVT_VERIFY_ACK_NACK_MSG) ||
-				    (evt->rcv_evt == AVD_EVT_MDS_AVND_DOWN) ||
-				    (evt->rcv_evt == AVD_EVT_TMR_SND_HB)) {
-					avd_process_event(cb, evt);
-				} else {
-					AVD_EVT_QUEUE *queue_evt;
-					/* Enqueue this event */
-					if (NULL != (queue_evt = calloc(1, sizeof(AVD_EVT_QUEUE)))) {
-						queue_evt->evt = evt;
-						m_AVD_EVT_QUEUE_ENQUEUE(cb, queue_evt);
-					} else {
-						/* Log Error */
-					}
-				}
-
-				if (cb->node_list.n_nodes == 0) {
-					AVD_EVT_QUEUE *queue_evt;
-
-					/* We have received the info from all the nodes. */
-					cb->avd_fover_state = FALSE;
-
-					/* Dequeue, all the messages from the queue
-					   and process them now */
-					m_AVD_EVT_QUEUE_DEQUEUE(cb, queue_evt);
-
-					while (NULL != queue_evt) {
-						avd_process_event(cb, queue_evt->evt);
-						free(queue_evt);
-						m_AVD_EVT_QUEUE_DEQUEUE(cb, queue_evt);
-					}
-				}
+				handle_event_in_failover_state(evt);
 			} else if (FALSE == cb->avd_fover_state) {
 				avd_process_event(cb, evt);
 			} else
