@@ -976,6 +976,17 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			goto done;
 		}
 
+		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) ||
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATION_FAILED) || 
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+			/* No need to terminate the SUs in Unins/Inst Failed/Term Failed state */
+			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
+			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+			m_AVD_SET_SU_TERM(cb, su, TRUE);
+			LOG_NO("'%s' presence state is '%u'", su_name->value, su->saAmfSUPresenceState);
+			goto done;
+		}
+
 		if ( ( node->node_state == AVD_AVND_STATE_PRESENT )   ||
 		     ( node->node_state == AVD_AVND_STATE_NO_CONFIG ) ||
 		     ( node->node_state == AVD_AVND_STATE_NCS_INIT ) ) {
@@ -1010,6 +1021,13 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			goto done;
 		}
+
+		if (su->saAmfSUPresenceState != SA_AMF_PRESENCE_UNINSTANTIATED) {
+			LOG_WA("Can't instantiate '%s', whose presense state is '%u'", su_name->value, 
+					su->saAmfSUPresenceState);
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		} 
 
 		if ( ( node->node_state == AVD_AVND_STATE_PRESENT )   ||
 		     ( node->node_state == AVD_AVND_STATE_NO_CONFIG ) ||
