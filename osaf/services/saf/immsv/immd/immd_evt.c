@@ -1980,6 +1980,14 @@ static uns32 immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 		} else
 			break;
 
+	case NCSMDS_RED_DOWN:
+		TRACE_5("Process MDS EVT NCSMDS_RED_DOWN, my PID:%u", getpid());
+		assert(cb->node_id != mds_info->node_id);
+		if(cb->immd_remote_id == mds_info->node_id) {
+			LOG_WA("IMMD lost contact with peer IMMD (NCSMDS_RED_DOWN)");
+			cb->immd_remote_id = 0;
+		}
+
 	case NCSMDS_UP:
 		TRACE_5("PROCESS MDS EVT: NCSMDS_UP, my PID:%u", getpid());
 		if (mds_info->svc_id == NCSMDS_SVC_ID_IMMD) {

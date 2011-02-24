@@ -150,6 +150,7 @@ int immd_proc_elect_coord(IMMD_CB *cb, NCS_BOOL new_active)
 	IMMD_MBCSV_MSG mbcp_msg;
 	MDS_DEST key;
 	IMMD_IMMND_INFO_NODE *immnd_info_node = NULL;
+	NCS_BOOL self_re_elect=FALSE;
 
 	TRACE_ENTER();
 	memset(&key, 0, sizeof(MDS_DEST));
@@ -180,10 +181,30 @@ int immd_proc_elect_coord(IMMD_CB *cb, NCS_BOOL new_active)
 				   EXCEPT when there is an ongoing sync and the coord is
 				   colocated with new active. Then we are (a) sure there
 				   is no missed new-coord message and (b) we want to
-				   avoid disturbing the already started sync, if possible. */
+				   avoid disturbing the already started sync, if possible. 
+				   And EXCEPT for switch-over/si-swap, since there is no
+				   reason for the old immnd to have gone down.
+				*/
 				if ((cb->immnd_coord == cb->node_id) && immnd_info_node->syncStarted) {
 					assert(immnd_info_node->immnd_key == cb->node_id);
+				} else if(cb->immd_remote_id) {
+					/* The standby IMMD is still up */
+					LOG_WA("IMMD not re-electing coord for switch-over (si-swap) coord at (%x)", 
+						cb->immnd_coord);
 				} else {
+					/* Re-elect local coord. */
+					if(immnd_info_node->immnd_key != cb->node_id) {
+						LOG_ER("Changing IMMND coord while old coord is still up!");
+						/* Could theoretically happen if remote IMMD is down, i.e. 
+						   failover, but MDS has not yet provided IMMND DOWN for that
+						   node. Should never happen in a TIPC system.
+						   Could perhaps happen in other systems.
+						   If so we need to implement a way to "shoot down" the
+						   old IMMND coord, which is doomed anyway since the IMMD
+						   (nonrestartable) has crashed on that node.
+						 */
+					}
+					self_re_elect = TRUE;
 					immnd_info_node->isCoord = FALSE;
 					immnd_info_node = NULL;	/*Force new coord election. */
 				}
@@ -220,7 +241,15 @@ int immd_proc_elect_coord(IMMD_CB *cb, NCS_BOOL new_active)
 			return (-1);
 		}
 
-		LOG_NO("New coord (re?)elected, resides at %x", immnd_info_node->immnd_key);
+		if(self_re_elect) {
+			/* Ensure we re-elected ourselves. */
+			assert(immnd_info_node->immnd_key == cb->node_id);
+			LOG_NO("Coord re-elected, resides at %x", immnd_info_node->immnd_key);
+
+		} else {
+			LOG_NO("New coord elected, resides at %x", immnd_info_node->immnd_key);
+		}
+
 		cb->immnd_coord = immnd_info_node->immnd_key;
 		if (!cb->is_rem_immnd_up) {
 			if (cb->immd_remote_id &&
