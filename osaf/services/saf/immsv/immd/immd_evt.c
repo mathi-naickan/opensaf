@@ -1941,6 +1941,16 @@ static uns32 immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 	}
 
 	switch (mds_info->change) {
+
+	case NCSMDS_RED_DOWN:
+		TRACE_5("Process MDS EVT NCSMDS_RED_DOWN, my PID:%u", getpid());
+		assert(cb->node_id != mds_info->node_id);
+		if(cb->immd_remote_id == mds_info->node_id) {
+			LOG_WA("IMMD lost contact with peer IMMD (NCSMDS_RED_DOWN)");
+			cb->immd_remote_id = 0;
+		}
+		break;
+
 	case NCSMDS_RED_UP:
 		/* get the peer mds_red_up */
 		/* from the phy slot get the mds_dest of remote IMMND */
@@ -1976,17 +1986,8 @@ static uns32 immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 				tmpDest = node_info->immnd_dest;
 				immd_immnd_info_node_getnext(&cb->immnd_tree, &tmpDest, &node_info);
 			}
-			/*ABT intentional fall-through ?? */
-		} else
-			break;
-
-	case NCSMDS_RED_DOWN:
-		TRACE_5("Process MDS EVT NCSMDS_RED_DOWN, my PID:%u", getpid());
-		assert(cb->node_id != mds_info->node_id);
-		if(cb->immd_remote_id == mds_info->node_id) {
-			LOG_WA("IMMD lost contact with peer IMMD (NCSMDS_RED_DOWN)");
-			cb->immd_remote_id = 0;
 		}
+		break;
 
 	case NCSMDS_UP:
 		TRACE_5("PROCESS MDS EVT: NCSMDS_UP, my PID:%u", getpid());
