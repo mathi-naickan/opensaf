@@ -3407,6 +3407,17 @@ ImmModel::commitModify(const std::string& dn, ObjectInfo* afterImage)
     ObjectMap::iterator oi = sObjectMap.find(dn);
     assert(oi != sObjectMap.end());
     ObjectInfo* beforeImage = oi->second;
+    if(beforeImage->mAdminOwnerAttrVal->empty()) {
+       /* Admin Owner apparently released (hard) during apply/commit.
+          This can happen if client invokes apply and then disconnects
+          without waiting for reply. Typically because of timeout on
+          the syncronous ccbApply. This can happen for large CCBs
+          and/or with a sluggish PBE. The releaseOn finalize will
+          have auto-released the adminOwner on the before-image but
+          not on the after image of modify. Corrected here.
+        */
+         afterImage->mAdminOwnerAttrVal->setValueC_str(NULL);
+    }
     
     //  sObjectMap.erase(oi);
     //sObjectMap[dn] = afterImage;
