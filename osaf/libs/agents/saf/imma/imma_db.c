@@ -283,6 +283,34 @@ int imma_oi_ccb_record_terminate(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId)
 	return rs;
 }
 
+int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv)
+{
+	TRACE_ENTER();
+	int rs = 0;
+	struct imma_oi_ccb_record *tmp = imma_oi_ccb_record_find(cl_node, ccbId);
+
+	if(tmp) {
+		assert(!tmp->isCritical);
+		rs = 1;
+		if(tmp->opCount) {
+			if(!(cl_node->isPbe)) {
+				LOG_ER("imma_oi_ccb_record_set_critical opCount!=0 yet cl_node->isPbe is FALSE!");
+				rs = 0;
+			}
+
+			if(tmp->opCount != inv) {
+				LOG_ER("Mismatch in PBE op-count %u should be %u.",  tmp->opCount, inv);
+				rs = 0;
+			} else {
+				TRACE_5("op-count matches with inv:%u", inv);
+			}
+		}
+	}
+
+	TRACE_LEAVE();
+	return rs;
+}
+
 int imma_oi_ccb_record_set_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv)
 {
 	TRACE_ENTER();

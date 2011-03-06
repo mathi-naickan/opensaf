@@ -162,6 +162,7 @@ EXTERN_C void imma_client_tree_cleanup(IMMA_CB *cb);
 EXTERN_C void imma_mark_clients_stale(IMMA_CB *cb);
 EXTERN_C int  isExposed(IMMA_CB *cb, IMMA_CLIENT_NODE  *clnode);
 void imma_oi_ccb_record_add(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv);
+int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv);
 int imma_oi_ccb_record_set_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv);
 int imma_oi_ccb_record_terminate(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId);
 int imma_oi_ccb_record_exists(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId);

@@ -1883,6 +1883,16 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 						ccbid, callback->name.value);
 				} else {
 					ccbid = callback->ccbID;
+					/*Verify op-count before PBE commit of ccb. 
+					  This to eliminate the risk of the CCB committing in PBE
+					  yet failing in imma_oi_ccb_record_set_critical below after the
+					  PBE transaction. */
+					if(!imma_oi_ccb_record_ok_for_critical(cl_node, callback->ccbID, callback->inv)) {
+						LOG_ER("ERROR: CCB record for %u does not have correct op-count",
+							callback->ccbID);
+						localEr = SA_AIS_ERR_FAILED_OPERATION;
+						goto skip_completed_upcall;
+					}					
 				}
 #ifdef IMM_A_01_01
 				if (cl_node->isOiA1)
@@ -1914,6 +1924,7 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 					"implementer is registered and CCBs are used. Ccb will fail");
 				localEr = SA_AIS_ERR_FAILED_OPERATION;
 			}
+		skip_completed_upcall:
 
 			memset(&ccbCompletedRpl, 0, sizeof(IMMSV_EVT));
 			ccbCompletedRpl.type = IMMSV_EVT_TYPE_IMMND;
