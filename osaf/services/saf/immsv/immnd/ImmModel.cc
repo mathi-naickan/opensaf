@@ -6648,7 +6648,7 @@ SaAisErrorT ImmModel::adminOperationInvoke(
                 *implConn = 0;
             } else {
                 if(object->mImplementer->mAdminOpBusy) {
-                    LOG_NO("Implementer '%s' for object: '%s' is busy with other admop, "
+                    TRACE_5("Implementer '%s' for object: '%s' is busy with other admop, "
                         "request is queued", object->mImplementer->mImplementerName.c_str(),
                         objectName.c_str());
                 }
@@ -6753,7 +6753,7 @@ ImmModel::fetchAdmImplContinuation(SaInvocationT& inv,
     *reply_dest = ci3->second.mReply_dest;
     (ci3->second.mImplementer->mAdminOpBusy)--;
     if(ci3->second.mImplementer->mAdminOpBusy) {
-        LOG_WA("Waiting for %u additional admop replies after admop return", 
+        TRACE_5("Waiting for %u additional admop replies after admop return", 
             ci3->second.mImplementer->mAdminOpBusy);
     }
     sAdmImplContinuationMap.erase(ci3);

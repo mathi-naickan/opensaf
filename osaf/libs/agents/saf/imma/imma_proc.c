@@ -234,6 +234,7 @@ static void imma_proc_admin_op_async_rsp(IMMA_CB *cb, IMMA_EVT *evt)
 
 	/*NOTE: should get handle from immnd also and verify. */
 	if (!popAsyncAdmOpContinuation(cb, inv, &immHandleCont, &userInvoc)) {
+		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		TRACE_3("Missmatch on continuation for SaImmOmAdminOperationInvokeCallbackT");
 		return;
 	}
@@ -527,6 +528,7 @@ void imma_proc_terminate_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 			imma_client_node_get(&cb->client_tree, &handle, &cl_node);
 			if (!cl_node) {
 				LOG_WA("Client node removed (handle closed) during termination processing");
+				m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 				return;
 			}
 
@@ -840,6 +842,7 @@ static void imma_proc_ccb_completed(IMMA_CB *cb, IMMA_EVT *evt)
 		if(imma_oi_ccb_record_exists(cl_node, evt->info.ccbCompl.ccbId)) {
 			LOG_WA("Redundant & anonymous CCB-completed UC for %u => ignore",
 				evt->info.ccbCompl.ccbId);
+			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 			return;
 		} else {
 			LOG_WA("Re-inserting Ccb record %u in ccb-completed upcall => PBE recovery,",
@@ -1714,7 +1717,7 @@ uns32 imma_hdl_callbk_dispatch_block(IMMA_CB *cb, SaImmHandleT immHandle)
 					return SA_AIS_ERR_BAD_HANDLE;
 				}
 
-                m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
+				m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 				imma_process_callback_info(cb, client_info, callback, immHandle);
 			} else {
 				/* Another thread called Finalize? */
