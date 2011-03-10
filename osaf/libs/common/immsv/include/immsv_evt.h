@@ -551,7 +551,7 @@ EXTERN_C void immsv_evt_free_name_list(IMMSV_OBJ_NAME_LIST *p);
 EXTERN_C void immsv_evt_free_ccbOutcomeList(IMMSV_CCB_OUTCOME_LIST *o);
 
 /* Macros to pack and unpack imm handles */
-#define m_IMMSV_PACK_HANDLE(high, low) ((((SaUint64T) high) << 32) | low)
+#define m_IMMSV_PACK_HANDLE(high, low) ((((SaUint64T) high) << 32) | ((SaUint32T) low))
 #define  m_IMMSV_UNPACK_HANDLE_HIGH(imm_handle) (SaUint32T) ((imm_handle) >> 32)
 #define  m_IMMSV_UNPACK_HANDLE_LOW(imm_handle) (SaUint32T) ((imm_handle) & 0x00000000ffffffff)
 
