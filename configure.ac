@@ -44,24 +44,27 @@ AC_SUBST([ac_configure_args])
 
 
 #
-# Check if rpath is disabled
+# Check if rpath is enabled
 #
-AC_MSG_CHECKING([whether to use rpath])
+AC_MSG_CHECKING([whether to build with rpath enabled])
 AC_ARG_ENABLE([rpath],
 	[AC_HELP_STRING([--disable-rpath],
-		[Patches libtool to not use rpath in the libraries produced.])],
+		[patches libtool to not use rpath in the libraries produced.
+		[Default=no]])],
 	[],
-	[osaf_cv_rpath=no])
-AC_MSG_RESULT([$osaf_cv_rpath])
+	[enable_rpath=yes])
+AC_MSG_RESULT([$enable_rpath])
 
-# Patch libtool to not use rpath if requested [default].
-if test "$osaf_cv_rpath" = "no"; then
-	AC_MSG_RESULT([Patching libtool to not use rpath.])
-	sed < libtool > libtool-2 \
-		's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=" -D__LIBTOOL_NO_RPATH__ "/'
-	mv libtool-2 libtool
-	chmod 755 libtool
-fi
+AC_PROG_LIBTOOL
+AC_CONFIG_COMMANDS([libtool-rpath-patch],
+	[if test "$libtool_patch_use_rpath" = "no"; then
+		sed < libtool > libtool-2 's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=""/'
+		mv libtool-2 libtool
+		sed < libtool > libtool-2 's/^runpath_var=LD_RUN_PATH$'/'runpath_var=DIE_RPATH_DIE/'
+		mv libtool-2 libtool
+		chmod 755 libtool
+	fi],
+[libtool_patch_use_rpath=$enable_rpath])
 
 
 #
@@ -688,7 +691,7 @@ AC_CONFIG_FILES([
         osaf/libs/saf/libSaSmf/pkgconfig/opensaf-smf.pc
         osaf/services/Makefile
         osaf/services/infrastructure/Makefile
-	osaf/services/infrastructure/dtms/Makefile
+        osaf/services/infrastructure/dtms/Makefile
         osaf/services/infrastructure/dtms/dtm/Makefile
         osaf/services/infrastructure/dtms/scripts/Makefile
         osaf/services/infrastructure/dtms/scripts/osaf-dtm
@@ -862,7 +865,7 @@ echo "${ECHO_T}  C++ Compiler: ${CXX}"
 echo "${ECHO_T}  CFLAGS: ${CFLAGS} ${AM_CFLAGS}"
 echo "${ECHO_T}  CXXFLAGS: ${CXXFLAGS} ${AM_CXXFLAGS}"
 echo "${ECHO_T}  LDFLAGS: ${LDFLAGS}"
-echo "${ECHO_T}  Enable RPATH: ${osaf_cv_rpath}"
+echo "${ECHO_T}  Enable RPATH: ${enable_rpath}"
 
 if test "$srcdir" == "."; then
         echo "${ECHO_T}  Using VPATH: no"
@@ -893,6 +896,5 @@ echo "${ECHO_T}  Enable Java AIS Mapping: ${enable_java}"
 echo "${ECHO_T}  Enable AM4J: ${enable_am4j}"
 echo "${ECHO_T}  Enable PLM support: ${enable_ais_plm}"
 echo "${ECHO_T}  Enable TIPC transport: ${enable_tipc}"
-echo "${ECHO_T}  Enable Build for Payload: ${enable_payload_build}"
 echo "======================================================="
 echo ""

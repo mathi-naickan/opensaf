@@ -26,24 +26,26 @@ AM_INIT_AUTOMAKE([$PACKAGE_NAME], [$PACKAGE_VERSION])
 
 
 #
-# Check if rpath is disabled
+# Check if rpath is enabled
 #
-AC_MSG_CHECKING([whether to use rpath])
+AC_MSG_CHECKING([whether to build with rpath enabled])
 AC_ARG_ENABLE([rpath],
-	[AC_HELP_STRING([--disable-rpath],
+	[AC_HELP_STRING([--enable-rpath],
 		[Patches libtool to not use rpath in the libraries produced.])],
 	[],
-	[osaf_cv_rpath=yes])
-AC_MSG_RESULT([$osaf_cv_rpath])
+	[enable_rpath=yes])
+AC_MSG_RESULT([$enable_rpath])
 
-# Patch libtool to not use rpath if requested.
-if test "$osaf_cv_rpath" = "no"; then
-	AC_MSG_RESULT([Patching libtool to not use rpath.])
-	sed < libtool > libtool-2 \
-		's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=" -D__LIBTOOL_NO_RPATH__ "/'
-	mv libtool-2 libtool
-	chmod 755 libtool
-fi
+AC_PROG_LIBTOOL
+AC_CONFIG_COMMANDS([libtool-rpath-patch],
+	[if test "$libtool_patch_use_rpath" = "no"; then
+		sed < libtool > libtool-2 's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=""/'
+		mv libtool-2 libtool
+		sed < libtool > libtool-2 's/^runpath_var=LD_RUN_PATH$'/'runpath_var=DIE_RPATH_DIE/'
+		mv libtool-2 libtool
+		chmod 755 libtool
+	fi],
+[libtool_patch_use_rpath=$enable_rpath])
 
 
 #

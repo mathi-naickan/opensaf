@@ -194,6 +194,7 @@ check_transport() {
 }
 
 start() {
+	export LD_LIBRARY_PATH=$pkglibdir:$LD_LIBRARY_PATH
         pidofproc -p $amfnd_pid $amfnd_bin > /dev/null 2>&1
 	lsb_status=$?
 	if [ $lsb_status -eq 0 ]; then
