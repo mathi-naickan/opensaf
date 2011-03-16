@@ -132,6 +132,8 @@ extern "C" {
 	void immModel_getOldCriticalCcbs(IMMND_CB *cb, SaUint32T **ccbIdArr, SaUint32T *ccbIdArrSize, 
 		SaUint32T *pbeConn, SaClmNodeIdT *pbeNodeId, SaUint32T *pbeId);
 
+	SaUint32T immModel_getIdForLargeAdmo(IMMND_CB *cb);
+
 	SaAisErrorT
 	    immModel_ccbApply(IMMND_CB *cb,
 			      SaUint32T ccbId,

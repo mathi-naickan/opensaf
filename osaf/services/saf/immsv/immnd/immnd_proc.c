@@ -1112,7 +1112,8 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 
 	if(pbePrtoStuck) {
 		if(cb->pbePid > 0) {
-			LOG_ER("PBE process appears stuckk on runtime data handling - restarting");
+			LOG_ER("PBE process %u appears stuck on runtime data handling "
+				"- sending SIGTERM", cb->pbePid);
 			kill(cb->pbePid, SIGTERM);
 		}
 	}
@@ -1149,9 +1150,9 @@ static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration)
 
 	SaBoolT ccbsTerminated = immModel_ccbsTerminated(cb);
 	SaBoolT pbeIsInSync = immModel_pbeIsInSync(cb);
-	
+	SaUint32T largeAdmoId = immModel_getIdForLargeAdmo(cb);
 
-	if (ccbsTerminated && pbeIsInSync) {
+	if (ccbsTerminated && pbeIsInSync && (!largeAdmoId)) {
 		return SA_TRUE;
 	}
 
@@ -1194,6 +1195,26 @@ static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration)
 			}
 		}
 		free(ccbIdArr);
+	} else if(largeAdmoId) {
+		/* Ccbs are terminated, yet there are admin-owner(s) 
+		   lingering with releaseOnFinalize==true and more than
+		   9999 touched objects. We need to force such adminOwners
+		   to finalize. User will then get bad-handle when using the
+		   adminOwnerHandle sooner or later.
+		 */
+		IMMSV_EVT send_evt;
+
+		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
+		send_evt.type = IMMSV_EVT_TYPE_IMMD;
+		send_evt.info.immd.type = IMMD_EVT_ND2D_ADMO_HARD_FINALIZE;
+		send_evt.info.immd.info.admoId = largeAdmoId;
+		TRACE("Sending discard admo for large admo-id:%u", largeAdmoId);
+
+		if (immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id,
+			    &send_evt) != NCSCC_RC_SUCCESS) {
+			LOG_WA("Failure to broadcast discard admowner for id:%u "
+				"- will retry later", largeAdmoId);
+		}
 	}
 
 	return SA_FALSE;
@@ -1776,7 +1797,9 @@ uns32 immnd_proc_server(uns32 *timeout)
 
 		coord = immnd_iAmCoordinator(cb);
 
-		immnd_cleanTheHouse(cb, coord == 1);
+		if(((*timeout) >= 1000) || (((*timeout) < 1000) && (((cb->mStep+1) % 30)==0))) {
+			immnd_cleanTheHouse(cb, coord == 1);
+		}
 
 		if ((coord == 1) && (cb->mStep > 1)) {
 			if (immModel_immNotWritable(cb)) {

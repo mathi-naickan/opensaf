@@ -521,6 +521,13 @@ immModel_getNonCriticalCcbs(IMMND_CB *cb,
     }
 }
 
+SaUint32T
+immModel_getIdForLargeAdmo(IMMND_CB *cb)
+{
+    return ImmModel::instance(&cb->immModel)->getIdForLargeAdmo();
+}
+
+
 void
 immModel_getOldCriticalCcbs(IMMND_CB *cb,
     SaUint32T** ccbIdArr,
@@ -2981,6 +2988,12 @@ ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard)
         
         if(immNotWritable()) {
             if(hard) {
+                unsigned int siz = (*i)->mTouchedObjects.size();
+                if(siz >= IMMSV_MAX_OBJECTS) {
+                    LOG_WA("Forcing immediate hard delete of large (%u) admin owner with id:%u "
+                           "to clear way for sync", siz, ownerId);
+                    goto forced;
+                }
                 LOG_WA("Postponing hard delete of admin owner with id:%u "
                     "when imm is not writable", ownerId);
                 (*i)->mDying = true;
@@ -2991,6 +3004,7 @@ ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard)
             goto done;
         }
         
+    forced:
         if((*i)->mDying) {
             LOG_IN("Removing zombie Admin Owner %u %s", ownerId,
                 (*i)->mAdminOwnerName.c_str());
@@ -7328,6 +7342,29 @@ ImmModel::getNonCriticalCcbs(IdVector& cv)
             cv.push_back((*i)->mId);
         }
     }
+}
+
+SaUint32T
+ImmModel::getIdForLargeAdmo()
+{
+    AdminOwnerVector::iterator i2;
+    for(i2 = sOwnerVector.begin();i2 != sOwnerVector.end();++i2) {
+        if((*i2)->mTouchedObjects.size() >= IMMSV_MAX_OBJECTS) {
+            /* If the Admo is alive and large then it is a problem for
+               finalizeSync. 
+               This method returns the id of the first large and non-dying
+               admo it finds. The id is sent over fevs as a hard finalize
+               message to all IMMNDs, which will either discard the admo 
+               or mark it as dying if immnds are in read-only mode.
+	       If it is dying and large then finalizeSync will
+               discard it before generating the finalizeSync-message.
+               If it is small, then it will be part of the message.
+            */
+            TRACE("Found large Admo %u %u", (*i2)->mId, (unsigned int) (*i2)->mTouchedObjects.size());
+            return (*i2)->mId;
+        }
+    }
+    return 0;
 }
 
 void

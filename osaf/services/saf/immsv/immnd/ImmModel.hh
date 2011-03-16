@@ -400,6 +400,7 @@ public:
     SaAisErrorT       ccbResult(SaUint32T ccbId);
     bool              ccbsTerminated();
     bool              pbeIsInSync();
+    SaUint32T         getIdForLargeAdmo();
     void              getNonCriticalCcbs(IdVector& cv);
     void              getOldCriticalCcbs(
                                          IdVector& cv, 
