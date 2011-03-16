@@ -37,6 +37,7 @@ NIDSERV="CLMD"
 COMPNAMEFILE=$pkglocalstatedir/clmd_comp_name
 
 start() {
+	export LD_LIBRARY_PATH=$pkglibdir:$LD_LIBRARY_PATH
 	[ -p $NIDFIFO ] || exit 1
 	if [ ! -x $binary ]; then
 		echo "$NID_MAGIC:$NIDSERV:$DAEMON_NOT_FND" > $NIDFIFO

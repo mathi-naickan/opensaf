@@ -35,6 +35,7 @@ RETVAL=0
 NIDSERV="CLMNA"
 
 start() {
+	export LD_LIBRARY_PATH=$pkglibdir:$LD_LIBRARY_PATH
 	[ -x $binary ] || exit 5
 	echo -n "Starting $prog: "
 	start_daemon -p $pidfile $binary $args
