@@ -7704,7 +7704,7 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
                                 ccb->mImplementers[info->mId] = oldImplAssoc;
                                 TRACE_7("Replaced implid %u with %u", oldImplId, info->mId);
                                 ccb->mPbeRestartId = info->mId;
-				ccb->mWaitStartTime = time(NULL);/*Reset timer on new impl*/
+                                ccb->mWaitStartTime = time(NULL);/*Reset timer on new impl*/
                                 /* Can only be one PBE impl asoc*/
                                 break;  /* out of for(isi = ccb->mImplementers....*/
                         }
@@ -7933,6 +7933,7 @@ ImmModel::classImplementerRelease(const struct ImmsvOiImplSetReq* req,
                             for(os=classInfo->mExtent.begin(); os!=classInfo->mExtent.end();
                                 ++os) {
                                 (*os)->mImplementer = 0;
+                                this->clearImplName(*os);
                             }
                             classInfo->mImplementer = 0;
                         }
@@ -8206,11 +8207,23 @@ SaAisErrorT ImmModel::releaseImplementer(std::string objectName,
                 obj->mImplementer = 0;
                 TRACE_5("implementer for object '%s' is released", 
                     objectName.c_str());
+                    this->clearImplName(obj);
             }
         }
     }
     /*TRACE_LEAVE();*/
     return err;
+}
+
+void
+ImmModel::clearImplName(ObjectInfo* obj)
+{
+    std::string implAttr(SA_IMM_ATTR_IMPLEMENTER_NAME);
+    ImmAttrValue* att = obj->mAttrValueMap[implAttr];
+    assert(att);
+    if(!(att->empty())) {
+        att->setValueC_str(NULL);
+    }
 }
 
 
