@@ -43,15 +43,15 @@ void saflog(int priority, const SaNameT *logSvcUsrName, const char *format, ...)
 
 		error = saLogInitialize(&logHandle, NULL, &logVersion);
 		if (error != SA_AIS_OK) {
-			syslog(LOG_ERR, "saLogInitialize FAILED: %u", error);
+			syslog(LOG_INFO, "saLogInitialize FAILED: %u", error);
 			goto done;
 		}
 
 		error = saLogStreamOpen_2(logHandle, &stream_name, NULL, 0, SA_TIME_ONE_SECOND, &logStreamHandle);
 		if (error != SA_AIS_OK) {
-			syslog(LOG_ERR, "saLogStreamOpen_2 FAILED: %u", error);
+			syslog(LOG_INFO, "saLogStreamOpen_2 FAILED: %u", error);
 			if (saLogFinalize(logHandle) != SA_AIS_OK)
-				syslog(LOG_ERR, "saLogFinalize FAILED: %u", error);
+				syslog(LOG_INFO, "saLogFinalize FAILED: %u", error);
 			goto done;
 		}
 		initialized = 1;
@@ -68,7 +68,7 @@ void saflog(int priority, const SaNameT *logSvcUsrName, const char *format, ...)
 	error = saLogWriteLogAsync(logStreamHandle, 0, 0, &logRecord);
 	if (error == SA_AIS_ERR_TRY_AGAIN) {
 		unsigned int nTries = 1;
-		while (error == SA_AIS_ERR_TRY_AGAIN && nTries < 100) {
+		while (error == SA_AIS_ERR_TRY_AGAIN && nTries < 10) {
 			usleep(10 * 1000); /* 10 ms */
 			error = saLogWriteLogAsync(logStreamHandle, 0, 0, &logRecord);
 			nTries++;
