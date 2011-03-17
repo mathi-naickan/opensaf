@@ -46,6 +46,8 @@ int lgs_create_config_file(log_stream_t *stream)
 	char pathname[PATH_MAX + NAME_MAX];
 	FILE *filp;
 
+	TRACE_ENTER();
+
 	/* create absolute path for config file */
 	n = snprintf(pathname, PATH_MAX, "%s/%s/%s.cfg", lgs_cb->logsv_root_dir, stream->pathName, stream->fileName);
 
@@ -61,7 +63,7 @@ fopen_retry:
 		if (errno == EINTR)
 			goto fopen_retry;
 
-		LOG_ER("ERROR: cannot open %s", strerror(errno));
+		LOG_NO("Could not open '%s' - %s", pathname, strerror(errno));
 		rc = -1;
 		goto done;
 	}
@@ -89,17 +91,18 @@ fopen_retry:
 
  fprintf_done:
 	if (rc == -1)
-		LOG_ER("Could not write to file '%s'", pathname);
+		LOG_NO("Could not write to '%s'", pathname);
 
 fclose_retry:
 	if ((rc = fclose(filp)) == -1) {
 		if (errno == EINTR)
 			goto fclose_retry;
 
-		LOG_ER("Could not close file '%s' - '%s'", pathname, strerror(errno));
+		LOG_NO("Could not close '%s' - '%s'", pathname, strerror(errno));
 	}
 
 done:
+	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 
@@ -174,7 +177,7 @@ int lgs_file_rename(const char *path, const char *old_name, const char *time_sta
 	TRACE_4("Rename file from %s", oldpath);
 	TRACE_4("              to %s", newpath);
 	if ((ret = rename(oldpath, newpath)) == -1)
-		LOG_ER("rename: FAILED - %s", strerror(errno));
+		LOG_NO("rename: FAILED - %s", strerror(errno));
 
 	return ret;
 }

@@ -47,12 +47,15 @@ static int fileclose(int fd)
 {
 	int rc;
 
+	TRACE_ENTER2("fd=%d", fd);
+
 close_retry:
 	rc = close(fd);
 
 	if (rc == -1 && errno == EINTR)
 		goto close_retry;
 
+	TRACE_LEAVE2("rc=%d", rc);
 	return rc;
 }
 
@@ -67,6 +70,8 @@ static int delete_config_file(log_stream_t *stream)
 	int rc, n;
 	char pathname[PATH_MAX + NAME_MAX];
 
+	TRACE_ENTER();
+
 	/* create absolute path for config file */
 	n = snprintf(pathname, PATH_MAX, "%s/%s/%s.cfg", lgs_cb->logsv_root_dir, stream->pathName, stream->fileName);
 
@@ -79,6 +84,7 @@ static int delete_config_file(log_stream_t *stream)
 			LOG_ER("could not unlink: %s - %s", pathname, strerror(errno));
 	}
 
+	TRACE_LEAVE2("rc=%d", rc);
 	return rc;
 }
 
@@ -103,7 +109,7 @@ static int rotate_if_needed(log_stream_t *stream)
 	while (file_cnt >= stream->maxFilesRotated) {
 		TRACE_1("remove oldest file: %s", oldest_file);
 		if ((rc = unlink(oldest_file)) == -1) {
-			LOG_ER("could not unlink: %s - %s", oldest_file, strerror(errno));
+			LOG_NO("could not unlink: %s - %s", oldest_file, strerror(errno));
 			goto done;
 		}
 
@@ -114,7 +120,7 @@ static int rotate_if_needed(log_stream_t *stream)
 	}
 
  done:
-	TRACE_LEAVE2("rc: %d", rc);
+	TRACE_LEAVE2("rc=%d", rc);
 	return rc;
 }
 
@@ -504,6 +510,8 @@ static int log_file_open(log_stream_t *stream)
 	int fd;
 	char pathname[PATH_MAX + NAME_MAX + 1];
 
+	TRACE_LEAVE2("%s", stream->logFileCurrent);
+
 	sprintf(pathname, "%s/%s/%s.log", lgs_cb->logsv_root_dir, stream->pathName, stream->logFileCurrent);
 
 open_retry:
@@ -513,9 +521,10 @@ open_retry:
 		if (errno == EINTR)
 			goto open_retry;
 
-		LOG_ER("Could not open: %s - %s", pathname, strerror(errno));
+		LOG_NO("Could not open: %s - %s", pathname, strerror(errno));
 	}
 
+	TRACE_LEAVE2("%d", fd);
 	return fd;
 }
 
@@ -525,7 +534,7 @@ SaAisErrorT log_stream_open(log_stream_t *stream)
 	char command[PATH_MAX + 16];
 
 	assert(stream != NULL);
-	TRACE_ENTER2("%s", stream->name);
+	TRACE_ENTER2("%s, numOpeners=%u", stream->name, stream->numOpeners);
 
 	/* first time open? */
 	if (stream->numOpeners == 0) {
@@ -575,7 +584,7 @@ SaAisErrorT log_stream_open(log_stream_t *stream)
  done:
 	if (stream->fd == -1)
 		rc = SA_AIS_ERR_FAILED_OPERATION;
-	TRACE_LEAVE();
+	TRACE_LEAVE2("rc=%u, numOpeners=%u", rc, stream->numOpeners);
 	return rc;
 }
 
@@ -592,7 +601,7 @@ int log_stream_close(log_stream_t **s)
 	log_stream_t *stream = *s;
 
 	assert(stream != NULL);
-	TRACE_ENTER2("%s", stream->name);
+	TRACE_ENTER2("%s, numOpeners=%u", stream->name, stream->numOpeners);
 
 	assert(stream->numOpeners > 0);
 	stream->numOpeners--;
@@ -626,7 +635,7 @@ int log_stream_close(log_stream_t **s)
 	}
 
  done:
-	TRACE_LEAVE();
+	TRACE_LEAVE2("rc=%d, numOpeners=%u", rc, stream->numOpeners);
 	return rc;
 }
 
@@ -652,7 +661,7 @@ int log_stream_file_close(log_stream_t *stream)
 			stream->fd = -1;
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%d", rc);
 	return rc;
 }
 
@@ -838,7 +847,7 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 	}
 
  done:
-	TRACE_LEAVE();
+	TRACE_LEAVE2("rc=%u", rc);
 	return rc;
 }
 
