@@ -700,7 +700,6 @@ uns32 avd_node_admin_lock_instantiation(AVD_AVND *node)
 		    (su->saAmfSUPresenceState != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
 
 			if (avd_snd_presence_msg(avd_cb, su, TRUE) == NCSCC_RC_SUCCESS) {
-				m_AVD_SET_SU_TERM(avd_cb, su, TRUE);
 				node->su_cnt_admin_oper++;
 			} else {
 				rc = NCSCC_RC_FAILURE;
@@ -735,7 +734,6 @@ uns32 node_admin_unlock_instantiation(AVD_AVND *node)
 
 			if (su->saAmfSUPreInstantiable == TRUE) {
 				if (avd_snd_presence_msg(avd_cb, su, FALSE) == NCSCC_RC_SUCCESS) {
-					m_AVD_SET_SU_TERM(avd_cb, su, FALSE);
 					node->su_cnt_admin_oper++;
 				} else {
 					rc = NCSCC_RC_FAILURE;
@@ -1017,6 +1015,21 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 }
 
 /**
+ * Set term_state for all pre-inst SUs hosted on the specified node
+ * 
+ * @param node
+ */
+static void node_sus_termstate_set(AVD_AVND *node, NCS_BOOL term_state)
+{
+	AVD_SU *su;
+
+	for (su = node->list_of_su; su; su = su->avnd_list_su_next) {
+		if (su->saAmfSUPreInstantiable == TRUE)
+			m_AVD_SET_SU_TERM(avd_cb, su, term_state);
+	}
+}
+
+/**
  * Handle admin operations on SaAmfNode objects.
  *      
  * @param immOiHandle             
@@ -1160,6 +1173,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 			goto done;
 		}
 
+		node_sus_termstate_set(node, TRUE);
 		node_admin_state_set(node, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
 
 		if (node->node_info.member == FALSE) {
@@ -1207,6 +1221,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 			goto done;
 		}
 
+		node_sus_termstate_set(node, FALSE);
 		node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
 
 		if (node->node_info.member == FALSE) {
