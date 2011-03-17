@@ -290,6 +290,8 @@ public:
                                                  const struct ImmsvOiImplSetReq* req,
                                                  SaUint32T con,
                                                  unsigned int nodeId);
+
+    void                clearImplName(ObjectInfo* obj);
     
     SaAisErrorT         implementerClear(
                                          const struct ImmsvOiImplSetReq* req,
