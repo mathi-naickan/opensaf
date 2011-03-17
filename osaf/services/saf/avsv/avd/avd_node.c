@@ -1077,20 +1077,21 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 	case SA_AMF_ADMIN_SHUTDOWN:
 		if (node->saAmfNodeAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
 			rc = SA_AIS_ERR_NO_OP;
-			LOG_WA("Already in SHUTTING DOWN state");
+			LOG_WA("'%s' Already in SHUTTING DOWN state", node->name.value);
 			goto done;
 		}
 
 		if (node->saAmfNodeAdminState != SA_AMF_ADMIN_UNLOCKED) {
 			rc = SA_AIS_ERR_BAD_OPERATION;
-			LOG_WA("Invalid Admin Operation in state %d", node->saAmfNodeAdminState);
+			LOG_WA("'%s' Invalid Admin Operation SHUTDOWN in state %s",
+				node->name.value, avd_adm_state_name[node->saAmfNodeAdminState]);
 			goto done;
 		}
 
 		if (node->node_info.member == FALSE) {
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
-			LOG_NO("Clm lock has been already performed");
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+			LOG_NO("'%s' SHUTDOWN: CLM node is not member", node->name.value);
+			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1100,20 +1101,21 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 	case SA_AMF_ADMIN_UNLOCK:
 		if (node->saAmfNodeAdminState == SA_AMF_ADMIN_UNLOCKED) {
 			rc = SA_AIS_ERR_NO_OP;
-			LOG_WA("Already in UNLOCKED state");
+			LOG_WA("'%s' Already in UNLOCKED state", node->name.value);
 			goto done;
 		}
 
 		if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED) {
 			rc = SA_AIS_ERR_BAD_OPERATION;
-			LOG_WA("Invalid Admin Operation in state %d", node->saAmfNodeAdminState);
+			LOG_WA("'%s' Invalid Admin Operation UNLOCK in state %s",
+				node->name.value, avd_adm_state_name[node->saAmfNodeAdminState]);
 			goto done;
 		}
 
 		if (node->node_info.member == FALSE) {
-			LOG_NO("Clm lock has been already performed");
+			LOG_NO("'%s' UNLOCK: CLM node is not member", node->name.value);
 			node_admin_state_set(node, SA_AMF_ADMIN_UNLOCKED);
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1123,20 +1125,21 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 	case SA_AMF_ADMIN_LOCK:
 		if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED) {
 			rc = SA_AIS_ERR_NO_OP;
-			LOG_WA("Already in LOCKED state");
+			LOG_WA("'%s' Already in LOCKED state", node->name.value);
 			goto done;
 		}
 
 		if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
 			rc = SA_AIS_ERR_BAD_OPERATION;
-			LOG_WA("Invalid Admin Operation in state %d", node->saAmfNodeAdminState);
+			LOG_WA("'%s' Invalid Admin Operation LOCK in state %s",
+				node->name.value, avd_adm_state_name[node->saAmfNodeAdminState]);
 			goto done;
 		}
 
 		if (node->node_info.member == FALSE) {
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
-			LOG_NO("Clm lock has been already performed");
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+			LOG_NO("%s' LOCK: CLM node is not member", node->name.value);
+			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1146,25 +1149,27 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 	case SA_AMF_ADMIN_LOCK_INSTANTIATION:
 		if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
 			rc = SA_AIS_ERR_NO_OP;
-			LOG_WA("Already in LOCKED INSTANTIATION state");
+			LOG_WA("'%s' Already in LOCKED INSTANTIATION state", node->name.value);
 			goto done;
 		}
 
 		if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED) {
 			rc = SA_AIS_ERR_BAD_OPERATION;
-			LOG_WA("Invalid Admin Operation in state %d", node->saAmfNodeAdminState);
+			LOG_WA("'%s' Invalid Admin Operation LOCK_INSTANTIATION in state %s",
+				node->name.value, avd_adm_state_name[node->saAmfNodeAdminState]);
 			goto done;
 		}
 
 		node_admin_state_set(node, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
 
 		if (node->node_info.member == FALSE) {
-			LOG_NO("Clm lock has been already performed");
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+			LOG_NO("'%s' LOCK_INSTANTIATION: CLM node is not member", node->name.value);
+			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
 		if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED || node->list_of_su == NULL) {
+			LOG_NO("'%s' LOCK_INSTANTIATION: AMF node oper state disabled", node->name.value);
 			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
@@ -1191,25 +1196,27 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 	case SA_AMF_ADMIN_UNLOCK_INSTANTIATION:
 		if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED) {
 			rc = SA_AIS_ERR_NO_OP;
-			LOG_WA("Already in LOCKED state");
+			LOG_WA("'%s' Already in LOCKED state", node->name.value);
 			goto done;
 		}
 
 		if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
 			rc = SA_AIS_ERR_BAD_OPERATION;
-			LOG_WA("Invalid Admin Operation in state %d", node->saAmfNodeAdminState);
+			LOG_WA("'%s' Invalid Admin Operation UNLOCK_INSTANTIATION in state %s",
+				node->name.value, avd_adm_state_name[node->saAmfNodeAdminState]);
 			goto done;
 		}
 
 		node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
 
 		if (node->node_info.member == FALSE) {
-			LOG_NO("Clm lock has been already performed");
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+			LOG_NO("'%s' UNLOCK_INSTANTIATION: CLM node is not member", node->name.value);
+			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
-		if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED || node->list_of_su == NULL) {
+		if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
+			LOG_NO("'%s' UNLOCK_INSTANTIATION: AMF node oper state disabled", node->name.value);
 			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
