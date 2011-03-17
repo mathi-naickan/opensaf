@@ -1438,7 +1438,7 @@ uns32 avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 	AVD_SU *pref_su = NULL;
 	AVD_SUS_PER_SI_RANK_INDX i_idx;
 	AVD_SUS_PER_SI_RANK *su_rank_rec = 0;
-	NCS_BOOL is_act_ass_sent = FALSE, is_all_su_oos = TRUE, is_all_si_ok = FALSE, l_flag = TRUE;
+	NCS_BOOL is_act_ass_sent = FALSE, is_all_su_oos = TRUE, is_all_si_ok = FALSE, su_found = TRUE;
 	uns32 rc = NCSCC_RC_SUCCESS;
 	AVD_SU_SI_REL *tmp_susi;
 
@@ -1562,7 +1562,7 @@ uns32 avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 		return rc;
 
 	/* assign standby assignments to the sis */
-	for (curr_si = sg->list_of_si; curr_si && (TRUE == l_flag); curr_si = curr_si->sg_list_of_si_next) {
+	for (curr_si = sg->list_of_si; curr_si && (TRUE == su_found); curr_si = curr_si->sg_list_of_si_next) {
 		/* verify if si is ready */
 		if ((curr_si->saAmfSIAdminState != SA_AMF_ADMIN_UNLOCKED) || (curr_si->num_csi != curr_si->max_num_csi))
 			continue;
@@ -1614,8 +1614,6 @@ uns32 avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 		if (m_AVD_SI_STDBY_CURR_SU(curr_si) == m_AVD_SI_STDBY_MAX_SU(curr_si))
 			continue;
 
-		l_flag = FALSE;
-
 		if (sg->equal_ranked_su == TRUE) {
 
 			while (TRUE) {
@@ -1646,6 +1644,8 @@ uns32 avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 				continue;
 		}
 
+		su_found = FALSE;
+
 		/* next, scan based on su rank for the sg */
 		for (curr_su = sg->list_of_su; curr_su; curr_su = curr_su->sg_list_su_next) {
 			/* verify if this su can take the standby assignment */
@@ -1655,7 +1655,7 @@ uns32 avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 					 (curr_su->saAmfSUNumCurrStandbySIs >= curr_su->sg_of_su->saAmfSGMaxStandbySIsperSU)))
 				continue;
 
-			l_flag = TRUE;
+			su_found = TRUE;
 
 			/* verify if this su does not have this assignment */
 			if (avd_su_susi_find(cb, curr_su, &curr_si->name) != AVD_SU_SI_REL_NULL) 
