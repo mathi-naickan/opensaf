@@ -5823,8 +5823,9 @@ SaAisErrorT ImmModel::adminOperationInvoke(
                 *implConn = 0;
             } else {
                 if(object->mImplementer->mAdminOpBusy) {
-                    LOG_WA("Implementer for object: %s is already busy with admop",
-                        objAdminOwnerName.c_str());
+                    TRACE_5("Implementer '%s' for object: '%s' is busy with other admop, "
+                        "request is queued", object->mImplementer->mImplementerName.c_str(),
+                        objectName.c_str());
                     //TODO: This should generate SA_AIS_ERR_BUSY for ccb ops, 
                     //but we dont have reliable cleanup yet.
                     //It is the "object" which is bussy not the "implementer".
@@ -5923,7 +5924,7 @@ ImmModel::fetchAdmImplContinuation(SaInvocationT& inv,
     *reply_dest = ci3->second.mReply_dest;
     (ci3->second.mImplementer->mAdminOpBusy)--;
     if(ci3->second.mImplementer->mAdminOpBusy) {
-        LOG_WA("Waiting for %u additional admop replies after admop return", 
+        TRACE_5("Waiting for %u additional admop replies after admop return", 
             ci3->second.mImplementer->mAdminOpBusy);
     }
     sAdmImplContinuationMap.erase(ci3);
