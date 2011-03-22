@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
     unsigned int objCount=0;
 
     unsigned int           retryInterval = 1000000; /* 1 sec */
-    unsigned int           maxTries = 15;          /* 15 times == max 15 secs */
+    unsigned int           maxTries = 70;          /* 70 times == max 70 secs */
     unsigned int           tryCount=0;
 
     if ((logPath = getenv("IMMSV_TRACE_PATHNAME")))
@@ -375,7 +375,7 @@ static void dumpObjects(SaImmHandleT immHandle,
     SaNameT                objectName;
     SaImmAttrValuesT_2**   attrs;
     unsigned int           retryInterval = 1000000; /* 1 sec */
-    unsigned int           maxTries = 15;          /* 15 times == max 15 secs */
+    unsigned int           maxTries = 70;          /* 70 times == max 70 secs */
     unsigned int           tryCount=0;
     TRACE_ENTER();
 

@@ -502,6 +502,13 @@ void immnd_announceDump(IMMND_CB *cb)
 		rc = immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt);
 	}
 	/* Failure not handled. Should not be a problem. */
+
+	if(cb->mState == IMM_SERVER_READY) {
+		/* Reset jobStart timer to delay potential start of sync.
+		   Reduces risk of epoch race with dump.
+		 */
+		cb->mJobStart = time(NULL);
+	}
 }
 
 static SaInt32T immnd_syncNeeded(IMMND_CB *cb)
@@ -1808,7 +1815,7 @@ uns32 immnd_proc_server(uns32 *timeout)
 				  to coordinator crash. Abort the sync. */
 				LOG_WA("ABORTING UNCOMPLETED SYNC - COORDINATOR MUST HAVE CRASHED");
 				immnd_abortSync(cb);
-			} else {
+			} else if (jobDuration > 3) {
 				newEpoch = immnd_syncNeeded(cb);
 				if (newEpoch) {
 					if (cb->syncPid > 0) {
