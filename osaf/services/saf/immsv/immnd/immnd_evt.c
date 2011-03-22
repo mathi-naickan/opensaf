@@ -2717,7 +2717,9 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 						(cb->mRim == SA_IMM_INIT_FROM_FILE)?
 						"INIT_FROM_FILE":"KEEP_REPOSITORY");
 					if(cb->mIsCoord && cb->mPbeFile && (cb->mRim == SA_IMM_INIT_FROM_FILE)) {
-						immnd_announceDump(cb); 
+						cb->mBlockPbeEnable = 0x1;
+						/* Prevent PBE re-enable until current PBE has terminated. */
+						immnd_announceDump(cb);
 						/* Communicates RIM to IMMD. Needed to decide if reload
 						   must cause cluster restart. 
 						*/
@@ -5428,6 +5430,9 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 						"INIT_FROM_FILE":"KEEP_REPOSITORY");
 					if(cb->mIsCoord && cb->mPbeFile &&
 						(cb->mRim == SA_IMM_INIT_FROM_FILE)) {
+						cb->mBlockPbeEnable = 0x1;
+						/* Prevent PBE re-enable until current 
+						   PBE has terminated. */
 						immnd_announceDump(cb); 
 						/* Communicates RIM to IMMD. Needed to decide
 						   if reload must cause cluster restart. 

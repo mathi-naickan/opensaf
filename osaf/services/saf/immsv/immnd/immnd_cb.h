@@ -118,6 +118,7 @@ typedef struct immnd_cb_tag {
 	uns8 mCanBeCoord;
 	uns8 mIsCoord;
 	uns8 mLostNodes;       //Detached & not syncreq => delay sync start
+	uns8 mBlockPbeEnable;  //Current PBE has not completed shutdown yet.
 
 	/* Information about the IMMD */
 	MDS_DEST immd_mdest_id;

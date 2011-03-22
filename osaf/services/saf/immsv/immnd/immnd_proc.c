@@ -1831,6 +1831,7 @@ uns32 immnd_proc_server(uns32 *timeout)
 			   check if we should be starting/stopping persistent back-end.*/
 			if (cb->mPbeFile) {/* Pbe configured */
 				if (cb->pbePid <= 0) { /* Pbe is NOT running */
+					cb->mBlockPbeEnable = 0x0;
 					if (cb->mRim == SA_IMM_KEEP_REPOSITORY) {/* Pbe SHOULD run. */
 						if(immModel_pbeIsInSync(cb)) {
 							LOG_NO("STARTING persistent back end process.");
@@ -1844,7 +1845,8 @@ uns32 immnd_proc_server(uns32 *timeout)
 					}
 				} else { /* Pbe is running. */
 					assert(cb->pbePid > 0); 
-					if (cb->mRim == SA_IMM_INIT_FROM_FILE) {/* Pbe should NOT run.*/
+					if (cb->mRim == SA_IMM_INIT_FROM_FILE || cb->mBlockPbeEnable) {
+						/* Pbe should NOT run.*/
 						LOG_NO("STOPPING persistent back end process.");
 						kill(cb->pbePid, SIGTERM);
 					}
