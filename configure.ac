@@ -79,7 +79,7 @@ AC_ARG_WITH([rpm-release],
                 set the RPM release value to be <val> (ARG=<val>, [default=1])])],
         [
         if test "$withval" = timestamp; then
-                with_rpm_release=`date +%Y%m%d%k%M`
+                with_rpm_release=`date +%Y%m%d%H%M`
         elif test "$withval" = global-rev; then
                 with_rpm_release=`hg id -i`
         elif test "$withval" = local-rev; then
