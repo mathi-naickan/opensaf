@@ -121,6 +121,7 @@ typedef struct immnd_cb_tag {
 	uns8 mSync;		//true => this node is being synced (client).
 	uns8 mCanBeCoord;
 	uns8 mIsCoord;
+	uns8 mBlockPbeEnable;  //Current PBE has not completed shutdown yet.
 
 	/* Information about the IMMD */
 	MDS_DEST immd_mdest_id;
