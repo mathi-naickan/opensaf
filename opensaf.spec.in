@@ -528,6 +528,7 @@ Requires: %{name}-amf-director = %{version}-%{release}
 Requires: %{name}-amf-nodedirector = %{version}-%{release}
 Requires: %{name}-clm-libs = %{version}-%{release}
 Requires: %{name}-clm-server = %{version}-%{release}
+Requires: %{name}-clm-nodeagent = %{version}-%{release}
 Requires: %{name}-imm-libs = %{version}-%{release}
 Requires: %{name}-imm-director = %{version}-%{release}
 Requires: %{name}-imm-nodedirector = %{version}-%{release}
