@@ -75,6 +75,7 @@ typedef struct immd_cb_tag {
 
 	uns32 immd_self_id;
 	uns32 immd_remote_id;
+	NCS_BOOL immd_remote_up; //Ticket #1819
 
 	NCS_NODE_ID node_id;
 
