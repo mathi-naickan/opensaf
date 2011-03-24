@@ -187,12 +187,12 @@ int immd_proc_elect_coord(IMMD_CB *cb, NCS_BOOL new_active)
 				*/
 				if ((cb->immnd_coord == cb->node_id) && immnd_info_node->syncStarted) {
 					assert(immnd_info_node->immnd_key == cb->node_id);
-				} else if(cb->immd_remote_id) {
-					/* The standby IMMD is still up */
+				} else if(cb->immd_remote_up) {
+					/* The standby IMMD is still up See #1773 and #1819 */
 					LOG_WA("IMMD not re-electing coord for switch-over (si-swap) coord at (%x)", 
 						cb->immnd_coord);
 				} else {
-					/* Re-elect local coord. */
+					/* Re-elect local coord. See #578 */
 					if(immnd_info_node->immnd_key != cb->node_id) {
 						LOG_ER("Changing IMMND coord while old coord is still up!");
 						/* Could theoretically happen if remote IMMD is down, i.e. 

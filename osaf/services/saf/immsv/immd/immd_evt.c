@@ -1945,9 +1945,10 @@ static uns32 immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 	case NCSMDS_RED_DOWN:
 		TRACE_5("Process MDS EVT NCSMDS_RED_DOWN, my PID:%u", getpid());
 		assert(cb->node_id != mds_info->node_id);
-		if(cb->immd_remote_id == mds_info->node_id) {
+		//#1773 #1819
+		if(cb->immd_remote_id == immd_get_slot_and_subslot_id_from_node_id(mds_info->node_id)) {
 			LOG_WA("IMMD lost contact with peer IMMD (NCSMDS_RED_DOWN)");
-			cb->immd_remote_id = 0;
+			cb->immd_remote_up = FALSE;
 		}
 		break;
 
@@ -1960,6 +1961,7 @@ static uns32 immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 			TRACE_5("Remote IMMD is UP.");
 
 			cb->immd_remote_id = immd_get_slot_and_subslot_id_from_node_id(mds_info->node_id);
+			cb->immd_remote_up = TRUE;
 
 			/*Check if the SBY IMMND has already identified itself. 
 			   If so, we need to mark it as residing on a controller and
