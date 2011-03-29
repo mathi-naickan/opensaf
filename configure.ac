@@ -305,6 +305,17 @@ AC_MSG_RESULT([$enable_immxml])
 AM_CONDITIONAL([ENABLE_IMMXML], [test "$enable_immxml" = yes])
 AC_SUBST([IMMXML_ENABLED], ["$enable_immxml"])
 
+AC_MSG_CHECKING([whether to install the optional shell tools])
+AC_ARG_ENABLE([tools],
+	[AS_HELP_STRING([--disable-tools],
+		[disable installing the optional shell tools [default=no]])],
+	[],
+	[enable_tools=yes])
+AC_MSG_RESULT([$enable_tools])
+
+AM_CONDITIONAL([ENABLE_TOOLS], [test "$enable_tools" = yes])
+AC_SUBST([TOOLS_ENABLED], ["$enable_tools"])
+
 #
 # unless explicitly set, drop previx from sysconfdir
 # and localstatedir

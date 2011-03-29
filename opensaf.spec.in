@@ -1,6 +1,7 @@
 %define is_java %(test "@JAVA_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_tests %(test "@TESTS_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_immxml %(test "@IMMXML_ENABLED@" = "yes" && echo 1 || echo 0)
+%define is_tools %(test "@TOOLS_ENABLED@" = "yes" && echo 1 || echo 0)
 
 %define is_ais_plm %(test "@AIS_PLM_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_ais_ckpt %(test "@AIS_CKPT_ENABLED@" = "yes" && echo 1 || echo 0)
@@ -821,9 +822,11 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgimmxmldir}
 %endif
 %config(noreplace) %{_pkgsysconfdir}/amfd.conf
+%if %is_tools
 %{_bindir}/amf-adm
 %{_bindir}/amf-find
 %{_bindir}/amf-state
+%endif
 %{_pkglibdir}/libavsv_logstr.so.*
 %{_pkglibdir}/osafamfd
 %{_pkgclcclidir}/osaf-amfd
@@ -969,11 +972,13 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgimmxmldir}
 %endif
 %config(noreplace) %{_pkgsysconfdir}/immd.conf
-%{_bindir}/immadm
 %{_bindir}/immcfg
 %{_bindir}/immdump
+%if %is_tools
+%{_bindir}/immadm
 %{_bindir}/immfind
 %{_bindir}/immlist
+%endif
 %{_pkglibdir}/osafimmd
 %{_pkgclcclidir}/osaf-immd
 %{_pkglibdir}/immload
@@ -1087,7 +1092,9 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 
 %files log-libs
 %defattr(-,root,root)
+%if %is_tools
 %{_bindir}/saflogger
+%endif
 %{_libdir}/libSaLog.so.*
 
 %files log-server
@@ -1151,8 +1158,10 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 
 %files ntf-libs
 %defattr(-,root,root)
+%if %is_tools
 %{_bindir}/ntfsend
 %{_bindir}/ntfsubscribe
+%endif
 %{_libdir}/libSaNtf.so.*
 
 %files ntf-server
