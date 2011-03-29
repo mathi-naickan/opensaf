@@ -152,11 +152,6 @@ static SaAisErrorT write_log_record(SaLogHandleT logHandle,
 			return errorCode;
 		}
 
-		if (try_agains > 0) {
-			fprintf(stderr, "got %u SA_AIS_ERR_TRY_AGAIN, waited %u secs\n", try_agains, try_agains / 10);
-			try_agains = 0;
-		}
-
 		fds[0].fd = (int)selectionObject;
 		fds[0].events = POLLIN;
  poll_retry:
@@ -189,6 +184,17 @@ static SaAisErrorT write_log_record(SaLogHandleT logHandle,
 		if ((cb_error != SA_AIS_ERR_TRY_AGAIN) && (cb_error != SA_AIS_OK)) {
 			fprintf(stderr, "logWriteLogCallbackT FAILED: %s\n", saf_error(cb_error));
 			return errorCode;
+		}
+
+		if (cb_error == SA_AIS_ERR_TRY_AGAIN) {
+			usleep(100000);	/* 100 ms */
+			try_agains++;
+			goto retry;
+		}
+
+		if (try_agains > 0) {
+			fprintf(stderr, "got %u SA_AIS_ERR_TRY_AGAIN, waited %u secs\n", try_agains, try_agains / 10);
+			try_agains = 0;
 		}
 
 		writes++;
