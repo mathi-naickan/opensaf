@@ -169,11 +169,6 @@ endif
 nodist_pkgsysconf_DATA = \
 	$(top_builddir)/osafdir.conf
 
-dist_bin_SCRIPTS = \
-	$(top_srcdir)/scripts/amf-adm \
-	$(top_srcdir)/scripts/amf-find \
-	$(top_srcdir)/scripts/amf-state
-
 dist_pkglib_SCRIPTS = \
 	$(top_srcdir)/scripts/opensaf_reboot 
 
