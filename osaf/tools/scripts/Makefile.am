@@ -22,3 +22,12 @@ dist_bin_SCRIPTS = \
 	$(top_srcdir)/osaf/tools/scripts/amf-adm \
 	$(top_srcdir)/osaf/tools/scripts/amf-find \
 	$(top_srcdir)/osaf/tools/scripts/amf-state
+
+if ENABLE_AIS_SMF
+
+dist_bin_SCRIPTS += \
+	$(top_srcdir)/osaf/tools/scripts/smf-adm \
+	$(top_srcdir)/osaf/tools/scripts/smf-find \
+	$(top_srcdir)/osaf/tools/scripts/smf-state
+
+endif

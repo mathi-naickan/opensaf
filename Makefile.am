@@ -169,15 +169,6 @@ endif
 nodist_pkgsysconf_DATA = \
 	$(top_builddir)/osafdir.conf
 
-if ENABLE_AIS_SMF
-
-dist_bin_SCRIPTS += \
-	$(top_srcdir)/scripts/smf-adm \
-	$(top_srcdir)/scripts/smf-find \
-	$(top_srcdir)/scripts/smf-state
-
-endif
-
 dist_pkglib_SCRIPTS = \
 	$(top_srcdir)/scripts/opensaf_reboot 
 
