@@ -21,7 +21,11 @@ MAINTAINERCLEANFILES = Makefile.in
 dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/saf/logsv/config/logd.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	logsv_sc_template.xml \
 	logsv_classes.xml \
 	logsv_objects.xml
+
+endif

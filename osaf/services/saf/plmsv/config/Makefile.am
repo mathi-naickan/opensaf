@@ -26,8 +26,12 @@ EXTRA_DIST = \
 dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/saf/plmsv/config/plmd.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	plmsv_classes.xml \
 	plmsv_objects.xml \
 	plmsv_sc_template.xml \
 	plmsv_pl_template.xml
+
+endif

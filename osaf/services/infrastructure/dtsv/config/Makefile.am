@@ -21,7 +21,11 @@ MAINTAINERCLEANFILES = Makefile.in
 dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/infrastructure/dtsv/config/dtsv.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	dtsv_sc_template.xml \
 	dtsv_classes.xml \
 	dtsv_objects.xml
+
+endif

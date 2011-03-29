@@ -22,8 +22,12 @@ dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/saf/smfsv/config/smfd.conf \
 	$(top_srcdir)/osaf/services/saf/smfsv/config/smfnd.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	smfsv_sc_template.xml \
 	smfsv_pl_template.xml \
 	smfsv_classes.xml \
 	smfsv_objects.xml
+
+endif

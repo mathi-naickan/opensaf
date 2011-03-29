@@ -23,6 +23,8 @@ dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/saf/avsv/config/amfnd.conf \
 	$(top_srcdir)/osaf/services/saf/avsv/config/amfwdog.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	common_pl_template.xml \
 	common_sc_template.xml \
@@ -32,3 +34,4 @@ dist_pkgimmxml_svc_DATA = \
 	amfwdog_pl_template.xml \
 	amfwdog_objects.xml
 
+endif

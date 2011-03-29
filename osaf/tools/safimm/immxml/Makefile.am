@@ -11,23 +11,22 @@
 # See the Copying file included with the OpenSAF distribution for full
 # licensing terms.
 #
-# Author(s): Ericsson AB
+# Author(s): Wind River Systems
 #
 
 include $(top_srcdir)/Makefile.common
 
 MAINTAINERCLEANFILES = Makefile.in
 
-if ENABLE_IMMXML
+dist_pkgimmxml_DATA = \
+	$(top_srcdir)/osaf/tools/safimm/immxml/README
 
-dist_pkgimmxml_svc_DATA = \
-	cpsv_sc_template.xml \
-	cpsv_pl_template.xml \
-	cpsv_classes.xml \
-	cpsv_objects.xml
-
-endif
-
-dist_pkgsysconf_DATA = \
-	$(top_srcdir)/osaf/services/saf/cpsv/config/ckptd.conf \
-	$(top_srcdir)/osaf/services/saf/cpsv/config/ckptnd.conf
+dist_pkgimmxml_SCRIPTS = \
+	$(top_srcdir)/osaf/tools/safimm/immxml/baseimm.py \
+	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-configure \
+	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-modify-config \
+	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-merge \
+	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-nodegen \
+	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-validate \
+	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-clustersize \
+	$(top_srcdir)/osaf/tools/safimm/immxml/verify.sh

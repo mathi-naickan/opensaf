@@ -1,5 +1,6 @@
 %define is_java %(test "@JAVA_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_tests %(test "@TESTS_ENABLED@" = "yes" && echo 1 || echo 0)
+%define is_immxml %(test "@IMMXML_ENABLED@" = "yes" && echo 1 || echo 0)
 
 %define is_ais_plm %(test "@AIS_PLM_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_ais_ckpt %(test "@AIS_CKPT_ENABLED@" = "yes" && echo 1 || echo 0)
@@ -12,9 +13,11 @@
 %define _pkgsysconfdir %{_sysconfdir}/%{name}
 %define _initddir @initscriptdir@
 %define _pkgdatadir %{_datadir}/%{name}
+%define _pkgclcclidir %{_pkglibdir}/clc-cli
+%if %is_immxml
 %define _pkgimmxmldir %{_datadir}/%{name}/immxml
 %define _pkgimmxml_svcdir %{_datadir}/%{name}/immxml/services
-%define _pkgclcclidir %{_pkglibdir}/clc-cli
+%endif
 
 Summary: OpenSAF is an open source implementation of the SAF AIS specification
 Name: opensaf
@@ -701,10 +704,12 @@ if [ "$1" = "0" ]; then
 fi
 %endif
 
+%if %is_immxml
 %post plm-hpi
 /sbin/ldconfig
 sed -i '/isHpiSupported/{N;s|<value>0</value>|<value>1</value>|g}' \
 	%{_pkgimmxml_svcdir}/plmsv_objects.xml
+%endif
 
 %postun plm-hpi -p /sbin/ldconfig
 %endif
@@ -810,9 +815,11 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/amfd.conf
 %{_bindir}/amf-adm
 %{_bindir}/amf-find
@@ -820,11 +827,13 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkglibdir}/libavsv_logstr.so.*
 %{_pkglibdir}/osafamfd
 %{_pkgclcclidir}/osaf-amfd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/avsv_classes.xml
 %{_pkgimmxml_svcdir}/avsv_objects.xml
 %{_pkgimmxml_svcdir}/amfwdog_pl_template.xml
 %{_pkgimmxml_svcdir}/amfwdog_sc_template.xml
 %{_pkgimmxml_svcdir}/amfwdog_objects.xml
+%endif
 
 %files amf-nodedirector
 %defattr(-,root,root)
@@ -850,17 +859,21 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/ckptd.conf
 %{_pkglibdir}/libcpsv_logstr.so.*
 %{_pkglibdir}/osafckptd
 %{_pkgclcclidir}/osaf-ckptd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/cpsv_classes.xml
 %{_pkgimmxml_svcdir}/cpsv_objects.xml
 %{_pkgimmxml_svcdir}/cpsv_pl_template.xml
 %{_pkgimmxml_svcdir}/cpsv_sc_template.xml
+%endif
 
 %files ckpt-nodedirector
 %defattr(-,root,root)
@@ -883,12 +896,15 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
-%dir %{_pkgimmxml_svcdir}
-%dir %{_pkgimmxmldir}
 %dir %{_pkgdatadir}
+%if %is_immxml
+%dir %{_pkgimmxmldir}
+%dir %{_pkgimmxml_svcdir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/clmd.conf
 %{_pkglibdir}/osafclmd
 %{_pkgclcclidir}/osaf-clmd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/clmsv_classes.xml
 %{_pkgimmxml_svcdir}/clmsv_objects.xml
 %if %is_ais_plm
@@ -897,6 +913,7 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %else
 %{_pkgimmxml_svcdir}/clmsv_sc_template.xml
 %{_pkgimmxml_svcdir}/clmsv_pl_template.xml
+%endif
 %endif
 
 %files clm-nodeagent
@@ -918,16 +935,20 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/evtd.conf
 %{_pkglibdir}/libedsv_logstr.so.*
 %{_pkglibdir}/osafevtd
 %{_pkgclcclidir}/osaf-evtd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/edsv_classes.xml
 %{_pkgimmxml_svcdir}/edsv_objects.xml
 %{_pkgimmxml_svcdir}/edsv_sc_template.xml
+%endif
 
 %endif
 
@@ -942,9 +963,11 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/immd.conf
 %{_bindir}/immadm
 %{_bindir}/immcfg
@@ -954,6 +977,7 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkglibdir}/osafimmd
 %{_pkgclcclidir}/osaf-immd
 %{_pkglibdir}/immload
+%if %is_immxml
 %{_pkgimmxmldir}/baseimm.py*
 %{_pkgimmxmldir}/README
 %{_pkgimmxmldir}/immxml-clustersize
@@ -968,6 +992,7 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkgimmxml_svcdir}/immsv_pl_template.xml
 %{_pkgimmxml_svcdir}/immsv_sc_template.xml
 %{_pkgimmxml_svcdir}/imm_copyright.xml
+%endif
 
 %files imm-nodedirector
 %defattr(-,root,root)
@@ -990,16 +1015,20 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/plmd.conf
 %{_pkglibdir}/osafplmd
 %{_pkgclcclidir}/osaf-plmd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/plmsv_classes.xml
 %{_pkgimmxml_svcdir}/plmsv_objects.xml
 %{_pkgimmxml_svcdir}/plmsv_sc_template.xml
 %{_pkgimmxml_svcdir}/plmsv_pl_template.xml
+%endif
 
 %files plm-coordinator
 %defattr(-,root,root)
@@ -1028,17 +1057,21 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/lckd.conf
 %{_pkglibdir}/libglsv_logstr.so.*
 %{_pkglibdir}/osaflckd
 %{_pkgclcclidir}/osaf-lckd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/glsv_classes.xml
 %{_pkgimmxml_svcdir}/glsv_objects.xml
 %{_pkgimmxml_svcdir}/glsv_pl_template.xml
 %{_pkgimmxml_svcdir}/glsv_sc_template.xml
+%endif
 
 %files lck-nodedirector
 %defattr(-,root,root)
@@ -1062,15 +1095,19 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/logd.conf
 %{_pkglibdir}/osaflogd
 %{_pkgclcclidir}/osaf-logd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/logsv_classes.xml
 %{_pkgimmxml_svcdir}/logsv_objects.xml
 %{_pkgimmxml_svcdir}/logsv_sc_template.xml
+%endif
 
 
 %if %is_ais_msg
@@ -1084,17 +1121,21 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/msgd.conf
 %{_pkglibdir}/libmqsv_logstr.so.*
 %{_pkglibdir}/osafmsgd
 %{_pkgclcclidir}/osaf-msgd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/mqsv_classes.xml
 %{_pkgimmxml_svcdir}/mqsv_objects.xml
 %{_pkgimmxml_svcdir}/mqsv_pl_template.xml
 %{_pkgimmxml_svcdir}/mqsv_sc_template.xml
+%endif
 
 %files msg-nodedirector
 %defattr(-,root,root)
@@ -1119,14 +1160,18 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/ntfd.conf
 %{_pkglibdir}/osafntfd
 %{_pkgclcclidir}/osaf-ntfd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/ntfsv_objects.xml
 %{_pkgimmxml_svcdir}/ntfsv_sc_template.xml
+%endif
 
 
 %if %is_ais_smf
@@ -1141,9 +1186,11 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/smfd.conf
 %{_pkglibdir}/smf-backup-create
 %{_pkglibdir}/smf-bundle-check
@@ -1152,10 +1199,12 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkglibdir}/smf-repository-check
 %{_pkglibdir}/osafsmfd
 %{_pkgclcclidir}/osaf-smfd
+%if %is_immxml
 %{_pkgimmxml_svcdir}/smfsv_classes.xml
 %{_pkgimmxml_svcdir}/smfsv_objects.xml
 %{_pkgimmxml_svcdir}/smfsv_pl_template.xml
 %{_pkgimmxml_svcdir}/smfsv_sc_template.xml
+%endif
 
 %files smf-nodedirector
 %defattr(-,root,root)
@@ -1174,9 +1223,11 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %dir %{_pkgsysconfdir}
 %dir %{_pkglibdir}
 %dir %{_pkgclcclidir}
+%dir %{_pkgdatadir}
+%if %is_immxml
 %dir %{_pkgimmxml_svcdir}
 %dir %{_pkgimmxmldir}
-%dir %{_pkgdatadir}
+%endif
 %config(noreplace) %{_pkgsysconfdir}/dtsv.conf
 %config(noreplace) %{_pkgsysconfdir}/fmd.conf
 %config(noreplace) %{_pkgsysconfdir}/rde.conf
@@ -1187,6 +1238,9 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkgclcclidir}/osaf-rded
 %{_pkglibdir}/osaffmd
 %{_pkgclcclidir}/osaf-fmd
+%{_initddir}/fmd
+%{_bindir}/rdegetrole
+%if %is_immxml
 %{_pkgimmxml_svcdir}/common_pl_template.xml
 %{_pkgimmxml_svcdir}/common_sc_template.xml
 %{_pkgimmxml_svcdir}/dtsv_classes.xml
@@ -1196,8 +1250,7 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkgimmxml_svcdir}/rde_sc_template.xml
 %{_pkgimmxml_svcdir}/fm_objects.xml
 %{_pkgimmxml_svcdir}/fm_sc_template.xml
-%{_initddir}/fmd
-%{_bindir}/rdegetrole
+%endif
 
 
 %files payload
