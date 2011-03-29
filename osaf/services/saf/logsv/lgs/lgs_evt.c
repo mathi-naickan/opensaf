@@ -486,18 +486,18 @@ static uns32 proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 
 		/* fail over, become implementer */
 		lgs_imm_impl_set(lgs_cb);
+		
+		/* Agent down list has to be processed first */
+		lgs_process_lga_down_list();
 
-		/* Open all streams */
+		/* Check existing streams */
 		stream = log_stream_getnext_by_name(NULL);
 		if (!stream)
 			LOG_ER("No streams exist!");
 		while (stream != NULL) {
-			if (log_stream_open(stream) != SA_AIS_OK)
-				goto done;
-			
+			stream->fd = -1; /* Initialize fd */	
 			stream = log_stream_getnext_by_name(stream->name);
 		}
-		lgs_process_lga_down_list();
 	}
 
 	rc = NCSCC_RC_SUCCESS;
@@ -857,6 +857,7 @@ static uns32 proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	lgsv_stream_open_req_t *open_sync_param = &(evt->info.msg.info.api_info.param.lstr_open_sync);
 	log_stream_t *logStream;
 	char name[SA_MAX_NAME_LENGTH + 1];
+	NCS_BOOL app_stream_created = FALSE;
 
 	/* Create null-terminated stream name */
 	memcpy(name, open_sync_param->lstr_name.value, open_sync_param->lstr_name.length);
@@ -896,14 +897,23 @@ static uns32 proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 		ais_rv = create_new_app_stream(open_sync_param, &logStream);
 		if (ais_rv != SA_AIS_OK)
 			goto snd_rsp;
+		app_stream_created = TRUE;
 	}
 
 	ais_rv = log_stream_open(logStream);
 	if (ais_rv != SA_AIS_OK) {
-		if (logStream != NULL)
+		/* If stream object was created in context of this function
+		 * but we have afile system problem, delete stream object.
+		 */
+		if(app_stream_created) {
 			log_stream_delete(&logStream);
-
-		goto snd_rsp;
+			goto snd_rsp;
+		} else {
+			/* It is OK to open an existing stream while we have
+			 * file system problems.
+			 */
+			ais_rv = SA_AIS_OK;
+		}
 	}
 
 	log_stream_print(logStream);
@@ -912,7 +922,7 @@ static uns32 proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	rc = lgs_client_stream_add(open_sync_param->client_id, logStream->streamId);
 	if (rc != 0) {
 		log_stream_close(&logStream);
-		ais_rv = SA_AIS_ERR_NO_RESOURCES;
+		ais_rv = SA_AIS_ERR_TRY_AGAIN;
 		goto snd_rsp;
 	}
 
@@ -974,8 +984,10 @@ static uns32 proc_stream_close_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	}
 
 	streamId = stream->streamId;
-	(void)log_stream_close(&stream);
-
+	if (log_stream_close(&stream) != 0) {
+		ais_rc = SA_AIS_ERR_TRY_AGAIN;
+		goto snd_rsp;
+	}
 	ckpt.header.ckpt_rec_type = LGS_CKPT_CLOSE_STREAM;
 	ckpt.header.num_ckpt_records = 1;
 	ckpt.header.data_len = 1;
@@ -1056,7 +1068,7 @@ static uns32 proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	}
 
 	if (log_stream_write(stream, logOutputString, n) == -1) {
-		error = SA_AIS_ERR_NO_RESOURCES;
+		error = SA_AIS_ERR_TRY_AGAIN;
 		goto done;
 	}
 

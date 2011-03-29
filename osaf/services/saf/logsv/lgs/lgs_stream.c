@@ -81,7 +81,7 @@ static int delete_config_file(log_stream_t *stream)
 		if (errno == ENOENT)
 			rc = 0;
 		else
-			LOG_ER("could not unlink: %s - %s", pathname, strerror(errno));
+			LOG_NO("could not unlink: %s - %s", pathname, strerror(errno));
 	}
 
 	TRACE_LEAVE2("rc=%d", rc);
@@ -226,6 +226,14 @@ void log_stream_delete(log_stream_t **s)
 
 	TRACE_ENTER2("%s", stream->name);
 
+	if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) 
+		if(stream->streamType == STREAM_TYPE_APPLICATION) {
+			TRACE("Stream is closed, I am HA active so remove IMM object");
+			SaNameT objectName;
+			strcpy((char *)objectName.value, stream->name);
+			objectName.length = strlen((char *)objectName.value);
+			(void)immutil_saImmOiRtObjectDelete(lgs_cb->immOiHandle, &objectName);
+		}
 	if (stream->streamId != 0)
 		lgs_stream_array_remove(stream->streamId);
 
@@ -505,7 +513,14 @@ log_stream_t *log_stream_new_2(SaNameT *name, int stream_id)
 	return stream;
 }
 
-static int log_file_open(log_stream_t *stream)
+/**
+ * Open file associated with stream
+ * @param stream
+ * @param errno_save - errno from open() returned here if supplied
+ *
+ * @return int - the file descriptor or -1 on errors
+ */
+static int log_file_open(log_stream_t *stream, int *errno_save)
 {
 	int fd;
 	char pathname[PATH_MAX + NAME_MAX + 1];
@@ -520,8 +535,12 @@ open_retry:
 	if (fd == -1) {
 		if (errno == EINTR)
 			goto open_retry;
-
-		LOG_NO("Could not open: %s - %s", pathname, strerror(errno));
+		/* save errno for caller logging */
+		if (errno_save)
+			*errno_save = errno;
+		/* Do not log with higher severity here to avoid flooding the log.
+		 * Can be called in context of log_stream_write */
+		LOG_IN("%s: Could not open: %s - %s", __FUNCTION__, pathname, strerror(errno));
 	}
 
 	TRACE_LEAVE2("%d", fd);
@@ -531,8 +550,8 @@ open_retry:
 SaAisErrorT log_stream_open(log_stream_t *stream)
 {
 	SaAisErrorT rc = SA_AIS_OK;
-	char command[PATH_MAX + 16];
-
+	int errno_save;
+	
 	assert(stream != NULL);
 	TRACE_ENTER2("%s, numOpeners=%u", stream->name, stream->numOpeners);
 
@@ -545,45 +564,56 @@ SaAisErrorT log_stream_open(log_stream_t *stream)
 		(void)delete_config_file(stream);
 
 		/* Remove files from a previous life if needed */
-		if (rotate_if_needed(stream) == -1)
+		if (rotate_if_needed(stream) == -1) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
-
+		}
+		
 		sprintf(command, "mkdir -p %s/%s", lgs_cb->logsv_root_dir, stream->pathName);  
 		if (system(command) != 0){
-			LOG_ER("mkdir '%s' failed", stream->pathName);
-			rc = SA_AIS_ERR_INVALID_PARAM;  
+			LOG_NO("Create directory '%s/%s' failed", lgs_cb->logsv_root_dir, stream->pathName);
+			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;   
 		}
 
-		if (lgs_create_config_file(stream) != 0)
+		if (lgs_create_config_file(stream) != 0) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
-
+		}
+		
 		sprintf(stream->logFileCurrent, "%s_%s", stream->fileName, lgs_get_time());
-		if ((stream->fd = log_file_open(stream)) == -1)
+		if ((stream->fd = log_file_open(stream, &errno_save)) == -1) {
+			LOG_NO("Could not open '%s' - %s", stream->logFileCurrent, strerror(errno_save));
+			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
-
-		stream->numOpeners++;
-	} else if ((stream->numOpeners > 0) && (stream->fd != -1)) {
-		/* Second or more open on a stream */
+		}
 		stream->numOpeners++;
 	} else {
-		sprintf(command, "mkdir -p %s/%s", lgs_cb->logsv_root_dir, stream->pathName);
-		if (system(command) != 0) {
-			TRACE("mkdir '%s' failed", stream->pathName);
-			rc = SA_AIS_ERR_INVALID_PARAM;
+		/* Second or more open on a stream */
+
+		/* All file system problems as treated as temporary. It is OK to open
+		an existing stream therefore the use count must be increased unconditionally. */
+		stream->numOpeners++;
+
+		if (stream->fd != -1) {
+			/* already opened, we're done */
 			goto done;
 		}
 
-		if (lgs_create_config_file(stream) != 0)
+		/* be nice to those without a shared file system, see #1138 */
+		if (lgs_create_config_file(stream) != 0) {
+			LOG_ER("%s: Creating config file failed", __FUNCTION__);
+			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
+		}
 
-		/* Fail over, standby opens files when it becomes active */
-		stream->fd = log_file_open(stream);
+		if ((stream->fd = log_file_open(stream, &errno_save)) == -1) {
+			LOG_NO("Could not open '%s' - %s", stream->logFileCurrent, strerror(errno_save));
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			goto done;
+		}
 	}
-
  done:
-	if (stream->fd == -1)
-		rc = SA_AIS_ERR_FAILED_OPERATION;
 	TRACE_LEAVE2("rc=%u, numOpeners=%u", rc, stream->numOpeners);
 	return rc;
 }
@@ -607,6 +637,8 @@ int log_stream_close(log_stream_t **s)
 	stream->numOpeners--;
 
 	if (stream->numOpeners == 0) {
+		/* standard streams can never be deleted */
+		assert(stream->streamType == STREAM_TYPE_APPLICATION);
 		if (stream->fd != -1) {
 			char *timeString = lgs_get_time();
 			if ((rc = fileclose(stream->fd)) == -1) {
@@ -623,13 +655,6 @@ int log_stream_close(log_stream_t **s)
 				goto done;
 		}
 
-		if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) {
-			TRACE("Stream is closed, I am HA active so remove IMM object");
-			SaNameT objectName;
-			strcpy((char *)objectName.value, stream->name);
-			objectName.length = strlen((char *)objectName.value);
-			(void)immutil_saImmOiRtObjectDelete(lgs_cb->immOiHandle, &objectName);
-		}
 
 		log_stream_delete(s);
 	}
@@ -655,9 +680,10 @@ int log_stream_file_close(log_stream_t *stream)
 	assert(stream->numOpeners > 0);
 
 	if (stream->fd != -1) {
-		if ((rc = fileclose(stream->fd)) == -1)
+		if ((rc = fileclose(stream->fd)) == -1) {
 			LOG_ER("close FAILED: %s", strerror(errno));
-		else
+			stream->fd = -1; /* Force reset the fd, otherwise fd will be stale. */
+		} else
 			stream->fd = -1;
 	}
 
@@ -792,10 +818,23 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 	assert(stream != NULL && buf != NULL);
 	TRACE_ENTER2("%s", stream->name);
 
+	/* Open files on demand e.g. on new active after fail/switch-over. This
+	 * enables LOG to cope with temporary file system problems. */
+	
+	/* Creating config file on new ACTIVE */
 	if (stream->fd == -1) {
-		TRACE("stream not opened");
-		rc = -1;
-		goto done;
+		if (lgs_create_config_file(stream) != 0) {
+			TRACE("Creating config file failed");
+			rc = -1;
+			goto done;
+		}
+		TRACE("stream: %s not opened, opening it now", stream->name);
+		stream->fd = log_file_open(stream, NULL);
+		if (stream->fd == -1) {
+			rc = -1;
+			goto done;
+		}
+		TRACE("stream %s now opened", stream->name);
 	}
 
  retry:
@@ -805,6 +844,8 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 			goto retry;
 
 		LOG_ER("write FAILED: %s", strerror(errno));
+		/* Careful with log level here to avoid syslog flooding */
+		LOG_IN("write '%s' failed - %s", stream->logFileCurrent, strerror(errno));
 		goto done;
 	} else {
 		/* Handle partial writes */
@@ -817,6 +858,7 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 	stream->curFileSize += count;
 
 	if ((stream->curFileSize + count) > stream->maxLogFileSize) {
+		int errno_save;
 		char *current_time = lgs_get_time();
 
 		if ((rc = fileclose(stream->fd)) == -1) {
@@ -838,7 +880,8 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 
 		stream->creationTimeStamp = lgs_get_SaTime();
 		sprintf(stream->logFileCurrent, "%s_%s", stream->fileName, current_time);
-		if ((stream->fd = log_file_open(stream)) == -1) {
+		if ((stream->fd = log_file_open(stream, &errno_save)) == -1) {
+			LOG_NO("Could not open '%s' - %s", stream->logFileCurrent, strerror(errno_save));
 			rc = -1;
 			goto done;
 		}
@@ -1041,7 +1084,7 @@ int log_stream_config_change(log_stream_t *stream, const char *current_file_name
 
 	/* Peer sync needed due to change in logFileCurrent */
 	sprintf(stream->logFileCurrent, "%s_%s", stream->fileName, current_time);
-	stream->fd = log_file_open(stream);
+	stream->fd = log_file_open(stream, NULL);
 
 	if (stream->fd == -1)
 		rc = -1;

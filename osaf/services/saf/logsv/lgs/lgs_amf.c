@@ -56,26 +56,27 @@ static SaAisErrorT amf_active_state_handler(lgs_cb_t *cb, SaInvocationT invocati
 
 	TRACE_ENTER2("HA ACTIVE request");
 
-	if (cb->ha_state == SA_AMF_HA_ACTIVE)
+	if (cb->ha_state == SA_AMF_HA_ACTIVE) {
+		/* State change was already processed in RDA callback */
 		goto done;
+	}
 
-	/* fail over or switch over, become implementer */
+	/* switch over, become implementer */
 	lgs_imm_impl_set(cb);
 
-	/* Open all streams */
+	/* check existing streams */
 	stream = log_stream_getnext_by_name(NULL);
 	if (!stream)
 		LOG_ER("No streams exist!");
 	while (stream != NULL) {
-		if ((error = log_stream_open(stream)) != SA_AIS_OK)
-			goto done;
-
+		stream->fd = -1; /* First Initialize fd */
 		stream = log_stream_getnext_by_name(stream->name);
 	}
 
-	lgs_cb->mds_role = V_DEST_RL_ACTIVE;
 
  done:
+	/* Update role independent of stream processing */
+	lgs_cb->mds_role = V_DEST_RL_ACTIVE;
 	TRACE_LEAVE();
 	return error;
 }
