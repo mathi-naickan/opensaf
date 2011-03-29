@@ -757,7 +757,6 @@ sed -i '/plmd/d'  %{_pkgsysconfdir}/nodeinit.conf.controller
 %{__ln_s} -f %{_pkgsysconfdir}/nodeinit.conf.controller %{_pkgsysconfdir}/nodeinit.conf
 echo "controller" > %{_pkgsysconfdir}/node_type
 hostname -s >  %{_pkgsysconfdir}/node_name
-echo "For information on how to configure the initial imm.xml file check the readme file: %{_pkgimmxmldir}/README"
 /sbin/ldconfig
 
 %preun controller
