@@ -1,6 +1,6 @@
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2009 The OpenSAF Foundation
+# (C) Copyright 2011 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -18,4 +18,7 @@ include $(top_srcdir)/Makefile.common
 
 MAINTAINERCLEANFILES = Makefile.in
 
-SUBDIRS = safimm saflog safntf rde scripts
+dist_bin_SCRIPTS = \
+	$(top_srcdir)/osaf/tools/scripts/amf-adm \
+	$(top_srcdir)/osaf/tools/scripts/amf-find \
+	$(top_srcdir)/osaf/tools/scripts/amf-state

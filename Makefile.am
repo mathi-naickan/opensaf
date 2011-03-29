@@ -169,11 +169,6 @@ endif
 nodist_pkgsysconf_DATA = \
 	$(top_builddir)/osafdir.conf
 
-dist_bin_SCRIPTS = \
-	$(top_srcdir)/scripts/amf-adm \
-	$(top_srcdir)/scripts/amf-find \
-	$(top_srcdir)/scripts/amf-state
-
 if ENABLE_AIS_SMF
 
 dist_bin_SCRIPTS += \
