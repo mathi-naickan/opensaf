@@ -765,8 +765,6 @@ sed -i 's/MDS_TRANSPORT=TIPC/MDS_TRANSPORT=TCP/g' %{_pkgsysconfdir}/nid.conf
 %{__ln_s} -f %{_pkgsysconfdir}/nodeinit.conf.controller %{_pkgsysconfdir}/nodeinit.conf
 echo "controller" > %{_pkgsysconfdir}/node_type
 hostname -s >  %{_pkgsysconfdir}/node_name
-echo "For information on how to configure the initial imm.xml file check the readme file: %{_pkgimmxmldir}/README"
-
 /sbin/ldconfig
 
 %preun controller
