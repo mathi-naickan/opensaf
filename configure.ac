@@ -347,6 +347,17 @@ AM_CONDITIONAL([ENABLE_AIS_PLM], [test "$enable_ais_plm" = yes])
 AC_SUBST([AIS_PLM_ENABLED], ["$enable_ais_plm"])
 
 
+AC_MSG_CHECKING([whether to install the immxml tools])
+AC_ARG_ENABLE([immxml],
+	[AS_HELP_STRING([--disable-immxml],
+		[disable installing the immxml tools [default=no]])],
+	[],
+	[enable_immxml=yes])
+AC_MSG_RESULT([$enable_immxml])
+
+AM_CONDITIONAL([ENABLE_IMMXML], [test "$enable_immxml" = yes])
+AC_SUBST([IMMXML_ENABLED], ["$enable_immxml"])
+
 #
 # unless explicitly set, drop previx from sysconfdir
 # and localstatedir
@@ -817,6 +828,7 @@ AC_CONFIG_FILES([
         osaf/tools/safimm/immfind/Makefile
         osaf/tools/safimm/immlist/Makefile
         osaf/tools/safimm/immload/Makefile
+        osaf/tools/safimm/immxml/Makefile
         osaf/tools/safimm/include/Makefile
         osaf/tools/saflog/Makefile
         osaf/tools/saflog/include/Makefile

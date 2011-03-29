@@ -21,6 +21,10 @@ MAINTAINERCLEANFILES = Makefile.in
 dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/infrastructure/fm/config/fmd.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	fm_sc_template.xml \
 	fm_objects.xml
+
+endif

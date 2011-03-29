@@ -21,6 +21,10 @@ MAINTAINERCLEANFILES = Makefile.in
 dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/saf/ntfsv/config/ntfd.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	ntfsv_sc_template.xml \
 	ntfsv_objects.xml
+
+endif

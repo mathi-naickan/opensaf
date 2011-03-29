@@ -22,9 +22,13 @@ dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/saf/immsv/config/immd.conf \
 	$(top_srcdir)/osaf/services/saf/immsv/config/immnd.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	immsv_sc_template.xml \
 	immsv_pl_template.xml \
 	immsv_classes.xml \
 	immsv_objects.xml \
 	imm_copyright.xml
+
+endif

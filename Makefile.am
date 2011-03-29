@@ -169,10 +169,6 @@ endif
 nodist_pkgsysconf_DATA = \
 	$(top_builddir)/osafdir.conf
 
-dist_pkgimmxml_DATA = \
-	$(top_srcdir)/osaf/tools/safimm/immxml/README
-
-
 dist_bin_SCRIPTS = \
 	$(top_srcdir)/scripts/amf-adm \
 	$(top_srcdir)/scripts/amf-find \
@@ -186,16 +182,6 @@ dist_bin_SCRIPTS += \
 	$(top_srcdir)/scripts/smf-state
 
 endif
-
-dist_pkgimmxml_SCRIPTS = \
-	$(top_srcdir)/osaf/tools/safimm/immxml/baseimm.py \
-	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-configure \
-	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-modify-config \
-	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-merge \
-	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-nodegen \
-	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-validate \
-	$(top_srcdir)/osaf/tools/safimm/immxml/immxml-clustersize \
-	$(top_srcdir)/osaf/tools/safimm/immxml/verify.sh
 
 dist_pkglib_SCRIPTS = \
 	$(top_srcdir)/scripts/opensaf_reboot 

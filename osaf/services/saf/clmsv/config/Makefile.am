@@ -21,6 +21,8 @@ MAINTAINERCLEANFILES = Makefile.in
 dist_pkgsysconf_DATA = \
 	$(top_srcdir)/osaf/services/saf/clmsv/config/clmd.conf
 
+if ENABLE_IMMXML
+
 dist_pkgimmxml_svc_DATA = \
 	clmsv_classes.xml \
 	clmsv_objects.xml
@@ -33,6 +35,8 @@ else
 dist_pkgimmxml_svc_DATA += \
 	clmsv_sc_template.xml \
 	clmsv_pl_template.xml
+endif
+
 endif
 
 install-data-hook:
