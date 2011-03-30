@@ -759,7 +759,6 @@ sed -i '/isHpiSupported/{N;s|<value>0</value>|<value>1</value>|g}' \
 %if !%is_ais_plm
 sed -i '/plmd/d'  %{_pkgsysconfdir}/nodeinit.conf.controller
 %endif
-/usr/lib/lsb/install_initd %{_initddir}/fmd
 %{__ln_s} -f %{_pkgsysconfdir}/nodeinit.conf.controller %{_pkgsysconfdir}/nodeinit.conf
 echo "controller" > %{_pkgsysconfdir}/node_type
 hostname -s >  %{_pkgsysconfdir}/node_name
@@ -767,7 +766,6 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 
 %preun controller
 %{__rm} -f %{_pkgsysconfdir}/nodeinit.conf
-/usr/lib/lsb/remove_initd %{_initddir}/fmd
 
 %postun controller -p /sbin/ldconfig
 
@@ -1247,7 +1245,6 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkgclcclidir}/osaf-rded
 %{_pkglibdir}/osaffmd
 %{_pkgclcclidir}/osaf-fmd
-%{_initddir}/fmd
 %{_bindir}/rdegetrole
 %if %is_immxml
 %{_pkgimmxml_svcdir}/common_pl_template.xml
