@@ -29,6 +29,8 @@
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 #include <libxml/xpathInternals.h>
+#include <libxml/xmlmemory.h>
+#include <libxml/globals.h>
 
 #include "logtrace.h"
 #include "saImm.h"
