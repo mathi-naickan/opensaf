@@ -761,7 +761,6 @@ sed -i '/isHpiSupported/{N;s|<value>0</value>|<value>1</value>|g}' \
 %if !%is_ais_plm
 sed -i '/plmd/d'  %{_pkgsysconfdir}/nodeinit.conf.controller
 %endif
-/usr/lib/lsb/install_initd %{_initddir}/fmd
 
 %if !%is_tipc_trans
 sed -i '/TIPC/d'  %{_pkgsysconfdir}/nodeinit.conf.controller
@@ -775,7 +774,6 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 
 %preun controller
 %{__rm} -f %{_pkgsysconfdir}/nodeinit.conf
-/usr/lib/lsb/remove_initd %{_initddir}/fmd
 
 %postun controller -p /sbin/ldconfig
 
@@ -1269,7 +1267,6 @@ hostname -s >  %{_pkgsysconfdir}/node_name
 %{_pkglibdir}/osafdtmd
 %{_pkgclcclidir}/osaf-dtm
 %{_pkgclcclidir}/dh_monitoring
-%{_initddir}/fmd
 %{_bindir}/rdegetrole
 %if %is_immxml
 %{_pkgimmxml_svcdir}/common_pl_template.xml

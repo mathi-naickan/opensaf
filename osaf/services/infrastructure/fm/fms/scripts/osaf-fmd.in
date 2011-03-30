@@ -57,7 +57,6 @@ start() {
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
 		touch $lockfile
-		touch $lockdir/fmd
 		log_success_msg
 	else
 		log_failure_msg
@@ -90,7 +89,6 @@ stop() {
 	if [ $RETVAL -eq 0 ]; then
 		rm -f $COMPNAMEFILE
 		rm -f $lockfile
-		rm -f $lockdir/fmd
 		log_success_msg
 	else
 		log_failure_msg

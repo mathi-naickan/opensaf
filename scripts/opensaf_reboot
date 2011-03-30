@@ -18,22 +18,26 @@
 
 . /etc/opensaf/osafdir.conf
 
-#NOTE: This script will be customized/replaced accordingly when there's no CLM node to EE mapping in the imm.xml 
-#In such cases rebooting would be done through proprietary mechanisms, i.e. not through PLM.
-#Node_id is (the only entity) at the disposal of any proprietary mechanism.
+# NOTE: This script will be customized/replaced accordingly when there's no CLM node to EE mapping in the imm.xml 
+# In such cases rebooting would be done through proprietary mechanisms, i.e. not through PLM.
+# Node_id is (the only entity) at the disposal of any proprietary mechanism.
+#
+# All TIPC bearers are disabled before forced reboot in order to improve controller
+# fail over times.
 
 NODE_ID_FILE=$pkglocalstatedir/node_id
 node_id=$1
 ee_name=$2
 
+tipc_config=$(which tipc-config 2> /dev/null)
+test $? -ne 0 && tipc_config="/bin/true"
+
 #If no plm in the system,old reboot mechanism is maintained.
 opensaf_reboot_no_plm()
 {
 	if [ "$self_node_id" == "$node_id" ];then
-		test -x /sbin/reboot && \
-			/sbin/reboot -f now "OpenSAF requested system reboot"
-
-		/sbin/reboot
+		$tipc_config "-bd=?"
+		/sbin/reboot -f
 	else
 		logger -t "opensaf_reboot" "Rebooting remote node in the absence of PLM is outside the scope of OpenSAF"
 	fi
@@ -49,9 +53,8 @@ opensaf_reboot_with_plm()
 	retval=$?
 	if [ $retval != 0 ]; then
 		if [ "$self_node_id" == "$node_id" ];then
-			test -x /sbin/reboot && \
-				/sbin/reboot -f now "OpenSAF requested system reboot"
-			/sbin/reboot
+			$tipc_config "-bd=?"
+			/sbin/reboot -f
 		else
 			logger -t "opensaf_reboot" "Rebooting remote node failed"
 			exit 1
@@ -73,9 +76,10 @@ temp_node_id=`echo "$temp_node_id" |sed -e 's:^0[bBxX]::'| sed -e 's:^:0x:'`
 self_node_id=`printf "%d" $temp_node_id`
 
 if [ "$self_node_id" == "$node_id" ]; then
-	test -x /sbin/reboot && \
-		/sbin/reboot -f now "OpenSAF requested system reboot"
-	/sbin/reboot
+	# uncomment the following line if debugging errors that keep restarting the node
+	# exit 0
+	$tipc_config "-bd=?"
+	/sbin/reboot -f
 else
 	if [ ":$ee_name" != ":" ]; then
 		plm_node_state=`immlist $ee_name |grep saPlmEEAdminState|awk '{print $3}'` 
