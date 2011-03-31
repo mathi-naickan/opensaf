@@ -57,13 +57,6 @@ void saLogStreamOpenCallback(SaInvocationT invocation,
 void saLogWriteLogCallback(SaInvocationT invocation,
                            SaAisErrorT error);
 
-void retryLogNotification(NtfNotification& notif)
-{
-    TRACE_ENTER();
-    NtfAdmin::theNtfAdmin->logger.checkQueueAndLog(notif);
-    TRACE_LEAVE();
-}
-
 /* ========================================================================
  *   DATA DECLARATIONS
  * ========================================================================
@@ -110,7 +103,7 @@ void saLogWriteLogCallback(SaInvocationT invocation,
     {
         NtfNotification* notification;
 
-        LOG_WA( "Error when logging (%d), relogging", error);
+        LOG_WA( "Error when logging (%d), queue for relogging", error);
 
         notification = NtfAdmin::theNtfAdmin->getNotificationById(
                                                                  (SaNtfIdentifierT) invocation);
@@ -119,7 +112,7 @@ void saLogWriteLogCallback(SaInvocationT invocation,
 
         if (!notification->loggedOk())
         {
-            retryLogNotification(*notification);
+            NtfAdmin::theNtfAdmin->logger.queueNotifcation(*notification);
             TRACE_LEAVE();
             return;
         }
@@ -172,6 +165,14 @@ void NtfLogger::log(NtfNotification& notif, bool isLocal)
     TRACE_LEAVE();
 }
 
+
+void NtfLogger::queueNotifcation(NtfNotification& notif)
+{
+	TRACE_2("Queue notification: %llu", notif.getNotificationId());    
+	queuedNotificationList.push_back(&notif);	
+}
+
+
 void NtfLogger::checkQueueAndLog(NtfNotification& newNotif)
 {
     TRACE_ENTER();
@@ -185,8 +186,7 @@ void NtfLogger::checkQueueAndLog(NtfNotification& newNotif)
         {
             TRACE_2("Push back queued notification: %llu", notification->getNotificationId());
             queuedNotificationList.push_front(notification); /* keep order */
-            TRACE_2("Queue notification: %llu", newNotif.getNotificationId());    
-            queuedNotificationList.push_back(&newNotif);
+            queueNotifcation(newNotif);
             TRACE_LEAVE();
             return;
         }
@@ -194,8 +194,7 @@ void NtfLogger::checkQueueAndLog(NtfNotification& newNotif)
 
     if (SA_AIS_OK != this->logNotification(newNotif))
     {
-        TRACE_2("Queue notification: %llu", newNotif.getNotificationId());    
-        queuedNotificationList.push_back(&newNotif);
+        queueNotifcation(newNotif);
     }
     TRACE_LEAVE();
 }
@@ -260,6 +259,10 @@ SaAisErrorT NtfLogger::logNotification(NtfNotification& notif)
             LOG_ER("Failed to log an alarm or security alarm "
                    "notification (%d)",
                    errorCode);
+            if (errorCode == SA_AIS_ERR_LIBRARY || errorCode == SA_AIS_ERR_BAD_HANDLE) {
+                LOG_ER("Fatal error SA_AIS_ERR_LIBRARY or SA_AIS_ERR_BAD_HANDLE; exiting (%d)...", errorCode);
+                exit(EXIT_FAILURE);
+             }  
             goto end;
         }
     }
