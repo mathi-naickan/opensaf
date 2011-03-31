@@ -60,6 +60,7 @@ public:
     void log(NtfNotification& notif, bool isLocal);
     void checkQueueAndLog(NtfNotification& notif);
     SaAisErrorT logNotification(NtfNotification& notif);    
+    void queueNotifcation(NtfNotification& notif);
     void printInfo();
 
 private:
