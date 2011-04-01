@@ -295,21 +295,32 @@ class SmfUpgradeStep {
 	void addImmOperation(SmfImmOperation* i_immoperation);
 
 ///
-/// Purpose:  Set the node where sw should be added/removed
+/// Purpose:  Set the node where sw should be added/removed (rolling)
 /// @param    A DN to an AMF node 
 /// @return   None
 ///
 	void setSwNode(const std::string & i_swNode);
-	inline void addSwNode(const std::string& i_swNode) {
-		m_swNodeList.push_back(i_swNode);
-	}
 
 ///
-/// Purpose:  Get the node where sw should be added/removed
+/// Purpose:  Add a node where sw should be added/removed (single step)
+/// @param    A DN to an AMF node 
+/// @return   None
+///
+	void addSwNode(const std::string& i_swNode);
+
+///
+/// Purpose:  Get the node where sw should be added/removed (rolling)
 /// @param     
 /// @return   A DN to an AMF node
 ///
 	const std::string & getSwNode();
+
+///
+/// Purpose:  Get the list of nodes where sw should be added/removed (single step)
+/// @param     
+/// @return   A list of DNs to AMF nodes
+///
+	const std::list<std::string>  & getSwNodeList();
 
 ///
 /// Purpose:  Set type of step

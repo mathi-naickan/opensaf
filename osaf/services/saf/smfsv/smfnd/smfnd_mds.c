@@ -266,7 +266,7 @@ static uns32 mds_svc_event(struct ncsmds_callback_info *info)
 			}
 			break;
 		default:
-			LOG_NO("Got the svc evt: %d for SMFND",svc_evt->i_change);
+			TRACE("Got the svc evt: %d for SMFND",svc_evt->i_change);
 	}
 	return NCSCC_RC_SUCCESS;
 }
