@@ -446,7 +446,7 @@
 				<deactivationUnit>
 					<actedOn>
 						<byTemplate>
-							<type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"></type>
+							<type objectDN="safVersion=6.6.6,safCompType=AmfDemo1"></type>
 						</byTemplate>
 					</actedOn>
 					<removed>
@@ -457,7 +457,7 @@
 				<activationUnit>
 					<actedOn>
 						<byTemplate>
-							<type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"></type>
+							<type objectDN="safVersion=6.6.6,safCompType=AmfDemo1"></type>
 						</byTemplate>
                     </actedOn>
 					<added objectClassName="SaAmfApplication" parentObjectDN="=">
@@ -490,7 +490,7 @@
 				<deactivationUnit>
 					<actedOn>
 						<byTemplate>
-							<type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"></type>
+							<type objectDN="safVersion=6.6.6,safCompType=AmfDemo1"></type>
 						</byTemplate>
 					</actedOn>
 					<removed>
@@ -501,7 +501,7 @@
 				<activationUnit>
 					<actedOn>
 						<byTemplate>
-							<type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"></type>
+							<type objectDN="safVersion=6.6.6,safCompType=AmfDemo1"></type>
 						</byTemplate>
                     </actedOn>
 					<added objectClassName="SaAmfApplication" parentObjectDN="=">
@@ -513,6 +513,60 @@
 						</attribute>
 					</added>
 					<swAdd bundleDN="safSmfBundle=7.7.7" pathnamePrefix="/opt/amf_demo"/>
+                </activationUnit>
+			</forAddRemove>
+        </upgradeScope>
+		<upgradeStep saSmfStepRestartOption="0" saSmfStepMaxRetry="8"/>
+      </singleStepUpgrade>
+    </upgradeMethod>
+  </upgradeProcedure>
+	<!--
+	The procedure below will not find "safVersion=4.0.0,safCompType=AmfDemo1" since the current version is 
+	"safVersion=6.6.6,safCompType=AmfDemo1" which was set in procedure "safSmfProc=SingleStepCompForModifyTemplate_SuLock".
+	The execution of the procedure below will:
+	-remove the "safApp=TestDummyApp5" object
+	-create the "safApp=TestDummyApp6" object
+	
+	No "SaSmfDeactivationUnit", "SaSmfActivationUnit" or "SaSmfImageNodes" will be created.
+	No bundles will be removed or added.
+	-->
+  <upgradeProcedure safSmfProcedure="safSmfProc=SingleStepCompForAddRemoveByTemplate_TypeNotFound" saSmfExecLevel="8">
+    <outageInfo>
+      <acceptableServiceOutage>
+        <all/>
+      </acceptableServiceOutage>
+      <procedurePeriod saSmfProcPeriod="60000000000"/>
+    </outageInfo>
+    <upgradeMethod>
+      <singleStepUpgrade>
+        <upgradeScope>
+			<forAddRemove>
+				<deactivationUnit>
+					<actedOn>
+						<byTemplate>
+							<type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"></type>
+						</byTemplate>
+					</actedOn>
+					<removed>
+						<byName objectDN="safApp=TestDummyApp5"></byName>
+                    </removed>
+					<swRemove bundleDN="safSmfBundle=7.7.7" pathnamePrefix="/opt/amf_demo"/>
+				</deactivationUnit>
+				<activationUnit>
+					<actedOn>
+						<byTemplate>
+							<type objectDN="safVersion=4.0.0,safCompType=AmfDemo1"></type>
+						</byTemplate>
+                    </actedOn>
+					<added objectClassName="SaAmfApplication" parentObjectDN="=">
+						<attribute name="safApp" type="SA_IMM_ATTR_SASTRINGT">
+							<value>safApp=TestDummyApp6</value>
+						</attribute>
+						<attribute name="saAmfAppType" type="SA_IMM_ATTR_SANAMET">
+							<value>safVersion=1.1.1,safAppType=TestDummyApp</value>
+						</attribute>
+					</added>
+					<swAdd bundleDN="safSmfBundle=8.8.8" pathnamePrefix="/opt/amf_demo"/>
                 </activationUnit>
 			</forAddRemove>
         </upgradeScope>
