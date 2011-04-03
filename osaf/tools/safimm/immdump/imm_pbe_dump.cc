@@ -488,9 +488,9 @@ ClassInfo* classToPBE(std::string classNameString,
 	}
 	sqlA.resize(0); /* sqlA not used any more. */
 	sqlB.reserve(sqlBsize);
-	sqlB.append("CREATE TABLE ");
+	sqlB.append("CREATE TABLE \"");
 	sqlB.append(classNameString);
-	sqlB.append("(obj_id integer primary key");
+	sqlB.append("\" (obj_id integer primary key");
 	sqlC.append(classIdStr);
 	sqlC.append("', '");
 
@@ -521,8 +521,9 @@ ClassInfo* classToPBE(std::string classNameString,
 		}
 
 		if(!(attr_is_pure_rt || attr_is_multi)) {
-			sqlB.append(", ");
+			sqlB.append(", \"");
 			sqlB.append((*p)->attrName);
+			sqlB.append("\"");
 			typeToPBE(*p, dbHandle, &sqlB);
 		}
 
@@ -638,7 +639,7 @@ void deleteClassToPBE(std::string classNameString, void* db_handle,
 	std::string sqlZ("select obj_id from objects where class_id = ");
 
 	std::string sqlA("delete from classes where class_id = ");
-	std::string sqlB("drop table ");
+	std::string sqlB("drop table \"");
 	std::string sqlC("delete from attr_def where class_id = ");
 	std::string sqlD("delete from attr_dflt where class_id = ");
 
@@ -717,6 +718,7 @@ void deleteClassToPBE(std::string classNameString, void* db_handle,
 
 	/* 5. Drop 'classname' base relation. */
 	sqlB.append(classNameString);
+	sqlB.append("\"");
 	TRACE("GENERATED B:%s", sqlB.c_str());
 	rc = sqlite3_exec(dbHandle, sqlB.c_str(), NULL, NULL, &execErr);
 	if(rc) {
@@ -978,7 +980,7 @@ void objectModifyDiscardAllValuesOfAttrToPBE(void* db_handle, std::string objNam
 		TRACE("Deleted %u values", rowsModified);
 	} else {
 		/* Assign the null value to the single valued attribute. */
-		std::string sql22("update ");
+		std::string sql22("update \"");
 		std::string sql3("select class_name from classes where class_id = ");
 
 		/* Get the class-name for the object */
@@ -1004,9 +1006,9 @@ void objectModifyDiscardAllValuesOfAttrToPBE(void* db_handle, std::string objNam
 
 		/* Update the relevant attribute in the class_name table */
 		sql22.append(class_name);
-		sql22.append(" set ");
+		sql22.append("\" set \"");
 		sql22.append(attrValue->attrName);
-		sql22.append(" = NULL where obj_id =");
+		sql22.append("\" = NULL where obj_id =");
 		sql22.append(object_id);
 		sqlite3_free_table(result2);
 
@@ -1185,7 +1187,7 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 		   current value matches.
 		 */
 		unsigned int ix;
-		std::string sql23("update ");
+		std::string sql23("update \"");
 		std::string sql3("select class_name from classes where class_id = ");
 		bool text_val = ((attr_type == SA_IMM_ATTR_SANAMET) ||
 			(attr_type == SA_IMM_ATTR_SASTRINGT) ||
@@ -1216,13 +1218,13 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 
 		/* Update the relevant attribute in the class_name table IFF value matches. */
 		sql23.append(class_name);
-		sql23.append(" set ");
+		sql23.append("\" set \"");
 		sql23.append(attrValue->attrName);
-		sql23.append(" = NULL where obj_id =");
+		sql23.append("\" = NULL where obj_id =");
 		sql23.append(object_id);
-		sql23.append(" and ");
+		sql23.append(" and \"");
 		sql23.append(attrValue->attrName);
-		sql23.append(" = ");
+		sql23.append("\" = ");
 		if(text_val) {sql23.append("'");}
 		sqlite3_free_table(result2);
 		for(ix=0; ix < attrValue->attrValuesNumber; ++ix) {
@@ -1347,7 +1349,7 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 		++rowsModified;/* Not a correct count, just for stampObjectWithCcbId */
 	} else {
 		/* Add value to single valued */
-		std::string sql22("update ");
+		std::string sql22("update \"");
 		std::string sql3("select class_name from classes where class_id = ");
 
 		assert(attrValue->attrValuesNumber == 1);
@@ -1375,9 +1377,9 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 		/* We should check that the current value is NULL, but we assume instead
 		   that the ImmModel has done this check. */
 		sql22.append(class_name);
-		sql22.append(" set ");
+		sql22.append("\" set \"");
 		sql22.append(attrValue->attrName);
-		sql22.append(" = '");
+		sql22.append("\" = '");
 		sql22.append(valueToString(attrValue->attrValues[0], attrValue->attrValueType));
 		sql22.append("' where obj_id = ");
 		sql22.append(object_id);
@@ -1571,7 +1573,7 @@ void objectDeleteToPBE(std::string objectNameString, void* db_handle)
 	std::string sql1("select obj_id,class_id from objects where dn = '");
 	std::string sql2("delete from objects where obj_id = ");
 	std::string sql3("select class_name from classes where class_id = ");
-	std::string sql4("delete from ");
+	std::string sql4("delete from \"");
 	std::string sql5("delete from objects_int_multi where obj_id = ");
 	std::string sql6("delete from objects_real_multi where obj_id = ");
 	std::string sql7("delete from objects_text_multi where obj_id = ");
@@ -1656,7 +1658,7 @@ void objectDeleteToPBE(std::string objectNameString, void* db_handle)
 	/* Fourth delete the base attribute tuple from table 'classname' for obj_id.
 	 */
 	sql4.append(class_name);
-	sql4.append(" where obj_id = ");
+	sql4.append("\" where obj_id = ");
 	sql4.append(object_id);
 	sqlite3_free_table(result2);
 
@@ -1743,8 +1745,8 @@ void objectToPBE(std::string objectNameString,
 	sqlite3* dbHandle = (sqlite3 *) db_handle;
 
 	std::string sqlE("INSERT INTO objects (obj_id, class_id, dn, last_ccb) values('");
-	std::string sqlF("INSERT INTO ");
-	std::string sqlF1(" (obj_id ");
+	std::string sqlF("INSERT INTO \"");
+	std::string sqlF1("\" (obj_id ");
 	std::string sqlF2(" values('");
 
 	TRACE_ENTER();
@@ -1821,8 +1823,9 @@ void objectToPBE(std::string objectNameString,
 					(*p)->attrValuesNumber);
 				assert((*p)->attrValuesNumber == 1);
 			}
-			sqlF1.append(", ");
+			sqlF1.append(", \"");
 			sqlF1.append(attName);
+			sqlF1.append("\"");
 
 			sqlF2.append("', '");
 			sqlF2.append(valueToString(*((*p)->attrValues),
