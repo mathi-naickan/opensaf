@@ -334,7 +334,7 @@ bool loadObjectFromPbe(void* pbeHandle, SaImmHandleT immHandle, SaImmCcbHandleT 
 	int nrows=0;
 	int ncols=0;
 	int c;
-	std::string sqlF("select ");
+	std::string sqlF("select \"");
 	bool attr_appended = false;
 	std::list<SaImmAttrValuesT_2> attrValuesList;
 	AttrInfoVector::iterator it;
@@ -360,19 +360,20 @@ bool loadObjectFromPbe(void* pbeHandle, SaImmHandleT immHandle, SaImmCcbHandleT 
 
 		if(!attr_is_multi && !attr_is_pure_rt) { 
 			if(attr_appended) {
-				sqlF.append(", ");
+				sqlF.append(", \"");
 			}
 
 			sqlF.append((*it)->attrName);
+			sqlF.append("\"");
 			attr_appended = true;
 		}
 
 		++it;
 	}
 
-	sqlF.append(" from ");
+	sqlF.append(" from \"");
 	sqlF.append(class_info->className);
-	sqlF.append(" where obj_id = ");
+	sqlF.append("\" where obj_id = ");
 	sqlF.append(object_id);
 
 	TRACE("GENERATED F:%s", sqlF.c_str());
