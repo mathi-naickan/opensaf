@@ -160,6 +160,8 @@ void* pbeRepositoryInit(const char* filePath, bool create)
 
 	const char * sql_tr[] = 
 		{"BEGIN EXCLUSIVE TRANSACTION",
+		 "CREATE TABLE pbe_rep_version (major integer, minor integer)",
+		 "INSERT INTO pbe_rep_version (major, minor) values('1', '1')",
 		 "CREATE TABLE classes (class_id integer primary key, class_category integer, class_name text)",
 		 "CREATE UNIQUE INDEX classes_idx on classes (class_name)",
 
@@ -226,7 +228,7 @@ void* pbeRepositoryInit(const char* filePath, bool create)
 	   file will still have the oldFilename link.
 	   Could mark with date, but that requires rotation. */
 	if(link(filePath, oldFilename.c_str()) != 0) {
-		LOG_WA("Failed to link %s to %s error:%s", 
+		LOG_IN("Could not move %s to %s error:%s - ok for initial pbe-enable", 
 			filePath, oldFilename.c_str(), strerror(errno));
 	}
 

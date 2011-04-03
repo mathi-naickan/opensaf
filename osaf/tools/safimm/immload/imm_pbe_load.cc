@@ -31,6 +31,9 @@
 
 #include <sqlite3.h>
 
+static unsigned int pbe_ver_major = 0;
+static unsigned int pbe_ver_minor = 0;
+
 void* checkPbeRepositoryInit(std::string dir, std::string file)
 {
 	SaImmRepositoryInitModeT rpi = (SaImmRepositoryInitModeT) 0;
@@ -43,6 +46,7 @@ void* checkPbeRepositoryInit(std::string dir, std::string file)
 	int nrows=0;
 	int ncols=0;
 	const char * sql = "select saImmRepositoryInit from SaImmMngt";
+	const char * sql2 = "select major,minor from pbe_rep_version";
 	TRACE_ENTER();
 	/* Build the filename */
 	filename = dir;
@@ -102,6 +106,36 @@ void* checkPbeRepositoryInit(std::string dir, std::string file)
 	}
 
 	sqlite3_free_table(result);
+
+	/* Get PBE rep-version */
+
+	rc = sqlite3_get_table((sqlite3 *) dbHandle, sql2, &result, &nrows, 
+		&ncols, &zErr);
+	if(rc) {
+		LOG_IN("Could not access table 'pbe_rep_version', error:%s. Assuming version <0,0>", zErr);
+		sqlite3_free(zErr);
+
+	} else {
+		TRACE_2("Successfully accessed table 'pbe_rep_version', rows:%u cols:%u", 
+			nrows, ncols);
+		if(nrows == 0) {
+			LOG_ER("pbe_rep_version exists but is empty");
+		} else {
+			if(nrows > 1) {
+				LOG_WA("pbe_rep_version has %u tuples, should "
+					"only be one - using first tuple",
+					nrows);
+			}
+
+			pbe_ver_major = atoi(result[2]);
+			pbe_ver_minor = atoi(result[3]);
+		}
+	}
+
+	sqlite3_free_table(result);
+	
+	LOG_IN("PBE repository of rep-version <%u, %u>",
+		pbe_ver_major, pbe_ver_minor);
 
 	TRACE_LEAVE();
 	return dbHandle;
