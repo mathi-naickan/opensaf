@@ -7,21 +7,19 @@ relation it has with the patch review process by email.
 
 A commit message should comply to the following template:
 
-* First line  : 72-chars long one line short description. Describe what the
-                patch is doing logically (not the bug description)
+* First line  : 80-chars long one line short description (#ticket). Describe what
+                the patch is doing logically (not the bug description)
 * Second line : Blank
-* Third line  : Ticket #xyz if applicable (optional)
-* Fourth line : Blank (optional)
-* Fifth line  : 72-chars long lines for a more complete description
-* Last line   : Signed-off-by: Tag
+* Third line+ : 80-chars long lines for a more complete description
 
 -----<-----<-----<-----<-----<-----
-example: this is a one line short description
-
-Ticket #500
+example: this is a one line short description (#2000)
 
 This is a more elaborate description that explains your changes and the
 original problem and how it got solved.
+
+ * Blah
+ * Blah
 
 Signed-off-by: John Doe <john.doe@example.com>
 -----<-----<-----<-----<-----<-----
@@ -141,12 +139,10 @@ The script will help you create the following work package:
 
 The script currently accepts the following options:
 
-Usage: submit-review.sh [-t] [-q|-c|-o] [-r rev] [-d dest]
+Usage: submit-review.sh [-t] [-q|-r rev] [-d dest]
 
 -t    Executes a dry-run (nothing will be emailed)
 -q    Enables patch queue usage for the review process
--c    Enables local changesets usage for the review process (default)
--o    Enables all outgoing changes for the review process
 -r    Uses the csX:csY committed revision range for the review process
       (default 'tip')
 -d    Specifies where the review package gets dumped (default 'mktemp -d')
