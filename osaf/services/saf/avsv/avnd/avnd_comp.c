@@ -1933,7 +1933,7 @@ find_next:
 uns32 avnd_comp_csi_qscd_assign_fail_prc(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *csi)
 {
 	uns32 rc = NCSCC_RC_SUCCESS;
-	TRACE_ENTER2("comp: '%s' : csi: '%s", comp->name.value, csi->name.value);
+	TRACE_ENTER2("comp: '%s' : csi: '%s", comp->name.value, csi ? csi->name.value : NULL);
 
 	/* mark the comp & su failed */
 	m_AVND_COMP_FAILED_SET(comp);
