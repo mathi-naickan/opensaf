@@ -2034,16 +2034,16 @@ static uns32 avsv_encode_cold_sync_rsp_avd_cluster_config(AVD_CL_CB *cb, NCS_MBC
 static uns32 avsv_encode_cold_sync_rsp_avd_node_config(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc, uns32 *num_of_obj)
 {
 	uns32 status = NCSCC_RC_SUCCESS;
-	SaClmNodeIdT node_id = 0;
-	AVD_AVND *avnd;
+	AVD_AVND *avnd_node = NULL;
 	EDU_ERR ederror = 0;
 
 	/* 
 	 * Walk through the entire list and send the entire list data.
 	 */
-	while (NULL != (avnd = avd_node_getnext_nodeid(node_id))) {
+	avnd_node = avd_node_getnext(NULL);
+	while (avnd_node != NULL) {
 		status = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_node,
-					    &enc->io_uba, EDP_OP_TYPE_ENC, avnd, &ederror, enc->i_peer_version);
+					    &enc->io_uba, EDP_OP_TYPE_ENC, avnd_node, &ederror, enc->i_peer_version);
 
 		if (status != NCSCC_RC_SUCCESS) {
 			LOG_ER("%s: encode failed, ederror=%u", __FUNCTION__, ederror);
@@ -2051,7 +2051,7 @@ static uns32 avsv_encode_cold_sync_rsp_avd_node_config(AVD_CL_CB *cb, NCS_MBCSV_
 		}
 
 		(*num_of_obj)++;
-		node_id = avnd->node_info.nodeId;
+		avnd_node = avd_node_getnext(&avnd_node->name);
 	}
 
 	return status;
