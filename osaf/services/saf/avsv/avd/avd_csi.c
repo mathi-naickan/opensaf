@@ -1018,6 +1018,10 @@ uns32 avd_compcsi_delete(AVD_CL_CB *cb, AVD_SU_SI_REL *susi, NCS_BOOL ckpt)
 		lcomp_csi->susi_csicomp_next = NULL;
 		prev_compcsi = NULL;
 		avd_delete_csiassignment_from_imm(&lcomp_csi->comp->comp_info.name, &lcomp_csi->csi->name);
+
+		/* free from pg list maintained on csi &  node */
+		avd_pg_csi_node_del(cb, lcomp_csi->csi, susi->su->su_on_node);
+
 		free(lcomp_csi);
 
 	}
