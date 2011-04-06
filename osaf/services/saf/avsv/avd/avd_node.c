@@ -495,6 +495,8 @@ static SaAisErrorT node_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata
 				rc = SA_AIS_ERR_BAD_OPERATION;
 				goto done;
 			}
+		} else if (!strcmp(attribute->attrName, "saAmfNodeSuFailoverMax")) {
+			/*  No validation needed, avoiding fall-thorugh to Unknown Attribute error-case */
 		} else {
 			LOG_ER("Unknown attribute %s", attribute->attrName);
 			rc = SA_AIS_ERR_BAD_OPERATION;
