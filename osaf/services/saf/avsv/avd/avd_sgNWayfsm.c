@@ -2394,6 +2394,49 @@ uns32 avd_sg_nway_susi_succ_sg_realign(AVD_CL_CB *cb,
 	return rc;
 }
 
+/**
+ * @brief     Finds the most preferred Standby SISU for a particular Si to do SI failover 
+ * 	     
+ * @param[in] sisu 
+ *
+ * @return   AVD_SU_SI_REL - pointer to the preferred sisu
+ *
+ */
+static AVD_SU_SI_REL * find_pref_standby_susi(AVD_SU_SI_REL *sisu)
+{
+	AVD_SU_SI_REL *curr_sisu = 0,  *curr_susi = 0;
+	int curr_su_act_cnt = 0;
+	TRACE_ENTER();	
+
+	curr_sisu = sisu->si->list_of_sisu;
+	while (curr_sisu) {
+		if ((SA_AMF_READINESS_IN_SERVICE == curr_sisu->su->saAmfSuReadinessState) &&
+			(SA_AMF_HA_STANDBY == curr_sisu->state) && (curr_sisu->su != sisu->su)) {
+			/* Find the Current Active assignments on the curr_sisu->su. 
+			 * We cannot depend on su->saAmfSUNumCurrActiveSIs, because for an Active assignment 
+			 * saAmfSUNumCurrActiveSIs will be  updated only after completion of the assignment 
+			 * process(getting response). So if there are any  assignments in the middle  of 
+			 * assignment process saAmfSUNumCurrActiveSIs wont give the currect value 
+			 */
+			curr_susi = curr_sisu->su->list_of_susi;
+			curr_su_act_cnt = 0;
+			while (curr_susi) {
+				if (SA_AMF_HA_ACTIVE == curr_susi->state)
+					curr_su_act_cnt++;
+				curr_susi = curr_susi->su_next;
+			}
+			if (curr_su_act_cnt < sisu->su->sg_of_su->saAmfSGMaxActiveSIsperSU) {
+				TRACE("Found preferred sisu SU: '%s' SI: '%s'",curr_sisu->su->name.value,
+										curr_sisu->si->name.value);
+				break;
+			}
+		}
+		curr_sisu = curr_sisu->si_next;
+	}
+
+	TRACE_LEAVE();
+	return curr_sisu;
+}
 /*****************************************************************************
  * Function : avd_sg_nway_susi_succ_su_oper
  *
@@ -2421,34 +2464,31 @@ uns32 avd_sg_nway_susi_succ_su_oper(AVD_CL_CB *cb,
 	NCS_BOOL is_eng = FALSE, flag;
 	uns32 rc = NCSCC_RC_SUCCESS;
 	AVD_AVND *su_node_ptr = NULL;
+	TRACE_ENTER2("SU '%s'  ",su->name.value);
 
 	if (susi && (SA_AMF_HA_QUIESCED == state) && (AVSV_SUSI_ACT_DEL != act)) {
 		/* => single quiesced assignment success */
 
 		/* identify the most preferred standby su for this si */
-		for (curr_susi = susi->si->list_of_sisu;
-		     curr_susi && !((SA_AMF_HA_STANDBY == curr_susi->state) &&
-				    (SA_AMF_READINESS_IN_SERVICE == curr_susi->su->saAmfSuReadinessState));
-		     curr_susi = curr_susi->si_next) ;
-
-		if (curr_susi) {
-			/* send active assignment */
-			old_state = curr_susi->state;
-			old_fsm_state = curr_susi->fsm;
-			curr_susi->state = SA_AMF_HA_ACTIVE;
-			curr_susi->fsm = AVD_SU_SI_STATE_MODIFY;
-			m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_susi, AVSV_CKPT_AVD_SI_ASS);
-			avd_susi_update(curr_susi, state);
-			avd_gen_su_ha_state_changed_ntf(cb, curr_susi);
-			rc = avd_snd_susi_msg(cb, curr_susi->su, curr_susi, AVSV_SUSI_ACT_MOD);
-			if (NCSCC_RC_SUCCESS != rc) {
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, curr_susi->su->name.value, curr_susi->su->name.length);
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, curr_susi->si->name.value, curr_susi->si->name.length);
-				curr_susi->state = old_state;
-				curr_susi->fsm = old_fsm_state;
-				m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_susi, AVSV_CKPT_AVD_SI_ASS);
-				avd_gen_su_ha_state_changed_ntf(cb, curr_susi);
-				return rc;
+		curr_sisu = find_pref_standby_susi(susi);
+		if (curr_sisu) {
+                        /* send active assignment */
+                        old_state = curr_sisu->state;
+                        old_fsm_state = curr_sisu->fsm;
+                        curr_sisu->state = SA_AMF_HA_ACTIVE;
+                        curr_sisu->fsm = AVD_SU_SI_STATE_MODIFY;
+                        m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_sisu, AVSV_CKPT_AVD_SI_ASS);
+                        avd_susi_update(curr_sisu, state);
+                        avd_gen_su_ha_state_changed_ntf(cb, curr_sisu);
+			rc = avd_snd_susi_msg(cb, curr_sisu->su, curr_sisu, AVSV_SUSI_ACT_MOD);
+                        if (NCSCC_RC_SUCCESS != rc) {
+                                LOG_ER("%s:%u: %s ", __FILE__, __LINE__, curr_sisu->su->name.value);
+                                LOG_ER("%s:%u: %s ", __FILE__, __LINE__, curr_sisu->si->name.value);
+                                curr_sisu->state = old_state;
+                                curr_sisu->fsm = old_fsm_state;
+                                m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_sisu, AVSV_CKPT_AVD_SI_ASS);
+                                avd_gen_su_ha_state_changed_ntf(cb, curr_sisu);
+                                goto done;
 			}
 		} else {
 			/* determine if all the standby sus are engaged */
@@ -2457,8 +2497,8 @@ uns32 avd_sg_nway_susi_succ_su_oper(AVD_CL_CB *cb,
 				/* send remove all msg for all sis for this su */
 				rc = avd_sg_su_si_del_snd(cb, su);
 				if (NCSCC_RC_SUCCESS != rc) {
-					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-					return rc;
+					LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+					goto done;
 				}
 
 				m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
@@ -2489,7 +2529,7 @@ uns32 avd_sg_nway_susi_succ_su_oper(AVD_CL_CB *cb,
 			if (NCSCC_RC_SUCCESS != rc) {
 				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, sg->su_oper_list.su->name.value,
 								 sg->su_oper_list.su->name.length);
-				return rc;
+				goto done;
 			}
 
 			m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
@@ -2543,7 +2583,7 @@ uns32 avd_sg_nway_susi_succ_su_oper(AVD_CL_CB *cb,
 					curr_sisu->fsm = old_fsm_state;
 					m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_susi, AVSV_CKPT_AVD_SI_ASS);
 					avd_gen_su_ha_state_changed_ntf(cb, curr_susi);
-					return rc;
+					goto done;
 				}
 
 				/* add the prv standby to the su-oper list */
@@ -2559,8 +2599,26 @@ uns32 avd_sg_nway_susi_succ_su_oper(AVD_CL_CB *cb,
 			m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_SG_REALIGN);
 		} else
 			avd_sg_nway_si_assign(cb, sg);
-	}
+	} else if (susi && (AVSV_SUSI_ACT_DEL == act)) {
+		/* Single susi delete success processing */
 
+		/* delete the su from the oper list */
+		avd_sg_su_oper_list_del(cb, su, FALSE);
+
+		/* free all the CSI assignments  */
+                avd_compcsi_delete(cb, susi, FALSE);
+
+                /* free susi assignment */
+                m_AVD_SU_SI_TRG_DEL(cb, susi);
+
+		/* transition to sg-realign state or initiate si assignments */
+		if (sg->su_oper_list.su) {
+			m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_SG_REALIGN);
+		} else
+			avd_sg_nway_si_assign(cb, sg);
+	}
+done:
+	TRACE_LEAVE();
 	return rc;
 }
 
