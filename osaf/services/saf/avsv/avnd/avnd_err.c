@@ -293,6 +293,7 @@ uns32 avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 {
 	uns32 esc_rcvr = err_info->rec_rcvr.raw;
 	uns32 rc = NCSCC_RC_SUCCESS;
+	TRACE_ENTER2("Comp:'%s' esc_rcvr:'%u'", comp->name.value, esc_rcvr);
 
 	/* when undergoing admin oper do not process any component errors */
 	if (comp->admin_oper == SA_TRUE)
@@ -300,10 +301,16 @@ uns32 avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 
 	/* Level3 escalation is node failover. we dont expect any
 	 ** more errors from application as the node is already failed over. 
-	 ** AvSv will ignore any error which happens on level3 escalation
+	 ** Except AVND_ERR_SRC_AVA_DN, AvSv will ignore any error which happens
+	 ** in level3 escalation
+	 */
+	/* (AVND_ERR_SRC_AVA_DN != err_info->src) check is added so that comp state is marked as failed
+	 * and error cleanup (Clearing pending assignments, deleting dynamic info associated with the
+	 * component) is done for components which goes down after AVND_ERR_ESC_LEVEL_3 is set
 	 */
 	if ((cb->node_err_esc_level == AVND_ERR_ESC_LEVEL_3) &&
-	    (comp->su->is_ncs == SA_FALSE) && (esc_rcvr != SA_AMF_NODE_FAILFAST)) {
+	    (comp->su->is_ncs == SA_FALSE) && (esc_rcvr != SA_AMF_NODE_FAILFAST) &&
+					(AVND_ERR_SRC_AVA_DN != err_info->src)) {
 		/* For external component, comp->su->is_ncs is FALSE, so no need to
 		   put a check here for external component explicitely. */
 		goto done;
@@ -349,6 +356,7 @@ uns32 avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 		goto done;
 
  done:
+	TRACE_LEAVE2("Return value:'%u'", rc);
 	return rc;
 }
 
@@ -779,13 +787,22 @@ uns32 avnd_err_rcvr_node_failover(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP *fa
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
 	}
 
-	/* transition the su & node oper state to disabled */
-	cb->oper_state = SA_AMF_OPERATIONAL_DISABLED;
+	/* transition the su oper state to disabled */
 	m_AVND_SU_OPER_STATE_SET(failed_su, SA_AMF_OPERATIONAL_DISABLED);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_OPER_STATE);
 
-	/* inform avd */
-	rc = avnd_di_oper_send(cb, failed_su, SA_AMF_NODE_FAILOVER);
+	/* If the oper_state is already set to SA_AMF_OPERATIONAL_DISABLED, that means
+	   Node failover is already informed to AVD, so no need to resend again */
+	if(SA_AMF_OPERATIONAL_DISABLED != cb->oper_state) {
+		/* transition the node oper state to disabled */
+		cb->oper_state = SA_AMF_OPERATIONAL_DISABLED;
+
+		/* inform avd */
+		rc = avnd_di_oper_send(cb, failed_su, SA_AMF_NODE_FAILOVER);
+		if (NCSCC_RC_SUCCESS != rc)
+			goto done;
+	}
+
 
 	/*
 	 *  su-sis may be in assigning/removing state. signal csi
