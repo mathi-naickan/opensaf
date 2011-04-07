@@ -1564,12 +1564,12 @@ uns32 cpnd_all_repl_rsp_expiry(CPND_CB *cb, CPND_TMR_INFO *tmr_info)
 			switch (tmr_info->write_type) {
 			case CPSV_CKPT_ACCESS_WRITE:
 				rsp_evt.info.cpa.info.sec_data_rsp.type = CPSV_DATA_ACCESS_WRITE_RSP;
-				rsp_evt.info.cpa.info.sec_data_rsp.error = SA_AIS_OK;
+				rsp_evt.info.cpa.info.sec_data_rsp.error = SA_AIS_ERR_TIMEOUT;
 				break;
 
 			case CPSV_CKPT_ACCESS_OVWRITE:
 				rsp_evt.info.cpa.info.sec_data_rsp.type = CPSV_DATA_ACCESS_OVWRITE_RSP;
-				rsp_evt.info.cpa.info.sec_data_rsp.info.ovwrite_error.error = SA_AIS_OK;
+				rsp_evt.info.cpa.info.sec_data_rsp.info.ovwrite_error.error = SA_AIS_ERR_TIMEOUT;
 				break;
 			}
 

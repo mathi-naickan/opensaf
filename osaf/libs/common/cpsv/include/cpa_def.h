@@ -34,7 +34,7 @@
 
 #define CPSV_MIN_DATA_SIZE  10000
 #define CPSV_AVG_DATA_SIZE  1000000
-#define CPA_WAIT_TIME(datasize) ((datasize<CPSV_MIN_DATA_SIZE)?300:500+((datasize/CPSV_AVG_DATA_SIZE)*400))
+#define CPA_WAIT_TIME(datasize) ((datasize<CPSV_MIN_DATA_SIZE)?400:600+((datasize/CPSV_AVG_DATA_SIZE)*400))
 
 #define m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(t)      (t)/(10000000)	/* 10^7 */
 
