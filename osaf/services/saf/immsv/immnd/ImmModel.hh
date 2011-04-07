@@ -87,6 +87,8 @@ public:
                                     SaUint32T* pbeConn,
                                     unsigned int* pbeNodeId);
 
+    bool                nocaseCompare(const std::string& s1, 
+	                              const std::string& s2) const;
     bool                schemaChangeAllowed();
     bool                protocol41Allowed();
     bool                verifySchemaChange(const std::string& className,
@@ -127,7 +129,8 @@ public:
     
     SaAisErrorT         attrCreate(
                                    ClassInfo* classInfo,
-                                   const ImmsvAttrDefinition* attr);
+                                   const ImmsvAttrDefinition* attr,
+				   const std::string& attrName);
     
     // Admin ownership
     

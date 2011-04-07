@@ -1960,6 +1960,21 @@ ImmModel::instance(void** sInstancep)
     return (ImmModel*) *sInstancep;
 }
 
+bool
+ImmModel::nocaseCompare(const std::string& str1, const std::string& str2) const
+{
+    size_t pos;
+    size_t len = str1.length();
+
+    if(len != str2.length()) return false;
+
+    for(pos=0; pos < len ; ++pos) {
+        if(toupper(str1.at(pos)) != toupper(str2.at(pos))) return false;
+    }
+
+    return true;
+}
+
 /** 
  * Creates a class. 
  */
@@ -2000,6 +2015,17 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
 
     ClassMap::iterator i = sClassMap.find(className);
     if (i == sClassMap.end()) {
+        /* Class-name is unique case-sensitive.
+           Verify class-name unique case-insensitive. See #1846. */
+        for(i = sClassMap.begin(); i!= sClassMap.end(); ++i) {
+            if(nocaseCompare(className, i->first)) {
+                LOG_NO("ERR_EXIST: New class-name:%s identical to existing class-name %s "
+                       "(case insensitive)", className.c_str(), i->first.c_str());
+                return SA_AIS_ERR_EXIST;
+            }
+        }
+        /*Class-name is unique case-insensitive.*/
+
         TRACE_5("CREATE CLASS '%s' category:%u", className.c_str(),
             req->classCategory);
         classInfo = new ClassInfo(req->classCategory);
@@ -2141,7 +2167,7 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
                 illegal = 1;
             }
         }
-        err = attrCreate(classInfo, attr);
+        err = attrCreate(classInfo, attr, attrName);
         if(err != SA_AIS_OK) {
             illegal = 1;
         }
@@ -2744,15 +2770,11 @@ ImmModel::classDelete(const ImmsvOmClassDescr* req,
  * Creates an attribute.
  */
 SaAisErrorT
-ImmModel::attrCreate(ClassInfo* classInfo, const ImmsvAttrDefinition* attr)
+ImmModel::attrCreate(ClassInfo* classInfo, const ImmsvAttrDefinition* attr,
+    const std::string& attrName)
 {
     SaAisErrorT err = SA_AIS_OK;
     //TRACE_ENTER();
-    
-    size_t sz = strnlen((char *) attr->attrName.buf,
-        (size_t)attr->attrName.size);
-    std::string attrName((const char*)attr->attrName.buf, sz);
-    
     
     if(!schemaNameCheck(attrName)) {
         LOG_NO("ERR_INVALID_PARAM: Not a proper attribute name: %s", 
@@ -2764,22 +2786,34 @@ ImmModel::attrCreate(ClassInfo* classInfo, const ImmsvAttrDefinition* attr)
             LOG_NO("ERR_INVALID_PARAM: attr def for '%s' is duplicated",
                 attrName.c_str());
             err = SA_AIS_ERR_INVALID_PARAM;
-        } else {
-            TRACE_5("create attribute '%s'", attrName.c_str());
-            
-            AttrInfo* attrInfo = new AttrInfo;
-            attrInfo->mValueType = attr->attrValueType;
-            attrInfo->mFlags = attr->attrFlags;
-            attrInfo->mNtfId = attr->attrNtfId;
-            if(attr->attrDefaultValue) {
-                IMMSV_OCTET_STRING tmpos; //temporary octet string
-                eduAtValToOs(&tmpos, attr->attrDefaultValue,
-                    (SaImmValueTypeT) attr->attrValueType);
-                attrInfo->mDefaultValue.setValue(tmpos);
-            } 
-            classInfo->mAttrMap[attrName] = attrInfo;
+	    goto done;
         }
+
+        /* Verify attribute name is unique within class case-insensitive. */
+        for(i = classInfo->mAttrMap.begin(); i!= classInfo->mAttrMap.end(); ++i) {
+            if(nocaseCompare(attrName, i->first)) {
+                LOG_NO("ERR_INVALID_PARAM: attr name '%s'/'%s' is duplicated "
+                       "(case insensitive)", attrName.c_str(), i->first.c_str());
+                err = SA_AIS_ERR_INVALID_PARAM;
+                goto done;
+            }
+        }
+
+        TRACE_5("create attribute '%s'", attrName.c_str());
+            
+        AttrInfo* attrInfo = new AttrInfo;
+        attrInfo->mValueType = attr->attrValueType;
+        attrInfo->mFlags = attr->attrFlags;
+        attrInfo->mNtfId = attr->attrNtfId;
+        if(attr->attrDefaultValue) {
+            IMMSV_OCTET_STRING tmpos; //temporary octet string
+            eduAtValToOs(&tmpos, attr->attrDefaultValue,
+                (SaImmValueTypeT) attr->attrValueType);
+            attrInfo->mDefaultValue.setValue(tmpos);
+        } 
+        classInfo->mAttrMap[attrName] = attrInfo;
     }
+ done:
     //TRACE_LEAVE();
     return err;
 }
@@ -6800,7 +6834,7 @@ ImmModel::schemaNameCheck(const std::string& name) const
 {
     /* Dont allow some chars in class & attribute names that cause
        problems in sqlite. Each imm-class is mapped to several tables,
-       but one table is named usingthe classname. 
+       but one table is named using the classname. 
     */
     unsigned char chr;
     size_t pos;
@@ -7356,7 +7390,7 @@ ImmModel::getIdForLargeAdmo()
                admo it finds. The id is sent over fevs as a hard finalize
                message to all IMMNDs, which will either discard the admo 
                or mark it as dying if immnds are in read-only mode.
-	       If it is dying and large then finalizeSync will
+               If it is dying and large then finalizeSync will
                discard it before generating the finalizeSync-message.
                If it is small, then it will be part of the message.
             */
