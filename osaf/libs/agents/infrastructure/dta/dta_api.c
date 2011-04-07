@@ -141,6 +141,8 @@ uns32 dta_svc_create(NCSDTA_CREATE *create)
 
 	/* 3_0_b versioning changes - Subscribe to MDS with dta_mds_version */
 	inst->dta_mds_version = DTA_MDS_SUB_PART_VERSION;
+	
+	m_DTA_UNLK(&inst->lock);
 
 	if (dta_mds_install_and_subscribe() != NCSCC_RC_SUCCESS) {
 		inst->created = FALSE;
@@ -149,8 +151,6 @@ uns32 dta_svc_create(NCSDTA_CREATE *create)
 		m_DTA_LK_DLT(&inst->lock);
 		return m_DTA_DBG_SINK(NCSCC_RC_FAILURE, "dta_svc_create: MDS install and subscribe failed");
 	}
-
-	m_DTA_UNLK(&inst->lock);
 
 	return NCSCC_RC_SUCCESS;
 }
