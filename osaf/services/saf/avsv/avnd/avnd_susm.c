@@ -1748,7 +1748,7 @@ uns32 avnd_su_pres_inst_surestart_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *com
 	AVND_SU_SI_REC *si = 0;
 	AVND_COMP_CSI_REC *csi = 0;
 	uns32 rc = NCSCC_RC_SUCCESS;
-	TRACE_ENTER2("SURestart event in the Instantiated state: '%s' : '%s'", su->name.value, comp->name.value);
+	TRACE_ENTER2("SURestart event in the Instantiated state: '%s'", su->name.value);
 
 	/* 
 	 * If pi su, pick the first pi comp & trigger it's FSM with RestartEv.
