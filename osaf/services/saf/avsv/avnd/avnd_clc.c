@@ -2289,7 +2289,7 @@ uns32 avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_CMD_
 	TRACE_ENTER2("%s, type:%u", comp->name.value, cmd_type);
 
 	/* Refresh the component configuration, it may have changed */
-	if (avnd_comp_config_reinit(comp) != 0) {
+	if ((AVND_TERM_STATE_OPENSAF_SHUTDOWN != cb->term_state) && (avnd_comp_config_reinit(comp) != 0)) {
 		rc = NCSCC_RC_FAILURE;
 		goto err;
 	}
