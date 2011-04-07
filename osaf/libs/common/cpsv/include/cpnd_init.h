@@ -156,6 +156,7 @@ void cpnd_evt_node_get(CPND_CB *cb, MDS_DEST dest, CPSV_CPND_ALL_REPL_EVT_NODE *
 void cpnd_evt_node_getnext(CPND_CB *cb, MDS_DEST dest, CPSV_CPND_ALL_REPL_EVT_NODE **evt_node);
 uns32 cpnd_evt_node_add(CPND_CB *cb, CPSV_CPND_ALL_REPL_EVT_NODE *evt_node);
 uns32 cpnd_evt_node_del(CPND_CB *cb, CPSV_CPND_ALL_REPL_EVT_NODE *evt_node);
+void cpnd_allrepl_write_stale_evt_node_cleanup(CPND_CB *cb, SaCkptCheckpointHandleT ckpt_id);
 CPND_CKPT_NODE *cpnd_ckpt_node_find_by_name(CPND_CB *cpnd_cb, SaNameT ckpt_name);
 CPND_CKPT_SECTION_INFO *cpnd_ckpt_sec_get(CPND_CKPT_NODE *cp_node, SaCkptSectionIdT *id);
 CPND_CKPT_SECTION_INFO *cpnd_ckpt_sec_get_create(CPND_CKPT_NODE *cp_node, SaCkptSectionIdT *id);

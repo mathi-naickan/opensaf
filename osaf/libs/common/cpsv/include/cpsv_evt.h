@@ -30,6 +30,7 @@
 #define CPSV_EVT_H
 
 #include <saCkpt.h>
+#include "ncssysf_tmr.h"
 
 /*****************************************************************************
  * Event Type of CPSV
@@ -251,6 +252,28 @@ typedef struct cpsv_send_info {
 	MDS_SYNC_SND_CTXT ctxt;	/* MDS Opaque context */
 } CPSV_SEND_INFO;
 
+typedef enum cpndq_tmr_type {
+	CPND_TMR_TYPE_RETENTION = 1,
+	CPND_TMR_TYPE_SEC_EXPI,
+	CPND_ALL_REPL_RSP_EXPI,
+	CPND_TMR_OPEN_ACTIVE_SYNC,
+	CPND_TMR_TYPE_NON_COLLOC_RETENTION,
+	CPND_TMR_TYPE_MAX = CPND_TMR_TYPE_NON_COLLOC_RETENTION,
+} CPND_TMR_TYPE;
+typedef struct cpnd_tmr {
+	CPND_TMR_TYPE type;
+	tmr_t tmr_id;
+	SaCkptCheckpointHandleT ckpt_id;
+	MDS_DEST agent_dest;
+	uns32 lcl_sec_id;
+	uns32 uarg;
+	NCS_BOOL is_active;
+	SaUint32T write_type;
+	CPSV_SEND_INFO sinfo;
+	SaInvocationT invocation;
+	SaCkptCheckpointHandleT lcl_ckpt_hdl;
+	NCS_BOOL is_active_sync_err;
+} CPND_TMR;
 /* Struct used for convaying MDS active dest and other dest list info of a ckpt 
    This is used in CPND_EVT_D2ND_CKPT_REP_ADD & CPSV_D2ND_RESTART_DONE */
 typedef struct cpsv_ckpt_destlist_info {
@@ -666,6 +689,7 @@ typedef struct cpnd_tmr_info {
 	CPSV_SEND_INFO sinfo;
 	SaInvocationT invocation;
 	SaCkptCheckpointHandleT lcl_ckpt_hdl;
+	CPND_TMR *cpnd_tmr;
 } CPND_TMR_INFO;
 
 /******************************************************************************

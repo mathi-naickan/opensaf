@@ -150,6 +150,9 @@ void cpnd_ckpt_node_destroy(CPND_CB *cb, CPND_CKPT_NODE *cp_node)
 	}
 	cp_node->cpnd_dest_list = tmp;
 
+	cpnd_allrepl_write_stale_evt_node_cleanup(cb, cp_node->ckpt_id);
+	if (cp_node->open_active_sync_tmr.is_active)
+		cpnd_tmr_stop(&cp_node->open_active_sync_tmr);
 	if (cp_node->ret_tmr.is_active)
 		cpnd_tmr_stop(&cp_node->ret_tmr);
 
@@ -617,8 +620,8 @@ void cpnd_ckpt_delete_all_sect(CPND_CKPT_NODE *cp_node)
 				pSecPtr->next->prev = pSecPtr->prev;
 
 			cp_node->replica_info.n_secs--;
-
-			cpnd_tmr_stop(&pSecPtr->ckpt_sec_exptmr);
+			if (pSecPtr->ckpt_sec_exptmr.is_active)
+				cpnd_tmr_stop(&pSecPtr->ckpt_sec_exptmr);
 
 			m_CPND_FREE_CKPT_SECTION(pSecPtr);
 
@@ -784,6 +787,8 @@ void cpnd_ckpt_node_tree_cleanup(CPND_CB *cb)
 		cpnd_ckpt_replica_destroy(cb, cp_node, &error);
 
 		ncs_patricia_tree_del(&cb->ckpt_info_db, (NCS_PATRICIA_NODE *)&cp_node->patnode);
+		if (cp_node->ret_tmr.is_active)
+			cpnd_tmr_stop(&cp_node->ret_tmr);
 		m_MMGR_FREE_CPND_CKPT_NODE(cp_node);
 	}
 
@@ -1097,4 +1102,38 @@ void cpnd_clm_cluster_track_cb(const SaClmClusterNotificationBufferT *notificati
 		}
 	m_CPND_GIVEUP_CB;
 	return;
+}
+
+/****************************************************************************
+ * Name          : cpnd_allrepl_write_stale_evt_node_cleanup
+ * Description   : Function to cleanup writeevt_db info
+ * Arguments     : CPND_CB *cb - CPND CB pointer
+ * Return Values : NCSCC_RC_SUCCESS/Error.
+ * Notes         : None.
+ *****************************************************************************/
+
+void cpnd_allrepl_write_stale_evt_node_cleanup(CPND_CB *cb, SaCkptCheckpointHandleT ckpt_id)
+{
+
+	CPSV_CPND_ALL_REPL_EVT_NODE *evt_node = NULL;
+	cpnd_evt_node_get(cb, ckpt_id, &evt_node);
+
+	if (evt_node != NULL) {
+		TRACE_ENTER2(" Deleting stale  evt_node->ckpt_id %llu ", (SaUint64T)evt_node->ckpt_id);
+
+		if (evt_node->write_rsp_tmr.is_active)
+			cpnd_tmr_stop(&evt_node->write_rsp_tmr);
+
+		/*Remove the all repl event node */
+		cpnd_evt_node_del(cb, evt_node);
+
+		/*Free the memory */
+		if (evt_node)
+			cpnd_allrepl_write_evt_node_free(evt_node);
+
+		TRACE_LEAVE();
+	}
+
+	return;
+
 }

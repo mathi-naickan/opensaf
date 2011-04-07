@@ -619,7 +619,8 @@ static uns32 cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO 
 		}
 
 		if (cp_node->is_close == TRUE) {
-			cpnd_tmr_stop(&cp_node->ret_tmr);
+			if (cp_node->ret_tmr.is_active)
+				cpnd_tmr_stop(&cp_node->ret_tmr);
 			cp_node->is_close = FALSE;
 			cpnd_restart_reset_close_flag(cb, cp_node);
 		}
@@ -920,6 +921,8 @@ static uns32 cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO 
 			m_MMGR_FREE_CPND_DEST_INFO(free_tmp);
 		}
 	}
+	if (cp_node->ret_tmr.is_active)
+		cpnd_tmr_stop(&cp_node->ret_tmr);
 	m_MMGR_FREE_CPND_CKPT_NODE(cp_node);
 
  agent_rsp:
@@ -1156,7 +1159,8 @@ static uns32 cpnd_evt_proc_ckpt_unlink_info(CPND_CB *cb, CPND_EVT *evt, CPSV_SEN
 	if (cp_node->is_close == TRUE) {
 		send_evt.info.cpa.info.ulinkRsp.error = SA_AIS_OK;
 		/* check timer is present,if yes...stop the timer and destroy shm_info and the node */
-		cpnd_tmr_stop(&cp_node->ret_tmr);
+		if (cp_node->ret_tmr.is_active)
+			cpnd_tmr_stop(&cp_node->ret_tmr);
 
 		if (!m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
 			if (cpnd_is_noncollocated_replica_present_on_payload(cb, cp_node)) {
@@ -2416,7 +2420,8 @@ static uns32 cpnd_evt_proc_ckpt_sect_delete(CPND_CB *cb, CPND_EVT *evt, CPSV_SEN
 		}
 
 		/* stop the timer and delete */
-		cpnd_tmr_stop(&sec_info->ckpt_sec_exptmr);
+		if (sec_info->ckpt_sec_exptmr.is_active)
+			cpnd_tmr_stop(&sec_info->ckpt_sec_exptmr);
 		m_CPND_FREE_CKPT_SECTION(sec_info);
 	} else {
 		m_LOG_CPND_CFCL(CPND_CKPT_SECT_DEL_FAILED, CPND_FC_API, NCSFL_SEV_ERROR,
@@ -3015,8 +3020,8 @@ static uns32 cpnd_evt_proc_nd2nd_ckpt_active_data_access_rsp(CPND_CB *cb, CPND_E
 			}
 
 			if (evt_node->write_rsp_cnt == 0) {
-
-				cpnd_tmr_stop(&evt_node->write_rsp_tmr);
+				if (evt_node->write_rsp_tmr.is_active)
+					cpnd_tmr_stop(&evt_node->write_rsp_tmr);
 				/*Send OK response to CPA */
 				switch (evt->info.ckpt_write.type) {
 				case CPSV_DATA_ACCESS_WRITE_RSP:
@@ -3047,11 +3052,27 @@ static uns32 cpnd_evt_proc_nd2nd_ckpt_active_data_access_rsp(CPND_CB *cb, CPND_E
 			goto error;
 		}
 	} else {
-		m_LOG_CPND_FCL(CPND_CKPT_NODE_GET_FAILED, CPND_FC_API, NCSFL_SEV_ERROR,
-			       evt->info.ckpt_nd2nd_data.ckpt_id, __FILE__, __LINE__);
+		if (evt_node == NULL) {
+			m_LOG_CPND_FCL(CPND_CKPT_NODE_GET_FAILED, CPND_FC_API, NCSFL_SEV_INFO,
+					evt->info.ckpt_nd2nd_data_rsp.ckpt_id, __FILE__, __LINE__);
+			/*error = SA_AIS_ERR_TIMEOUT;*/
+		}
+
+		if (cp_node == NULL) {
+
+			if (evt_node != NULL)
+			{
+				TRACE_ENTER2(" cp_node alredy deleted stale evt_node->ckpt_id %llu exist deleteing it ",
+						(SaUint64T)evt_node->ckpt_id);
+
+			}
+
+			m_LOG_CPND_FCL(CPND_CKPT_NODE_GET_FAILED, CPND_FC_API, NCSFL_SEV_ERROR,
+					evt->info.ckpt_nd2nd_data_rsp.ckpt_id, __FILE__, __LINE__);
+			error = SA_AIS_ERR_NOT_EXIST;
+		}
 		/*Ckpt ids are not matching */
 		rc = NCSCC_RC_FAILURE;
-		error = SA_AIS_ERR_NOT_EXIST;
 		goto error;
 	}
 	return rc;
@@ -3060,11 +3081,8 @@ static uns32 cpnd_evt_proc_nd2nd_ckpt_active_data_access_rsp(CPND_CB *cb, CPND_E
 	if (evt_node != NULL) {
 
 		if (evt_node->write_rsp_tmr.is_active)
-                {
-                        cpnd_tmr_stop(&evt_node->write_rsp_tmr);
+			cpnd_tmr_stop(&evt_node->write_rsp_tmr);
                 
-                }
-		
 		/*Send Error response to CPA */
 		switch (evt->info.ckpt_write.type) {
 		case CPSV_DATA_ACCESS_WRITE_RSP:
@@ -3363,7 +3381,8 @@ static uns32 cpnd_evt_proc_nd2nd_ckpt_active_sync(CPND_CB *cb, CPND_EVT *evt, CP
 						if (out_evt)
 							cpnd_evt_destroy(out_evt);
 					}
-					cpnd_tmr_stop(&cp_node->open_active_sync_tmr);
+					if (cp_node->open_active_sync_tmr.is_active)
+						cpnd_tmr_stop(&cp_node->open_active_sync_tmr);
 					m_LOG_CPND_FCL(CPND_OPEN_ACTIVE_SYNC_STOP_TMR_SUCCESS, CPND_FC_CKPTINFO,
 						       NCSFL_SEV_NOTICE, cp_node->ckpt_id, __FILE__, __LINE__);
 
@@ -3471,7 +3490,79 @@ static uns32 cpnd_evt_proc_ckpt_read(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO 
 static uns32 cpnd_evt_proc_timer_expiry(CPND_CB *cb, CPND_EVT *evt)
 {
 	uns32 rc = NCSCC_RC_SUCCESS;
+	CPND_TMR *tmr = NULL;
+	CPSV_CPND_ALL_REPL_EVT_NODE *evt_node = NULL;
+	CPND_CKPT_NODE *cp_node = NULL;
+	CPND_CKPT_SECTION_INFO *pSec_info = NULL;
 
+	tmr = evt->info.tmr_info.cpnd_tmr;
+		
+	if  (tmr == NULL)  {
+
+		TRACE("CPND: Tmr Mailbox Processing: tmr invalid ");
+		/*return NCSCC_RC_SUCCESS; */
+		/* Fall through to free memory */
+		return NCSCC_RC_SUCCESS;
+
+	} 
+		
+	cpnd_ckpt_node_get(cb, evt->info.tmr_info.ckpt_id, &cp_node);
+	cpnd_evt_node_get(cb, evt->info.tmr_info.ckpt_id, &evt_node);
+
+	if ((evt->info.tmr_info.type == CPND_TMR_TYPE_RETENTION )   ||
+			(evt->info.tmr_info.type == CPND_TMR_TYPE_NON_COLLOC_RETENTION ) ||
+			(evt->info.tmr_info.type == CPND_TMR_OPEN_ACTIVE_SYNC ) ){
+ 
+		if (cp_node == NULL) {
+			m_LOG_CPND_FCL(CPND_CKPT_REPLICA_DESTROY_FAILED, CPND_FC_GENERIC, 
+					NCSFL_SEV_ERROR, evt->info.tmr_info.ckpt_id,__FILE__, __LINE__);
+			goto done;
+		}
+ 
+	}
+	else if (evt->info.tmr_info.type ==  CPND_ALL_REPL_RSP_EXPI){
+
+		if (cp_node == NULL) {
+			m_LOG_CPND_FCL(CPND_CKPT_REPLICA_DESTROY_FAILED, CPND_FC_GENERIC, 
+					NCSFL_SEV_ERROR, evt->info.tmr_info.ckpt_id,__FILE__, __LINE__);
+			goto done;
+		}
+		if (evt_node == NULL) {
+			m_LOG_CPND_FCL(CPND_CKPT_REPLICA_DESTROY_FAILED, CPND_FC_GENERIC,
+					NCSFL_SEV_ERROR, evt->info.tmr_info.ckpt_id,__FILE__, __LINE__);
+			goto done;
+		}
+	}
+	else if (evt->info.tmr_info.type == CPND_TMR_TYPE_SEC_EXPI ){
+		if (cp_node == NULL) {
+			m_LOG_CPND_LCL(CPND_CKPT_SECT_FIND_FAILED, CPND_FC_API, NCSFL_SEV_ERROR,
+					evt->info.tmr_info.lcl_sec_id, __FILE__, __LINE__);
+			goto done;
+		}
+		pSec_info = cpnd_get_sect_with_id(cp_node, evt->info.tmr_info.lcl_sec_id);
+		if (pSec_info == NULL) {
+			m_LOG_CPND_LCL(CPND_CKPT_SECT_FIND_FAILED, CPND_FC_API, NCSFL_SEV_ERROR,
+					evt->info.tmr_info.lcl_sec_id, __FILE__, __LINE__);
+			goto done;
+		}
+	}
+	else {
+		m_LOG_CPND_FCL(CPND_CKPT_REPLICA_DESTROY_FAILED, CPND_FC_GENERIC, NCSFL_SEV_ERROR, 
+				evt->info.tmr_info.ckpt_id,__FILE__, __LINE__);
+		goto done;
+	}
+		
+	/* Destroy the timer if it exists.. */
+	if (tmr->is_active == TRUE) {
+		tmr->is_active = FALSE;
+		if (tmr->tmr_id != TMR_T_NULL) {
+			TRACE("  Before Calling m_NCS_TMR_DESTROY  tmr->ckpt_id %llu  tmr->type %d", (SaUint64T)tmr->ckpt_id, tmr->type);
+			m_NCS_TMR_DESTROY(tmr->tmr_id);
+			tmr->tmr_id = TMR_T_NULL;
+		}
+	}
+		
+		
 	switch (evt->info.tmr_info.type) {
 	case CPND_TMR_TYPE_RETENTION:
 		rc = cpnd_proc_rt_expiry(cb, evt->info.tmr_info.ckpt_id);
@@ -3508,6 +3599,7 @@ static uns32 cpnd_evt_proc_timer_expiry(CPND_CB *cb, CPND_EVT *evt)
 		break;
 
 	}
+done:
 	return rc;
 }
 
@@ -3776,6 +3868,8 @@ static uns32 cpnd_evt_proc_ckpt_create(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INF
 			m_LOG_CPND_FCL(CPND_CKPT_NODE_ADDITION_FAILED, CPND_FC_CKPTINFO, NCSFL_SEV_ERROR,
 				       cp_node->ckpt_id, __FILE__, __LINE__);
 			rc = NCSCC_RC_FAILURE;
+			if (cp_node->ret_tmr.is_active)
+				cpnd_tmr_stop(&cp_node->ret_tmr);
 			m_MMGR_FREE_CPND_CKPT_NODE(cp_node);
 			return rc;
 		}

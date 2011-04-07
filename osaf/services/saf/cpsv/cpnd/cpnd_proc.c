@@ -1582,14 +1582,17 @@ uns32 cpnd_all_repl_rsp_expiry(CPND_CB *cb, CPND_TMR_INFO *tmr_info)
 
 			rc = cpnd_mds_send_rsp(cb, &evt_node->sinfo, &rsp_evt);
 
-			/*Remove the all repl event node */
-			cpnd_evt_node_del(cb, evt_node);
-
-			/*Free the memory */
-			cpnd_allrepl_write_evt_node_free(evt_node);
 		}
-	} else {
 	}
+
+	if (evt_node) {
+		/*Remove the all repl event node */
+		cpnd_evt_node_del(cb, evt_node);
+
+		/*Free the memory */
+		cpnd_allrepl_write_evt_node_free(evt_node);
+	}
+
 	return rc;
 }
 

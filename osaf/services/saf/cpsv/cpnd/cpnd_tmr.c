@@ -38,35 +38,36 @@ void cpnd_timer_expiry(NCSCONTEXT uarg)
 	NCS_IPC_PRIORITY priority = NCS_IPC_PRIORITY_HIGH;
 	CPND_CB *cb = NULL;
 	CPSV_EVT *evt = NULL;
-	uns32 cpnd_hdl;
 
-	if (tmr != NULL) {
-		if (tmr->is_active == TRUE) {
-			tmr->is_active = FALSE;
-			/* Destroy the timer if it exists.. */
-			if (tmr->tmr_id != TMR_T_NULL) {
-				m_NCS_TMR_DESTROY(tmr->tmr_id);
-				tmr->tmr_id = TMR_T_NULL;
-			}
-		} else {
-			return;
-		}
+	if  (tmr == NULL)  {
 
-		cpnd_hdl = tmr->uarg;
+		TRACE("CPND: Tmr Mailbox Processing: tmr invalid ");
+		/* Fall through to free memory */
+		return;
+	}
 
-		/* post a message to the corresponding component */
-		if ((cb = (CPND_CB *)ncshm_take_hdl(NCS_SERVICE_ID_CPND, cpnd_hdl))
-		    != NULL) {
-			evt = m_MMGR_ALLOC_CPSV_EVT(NCS_SERVICE_ID_CPND);
+	if ((cb = (CPND_CB *)ncshm_take_hdl(NCS_SERVICE_ID_CPND, gl_cpnd_cb_hdl)) == NULL) {
+		TRACE("ncshm_take_hdl  returned CPND_CB as NULL");
+		return;
+	}
 
-			/* Populate evt->info.cpnd.info.tmr_info 
-			   evt->info.cpnd.info.tmr_info = *tmr; */
-			memset(evt, '\0', sizeof(CPSV_EVT));
+	/* post a message to the corresponding component */
+	evt = m_MMGR_ALLOC_CPSV_EVT(NCS_SERVICE_ID_CPND);
+	if (evt  == NULL)
+	{
+		TRACE("CPND: Mem alloc fail ");
+		return;
+	}
 
-			evt->type = CPSV_EVT_TYPE_CPND;
-			evt->info.cpnd.type = CPND_EVT_TIME_OUT;
+	/* Populate evt->info.cpnd.info.tmr_info 
+	   evt->info.cpnd.info.tmr_info = *tmr; */
+	memset(evt, 0, sizeof(CPSV_EVT));
 
-			switch (tmr->type) {
+	evt->type = CPSV_EVT_TYPE_CPND;
+	evt->info.cpnd.type = CPND_EVT_TIME_OUT;
+	evt->info.cpnd.info.tmr_info.cpnd_tmr = tmr;
+
+	switch (tmr->type) {
 
 			case CPND_TMR_TYPE_RETENTION:
 				evt->info.cpnd.info.tmr_info.type = CPND_TMR_TYPE_RETENTION;
@@ -97,15 +98,17 @@ void cpnd_timer_expiry(NCSCONTEXT uarg)
 				break;
 			default:
 				m_LOG_CPND_CL(CPND_EVT_UNKNOWN, CPND_FC_EVT, NCSFL_SEV_ERROR, __FILE__, __LINE__);
+				TRACE(" Invalid    tmr->type %d",  tmr->type);
+				m_MMGR_FREE_CPSV_EVT(evt, NCS_SERVICE_ID_CPND);
+				goto done;
 
-			}
-
-			/* Post the event to CPND Thread */
-			m_NCS_IPC_SEND(&cb->cpnd_mbx, evt, priority);
-
-			ncshm_give_hdl(cpnd_hdl);
-		}
 	}
+
+	/* Post the event to CPND Thread */
+	m_NCS_IPC_SEND(&cb->cpnd_mbx, evt, priority);
+done:
+
+	ncshm_give_hdl(gl_cpnd_cb_hdl);
 	return;
 }
 
@@ -146,8 +149,9 @@ uns32 cpnd_tmr_start(CPND_TMR *tmr, SaTimeT duration)
 void cpnd_tmr_stop(CPND_TMR *tmr)
 {
 	if (tmr->is_active == TRUE) {
-		m_NCS_TMR_STOP(tmr->tmr_id);
 		tmr->is_active = FALSE;
+		m_NCS_TMR_STOP(tmr->tmr_id);
+
 	}
 	if (tmr->tmr_id != TMR_T_NULL) {
 		m_NCS_TMR_DESTROY(tmr->tmr_id);
