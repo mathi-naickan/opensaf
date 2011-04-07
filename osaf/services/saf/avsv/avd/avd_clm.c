@@ -174,6 +174,13 @@ static void clm_node_exit_complete(SaClmNodeIdT nodeId)
 
 	node->node_info.member = SA_FALSE;
 
+	if  (((node->node_state == AVD_AVND_STATE_ABSENT) || (node->node_state == AVD_AVND_STATE_GO_DOWN)
+		|| (AVD_AVND_STATE_SHUTTING_DOWN == node->node_state)) && (nodeId == avd_cb->node_id_avd)) {
+	
+		TRACE("Invalid node state %u", node->node_state);
+		goto done;
+        }
+
 	avd_node_mark_absent(node);
 	avd_node_susi_fail_func(avd_cb, node);
 
