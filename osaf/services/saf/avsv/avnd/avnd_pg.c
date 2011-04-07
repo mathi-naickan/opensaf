@@ -668,15 +668,18 @@ uns32 avnd_pg_track_start(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *pg_trk)
 uns32 avnd_pg_track_stop(AVND_CB *cb, AVND_PG *pg)
 {
 	uns32 rc = NCSCC_RC_SUCCESS;
+	TRACE_ENTER2("%s",  pg->csi_name.value);
 
 	/* send pg-stop req to avd */
 	rc = avnd_di_pg_act_send(cb, &pg->csi_name, AVSV_PG_TRACK_ACT_STOP, FALSE);
-	if (NCSCC_RC_SUCCESS != rc)
-		return rc;
+	if (NCSCC_RC_SUCCESS != rc) {
+		TRACE("avnd_di_pg_act_send failed for = %s", pg->csi_name.value);
+	}
 
 	/* delete the pg rec */
 	rc = avnd_pgdb_rec_del(cb, &pg->csi_name);
 
+	TRACE_LEAVE2("rc '%u'", rc);
 	return rc;
 }
 
