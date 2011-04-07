@@ -540,12 +540,22 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 						/* for restart shared memory updation */
 						m_GET_TIME_STAMP(presentTime);
 						cpnd_restart_update_timer(cb, cp_node, presentTime);
-						cp_node->ret_tmr.type = CPND_TMR_TYPE_RETENTION;
+						if (!m_CPND_IS_COLLOCATED_ATTR_SET
+								(cp_node->create_attrib.creationFlags)) {
+							cp_node->ret_tmr.type = CPND_TMR_TYPE_NON_COLLOC_RETENTION;
+						} else {
+							cp_node->ret_tmr.type = CPND_TMR_TYPE_RETENTION;
+						}
 						cp_node->ret_tmr.uarg = cb->cpnd_cb_hdl_id;
 						cp_node->ret_tmr.ckpt_id = cp_node->ckpt_id;
 						cpnd_tmr_start(&cp_node->ret_tmr, timeout);
 					} else {
-						cpnd_proc_rt_expiry(cb, cp_node->ckpt_id);
+						if (!m_CPND_IS_COLLOCATED_ATTR_SET
+								(cp_node->create_attrib.creationFlags)) {
+							cpnd_proc_non_colloc_rt_expiry(cb, cp_node->ckpt_id);
+						} else {
+							cpnd_proc_rt_expiry(cb, cp_node->ckpt_id);
+						}
 					}
 				}
 

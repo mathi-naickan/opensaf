@@ -516,12 +516,15 @@ static uns32 cpnd_evt_proc_ckpt_finalize(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_I
 				 cl_node->ckpt_app_hdl, cp_node->ckpt_id, cp_node->ckpt_lcl_ref_cnt, __FILE__,
 				 __LINE__);
 
-		rc = cpnd_ckpt_replica_close(cb, cp_node, &error);
-		if (rc == NCSCC_RC_FAILURE) {
-			m_LOG_CPND_FCL(CPND_CKPT_REPLICA_CLOSE_FAILED, CPND_FC_GENERIC, NCSFL_SEV_ERROR,
-				       cp_node->ckpt_id, __FILE__, __LINE__);
-			send_evt.info.cpa.info.finRsp.error = error;
-			goto agent_rsp;
+		/* Check for Non-Collocated Replica */
+		if (m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
+			rc = cpnd_ckpt_replica_close(cb, cp_node, &error);
+			if (rc == NCSCC_RC_FAILURE) {
+				m_LOG_CPND_FCL(CPND_CKPT_REPLICA_CLOSE_FAILED, CPND_FC_GENERIC, NCSFL_SEV_ERROR,
+						cp_node->ckpt_id, __FILE__, __LINE__);
+				send_evt.info.cpa.info.finRsp.error = error;
+				goto agent_rsp;
+			}
 		}
 	}
 
@@ -1004,13 +1007,15 @@ static uns32 cpnd_evt_proc_ckpt_close(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO
 	m_LOG_CPND_FFLCL(CPND_CLIENT_CKPT_CLOSE_SUCCESS, CPND_FC_API, NCSFL_SEV_INFO,
 			 cl_node->ckpt_app_hdl, cp_node->ckpt_id, cp_node->ckpt_lcl_ref_cnt, __FILE__, __LINE__);
 
-	rc = cpnd_ckpt_replica_close(cb, cp_node, &error);
-	if (rc == NCSCC_RC_FAILURE) {
-		m_LOG_CPND_FFCL(CPND_CKPT_REPLICA_CLOSE_FAILED, CPND_FC_GENERIC, NCSFL_SEV_ERROR,
-				evt->info.closeReq.client_hdl, cp_node->ckpt_id, __FILE__, __LINE__);
+	if (m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
+		rc = cpnd_ckpt_replica_close(cb, cp_node, &error);
+		if (rc == NCSCC_RC_FAILURE) {
+			m_LOG_CPND_FFCL(CPND_CKPT_REPLICA_CLOSE_FAILED, CPND_FC_GENERIC, NCSFL_SEV_ERROR,
+					evt->info.closeReq.client_hdl, cp_node->ckpt_id, __FILE__, __LINE__);
 
-		send_evt.info.cpa.info.closeRsp.error = error;
-		goto agent_rsp;
+			send_evt.info.cpa.info.closeRsp.error = error;
+			goto agent_rsp;
+		}
 	}
 
 	send_evt.info.cpa.info.closeRsp.error = SA_AIS_OK;

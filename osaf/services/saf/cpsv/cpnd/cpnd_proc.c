@@ -764,11 +764,13 @@ void cpnd_proc_cpa_down(CPND_CB *cb, MDS_DEST dest)
 						 cl_node->ckpt_app_hdl, cp_node->ckpt_id, cp_node->ckpt_lcl_ref_cnt,
 						 __FILE__, __LINE__);
 
-				rc = cpnd_ckpt_replica_close(cb, cp_node, &error);
-				if (rc != NCSCC_RC_SUCCESS) {
+				if (m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
+					rc = cpnd_ckpt_replica_close(cb, cp_node, &error);
+					if (rc != NCSCC_RC_SUCCESS) {
 
-					m_LOG_CPND_FCL(CPND_CKPT_REPLICA_CLOSE_FAILED, CPND_FC_GENERIC, NCSFL_SEV_ERROR,
-						       cp_node->ckpt_id, __FILE__, __LINE__);
+						m_LOG_CPND_FCL(CPND_CKPT_REPLICA_CLOSE_FAILED, CPND_FC_GENERIC, NCSFL_SEV_ERROR,
+								cp_node->ckpt_id, __FILE__, __LINE__);
+					}
 				}
 			}
 
@@ -1416,6 +1418,11 @@ uns32 cpnd_proc_non_colloc_rt_expiry(CPND_CB *cb, SaCkptCheckpointHandleT ckpt_i
 	if (cp_node == NULL) {
 		m_LOG_CPND_FCL(CPND_CKPT_NODE_GET_FAILED, CPND_FC_API, NCSFL_SEV_ERROR, ckpt_id, __FILE__, __LINE__);
 		return NCSCC_RC_FAILURE;
+	}
+	if (!m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
+
+		if (cpnd_is_noncollocated_replica_present_on_payload(cb, cp_node))
+			return NCSCC_RC_SUCCESS;
 	}
 
 	rc = cpnd_ckpt_replica_destroy(cb, cp_node, &error);
@@ -2269,7 +2276,10 @@ uns32 cpnd_ckpt_non_collocated_rplica_close(CPND_CB *cb, CPND_CKPT_NODE *cp_node
 			m_LOG_CPND_FCL(CPND_CKPT_RET_TMR_SUCCESS, CPND_FC_CKPTINFO, NCSFL_SEV_INFO,
 				       cp_node->ckpt_id, __FILE__, __LINE__);
 		} else {
-
+			/* Check for Non-Collocated Replica */
+			if (cpnd_is_noncollocated_replica_present_on_payload(cb, cp_node)) {
+				return NCSCC_RC_SUCCESS;
+			}
 			rc = cpnd_ckpt_replica_destroy(cb, cp_node, error);
 			if (rc == NCSCC_RC_FAILURE) {
 				m_LOG_CPND_FCL(CPND_CKPT_REPLICA_DESTROY_FAILED, CPND_FC_GENERIC, NCSFL_SEV_ERROR,
