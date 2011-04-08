@@ -123,7 +123,6 @@ static void sigusr1_handler(int sig)
 	(void)sig;
 	signal(SIGUSR1, SIG_IGN);
 	ncs_sel_obj_ind(usr1_sel_obj);
-	TRACE("Got USR1 signal");
 }
 
 /**
