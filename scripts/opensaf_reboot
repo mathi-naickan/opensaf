@@ -29,13 +29,13 @@ NODE_ID_FILE=$pkglocalstatedir/node_id
 node_id=$1
 ee_name=$2
 
-tipc_config=$(which tipc-config 2> /dev/null)
+tipc_config=`which tipc-config 2> /dev/null`
 test $? -ne 0 && tipc_config="/bin/true"
 
 #If no plm in the system,old reboot mechanism is maintained.
 opensaf_reboot_no_plm()
 {
-	if [ "$self_node_id" == "$node_id" ];then
+	if [ "$self_node_id" = "$node_id" ];then
 		$tipc_config "-bd=?"
 		/sbin/reboot -f
 	else
@@ -52,7 +52,7 @@ opensaf_reboot_with_plm()
 	immadm -o 7 $ee_name
 	retval=$?
 	if [ $retval != 0 ]; then
-		if [ "$self_node_id" == "$node_id" ];then
+		if [ "$self_node_id" = "$node_id" ];then
 			$tipc_config "-bd=?"
 			/sbin/reboot -f
 		else
@@ -75,7 +75,7 @@ temp_node_id=`cat "$NODE_ID_FILE"`
 temp_node_id=`echo "$temp_node_id" |sed -e 's:^0[bBxX]::'| sed -e 's:^:0x:'`
 self_node_id=`printf "%d" $temp_node_id`
 
-if [ "$self_node_id" == "$node_id" ]; then
+if [ "$self_node_id" = "$node_id" ]; then
 	# uncomment the following line if debugging errors that keep restarting the node
 	# exit 0
 	$tipc_config "-bd=?"
