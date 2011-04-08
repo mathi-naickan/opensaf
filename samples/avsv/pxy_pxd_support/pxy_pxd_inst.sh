@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 #      -*- OpenSAF  -*-
 #
@@ -23,7 +23,7 @@ echo "Executing Proxy Component Instantiate Script"
 
 # The following environment variables are useful when running in simulation mode,
 # where multiple nodes are simulated on the same Linux desktop
-if [ ":$NCS_STDOUTS_PATH" == ":" ]
+if [ ":$NCS_STDOUTS_PATH" = ":" ]
 then
     export NCS_STDOUTS_PATH=/var/opt/opensaf/stdouts
 fi
