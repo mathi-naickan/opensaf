@@ -1212,6 +1212,16 @@ SmfCampStateExecSuspended::rollback(SmfUpgradeCampaign * i_camp)
 	TRACE_ENTER();
 	TRACE("SmfCampStateExecSuspended::rollback implementation");
 
+	/* Invoke callbackAtRollback as rollback is being initiated*/
+        changeState(i_camp, SmfCampRollingBack::instance());
+	if (i_camp->m_campInit.executeCallbackAtRollback() == false) {
+		std::string error = "Campaign rollback callback failed";
+		LOG_ER("%s", error.c_str());
+		SmfCampaignThread::instance()->campaign()->setError(error);
+		changeState(i_camp, SmfCampRollbackFailed::instance());
+		return SMF_CAMP_FAILED;
+	}
+	
 	/* Send rollback to all suspended procedures */
         const std::vector < SmfUpgradeProcedure * >& procedures = i_camp->getProcedures();
 	std::vector < SmfUpgradeProcedure * >::const_iterator iter;
@@ -1234,7 +1244,6 @@ SmfCampStateExecSuspended::rollback(SmfUpgradeCampaign * i_camp)
 		}
 	}
 
-	changeState(i_camp, SmfCampRollingBack::instance());
         i_camp->m_noOfExecutingProc = numOfSuspendedProc;
 
         /* If no suspended procedures existed, rollback next completed procedure.
@@ -1554,6 +1563,15 @@ SmfCampStateSuspendedByErrorDetected::rollback(SmfUpgradeCampaign * i_camp)
 	TRACE_ENTER();
 	TRACE("SmfCampStateSuspendedByErrorDetected::rollback implementation");
 
+        changeState(i_camp, SmfCampRollingBack::instance());
+	if (i_camp->m_campInit.executeCallbackAtRollback() == false) {
+		std::string error = "Campaign rollback callback failed";
+		LOG_ER("%s", error.c_str());
+		SmfCampaignThread::instance()->campaign()->setError(error);
+		changeState(i_camp, SmfCampRollbackFailed::instance());
+		return SMF_CAMP_FAILED;
+	}
+	
 	/* Send rollback to all suspended/undone procedures */
         const std::vector < SmfUpgradeProcedure * >& procedures = i_camp->getProcedures();
 	std::vector < SmfUpgradeProcedure * >::const_iterator iter;
@@ -1580,10 +1598,9 @@ SmfCampStateSuspendedByErrorDetected::rollback(SmfUpgradeCampaign * i_camp)
         /* If no suspended/undone procedures exists something is really wrong */
         if (numOfSuspendedProc == 0) {
                 LOG_ER("SmfCampStateSuspendedByErrorDetected: No suspended/undone procedures found when rollback");
-                changeState(i_camp, SmfCampStateExecFailed::instance());
+		changeState(i_camp, SmfCampRollbackFailed::instance());
         }
 
-	changeState(i_camp, SmfCampRollingBack::instance());
         i_camp->m_noOfExecutingProc = numOfSuspendedProc;
 
 	TRACE_LEAVE();
