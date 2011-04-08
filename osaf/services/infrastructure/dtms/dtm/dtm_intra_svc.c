@@ -237,6 +237,7 @@ uns32 dtm_intranode_process_pid_down(int fd)
 		ncs_patricia_tree_del(&dtm_intranode_cb->dtm_intranode_fd_list,
 				      (NCS_PATRICIA_NODE *)&pid_node->fd_node);
 		close(fd);
+		m_NCS_IPC_DETACH(&pid_node->mbx, NULL, NULL);
 		m_NCS_IPC_RELEASE(&pid_node->mbx, NULL);
 
 		close(pid_node->mbx_fd);
