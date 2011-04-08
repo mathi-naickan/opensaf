@@ -32,59 +32,55 @@ fi
 RETVAL=0
 
 start() {
-        [ -x $binary ] || exit 5
-        echo -n "Starting $prog: "
-        if [ ! -f $bootlockfile ]
-        then
-                RETVAL=1
-        fi
-        while [ $RETVAL -eq 1 ]
-        do
-                sleep 1
-                if [ ! -f $bootlockfile ]
-                then
-                      RETVAL=1
-                else
-                      RETVAL=0
-                fi
-                let timeout=$timeout-1
-                if [ $timeout -le 0 ]
-                then
-                     break
-                fi
-        done
+	[ -x $binary ] || exit 5
+	echo -n "Starting $prog: "
+	if [ ! -f $bootlockfile ]; then
+		RETVAL=1
+	fi
+	while [ $RETVAL -eq 1 ]; do
+		sleep 1
+		if [ ! -f $bootlockfile ]; then
+			RETVAL=1
+		else
+			RETVAL=0
+		fi
+		let timeout=$timeout-1
+		if [ $timeout -le 0 ]; then
+			break
+		fi
+	done
 
-        if [ $RETVAL -eq 1 ]; then
-                echo "Starting $prog failed. Run plmcboot start first"
-                return 1
-        fi
-     
-        start_daemon $binary -c $configfile
-        RETVAL=$?
-        if [ $RETVAL -eq 0 ]; then
+	if [ $RETVAL -eq 1 ]; then
+		echo "Starting $prog failed. Run plmcboot start first"
+		return 1
+	fi
+
+	start_daemon $binary -c $configfile
+	RETVAL=$?
+	if [ $RETVAL -eq 0 ]; then
 		touch $lockfile
 		log_success_msg
 	else
 		log_failure_msg
 	fi
-        return $RETVAL
+	return $RETVAL
 }
 
 stop() {
-        echo -n "Stopping $prog: "
+	echo -n "Stopping $prog: "
 	killproc -p $pidfile $prog
-        RETVAL=$?
-        if [ $RETVAL -eq 0 ]; then
+	RETVAL=$?
+	if [ $RETVAL -eq 0 ]; then
 		rm -f $lockfile
 		log_success_msg
 	else
 		log_failure_msg
 	fi
-        return $RETVAL
+	return $RETVAL
 }
 
 restart() {
-        stop
+	stop
 	start
 }
 
@@ -94,7 +90,7 @@ tryrestart() {
 }
 
 reload() {
-        echo -n "Reloading $prog: "
+	echo -n "Reloading $prog: "
 	log_warning_msg
 	logger -t $prog "reloading configuration is currently an unimplemented LSB feature"
 	return 3
@@ -107,26 +103,21 @@ forcereload() {
 }
 
 status() {
-        pid=`pidofproc -p ${pidfile} ${binary}`
-        ret=$?
-        if test "${ret}" = "0"
-        then
-                log_success_msg "$prog is running"
-                return $ret
-        elif test "${ret}" == "1"
-        then
-                log_warning_msg "$prog is dead and /var/run pid file exists"
-        elif test "${ret}" == "2"
-        then
-                log_warning_msg "$prog is dead and /var/lock lock file exists"
-        elif test "${ret}" == "3"
-        then
-                echo "$prog is not running"
-        elif test "${ret}" == "4"
-        then
-                log_warning_msg "$prog or service status is unknown"
-        fi
-        return $ret
+	pid=`pidofproc -p ${pidfile} ${binary}`
+	ret=$?
+	if [ $ret -eq 0 ]; then
+		log_success_msg "$prog is running"
+		return $ret
+	elif [ $ret -eq 1 ]; then
+		log_warning_msg "$prog is dead and /var/run pid file exists"
+	elif [ $ret -eq 2 ]; then
+		log_warning_msg "$prog is dead and /var/lock lock file exists"
+	elif [ $ret -eq 3 ]; then
+		echo "$prog is not running"
+	elif [ $ret -eq 4 ]; then
+		log_warning_msg "$prog or service status is unknown"
+	fi
+	return $ret
 }
 
 case "$1" in
@@ -141,7 +132,7 @@ case "$1" in
   restart)
 	restart
 	RETVAL=$?
-        ;;
+	;;
   try-restart|condrestart)
 	tryrestart
 	RETVAL=$?
@@ -149,15 +140,15 @@ case "$1" in
   reload)
 	reload
 	RETVAL=$?
-        ;;
+	;;
   force-reload)
 	forcereload
 	RETVAL=$?
-        ;;
+	;;
   status)
-        status
+	status
 	RETVAL=$?
-        ;;
+	;;
   *)
 	echo "Usage: $0 {start|stop|restart|try-restart|reload|force-reload|status}"
 	RETVAL=2
