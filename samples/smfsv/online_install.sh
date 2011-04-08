@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 echo `date` Running online install command on hostname `hostname` >> /hostfs/upgradeInstallationRemoval.log
 echo Arguments: >> /hostfs/upgradeInstallationRemoval.log

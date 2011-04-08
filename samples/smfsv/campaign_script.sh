@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 echo `date` Running the campaign script `hostname` >> /hostfs/campaignScript.log
 echo Arguments: >> /hostfs/campaignScript.log
