@@ -804,7 +804,7 @@ void clms_reboot_remote_node(CLMS_CLUSTER_NODE * op_node, char *str)
 	strcpy(rem_reb->str,str);
 
 	if (pthread_create(&thread, &attr, clms_rem_reboot, (void *)rem_reb) != 0) {
-		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		LOG_ER("pthread_create FAILED: %s, exiting", strerror(errno));
 		TRACE_LEAVE();
 		exit(EXIT_FAILURE);
 	}
