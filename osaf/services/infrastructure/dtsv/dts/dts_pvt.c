@@ -143,7 +143,7 @@ void dts_do_evts(SYSF_MBX *mbx)
 					TRACE("AMF registration success\n");
 					fds[FD_AMF].fd = dts_cb.dts_amf_sel_obj;
 				} else {
-					dts_log(NCSFL_SEV_ERROR, "AMF registration failed \n");
+					LOG_ER("AMF registration failed :%d, exiting", status);
 					exit(1);
 				}
 			}	/* Else amf_hdl!=0 */
@@ -352,7 +352,7 @@ void dts_reg_with_imm(DTS_CB *inst)
 	dts_imm_declare_implementer(inst);
 	/* get default global configuration from global scalar object */
 	if (dts_configure_global_policy() == NCSCC_RC_FAILURE) {
-		dts_log(NCSFL_SEV_ERROR, "Failed to load global log policy object from IMMSv");
+		LOG_ER("Failed to load global log policy object from IMMSv, exiting");
 		exit(1);
 	}
 
@@ -2887,7 +2887,7 @@ uns32 dts_handle_immnd_event(DTSV_MSG *msg)
 		m_LOG_DTS_DBGSTRLL(DTS_SERVICE, "Received IMMND up event for :", msg->node, (uns32)msg->dest_addr);
 		if (inst->imm_init_done == FALSE) {
 			if (dts_imm_initialize(inst) != SA_AIS_OK) {
-				dts_log(NCSFL_SEV_ERROR, "imm initialize failed\n");
+				LOG_ER("imm initialize failed, exiting");
 				exit(1);
 			}
 			if (inst->ha_state == SA_AMF_HA_ACTIVE) {

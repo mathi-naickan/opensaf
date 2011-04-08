@@ -282,7 +282,7 @@ unsigned int dts_service_log_policy_set(DTS_CB *inst, char *objName, void *attri
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvServiceLogDevice = %d\n", service->svc_policy.log_dev);
 		} else if (!strcmp(attribute->attrName, "osafDtsvServiceLogFileSize")) {
 			if ((value < 100) || (value > 10000)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvServiceLogFileSize value\n");
+				LOG_ER("Invalid osafDtsvServiceLogFileSize : %d , exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvServiceLogFileSize_ID;
@@ -290,7 +290,7 @@ unsigned int dts_service_log_policy_set(DTS_CB *inst, char *objName, void *attri
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvServiceLogFileSize = %d\n", service->svc_policy.log_file_size);
 		} else if (!strcmp(attribute->attrName, "osafDtsvServiceFileLogCompFormat")) {
 			if ((value < 0) || (value > 1)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvServiceFileLogCompFormat value\n");
+				LOG_ER("Invalid osafDtsvServiceFileLogCompFormat :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvServiceFileLogCompFormat_ID;
@@ -298,7 +298,7 @@ unsigned int dts_service_log_policy_set(DTS_CB *inst, char *objName, void *attri
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvServiceFileLogCompFormat = %d\n", service->svc_policy.file_log_fmt);
 		} else if (!strcmp(attribute->attrName, "osafDtsvServiceCircularBuffSize")) {
 			if ((value < 10) || (value > 1000)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvServiceCircularBuffSize value\n");
+				LOG_ER("Invalid osafDtsvServiceCircularBuffSize :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvServiceCircularBuffSize_ID;
@@ -307,7 +307,7 @@ unsigned int dts_service_log_policy_set(DTS_CB *inst, char *objName, void *attri
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvServiceCircularBuffSize = %d\n", service->svc_policy.cir_buff_size);
 		} else if (!strcmp(attribute->attrName, "osafDtsvServiceCirBuffCompFormat")) {
 			if ((value < 0) || (value > 1)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvServiceCirBuffCompFormat value\n");
+				LOG_ER("Invalid osafDtsvServiceCirBuffCompFormat :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvServiceCirBuffCompFormat_ID;
@@ -315,7 +315,7 @@ unsigned int dts_service_log_policy_set(DTS_CB *inst, char *objName, void *attri
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvServiceCirBuffCompFormat =  %d\n", service->svc_policy.buff_log_fmt);
 		} else if (!strcmp(attribute->attrName, "osafDtsvServiceLoggingState")) {
 			if ((value < 0) || (value > 1)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvServiceLoggingState value\n");
+				LOG_ER("Invalid osafDtsvServiceLoggingState :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvServiceLoggingState_ID;
@@ -326,7 +326,7 @@ unsigned int dts_service_log_policy_set(DTS_CB *inst, char *objName, void *attri
 			service->svc_policy.category_bit_map = *(unsigned int *)&value;
 		} else if (!strcmp(attribute->attrName, "osafDtsvServiceSeverityBitMap")) {
 			if ((value < 1) || (value > 255)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvServiceSeverityBitMap value\n");
+				LOG_ER("Invalid osafDtsvServiceSeverityBitMap :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvServiceSeverityBitMap_ID;
@@ -818,7 +818,7 @@ unsigned int dts_node_log_policy_set(DTS_CB *inst, char *objName, void *attrib_i
 
 		if (!strcmp(attribute->attrName, "osafDtsvNodeMessageLogging")) {
 			if ((value < 0) || (value > 1)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvNodeMessageLogging value\n");
+				LOG_ER("Invalid osafDtsvNodeMessageLogging :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvNodeMessageLogging_ID;
@@ -833,7 +833,7 @@ unsigned int dts_node_log_policy_set(DTS_CB *inst, char *objName, void *attrib_i
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvNodeLogDevice = %d\n", node->svc_policy.log_dev);
 		} else if (!strcmp(attribute->attrName, "osafDtsvNodeLogFileSize")) {
 			if ((value < 100) || (value > 100000)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvNodeLogFileSize value\n");
+				LOG_ER("Invalid osafDtsvNodeLogFileSize :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvNodeLogFileSize_ID;
@@ -841,7 +841,7 @@ unsigned int dts_node_log_policy_set(DTS_CB *inst, char *objName, void *attrib_i
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvNodeLogFileSize = %d\n", node->svc_policy.log_file_size);
 		} else if (!strcmp(attribute->attrName, "osafDtsvNodeFileLogCompFormat")) {
 			if ((value < 0) || (value > 1)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvNodeFileLogCompFormat value\n");
+				LOG_ER("Invalid osafDtsvNodeFileLogCompFormat :%d exiting",value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvNodeFileLogCompFormat_ID;
@@ -849,7 +849,7 @@ unsigned int dts_node_log_policy_set(DTS_CB *inst, char *objName, void *attrib_i
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvNodeFileLogCompFormat = %d\n", node->svc_policy.file_log_fmt);
 		} else if (!strcmp(attribute->attrName, "osafDtsvNodeCircularBuffSize")) {
 			if ((value < 10) || (value > 10000)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvNodeCircularBuffSize value\n");
+				LOG_ER("Invalid osafDtsvNodeCircularBuffSize :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvNodeCircularBuffSize_ID;
@@ -858,7 +858,7 @@ unsigned int dts_node_log_policy_set(DTS_CB *inst, char *objName, void *attrib_i
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvNodeCircularBuffSize = %d\n", node->svc_policy.cir_buff_size);
 		} else if (!strcmp(attribute->attrName, "osafDtsvNodeCirBuffCompFormat")) {
 			if ((value < 0) || (value > 1)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvNodeCirBuffCompFormat value\n");
+				LOG_ER("Invalid osafDtsvNodeCirBuffCompFormat :%d exiting", value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvNodeCirBuffCompFormat_ID;
@@ -866,7 +866,7 @@ unsigned int dts_node_log_policy_set(DTS_CB *inst, char *objName, void *attrib_i
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvNodeCirBuffCompFormat =%d\n", node->svc_policy.buff_log_fmt);
 		} else if (!strcmp(attribute->attrName, "osafDtsvNodeLoggingState")) {
 			if ((value < 0) || (value > 1)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvNodeLoggingState value\n");
+				LOG_ER("Invalid osafDtsvNodeLoggingState :%d exiting",value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvNodeLoggingState_ID;
@@ -877,14 +877,14 @@ unsigned int dts_node_log_policy_set(DTS_CB *inst, char *objName, void *attrib_i
 			node->svc_policy.category_bit_map = *(unsigned int *)&value;
 		} else if (!strcmp(attribute->attrName, "osafDtsvNodeSeverityBitMap")) {
 			if ((value < 1) || (value > 255)) {
-				dts_log(NCSFL_SEV_ERROR, "Invalid osafDtsvNodeSeverityBitMap value\n");
+				LOG_ER("Invalid osafDtsvNodeSeverityBitMap :%d exiting",value);
 				exit(EXIT_FAILURE);
 			}
 			paramid = osafDtsvNodeSeverityBitMap_ID;
 			node->svc_policy.severity_bit_map = *(uns8 *)&value;
 			dts_log(NCSFL_SEV_DEBUG, "osafDtsvNodeSeverityBitMap = %d\n", node->svc_policy.severity_bit_map);
 		} else {
-			dts_log(NCSFL_SEV_ERROR, "Invalid attribute value\n");
+			LOG_ER("Invalid attribute value");
 			exit(EXIT_FAILURE);
 		}
 
