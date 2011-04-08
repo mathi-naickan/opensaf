@@ -69,17 +69,17 @@ static void *imm_impl_set_node_down_proc(void *_cb)
 
 	/* Update IMM */
 	if ((rc = immutil_saImmOiImplementerSet(cb->immOiHandle, IMPLEMENTER_NAME)) != SA_AIS_OK) {
-		LOG_ER("saImmOiImplementerSet failed %u", rc);
+		LOG_ER("saImmOiImplementerSet failed rc:%u, exiting", rc);
 		exit(EXIT_FAILURE);
 	}
 
-	if ((rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode")) != SA_AIS_OK) {
-		LOG_ER("saImmOiClassImplementerSet failed  for class SaClmNode%u", rc);
+	if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode")) != SA_AIS_OK) {
+		LOG_ER("saImmOiClassImplementerSet failed for class SaClmNode rc:%u, exiting", rc);
 		exit(EXIT_FAILURE);
 	}
 
-	if ((rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster")) != SA_AIS_OK) {
-		LOG_ER("saImmOiClassImplementerSet failed  for class SaClmCluster%u", rc);
+	if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster")) != SA_AIS_OK) {
+		LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster rc:%u, exiting", rc);
 		exit(EXIT_FAILURE);
 	}
 
@@ -140,7 +140,7 @@ void clms_imm_impl_set(CLMS_CB * cb)
 	TRACE_ENTER();
 
 	if (pthread_create(&thread, &attr, imm_impl_set_node_down_proc, cb) != 0) {
-		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		LOG_ER("pthread_create FAILED: %s, exiting", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -372,28 +372,28 @@ SaAisErrorT clms_imm_activate(CLMS_CB * cb)
 
 	TRACE_ENTER();
 	if ((rc = clms_cluster_config_get()) != SA_AIS_OK) {
-		LOG_ER("clms_cluster_config_get failed");
+		LOG_ER("clms_cluster_config_get failed, exiting");
 		exit(EXIT_FAILURE);
 	}
 
 	if ((rc = clms_node_create_config()) != SA_AIS_OK) {
-		LOG_ER("clms_node_create_config failed");
+		LOG_ER("clms_node_create_config failed, exiting");
 		exit(EXIT_FAILURE);
 	}
 
 	if (clms_cb->ha_state == SA_AMF_HA_ACTIVE) {
 		if ((rc = immutil_saImmOiImplementerSet(cb->immOiHandle, IMPLEMENTER_NAME)) != SA_AIS_OK) {
-			LOG_ER("saImmOiImplementerSet failed %u", rc);
+			LOG_ER("saImmOiImplementerSet failed rc:%u, exiting", rc);
 			exit(EXIT_FAILURE);
 		}
 
-		if ((rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode")) != SA_AIS_OK) {
-			LOG_ER("saImmOiClassImplementerSet failed  for class SaClmNode%u", rc);
+		if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode")) != SA_AIS_OK) {
+			LOG_ER("saImmOiClassImplementerSet failed for class SaClmNode rc:%u, exiting", rc);
 			exit(EXIT_FAILURE);
 		}
 
-		if ((rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster")) != SA_AIS_OK) {
-			LOG_ER("saImmOiClassImplementerSet failed  for class SaClmCluster%u", rc);
+		if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster")) != SA_AIS_OK) {
+			LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster rc:%u, exiting", rc);
 			exit(EXIT_FAILURE);
 		}
 
@@ -2085,29 +2085,29 @@ static void  *clm_imm_reinit_thread(void * _cb)
 
 	TRACE_ENTER();
 	if ((ais_rc = immutil_saImmOiInitialize_2(&cb->immOiHandle, &callbacks, &immVersion)) != SA_AIS_OK) {
-		LOG_ER("saImmOiInitialize_2 failed %u", ais_rc);
+		LOG_ER("saImmOiInitialize_2 failed %u, exiting", ais_rc);
 		exit(EXIT_FAILURE);
 	}
 
 	if ((ais_rc = immutil_saImmOiSelectionObjectGet(cb->immOiHandle, &cb->imm_sel_obj)) != SA_AIS_OK) {
-		LOG_ER("saImmOiSelectionObjectGet failed %u", ais_rc);
+		LOG_ER("saImmOiSelectionObjectGet failed %u, exiting", ais_rc);
 		exit(EXIT_FAILURE);
 	}
 
 	if (cb->ha_state == SA_AMF_HA_ACTIVE){
 		/* Update IMM */
 		if ((ais_rc = immutil_saImmOiImplementerSet(cb->immOiHandle, IMPLEMENTER_NAME)) != SA_AIS_OK) {
-			LOG_ER("saImmOiImplementerSet failed %u", ais_rc);
+			LOG_ER("saImmOiImplementerSet failed rc:%u, exiting", ais_rc);
 			exit(EXIT_FAILURE);
 		}
 
-		if ((ais_rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode")) != SA_AIS_OK) {
-			LOG_ER("saImmOiClassImplementerSet failed  for class SaClmNode%u", ais_rc);
+		if ((ais_rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode")) != SA_AIS_OK) {
+			LOG_ER("saImmOiClassImplementerSet failed for class SaClmNode rc:%u, exiting", ais_rc);
 			exit(EXIT_FAILURE);
 		}
 
-		if ((ais_rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster")) != SA_AIS_OK) {
-			LOG_ER("saImmOiClassImplementerSet failed  for class SaClmCluster%u", ais_rc);
+		if ((ais_rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster")) != SA_AIS_OK) {
+			LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster rc:%u, exiting", ais_rc);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -2132,7 +2132,7 @@ void clm_imm_reinit_bg(CLMS_CB * cb)
 	TRACE_ENTER();
 
 	if (pthread_create(&thread, &attr, clm_imm_reinit_thread, cb) != 0) {
-		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		LOG_ER("pthread_create FAILED: %s, exiting", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
        pthread_attr_destroy(&attr);
