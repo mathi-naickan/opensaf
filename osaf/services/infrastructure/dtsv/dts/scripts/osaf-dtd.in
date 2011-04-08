@@ -42,7 +42,7 @@ FILESFROM=/tmp/opensaf_dtsv
 
 archives_rotate()
 {
-	local archives_dir=$DTSV_ROOT_DIRECTORY/archives
+	archives_dir=$DTSV_ROOT_DIRECTORY/archives
 
 	mkdir -p $archives_dir
 
