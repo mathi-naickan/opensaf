@@ -114,7 +114,7 @@ void *_dts_imm_declare_implementer(void *cb)
 		nTries++;
 	}
 	if (error != SA_AIS_OK) {
-		dts_log(NCSFL_SEV_ERROR, "ImplementerSet Failed: %u", error);
+		LOG_ER("ImplementerSet Failed: %u exiting", error);
 		exit(1);
 	}
 	TRACE("imm implementer set success\n");
@@ -143,7 +143,7 @@ void dts_imm_declare_implementer(DTS_CB *cb)
 	TRACE_ENTER();
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	if (pthread_create(&thread, NULL, _dts_imm_declare_implementer, cb) != 0) {
-		dts_log(NCSFL_SEV_ERROR, "pthread create failed\n");
+		LOG_ER("pthread create failed :%s, exiting",strerror(errno) );
 		exit(EXIT_FAILURE);
 	}
 	pthread_attr_destroy(&attr);
@@ -169,7 +169,7 @@ SaAisErrorT dts_saImmOiClassImplementerRelease(SaImmOiHandleT immOiHandle, const
 		nTries++;
 	}
 	if (rc != SA_AIS_OK) {
-		dts_log(NCSFL_SEV_ERROR, "saImmOiClassImplementerRelease of ClassName = %s is Failed, rc = %u",
+		LOG_ER("saImmOiClassImplementerRelease of ClassName = %s is Failed, rc = %u, exiting",
 			className, rc);
 		exit(EXIT_FAILURE);
 	}
@@ -197,7 +197,7 @@ SaAisErrorT dts_saImmOiClassImplementerSet(SaImmOiHandleT immOiHandle, const SaI
 		nTries++;
 	}
 	if (rc != SA_AIS_OK) {
-		dts_log(NCSFL_SEV_ERROR, "saImmOiClassImplementerSet of ClassName = %s is Failed, rc = %u", className,
+		LOG_ER("saImmOiClassImplementerSet of ClassName = %s is Failed, rc = %u, exiting", className,
 			rc);
 		exit(EXIT_FAILURE);
 	}
@@ -232,7 +232,7 @@ SaAisErrorT dts_saImmOiImplementerClear(SaImmOiHandleT immOiHandle)
 		nTries++;
 	}
 	if (rc != SA_AIS_OK) {
-		dts_log(NCSFL_SEV_ERROR, "saImmOiImplementerClear FAILED, rc = %u", rc);
+		LOG_ER("saImmOiImplementerClear FAILED, rc = %u, exiting", rc);
 		exit(EXIT_FAILURE);
 	}
 
