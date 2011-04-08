@@ -44,7 +44,7 @@ start() {
 		else
 			RETVAL=0
 		fi
-		let timeout=$timeout-1
+		timeout=$((timeout-1))
 		if [ $timeout -le 0 ]; then
 			break
 		fi
