@@ -800,8 +800,7 @@ void clms_reboot_remote_node(CLMS_CLUSTER_NODE * op_node, char *str)
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	rem_reb = malloc(sizeof(CLMS_REM_REBOOT_INFO));
 	rem_reb->node = op_node;
-	rem_reb->str = malloc(strlen(str));
-	strcpy(rem_reb->str,str);
+	rem_reb->str = strdup(str);
 
 	if (pthread_create(&thread, &attr, clms_rem_reboot, (void *)rem_reb) != 0) {
 		LOG_ER("pthread_create FAILED: %s, exiting", strerror(errno));
