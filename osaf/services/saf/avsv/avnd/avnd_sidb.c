@@ -186,6 +186,7 @@ AVND_COMP_CSI_REC *avnd_su_si_csi_rec_add(AVND_CB *cb,
 
 	/* verify if csi record already exists */
 	if (0 != avnd_compdb_csi_rec_get(cb, &param->comp_name, &param->csi_name)) {
+		TRACE("csi rec get Failed from compdb");
 		*rc = AVND_ERR_DUP_CSI;
 		goto err;
 	}
@@ -193,8 +194,23 @@ AVND_COMP_CSI_REC *avnd_su_si_csi_rec_add(AVND_CB *cb,
 	/* get the comp */
 	comp = m_AVND_COMPDB_REC_GET(cb->compdb, param->comp_name);
 	if (!comp) {
-		*rc = AVND_ERR_NO_COMP;
-		goto err;
+		/* This could be becasue of NPI components, NPI components are not added in to DB
+		   because amfd doesn't send SU presence message to amfnd when SU is unlock-in.
+		   So, add the component into DB now. */
+		if (avnd_comp_config_get_su(su) != NCSCC_RC_SUCCESS) {
+			m_AVND_SU_REG_FAILED_SET(su);
+			/* Will transition to instantiation-failed when instantiated */
+			LOG_ER("su comp config get failed for NPI component:%s",param->comp_name.value);
+			*rc = AVND_ERR_NO_SU;
+			goto err;
+		}
+		comp = m_AVND_COMPDB_REC_GET(cb->compdb, param->comp_name);
+		if (!comp) {
+			LOG_ER("comp rec get failed component:%s",param->comp_name.value);
+			*rc = AVND_ERR_NO_COMP;
+			assert(0);
+			goto err;
+		}
 	}
 
 	/* a fresh csi... */
