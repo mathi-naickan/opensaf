@@ -538,6 +538,7 @@ private:
                                        std::string newClassName, 
                                        bool remove=false);
     SaAisErrorT        updateImmObject2(const ImmsvOmAdminOperationInvoke* req);
+    SaAisErrorT        admoImmMngtObject(const ImmsvOmAdminOperationInvoke* req);
     
     void               commitCreate(ObjectInfo* afim);
     bool               commitModify(const std::string& dn, ObjectInfo* afim);

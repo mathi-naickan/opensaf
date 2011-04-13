@@ -6716,6 +6716,10 @@ SaAisErrorT ImmModel::adminOperationInvoke(
             err = updateImmObject2(req);
             TRACE_7("Admin op on special object %s whith no implementer ret:%u",
                 objectName.c_str(), err);
+        } else if(objectName == immManagementDn) {
+            err = admoImmMngtObject(req);
+            TRACE_7("Admin op on special object %s whith no implementer ret:%u",
+                objectName.c_str(), err);
         } else {
             TRACE_7("ERR_NOT_EXIST: object '%s' does not have an implementer", 
                 objectName.c_str());
@@ -7014,7 +7018,9 @@ ImmModel::updateImmObject2(const ImmsvOmAdminOperationInvoke* req)
 {
     SaAisErrorT err = SA_AIS_ERR_REPAIR_PENDING;
     /* Function for handling admin-ops directed at the immsv itself.
-       If PBE is enabled, such admin-ops are handled by the PBE-OI. 
+       In this case the non-standard opensaf object opensafImm=opensafImm,safApp=safImmService.
+
+       If PBE is enabled, these admin-ops are handled by the PBE-OI. 
        But when there is no PBE, then we handle the adminOp inside the immnds
        and reply directly. An error reply from such an internally handled adminOp will
        be handled identically to an error reply for a normal adminOp where the error
@@ -7067,6 +7073,56 @@ ImmModel::updateImmObject2(const ImmsvOmAdminOperationInvoke* req)
     } else {
         LOG_IN("Invalid operation ID %llu, for operation on %s", (SaUint64T) req->operationId,
             immObjectDn.c_str());
+        err = SA_AIS_ERR_INVALID_PARAM;
+    }
+
+ done:
+    TRACE_LEAVE();
+    return err;
+}
+
+SaAisErrorT
+ImmModel::admoImmMngtObject(const ImmsvOmAdminOperationInvoke* req)
+{
+    SaAisErrorT err = SA_AIS_ERR_INTERRUPT;
+    /* Function for handling admin-ops directed at the immsv itself.
+       In this case the standard object safRdn=immManagement,safApp=safImmService.
+    */
+
+    ImmAttrValue* valuep = NULL;
+    ImmAttrValueMap::iterator avi;
+    ObjectInfo* immObject = NULL;
+
+    TRACE_ENTER();
+    ObjectMap::iterator oi = sObjectMap.find(immManagementDn);    
+    if(oi == sObjectMap.end()) {
+        err = SA_AIS_ERR_NOT_EXIST;
+        goto done;
+    }
+    
+    immObject = oi->second;
+    avi = immObject->mAttrValueMap.find(saImmRepositoryInit);
+    assert(avi != immObject->mAttrValueMap.end());
+    assert(!(avi->second->isMultiValued()));
+    valuep = (ImmAttrValue *) avi->second;
+
+    if(req->params != NULL) {
+        err = SA_AIS_ERR_INVALID_PARAM;
+        goto done;
+    }
+
+    if(req->operationId == SA_IMM_ADMIN_EXPORT) { /* Standard */
+        err = SA_AIS_ERR_NOT_SUPPORTED;
+    } else if(req->operationId == SA_IMM_ADMIN_INIT_FROM_FILE) { /* Non standard. */
+
+        valuep->setValue_int(SA_IMM_INIT_FROM_FILE);
+        if(immInitMode != SA_IMM_INIT_FROM_FILE) {
+            immInitMode = SA_IMM_INIT_FROM_FILE;
+            LOG_NO("SaImmRepositoryInitModeT FORCED to: SA_IMM_INIT_FROM_FILE");
+        }
+    } else {
+        LOG_IN("Invalid operation ID %llu, for operation on %s", (SaUint64T) req->operationId,
+            immManagementDn.c_str());
         err = SA_AIS_ERR_INVALID_PARAM;
     }
 

@@ -3462,8 +3462,40 @@ static void immnd_evt_proc_admop(IMMND_CB *cb,
 		}
 	}
 
-	/*Take care of possible immediate reply, when errors already occurred */
-        /* Special non-error case added for handling admin-ops directed at the immsv itself.
+	/*Take care of possible immediate reply, for errors and special admin-ops */
+
+        /* Special non-error case added for handling admin-ops directed at 
+	   safRdn=immManagement,safApp=safImmService. */
+	if(error == SA_AIS_ERR_INTERRUPT) {
+		SaImmRepositoryInitModeT oldRim = cb->mRim;
+		cb->mRim = immModel_getRepositoryInitMode(cb);
+		if(oldRim != cb->mRim) {
+			/* Reset mPbeVeteran to force re-generation of db-file
+			   when mRim is changed again.
+			   We can not continue using any existing db-file because
+			   we would get a gap in the persistent history.
+			*/
+			cb->mPbeVeteran = SA_FALSE; 
+
+			TRACE_2("Repository init mode changed to: %s",
+				(cb->mRim == SA_IMM_INIT_FROM_FILE)?
+				"INIT_FROM_FILE":"KEEP_REPOSITORY");
+			if(cb->mIsCoord && cb->mPbeFile && (cb->mRim == SA_IMM_INIT_FROM_FILE)) {
+				cb->mBlockPbeEnable = 0x1;
+				/* Prevent PBE re-enable until current PBE has terminated. */
+				immnd_announceDump(cb);
+				/* Communicates RIM to IMMD. Needed to decide if reload
+				   must cause cluster restart. 
+				*/
+			}
+		}
+		/* Force direct OK reply (no implementer to wait for). */
+		error = SA_AIS_ERR_REPAIR_PENDING;
+		pbeExpected = 0;
+	}
+
+        /* Special non-error case added for handling admin-ops directed at 
+           opensafImm=opensafImm,safApp=safImmService. 
            If PBE is enabled, such admin-ops are handled by the PBE-OI. 
            But when there is no PBE, then we handle the adminOp inside the immnds
            and reply directly. An error reply from such an internally handled adminOp will

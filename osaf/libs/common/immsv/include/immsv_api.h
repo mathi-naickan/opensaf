@@ -69,6 +69,11 @@ extern "C" {
 
 #define OPENSAF_IMM_SERVICE_NAME "safImmService"
 
+typedef enum {
+    SA_IMM_ADMIN_EXPORT = 1,  /* Defined in A.02.01 declared in  A.03.01 */
+    SA_IMM_ADMIN_INIT_FROM_FILE = 100 /* Non standard, force PBE disable. */
+} SaImmMngtAdminOperationT;
+
 /* 
  * Special flags only to be used by the imm-dummper or the imm-loader.
  *
