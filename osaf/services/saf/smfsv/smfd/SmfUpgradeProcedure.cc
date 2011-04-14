@@ -2079,7 +2079,21 @@ SmfUpgradeProcedure::createImmStep(SmfUpgradeStep * i_step)
 				for (it = nodes.begin(); it != nodes.end(); ++it) {
 					saSmfINNode.addValue((*it));
 				}
+
+				//Add extra node information from <swRemove> plmExecEnv
+				const std::list<SmfPlmExecEnv>&plmExecEnvList = (*bundleRefiter).getPlmExecEnvList();
+				std::list <SmfPlmExecEnv>::const_iterator execEnvIt;
+				for (execEnvIt = plmExecEnvList.begin(); execEnvIt != plmExecEnvList.end(); ++execEnvIt) {
+					saSmfINNode.addValue((*execEnvIt).getPrefered());
+				}
 			}
+
+			//Fail the campaign if no node is given for the bundle.
+			if(saSmfINNode.getValues().size() == 0) {
+				LOG_ER("SmfUpgradeProcedure::createImmStep:No node given for bundle %s", bundleName.c_str());
+				return SA_AIS_ERR_NOT_EXIST;
+			}
+
 			icoSaSmfImageNodes.addValue(saSmfINNode);
 			rc = icoSaSmfImageNodes.execute(); //Create the object
 			if ((rc != SA_AIS_OK) && (rc != SA_AIS_ERR_EXIST)){
@@ -2184,6 +2198,19 @@ SmfUpgradeProcedure::createImmStep(SmfUpgradeStep * i_step)
 				for (it = nodes.begin(); it != nodes.end(); ++it) {
 					saSmfINNode.addValue((*it));
 				}
+
+				//Add extra node information from <swAdd> plmExecEnv
+				const std::list<SmfPlmExecEnv>&plmExecEnvList = (*bundleRefiter).getPlmExecEnvList();
+				std::list <SmfPlmExecEnv>::const_iterator execEnvIt;
+				for (execEnvIt = plmExecEnvList.begin(); execEnvIt != plmExecEnvList.end(); ++execEnvIt) {
+					saSmfINNode.addValue((*execEnvIt).getPrefered());
+				}
+			}
+
+			//Fail the campaign if no node is given for the bundle.
+			if(saSmfINNode.getValues().size() == 0) {
+				LOG_ER("SmfUpgradeProcedure::createImmStep:No node given for bundle %s", bundleName.c_str());
+				return SA_AIS_ERR_NOT_EXIST;
 			}
 
 			icoSaSmfImageNodes.addValue(saSmfINNode);
