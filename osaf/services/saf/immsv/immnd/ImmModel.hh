@@ -299,7 +299,7 @@ public:
                                          unsigned int nodeId);
     
     SaAisErrorT         rtObjectCreate(
-                                       const struct ImmsvOmCcbObjectCreate* req,
+                                       struct ImmsvOmCcbObjectCreate* req,
                                        SaUint32T conn,
                                        unsigned int nodeId,
                                        SaUint32T* continuationId,

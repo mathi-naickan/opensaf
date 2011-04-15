@@ -1260,7 +1260,7 @@ immModel_adminOwnerChange(IMMND_CB *cb,
 
 SaAisErrorT
 immModel_rtObjectCreate(IMMND_CB *cb, 
-    const struct ImmsvOmCcbObjectCreate* req,
+    struct ImmsvOmCcbObjectCreate* req,
     SaUint32T implConn,
     SaClmNodeIdT implNodeId,
     SaUint32T* continuationId,
@@ -7480,7 +7480,7 @@ ImmModel::implementerClear(const struct ImmsvOiImplSetReq* req,
  * Creates a runtime object
  */
 SaAisErrorT
-ImmModel::rtObjectCreate(const struct ImmsvOmCcbObjectCreate* req,
+ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
     SaUint32T reqConn,
     unsigned int nodeId,
     SaUint32T* continuationId,
@@ -7857,6 +7857,24 @@ ImmModel::rtObjectCreate(const struct ImmsvOmCcbObjectCreate* req,
             std::string attrName(i6->first);
             
             if(attrName == std::string(SA_IMM_ATTR_IMPLEMENTER_NAME)) {
+                if(pbeNodeIdPtr && isPersistent) {
+                    /* #1872 Implementer-name attribute must be propagated to PBE
+                       in create of persistent RTO. 
+                       First set the implementer-name attribute value in the imm object.
+                       Then add the value to the attribute list for the upcall to PBE.
+                    */
+                    attrValue->setValueC_str(object->mImplementer->mImplementerName.c_str());
+                    p = new immsv_attr_values_list;
+                    p->n.attrName.size = attrName.size() + 1;
+                    p->n.attrName.buf = strdup(attrName.c_str());
+                    p->n.attrValueType = SA_IMM_ATTR_SASTRINGT;
+                    p->n.attrMoreValues = NULL;
+                    p->n.attrValuesNumber = 1;
+                    attrValue->copyValueToEdu(&(p->n.attrValue), SA_IMM_ATTR_SASTRINGT);
+                    p->next = req->attrValues;
+                    req->attrValues = p;
+                }
+
                 continue;
             }
             
