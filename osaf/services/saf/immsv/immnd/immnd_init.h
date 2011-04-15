@@ -319,7 +319,7 @@ extern "C" {
 
 	SaAisErrorT
 	    immModel_rtObjectCreate(IMMND_CB *cb,
-		    const struct ImmsvOmCcbObjectCreate *req,
+		    struct ImmsvOmCcbObjectCreate *req,
 		    SaUint32T implConn, SaClmNodeIdT implNodeId,
 		    SaUint32T *continuationId, SaUint32T *pbeConn, SaClmNodeIdT *pbeNodeId);
 
