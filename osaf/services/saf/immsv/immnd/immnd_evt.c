@@ -4938,7 +4938,10 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb,
 				send_evt.info.imma.type = IMMA_EVT_ND2A_OI_CCB_COMPLETED_UC;/* TODO OI_PRTO_DELETE_COMPLETED_UC*/
 				send_evt.info.imma.info.ccbCompl.ccbId = 0;
 				send_evt.info.imma.info.ccbCompl.immHandle = implHandle;
-				send_evt.info.imma.info.ccbCompl.implId = 0;
+				send_evt.info.imma.info.ccbCompl.implId = arrSize;
+                                 /* ^^Hack: Use implId to store objCount, see #1809.^^
+				    This avoids having to change the protocol. 
+				  */
 				send_evt.info.imma.info.ccbCompl.invocation = continuationId;
 
 				TRACE_2("MAKING PBE PRTO DELETE COMPLETED upcall");
