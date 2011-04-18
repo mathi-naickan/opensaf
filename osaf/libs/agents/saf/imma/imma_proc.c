@@ -1033,7 +1033,22 @@ static void imma_proc_obj_delete(IMMA_CB *cb, IMMA_EVT *evt)
 		/* Send the event */
 		(void)m_NCS_IPC_SEND(&cl_node->callbk_mbx, callback, NCS_IPC_PRIORITY_NORMAL);
 		TRACE("Posted IMMA_CALLBACK_OI_CCB_DELETE for ccb %u", evt->info.objDelete.ccbId);
-		if(!isPrtObj) {
+		if(isPrtObj) {
+			/* PRTO delete arrives at PBE. Count how many in same subtree #1809.
+			   Sum verified in completed upcall.
+			   This to overcome silent message loss in MDS local transport, see #1795.
+			 */
+			SaImmOiCcbIdT ccbId = 0LL;
+			ccbId = callback->inv + 0x100000000LL;  /* pseudo ccb-id */
+
+			imma_oi_ccb_record_add(cl_node, ccbId, 0);			
+		} else {
+			/* Regular CCB object delete arrives at... */
+			if(cl_node->isPbe) { /* PBE. */
+				assert(callback->inv == 0);
+			} else {/*regular OI. */
+				assert(callback->inv);
+			}
 			imma_oi_ccb_record_add(cl_node, evt->info.objDelete.ccbId, callback->inv);
 		}
 	}
@@ -1891,6 +1906,15 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 					//callback->inv = 0; 
 					TRACE("Pseudo ccb %llx for PRTO deletes completed upcall on %s",
 						ccbid, callback->name.value);
+					if(!imma_oi_ccb_record_ok_for_critical(cl_node, ccbid, callback->implId)) {
+						TRACE("ERROR: RtObjectDelete record for pseudo-ccb %llx does not have"
+							"correct op-count", ccbid); /* Already logged in ok_for_critical */
+						imma_oi_ccb_record_terminate(cl_node, ccbid);
+						localEr = SA_AIS_ERR_FAILED_OPERATION;
+						goto skip_completed_upcall;
+					}
+
+					imma_oi_ccb_record_terminate(cl_node, ccbid);
 				} else {
 					ccbid = callback->ccbID;
 					/*Verify op-count before PBE commit of ccb. 
