@@ -77,7 +77,7 @@ uns32 imma_client_node_add(NCS_PATRICIA_TREE *client_tree, IMMA_CLIENT_NODE *cl_
 }
 
 
-int imma_oi_ccb_record_delete(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId);
+int imma_oi_ccb_record_delete(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId);
 
 /****************************************************************************
   Name          : imma_client_node_delete
@@ -182,30 +182,29 @@ void imma_client_tree_cleanup(IMMA_CB *cb)
                 : SaUint32T ccbId - the ccbId.
 
 ******************************************************************************/
-struct imma_oi_ccb_record * imma_oi_ccb_record_find(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId)
+struct imma_oi_ccb_record * imma_oi_ccb_record_find(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId)
 {
 	TRACE_ENTER();
 	struct imma_oi_ccb_record *tmp = cl_node->activeOiCcbs;
 	while (tmp && (tmp->ccbId != ccbId)) {
-		TRACE("Non matching record for ccb:%u", tmp->ccbId);
 		tmp = tmp->next;
 	}
 
-	if(tmp) TRACE("Record for ccbid:%u handle:%llx client:%p found", 
+	if(tmp) TRACE("Record for ccbid:%llx handle:%llx client:%p found", 
 		ccbId, cl_node->handle, cl_node);
-	else    TRACE("Record for ccbid:%u handle:%llx client:%p NOT found", 
+	else    TRACE("Record for ccbid:%llx handle:%llx client:%p NOT found", 
 		ccbId, cl_node->handle, cl_node);
 
 	TRACE_LEAVE();
 	return tmp;
 }
 
-int imma_oi_ccb_record_exists(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId)
+int imma_oi_ccb_record_exists(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId)
 {
 	return (imma_oi_ccb_record_find(cl_node, ccbId) != NULL);
 }
 
-void imma_oi_ccb_record_add(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv)
+void imma_oi_ccb_record_add(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId, SaUint32T inv)
 {
 	TRACE_ENTER();
 	struct imma_oi_ccb_record *new_ccb = imma_oi_ccb_record_find(cl_node, ccbId);
@@ -233,12 +232,12 @@ void imma_oi_ccb_record_add(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32
 	}
 	new_ccb->next = cl_node->activeOiCcbs;
 	cl_node->activeOiCcbs = new_ccb;
-	TRACE("Record for ccbid:%u handle:%llx client:%p opCount:%d added", 
+	TRACE("Record for ccbid:%llx handle:%llx client:%p opCount:%d added", 
 		ccbId, cl_node->handle, cl_node, new_ccb->opCount);
 	TRACE_LEAVE();
 }
 
-int imma_oi_ccb_record_delete(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId)
+int imma_oi_ccb_record_delete(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId)
 {
 	TRACE_ENTER();
    	struct imma_oi_ccb_record **tmpp = &(cl_node->activeOiCcbs);
@@ -250,15 +249,15 @@ int imma_oi_ccb_record_delete(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId)
 		struct imma_oi_ccb_record *to_delete = (*tmpp);
 		assert(to_delete->ccbId == ccbId);
 		if(to_delete->isCritical) {
-			TRACE_3("WARNING: Removing imma_oi_ccb_record ccb:%u handle:%llx client:%p in CRITICAL state", 
+			TRACE_3("Removing imma_oi_ccb_record ccb:%llx handle:%llx client:%p in CRITICAL state", 
 				ccbId, cl_node->handle, cl_node);
 		} else {
-			TRACE_2("Removing imma_oi_ccb_record ccb:%u handle:%llx client:%p in non-critical state", 
+			TRACE_2("Removing imma_oi_ccb_record ccb:%llx handle:%llx client:%p in non-critical state", 
 				ccbId, cl_node->handle, cl_node);
 		}
 		(*tmpp) = to_delete->next;
 		to_delete->next = NULL;
-		to_delete->ccbId = 0;
+		to_delete->ccbId = 0LL;
 		free(to_delete);
 		TRACE_LEAVE();
 		return 1;
@@ -268,7 +267,7 @@ int imma_oi_ccb_record_delete(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId)
 	return 0;
 }
 
-int imma_oi_ccb_record_terminate(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId)
+int imma_oi_ccb_record_terminate(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId)
 {
 	TRACE_ENTER();
 	int rs = 0;
@@ -283,7 +282,7 @@ int imma_oi_ccb_record_terminate(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId)
 	return rs;
 }
 
-int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv)
+int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId, SaUint32T inv)
 {
 	TRACE_ENTER();
 	int rs = 0;
@@ -294,12 +293,14 @@ int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbI
 		rs = 1;
 		if(tmp->opCount) {
 			if(!(cl_node->isPbe)) {
-				LOG_ER("imma_oi_ccb_record_set_critical opCount!=0 yet cl_node->isPbe is FALSE!");
+				LOG_ER("imma_oi_ccb_record_ok_for_critical opCount!=0 yet cl_node->isPbe "
+					"is FALSE! ccb:%llx", ccbId);
 				rs = 0;
 			}
 
 			if(tmp->opCount != inv) {
-				LOG_ER("Mismatch in PBE op-count %u should be %u.",  tmp->opCount, inv);
+				LOG_ER("Mismatch in PBE op-count %u should be %u for Ccbid:%llx",  
+					tmp->opCount, inv, ccbId);
 				rs = 0;
 			} else {
 				TRACE_5("op-count matches with inv:%u", inv);
@@ -311,7 +312,7 @@ int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbI
 	return rs;
 }
 
-int imma_oi_ccb_record_set_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv)
+int imma_oi_ccb_record_set_critical(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId, SaUint32T inv)
 {
 	TRACE_ENTER();
 	int rs = 0;
@@ -323,19 +324,20 @@ int imma_oi_ccb_record_set_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, 
 		rs = 1;
 		if(tmp->opCount) {
 			if(!(cl_node->isPbe)) {
-				LOG_ER("imma_oi_ccb_record_set_critical opCount!=0 yet cl_node->isPbe is FALSE!");
+				LOG_ER("imma_oi_ccb_record_set_critical opCount!=0 yet cl_node->isPbe is FALSE! "
+					"ccbId:%llx", ccbId);
 				assert(cl_node->isPbe);
 			}
 
 			if(tmp->opCount != inv) {
-				LOG_ER("Mismatch in PBE op-count %u should be %u. (isPbe:%u)", 
-					tmp->opCount, inv, cl_node->isPbe);
+				LOG_ER("Mismatch in PBE op-count %u should be %u for CCBid:%llx (isPbe:%u)", 
+					tmp->opCount, inv, ccbId, cl_node->isPbe);
 				rs = 0;
 			} else {
 				TRACE_5("op-count matches with inv:%u", inv);
 			}
 		}
-		TRACE("Record for ccbid:%u %llx %p PBE-opcount:%u set to critical", ccbId, cl_node->handle, cl_node, tmp->opCount);
+		TRACE("Record for ccbid:%llx %llx %p PBE-opcount:%u set to critical", ccbId, cl_node->handle, cl_node, tmp->opCount);
 	}
 
 	TRACE_LEAVE();

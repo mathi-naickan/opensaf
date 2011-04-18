@@ -18,9 +18,10 @@
 #ifndef IMMA_CB_H
 #define IMMA_CB_H
 
+/* Node to store Ccb info for OI client */
 struct imma_oi_ccb_record {
 	struct imma_oi_ccb_record *next;
-	SaUint32T ccbId;
+	SaImmOiCcbIdT ccbId;  /* High order 32 bits used for PRTO 'pseudo ccbs'.*/
 	uns8 isStale;    /* 1 => ccb was terminated by IMMND down. */
 	uns8 isCritical; /* 1 => OI has replied OK on completed callback but not */
                          /*      received abort-callback or apply-callback.      */
@@ -64,14 +65,14 @@ typedef struct imma_admin_owner_node {
 	uns8 mReleaseOnFinalize; /* Release on finalize set, stale irreversible*/
 } IMMA_ADMIN_OWNER_NODE;
 
-/* Node to store Ccb info */
+/* Node to store Ccb info for OM client */
 typedef struct imma_ccb_node {
 	NCS_PATRICIA_NODE patnode;	/* index for the tree */
 	SaImmCcbHandleT ccb_hdl;	/* locally generated handle */
 	SaImmHandleT mImmHandle;	/* The immOm handle */
 	SaImmAdminOwnerHandleT mAdminOwnerHdl;
 	SaImmCcbFlagsT mCcbFlags;
-	SaUint32T mCcbId;
+	SaUint32T mCcbId;   /* Om client uses 32 bit ccbId. */
 	uns8 mExclusive;   /* 1 => Ccb-id being created, applied or finalized */
 	uns8 mApplying;    /* Critical (apply invoked), IMMND contact lost => 
 						  timeout => Ccb-outcome to be recovered. */
@@ -161,11 +162,11 @@ EXTERN_C void imma_client_tree_destroy(IMMA_CB *cb);
 EXTERN_C void imma_client_tree_cleanup(IMMA_CB *cb);
 EXTERN_C void imma_mark_clients_stale(IMMA_CB *cb);
 EXTERN_C int  isExposed(IMMA_CB *cb, IMMA_CLIENT_NODE  *clnode);
-void imma_oi_ccb_record_add(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv);
-int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv);
-int imma_oi_ccb_record_set_critical(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId, SaUint32T inv);
-int imma_oi_ccb_record_terminate(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId);
-int imma_oi_ccb_record_exists(IMMA_CLIENT_NODE *cl_node, SaUint32T ccbId);
+void imma_oi_ccb_record_add(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId, SaUint32T inv);
+int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId, SaUint32T inv);
+int imma_oi_ccb_record_set_critical(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId, SaUint32T inv);
+int imma_oi_ccb_record_terminate(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId);
+int imma_oi_ccb_record_exists(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId);
 
 
 /*admin_owner tree*/
