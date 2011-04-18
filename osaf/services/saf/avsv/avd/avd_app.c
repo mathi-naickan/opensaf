@@ -296,7 +296,6 @@ static SaAisErrorT app_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		break;
 	}
 
-	rc = SA_AIS_OK;
 done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
