@@ -75,7 +75,8 @@ temp_node_id=`cat "$NODE_ID_FILE"`
 temp_node_id=`echo "$temp_node_id" |sed -e 's:^0[bBxX]::'| sed -e 's:^:0x:'`
 self_node_id=`printf "%d" $temp_node_id`
 
-if [ "$self_node_id" = "$node_id" ]; then
+# A node ID of zero(0) means an order to reboot the local node
+if [ "$self_node_id" = "$node_id" ] || [ $node_id = 0 ]; then
 	# uncomment the following line if debugging errors that keep restarting the node
 	# exit 0
 	$tipc_config "-bd=?"

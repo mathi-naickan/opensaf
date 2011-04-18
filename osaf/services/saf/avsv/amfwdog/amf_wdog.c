@@ -114,15 +114,12 @@ static void amf_comp_terminate_callback(SaInvocationT inv, const SaNameT *comp_n
 
 static void amf_down_cb(void)
 {
-	int status;
 	const char *env_value = getenv("AMFWDOG_TIMEOUT_MS");
 
 	if(env_value && !strtol(env_value, NULL, 0)) /* AMF watchdog disabled */
 		syslog(LOG_ERR, "AMF is down. AMF watchdog is disabled, no action");
 	else { /* AMF watchdog enabled */
-		syslog(LOG_ERR, "ordering system reboot, AMF unexpectedly crasched"); 
-		if ((status = system("shutdown -r now")) == -1)
-			syslog(LOG_ERR, "system(shutdown) FAILED %x", status);
+		opensaf_reboot(0, NULL,	"AMF unexpectedly crashed");
 	}
 }
 
