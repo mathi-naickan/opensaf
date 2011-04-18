@@ -518,8 +518,10 @@ void imma_proc_terminate_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 			SaImmHandleT handle = cl_node->handle;
 			cl_node = NULL;
 
+			SaImmOiCcbIdT ccbId =  oiCcb->ccbId;
+			assert(ccbId < 0xffffffff);
 			assert(m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS);
-			err = imma_proc_recover_ccb_result(cb, oiCcb->ccbId);
+			err = imma_proc_recover_ccb_result(cb, (SaUint32T) ccbId);
 			assert(m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS);
 
 			/* We have been unlocked. Look up the client_node & ccb-record again. 
@@ -532,15 +534,15 @@ void imma_proc_terminate_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 				return;
 			}
 
-			if(!imma_oi_ccb_record_exists(cl_node, oiCcb->ccbId)) {
-				LOG_WA("Ccb OI record lost while recovering ccb result");
+			if(!imma_oi_ccb_record_exists(cl_node, ccbId)) {
+				LOG_WA("Ccb OI record lost while recovering ccb %llx result", ccbId);
 				oiCcb =  cl_node->activeOiCcbs;
 				continue;
 			}
 		} else {
 			/* We expected non-critical stales to have been terminated by abort in 
 			   imma_proc_stale_dispatch() */
-			LOG_WA("Discovered non critical and stale oi_ccb_record %u in "
+			LOG_WA("Discovered non critical and stale oi_ccb_record %llx in "
 				"imma_proc_terminate_oi_ccbs", oiCcb->ccbId);
 			err = SA_AIS_ERR_FAILED_OPERATION;
 		}
@@ -552,7 +554,7 @@ void imma_proc_terminate_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 		} else if (err == SA_AIS_ERR_FAILED_OPERATION) {
 			callback->type = IMMA_CALLBACK_OI_CCB_ABORT;
 		} else {
-			TRACE_3("WARNING: Failed to recover ccb outcome for critical oi ccb %u err:%u",
+			TRACE_3("WARNING: Failed to recover ccb outcome for critical oi ccb %llx err:%u",
 				oiCcb->ccbId, err);
 			free(callback);
 			callback = NULL;
@@ -561,18 +563,18 @@ void imma_proc_terminate_oi_ccbs(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 		}
 
 		callback->lcl_imm_hdl = cl_node->handle;
-		callback->ccbID = oiCcb->ccbId;
+		callback->ccbID = (SaUint32T) oiCcb->ccbId;
 
 		if (m_NCS_IPC_SEND(&cl_node->callbk_mbx, callback,
 				NCS_IPC_PRIORITY_NORMAL) != NCSCC_RC_SUCCESS) {
 			/* Cant make it high priority because it could bypass a normal
 			   ccb-op upcall. That would confuse the OI! */
-			TRACE_4("Failed to post ccb %u stale-terminate ipc-message", oiCcb->ccbId);
-		} else {TRACE_3("Posted ccb %u stale-terminate ipc-message: %s", oiCcb->ccbId,
+			TRACE_4("Failed to post ccb %llx stale-terminate ipc-message", oiCcb->ccbId);
+		} else {TRACE_3("Posted ccb %llx stale-terminate ipc-message: %s", oiCcb->ccbId,
 					(err == SA_AIS_OK)?"APPLY":"ABORT");}
 		assert(oiCcb->isStale == FALSE); 
 
-		TRACE_3("imma_proc_terminate_oi_ccbs: oi_ccb_record for %u terminated",
+		TRACE_3("imma_proc_terminate_oi_ccbs: oi_ccb_record for %llx terminated",
 			oiCcb->ccbId);
 		assert(imma_oi_ccb_record_terminate(cl_node, oiCcb->ccbId));
 		oiCcb = nextOiCcb;
@@ -608,23 +610,22 @@ void imma_proc_stale_dispatch(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 			TRACE_4("Failed to post stale handle ipc-message");
 		} else {TRACE_3("Posted stale handle ipc-message");} 
 
-        /*Avoid redoing this dispatch for the same stale connection*/
-        cl_node->selObjUsable=FALSE; 
-        /*If a resurrect succeds cl_node->selObjUsable will be set back to TRUE
-        */
+		/*Avoid redoing this dispatch for the same stale connection*/
+		cl_node->selObjUsable=FALSE; 
+		/*If a resurrect succeds cl_node->selObjUsable will be set back to TRUE*/
 
 		/* Abort any active but non-critical OI CCBs */
 		while (oiCcb != NULL) {
 			struct imma_oi_ccb_record *nextOiCcb = oiCcb->next;
 			if (!(oiCcb->isStale)) {
-				TRACE_4("ERROR?: Discovered non stale oi_ccb_record %u in stale dispatch",
+				TRACE_4("ERROR?: Discovered non stale oi_ccb_record %llx in stale dispatch",
 					oiCcb->ccbId);
 				oiCcb = nextOiCcb;
 				continue;
 			} 
 
 			if (oiCcb->isCritical) {
-				TRACE_3("Postponing termination upcall apply/abort for critical CCB %u",
+				TRACE_3("Postponing termination upcall apply/abort for critical CCB %llx",
 					oiCcb->ccbId);
 				oiCcb = nextOiCcb;
 				continue;
@@ -643,10 +644,10 @@ void imma_proc_stale_dispatch(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 				/* Cant make it high priority because it could bypass a normal
 				   ccb-op upcall. That would confuse the OI! */
 				TRACE_4("Failed to post ccb stale abort ipc-message");
-			} else {TRACE_3("Posted ccb %u stale abort ipc-message", oiCcb->ccbId);}
+			} else {TRACE_3("Posted ccb %llx stale abort ipc-message", oiCcb->ccbId);}
 			oiCcb->isStale = FALSE; /* Avoid sending the abort message again. */
 
-			TRACE_3("imma_proc_stale_dispatch: oi_ccb_record for %u terminated",
+			TRACE_3("imma_proc_stale_dispatch: oi_ccb_record for %llx terminated",
 				oiCcb->ccbId);
 			assert(imma_oi_ccb_record_terminate(cl_node, oiCcb->ccbId));
 			oiCcb = nextOiCcb;
