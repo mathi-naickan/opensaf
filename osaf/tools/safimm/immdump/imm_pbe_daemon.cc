@@ -66,6 +66,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 
 	if(opId == OPENSAF_IMM_PBE_CLASS_CREATE) {
 		bool schemaChange = false;
+		bool persistentExtent = false; /* ConfigC or PrtoC. Only relevant if schmaChange == true */
 		if(!param || (param->paramType != SA_IMM_ATTR_SASTRINGT)) {
 			(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
 			goto done;
@@ -87,8 +88,25 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 				unsigned int instances=0;
 				LOG_IN("PBE detected schema change for class %s", className.c_str());
 				schemaChange = true;
-				instances = purgeInstancesOfClassToPBE(pbeOmHandle, className, sDbHandle);
-				LOG_IN("PBE removed %u old instances of class %s", instances, className.c_str());
+				AttrMap::iterator ami = theClass->mAttrMap.begin();
+				assert(ami != theClass->mAttrMap.end());
+				while(ami != theClass->mAttrMap.end()) {
+					SaImmAttrFlagsT attrFlags = ami->second;
+					if(attrFlags & SA_IMM_ATTR_CONFIG) {
+						persistentExtent = true;
+						break;
+					}
+					if(attrFlags & SA_IMM_ATTR_PERSISTENT) {
+						persistentExtent = true;
+						break;
+					}
+					++ami;
+				}
+
+				if(persistentExtent) {
+					instances = purgeInstancesOfClassToPBE(pbeOmHandle, className, sDbHandle);
+					LOG_IN("PBE removed %u old instances of class %s", instances, className.c_str());
+				}
 				deleteClassToPBE(className, sDbHandle, theClass);
 				assert(sClassIdMap->erase(className) == 1);
 				delete theClass;
@@ -106,10 +124,12 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		if(schemaChange) {
 			unsigned int obj_count=0;
 			LOG_IN("PBE created new class definition for %s", className.c_str());
-			TRACE_5("sObjCount:%u", sObjCount);
-			obj_count = dumpInstancesOfClassToPBE(pbeOmHandle, sClassIdMap, className, &sObjCount, sDbHandle);
-			LOG_IN("PBE dumped %u objects of new class definition for %s", obj_count, className.c_str());
-			TRACE_5("sObjCount:%u", sObjCount);
+			if(persistentExtent) {
+				TRACE_5("sObjCount:%u", sObjCount);
+				obj_count = dumpInstancesOfClassToPBE(pbeOmHandle, sClassIdMap, className, &sObjCount, sDbHandle);
+				LOG_IN("PBE dumped %u objects of new class definition for %s", obj_count, className.c_str());
+				TRACE_5("sObjCount:%u", sObjCount);
+			}
 		} else {
 			/* Add classname to opensaf object when this is not an upgrade. */
 			attrValues.attrName = (char *) OPENSAF_IMM_ATTR_CLASSES;
