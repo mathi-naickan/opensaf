@@ -119,7 +119,7 @@ ha_readiness_state()
 		exit 1
 	fi
 
-	echo -n "	$state="
+	echo -n "	$1="
 	if [ "$ha_readiness_state_val" = "<Empty>" ]; then
 		echo $ha_readiness_state_val
 	elif [ $ha_readiness_state_val -eq 1 ]; then
@@ -143,7 +143,7 @@ pres_state()
 		exit 1
 	fi
 
-	echo -n "	$state="
+	echo -n "	$1="
 	if [ "$pres_state_val" = "<Empty>" ]; then
 		echo $pres_state_val
 	elif [ $pres_state_val -eq 1 ]; then
@@ -193,7 +193,7 @@ readiness_state()
 		exit 1
 	fi
 
-	echo -n "	$state="
+	echo -n "	$1="
 	if [ "$readiness_state_val" = "<Empty>" ]; then
 		echo $readiness_state_val
 	elif [ $readiness_state_val -eq 1 ]; then
