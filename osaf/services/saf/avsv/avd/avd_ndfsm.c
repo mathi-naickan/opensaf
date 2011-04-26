@@ -401,6 +401,13 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	TRACE_ENTER2("%x, %p", evt->info.node_id, node);
 
 	if (node != NULL) {
+		// Do nothing if the local node goes down. Most likely due to system shutdown.
+		// If node director goes down due to a bug, the AMF watchdog will restart the node.
+		if (node->node_info.nodeId == cb->node_id_avd) {
+			TRACE("Ignoring down event for local node director");
+			goto done;
+		}
+
 		if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
 			/* failover this node */
 			avd_node_mark_absent(node);
@@ -431,7 +438,7 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 			free(node_fovr);
 		}
 	}
-
+done:
 	TRACE_LEAVE();
 }
 

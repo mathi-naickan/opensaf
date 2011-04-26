@@ -142,6 +142,8 @@ uns32 avnd_evt_last_step_term_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
+	LOG_NO("Terminating all AMF components");
+
 	if (cb->term_state != AVND_TERM_STATE_SHUTTING_NCS_SI) {
 		avnd_last_step_clean(cb);
 	} else {

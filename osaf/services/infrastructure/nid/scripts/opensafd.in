@@ -203,7 +203,7 @@ start() {
 		return $RETVAL
 	fi
 
-	logger -t $prog "Starting the OpenSAF HA Framework"
+	logger -t $prog "Starting OpenSAF Services"
 
 	[ -x $daemon ] || exit 5
 
@@ -217,6 +217,7 @@ start() {
 	start_daemon $binary $args
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
+		logger -t $prog "OpenSAF services successfully started"
 		touch $lockfile
 		log_success_msg
 	else
@@ -234,7 +235,7 @@ start() {
 }
 
 stop() {
-	logger -t $prog "Stopping the OpenSAF HA Framework"
+	logger -t $prog "Stopping OpenSAF Services"
 
 	if [ "$MDS_TRANSPORT" = "TCP" ] ; then
 		pkill -9 dh_monitoring* >/dev/null 2>&1
@@ -258,6 +259,7 @@ stop() {
 	final_clean
 
 	if [ $RETVAL -eq 0 ]; then
+		logger -t $prog "OpenSAF services successfully stopped"
 		log_success_msg
 	else
 		log_failure_msg

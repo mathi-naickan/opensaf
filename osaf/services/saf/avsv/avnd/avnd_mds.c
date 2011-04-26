@@ -1189,8 +1189,13 @@ uns32 avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_CTX
 
 	/* send the message */
 	rc = ncsmds_api(&mds_info);
-	if (NCSCC_RC_SUCCESS != rc)
-		LOG_ER("ncsmds_api for %u FAILED, dest=%llx", send_info->i_sendtype, *dest);
+	if (NCSCC_RC_SUCCESS != rc) {
+		if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN) {
+			/* Don't log anything if we are shutting down */
+			TRACE("ncsmds_api for %u FAILED, dest=%llx", send_info->i_sendtype, *dest);
+		} else
+			LOG_ER("ncsmds_api for %u FAILED, dest=%llx", send_info->i_sendtype, *dest);
+	}
 
 	TRACE_LEAVE2("%u", rc);
 	return rc;
@@ -1247,8 +1252,15 @@ uns32 avnd_mds_red_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_DEST *ad
 
 	/* send the message */
 	rc = ncsmds_api(&mds_info);
-	if (NCSCC_RC_SUCCESS != rc)
-		LOG_CR("AVND MDS send failed: Msg type = %u, vdest = %llu, anchor = %llu",msg->type,send->i_to_vdest,send->i_to_anc);
+	if (NCSCC_RC_SUCCESS != rc) {
+		if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN) {
+			/* Don't log anything if we are shutting down */
+			TRACE("AVND MDS send failed: Msg type = %u, vdest = %llu, anchor = %llu",
+				msg->type,send->i_to_vdest,send->i_to_anc);
+		} else
+			LOG_CR("AVND MDS send failed: Msg type = %u, vdest = %llu, anchor = %llu",
+				msg->type,send->i_to_vdest,send->i_to_anc);
+	}
 
 	TRACE_LEAVE2("rc '%u'", rc);
 	return rc;
