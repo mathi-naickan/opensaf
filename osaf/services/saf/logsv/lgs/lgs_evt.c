@@ -33,6 +33,8 @@
    ( (ver->releaseCode == LOG_RELEASE_CODE) && \
      (ver->majorVersion == LOG_MAJOR_VERSION || ver->minorVersion == LOG_MINOR_VERSION))
 
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
+
 static uns32 process_api_evt(lgsv_lgs_evt_t *evt);
 static uns32 proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt);
 static uns32 proc_mds_quiesced_ack_msg(lgsv_lgs_evt_t *evt);
@@ -485,7 +487,10 @@ static uns32 proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 			goto done;
 
 		/* fail over, become implementer */
-		lgs_imm_impl_set(lgs_cb);
+		immutilWrapperProfile.nTries = 250; /* LOG will be blocked until IMM responds */
+		(void)immutil_saImmOiImplementerSet(lgs_cb->immOiHandle, "safLogService");
+		(void)immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "SaLogStreamConfig");
+		immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
 		
 		/* Agent down list has to be processed first */
 		lgs_process_lga_down_list();

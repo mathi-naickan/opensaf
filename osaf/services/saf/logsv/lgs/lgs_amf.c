@@ -23,6 +23,8 @@
 #include "lgs.h"
 #include "immutil.h"
 
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
+
 static void close_all_files(void)
 {
 	log_stream_t *stream;
@@ -62,7 +64,10 @@ static SaAisErrorT amf_active_state_handler(lgs_cb_t *cb, SaInvocationT invocati
 	}
 
 	/* switch over, become implementer */
-	lgs_imm_impl_set(cb);
+	immutilWrapperProfile.nTries = 250; /* LOG will be blocked until IMM responds */
+	(void)immutil_saImmOiImplementerSet(lgs_cb->immOiHandle, "safLogService");
+	(void)immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "SaLogStreamConfig");
+	immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
 
 	/* check existing streams */
 	stream = log_stream_getnext_by_name(NULL);

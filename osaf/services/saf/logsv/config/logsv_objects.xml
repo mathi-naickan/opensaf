@@ -95,7 +95,7 @@
 		</attr>
 		<attr>
 			<name>saAmfCtDefCallbackTimeout</name>
-			<value>10000000000</value>
+			<value>120000000000</value>
 		</attr>
 		<attr>
 			<name>saAmfCtRelPathInstantiateCmd</name>
