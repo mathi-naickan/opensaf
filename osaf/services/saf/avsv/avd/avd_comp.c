@@ -1278,7 +1278,7 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 			avd_comptype_add_comp(comp);
 			param.attr_id = saAmfCompType_ID;
 			param.name_sec = *dn;
-			LOG_NO("saAmfCompType changed to '%s' for '%s'", dn->value, opdata->objectName.value);
+			TRACE("saAmfCompType changed to '%s' for '%s'", dn->value, opdata->objectName.value);
 		} else if (!strcmp(attribute->attrName, "saAmfCompInstantiateCmdArgv")) {
 
 			char *param_val = *((char **)value);

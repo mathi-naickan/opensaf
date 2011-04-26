@@ -1326,16 +1326,16 @@ static void su_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 
 			if (SA_IMM_ATTR_VALUES_DELETE == attr_mod->modType) {
 				su->saAmfSUMaintenanceCampaign.length = 0;
-				LOG_NO("saAmfSUMaintenanceCampaign cleared for '%s'", su->name.value);
+				TRACE("saAmfSUMaintenanceCampaign cleared for '%s'", su->name.value);
 			} else {
 				if (attr_mod->modAttr.attrValuesNumber == 1) {
 					assert(su->saAmfSUMaintenanceCampaign.length == 0);
 					su->saAmfSUMaintenanceCampaign = *((SaNameT *)attr_mod->modAttr.attrValues[0]);
-					LOG_NO("saAmfSUMaintenanceCampaign set to '%s' for '%s'",
+					TRACE("saAmfSUMaintenanceCampaign set to '%s' for '%s'",
 							su->saAmfSUMaintenanceCampaign.value, su->name.value);
 				} else if (attr_mod->modAttr.attrValues == 0) {
 					su->saAmfSUMaintenanceCampaign.length = 0;
-					LOG_NO("saAmfSUMaintenanceCampaign cleared for '%s'", su->name.value);
+					TRACE("saAmfSUMaintenanceCampaign cleared for '%s'", su->name.value);
 				} else
 					assert(0);
 			}
