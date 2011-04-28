@@ -1413,7 +1413,8 @@ SaAisErrorT saNtfNotificationSubscribe(const SaNtfNotificationTypeFilterHandlesT
 
 	if (rc != SA_AIS_OK) {
 		subscriberNoList = subscriberNoList->next;
-		subscriberNoList->prev = NULL;
+		if(subscriberNoList) 
+			subscriberNoList->prev = NULL;
 		free(ntfSubscriberList);
 	}
 	if (o_msg)
