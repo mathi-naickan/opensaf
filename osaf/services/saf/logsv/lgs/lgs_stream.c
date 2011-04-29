@@ -15,14 +15,11 @@
  *
  */
 
-#include <immutil.h>
 #include "lgs.h"
 
 #define DEFAULT_NUM_APP_LOG_STREAMS 64
 #define LGS_LOG_FILE_EXT ".log"
 #define LGS_LOG_FILE_CONFIG_EXT ".cfg"
-
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 static NCS_PATRICIA_TREE stream_dn_tree;
 
@@ -228,11 +225,17 @@ void log_stream_delete(log_stream_t **s)
 
 	if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) 
 		if(stream->streamType == STREAM_TYPE_APPLICATION) {
+			SaAisErrorT rv;
 			TRACE("Stream is closed, I am HA active so remove IMM object");
 			SaNameT objectName;
 			strcpy((char *)objectName.value, stream->name);
 			objectName.length = strlen((char *)objectName.value);
-			(void)immutil_saImmOiRtObjectDelete(lgs_cb->immOiHandle, &objectName);
+			rv = saImmOiRtObjectDelete(lgs_cb->immOiHandle, &objectName);
+			if (rv != SA_AIS_OK) {
+				/* no retry; avoid blocking LOG service #1886 */
+				LOG_WA("saImmOiRtObjectDelete returned %u for %s",
+						rv, stream->name);
+			}
 		}
 	if (stream->streamId != 0)
 		lgs_stream_array_remove(stream->streamId);
@@ -441,20 +444,15 @@ log_stream_t *log_stream_new(SaNameT *dn,
 		/* parentName needs to be configurable? */
 		{
 			SaAisErrorT rv;
-			int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
 
-			immutilWrapperProfile.errorsAreFatal = 0;
-			rv = immutil_saImmOiRtObjectCreate_2(lgs_cb->immOiHandle,
+			rv = saImmOiRtObjectCreate_2(lgs_cb->immOiHandle,
 							     "SaLogStream", parentName, attrValues);
-			immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
-
 			free(dndup);
 
 			if (rv != SA_AIS_OK) {
-				LOG_ER("saImmOiRtObjectCreate_2 returned %u for %s, parent %s",
+				/* no retry; avoid blocking LOG service #1886 */
+				LOG_WA("saImmOiRtObjectCreate_2 returned %u for %s, parent %s",
 				      rv, stream->name, parent_name);
-				log_stream_delete(&stream);
-				goto done;
 			}
 		}
 	}
