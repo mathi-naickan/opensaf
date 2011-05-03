@@ -10877,10 +10877,12 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 //class ?
                 //Yes, because the existence of a rt object is noted at 
                 //all nodes.
-                assert((int) ci->mExtent.size() == (int) ioci->nrofInstances);
+                if((int) ci->mExtent.size() != (int) ioci->nrofInstances) {
+			LOG_IN("Synced class %s has %u instances should have %u", className.c_str(),
+				(unsigned int) ci->mExtent.size(), ioci->nrofInstances);
+			abort();
+		}
                 ++classCount;
-                LOG_IN("Synced class %s has %u instances", 
-                    className.c_str(), ioci->nrofInstances);
                 if(ioci->classImplName.size) {
                     sz = strnlen((char *) ioci->classImplName.buf, 
                         (size_t) ioci->classImplName.size);
