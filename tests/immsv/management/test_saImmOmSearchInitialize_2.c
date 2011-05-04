@@ -86,6 +86,26 @@ void saImmOmSearchInitialize_2_06(void)
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+void saImmOmSearchInitialize_2_07(void)
+{
+    SaImmSearchHandleT searchHandle=0LL;
+
+    safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    SaImmSearchParametersT_2 searchParam;
+    searchParam.searchOneAttr.attrName = SA_IMM_ATTR_CLASS_NAME;
+    searchParam.searchOneAttr.attrValue = NULL;
+
+    SaImmAttrNameT attributeNames[2];
+    attributeNames[0] = "safVersion";
+    attributeNames[1] = NULL;
+
+    rc = saImmOmSearchInitialize_2(immOmHandle, NULL, SA_IMM_SUBTREE,
+        SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR,
+        &searchParam, attributeNames, &searchHandle);
+    test_validate(rc, SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
 extern void saImmOmSearchNext_2_01(void);
 extern void saImmOmSearchNext_2_02(void);
 extern void saImmOmSearchFinalize_01(void);
@@ -101,6 +121,8 @@ __attribute__ ((constructor)) static void saImmOmInitialize_constructor(void)
     test_case_add(3, saImmOmSearchInitialize_2_05, "saImmOmSearchInitialize_2 - SA_AIS_ERR_INVALID_PARAM, invalid searchOptions");
     test_case_add(3, saImmOmSearchInitialize_2_06,
         "saImmOmSearchInitialize_2 - SA_AIS_ERR_INVALID_PARAM, searchHandle set although SA_IMM_SEARCH_GET_SOME_ATTR is not set");
+    test_case_add(3, saImmOmSearchInitialize_2_07,
+        "saImmOmSearchInitialize_2 - SA_AIS_OK, Match on existence of attribute SA_IMM_ATTR_CLASS_NAME See: #1895");
 
     test_case_add(3, saImmOmSearchNext_2_01, "saImmOmSearchNext_2 - SA_AIS_OK/SA_AIS_ERR_NOT_EXIST (tree walk)");
     test_case_add(3, saImmOmSearchNext_2_02, "saImmOmSearchNext_2 - SA_AIS_ERR_BAD_HANDLE");
