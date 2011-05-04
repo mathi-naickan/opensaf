@@ -147,9 +147,16 @@ static SaAisErrorT checkStateChangeFilterParameters(ntfa_filter_hdl_rec_t *state
 		}
 	}
 
+	for(i = 0 ; i < stateChangeFilterData->notificationFilter.stateChangeNotificationfilter.numStateChanges; i++) {
+		SaBoolT oldstate = stateChangeFilterData->notificationFilter.stateChangeNotificationfilter.changedStates[i].oldStatePresent;
+		if(oldstate != SA_FALSE && oldstate != SA_TRUE) {
+			TRACE_1("Invalid changedStates value = %d", oldstate);
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+	}
+
 	TRACE_1("Returning SA_AIS_OK!");
 	return SA_AIS_OK;
-
 }
 
 static SaAisErrorT checkAlarmFilterParameters(ntfa_filter_hdl_rec_t *alarmFilterData)
@@ -296,10 +303,21 @@ static SaAisErrorT checkSecurityAlarmFilterParameters(ntfa_filter_hdl_rec_t *sec
 /* help functions */
 static SaAisErrorT checkHeader(SaNtfNotificationHeaderT *nh)
 {
+	int i =0;
+
 	if (nh->notificationObject->length > SA_MAX_NAME_LENGTH || nh->notifyingObject->length > SA_MAX_NAME_LENGTH) {
 		TRACE_1("SaNameT length too big");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
+
+	for(i=0 ; i < nh->numAdditionalInfo ; i++ ) {
+		if(nh->additionalInfo[i].infoType < SA_NTF_VALUE_UINT8 || 
+			nh->additionalInfo[i].infoType > SA_NTF_VALUE_ARRAY) {
+			TRACE_1("Invalid numAdditionalInfo type value");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+	}
+
 	return SA_AIS_OK;
 }
 
@@ -347,6 +365,12 @@ static SaAisErrorT checkAlarmParameters(SaNtfAlarmNotificationT *alarmNotificati
 			TRACE_1("Invalid proposedRepairActions type value");
 			return SA_AIS_ERR_INVALID_PARAM;
 		}
+	}
+
+	if(alarmNotification->thresholdInformation->thresholdValueType < SA_NTF_VALUE_UINT8 ||
+		alarmNotification->thresholdInformation->thresholdValueType > SA_NTF_VALUE_ARRAY) {
+		TRACE_1("Invalid thresholdInformation type value");
+		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
 	if (*alarmNotification->notificationHeader.eventType < SA_NTF_ALARM_NOTIFICATIONS_START ||
