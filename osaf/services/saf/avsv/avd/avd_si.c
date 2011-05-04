@@ -212,6 +212,35 @@ void avd_si_delete(AVD_SI *si)
 	assert(rc == NCSCC_RC_SUCCESS);
 	free(si);
 }
+/**
+ * @brief    Deletes all assignments on a particular SI
+ *
+ * @param[in] cb - the AvD control block
+ * @param[in] si - SI for which susi need to be deleted
+ *
+ * @return    NULL
+ *
+ */
+void avd_si_assignments_delete(AVD_CL_CB *cb, AVD_SI *si)
+{
+	AVD_SU_SI_REL *sisu = si->list_of_sisu;
+	AVD_SU_SI_STATE old_fsm_state;
+	TRACE_ENTER2(" '%s'", si->name.value);
+
+	for (; sisu != NULL; sisu = sisu->si_next) {
+		old_fsm_state = sisu->fsm;
+		sisu->fsm = AVD_SU_SI_STATE_UNASGN;
+		if (avd_snd_susi_msg(cb, sisu->su, sisu, AVSV_SUSI_ACT_DEL, FALSE, NULL) == NCSCC_RC_FAILURE) {
+			LOG_ER("%s:%u: SU:%s SI:%s", __FILE__, __LINE__, sisu->su->name.value,sisu->si->name.value);
+			sisu->fsm = old_fsm_state;
+		} else {
+			m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, sisu, AVSV_CKPT_AVD_SI_ASS);
+			avd_gen_su_ha_state_changed_ntf(avd_cb, sisu);
+			avd_sg_su_oper_list_add(cb, sisu->su, FALSE);
+		}
+	}
+	TRACE_LEAVE();
+}
 
 void avd_si_db_add(AVD_SI *si)
 {

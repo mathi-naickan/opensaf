@@ -3053,6 +3053,10 @@ uns32 avd_sg_nway_susi_succ_su_oper(AVD_CL_CB *cb,
 				/* transition to sg-realign state */
 				m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_SG_REALIGN);
 			}
+			/* As susi failover is not possible, delete all the assignments corresponding to
+			 * curr_susi->si
+			 */
+			avd_si_assignments_delete(cb, susi->si);
 		}
 	} else if (susi && (SA_AMF_HA_ACTIVE == state) && (AVSV_SUSI_ACT_DEL != act)) {
 		/* => single active assignment success */
