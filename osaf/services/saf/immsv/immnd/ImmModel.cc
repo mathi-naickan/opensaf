@@ -6206,7 +6206,8 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
     isSyncer= (searchOptions & SA_IMM_SEARCH_SYNC_CACHED_ATTRS);
 
     if(filter && (strcmp(req->searchParam.choice.oneAttrParam.attrName.buf,
-        SA_IMM_ATTR_CLASS_NAME)==0)) {
+        SA_IMM_ATTR_CLASS_NAME)==0) &&
+        req->searchParam.choice.oneAttrParam.attrValue.val.x.size) {
         /* Check if class exists and that all requested attrs exist in class */
         SaImmClassNameT className = (SaImmClassNameT) 
             req->searchParam.choice.oneAttrParam.attrValue.val.x.buf;
