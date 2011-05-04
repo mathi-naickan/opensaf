@@ -373,8 +373,15 @@ void avd_node_state_set(AVD_AVND *node, AVD_AVND_STATE node_state)
  */
 void avd_node_oper_state_set(AVD_AVND *node, SaAmfOperationalStateT oper_state)
 {
-	if (node->saAmfNodeOperState == oper_state)
+	if (node->saAmfNodeOperState == oper_state) {
+		/* In the case of node failover, oper_state is disabled in the avnd_down
+		 * event. Since we dont update oper_state in avnd_down because the role is
+		 * not set to Active(there is no implementer), so updating now.
+		 */
+		avd_saImmOiRtObjectUpdate(&node->name, "saAmfNodeOperState",
+					SA_IMM_ATTR_SAUINT32T, &node->saAmfNodeOperState);
 		return;
+	}
 	
 	SaAmfOperationalStateT old_state = node->saAmfNodeOperState;
 
