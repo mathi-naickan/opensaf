@@ -984,6 +984,12 @@ SaAisErrorT saImmOiImplementerSet(SaImmOiHandleT immOiHandle, const SaImmOiImple
 		goto bad_handle;
 	}
 
+	if(implementerName[0] == '@') {
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		TRACE_2("ERR_INVALID_PARAM: Applier OIs (leading '@') only supported for A.02.11 and above");
+		goto bad_handle;
+	}
+
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
 		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
