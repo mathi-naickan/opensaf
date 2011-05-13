@@ -666,16 +666,16 @@ Requires: %{name}-controller = %{version}-%{release}
 
 
 %post
-# If we're being upgraded
-if [ "$1" = "2" ]; then
+# $1 == 1 (install), $1 == 2 (upgrade)
+if [ $1 -gt 1 ]; then
    /sbin/service opensafd try-restart >/dev/null 2>&1 || :
-else # If we're being installed
+else
    /usr/lib/lsb/install_initd %{_initddir}/opensafd
 fi
 
 %preun
-# Execute this only if we are NOT doing an upgrade
-if [ "$1" = "0" ]; then
+# $1 == 1 (upgrade), $1 == 0, (uninstall)
+if [ $1 = 0 ]; then
     /sbin/service opensafd stop >/dev/null 2>&1 || :
     /usr/lib/lsb/remove_initd %{_initddir}/opensafd
 fi
@@ -689,17 +689,17 @@ fi
 
 %if %is_ais_plm
 %post plm-coordinator
-# If we're being upgraded
-if [ "$1" = "2" ]; then
+# $1 == 1 (install), $1 == 2 (upgrade)
+if [ $1 -gt 1 ]; then
    echo "" >/dev/null 2>&1 || :
-else # If we're being installed
+else
    /usr/lib/lsb/install_initd %{_initddir}/plmcboot
    /usr/lib/lsb/install_initd %{_initddir}/plmcd
 fi
 
 %preun plm-coordinator
-# Execute this only if we are NOT doing an upgrade
-if [ "$1" = "0" ]; then
+# $1 == 1 (upgrade), $1 == 0, (uninstall)
+if [ $1 = 0 ]; then
     /usr/lib/lsb/remove_initd %{_initddir}/plmcboot
     /usr/lib/lsb/remove_initd %{_initddir}/plmcd
 fi
@@ -759,25 +759,39 @@ sed -i '/isHpiSupported/{N;s|<value>0</value>|<value>1</value>|g}' \
 %if !%is_ais_plm
 sed -i '/plmd/d'  %{_pkgsysconfdir}/nodeinit.conf.controller
 %endif
-%{__ln_s} -f %{_pkgsysconfdir}/nodeinit.conf.controller %{_pkgsysconfdir}/nodeinit.conf
-echo "controller" > %{_pkgsysconfdir}/node_type
-hostname -s >  %{_pkgsysconfdir}/node_name
+
+# $1 == 1 (install), $1 == 2 (upgrade)
+if [ $1 = 1 ]; then
+	%{__ln_s} -f %{_pkgsysconfdir}/nodeinit.conf.controller %{_pkgsysconfdir}/nodeinit.conf
+	echo "controller" > %{_pkgsysconfdir}/node_type
+	hostname -s >  %{_pkgsysconfdir}/node_name
+fi
+
 /sbin/ldconfig
 
 %preun controller
-%{__rm} -f %{_pkgsysconfdir}/nodeinit.conf
+# $1 == 1 (upgrade), $1 == 0, (uninstall)
+if [ $1 = 0 ]; then
+	%{__rm} -f %{_pkgsysconfdir}/nodeinit.conf
+fi
 
 %postun controller -p /sbin/ldconfig
 
-
 %post payload
-%{__ln_s} -f %{_pkgsysconfdir}/nodeinit.conf.payload %{_pkgsysconfdir}/nodeinit.conf
-echo "payload" > %{_pkgsysconfdir}/node_type
-hostname -s >  %{_pkgsysconfdir}/node_name
+# $1 == 1 (install), $1 == 2 (upgrade)
+if [ $1 = 1 ]; then
+	%{__ln_s} -f %{_pkgsysconfdir}/nodeinit.conf.payload %{_pkgsysconfdir}/nodeinit.conf
+	echo "payload" > %{_pkgsysconfdir}/node_type
+	hostname -s >  %{_pkgsysconfdir}/node_name
+fi
+
 /sbin/ldconfig
 
 %preun payload
-%{__rm} -f %{_pkgsysconfdir}/nodeinit.conf
+# $1 == 1 (upgrade), $1 == 0, (uninstall)
+if [ $1 = 0 ]; then
+	%{__rm} -f %{_pkgsysconfdir}/nodeinit.conf
+fi
 
 %postun payload -p /sbin/ldconfig
 
