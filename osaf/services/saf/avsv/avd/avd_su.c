@@ -120,6 +120,26 @@ AVD_SU *avd_su_getnext(const SaNameT *dn)
 
 	return (AVD_SU *)ncs_patricia_tree_getnext(&su_db, (uns8 *)&tmp);
 }
+/**
+ * @brief   gets the current no of assignmnents on a SU for a particular state
+ *
+ * @param[in] su
+ * @param[in] ha_state  
+ *
+ * @return returns current assignment cnt
+ */
+uns32 avd_su_get_current_no_of_assignments(AVD_SU *su, SaAmfHAStateT ha_state)
+{
+	AVD_SU_SI_REL *curr_susi;
+	uns32 curr_assignment_cnt = 0;
+
+	for (curr_susi = su->list_of_susi;curr_susi != NULL;curr_susi = curr_susi->su_next) {
+		if (curr_susi->state == ha_state)
+			curr_assignment_cnt++;
+	}
+
+	return curr_assignment_cnt;
+}
 
 void avd_su_remove_comp(AVD_COMP *comp)
 {

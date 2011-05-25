@@ -1193,7 +1193,25 @@ static void avd_sg_nway_swap_si_redistr(AVD_SG *sg)
 		assert(0);
 	}
 }
+/**
+ * @brief Finds SiRankedSU node corresponding to the given su and si
+ *
+ * @param [in] si
+ * @param [in] su
+ * @param suname
+ *
+ * @returns pointer to avd_sirankedsu_t
+ */
+avd_sirankedsu_t *avd_si_find_sirankedsu(AVD_SI *si, AVD_SU *su)
+{
+        avd_sirankedsu_t *temp_su;
 
+        for (temp_su = si->rankedsu_list_head; temp_su != NULL; temp_su = temp_su->next) {
+                if (memcmp(&temp_su->suname, &su->name, sizeof(SaNameT)) == 0)
+                        break;
+        }
+        return temp_su;
+}
 /**
  *
  * @brief   This routine scans the SU list for the specified SG & picks up 
@@ -1355,7 +1373,6 @@ void avd_sg_nway_screen_si_distr_equal(AVD_SG *sg)
 done:
 	TRACE_LEAVE();
 }
-
 /**
  *
  * @brief   This routine scans the SU list for the specified SG & picks up 
@@ -1372,6 +1389,8 @@ AVD_SU *avd_sg_nway_get_su_std_equal(AVD_SG *sg, AVD_SI *curr_si)
 	AVD_SU *curr_su = NULL;
 	AVD_SU *pref_su = NULL;
 	NCS_BOOL l_flag = FALSE;
+	int curr_su_stdby_cnt = 0;
+	int pref_su_stdby_cnt = 0;
 
 	TRACE_ENTER2("SI to be assigned : %s", curr_si->name.value);
 
@@ -1385,6 +1404,9 @@ AVD_SU *avd_sg_nway_get_su_std_equal(AVD_SG *sg, AVD_SI *curr_si)
 
 		l_flag = TRUE;
 
+		/* Get the current no of Standby assignments on the su */
+		curr_su_stdby_cnt = avd_su_get_current_no_of_assignments(curr_su, SA_AMF_HA_STANDBY);
+
 		/* first try to select an SU which has no assignments */
 		if ((curr_su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) &&
 				(curr_su->saAmfSUNumCurrActiveSIs == 0) &&
@@ -1397,19 +1419,82 @@ AVD_SU *avd_sg_nway_get_su_std_equal(AVD_SG *sg, AVD_SI *curr_si)
 		}
 		/* else try to select an SU with Standby assignments */
 		else if ((curr_su->list_of_susi != AVD_SU_SI_REL_NULL) &&
-				((curr_su->sg_of_su->saAmfSGMaxStandbySIsperSU == 0) ||
-				 (curr_su->saAmfSUNumCurrStandbySIs < curr_su->sg_of_su->saAmfSGMaxStandbySIsperSU)) &&
-				(!pref_su || pref_su->saAmfSUNumCurrStandbySIs > curr_su->saAmfSUNumCurrStandbySIs) &&
-				(avd_su_susi_find(avd_cb, curr_su, &curr_si->name) == AVD_SU_SI_REL_NULL)) {
-			/* mark this as the preferred SU */
-			pref_su = curr_su;
-		}
+                                ((curr_su->sg_of_su->saAmfSGMaxStandbySIsperSU == 0) ||
+                                 (curr_su_stdby_cnt < curr_su->sg_of_su->saAmfSGMaxStandbySIsperSU)) &&
+                                (!pref_su || pref_su_stdby_cnt > curr_su_stdby_cnt) &&
+                                (avd_su_susi_find(avd_cb, curr_su, &curr_si->name) == AVD_SU_SI_REL_NULL)) {
+                        /* mark this as the preferred SU */
+                        pref_su = curr_su;
+                        pref_su_stdby_cnt = curr_su_stdby_cnt;
+                }
 	}
 	/* no more SIs can be assigned */
 	if (l_flag == FALSE)
 		curr_si = NULL;
 
 	return pref_su;
+}
+/**
+ * @brief finds the highest siranked SU for a particular SI
+ *        Also finds the su for which Active role is assigned
+ *
+ * @param [in] si
+ * @param [in] su
+ * @param [out] assigned_su
+ *
+ * @returns pointer to the highest ranked SU
+ */
+AVD_SU *avd_sg_nway_si_find_highest_sirankedsu(AVD_CL_CB *cb, AVD_SI *si, AVD_SU **assigned_su)
+{
+	AVD_SU_SI_REL *sisu;
+	avd_sirankedsu_t *assigned_sirankedsu = NULL;
+	AVD_SU *pref_sirankedsu = NULL;
+	AVD_SU *ranked_su;
+
+	TRACE_ENTER2("for SI '%s'",si->name.value);
+
+	/* Find the SU for which Active role is assigned for this SI */
+	for (sisu = si->list_of_sisu; sisu ; sisu = sisu->si_next) {
+		if (SA_AMF_HA_ACTIVE == sisu->state) {
+			*assigned_su = sisu->su;
+			break;
+		}
+	}
+	/* Find the corresponding sirankedsu */
+	if (sisu)
+		assigned_sirankedsu = avd_si_find_sirankedsu(si, sisu->su);
+	else {
+		/* Atleast one Active assignment should be there */
+		LOG_ER("Not able to find the Active assignment");
+		return NULL;
+	}
+	
+	/* Iterate through the si->rankedsu_list_head to find the highest sirankedsu */
+	avd_sirankedsu_t *sirankedsu = si->rankedsu_list_head;
+	for (; sirankedsu ; sirankedsu = sirankedsu->next) {
+		if ((ranked_su = avd_su_get(&sirankedsu->suname)) != NULL) {
+			if (ranked_su == *assigned_su) {
+                                TRACE("SI is assigned to highest SIRankedSU for this SI");
+                                break;
+			} else {
+				if ((ranked_su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) &&
+					(ranked_su->saAmfSUNumCurrActiveSIs < si->sg_of_si->saAmfSGMaxActiveSIsperSU)) {
+					if (assigned_sirankedsu) {
+						if (assigned_sirankedsu->saAmfRank > sirankedsu->saAmfRank) {
+							pref_sirankedsu = ranked_su;
+							break;
+						}
+					} else {
+						pref_sirankedsu = ranked_su;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	TRACE_LEAVE2(" '%s'",pref_sirankedsu ? (char *)pref_sirankedsu->name.value:"assigned to highest SIRankedSU");
+	return pref_sirankedsu;
 }
 
 /*****************************************************************************
@@ -1442,7 +1527,7 @@ uns32 avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 	uns32 rc = NCSCC_RC_SUCCESS;
 	AVD_SU_SI_REL *tmp_susi;
 
-	TRACE_ENTER();
+	TRACE_ENTER2("%s", sg->name.value);
 
 	sg->sg_fsm_state = AVD_SG_FSM_STABLE;
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, sg, AVSV_CKPT_SG_FSM_STATE);
@@ -1456,17 +1541,40 @@ uns32 avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 		if ((curr_si->saAmfSIAdminState != SA_AMF_ADMIN_UNLOCKED) ||
 		    (curr_si->si_dep_state == AVD_SI_SPONSOR_UNASSIGNED) ||
 		    (curr_si->si_dep_state == AVD_SI_UNASSIGNING_DUE_TO_DEP) ||
-		    (curr_si->saAmfSIAssignmentState == SA_AMF_ASSIGNMENT_FULLY_ASSIGNED) ||
 		    (curr_si->list_of_csi == NULL) ||
 		    (curr_si->num_csi != curr_si->max_num_csi))
 			continue;
 
 		is_all_si_ok = TRUE;
 
+		if (curr_si->list_of_sisu && sg->saAmfSGAutoAdjust && (curr_si->rankedsu_list_head)) {
+			/* The SI has sirankedsu configured and auto adjust enabled, make
+			 *sure the highest ranked SU has the active assignment
+			 */
+			AVD_SU *preferred_su = NULL;
+			AVD_SU *assigned_su = NULL;
+			preferred_su  = avd_sg_nway_si_find_highest_sirankedsu(cb, curr_si, &assigned_su);
+			if ((preferred_su && assigned_su) && preferred_su != assigned_su) {
+				TRACE("Move SI '%s' to su '%s'",curr_si->name.value, preferred_su->name.value);
+				sg->si_tobe_redistributed = curr_si;
+				sg->max_assigned_su = assigned_su;
+				sg->min_assigned_su = preferred_su;
+				avd_sg_nway_swap_si_redistr(sg);
+				goto done;
+			} else {
+				// leave SI assigned as is
+				continue;
+			}
+		}
+
 		/* verify if si is unassigned */
 		if (curr_si->list_of_sisu)
 			continue;
 
+		if (curr_si->saAmfSIAssignmentState == SA_AMF_ASSIGNMENT_FULLY_ASSIGNED) {
+			TRACE_1("SI fully assigned, next SI");
+			continue;
+		}
 		/* we've an unassigned si.. find su for active assignment */
 
 		/* first, scan based on su rank for this si */
@@ -1677,6 +1785,8 @@ uns32 avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 		}		/* for */
 	}			/* for */
 
+done:
+	TRACE_LEAVE2("rc '%u' sg_fsm_state '%u'",rc, sg->sg_fsm_state);
 	return rc;
 }
 
