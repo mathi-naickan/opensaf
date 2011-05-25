@@ -1126,11 +1126,8 @@ static void avd_sg_nway_swap_si_redistr(AVD_SG *sg)
 	assert(sg->max_assigned_su != NULL);
 	assert(sg->min_assigned_su != NULL);
 
-	TRACE("SI transfer '%s' from '%s' to '%s'",
-			sg->si_tobe_redistributed->name.value,
-			sg->max_assigned_su->name.value,
-			sg->min_assigned_su->name.value);
-
+	TRACE_ENTER2("'%s' from '%s' to '%s'", sg->si_tobe_redistributed->name.value,
+                sg->max_assigned_su->name.value, sg->min_assigned_su->name.value);
 	/* check point the SI transfer parameters with STANDBY*/
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_ADD(avd_cb, sg, AVSV_CKPT_AVD_SI_TRANS);
 
@@ -1192,6 +1189,7 @@ static void avd_sg_nway_swap_si_redistr(AVD_SG *sg)
 		/* susi to be redistributed cannot be in any other HA state */
 		assert(0);
 	}
+	TRACE_LEAVE();
 }
 /**
  * @brief Finds SiRankedSU node corresponding to the given su and si
@@ -1213,11 +1211,94 @@ avd_sirankedsu_t *avd_si_find_sirankedsu(AVD_SI *si, AVD_SU *su)
         return temp_su;
 }
 /**
+ * @brief check if this SU has any non ranked assignments or not 
+ *
+ * @param [in] su
+ * @param [in] ha_state 
+ *
+ * @returns TRUE/FALSE
+ */
+static uns32 su_has_any_non_ranked_assignment_with_state( AVD_SU *su, SaAmfHAStateT ha_state)
+{
+	AVD_SU_SI_REL *susi;
+	NCS_BOOL   found = FALSE;
+
+	TRACE_ENTER2("'%s' for state '%u'",su->name.value,ha_state);
+
+	for (susi = su->list_of_susi;susi != NULL;susi = susi->su_next) {
+		if (susi->state == ha_state) {
+                        if (NULL == susi->si->rankedsu_list_head) {
+                                TRACE("No sirankedsu_assignment ");
+                                found = TRUE;
+                                break;
+                        } else {
+                                /* Check whether the susi assignment is based on SIRankedSU */
+                                if (avd_si_find_sirankedsu(susi->si, susi->su) == NULL) {
+                                        TRACE("NON sirankedsu_assignment");
+                                        found = TRUE;
+                                        break;
+                                }
+
+                        }
+                }
+	}
+	TRACE_LEAVE2(" '%s'",found ? "found":"not found");
+	return found;
+}
+/**
+ * @brief  Finds the SI whose assignment has to be transferred from max_assigned_su to min_assigned_su. 
+ *	   Interates through the list of assignments on the mas_assigned_su, figure out less ranked SI
+ *	   that does not have assignment on the min_assigned_su. Also check that the SI to be transferred
+ *	   does not have SIRankedSU assignment on the max_assigned_su
+ *
+ * @param[in] sg
+ * @param[in] ha_state
+ *
+ * @return si to be transferred
+ */
+static AVD_SI * find_the_si_to_transfer(AVD_SG *sg, SaAmfHAStateT ha_state)
+{
+	AVD_SI *si_to_transfer = NULL;
+	AVD_SU_SI_REL *susi = sg->max_assigned_su->list_of_susi;
+	TRACE_ENTER();
+
+	if (sg->max_assigned_su == NULL) {
+		/* should not hit this point */
+		goto done;
+	}
+	for (susi = sg->max_assigned_su->list_of_susi;susi != NULL;susi = susi->su_next) {
+		if (susi->state == ha_state) {
+			if (SA_AMF_HA_STANDBY == ha_state) {
+				/* Find if this is assigned to avd_sg->min_assigned_su. */
+				if (avd_su_susi_find(avd_cb, sg->min_assigned_su, &susi->si->name) != AVD_SU_SI_REL_NULL) {
+					/* min_assigned_su already has a assignment for this SI go to the
+					 * next SI.
+					 */
+					continue;
+				}
+			}
+			/* Check whether this assignment is based on SIRankedSU, if so dont consider this SI for transfer */
+			if (avd_si_find_sirankedsu(susi->si, susi->su) != NULL) {
+				continue;
+			}
+			if (si_to_transfer == NULL)
+				si_to_transfer = susi->si;
+			else if (si_to_transfer->saAmfSIRank < susi->si->saAmfSIRank)
+				si_to_transfer = susi->si;
+		}
+	}
+done:
+        TRACE_LEAVE2(" '%s'",si_to_transfer ? (char *)si_to_transfer->name.value:"Not found");
+        return si_to_transfer;
+}
+/**
  *
  * @brief   This routine scans the SU list for the specified SG & picks up 
  *          an SU with minimum number of assignments and SU maximum number 
  *          of assignments and initiates a transfer of SI from maximum 
- *          assigned SU to minimum assigned SU 
+ *          assigned SU to minimum assigned SU. 
+ *          While choosing max_assigned_su(from_su) SU which has atleast one
+ *          non SIRankedSU assignments is considered
  *
  * @param[in] sg 
  *
@@ -1226,8 +1307,7 @@ avd_sirankedsu_t *avd_si_find_sirankedsu(AVD_SI *si, AVD_SU *su)
 void avd_sg_nway_screen_si_distr_equal(AVD_SG *sg)
 {
 	AVD_SU *curr_su = NULL;
-	AVD_SI *curr_si = NULL;
-	AVD_SU_SI_REL *susi = NULL;
+	AVD_SI *si_to_transfer = NULL;
 
 	TRACE_ENTER();
 
@@ -1243,59 +1323,60 @@ void avd_sg_nway_screen_si_distr_equal(AVD_SG *sg)
 	 */
 
 	/* do screening for active assignements */
-	curr_su = sg->list_of_su;
-
-	while (curr_su != NULL) {
+	for (curr_su = sg->list_of_su;curr_su != NULL;curr_su = curr_su->sg_list_su_next) {
 		if (curr_su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) {
-			/* set the max and min su ptr to the first inservice su */
-			if (sg->max_assigned_su == NULL)
-				sg->max_assigned_su = curr_su;
 
-			if (sg->min_assigned_su == NULL)
-				sg->min_assigned_su = curr_su;
+			/* set the  min su ptr to the first inservice su */
+                        if (sg->min_assigned_su == NULL) {
+                                sg->min_assigned_su = curr_su;
+                        }
+                        if (curr_su->saAmfSUNumCurrActiveSIs < sg->min_assigned_su->saAmfSUNumCurrActiveSIs)
+                                sg->min_assigned_su = curr_su;
 
-			if (curr_su->saAmfSUNumCurrActiveSIs > sg->max_assigned_su->saAmfSUNumCurrActiveSIs)
-				sg->max_assigned_su = curr_su;
-			else if (curr_su->saAmfSUNumCurrActiveSIs < sg->min_assigned_su->saAmfSUNumCurrActiveSIs)
-				sg->min_assigned_su = curr_su;
-			TRACE("'%s'-'%d'\n'%s'-'%d'\n'%s'-'%d'", curr_su->name.value, curr_su->saAmfSUNumCurrActiveSIs,
-					sg->max_assigned_su->name.value, sg->max_assigned_su->saAmfSUNumCurrActiveSIs,
-					sg->min_assigned_su->name.value, sg->min_assigned_su->saAmfSUNumCurrActiveSIs);
-		}
-		curr_su = curr_su->sg_list_su_next;
+                        /* Check whether the curr_su has atleast one non SIrankedSU assignment */
+                        if (su_has_any_non_ranked_assignment_with_state(curr_su, SA_AMF_HA_ACTIVE) == TRUE) {
+                                if (sg->max_assigned_su == NULL)
+                                        sg->max_assigned_su = curr_su;
+
+                                if (curr_su->saAmfSUNumCurrActiveSIs > sg->max_assigned_su->saAmfSUNumCurrActiveSIs)
+                                        sg->max_assigned_su = curr_su;
+                        }
+                }
 	}
 
-	/* this means there are no inservice sus nothing to be done */
-	if (sg->max_assigned_su == NULL || sg->min_assigned_su == NULL) {
+	if (sg->min_assigned_su == NULL) {
+		/* this means there are no inservice sus nothing to be done */
 		TRACE("No redistribution of SI assignments needed");
 		goto done;
 	}
-	else if ((sg->max_assigned_su->saAmfSUNumCurrActiveSIs - sg->min_assigned_su->saAmfSUNumCurrActiveSIs) > 1) {
+	if (sg->max_assigned_su == NULL) {
+		/* There is no SU with non sirankedsu assignments */
+		TRACE("No redistribution of Active assignments needed");
+		goto screen_standby_assignments;
+	}
+	if ((sg->max_assigned_su->saAmfSUNumCurrActiveSIs - sg->min_assigned_su->saAmfSUNumCurrActiveSIs) > 1) {
 		TRACE("Redistribution of active assignments initiated");
 		TRACE("max_assigned_su '%s' no of act assignments '%u', min_assigned_su '%s' no of act assignments '%u'", 
 				sg->max_assigned_su->name.value, sg->max_assigned_su->saAmfSUNumCurrActiveSIs, 
 				sg->min_assigned_su->name.value, sg->min_assigned_su->saAmfSUNumCurrActiveSIs);
+		
+		/* Now find the SI whose active assignment needs to be transferred, find the SI whose  assignment
+		 * has to be changed, figure out less ranked SI if SU has more than one assignments.
+		 * Also check that the SI to be transferred does not have SIRankedSU assignment on the max_assigned_su
+		 */
+                si_to_transfer = find_the_si_to_transfer(sg, SA_AMF_HA_ACTIVE);
 
-		/* Now find the SI whose active assignment needs to be transferred */
-		susi = sg->max_assigned_su->list_of_susi;
+                if (si_to_transfer != NULL) {
+                        sg->si_tobe_redistributed = si_to_transfer;
+                        avd_sg_nway_swap_si_redistr(sg);
+                        goto done;
+                }
+                /* if (si_to_transfer == NULL) means that there is no SI that is assigned on max SU
+                 * and not assigned on min SU or thre is no non SIRankedSU assignment on the max su.
+                 * Here we cannot redistribute the Active SI as of now
+                 */
 
-		while (susi != NULL) {
-			if (susi->state == SA_AMF_HA_ACTIVE) {
-				if (curr_si == NULL)
-					curr_si = susi->si;
-				else if (curr_si->saAmfSIRank < susi->si->saAmfSIRank)
-					curr_si = susi->si;
-			}
-			susi = susi->su_next;
-		}
-
-		if (curr_si != NULL) {
-			sg->si_tobe_redistributed = curr_si;
-			avd_sg_nway_swap_si_redistr(sg);
-			goto done;
-		}
-
-		TRACE("Active assignments redistribution not possible at this time");
+                TRACE("Not possible to transfer SI from max_su");
 	}
 
 	TRACE("No redistribution of active assignments needed");
@@ -1303,64 +1384,56 @@ void avd_sg_nway_screen_si_distr_equal(AVD_SG *sg)
 			sg->max_assigned_su->name.value, sg->max_assigned_su->saAmfSUNumCurrActiveSIs, 
 			sg->min_assigned_su->name.value, sg->min_assigned_su->saAmfSUNumCurrActiveSIs);
 
+screen_standby_assignments:
 	/* do screening for standby assignments */
 	sg->max_assigned_su = sg->min_assigned_su = NULL;
-	curr_su = sg->list_of_su;
 
-	while (curr_su != NULL) {
+	for (curr_su = sg->list_of_su;curr_su != NULL;curr_su = curr_su->sg_list_su_next) {
 		if (curr_su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) {
-			/* set the max and min su ptr to the first inservice su */
-			if (sg->max_assigned_su == NULL)
-				sg->max_assigned_su = curr_su;
+			/* set the  min su ptr to the first inservice su */
+                        if (sg->min_assigned_su == NULL) {
+                                sg->min_assigned_su = curr_su;
+                        }
+                        if (curr_su->saAmfSUNumCurrStandbySIs < sg->min_assigned_su->saAmfSUNumCurrStandbySIs)
+                                sg->min_assigned_su = curr_su;
 
-			if (sg->min_assigned_su == NULL)
-				sg->min_assigned_su = curr_su;
+                        /* Check whether the curr_su has atleast one non SIrankedSU assignment */
+                        if (su_has_any_non_ranked_assignment_with_state(curr_su, SA_AMF_HA_STANDBY) == TRUE) {
+                                if (sg->max_assigned_su == NULL)
+                                        sg->max_assigned_su = curr_su;
 
-			if (curr_su->saAmfSUNumCurrStandbySIs > sg->max_assigned_su->saAmfSUNumCurrStandbySIs)
-				sg->max_assigned_su = curr_su;
-			else if (curr_su->saAmfSUNumCurrStandbySIs < sg->min_assigned_su->saAmfSUNumCurrStandbySIs)
-				sg->min_assigned_su = curr_su;
-		}
-		curr_su = curr_su->sg_list_su_next;
+                                if (curr_su->saAmfSUNumCurrStandbySIs > sg->max_assigned_su->saAmfSUNumCurrStandbySIs)
+                                        sg->max_assigned_su = curr_su;
+                        }
+                }
 	}
-
+	if (sg->max_assigned_su == NULL) {
+                /* There is no SU with non sirankedsu assignments */
+                TRACE("No redistribution of Standby assignments needed");
+                goto done;
+	}
 	if ((sg->max_assigned_su->saAmfSUNumCurrStandbySIs - sg->min_assigned_su->saAmfSUNumCurrStandbySIs) > 1) {
 		TRACE("Redistribution of standby assignments initiated");
 		TRACE("max_assigned_su '%s' no of std assignments '%u', min_assigned_su '%s' no of std assignments '%u'", 
 				sg->max_assigned_su->name.value, sg->max_assigned_su->saAmfSUNumCurrStandbySIs, 
 				sg->min_assigned_su->name.value, sg->min_assigned_su->saAmfSUNumCurrStandbySIs);
 
-		/* Now find the SI whose standby assignment can be transferred */
-		susi = sg->max_assigned_su->list_of_susi;
-
-		while (susi != NULL) {
-
-			/* find if this si is already assigned on the min_assigned_su */
-			if (avd_su_susi_find(avd_cb, sg->min_assigned_su, &susi->si->name) != AVD_SU_SI_REL_NULL) {
-				/* si already assigned on min SU so continue to pick another si */
-				susi = susi->su_next;
-				continue;
-			}
-
-			if (susi->state == SA_AMF_HA_STANDBY) {
-				if (curr_si == NULL)
-					curr_si = susi->si;
-				else if (curr_si->saAmfSIRank < susi->si->saAmfSIRank)
-					curr_si = susi->si;
-			}
-			susi = susi->su_next;
-		}
-
-		if (curr_si != NULL ) {
-			sg->si_tobe_redistributed = curr_si;
-			avd_sg_nway_swap_si_redistr(sg);
-			goto done;
-		}
-
-		/* if curr_si == NULL means that there is no SI that is 
-		 * assigned on max SU and not assigned on min SU
-		 * here we cannot redistribute the SIs as of now
+		/* Now find the SI whose standby assignment needs to be transferred, find the SI whose  assignment
+		 * has to be changed, figure out less ranked SI if SU has more than one assignments. Do check that
+		 * max_assigned_su and min_assigned_su don't share the same SI assignment, Also check that the SI
+		 * to be transferred does not have SIRankedSU assignment on the max_assigned_su
 		 */
+                si_to_transfer = find_the_si_to_transfer(sg, SA_AMF_HA_STANDBY);
+
+                if (si_to_transfer != NULL ) {
+                        sg->si_tobe_redistributed = si_to_transfer;
+                        avd_sg_nway_swap_si_redistr(sg);
+                        goto done;
+                }
+                /* if (si_to_transfer == NULL) means that there is no SI that is assigned on max SU
+                 * and not assigned on min SU or thre is no non SIRankedSU assignment on the max su.
+                 * Here we cannot redistribute the SI as of now
+                 */
 		TRACE("Standby assignments redistribution not possible at this time");
 	}
 
