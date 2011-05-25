@@ -56,6 +56,12 @@ typedef enum {
 	AVD_SI_DEP_MAX_STATE
 } AVD_SI_DEP_STATE;
 
+typedef struct avd_sirankedsu {
+	SaNameT suname;
+	uns32 saAmfRank;
+	struct avd_sirankedsu *next;
+} avd_sirankedsu_t;
+
 /* Availability directors Service Instance structure(AVD_SI):
  * This data structure lives in the AvD and reflects data points 
  * associated with the Service Instance (SI) on the AvD.
@@ -107,7 +113,7 @@ typedef struct avd_si_tag {
 	struct avd_app_tag *app;
 	struct avd_si_tag *si_list_app_next;
 	struct avd_sus_per_si_rank_tag *list_of_sus_per_si_rank;
-
+	avd_sirankedsu_t *rankedsu_list_head;
 	SaInvocationT invocation;
 	
 	uns32 alarm_sent; /* SI unassigned alarm has been sent */
@@ -174,5 +180,8 @@ extern void avd_si_inc_curr_stdby_dec_act_ass(AVD_SI *si);
 extern void avd_si_inc_curr_act_dec_std_ass(AVD_SI *si);
 extern void avd_si_admin_state_set(AVD_SI* si, SaAmfAdminStateT state);
 extern void avd_si_assignments_delete(AVD_CL_CB *cb, AVD_SI *si);
+extern void avd_si_add_rankedsu(AVD_SI *si, const SaNameT *suname, uns32 saAmfRank);
+extern void avd_si_remove_rankedsu(AVD_SI *si, const SaNameT *suname);
+extern avd_sirankedsu_t *avd_si_getnext_rankedsu(const AVD_SI *si, uns32 saAmfRank);
 
 #endif

@@ -46,6 +46,7 @@ static void avd_sirankedsu_db_add(AVD_SUS_PER_SI_RANK *sirankedsu)
 
         /* Find the si name. */
         avd_si = avd_si_get(&(sirankedsu->indx.si_name));
+	avd_si_add_rankedsu(avd_si, &sirankedsu->su_name, sirankedsu->indx.su_rank);
 
         /* Add sus_per_si_rank to si */
         sirankedsu->sus_per_si_rank_on_si = avd_si;
@@ -232,6 +233,7 @@ static uns32 avd_sirankedsu_delete(AVD_CL_CB *cb, AVD_SUS_PER_SI_RANK *ranked_su
 		/* log error */
 		return NCSCC_RC_FAILURE;
 	}
+	avd_si_remove_rankedsu(ranked_su_per_si->sus_per_si_rank_on_si, &ranked_su_per_si->su_name);
 
 	free(ranked_su_per_si);
 	return NCSCC_RC_SUCCESS;

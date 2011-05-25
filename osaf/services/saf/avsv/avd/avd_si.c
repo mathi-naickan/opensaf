@@ -115,6 +115,91 @@ static void avd_si_add_csi_db(struct avd_csi_tag* csi)
 //	csi->si->num_csi++;
 }
 
+/**
+ * @brief Add a SIranked SU to the SI list
+ *
+ * @param si
+ * @param suname
+ * @param saAmfRank
+ */
+void avd_si_add_rankedsu(AVD_SI *si, const SaNameT *suname, uns32 saAmfRank)
+{
+	avd_sirankedsu_t *tmp;
+	avd_sirankedsu_t *prev = NULL;
+	avd_sirankedsu_t *ranked_su;
+	TRACE_ENTER();
+
+	ranked_su = malloc(sizeof(avd_sirankedsu_t));
+	if (NULL == ranked_su) {
+		LOG_ER("memory alloc failed error :%s", strerror(errno));
+		assert(0);
+	}
+	ranked_su->suname = *suname;
+	ranked_su->saAmfRank = saAmfRank;
+
+	for (tmp = si->rankedsu_list_head; tmp != NULL; tmp = tmp->next) {
+		if (tmp->saAmfRank >= saAmfRank)
+			break;
+		else
+			prev = tmp;
+	}
+
+	if (prev == NULL) {
+		ranked_su->next = si->rankedsu_list_head;
+		si->rankedsu_list_head = ranked_su;
+	} else {
+		ranked_su->next = prev->next;
+		prev->next = ranked_su;
+	}
+	TRACE_LEAVE();
+}
+/**
+ * @brief Remove a SIranked SU from the SI list
+ *
+ * @param si
+ * @param suname
+ */
+void avd_si_remove_rankedsu(AVD_SI *si, const SaNameT *suname)
+{
+	avd_sirankedsu_t *tmp;
+	avd_sirankedsu_t *prev = NULL;
+	TRACE_ENTER();
+
+	for (tmp = si->rankedsu_list_head; tmp != NULL; tmp = tmp->next) {
+		if (memcmp(&tmp->suname, &suname, sizeof(SaNameT) == 0))
+			break;
+		prev = tmp;
+	}
+
+	if (prev == NULL)
+		si->rankedsu_list_head = NULL;
+	else
+		prev->next = tmp->next;
+
+	free(tmp);
+	TRACE_LEAVE();
+}
+
+/**
+ * @brief Get next SI ranked SU with lower rank than specified
+ *
+ * @param si
+ * @param saAmfRank, 0 means get highest rank
+ * 
+ * @return avd_sirankedsu_t*
+ */
+avd_sirankedsu_t *avd_si_getnext_rankedsu(const AVD_SI *si, uns32 saAmfRank)
+{
+	avd_sirankedsu_t *tmp;
+
+	for (tmp = si->rankedsu_list_head; tmp != NULL; tmp = tmp->next) {
+		if (tmp->saAmfRank > saAmfRank)
+			return tmp;
+	}
+
+	return NULL;
+}
+
 void avd_si_remove_csi(AVD_CSI* csi)
 {
 	AVD_CSI *i_csi = NULL;
