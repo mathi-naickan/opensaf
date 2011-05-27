@@ -8,7 +8,7 @@
 		</attr>
 		<attr>
 			<name>saAmfNodeSuFailOverProb</name>
-			<value>1000</value>
+			<value>1200000000000</value>
 		</attr>
 		<attr>
 			<name>saAmfNodeClmNode</name>
