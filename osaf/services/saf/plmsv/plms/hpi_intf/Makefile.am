@@ -33,6 +33,3 @@ libplms_hpi_la_SOURCES = \
 	plms_hrb.c \
 	plms_hrb_mds.c \
 	plms_epath_util.c
-
-libplms_hpi_la_LIBADD = \
-	$(top_builddir)/contrib/plmc/lib/plmc/libplmc.la
