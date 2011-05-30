@@ -24,10 +24,9 @@ libplms_hpi_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/osaf/libs/common/plmsv/include \
 	-I$(top_srcdir)/contrib/plmc/include \
-	-I$(top_srcdir)/contrib/plmc/lib/plmc/include \
-	-I$(top_builddir)/contrib/plmc/lib/plmc
+	-I$(top_srcdir)/contrib/plmc/lib/plmc/include
 
-libplms_hpi_la_CFLAGS = $(HPI_CFLAGS)
+libplms_hpi_la_CFLAGS = $(AM_CFLAGS) @HPI_CFLAGS@
 
 libplms_hpi_la_SOURCES = \
 	plms_hsm.c \
@@ -35,7 +34,5 @@ libplms_hpi_la_SOURCES = \
 	plms_hrb_mds.c \
 	plms_epath_util.c
 
-libplms_hpi_la_LDFLAGS = -version-info @OPENSAF_LIB_VERSION@
-
 libplms_hpi_la_LIBADD = \
-        $(top_builddir)/contrib/plmc/lib/plmc/.libs/libplmc.a
+	$(top_builddir)/contrib/plmc/lib/plmc/libplmc.la
