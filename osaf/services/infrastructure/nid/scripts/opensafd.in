@@ -14,7 +14,6 @@
 
 osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
 prog="opensafd"
-initscript=`basename $0`
 
 # Source LSB functions library
 . /lib/lsb/init-functions
@@ -28,7 +27,7 @@ else
 fi	
 
 binary=$pkglibdir/$prog
-lockfile=$lockdir/$initscript
+lockfile=$lockdir/$prog
 amfnd_bin=$pkglibdir/osafamfnd
 amfnd_pid=$pkgpiddir/osafamfnd.pid
 
