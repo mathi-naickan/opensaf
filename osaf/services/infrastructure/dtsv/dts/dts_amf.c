@@ -35,7 +35,7 @@
 #include "dts.h"
 
 #define m_DTS_COMP_NAME_FILE PKGLOCALSTATEDIR "/dts_comp_name"
-#define DTS_COMP_FILE_NAME_LEN 26 + 10 + 1
+#define DTS_COMP_FILE_NAME_LEN 256
 
 static void dts_saf_CSI_set_callback(SaInvocationT invocation,
 				     const SaNameT *compName, SaAmfHAStateT haState, SaAmfCSIDescriptorT csiDescriptor);
