@@ -472,37 +472,37 @@ if test "$enable_ais_plm" = yes; then
        if test "$cross_compiling" = no; then
           # Test for the SAHPI_INTERFACE_VERSION
           AC_RUN_IFELSE(
-             AC_LANG_PROGRAM(
+             [AC_LANG_PROGRAM(
                 [#include <openhpi/SaHpi.h>],
                 [if (SAHPI_INTERFACE_VERSION != 0x010101) return 1;]
-             ),
+             )],
              AC_DEFINE(
                 [HAVE_HPI_A01], 1, [SAHPI_INTERFACE_VERSION == A01]
              )
           )
           AC_RUN_IFELSE(
-             AC_LANG_PROGRAM(
+             [AC_LANG_PROGRAM(
                 [#include <openhpi/SaHpi.h>],
                 [if (SAHPI_INTERFACE_VERSION != 0x020101) return 1;]
-             ),
+             )],
              AC_DEFINE(
                 [HAVE_HPI_B01], 1, [SAHPI_INTERFACE_VERSION == B01]
              )
           )
           AC_RUN_IFELSE(
-             AC_LANG_PROGRAM(
+             [AC_LANG_PROGRAM(
                 [#include <openhpi/SaHpi.h>],
                 [if (SAHPI_INTERFACE_VERSION != 0x020201) return 1;]
-             ),
+             )],
              AC_DEFINE(
                 [HAVE_HPI_B02], 1, [SAHPI_INTERFACE_VERSION == B02]
              )
           )
           AC_RUN_IFELSE(
-             AC_LANG_PROGRAM(
+             [AC_LANG_PROGRAM(
                 [#include <openhpi/SaHpi.h>],
                 [if (SAHPI_INTERFACE_VERSION != 0x020301) return 1;]
-             ),
+             )],
              AC_DEFINE(
                 [HAVE_HPI_B03], 1, [SAHPI_INTERFACE_VERSION == B03]
              )
