@@ -942,6 +942,12 @@ uns32 amfd_switch_stdby_actv(AVD_CL_CB *cb)
 		avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
 		return NCSCC_RC_FAILURE;
 	}
+
+	if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
+		LOG_ER("AMFD: Switch Standby --> Active, imm Config failed");
+		avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
+		return NCSCC_RC_FAILURE;
+	}
 	
 	/* Time to send fail-over messages to all the AVND's */
 	avd_fail_over_event(cb);
@@ -954,12 +960,6 @@ uns32 amfd_switch_stdby_actv(AVD_CL_CB *cb)
 		avd_d2n_msg_dequeue(cb);
 	}
 	cb->swap_switch = SA_FALSE;
-
-	if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
-		LOG_ER("AMFD: Switch Standby --> Active, imm Config failed");
-		avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
-		return NCSCC_RC_FAILURE;
-	}
 
 	if (avd_imm_impl_set() != SA_AIS_OK) {
 		LOG_ER("AMFD: Switch Standby --> Active, imm implement failed");
