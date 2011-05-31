@@ -45,7 +45,7 @@ extern "C" {
 #define NCSVDA_EXTERNAL_UNNAMED_MIN          1001
 #define NCSVDA_EXTERNAL_UNNAMED_MAX          2000
 
-#define NCSVDA_UNNAMED_MAX                   2000
+#define NCSVDA_UNNAMED_MAX                   NCSMDS_MAX_VDEST
 
 /* Macro to be used to create an unnamed VDEST using the external
    unnamed min and max 
