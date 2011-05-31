@@ -16,17 +16,17 @@ osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
 prog="osafdtmd"
 initscript=`basename $0`
 
-
 # Source LSB functions library
 . /lib/lsb/init-functions
 
 
 if [ ! -r $osafdirfile ]; then
-	logger -t $prog "can't read $osafdirfile, exiting."
+	logger -s -t $prog "can't read $osafdirfile, exiting."
 	exit 6
 else
 	. $osafdirfile
 	. $pkgsysconfdir/dtmd.conf
+	. $pkgsysconfdir/nid.conf
 fi
 
 binary=$pkglibdir/$prog
@@ -34,10 +34,29 @@ pidfile=$pkgpiddir/$prog.pid
 lockfile=$lockdir/$initscript
 
 RETVAL=0
+NID_SVC_NAME=DTM
 
 start() {
 	export LD_LIBRARY_PATH=$pkglibdir:$LD_LIBRARY_PATH
-	[ -x $binary ] || exit 5
+	[ -p $NIDFIFO ] || exit 1
+	if ! [ -x $binary ] ; then
+		echo "$NID_MAGIC:$NID_SVC_NAME:$DAEMON_NOT_FND" > $NIDFIFO
+		exit 5
+	fi
+
+	if_config=$(which ifconfig 2> /dev/null)
+	if [ $? -eq 0 ] ; then 
+		if [ -x ${if_config} ] ; then
+			$if_config | grep "inet addr:$DTM_NODE_IP" >/dev/null 2>&1
+			if [ $? -ne 0 ] ; then
+				logger -s -t $prog "IP Address $DTM_NODE_IP doesnt match the available interfaces ip address(Invalid IP address)" 
+				logger -s -t $prog "Configure the DTM_NODE_IP variable with valid IP address in file $pkgsysconfdir/dtmd.conf" 
+				echo "$NID_MAGIC:$NID_SVC_NAME:$DAEMON_START_FAILED" > $NIDFIFO
+				exit 5
+			fi
+		fi
+	fi
+
 	echo -n "Starting $prog: "
 	start_daemon -p $pidfile $binary  $args
 	RETVAL=$?
@@ -47,6 +66,7 @@ start() {
 		$pkgclcclidir/dh_monitoring & > /dev/null
 	else
 		log_failure_msg
+		echo "$NID_MAGIC:$NID_SVC_NAME:$DAEMON_START_FAILED" > $NIDFIFO
 	fi
 	return $RETVAL
 }

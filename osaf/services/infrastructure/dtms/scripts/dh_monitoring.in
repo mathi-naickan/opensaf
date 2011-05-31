@@ -1,15 +1,25 @@
 #!/bin/sh
 
+osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
 prog="osafdtmd"
-ECHO="echo -e"
-SHUTDOWN="/sbin/shutdown"
 
-pidval=`cat /var/run/opensaf/$prog.pid`
+# Source LSB functions library
+. /lib/lsb/init-functions
+
+
+if [ ! -r $osafdirfile ]; then
+	logger -s -t $prog "can't read $osafdirfile, exiting."
+	exit 6
+else
+	. $osafdirfile
+fi
+
+pidval=`cat $pkgpiddir/$prog.pid`
 while true
 do
 	if ! test -d /proc/$pidval ; then
-		$ECHO "DTMD Process down, Rebooting the node"
-		$SHUTDOWN -r now
+		logger -s -t $prog "$prog Process down, Rebooting the node"
+		. $pkglibdir/opensaf_reboot 0 &
 		exit 0
 	fi
 	sleep 1
