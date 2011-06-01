@@ -1057,31 +1057,38 @@ int log_stream_config_change(log_stream_t *stream, const char *current_file_name
 
 	TRACE_ENTER2("%s", stream->name);
 
-	if (stream->fd == -1) {
-		rc = -1;
-		goto done;
-	}
-
-	if ((rc = fileclose(stream->fd)) == -1) {
-		LOG_ER("log_stream_config_change file close  FAILED: %s", strerror(errno));
-		goto done;
-	}
-
+	/* Peer sync needed due to change in logFileCurrent */
 	current_time = lgs_get_time();
+	
+	if (stream->fd == -1) {
+		/* lgs has not yet recieved any stream operation request after this swtchover/failover.
+		 *  stream shall be opened on-request after a switchover, failover
+		 */	
+		TRACE("log file of the stream: %s does not exist",stream->name);
+	} else {
+		/* close the existing log file, and only when there is a valid fd */
 
-	if ((rc = lgs_file_rename(stream->pathName, stream->logFileCurrent, current_time, LGS_LOG_FILE_EXT)) == -1) {
-		goto done;
+		if ((rc = fileclose(stream->fd)) == -1) {
+			LOG_ER("log_stream_config_change file close  FAILED: %s", strerror(errno));
+			goto done;
+		}
+
+		if ((rc = lgs_file_rename(stream->pathName, stream->logFileCurrent, current_time, LGS_LOG_FILE_EXT)) == -1) {
+			goto done;
+		}
+
+		if ((rc = lgs_file_rename(stream->pathName, current_file_name, current_time, LGS_LOG_FILE_CONFIG_EXT)) == -1) {
+			goto done;
+		}
 	}
 
-	if ((rc = lgs_file_rename(stream->pathName, current_file_name, current_time, LGS_LOG_FILE_CONFIG_EXT)) == -1) {
-		goto done;
-	}
-
+	/* Creating the new config file */
 	if ((rc = lgs_create_config_file(stream)) != 0)
 		goto done;
 
-	/* Peer sync needed due to change in logFileCurrent */
 	sprintf(stream->logFileCurrent, "%s_%s", stream->fileName, current_time);
+	
+	/* Create the new log file based on updated configuration */
 	stream->fd = log_file_open(stream, NULL);
 
 	if (stream->fd == -1)
