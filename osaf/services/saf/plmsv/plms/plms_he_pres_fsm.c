@@ -1845,6 +1845,14 @@ static SaUint32T plms_HE_deacting_to_inspending_op( PLMS_EVT *evt)
 			return ret_err;
 		}
 
+		/* trk_info is null, prev he_deactivate failed and clean up was already done?
+		* In anycase since the trk_info is freed there is no list to track against
+		*/
+		if ( NULL == ent->trk_info){
+			TRACE_LEAVE2("Return Val: %d",NCSCC_RC_SUCCESS);
+			return NCSCC_RC_SUCCESS;
+		}
+
 		switch(ent->trk_info->change_step){
 		
 		case SA_PLM_CHANGE_VALIDATE:

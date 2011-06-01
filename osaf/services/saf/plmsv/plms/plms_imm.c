@@ -814,7 +814,7 @@ static SaAisErrorT plms_imm_ccb_obj_create_cbk(SaImmOiHandleT imm_oi_hdl,
 		}
 	}
 	for (j=0; attr[j] != NULL; j++) {
-		if (*((attr[j])->attrValues) == NULL) {
+		if ( ((attr[j])->attrValues == NULL ) || (*((attr[j])->attrValues) == NULL) ) {
 			/* Log the error */
 			TRACE_LEAVE2("attr_val is null for attr_name %s", 
 				(*attr)->attrName);

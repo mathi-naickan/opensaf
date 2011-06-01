@@ -1642,8 +1642,10 @@ SaUint32T plms_mbcsv_decode_cold_sync_data(NCS_MBCSV_CB_ARG *cbk_arg)
 			} /* end of while loop.  */
 		} /* End of PLMS_A2S_MSG_CLIENT_INFO */
 
-		if (cbk_arg->info.decode.i_msg_type == 
-				NCS_MBCSV_MSG_COLD_SYNC_RESP_COMPLETE)
+		if ((cbk_arg->info.decode.i_msg_type == 
+				NCS_MBCSV_MSG_COLD_SYNC_RESP_COMPLETE) ||
+			(cbk_arg->info.decode.i_msg_type ==
+				NCS_MBCSV_MSG_DATA_RESP_COMPLETE))
 		{
 		
 			/* Get the async update count */
