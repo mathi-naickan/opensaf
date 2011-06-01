@@ -223,12 +223,12 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	}
 
 	/*
-	** The saAmfCtDefTerminateCmdArgv "attribute is mandatory for local non-proxied,
+	** The saAmfCtRelPathTerminateCmd "attribute is mandatory for local non-proxied,
 	** non-SA-aware components".
 	*/
 	if (IS_COMP_LOCAL(category) && !(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category)) && !IS_COMP_SAAWARE(category) &&
-	    (immutil_getStringAttr(attributes, "saAmfCtDefTerminateCmdArgv", 0) == NULL)) {
-		LOG_ER("Required attribute saAmfCtDefTerminateCmdArgv not configured for '%s', cat=%x", dn->value, category);
+	    (immutil_getStringAttr(attributes, "saAmfCtRelPathTerminateCmd", 0) == NULL)) {
+		LOG_ER("Required attribute saAmfCtRelPathTerminateCmd not configured for '%s', cat=%x", dn->value, category);
 		return 0;	
 	}
 
