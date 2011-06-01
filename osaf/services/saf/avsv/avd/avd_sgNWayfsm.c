@@ -68,6 +68,7 @@ static void avd_sg_nway_node_fail_su_oper(AVD_CL_CB *, AVD_SU *);
 static void avd_sg_nway_node_fail_si_oper(AVD_CL_CB *, AVD_SU *);
 static void avd_sg_nway_node_fail_sg_admin(AVD_CL_CB *, AVD_SU *);
 static void avd_sg_nway_node_fail_sg_realign(AVD_CL_CB *, AVD_SU *);
+static AVD_SU_SI_REL * find_pref_standby_susi(AVD_SU_SI_REL *sisu);
 
 /* macro to determine if all the active sis assigned to a 
    particular su have been successfully engaged by the standby */
@@ -2199,12 +2200,7 @@ uns32 avd_sg_nway_susi_succ_sg_realign(AVD_CL_CB *cb,
 			m_AVD_CHK_OPLIST(su, is_su_present);
 			if (is_su_present) {
 				/* identify the most preferred standby su for this si */
-				for (curr_susi = susi->si->list_of_sisu;
-				     curr_susi && !((SA_AMF_HA_STANDBY == curr_susi->state) &&
-						    (SA_AMF_READINESS_IN_SERVICE ==
-						     curr_susi->su->saAmfSuReadinessState));
-				     curr_susi = curr_susi->si_next) ;
-
+				curr_susi = find_pref_standby_susi(susi);
 				if (curr_susi) {
 					/* send active assignment */
 					old_state = curr_susi->state;
@@ -2251,6 +2247,11 @@ uns32 avd_sg_nway_susi_succ_sg_realign(AVD_CL_CB *cb,
 						}
 
 					}
+					/* As susi failover is not possible, delete all the assignments corresponding to
+					 * curr_susi->si
+					 */
+					avd_si_assignments_delete(cb, susi->si);
+					
 				}
 			}
 		}
@@ -2314,12 +2315,8 @@ uns32 avd_sg_nway_susi_succ_sg_realign(AVD_CL_CB *cb,
                                 (tmp_susi.si->si_dep_state == AVD_SI_NO_DEPENDENCY))) {
 			/* no active present.. identify the highest ranked in-svc standby & 
 			   send active assignment to it */
-
-			for (curr_susi = tmp_susi.si->list_of_sisu;
-			     curr_susi && !((SA_AMF_HA_STANDBY == curr_susi->state) &&
-					    (SA_AMF_READINESS_IN_SERVICE == curr_susi->su->saAmfSuReadinessState));
-			     curr_susi = curr_susi->si_next) ;
-
+			/* identify the most preferred standby su for this si */
+			curr_susi = find_pref_standby_susi(&tmp_susi);
 			if (curr_susi) {
 				/* send active assignment to curr_susi */
 				old_state = curr_susi->state;
