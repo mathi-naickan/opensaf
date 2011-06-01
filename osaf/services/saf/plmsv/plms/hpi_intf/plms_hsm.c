@@ -466,6 +466,7 @@ static SaUint32T hsm_discover_and_dispatch()
 	rc = saHpiDiscover(cb->session_id);
 	if( SA_OK != rc ){
 		LOG_ER("HSM:saHpiDiscover failed, ret val is:%d",rc);
+                sleep(10);   
 		hsm_session_reopen();
 
 		rc = saHpiDiscover(cb->session_id);
@@ -487,7 +488,8 @@ static SaUint32T hsm_discover_and_dispatch()
 	/* Process the list of RPT entries on this session */
 	next = SAHPI_FIRST_ENTRY;
 	do{
-		if(hsm_ha_state.state == SA_AMF_HA_STANDBY || !cb->session_id )
+
+	if(hsm_ha_state.state == SA_AMF_HA_STANDBY)
 			return NCSCC_RC_FAILURE;
 
 		current = next;
@@ -618,13 +620,13 @@ static SaUint32T hsm_discover_and_dispatch()
 				return rc;
 			}
 
-			if(prev_domain_info.DatUpdateCount !=
-				latest_domain_info.DatUpdateCount){
+			if(prev_domain_info.RptUpdateCount !=
+				latest_domain_info.RptUpdateCount){
 				next = SAHPI_FIRST_ENTRY;
-				prev_domain_info.DatUpdateCount =
-				latest_domain_info.DatUpdateCount;
+				prev_domain_info.RptUpdateCount=
+				latest_domain_info.RptUpdateCount;
 				continue;
-			}
+                        }  
 		}
 	} while (next != SAHPI_LAST_ENTRY); 
 	/* Reset the retry count */

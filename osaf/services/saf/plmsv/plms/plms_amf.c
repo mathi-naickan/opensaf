@@ -235,6 +235,7 @@ plms_amf_CSI_set_callback(SaInvocationT invocation, const SaNameT *compName,
 				rc = plms_hsm_hrb_init();
 				if(NCSCC_RC_FAILURE == rc) {
 					LOG_ER("hsm & hrb initialization failed");
+                        		error = SA_AIS_ERR_FAILED_OPERATION;
 					goto response;
 				}
 				cb->hpi_intf_up = TRUE;
@@ -244,6 +245,7 @@ plms_amf_CSI_set_callback(SaInvocationT invocation, const SaNameT *compName,
 				rc = plms_build_epath_to_entity_map_tree();
 				if( NCSCC_RC_SUCCESS != rc ){
 					LOG_ER("Failed to build entity_path_to_entity mapping tree");
+                        		error = SA_AIS_ERR_FAILED_OPERATION;
 					goto response;
 				}
 			}
@@ -382,7 +384,7 @@ plms_amf_CSI_set_callback(SaInvocationT invocation, const SaNameT *compName,
 	}
 response:
 	/* Send the response to AMF */
-	saAmfResponse(cb->amf_hdl, invocation, SA_AIS_OK);
+	saAmfResponse(cb->amf_hdl, invocation, error);
 
 	m_NCS_UNLOCK(&cb->cb_lock,NCS_LOCK_WRITE);
 	TRACE_LEAVE();

@@ -5100,8 +5100,10 @@ PLMS_TRACK_INFO  *trk_info)
 	head = trk_info->aff_ent_list;
 	while(head){
 
-		if (PLMS_EE_ENTITY != head->plm_entity->entity_type)
+		if (PLMS_EE_ENTITY != head->plm_entity->entity_type) {
 			head = head->next;
+			continue;
+		}
 
 		ret_err = plms_ee_term(head->plm_entity,FALSE,0);
 		if (NCSCC_RC_SUCCESS != ret_err){

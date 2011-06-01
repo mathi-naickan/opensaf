@@ -1586,7 +1586,11 @@ static SaUint32T plms_HE_deacting_to_inact_op(PLMS_EVT *evt)
 			
 			/* TODO: I have come this far means, trk_info is valid.
 			Are you seeing any crash.. ohh... handle is here.*/
+			/* handling is needed when trk_info is freed when deactivation 
+			fails and still HPI event extraction_pending is received */
 			if ( NULL == ent->trk_info){
+				TRACE_LEAVE2("Return Val: %d",NCSCC_RC_SUCCESS);
+				return NCSCC_RC_SUCCESS;
 			}
 
 			trk_info = ent->trk_info;
@@ -3032,6 +3036,11 @@ SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *evt)
 	
 	TRACE_ENTER2("Entity: %s, evt_state: %d",hpi_evt->entity_path,\
 	hpi_evt->sa_hpi_evt.EventDataUnion.HotSwapEvent.HotSwapState);
+
+	if (cb->ha_state == SA_AMF_HA_STANDBY) {
+		TRACE_LEAVE2("Ignoring the event as current role is standby");
+		return NCSCC_RC_SUCCESS;
+	}
 
 	memset(&hpi_dn,0,sizeof(SaNameT));
 	/* Send HPI event notification.*/
