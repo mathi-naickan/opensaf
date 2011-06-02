@@ -47,14 +47,17 @@ static void clm_node_join_complete(AVD_AVND *node)
 		} else {
 
 			if ((node->node_state == AVD_AVND_STATE_PRESENT)   ||
-					(node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
-					(node->node_state == AVD_AVND_STATE_NCS_INIT)) {
-				/* When the SU will instantiate then prescence state change message will come
-				   and so store the callback parameters to send response later on. */
-				if (avd_snd_presence_msg(avd_cb, su, FALSE) == NCSCC_RC_SUCCESS) {
-					m_AVD_SET_SU_TERM(avd_cb, su, FALSE);
-				} else {
-					LOG_ER("Internal error, could not send message to avnd");
+				(node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
+				(node->node_state == AVD_AVND_STATE_NCS_INIT)) {
+				if ((su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+					(su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) {
+					/* When the SU will instantiate then prescence state change message will come
+					   and so store the callback parameters to send response later on. */
+					if (avd_snd_presence_msg(avd_cb, su, FALSE) == NCSCC_RC_SUCCESS) {
+						m_AVD_SET_SU_TERM(avd_cb, su, FALSE);
+					} else {
+						LOG_ER("Internal error, could not send message to avnd");
+					}
 				}
 			}
 		}
