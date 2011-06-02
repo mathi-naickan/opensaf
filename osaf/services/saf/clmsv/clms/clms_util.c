@@ -631,10 +631,6 @@ uns32 clms_clmresp_rejected(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, CLMS_TRACK_I
 
 	TRACE_ENTER();
 
-	rc = clms_node_trackresplist_empty(node);
-	if (rc != NCSCC_RC_SUCCESS)
-		goto done;
-
 	switch (node->admin_op) {
 
 	case PLM:
@@ -650,19 +646,15 @@ uns32 clms_clmresp_rejected(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, CLMS_TRACK_I
 					ais_er =
 						saPlmReadinessTrackResponse(cb->ent_group_hdl, node->plm_invid,
 								SA_CLM_CALLBACK_RESPONSE_REJECTED);
-					if (ais_er != SA_AIS_OK) {
+					if (ais_er != SA_AIS_OK)
 						LOG_ER("saPlmReadinessTrackResponse FAILED ais_er = %u", ais_er);
-						goto done;
-					}
-				} 
+				}
 			} else {
 				ais_er =
 					saPlmReadinessTrackResponse(cb->ent_group_hdl, node->plm_invid,
 							SA_CLM_CALLBACK_RESPONSE_ERROR);
-				if (ais_er != SA_AIS_OK) {
+				if (ais_er != SA_AIS_OK)
 					LOG_ER("saPlmReadinessTrackResponse FAILED ais_er = %u", ais_er);
-					goto done;
-				}
 			}
 			
 #endif
@@ -698,9 +690,13 @@ uns32 clms_clmresp_rejected(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, CLMS_TRACK_I
 			TRACE("Invalid admin_op set");
 			break;
 		}
-	}
+	} /* End switch admin op type */
 
- done:
+	/* clear the track response list only after sending the result back to the originator */
+	rc = clms_node_trackresplist_empty(node);
+	if (rc != NCSCC_RC_SUCCESS)
+		TRACE("clms_node_trackresplist_empty FAILED");
+		
 	TRACE_LEAVE();
 	return rc;
 
