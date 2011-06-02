@@ -1940,6 +1940,11 @@ uns32 clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop)
 			clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START);
 
 			clms_node_admin_state_change_ntf(clms_cb, nodeop, SA_CLM_ADMIN_SHUTTING_DOWN);
+			
+			/* update imm about state change */
+			clms_admin_state_update_rattr(nodeop);
+			clms_node_update_rattr(nodeop);
+			clms_cluster_update_rattr(osaf_cluster);
 
 		} else {
 			nodeop->admin_state = SA_CLM_ADMIN_LOCKED;
