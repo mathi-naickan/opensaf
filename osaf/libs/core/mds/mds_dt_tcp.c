@@ -55,7 +55,7 @@ extern uns32 mdtm_num_subscriptions;
 extern MDS_SUBTN_REF_VAL mdtm_handle;
 extern uns32 mdtm_global_frag_num_tcp;
 
-uns32 socket_domain = AF_UNIX;
+uns32 mds_socket_domain = AF_UNIX;
 
 /* Get the pid of the process */
 pid_t mdtm_pid;
@@ -121,7 +121,7 @@ uns32 mds_mdtm_init_tcp(NODE_ID nodeid, uns32 *mds_tcp_ref)
 
 	/* Create the sockets required for Binding, Send, receive and Discovery */
 
-	tcp_cb->DBSRsock = socket(socket_domain, SOCK_STREAM, 0);
+	tcp_cb->DBSRsock = socket(mds_socket_domain, SOCK_STREAM, 0);
 	if (tcp_cb->DBSRsock < 0) {
 		syslog(LOG_ERR, "MDS:MDTM: DBSRsock Socket creation failed in MDTM_INIT\n");
 		return NCSCC_RC_FAILURE;
@@ -159,7 +159,7 @@ uns32 mds_mdtm_init_tcp(NODE_ID nodeid, uns32 *mds_tcp_ref)
 
 	*mds_tcp_ref = mdtm_pid;
 
-	if (socket_domain == AF_UNIX) {
+	if (mds_socket_domain == AF_UNIX) {
 		int servlen = 0;
 
 		sprintf(sun_path, "%s_%d", MDS_MDTM_SOCKET_LOC, mdtm_pid);
@@ -191,7 +191,7 @@ uns32 mds_mdtm_init_tcp(NODE_ID nodeid, uns32 *mds_tcp_ref)
 		}
 	} else {
 		/* Case for AF_INET */
-		if (AF_INET == socket_domain) {
+		if (AF_INET == mds_socket_domain) {
 			server_addr_in.sin_family = AF_INET;
 			server_addr_in.sin_port = htons(MDTM_INTRA_SERVER_PORT);
 			server_addr_in.sin_addr.s_addr = htonl(INADDR_LOOPBACK);

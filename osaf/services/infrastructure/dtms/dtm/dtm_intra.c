@@ -65,7 +65,7 @@ static uns32 dtm_intranode_process_incoming_conn(void);
 static uns32 dtm_intranode_del_poll_fdlist(int fd);
 
 static uns32 dtm_intranode_fill_fd_set(void);
-uns32 socket_domain = AF_UNIX;
+uns32 dtm_socket_domain = AF_UNIX;
 
 
 /**
@@ -113,19 +113,19 @@ uns32 dtm_intra_processing_init(void)
 			return NCSCC_RC_FAILURE;
 		}
 
-		socket_domain = addr_list->ai_family; /* AF_INET or AF_INET6 */
+		dtm_socket_domain = addr_list->ai_family; /* AF_INET or AF_INET6 */
 	} else {
-		socket_domain = AF_UNIX;
+		dtm_socket_domain = AF_UNIX;
 	}
 
 	if (NULL == (dtm_intranode_cb = calloc(1, sizeof(DTM_INTRANODE_CB)))) {
 		LOG_ER("DTM: Memory allocation failed for dtm_intranode_cb");
 		return NCSCC_RC_FAILURE;
 	}
-	dtm_intranode_cb->sock_domain = socket_domain;
+	dtm_intranode_cb->sock_domain = dtm_socket_domain;
 
 	/* Open a socket, If socket opens to fail return Error */
-	dtm_intranode_cb->server_sockfd = socket(socket_domain, SOCK_STREAM, 0);
+	dtm_intranode_cb->server_sockfd = socket(dtm_socket_domain, SOCK_STREAM, 0);
 
 	if (dtm_intranode_cb->server_sockfd < 0) {
 		LOG_ER("DTM: Socket creation failed");
@@ -162,7 +162,7 @@ uns32 dtm_intra_processing_init(void)
 
 	bzero((char *)&serv_addr, sizeof(serv_addr));
 
-	if (socket_domain == AF_UNIX) {
+	if (dtm_socket_domain == AF_UNIX) {
 #define UX_SOCK_NAME_PREFIX "/tmp/osaf_dtm_intra_server"
 
 		sprintf(server_ux_name, "%s", UX_SOCK_NAME_PREFIX);
@@ -191,7 +191,7 @@ uns32 dtm_intra_processing_init(void)
 			return NCSCC_RC_FAILURE;
 		}
 	} else {
- 		if (socket_domain == AF_INET) {
+ 		if (dtm_socket_domain == AF_INET) {
  			memset(&serveraddr, 0, sizeof(serveraddr));
 			serveraddr.sin_family      = AF_INET;
  			serveraddr.sin_port        = htons(DTM_INTRA_SERVER_PORT);

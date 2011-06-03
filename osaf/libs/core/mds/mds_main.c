@@ -45,7 +45,7 @@
 #include "mds_dt_tipc.h"
 #endif
 
-extern uns16 socket_domain;
+extern uns32 mds_socket_domain;
 void mds_init_transport(void);
 
 /* MDS Control Block */
@@ -374,10 +374,10 @@ void mds_init_transport(void)
 				syslog(LOG_ERR,"MDTM:Unable to getaddrinfo() with errno = %d", errno);
 				return;
 			}
-			socket_domain = addr_list->ai_family; /* AF_INET or AF_INET6 */
+			mds_socket_domain = addr_list->ai_family; /* AF_INET or AF_INET6 */
 
 		} else {
-			socket_domain = AF_UNIX;
+			mds_socket_domain = AF_UNIX;
 		}
 		return;
 	}
