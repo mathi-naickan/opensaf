@@ -62,6 +62,7 @@
 void avd_pg_trk_act_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 {
 	AVSV_N2D_PG_TRACK_ACT_MSG_INFO *info = &evt->info.avnd_msg->msg_info.n2d_pg_trk_act;
+	AVD_DND_MSG *n2d_msg = evt->info.avnd_msg;
 	AVD_AVND *node = 0;
 	AVD_CSI *csi = 0;
 
@@ -72,7 +73,8 @@ void avd_pg_trk_act_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		info->msg_id)) == NULL)
 		goto done;
 
-	node->rcv_msg_id = info->msg_id;
+	/* Update the receive id for the node */
+	m_AVD_SET_AVND_RCV_ID(cb, node, (n2d_msg->msg_info.n2d_reg_su.msg_id));
 
 	if ((node->node_state == AVD_AVND_STATE_ABSENT) || (node->node_state == AVD_AVND_STATE_GO_DOWN)) {
 		LOG_ER("%s: invalid node state %u", __FUNCTION__, node->node_state);
