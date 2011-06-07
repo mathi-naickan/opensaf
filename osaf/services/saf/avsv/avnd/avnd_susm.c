@@ -393,7 +393,7 @@ static uns32 assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 	uns32 rc = NCSCC_RC_SUCCESS;
 	AVND_COMP_CSI_REC *curr_csi;
 
-	TRACE_ENTER2("%s %s, single_csi=%u", si->name.value, su->name.value, single_csi);
+	TRACE_ENTER2("si'%s' si-state'%d' su'%s',single_csi=%u", si->name.value, si->curr_state, su->name.value, single_csi);
 
 	/* initiate the si assignment for pi su */
 	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
@@ -404,20 +404,24 @@ static uns32 assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 				 rank = curr_csi->rank;
 				  (curr_csi != NULL) && (curr_csi->rank == rank);
 				  curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
-
-				rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, (single_csi) ? curr_csi : NULL);
-				if (NCSCC_RC_SUCCESS != rc)
-					goto done;
+				/* Dont assign, if already assignd */
+				if (AVND_SU_SI_ASSIGN_STATE_ASSIGNED != curr_csi->si->curr_assign_state) {
+					rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, (single_csi) ? curr_csi : NULL);
+					if (NCSCC_RC_SUCCESS != rc)
+						goto done;
+				}
 			}
 		} else {
 			for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_LAST(&si->csi_list),
 				 rank = curr_csi->rank;
 				  (curr_csi != NULL) && (curr_csi->rank == rank);
 				  curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&curr_csi->si_dll_node)) {
-
-				rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, (single_csi) ? curr_csi : NULL);
-				if (NCSCC_RC_SUCCESS != rc)
-					goto done;
+				/* Dont assign, if already assignd */
+				if (AVND_SU_SI_ASSIGN_STATE_ASSIGNED != curr_csi->si->curr_assign_state) {
+					rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, (single_csi) ? curr_csi : NULL);
+					if (NCSCC_RC_SUCCESS != rc)
+						goto done;
+				}
 			}
 		}
 	}
@@ -497,7 +501,7 @@ uns32 avnd_su_si_assign(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 	uns32 rc = NCSCC_RC_SUCCESS;
 	AVND_SU_SI_REC *curr_si;
 
-	TRACE_ENTER2("%s %p", su->name.value, si);
+	TRACE_ENTER2("'%s' , %p", su->name.value, si);
 
 	/* mark the si(s) assigning and assign to su */
 	if (si) {
