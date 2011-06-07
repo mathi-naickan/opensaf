@@ -79,6 +79,16 @@ self_node_id=`printf "%d" $temp_node_id`
 if [ "$self_node_id" = "$node_id" ] || [ $node_id = 0 ]; then
 	# uncomment the following line if debugging errors that keep restarting the node
 	# exit 0
+
+# On systems with faster processor (16 core), even with "reboot -f" in place in opensaf_reboot script,
+# FMD process on the same node gets enough time to kill the other controller due to getting TIPC link down
+# resulted due to tipc bearer disable. Hence killing the processes amfnd, amfd and fmd before invoking
+# TIPC bearer disable and reboot -f. FMD is killed so that it will not act on TIPC link down and AMFD/AMFND
+# are killed so that FMD will not be respawned.
+	pkill osafamfd
+	pkill osafamfnd
+	pkill osaffmd
+
 	$tipc_config "-bd=?"
 	/sbin/reboot -f
 else
