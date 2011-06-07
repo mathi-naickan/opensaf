@@ -437,7 +437,7 @@ static uns32 assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 	uns32 rc = NCSCC_RC_SUCCESS;
 	AVND_COMP_CSI_REC *curr_csi;
 
-	TRACE_ENTER2("'%s : '%s', single_csi=%u", si->name.value, su->name.value, single_csi);
+	TRACE_ENTER2("si'%s' si-state'%d' su'%s',single_csi=%u", si->name.value, si->curr_state, su->name.value, single_csi);
 
 	/* initiate the si assignment for pi su */
 	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
@@ -457,9 +457,12 @@ static uns32 assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 
 				if (AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED != curr_csi->curr_assign_state) {
 					if (FALSE == curr_csi->comp->assigned_flag) {
-						rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, (single_csi) ? curr_csi : NULL);
-						if (NCSCC_RC_SUCCESS != rc)
-							goto done;
+						/* Dont assign, if already assignd */
+						if (AVND_SU_SI_ASSIGN_STATE_ASSIGNED != curr_csi->si->curr_assign_state) {
+							rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, (single_csi) ? curr_csi : NULL);
+							if (NCSCC_RC_SUCCESS != rc)
+								goto done;
+						}
 						if ((FALSE == curr_csi->comp->assigned_flag) && (m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi)))
 							curr_csi->comp->assigned_flag = TRUE;
 					} else {
@@ -484,9 +487,12 @@ static uns32 assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 				   csi mod/rem.*/
 				if (AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED != curr_csi->curr_assign_state) {
 					if (FALSE == curr_csi->comp->assigned_flag) {
-						rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, (single_csi) ? curr_csi : NULL);
-						if (NCSCC_RC_SUCCESS != rc)
-							goto done;
+						/* Dont assign, if already assignd */
+						if (AVND_SU_SI_ASSIGN_STATE_ASSIGNED != curr_csi->si->curr_assign_state) {
+							rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, (single_csi) ? curr_csi : NULL);
+							if (NCSCC_RC_SUCCESS != rc)
+								goto done;
+						}
 						if ((!single_csi) && (FALSE == curr_csi->comp->assigned_flag) && 
 								(m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi)))
 							curr_csi->comp->assigned_flag = TRUE;
@@ -575,7 +581,7 @@ uns32 avnd_su_si_assign(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 	uns32 rc = NCSCC_RC_SUCCESS;
 	AVND_SU_SI_REC *curr_si;
 
-	TRACE_ENTER2("'%s'", su->name.value);
+	TRACE_ENTER2("'%s' , %p", su->name.value, si);
 
 	/* mark the si(s) assigning and assign to su */
 	if (si) {
