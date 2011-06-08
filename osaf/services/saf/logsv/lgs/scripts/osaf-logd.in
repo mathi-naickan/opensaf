@@ -79,10 +79,11 @@ stop() {
 	echo -n "Stopping $prog: "
 	killproc -p $pidfile $binary
 	RETVAL=$?
-	if [ $RETVAL -eq 0 ]; then
+	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
 		rm -f $lockfile
 		rm -f $COMPNAMEFILE
 		log_success_msg
+		RETVAL=0
 	else
 		log_failure_msg
 	fi
