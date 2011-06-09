@@ -777,7 +777,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 	AVD_AVND *su_node_ptr = NULL;
 	AVD_AVND *su_sg_node_ptr = NULL;
 	SaAmfAdminStateT new_admin_state;
-	bool is_assignments_done = FALSE;
+	bool is_assignments_done = false;
 
 	TRACE_ENTER2("%s", node->name.value);
 
@@ -897,7 +897,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 		su = node->list_of_su;
 		while (su != NULL) {
 			if (su->list_of_susi != AVD_SU_SI_REL_NULL) {
-				is_assignments_done = TRUE;
+				is_assignments_done = true;
 				/* verify that two assigned SUs belonging to the same SG are not
 				 * on this node 
 				 */
@@ -963,7 +963,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 			su = su->avnd_list_su_next;
 		}		/* while(su != AVD_SU_NULL) */
 
-		if (is_assignments_done == TRUE) {
+		if (is_assignments_done == true) {
 			/* node admin_state is temporarily set to new_admin_state as node->admin_state is used 
 			 * in the SI failover processing, It will be reset in the susi delete response processing
 			 */ 
