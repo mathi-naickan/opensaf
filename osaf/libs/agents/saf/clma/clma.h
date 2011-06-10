@@ -54,6 +54,7 @@
 #define CLMA_WRT_CLMS_SUBPART_VER_RANGE             \
         (CLMA_WRT_CLMS_SUBPART_VER_AT_MAX_MSG_FMT - \
          CLMA_WRT_CLMS_SUBPART_VER_AT_MIN_MSG_FMT + 1)
+#define m_CLMA_CONVERT_SATIME_TEN_MILLI_SEC(t)    (t)/(10000000)
 
 /* CLMA client record */
 typedef struct clma_client_hdl_rec {

@@ -187,7 +187,7 @@ uns32 cpd_ckpt_db_entry_update(CPD_CB *cb,
 	node_id = key;
 /*   Processing for the Node name , with CLM  */
 
-	if (saClmClusterNodeGet(cb->clm_hdl, node_id, NCS_SAF_ACCEPT_TIME, &cluster_node) != SA_AIS_OK) {
+	if (saClmClusterNodeGet(cb->clm_hdl, node_id, CPD_CLM_API_TIMEOUT, &cluster_node) != SA_AIS_OK) {
 		proc_rc = NCSCC_RC_FAILURE;
 		m_LOG_CPD_LCL(CPD_DB_ADD_FAILED, CPD_FC_DB, NCSFL_SEV_ERROR, node_id, __FILE__, __LINE__);
 		goto free_mem;

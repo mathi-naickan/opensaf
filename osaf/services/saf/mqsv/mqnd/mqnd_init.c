@@ -30,7 +30,7 @@
 #include "mqnd.h"
 #include "mqnd_imm.h"
 #include <poll.h>
-#define MQND_SAF_ACCEPT_TIME 1000
+#define MQND_CLM_API_TIMEOUT 10000000000LL
 uns32 gl_mqnd_cb_hdl = 0;
 
 #define FD_AMF 0
@@ -301,7 +301,7 @@ static uns32 mqnd_lib_init(MQSV_CREATE_INFO *info)
 		goto mqnd_mds_fail;
 	}
 
-	rc = saClmClusterNodeGet(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID, MQND_SAF_ACCEPT_TIME, &cluster_node);
+	rc = saClmClusterNodeGet(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID, MQND_CLM_API_TIMEOUT, &cluster_node);
 	if (rc != SA_AIS_OK) {
 		m_LOG_MQSV_ND(MQND_CLM_NODE_GET_FAILED, MQND_FC_HDLN, NCSFL_SEV_ERROR, rc, __FILE__, __LINE__);
 		TRACE("saClmClusterNodeGet Failed %d", rc);

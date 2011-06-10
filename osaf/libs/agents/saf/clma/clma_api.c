@@ -33,6 +33,7 @@
 #include "ncs_main_papi.h"
 
 #define CLMS_WAIT_TIME 1000
+#define CLM_API_MIN_TIMEOUT 10 /* ten milli seconds */
 
 static SaAisErrorT clmainitialize(SaClmHandleT *clmHandle, const SaClmCallbacksT *reg_cbks_1,
 	const SaClmCallbacksT_4 *reg_cbks_4, SaVersionT *version);
@@ -1241,12 +1242,18 @@ static SaAisErrorT clmaclusternodeget(SaClmHandleT clmHandle,
 		goto done;
 	}
 
-	if ((timeout == 0) || (timeout < 0)) {
-		TRACE("timeout is NULL or Negative");
+	/* convert SaTimeT into tens of milli seconds */
+	timeout = m_CLMA_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
+	if (timeout < 0) {
+		TRACE("Timeout value is negative");
 		rc = SA_AIS_ERR_INVALID_PARAM;
 		goto done;
 	}
-
+	if (timeout < CLM_API_MIN_TIMEOUT) {
+		TRACE("timeout is LESS THAN 100ms");
+		rc = SA_AIS_ERR_TIMEOUT;
+		goto done;
+	}
 	/* Check Whether CLMS is up or not */
 	if (!clma_cb.clms_up) {
 		TRACE("CLMS down");
