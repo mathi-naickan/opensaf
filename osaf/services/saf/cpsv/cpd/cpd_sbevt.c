@@ -184,7 +184,7 @@ uns32 cpd_sb_proc_ckpt_create(CPD_CB *cb, CPD_MBCSV_MSG *msg)
 		add_flag = TRUE;
 		key = m_NCS_NODE_ID_FROM_MDS_DEST(nref_info->dest);
 		node_id = key;
-		if (saClmClusterNodeGet(cb->clm_hdl, node_id, NCS_SAF_ACCEPT_TIME, &cluster_node) != SA_AIS_OK) {
+		if (saClmClusterNodeGet(cb->clm_hdl, node_id, CPD_CLM_API_TIMEOUT, &cluster_node) != SA_AIS_OK) {
 			proc_rc = NCSCC_RC_FAILURE;
 			m_LOG_CPD_LCL(CPD_STANDBY_CREATE_EVT_FAILED, CPD_FC_MBCSV, NCSFL_SEV_ERROR, node_id, __FILE__,
 				      __LINE__);
@@ -514,7 +514,7 @@ uns32 cpd_sb_proc_ckpt_dest_add(CPD_CB *cb, CPD_MBCSV_MSG *msg)
 
 	key = m_NCS_NODE_ID_FROM_MDS_DEST(msg->info.dest_add.mds_dest);
 	node_id = key;
-	if (saClmClusterNodeGet(cb->clm_hdl, node_id, NCS_SAF_ACCEPT_TIME, &cluster_node) != SA_AIS_OK) {
+	if (saClmClusterNodeGet(cb->clm_hdl, node_id, CPD_CLM_API_TIMEOUT, &cluster_node) != SA_AIS_OK) {
 		proc_rc = NCSCC_RC_FAILURE;
 		m_LOG_CPD_LCL(CPD_STANDBY_DESTADD_EVT_FAILED, CPD_FC_MBCSV, NCSFL_SEV_ERROR, node_id, __FILE__,
 			      __LINE__);

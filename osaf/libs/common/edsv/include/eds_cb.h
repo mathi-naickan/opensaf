@@ -63,7 +63,7 @@ struct eda_reg_list_tag;
 #define EDS_MAX_EVENT_DATA_SIZE 1024
 #define EDS_MAX_NUM_FILTERS EDS_MAX_NUM_PATTERNS
 #define EDS_MAX_FILTER_SIZE EDS_MAX_PATTERN_SIZE
-#define EDSV_CLM_TIMEOUT 1000
+#define EDSV_CLM_TIMEOUT 10000000000LL
 
 typedef enum eds_svc_state {
 	RUNNING = 1,

@@ -29,7 +29,7 @@
 
 #include "cpnd.h"
 
-#define NCS_SAF_ACCEPT_TIME 1000
+#define CPND_CLM_API_TIMEOUT 10000000000LL
 uns32 gl_cpnd_cb_hdl = 0;
 
 /* Static Function Declerations */
@@ -228,7 +228,7 @@ static uns32 cpnd_lib_init(CPND_CREATE_INFO *info)
                 return rc;
         }
 
-	rc = saClmClusterNodeGet(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID, NCS_SAF_ACCEPT_TIME, &cluster_node);
+	rc = saClmClusterNodeGet(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID, CPND_CLM_API_TIMEOUT, &cluster_node);
 	if (rc != SA_AIS_OK) {
 		m_LOG_CPND_CL(CPND_CLM_NODE_GET_FAILED, CPND_FC_HDLN, NCSFL_SEV_ERROR, __FILE__, __LINE__);
 		goto cpnd_clm_fail;
