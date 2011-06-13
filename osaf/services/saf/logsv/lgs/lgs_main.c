@@ -172,7 +172,7 @@ static void sigusr1_handler(int sig)
  */
 static uns32 log_initialize(void)
 {
-	uns32 rc = NCSCC_RC_SUCCESS;
+	uns32 rc = NCSCC_RC_FAILURE;
 
 	TRACE_ENTER();
 
@@ -184,7 +184,6 @@ static uns32 log_initialize(void)
 	/* Initialize lgs control block */
 	if (lgs_cb_init(lgs_cb) != NCSCC_RC_SUCCESS) {
 		LOG_ER("lgs_cb_init FAILED");
-		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
@@ -203,14 +202,13 @@ static uns32 log_initialize(void)
 	 * relative to this directory as described in spec.
 	 */
 	if ((lgs_cb->logsv_root_dir = getenv("LOGSV_ROOT_DIRECTORY")) == NULL) {
-		LOG_ER("LOGSV_ROOT_DIRECTORY not found, exiting...");
+		LOG_ER("LOGSV_ROOT_DIRECTORY not found");
 		goto done;
 	}
 
 	/* Initialize stream class */
 	if (log_stream_init() != NCSCC_RC_SUCCESS) {
 		LOG_ER("log_stream_init FAILED");
-		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
@@ -230,14 +228,18 @@ static uns32 log_initialize(void)
 
 	if ((rc = lgs_mds_init(lgs_cb)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("lgs_mds_init FAILED %d", rc);
-		return rc;
+		goto done;
 	}
 
-	if ((rc = lgs_mbcsv_init(lgs_cb)) != NCSCC_RC_SUCCESS)
+	if ((rc = lgs_mbcsv_init(lgs_cb)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("lgs_mbcsv_init FAILED");
+		goto done;
+	}
 
-	if ((rc = lgs_imm_init(lgs_cb)) != SA_AIS_OK)
+	if ((rc = lgs_imm_init(lgs_cb)) != SA_AIS_OK) {
 		LOG_ER("lgs_imm_init FAILED");
+		goto done;
+	}
 
 	/* Create a selection object */
 	if ((rc = ncs_sel_obj_create(&usr1_sel_obj)) != NCSCC_RC_SUCCESS) {
@@ -251,7 +253,6 @@ static uns32 log_initialize(void)
 	 */
 	if (signal(SIGUSR1, sigusr1_handler) == SIG_ERR) {
 		LOG_ER("signal USR1 failed: %s", strerror(errno));
-		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
@@ -262,6 +263,8 @@ static uns32 log_initialize(void)
 			goto done;
 		}
 	}
+
+	rc = NCSCC_RC_SUCCESS;
 
 done:
 	if (nid_notify("LOGD", rc, NULL) != NCSCC_RC_SUCCESS) {
