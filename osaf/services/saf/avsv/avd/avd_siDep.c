@@ -59,7 +59,6 @@ static uns32 avd_si_si_dep_cyclic_dep_find(AVD_CL_CB *cb, AVD_SI_SI_DEP_INDX *in
 static void avd_si_dep_start_unassign(AVD_CL_CB *cb, AVD_EVT *evt);
 
 static AVD_SI_DEP si_dep; /* SI-SI dependency data */
-static uns32 is_config_valid(SaNameT *sidep_name);
 
 /*****************************************************************************
  * Function: avd_check_si_state_enabled 
@@ -1278,42 +1277,97 @@ static int avd_sidep_indx_init(const SaNameT *sidep_name, AVD_SI_SI_DEP_INDX *in
 	return TRUE;
 }
 
-static uns32 is_config_valid(SaNameT *sidep_name)
+static uint32_t is_config_valid(SaNameT *sidep_name, CcbUtilOperationData_t *opdata)
 {
 	AVD_SI_SI_DEP_INDX indx;
-	uns32 rc = TRUE;
 	AVD_SI *spons_si, *dep_si;
+	CcbUtilOperationData_t *tmp;
+	uint32_t dep_saAmfSIRank, spons_saAmfSIRank;
+	uint32_t rc = false;
+	bool dependent_si_exist_in_curr_model = false;
+	bool spons_si_exist_in_curr_model = false;
 
 	TRACE_ENTER();
 	
 	if( !avd_sidep_indx_init(sidep_name, &indx)) {
-		LOG_ER("%s: Bad DN for SI Dependency", __FUNCTION__);
-		rc = FALSE;
+		LOG_ER("SI dep validation: Bad DN for SI Dependency");
 		goto done;
 	}
 
 	/* Sponsor SI need to exist */
 	if ((spons_si = avd_si_get(&indx.si_name_prim)) == NULL) {
-		LOG_ER("%s: Sponsor does not exist '%s' failed", __FUNCTION__, indx.si_name_prim.value);
-		rc = FALSE;
+		if (opdata == NULL) {
+			LOG_ER("SI dep validation: '%s' does not exist in model and '%s' depends on it",
+				indx.si_name_prim.value, indx.si_name_sec.value);
+			goto done;
+		}
+
+		/* SI does not exist in current model, check CCB */
+		if ((tmp = ccbutil_getCcbOpDataByDN(opdata->ccbId, &indx.si_name_prim)) == NULL) {
+			LOG_ER("SI dep validation: '%s' does not exist in existing model or in CCB and '%s' depends on it",
+				indx.si_name_prim.value, indx.si_name_sec.value);
+			goto done;
+		}
+
+		if (immutil_getAttr("saAmfSIRank", tmp->param.create.attrValues, 0, &spons_saAmfSIRank) != SA_AIS_OK)
+			spons_saAmfSIRank = 0; /* default value is zero (lowest rank) if empty */
+	} else {
+		/* sponsor SI exist in current model, get rank */
+		spons_si_exist_in_curr_model = true;
+		spons_saAmfSIRank = spons_si->saAmfSIRank;
+	}
+
+	if (spons_saAmfSIRank == 0)
+		spons_saAmfSIRank = -1; /* zero means lowest possible rank */
+
+	if ((dep_si = avd_si_get(&indx.si_name_sec)) == NULL) {
+		if (opdata == NULL) {
+			LOG_ER("SI dep validation: '%s' does not exist in model", indx.si_name_sec.value);
+			goto done;
+		}
+
+		/* SI does not exist in current model, check CCB */
+		if ((tmp = ccbutil_getCcbOpDataByDN(opdata->ccbId, &indx.si_name_sec)) == NULL) {
+			LOG_ER("SI dep validation: '%s' does not exist in existing model or in CCB",
+				indx.si_name_sec.value);
+			goto done;
+		}
+
+		if (immutil_getAttr("saAmfSIRank", tmp->param.create.attrValues, 0, &dep_saAmfSIRank) != SA_AIS_OK)
+			dep_saAmfSIRank = 0; /* default value is zero (lowest rank) if empty */
+	} else {
+		/* dependent SI exist in current model, get rank */
+		dependent_si_exist_in_curr_model = true;
+		dep_saAmfSIRank = dep_si->saAmfSIRank;
+	}
+
+	/* don't allow to dynamically create a dependency from an SI already in the model */
+	if ((opdata != NULL) && dependent_si_exist_in_curr_model) {
+		LOG_ER("SI dep validation: adding dependency from existing SI '%s' to SI '%s' is not allowed",
+			indx.si_name_prim.value, indx.si_name_sec.value);
 		goto done;
 	}
 
-	assert (dep_si = avd_si_get(&indx.si_name_sec));
-	if (spons_si->saAmfSIRank > dep_si->saAmfSIRank) {
-		LOG_ER("%s: SI Rank of dependent higher '%s'", __FUNCTION__, sidep_name->value);
-		rc = FALSE;
+	if (dep_saAmfSIRank == 0)
+		dep_saAmfSIRank = -1; /* zero means lowest possible rank */
+
+	/* higher number => lower rank, see 3.8.1.1 */
+	if (spons_saAmfSIRank > dep_saAmfSIRank) {
+		LOG_ER("SI dep validation: Sponsor SI '%s' has lower rank than dependent SI '%s'",
+			indx.si_name_prim.value, indx.si_name_sec.value);
 		goto done;
 	}
 
 	if (avd_si_si_dep_cyclic_dep_find(avd_cb, &indx) == NCSCC_RC_SUCCESS) {
 		/* Return value that record cannot be added due to cyclic dependency */
-		LOG_ER("%s: cyclic dependency for '%s'", __FUNCTION__, sidep_name->value);
-		rc = FALSE;
+		LOG_ER("SI dep validation: cyclic dependency for '%s'", indx.si_name_sec.value);
 		goto done;
 	}
 
+	rc = true;
+
 done:
+	TRACE_LEAVE();
 	return rc;
 } 
  
@@ -1391,7 +1445,7 @@ SaAisErrorT avd_sidep_config_get(void)
 	while (immutil_saImmOmSearchNext_2(searchHandle, &sidep_name, (SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
 		/* validate the configuration before adding the object */
 		memcpy(&sidep_validate, &sidep_name, sizeof(SaNameT));
-		if (!is_config_valid(&sidep_name)) {
+		if (!is_config_valid(&sidep_name, NULL)) {
 			error = SA_AIS_ERR_BAD_OPERATION;
 			goto done2;
 		}
@@ -1419,7 +1473,7 @@ static SaAisErrorT sidep_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 
 	switch (opdata->operationType) {
 	case CCBUTIL_CREATE:
-		if (!is_config_valid(&opdata->objectName))
+		if (!is_config_valid(&opdata->objectName, opdata))
 			rc = SA_AIS_ERR_BAD_OPERATION;
 		break;
 	case CCBUTIL_DELETE:
