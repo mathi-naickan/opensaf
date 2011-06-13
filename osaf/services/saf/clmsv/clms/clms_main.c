@@ -259,7 +259,7 @@ uns32 clms_cb_init(CLMS_CB * clms_cb)
  */
 static uns32 clms_init(void)
 {
-	uns32 rc = NCSCC_RC_SUCCESS;
+	uns32 rc = NCSCC_RC_FAILURE;
 
 	TRACE_ENTER();
 
@@ -318,7 +318,6 @@ static uns32 clms_init(void)
 	/* Declare as implementer && Read configuration data from IMM */
 	if (clms_imm_activate(clms_cb) != SA_AIS_OK) {
 		LOG_ER("clms_imm_activate FAILED");
-		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
@@ -326,6 +325,7 @@ static uns32 clms_init(void)
 		LOG_ER("clms_ntf_init FAILED");
 		goto done;
 	}
+
 #ifdef ENABLE_AIS_PLM
 	if ((rc = clms_plm_init(clms_cb)) != SA_AIS_OK) {
 		LOG_ER("clms_plm_init FAILED");
@@ -349,9 +349,10 @@ static uns32 clms_init(void)
 	 */
 	if (signal(SIGUSR1, sigusr1_handler) == SIG_ERR) {
 		LOG_ER("signal USR1 failed: %s", strerror(errno));
-		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
+
+	rc = NCSCC_RC_SUCCESS;
 
  done:
 	if (nid_notify("CLMD", rc, NULL) != NCSCC_RC_SUCCESS) {

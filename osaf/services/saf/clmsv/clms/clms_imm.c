@@ -366,40 +366,44 @@ SaAisErrorT clms_cluster_config_get(void)
  * IMM-OM interface and initialize the corresponding information 
  * in the CLM control block. 
  */
-SaAisErrorT clms_imm_activate(CLMS_CB * cb)
+SaAisErrorT clms_imm_activate(CLMS_CB *cb)
 {
-	SaAisErrorT rc = SA_AIS_OK;
+	SaAisErrorT rc = SA_AIS_ERR_FAILED_OPERATION;
 
 	TRACE_ENTER();
+
 	if ((rc = clms_cluster_config_get()) != SA_AIS_OK) {
-		LOG_ER("clms_cluster_config_get failed, exiting");
-		exit(EXIT_FAILURE);
+		LOG_ER("clms_cluster_config_get failed rc:%u", rc);
+		goto done;
 	}
 
 	if ((rc = clms_node_create_config()) != SA_AIS_OK) {
-		LOG_ER("clms_node_create_config failed, exiting");
-		exit(EXIT_FAILURE);
+		LOG_ER("clms_node_create_config failed rc:%u", rc);
+		goto done;
 	}
 
 	if (clms_cb->ha_state == SA_AMF_HA_ACTIVE) {
 		if ((rc = immutil_saImmOiImplementerSet(cb->immOiHandle, IMPLEMENTER_NAME)) != SA_AIS_OK) {
-			LOG_ER("saImmOiImplementerSet failed rc:%u, exiting", rc);
-			exit(EXIT_FAILURE);
+			LOG_ER("saImmOiImplementerSet failed rc:%u", rc);
+			goto done;
 		}
 
 		if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode")) != SA_AIS_OK) {
-			LOG_ER("saImmOiClassImplementerSet failed for class SaClmNode rc:%u, exiting", rc);
-			exit(EXIT_FAILURE);
+			LOG_ER("saImmOiClassImplementerSet failed for class SaClmNode rc:%u", rc);
+			goto done;
 		}
 
 		if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster")) != SA_AIS_OK) {
-			LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster rc:%u, exiting", rc);
-			exit(EXIT_FAILURE);
+			LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster rc:%u", rc);
+			goto done;
 		}
 
 		clms_all_node_rattr_update();
 	}
 
+	rc = SA_AIS_OK;
+
+done:
 	TRACE_LEAVE();
 	return rc;
 }
