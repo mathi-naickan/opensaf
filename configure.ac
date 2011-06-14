@@ -597,6 +597,8 @@ AC_CONFIG_FILES([
         osaf/libs/common/immsv/include/Makefile
         osaf/libs/common/plmsv/Makefile
         osaf/libs/common/plmsv/include/Makefile
+        osaf/libs/common/plmsv/plmc/Makefile
+        osaf/libs/common/plmsv/plmc/include/Makefile
         osaf/libs/common/logsv/Makefile
         osaf/libs/common/logsv/include/Makefile
         osaf/libs/common/mqsv/Makefile

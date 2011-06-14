@@ -26,8 +26,8 @@ noinst_LTLIBRARIES = libplmc.la
 libplmc_la_CPPFLAGS = \
 	-DNCS_PLMSV_LOG=1 \
 	$(AM_CPPFLAGS) \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/lib/plmc/include
+	-I$(top_srcdir)/osaf/libs/common/plmsv/plmc/include \
+	-I$(top_srcdir)/contrib/plmc/include
 	
 libplmc_la_LDFLAGS = -static
 
@@ -36,4 +36,4 @@ libplmc_la_SOURCES = \
 	plmc_lib_internal.c
 
 libplmc_la_LIBADD = \
-	$(top_builddir)/lib/utils/libplmc_utils.la
+	$(top_builddir)/contrib/plmc/lib/utils/libplmc_utils.la
