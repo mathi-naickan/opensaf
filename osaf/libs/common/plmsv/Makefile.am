@@ -18,7 +18,7 @@ include $(top_srcdir)/Makefile.common
 
 MAINTAINERCLEANFILES = Makefile.in
 
-SUBDIRS = include
+SUBDIRS = plmc include
 
 noinst_LTLIBRARIES = libplmsv_common.la
 
@@ -26,9 +26,9 @@ libplmsv_common_la_CPPFLAGS = \
 	-DNCS_PLMSV_LOG=1 \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/osaf/libs/common/plmsv/include \
+	-I$(top_srcdir)/osaf/libs/common/plmsv/plmc/include \
 	-I$(top_srcdir)/osaf/libs/common/immsv/include \
-	-I$(top_srcdir)/contrib/plmc/include \
-	-I$(top_srcdir)/contrib/plmc/lib/plmc/include
+	-I$(top_srcdir)/contrib/plmc/include
 
 libplmsv_common_la_CFLAGS = $(AM_CFLAGS) @HPI_CFLAGS@
 

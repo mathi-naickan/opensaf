@@ -23,8 +23,8 @@ pkglib_LTLIBRARIES = libplms_hpi.la
 libplms_hpi_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/osaf/libs/common/plmsv/include \
-	-I$(top_srcdir)/contrib/plmc/include \
-	-I$(top_srcdir)/contrib/plmc/lib/plmc/include
+	-I$(top_srcdir)/osaf/libs/common/plmsv/plmc/include \
+	-I$(top_srcdir)/contrib/plmc/include
 
 libplms_hpi_la_CFLAGS = $(AM_CFLAGS) @HPI_CFLAGS@
 
@@ -33,3 +33,6 @@ libplms_hpi_la_SOURCES = \
 	plms_hrb.c \
 	plms_hrb_mds.c \
 	plms_epath_util.c
+
+libplms_hpi_la_LIBADD = \
+	$(top_builddir)/osaf/libs/common/plmsv/plmc/libplmc.la
