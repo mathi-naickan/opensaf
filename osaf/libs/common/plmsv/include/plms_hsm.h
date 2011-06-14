@@ -25,6 +25,7 @@
 #define PLMS_HSM_H
 
 #include <SaHpi.h>
+#include <saNtf.h>
 
 #define PLMS_MAX_HPI_SESSION_OPEN_RETRIES 30
 
@@ -42,6 +43,7 @@ typedef struct
 	SaUint8T          get_idr_with_event_type;
 	SaHpiTimeT	  extr_pending_timeout;
 	SaHpiTimeT        insert_pending_timeout;
+	SaNtfHandleT 	  plm_ntf_hdl;
 }PLMS_HSM_CB;
 
 

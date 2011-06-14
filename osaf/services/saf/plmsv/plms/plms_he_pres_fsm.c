@@ -3046,15 +3046,6 @@ SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *evt)
 	/* Send HPI event notification.*/
 	hpi_dn.length = strlen(HPI_DN_NAME);
 	memcpy(hpi_dn.value,HPI_DN_NAME,hpi_dn.length);
-	ret_err= plms_hpi_evt_ntf_send(cb->ntf_hdl,&hpi_dn,
-					SAHPI_ET_HOTSWAP,
-					hpi_evt->entity_path,
-					cb->domain_id,&hpi_evt->sa_hpi_evt,
-					0,NULL/*cor_ids*/,NULL/*ntf_buf*/);
-	if (NCSCC_RC_SUCCESS != ret_err){
-		LOG_ER("Hpi event received notification sending FAILED.\
-						Ret Value: %d",ret_err);
-	}
 	
 	/* See if the entity is verified before. If the entity path published
 	by HPI is not present in epath_to_entity patricia tree, then the HE

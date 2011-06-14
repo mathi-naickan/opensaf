@@ -89,6 +89,8 @@ SaUint32T plms_hsm_initialize(PLMS_HPI_CONFIG *hpi_cfg)
 	pthread_attr_t 	   attr;
 	struct sched_param thread_priority;
 	SaUint32T          policy;
+	SaVersionT ntf_version = { 'A', 0x01, 0x01 };
+	SaNtfCallbacksT ntf_callbacks = { NULL, NULL };
 
 	TRACE_ENTER();
 	
@@ -158,6 +160,12 @@ SaUint32T plms_hsm_initialize(PLMS_HPI_CONFIG *hpi_cfg)
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
         pthread_attr_setstacksize(&attr, PLMS_HSM_STACKSIZE);
 
+	/* NTF initialize */
+	rc = saNtfInitialize(&(cb->plm_ntf_hdl), &ntf_callbacks, &ntf_version);
+        if (rc != SA_AIS_OK) {
+                LOG_ER("NTF Initialization failed. Error %d", rc);
+                return rc;
+        }
 	
 	/* Create PLM_HSM thread */
 	rc = pthread_create(&thread_id, &attr, plms_hsm, NULL);
@@ -197,6 +205,10 @@ SaUint32T plms_hsm_finalize(void)
 	rc = saHpiSessionClose(cb->session_id);
         if (SA_OK != rc)
 		LOG_ER("HSM:Close session return error: %d:\n",rc);
+	/* Close connection to NTF */
+	rc = saNtfFinalize(cb->plm_ntf_hdl);
+        if (SA_OK != rc)
+		LOG_ER("HSM: saNtfFinalize return error: %d:\n",rc);
 
 
 	/* Kill the HSM thread */
@@ -204,6 +216,195 @@ SaUint32T plms_hsm_finalize(void)
 	
 	return NCSCC_RC_SUCCESS;
 }    
+/*********************************************************************
+ * Name		: plms_send_hpi_evt_ntf
+ *  
+ * @brief	Sends HPI event to NTF
+ *                  
+ *                        
+ * @param[in]	event_type
+ * @param[in]   hpi_event
+ * @param[in]   rpt_entry
+ *
+ * @return	NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE 
+***********************************************************************/
+SaAisErrorT plms_send_hpi_evt_ntf(SaUint32T event_type, SaHpiEventT *hpi_event,
+						SaHpiRptEntryT *rpt_entry)
+{
+	SaInt32T rc = 0, ret = 0;
+	SaNtfStateChangeNotificationT plm_notification;
+	SaUint16T no_of_corr_notifications = 0;
+	SaNameT hpi_dn;
+	SaStringT dest_ptr1 = NULL, dest_ptr2 = NULL;
+	SaUint16T ntf_obj_len = 0;
+	PLMS_CB *cb = plms_cb;
+	PLMS_HSM_CB *hsmcb = hsm_cb;
+
+	// If user event there is no rpt_entry
+	if (event_type == SAHPI_ET_USER ) {
+		rc = saNtfStateChangeNotificationAllocate(hsmcb->plm_ntf_hdl,
+			&plm_notification, no_of_corr_notifications, 0, 2,
+						0, SA_NTF_ALLOC_SYSTEM_LIMIT);
+	} else {
+		rc = saNtfStateChangeNotificationAllocate(hsmcb->plm_ntf_hdl,
+			&plm_notification, no_of_corr_notifications, 0, 3,
+						0, SA_NTF_ALLOC_SYSTEM_LIMIT);
+	}
+	if (SA_AIS_OK != rc)  {
+		LOG_ER("HPI Event Notification allocation failed with: %d", rc);
+		return rc;
+	}
+
+	switch (event_type) {
+		case SAHPI_ET_RESOURCE:
+			TRACE("plms_send_hpi_evt_ntf got SAHPI_ET_RESOURCE");
+		case SAHPI_ET_HOTSWAP:
+			TRACE("plms_send_hpi_evt_ntf got SAHPI_ET_HOTSWAP");
+			*(plm_notification.notificationHeader.eventType) = 
+						SA_NTF_HPI_EVENT_RESOURCE;
+			break;
+		case SAHPI_ET_SENSOR:
+			TRACE("plms_send_hpi_evt_ntf got SAHPI_ET_SENSOR");
+		case SAHPI_ET_SENSOR_ENABLE_CHANGE:
+			TRACE("plms_send_hpi_evt_ntf got SAHPI_ET_CHANGE");
+			*(plm_notification.notificationHeader.eventType) = 
+						SA_NTF_HPI_EVENT_SENSOR;
+			break;
+		case SAHPI_ET_WATCHDOG:
+			TRACE("plms_send_hpi_evt_ntf got SAHPI_ET_WATCHDOG");
+			*(plm_notification.notificationHeader.eventType) = 
+						SA_NTF_HPI_EVENT_WATCHDOG;
+			break;
+		case SAHPI_ET_DIMI:
+			TRACE("plms_send_hpi_evt_ntf got SAHPI_ET_DIMI");
+			*(plm_notification.notificationHeader.eventType) = 
+						SA_NTF_HPI_EVENT_DIMI;
+			break;
+		case SAHPI_ET_FUMI:
+			TRACE("plms_send_hpi_evt_ntf got SAHPI_ET_FUMI");
+			*(plm_notification.notificationHeader.eventType) = 
+						SA_NTF_HPI_EVENT_FUMI;        
+			break;
+		case SAHPI_ET_USER:
+			TRACE("plms_send_hpi_evt_ntf got SAHPI_ET_USER");
+			*(plm_notification.notificationHeader.eventType) = 
+						SA_NTF_HPI_EVENT_OTHER;
+			break;
+		default :
+			ret = NCSCC_RC_FAILURE; 
+			return ret;
+	}
+
+	*(plm_notification.notificationHeader.eventTime) = 
+						(SaTimeT)SA_TIME_UNKNOWN;
+
+	memset(&hpi_dn,0,sizeof(SaNameT));
+	hpi_dn.length = strlen(HPI_DN_NAME);
+	memcpy(hpi_dn.value,HPI_DN_NAME,hpi_dn.length);
+
+	/* Copy noticationObject details give above */
+	plm_notification.notificationHeader.notificationObject->length = 
+								hpi_dn.length;
+	memcpy(plm_notification.notificationHeader.notificationObject->value, 
+						hpi_dn.value, hpi_dn.length);
+
+	ntf_obj_len = strlen("safApp=safPlmService"); 
+	memset(plm_notification.notificationHeader.notifyingObject,0,
+							sizeof(SaNameT));
+	memcpy(plm_notification.notificationHeader.notifyingObject->value,
+					"safApp=safPlmService",ntf_obj_len);
+	plm_notification.notificationHeader.notifyingObject->length = 
+								ntf_obj_len;
+
+	/* Fill in the class identifier details */
+	plm_notification.notificationHeader.notificationClassId->vendorId = 
+							SA_NTF_VENDOR_ID_SAF;
+	plm_notification.notificationHeader.notificationClassId->majorId = 
+								SA_SVC_PLM;
+	plm_notification.notificationHeader.notificationClassId->minorId = 
+						SA_PLM_NTFID_HPI_NORMAL_MSB; 
+	
+	/* Fill in the additional info */
+	/* Domain Id first */
+	plm_notification.notificationHeader.additionalInfo[0].infoId = 
+						SA_PLM_AI_HPI_DOMAIN_ID;
+	plm_notification.notificationHeader.additionalInfo[0].infoType = 
+							SA_NTF_VALUE_UINT32;
+	plm_notification.notificationHeader.additionalInfo[0].infoValue.
+						uint32Val = cb->domain_id;
+
+	if (!hpi_event)
+	{
+		LOG_ER("HPI data not present");
+		saNtfNotificationFree(plm_notification.notificationHandle);
+		return NCSCC_RC_FAILURE;
+	}
+
+	/* Fill in mandatory information SaHpiEventT */
+        /* For intoType = BINARY we need to allocate memory for ptrVal */
+	plm_notification.notificationHeader.additionalInfo[1].infoId = 
+						SA_PLM_AI_HPI_EVENT_DATA;
+	plm_notification.notificationHeader.additionalInfo[1].infoType = 
+							SA_NTF_VALUE_BINARY;
+
+	ret = saNtfPtrValAllocate(plm_notification.notificationHandle,
+					sizeof(SaHpiEventT), (void**)&dest_ptr1,
+		                          &(plm_notification.notificationHeader.
+						additionalInfo[1].infoValue));
+
+	if ( ret != SA_AIS_OK ) {
+		saNtfNotificationFree(plm_notification.notificationHandle);
+		TRACE("saNtfPtrValAllocate failed for additionalInfo[1]");
+		return ret;
+	}
+
+	memcpy(dest_ptr1,hpi_event,sizeof(SaHpiEventT));
+
+	/* User generated event */
+	if (event_type != SAHPI_ET_USER ) {
+		/* 
+ 		* For intoType = BINARY we need to allocate memory for 
+ 		* ptrVal 
+ 		*/
+		plm_notification.notificationHeader.additionalInfo[2].infoId 
+						= SA_PLM_AI_HPI_RPT_DATA;
+		plm_notification.notificationHeader.additionalInfo[2].
+						infoType = SA_NTF_VALUE_BINARY;
+
+		ret = saNtfPtrValAllocate(plm_notification.notificationHandle,
+				sizeof(SaHpiRptEntryT), (void**)&dest_ptr2,
+					  &(plm_notification.notificationHeader.
+						additionalInfo[2].infoValue));
+
+		if ( ret != SA_AIS_OK ) {
+			saNtfNotificationFree(plm_notification.
+							notificationHandle);
+			return ret;
+		}
+
+		memcpy(dest_ptr2,rpt_entry,sizeof(SaHpiRptEntryT));
+	}
+
+	/* Send the notification */
+	ret = saNtfNotificationSend(plm_notification.notificationHandle);
+	if (ret != SA_AIS_OK)
+	{
+		LOG_ER("HPI Event Notification send failed");
+		saNtfNotificationFree(plm_notification.notificationHandle);
+		return ret;
+	}
+	/* Free the notification allocated above */
+	saNtfNotificationFree(plm_notification.notificationHandle);
+	if (rc != SA_AIS_OK)
+	{
+		LOG_ER("HPI Event Notification send failed");
+		saNtfNotificationFree(plm_notification.notificationHandle);
+		return rc;
+	}
+
+	return 0;
+}
+
 /***********************************************************************
  * @brief	 This task is spawned by PLM main task.This function 
  *               publishes the outstanding hpi events which apparently 
@@ -314,6 +515,8 @@ static void *plms_hsm(void)
 
 		ret = saHpiEventGet(cb->session_id, SAHPI_TIMEOUT_BLOCK, 
 					&event, &rdr, &rpt_entry, NULL);
+
+		plms_send_hpi_evt_ntf(event.EventType, &event, &(rpt_entry));
 		rc = pthread_mutex_lock(&hsm_ha_state.mutex);
 		if(rc){
 			LOG_CR("HSM: Failed to take hsm_ha_state lock,exiting thread, ret value:%d err:%s",rc,strerror(errno));
