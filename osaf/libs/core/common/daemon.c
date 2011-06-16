@@ -45,6 +45,7 @@ static char __pidfile[NAME_MAX];
 static char __tracefile[NAME_MAX];
 static char __runas_username[UT_NAMESIZE];
 static unsigned int tracemask;
+static unsigned int __nofork = 0;
 
 static void __print_usage(const char* progname, FILE* stream, int exit_code)
 {
@@ -114,12 +115,13 @@ static void __parse_options(int argc, char *argv[])
 	__set_default_options(progname);
 
 	/* A string listing valid short options letters */
-	const char* const short_options = "hm:p:T:U:v";
+	const char* const short_options = "hm:np:T:U:v";
 	
 	/* An array describing valid long options */
 	const struct option long_options[] = {
 		{ "help",      0, NULL, 'h' },
 		{ "tracemask", 1, NULL, 'm' },
+		{ "nofork",    0, NULL, 'n' },
 		{ "pidfile",   1, NULL, 'p' },
 		{ "tracefile", 1, NULL, 'T' },
 		{ "run-as",    1, NULL, 'U' },
@@ -135,6 +137,9 @@ static void __parse_options(int argc, char *argv[])
 			__print_usage(progname, stdout, EXIT_SUCCESS);
 		case 'm':	/* -m or --tracemask */
 			tracemask = strtoul(optarg, NULL, 0);
+			break;
+		case 'n':	/* -n or --nofork */
+			__nofork = 1;
 			break;
 		case 'p':	/* -p or --pidfile */
 			snprintf(__pidfile, sizeof(__pidfile), PKGPIDDIR "/%s", optarg);
@@ -169,25 +174,29 @@ void daemonize(int argc, char *argv[])
 		syslog(LOG_ERR, "invalid top argc/argv[] passed to daemonize()");
 		exit(EXIT_FAILURE);
 	}
-
-	/* Already a daemon */
-	if (getppid() == 1) return;
-
-	/* Fork off the parent process */
-	pid = fork();
-	if (pid < 0) {
-		syslog(LOG_ERR, "fork daemon failed, pid=%d (%s)", pid, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	/* If we got a good PID, then we can exit the parent process */
-	if (pid > 0) exit(EXIT_SUCCESS);
-
-	/* Create a new SID for the child process */
-	sid = setsid();
-	if (sid < 0) {
-		syslog(LOG_ERR, "create new session failed, sid=%d (%s)", sid, strerror(errno));
-		exit(EXIT_FAILURE);
+	if (__nofork) {
+		syslog(LOG_WARNING, "Started without fork");
+	} else {
+	
+		/* Already a daemon */
+		if (getppid() == 1) return;
+	
+		/* Fork off the parent process */
+		pid = fork();
+		if (pid < 0) {
+			syslog(LOG_ERR, "fork daemon failed, pid=%d (%s)", pid, strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+	
+		/* If we got a good PID, then we can exit the parent process */
+		if (pid > 0) exit(EXIT_SUCCESS);
+	
+		/* Create a new SID for the child process */
+		sid = setsid();
+		if (sid < 0) {
+			syslog(LOG_ERR, "create new session failed, sid=%d (%s)", sid, strerror(errno));
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	/* Redirect standard files to /dev/null */
