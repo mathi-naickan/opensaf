@@ -1197,6 +1197,7 @@ static SaAisErrorT su_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 
 		} else {
 			LOG_ER("Modification of attribute '%s' not supported", attr_mod->modAttr.attrName);
+			rc = SA_AIS_ERR_NOT_SUPPORTED;
 			goto done;
 		}
 	}
