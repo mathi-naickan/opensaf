@@ -562,7 +562,6 @@ uns32 gld_mds_init(GLSV_GLD_CB *cb)
 	uns32 rc;
 	MDS_SVC_ID subscr_svc = NCSMDS_SVC_ID_GLND;
 
-	memset(&cb->my_dest_id, 0, sizeof(MDS_DEST));
 	cb->my_dest_id = GLD_VDEST_ID;
 	/* In future Anchor value will be taken from AVSV. Now we are using fix value */
 	cb->my_anc = V_DEST_QA_1;
