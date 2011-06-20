@@ -775,13 +775,17 @@ AC_CONFIG_FILES([
         osaf/tools/scripts/Makefile
         pkgconfig/Makefile
         pkgconfig/opensaf.pc
+        tests/immsv/Makefile
+        tests/immsv/common/Makefile
         tests/immsv/implementer/Makefile
         tests/immsv/management/Makefile
         tests/logsv/Makefile
         tests/clmsv/Makefile
         tests/ntfsv/Makefile
         tests/plmsv/plms/Makefile
-        tests/plmsv/Makefile])
+        tests/plmsv/Makefile
+        tests/unit_test_fw/Makefile
+        tests/unit_test_fw/inc/Makefile])
 
 AC_CONFIG_SUBDIRS([contrib/plmc])
 

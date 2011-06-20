@@ -5,10 +5,10 @@
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  This
-# file and program are licensed under High-Availability Operating 
+# file and program are licensed under High-Availability Operating
 # Environment Software License Version 1.4.
 # Complete License can be accesseble from below location.
-# http://www.opensaf.org/license 
+# http://www.opensaf.org/license
 # See the Copying file included with the OpenSAF distribution for
 # full licensing terms.
 #
@@ -21,15 +21,18 @@ MAINTAINERCLEANFILES = Makefile.in
 
 bin_PROGRAMS = clmtest
 
+noinst_HEADERS = \
+	$(top_srcdir)/tests/clmsv/src/clmtest.h
+
 clmtest_CPPFLAGS = \
-        -DSA_CLM_B01=1 \
+	-DSA_CLM_B01=1 \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/tests/unit_test_fw/inc
 
 clmtest_SOURCES = \
 	$(top_srcdir)/osaf/libs/core/common/logtrace.c \
-        $(top_srcdir)/tests/unit_test_fw/src/utest.c \
-        $(top_srcdir)/tests/unit_test_fw/src/util.c \
+	$(top_srcdir)/tests/unit_test_fw/src/utest.c \
+	$(top_srcdir)/tests/unit_test_fw/src/util.c \
 	$(top_srcdir)/tests/clmsv/src/clmtest.c \
 	$(top_srcdir)/tests/clmsv/src/tet_saClmInitialize.c \
 	$(top_srcdir)/tests/clmsv/src/tet_saClmClusterNodeGetAsync.c \
@@ -42,9 +45,6 @@ clmtest_SOURCES = \
 	$(top_srcdir)/tests/clmsv/src/tet_saClmDispatch.c \
 	$(top_srcdir)/tests/clmsv/src/tet_saClmSelectionObjectGet.c \
 	$(top_srcdir)/tests/clmsv/src/tet_saClmFinalize.c
-	
 
-	
-	
 clmtest_LDADD = \
 	$(top_builddir)/osaf/libs/saf/libSaClm/libSaClm.la
