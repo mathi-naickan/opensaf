@@ -155,9 +155,11 @@ EXTRA_DIST += tests
 SUBDIRS += \
 	tests/logsv \
 	tests/ntfsv \
+	tests/immsv \
 	tests/immsv/implementer \
 	tests/immsv/management \
-	tests/clmsv 
+	tests/clmsv \
+	tests/unit_test_fw
 
 if ENABLE_AIS_PLM
 SUBDIRS += \
