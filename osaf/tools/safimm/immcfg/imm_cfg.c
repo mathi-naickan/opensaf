@@ -308,6 +308,7 @@ int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
 
 			dn.length = sprintf((char*)dn.value, "%s", parent);
 			parentName = &dn;
+			parentNames[0] = parentName;
 
 			VERBOSE_INFO("call saImmOmAdminOwnerSet for parent: %s\n", parent);
 			if ((error = saImmOmAdminOwnerSet(ownerHandle, parentNames, SA_IMM_SUBTREE)) != SA_AIS_OK) {
