@@ -41,7 +41,11 @@
    /* retrieve AvA CB */ \
    if ( \
         (!((o_cb) = (AVA_CB *)ncshm_take_hdl(NCS_SERVICE_ID_AVA, (cbhdl)))) || \
-        ( !((AVSV_AMF_PG_START == (api)) || (AVSV_AMF_PG_STOP == (api))) && \
+        ( !((AVSV_AMF_PG_START == (api)) || \
+            (AVSV_AMF_PG_STOP == (api)) || \
+            (AVSV_AMF_INITIALIZE == (api)) || \
+            (AVSV_AMF_ERR_REP == (api)) \
+           ) && \
           !m_AVA_FLAG_IS_COMP_NAME((o_cb)) ) \
       ) \
       (o_rc) = SA_AIS_ERR_LIBRARY; \
@@ -145,34 +149,6 @@ SaAisErrorT saAmfInitialize (SaAmfHandleT *o_hdl,
       ncs_agents_shutdown();
       return SA_AIS_ERR_LIBRARY;
    }
-
-   /* if comp-name is not set, it should be available now */
-   cb = (AVA_CB *)ncshm_take_hdl(NCS_SERVICE_ID_AVA, gl_ava_hdl);
-   if (!cb)
-   {
-      return SA_AIS_ERR_LIBRARY;
-   }
-   if ( !m_AVA_FLAG_IS_COMP_NAME(cb) )
-   {
-      if ( getenv("SA_AMF_COMPONENT_NAME") )
-      {
-         if(strlen(getenv("SA_AMF_COMPONENT_NAME")) < SA_MAX_NAME_LENGTH) {
-             strcpy((char*)cb->comp_name.value, getenv("SA_AMF_COMPONENT_NAME"));
-             cb->comp_name.length = (uns16)strlen((char*)cb->comp_name.value);
-             m_AVA_FLAG_SET(cb, AVA_FLAG_COMP_NAME);
-         }else {
-             rc = SA_AIS_ERR_INVALID_PARAM;
-             goto done;
-         }
-      }
-      else
-      {
-         rc = SA_AIS_ERR_LIBRARY;
-         goto done;
-      }
-   }
-   if(cb)
-      ncshm_give_hdl(gl_ava_hdl);
 
    /* api pre-processing */
    m_AVA_API_PRE_PROCESSING(AVSV_AMF_INITIALIZE, gl_ava_hdl, 
@@ -452,6 +428,34 @@ SaAisErrorT saAmfComponentRegister (SaAmfHandleT  hdl,
    {
       return SA_AIS_ERR_INVALID_PARAM;
    }
+
+   /* if comp-name is not set, it should be available now */
+   cb = (AVA_CB *)ncshm_take_hdl(NCS_SERVICE_ID_AVA, gl_ava_hdl);
+   if (!cb)
+   {
+      return SA_AIS_ERR_LIBRARY;
+   }
+   if ( !m_AVA_FLAG_IS_COMP_NAME(cb) )
+   {
+      if ( getenv("SA_AMF_COMPONENT_NAME") )
+      {
+         if(strlen(getenv("SA_AMF_COMPONENT_NAME")) < SA_MAX_NAME_LENGTH) {
+             strcpy((char*)cb->comp_name.value, getenv("SA_AMF_COMPONENT_NAME"));
+             cb->comp_name.length = (uns16)strlen((char*)cb->comp_name.value);
+             m_AVA_FLAG_SET(cb, AVA_FLAG_COMP_NAME);
+         }else {
+             rc = SA_AIS_ERR_INVALID_PARAM;
+             goto done;
+         }
+      }
+      else
+      {
+         rc = SA_AIS_ERR_LIBRARY;
+         goto done;
+      }
+   }
+   if(cb)
+      ncshm_give_hdl(gl_ava_hdl);
 
    /* api pre-processing */
    m_AVA_API_PRE_PROCESSING(AVSV_AMF_COMP_REG, gl_ava_hdl, 
