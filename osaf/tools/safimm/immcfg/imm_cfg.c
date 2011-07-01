@@ -264,9 +264,10 @@ int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
 	int attr_len = 1;
 	int rc = EXIT_FAILURE;
 	char *parent = NULL;
-	SaNameT parentName;
+	SaNameT dn;
+	SaNameT *parentName = NULL;
 	char *str, *delim;
-	const SaNameT *parentNames[] = {&parentName, NULL};
+	const SaNameT *parentNames[] = {parentName, NULL};
 	SaImmCcbHandleT ccbHandle;
 
 	for (i = 0; i < optargs_len; i++) {
@@ -305,12 +306,13 @@ int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
 				goto done;
 			}
 
-			parentName.length = sprintf((char*)parentName.value, "%s", parent);
+			dn.length = sprintf((char*)dn.value, "%s", parent);
+			parentName = &dn;
 
 			VERBOSE_INFO("call saImmOmAdminOwnerSet for parent: %s\n", parent);
 			if ((error = saImmOmAdminOwnerSet(ownerHandle, parentNames, SA_IMM_SUBTREE)) != SA_AIS_OK) {
 				if (error == SA_AIS_ERR_NOT_EXIST)
-					fprintf(stderr, "error - parent '%s' does not exist\n", parentName.value);
+					fprintf(stderr, "error - parent '%s' does not exist\n", dn.value);
 				else {
 					fprintf(stderr, "error - saImmOmAdminOwnerSet FAILED: %s\n", saf_error(error));
 					goto done;
@@ -327,7 +329,7 @@ int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
 		attrValues[attr_len - 1] = attrValue;
 		attrValues[attr_len] = NULL;
 
-		if ((error = saImmOmCcbObjectCreate_2(ccbHandle, className, &parentName,
+		if ((error = saImmOmCcbObjectCreate_2(ccbHandle, className, parentName,
 			(const SaImmAttrValuesT_2**)attrValues)) != SA_AIS_OK) {
 			fprintf(stderr, "error - saImmOmCcbObjectCreate_2 FAILED with %s\n",
 				saf_error(error));
