@@ -20,7 +20,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = libSaAmf.map
 
-LIB_VERSION = 0:1:1
+LIB_VERSION = 0:1:2
 
 SUBDIRS = pkgconfig
 
