@@ -286,7 +286,6 @@ int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
 			/* a parent exist */
 			while (*(delim - 1) == 0x5c) {
 				/* comma delimiter is escaped, search again */
-printf("comma delimiter is escaped, search again");
 				delim += 2;
 				delim = strchr(delim, ',');
 			}
@@ -300,6 +299,7 @@ printf("comma delimiter is escaped, search again");
 
 			dn.length = sprintf((char*)dn.value, "%s", parent);
 			parentName = &dn;
+			parentNames[0] = parentName;
 
 			VERBOSE_INFO("call saImmOmAdminOwnerSet for parent: %s\n", parent);
 			if ((error = saImmOmAdminOwnerSet(ownerHandle, parentNames, SA_IMM_SUBTREE)) != SA_AIS_OK) {
