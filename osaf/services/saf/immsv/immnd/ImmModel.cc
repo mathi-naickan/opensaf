@@ -33,14 +33,16 @@
 
 struct ContinuationInfo2
 {
-    ContinuationInfo2():mCreateTime(0), mConn(0), mTimeout(0){}
-    ContinuationInfo2(SaUint32T conn, SaUint32T timeout):mConn(conn), mTimeout(timeout) 
+    ContinuationInfo2():mCreateTime(0), mConn(0), mTimeout(0), mImplId(0){}
+    ContinuationInfo2(SaUint32T conn, SaUint32T timeout):mConn(conn), mTimeout(timeout),
+         mImplId(0)
         {mCreateTime = time(NULL);}
     
     time_t  mCreateTime;
     SaUint32T mConn;
     SaUint32T mTimeout; //0=> no timeout. Otherwise timeout in SECONDS.
     //Default copy constructor and assignement operator used in ContinuationMap2
+    SaUint32T mImplId; 
 };
 typedef std::map<SaInvocationT, ContinuationInfo2> ContinuationMap2;
 
@@ -6685,6 +6687,7 @@ SaAisErrorT ImmModel::adminOperationInvoke(
                 TRACE("Located pre request continuation %llu adjusting timeout"
                     " to %u", saInv, timeout);
                 ci->second.mTimeout = timeout;
+                ci->second.mImplId = object->mImplementer->mId;
             }
         }
         
@@ -7227,6 +7230,14 @@ ImmModel::discardNode(unsigned int deadNode, IdVector& cv)
     for(i = sImplementerVector.begin(); i != sImplementerVector.end(); ++i) {
         ImplementerInfo* info = (*i);
         if(info->mNodeId == deadNode) {
+            ContinuationMap2::iterator ci2;
+            for(ci2=sAdmReqContinuationMap.begin();
+               ci2!=sAdmReqContinuationMap.end(); ++ci2) {
+                if((ci2->second.mTimeout) && (ci2->second.mImplId == info->mId)) {
+                    TRACE_5("Forcing Adm Req continuation to expire %llu", ci2->first);
+                    ci2->second.mTimeout = 1; /* one second is minimum timeout. */
+                }
+            }
             //discardImplementer(info->mId); 
             //Doing it directly here for efficiency.
             //But watch out for changes in discardImplementer
@@ -7287,6 +7298,7 @@ ImmModel::discardImplementer(unsigned int implHandle, bool reallyDiscard)
     TRACE_ENTER();
     ImplementerInfo* info = findImplementer(implHandle);
     if(info) {
+        ContinuationMap2::iterator ci2;
         if(reallyDiscard) {
             LOG_NO("Implementer disconnected %u <%u, %x> (%s)", 
                 info->mId, info->mConn, info->mNodeId,
@@ -7316,6 +7328,13 @@ ImmModel::discardImplementer(unsigned int implHandle, bool reallyDiscard)
                     "%u <%u, %x> (%s)", info->mId, info->mConn, info->mNodeId,
                     info->mImplementerName.c_str());
                 info->mDying = true;
+            }
+        }
+
+        for(ci2=sAdmReqContinuationMap.begin(); ci2!=sAdmReqContinuationMap.end(); ++ci2) {
+            if((ci2->second.mTimeout) && (ci2->second.mImplId == implHandle)) {
+                TRACE_5("Forcing Adm Req continuation to expire %llu", ci2->first);
+                ci2->second.mTimeout = 1; /* one second is minimum timeout. */
             }
         }
     } else { /* implementer not found */
