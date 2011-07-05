@@ -44,7 +44,9 @@
         ( !((AVSV_AMF_PG_START == (api)) || \
             (AVSV_AMF_PG_STOP == (api)) || \
             (AVSV_AMF_INITIALIZE == (api)) || \
-            (AVSV_AMF_ERR_REP == (api)) \
+            (AVSV_AMF_ERR_REP == (api)) || \
+            (AVSV_AMF_PM_START == (api)) || \
+            (AVSV_AMF_PM_STOP == (api)) \
            ) && \
           !m_AVA_FLAG_IS_COMP_NAME((o_cb)) ) \
       ) \
