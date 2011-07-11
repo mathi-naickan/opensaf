@@ -10026,18 +10026,14 @@ ImmModel::rtObjectDelete(const ImmsvOmCcbObjectDelete* req,
                         }
                     } else {
                         /* Normal non persistent RTO delete case */
-                        err = deleteRtObject(oi2, doIt, info, subTreeHasPersistent);
-                        if(doIt && err == SA_AIS_OK) {
-                            deleted = true;
-                        }
+                        ObjectMap::iterator oi3 = (doIt)?(oi2++):oi2;
+                        err = deleteRtObject(oi3, doIt, info, subTreeHasPersistent);
+                        deleted = doIt;
                     }//else
                 }//if
             }//if
-            if(deleted) {
-                //Restart iterator (really inefficient)
-                oi2 = sObjectMap.begin(); 
-            } else {
-                oi2++;
+            if(!deleted) {
+                ++oi2;
             }
         }//for
     }
