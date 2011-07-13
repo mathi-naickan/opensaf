@@ -847,7 +847,10 @@ SaAisErrorT saImmOiAdminOperationResult(SaImmOiHandleT immOiHandle, SaInvocation
 			adminOpRslt_evt.info.immnd.type = IMMND_EVT_A2ND_ADMOP_RSP;
 		} else {
 			TRACE_1("PBE_ADMOP_RSP");
-			assert(cl_node->isPbe);
+			if(!(cl_node->isPbe)) {
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				goto mds_send_fail;
+			}
 			adminOpRslt_evt.info.immnd.type = IMMND_EVT_A2ND_PBE_ADMOP_RSP;
 		}
 	}
