@@ -1989,8 +1989,10 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 					TRACE_2("Sending normal OK response on completed for ccb %u. ", callback->ccbID);
 					if(!isPbeOp) {TRACE_2("The oi_ccb_record now marked as critical.");}
 				} else {
-					LOG_ER("ERROR: CCB record for %u non existent - exiting", callback->ccbID);
-					assert(0);
+					TRACE_2("CCB record for %u non existent - must have been aborted", callback->ccbID);
+					assert(m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS);
+					locked = FALSE;
+					break; /* out of while */
 				}
 			} else {
 				TRACE_2("Sending FAILED_OP response on completed. for ccb %u.",	callback->ccbID);
