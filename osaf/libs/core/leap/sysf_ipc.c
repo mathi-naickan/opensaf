@@ -527,8 +527,6 @@ uns32 ncs_ipc_send(SYSF_MBX *mbx, NCS_IPC_MSG *msg, NCS_IPC_PRIORITY prio)
 	m_NCS_SET_ST_QLAT();
 
 	if (ipc_enqueue_ind_processing(ncs_ipc, queue_number) != NCSCC_RC_SUCCESS) {
-		/* Should never reach here */
-		assert(0);
 		m_NCS_UNLOCK(&ncs_ipc->queue_lock, NCS_LOCK_WRITE);
 		ncshm_give_hdl((uns32)*mbx);
 		return NCSCC_RC_FAILURE;
