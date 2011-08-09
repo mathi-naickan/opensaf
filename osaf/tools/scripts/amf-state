@@ -413,7 +413,7 @@ si_state()
 			if [ "$si_state" = "saAmfSIAdminState" ]; then
 				adm_state $si_state $si_dn
 			fi
-			if [ "$state" = "saAmfSIAssignmentState" ]; then
+			if [ "$si_state" = "saAmfSIAssignmentState" ]; then
 				ass_state $si_state $si_dn
 			fi
 		done
