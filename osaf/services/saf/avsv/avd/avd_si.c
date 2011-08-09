@@ -1105,41 +1105,61 @@ static void si_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 static void si_update_ass_state(AVD_SI *si)
 {
 	SaAmfAssignmentStateT oldState = si->saAmfSIAssignmentState;
-	SaAmfAssignmentStateT newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
+	SaAmfAssignmentStateT newState;
 
-	if ((si->saAmfSINumCurrActiveAssignments != 0) || (si->saAmfSINumCurrStandbyAssignments != 0)) {
-		switch (si->sg_of_si->sg_type->saAmfSgtRedundancyModel) {
-		case SA_AMF_2N_REDUNDANCY_MODEL:
-			/* fall through */
-		case SA_AMF_NPM_REDUNDANCY_MODEL:
-			if (si->saAmfSINumCurrActiveAssignments == 1 && si->saAmfSINumCurrStandbyAssignments == 1)
+	/*
+	** Note: for SA_AMF_2N_REDUNDANCY_MODEL, SA_AMF_NPM_REDUNDANCY_MODEL &
+	** SA_AMF_N_WAY_REDUNDANCY_MODEL it is not possible to check:
+	** assert(si->saAmfSINumCurrActiveAssignments == 1);
+	** since AMF temporarily goes above the limit during fail over
+	 */
+	switch (si->sg_of_si->sg_type->saAmfSgtRedundancyModel) {
+	case SA_AMF_2N_REDUNDANCY_MODEL:
+		/* fall through */
+	case SA_AMF_NPM_REDUNDANCY_MODEL:
+		if (si->saAmfSINumCurrActiveAssignments == 0) {
+			newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
+		} else {
+			if (si->saAmfSINumCurrStandbyAssignments == 1)
 				newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
 			else
 				newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
-			break;
-		case SA_AMF_N_WAY_REDUNDANCY_MODEL:
-			if (si->saAmfSINumCurrActiveAssignments == 1 &&
-				si->saAmfSINumCurrStandbyAssignments == si->saAmfSIPrefStandbyAssignments)
-				newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
-			else
-				newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
-			break;
-		case SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL:
-			if (si->saAmfSINumCurrActiveAssignments == si->saAmfSIPrefActiveAssignments &&
-				si->saAmfSINumCurrStandbyAssignments == 0)
-				newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
-			else
-				newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
-			break;
-		case SA_AMF_NO_REDUNDANCY_MODEL:
-			if (si->saAmfSINumCurrActiveAssignments == 1 && si->saAmfSINumCurrStandbyAssignments == 0)
-				newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
-			else
-				newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
-			break;
-		default:
-			assert(0);
 		}
+
+		break;
+	case SA_AMF_N_WAY_REDUNDANCY_MODEL:
+		if (si->saAmfSINumCurrActiveAssignments == 0) {
+			newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
+		} else {
+			if (si->saAmfSINumCurrStandbyAssignments == si->saAmfSIPrefStandbyAssignments)
+				newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
+			else
+				newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
+		}
+		break;
+	case SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL:
+		if (si->saAmfSINumCurrActiveAssignments == 0) {
+			newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
+		} else {
+			assert(si->saAmfSINumCurrStandbyAssignments == 0);
+			assert(si->saAmfSINumCurrActiveAssignments <= si->saAmfSIPrefActiveAssignments);
+			if (si->saAmfSINumCurrActiveAssignments == si->saAmfSIPrefActiveAssignments)
+				newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
+			else
+				newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
+		}
+		break;
+	case SA_AMF_NO_REDUNDANCY_MODEL:
+		if (si->saAmfSINumCurrActiveAssignments == 0) {
+			newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
+		} else {
+			assert(si->saAmfSINumCurrActiveAssignments == 1);
+			assert(si->saAmfSINumCurrStandbyAssignments == 0);
+			newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
+		}
+		break;
+	default:
+		assert(0);
 	}
 
 	if (newState != si->saAmfSIAssignmentState) {
