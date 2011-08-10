@@ -1014,7 +1014,7 @@ static void si_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 static void si_update_ass_state(AVD_SI *si)
 {
 	SaAmfAssignmentStateT oldState = si->saAmfSIAssignmentState;
-	SaAmfAssignmentStateT newState;
+	SaAmfAssignmentStateT newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
 
 	/*                                                                                                  
         ** Note: for SA_AMF_2N_REDUNDANCY_MODEL, SA_AMF_NPM_REDUNDANCY_MODEL &
