@@ -61,6 +61,7 @@ static uns32 avsv_encode_ckpt_su_pres_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc
 static uns32 avsv_encode_ckpt_su_readiness_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uns32 avsv_encode_ckpt_su_act_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uns32 avsv_encode_ckpt_su_preinstan(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
+static uns32 avsv_encode_ckpt_su_restart_count(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uns32 avsv_encode_ckpt_si_su_curr_active(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uns32 avsv_encode_ckpt_si_su_curr_stby(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uns32 avsv_encode_ckpt_si_switch(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
@@ -162,7 +163,8 @@ const AVSV_ENCODE_CKPT_DATA_FUNC_PTR avsv_enc_ckpt_data_func_list[] = {
 	avsv_encode_ckpt_comp_readiness_state,
 	avsv_encode_ckpt_comp_pres_state,
 	avsv_encode_ckpt_comp_restart_count,
-	NULL			/* AVSV_SYNC_COMMIT */
+	NULL,			/* AVSV_SYNC_COMMIT */
+	avsv_encode_ckpt_su_restart_count
 };
 
 /*
@@ -1379,6 +1381,35 @@ static uns32 avsv_encode_ckpt_su_act_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc)
 	status = m_NCS_EDU_SEL_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_su, &enc->io_uba,
 		EDP_OP_TYPE_ENC, (AVD_SU *)(NCS_INT64_TO_PTR_CAST(enc->io_reo_hdl)),
 		&ederror, enc->i_peer_version, 2, 1, 13);
+
+	assert(status == NCSCC_RC_SUCCESS);
+
+	return status;
+}
+
+/****************************************************************************\
+ * Function: avsv_encode_ckpt_su_restart_count
+ *
+ * Purpose:  Encode SU Restart count.
+ *
+ * Input: cb - CB pointer.
+ *        enc - Encode arguments passed by MBCSV.
+ *
+ * Returns: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ *
+ * NOTES:
+ *
+ * 
+\**************************************************************************/
+static uint32_t avsv_encode_ckpt_su_restart_count(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc)
+{
+	uint32_t status = NCSCC_RC_SUCCESS;
+	EDU_ERR ederror = 0;
+
+	assert(NCS_MBCSV_ACT_UPDATE == enc->io_action);
+	status = m_NCS_EDU_SEL_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_su, &enc->io_uba,
+		EDP_OP_TYPE_ENC, (AVD_SU *)(NCS_INT64_TO_PTR_CAST(enc->io_reo_hdl)),
+		&ederror, enc->i_peer_version, 2, 1, 10);
 
 	assert(status == NCSCC_RC_SUCCESS);
 

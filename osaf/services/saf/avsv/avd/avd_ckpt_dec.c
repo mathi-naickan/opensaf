@@ -60,6 +60,7 @@ static uns32 avsv_decode_ckpt_su_pres_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec
 static uns32 avsv_decode_ckpt_su_readiness_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uns32 avsv_decode_ckpt_su_act_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uns32 avsv_decode_ckpt_su_preinstan(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
+static uns32 avsv_decode_ckpt_su_restart_count(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uns32 avsv_decode_ckpt_si_su_curr_active(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uns32 avsv_decode_ckpt_si_su_curr_stby(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uns32 avsv_decode_ckpt_si_switch(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
@@ -162,6 +163,7 @@ const AVSV_DECODE_CKPT_DATA_FUNC_PTR avsv_dec_ckpt_data_func_list[] = {
 	avsv_decode_ckpt_comp_pres_state,
 	avsv_decode_ckpt_comp_restart_count,
 	NULL,			/* AVSV_SYNC_COMMIT */
+	avsv_decode_ckpt_su_restart_count
 };
 
 /*
@@ -1779,6 +1781,51 @@ static uns32 avsv_decode_ckpt_su_act_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 
 	/* Update the fields received in this checkpoint message */
 	su_struct->su_act_state = su_ptr->su_act_state;
+
+	cb->async_updt_cnt.su_updt++;
+
+	return status;
+}
+
+/****************************************************************************\
+ * Function: avsv_decode_ckpt_su_restart_count
+ *
+ * Purpose:  Decode SU Restart count.
+ *
+ * Input: cb - CB pointer.
+ *        dec - Decode arguments passed by MBCSV.
+ *
+ * Returns: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ *
+ * NOTES:
+ *
+ * 
+\**************************************************************************/
+static uint32_t avsv_decode_ckpt_su_restart_count(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
+{
+	uint32_t status = NCSCC_RC_SUCCESS;
+	AVD_SU *su_ptr;
+	AVD_SU dec_su;
+	EDU_ERR ederror = 0;
+	AVD_SU *su_struct;
+
+	TRACE_ENTER();
+
+	su_ptr = &dec_su;
+
+	/* 
+	 * Action in this case is just to update.
+	 */
+	status = ncs_edu_exec(&cb->edu_hdl, avsv_edp_ckpt_msg_su,
+	      &dec->i_uba, EDP_OP_TYPE_DEC, (AVD_SU **)&su_ptr, &ederror, 2, 1, 10);
+
+	assert(status == NCSCC_RC_SUCCESS);
+
+	if (NULL == (su_struct = avd_su_get(&su_ptr->name)))
+		assert(0);
+
+	/* Update the fields received in this checkpoint message */
+	su_struct->saAmfSURestartCount = su_ptr->saAmfSURestartCount;
 
 	cb->async_updt_cnt.su_updt++;
 

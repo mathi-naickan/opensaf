@@ -266,6 +266,7 @@ uns32 avd_ckpt_su(AVD_CL_CB *cb, AVD_SU *ckpt_su, NCS_MBCSV_ACT_TYPE action)
 		su->term_state = ckpt_su->term_state;
 		su->su_switch = ckpt_su->su_switch;
 		su->su_act_state = ckpt_su->su_act_state;
+		su->saAmfSURestartCount = ckpt_su->saAmfSURestartCount;
 		break;
 	}
 	case NCS_MBCSV_ACT_RMV: {
@@ -547,6 +548,9 @@ uns32 avd_ckpt_comp(AVD_CL_CB *cb, AVD_COMP *ckpt_comp, NCS_MBCSV_ACT_TYPE actio
 		comp->saAmfCompOperState = ckpt_comp->saAmfCompOperState;
 		comp->saAmfCompPresenceState = ckpt_comp->saAmfCompPresenceState;
 		comp->saAmfCompRestartCount = ckpt_comp->saAmfCompRestartCount;
+		comp->saAmfCompReadinessState = ckpt_comp->saAmfCompReadinessState;
+		/* SaNameT struct copy */
+		comp->saAmfCompCurrProxyName = ckpt_comp->saAmfCompCurrProxyName;
 		break;
 	case NCS_MBCSV_ACT_RMV: {
 		if (NULL == (comp = avd_comp_get(dn))) {

@@ -747,7 +747,7 @@ void avd_su_admin_state_set(AVD_SU *su, SaAmfAdminStateT admin_state)
 	su->saAmfSUAdminState = admin_state;
 	avd_saImmOiRtObjectUpdate(&su->name,
 		"saAmfSUAdminState", SA_IMM_ATTR_SAUINT32T, &su->saAmfSUAdminState);
-	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, su, AVSV_CKPT_SU_OPER_STATE);
+	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, su, AVSV_CKPT_SU_ADMIN_STATE);
 	avd_send_admin_state_chg_ntf(&su->name, SA_AMF_NTFID_SU_ADMIN_STATE, old_state, su->saAmfSUAdminState);
 }
 
