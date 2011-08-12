@@ -723,6 +723,19 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 								    value_len);
 				}
 				break;
+			case saAmfSURestartCount_ID:
+				TRACE("su restart count");
+				if (n2d_msg->msg_info.n2d_data_req.param_info.value_len == sizeof(uint32_t)) {
+					l_val = ntohl(*((uint32_t *)&n2d_msg->msg_info.n2d_data_req.param_info.value[0]));
+					su->saAmfSURestartCount = l_val;
+					m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVSV_CKPT_SU_RESTART_COUNT);
+				}
+				else {
+					/* log error that a the  value len is invalid */
+					LOG_ER("%s:%u: %u", __FILE__, __LINE__, n2d_msg->msg_info.n2d_data_req.param_info.
+								    value_len);
+				}
+				break;
 			default:
 				/* log error that a the object value is invalid */
 				LOG_EM("%s:%u: %u", __FILE__, __LINE__, n2d_msg->msg_info.n2d_data_req.param_info.attr_id);
