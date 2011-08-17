@@ -797,6 +797,13 @@ static ClassInfo* verifyClassPBE(std::string classNameString,
 		&classCategory,
 		&attrDefinitions);
 
+	if(errorCode != SA_AIS_OK) {
+		TRACE_4("Failed to get class description for class %s from imm",
+			classNameString.c_str());
+		goto bailout;
+	}
+
+
 	for (SaImmAttrDefinitionT_2** p = attrDefinitions; *p != NULL; p++)
 	{
 	
