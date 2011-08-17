@@ -272,6 +272,9 @@ static uns32 avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role)
 		goto done;
 	}
 
+	if (avd_imm_config_get() != NCSCC_RC_SUCCESS)
+		goto done;
+
 	/* Time to send fail-over messages to all the AVND's */
 	avd_fail_over_event(cb);
 
@@ -285,9 +288,6 @@ static uns32 avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role)
 
 	/* We have successfully changed role to Active. */
 	cb->node_id_avd_other = 0;
-
-	if (avd_imm_config_get() != NCSCC_RC_SUCCESS)
-		goto done;
 
 	if (avd_imm_impl_set() != SA_AIS_OK)
 		goto done;
