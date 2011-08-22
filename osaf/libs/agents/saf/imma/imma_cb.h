@@ -101,8 +101,6 @@ typedef struct imma_continuation_record {
  *****************************************************************************/
 typedef struct imma_cb {
 	/* Identification Information about the IMMA */
-	uns32 process_id;
-	uns32 agent_handle_id;
 	uns32 imma_mds_hdl;
 	MDS_DEST imma_mds_dest;
 	NCSMDS_SVC_ID sv_id;
@@ -119,7 +117,6 @@ typedef struct imma_cb {
 
 	/* IMMA data */	/* Used for both OM and OI */
 	NCS_PATRICIA_TREE client_tree;	/* IMMA_CLIENT_NODE - node */
-	NCS_BOOL is_client_tree_up;
 
 	/* These trees could theoretically be moved into the client node 
 	   But the assumption is that the typical process has few connections

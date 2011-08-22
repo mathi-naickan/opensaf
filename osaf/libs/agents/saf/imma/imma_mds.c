@@ -98,8 +98,7 @@ uns32 imma_mds_register(IMMA_CB *cb)
 	svc_info.i_svc_id = cb->sv_id;
 	svc_info.i_op = MDS_INSTALL;
 
-	svc_info.info.svc_install.i_yr_svc_hdl =	/*(NCSCONTEXT) */
-	    cb->agent_handle_id;
+	svc_info.info.svc_install.i_yr_svc_hdl = 0;
 
 	/* node specific */
 	svc_info.info.svc_install.i_install_scope = NCSMDS_SCOPE_INTRANODE;

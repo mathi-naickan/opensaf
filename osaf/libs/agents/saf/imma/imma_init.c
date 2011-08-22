@@ -129,9 +129,6 @@ static uns32 imma_create(NCSMDS_SVC_ID sv_id)
 		LOG_NO("IMMA library initialize done pid:%u svid:%u file:%s", getpid(), sv_id, value);
 	}
 
-	/* get the process id */
-	cb->process_id = getpid();
-
 	/* initialize the imma cb lock */
 	if (m_NCS_LOCK_INIT(&cb->cb_lock) != NCSCC_RC_SUCCESS) {
 		TRACE_4("Failed to get cb lock");
@@ -207,6 +204,7 @@ static uns32 imma_create(NCSMDS_SVC_ID sv_id)
 ******************************************************************************/
 static uns32 imma_destroy(NCSMDS_SVC_ID sv_id)
 {
+	IMMA_CONTINUATION_RECORD *cont, *tmp;
 	IMMA_CB *cb = &imma_cb;
 	TRACE_ENTER();
 
@@ -222,6 +220,16 @@ static uns32 imma_destroy(NCSMDS_SVC_ID sv_id)
 
 	/* destroy the lock */
 	m_NCS_LOCK_DESTROY(&cb->cb_lock);
+
+	/* free possibly stored continuations */
+	for (cont = cb->imma_continuations; cont != NULL;) {
+		tmp = cont;
+		cont = tmp->next;
+		free(tmp);
+	}
+
+	/* and wipe what remains */
+	memset(cb, 0, sizeof(*cb));
 
 	return NCSCC_RC_SUCCESS;
 }
