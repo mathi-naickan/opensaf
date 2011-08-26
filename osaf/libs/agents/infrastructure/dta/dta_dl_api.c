@@ -207,6 +207,7 @@ uns32 dta_lib_destroy(void)
 	}
 
 	m_NCS_TASK_JOIN(dta_cb.task_handle);
+	m_NCS_TASK_RELEASE(dta_cb.task_handle);
 
 	return NCSCC_RC_SUCCESS;
 }
