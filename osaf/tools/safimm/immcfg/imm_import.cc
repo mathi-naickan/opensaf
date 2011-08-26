@@ -310,7 +310,6 @@ void setAdminOwnerHelper(ParserState* state, SaNameT *parentOfObject)
 
     // Store parent and dn of object in set
     state->adminOwnerSetSet.insert(tmpStr);
-    state->adminOwnerSetSet.insert(state->objectName);
 }
 
 
@@ -495,8 +494,9 @@ static void createImmObject(ParserState* state)
             LOG_ER("Failed to create the imm object %s, rc =  %d", state->objectName, errorCode);
             exit(1);
         }
+    } else {
+	state->adminOwnerSetSet.insert(state->objectName);
     }
-
 
     TRACE_8("CREATE DONE");
 
