@@ -1618,7 +1618,8 @@ uns32 eda_mds_msg_sync_send(EDA_CB *cb, EDSV_MSG *i_msg, EDSV_MSG **o_msg, uns32
 
 	/* Fill the send structure */
 	mds_info.info.svc_send.i_msg = (NCSCONTEXT)i_msg;
-	if (i_msg->info.api_info.type == EDSV_EDA_RETENTION_TIME_CLR)
+	if ((i_msg->info.api_info.type == EDSV_EDA_RETENTION_TIME_CLR) ||
+		(i_msg->info.api_info.type == EDSV_EDA_INITIALIZE))
 		mds_info.info.svc_send.i_priority = MDS_SEND_PRIORITY_MEDIUM;
 	else
 		mds_info.info.svc_send.i_priority = MDS_SEND_PRIORITY_HIGH;
