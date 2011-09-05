@@ -75,7 +75,7 @@ uns32 dtm_cb_init(DTM_INTERNODE_CB * dtms_cb)
 
 	nodeid_param.key_size = sizeof(uns32);
 	comm_socket_param.key_size = sizeof(uns32);
-	ipaddr_param.key_size = IPV6_ADDR_UNS8_CNT;
+	ipaddr_param.key_size = INET6_ADDRSTRLEN;
 
 	/* Initialize patricia tree for nodeid list */
 	if (NCSCC_RC_SUCCESS != ncs_patricia_tree_init(&dtms_cb->nodeid_tree, &nodeid_param)) {

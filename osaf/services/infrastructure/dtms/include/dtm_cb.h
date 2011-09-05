@@ -18,7 +18,6 @@
 #ifndef DTM_CB_H
 #define DTM_CB_H
 
-#define IPV6_ADDR_UNS8_CNT  16
 #define MAX_NAME_LENGTH 256
 #define MAX_PORT_LENGTH 256
 
@@ -40,7 +39,7 @@ typedef struct node_list {
 	uns16 cluster_id;
 	NODE_ID node_id;
 	char node_name[MAX_NAME_LENGTH];
-	char node_ip[IPV6_ADDR_UNS8_CNT];
+	char node_ip[INET6_ADDRSTRLEN];
 	int comm_socket;
 	NCS_PATRICIA_NODE pat_nodeid;
 	NCS_PATRICIA_NODE pat_comm_socket;

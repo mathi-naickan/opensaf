@@ -606,7 +606,6 @@ void node_discovery_process(void *arg)
 		/* Check to see if the 3 minute time out expired. */
 		/***********************************************************/
 		if (poll_ret == 0) {
-			TRACE("DTM : poll() timed out");
 			continue;
 		}
 

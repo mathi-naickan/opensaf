@@ -47,7 +47,7 @@ start() {
 	if_config=$(which ifconfig 2> /dev/null)
 	if [ $? -eq 0 ] ; then 
 		if [ -x ${if_config} ] ; then
-			$if_config | grep "inet addr:$DTM_NODE_IP" >/dev/null 2>&1
+			$if_config | grep -e "inet addr:$DTM_NODE_IP" -e "inet6 addr: $DTM_NODE_IP" >/dev/null 2>&1
 			if [ $? -ne 0 ] ; then
 				logger -s -t $prog "IP Address $DTM_NODE_IP doesnt match the available interfaces ip address(Invalid IP address)" 
 				logger -s -t $prog "Configure the DTM_NODE_IP variable with valid IP address in file $pkgsysconfdir/dtmd.conf" 

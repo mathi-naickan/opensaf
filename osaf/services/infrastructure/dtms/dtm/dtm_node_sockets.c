@@ -940,6 +940,9 @@ uns32 dtm_dgram_bcast_listener(DTM_INTERNODE_CB * dtms_cb)
 	for (; p; p = p->ai_next) {
 
 		TRACE("DTM :family : %d, socktype : %d, protocol :%d", p->ai_family, p->ai_socktype, p->ai_protocol);
+		if (dtms_cb->i_addr_family != p->ai_family) {
+			continue;
+		}
 
 		if ((dtms_cb->dgram_sock_rcvr = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) ==  SOCKET_ERROR()) {
 			LOG_ER("DTM:Socket creation failed (socket()) errno :%d", GET_LAST_ERROR());
@@ -1085,7 +1088,7 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uns8 *data, u
 	/* foreign_port = htons((in_port_t)(ncs_decode_16bit(&buffer))); */
 	foreign_port = ((in_port_t)(ncs_decode_16bit(&buffer)));
 	ip_addr_type = ncs_decode_8bit(&buffer);
-	memcpy(node.node_ip, buffer, IPV6_ADDR_UNS8_CNT);
+	memcpy(node.node_ip, buffer, INET6_ADDRSTRLEN);
 
 	if (initial_discovery_phase == TRUE) {
 		if (node.node_id < dtms_cb->node_id) {
@@ -1100,19 +1103,19 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uns8 *data, u
 
 	if (new_node != NULL) {
 		if (((new_node->node_id == 0) || (new_node->node_id == node.node_id)) &&
-		    (memcmp((uns8 *)(node.node_ip), (uns8 *)(new_node->node_ip), IPV6_ADDR_UNS8_CNT) == 0) &&
+		    (memcmp((uns8 *)(node.node_ip), (uns8 *)(new_node->node_ip), INET6_ADDRSTRLEN) == 0) &&
 		    (new_node->comm_status == FALSE)) {
 			TRACE("DTM:new_node  discovery in progress droping message");
 			TRACE_LEAVE2("sock_desc :%d", sock_desc);
 			return sock_desc;
 		} else if ((new_node->comm_status == TRUE) && (new_node->node_id == node.node_id) &&
-			   (memcmp((uns8 *)(node.node_ip), (uns8 *)(new_node->node_ip), IPV6_ADDR_UNS8_CNT) == 0)) {
+			   (memcmp((uns8 *)(node.node_ip), (uns8 *)(new_node->node_ip), INET6_ADDRSTRLEN) == 0)) {
 			TRACE("DTM:new_node node already discovered droping message");
 			TRACE_LEAVE2("sock_desc :%d", sock_desc);
 			return sock_desc;
 		} else if ((new_node->comm_status == FALSE) &&
 			   ((new_node->node_id != node.node_id) ||
-			    (memcmp((uns8 *)(node.node_ip), (uns8 *)(new_node->node_ip), IPV6_ADDR_UNS8_CNT) != 0))) {
+			    (memcmp((uns8 *)(node.node_ip), (uns8 *)(new_node->node_ip), INET6_ADDRSTRLEN) != 0))) {
 			TRACE("DTM:new_node deleting stale enty ");
 			if (dtm_node_delete(new_node, 0) != NCSCC_RC_SUCCESS) {
 				LOG_ER("DTM :dtm_node_delete failed (recv())");
@@ -1139,7 +1142,7 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uns8 *data, u
 
 	new_node->comm_socket = sock_desc;
 	new_node->node_id = node.node_id;
-	memcpy(new_node->node_ip, node.node_ip, IPV6_ADDR_UNS8_CNT);
+	memcpy(new_node->node_ip, node.node_ip, INET6_ADDRSTRLEN);
 
 	if (sock_desc != -1) {
 

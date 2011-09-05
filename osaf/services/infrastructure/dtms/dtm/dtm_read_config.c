@@ -472,16 +472,23 @@ int dtm_read_config(DTM_INTERNODE_CB * config, char *dtm_config_file)
 	/* Close file. */
 	fclose(dtm_conf_file);
 
-	/*************************************************************/
-	/* Set up validate the IP & sa_family stuff  */
-	/*************************************************************/
-	local_match_ip = dtm_validate_listening_ip_addr(config);
-	if (local_match_ip == NULL) {
-
-		LOG_ER
-		    ("DTM: ip_addr cannot match available network insterfaces with IPs of node specified in the dtm.conf file");
-		return -1;
-
+	if (strlen(config->ip_addr) > INET_ADDRSTRLEN ) {
+		if (strlen(config->ip_addr) > INET6_ADDRSTRLEN) {
+			LOG_ER("DTM:IPV6 address validation failed");
+			return -1;
+		}
+		config->i_addr_family = DTM_IP_ADDR_TYPE_IPV6;
+		TRACE("DTM: IPV6 IP address : %s  sa_family : %d \n",
+				config->ip_addr, config->i_addr_family);
+	} else {
+		/*************************************************************/
+		/* Set up validate the IP & sa_family stuff  */
+		/*************************************************************/
+		local_match_ip = dtm_validate_listening_ip_addr(config);
+		if (local_match_ip == NULL) {
+			LOG_ER("DTM: ip_addr cannot match available network interfaces with IPs of node specified in the dtm.conf file");
+			return -1;
+		}
 	}
 
 	/* Test so we have all mandatory fields */

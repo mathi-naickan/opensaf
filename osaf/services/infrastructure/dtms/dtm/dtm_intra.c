@@ -420,7 +420,6 @@ uns32 dtm_intranode_process_poll_rcv_msg_common(DTM_INTRANODE_PID_INFO *pid_node
 void dtm_intranode_process_poll_rcv_msg(int fd)
 {
 	DTM_INTRANODE_PID_INFO *node = NULL;
-	TRACE_ENTER();
 
 	node = dtm_intranode_get_pid_info_using_fd(fd);
 
@@ -568,7 +567,6 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 			assert(0);
 		}
 	}
-	TRACE_LEAVE();
 	return;
 }
 /**
