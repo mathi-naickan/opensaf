@@ -1047,7 +1047,7 @@ void mqa_queue_reader(NCSCONTEXT arg)
 	MQP_OPEN_RSP *openRsp = (MQP_OPEN_RSP *)arg;
 	SaMsgQueueHandleT queueHandle, listenerHandle;
 	NCS_OS_POSIX_MQ_REQ_INFO mq_req;
-	NCS_MQSV_MQ_MSG mq_msg;
+	NCS_OS_MQ_MSG mq_msg;
 	MQA_QUEUE_INFO *queue_node = NULL;
 	MQA_CB *mqa_cb;
 	MQP_ASYNC_RSP_MSG *mqa_callbk_info = NULL;
@@ -1089,7 +1089,7 @@ void mqa_queue_reader(NCSCONTEXT arg)
 
 	/*  wait indefinitely */
 	memset(&mq_req.info.recv.timeout, 0, sizeof(NCS_OS_POSIX_TIMESPEC));
-	mq_req.info.recv.i_msg = (NCS_OS_MQ_MSG *)&mq_msg;
+	mq_req.info.recv.i_msg = &mq_msg;
 	mq_req.info.recv.datalen = 1;
 	mq_req.info.recv.dataprio = 0;
 
