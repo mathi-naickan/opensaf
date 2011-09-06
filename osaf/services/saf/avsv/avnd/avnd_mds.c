@@ -1262,6 +1262,7 @@ uns32 avnd_mds_red_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_DEST *ad
 	else
 		m_AVND_LOG_MDS(AVSV_LOG_MDS_SEND, AVSV_LOG_MDS_SUCCESS, NCSFL_SEV_INFO);
 
+done:
 	return rc;
 }
 
@@ -1378,7 +1379,6 @@ uns32 avnd_mds_set_vdest_role(AVND_CB *cb, SaAmfHAStateT role)
 	if (ncsvda_api(&vda_info) != NCSCC_RC_SUCCESS) {
 		return NCSCC_RC_FAILURE;
 	}
-done:
 
 	return NCSCC_RC_SUCCESS;
 }
