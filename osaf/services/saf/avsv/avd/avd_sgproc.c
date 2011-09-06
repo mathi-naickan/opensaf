@@ -1245,8 +1245,9 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				su->su_on_node->admin_node_pend_cbk.invocation = 0;
 				su->su_on_node->admin_node_pend_cbk.admin_oper = 0;
 			} else if (n2d_msg->msg_info.n2d_su_si_assign.error != NCSCC_RC_SUCCESS) {
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
-								    SA_AIS_ERR_REPAIR_PENDING);
+				immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+					su->su_on_node->admin_node_pend_cbk.invocation,
+					SA_AIS_ERR_REPAIR_PENDING);
 				su->su_on_node->admin_node_pend_cbk.invocation = 0;
 				su->su_on_node->admin_node_pend_cbk.admin_oper = 0;
 				su->su_on_node->su_cnt_admin_oper = 0;
