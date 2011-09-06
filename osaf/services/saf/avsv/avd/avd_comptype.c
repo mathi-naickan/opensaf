@@ -182,27 +182,27 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	/* We do not support Proxy, Container and Contained as of now. */
 	if (IS_COMP_PROXY(category) || IS_COMP_CONTAINER(category)|| IS_COMP_CONTAINED(category)) {
 		LOG_ER("Unsupported saAmfCtCompCategory value '%u' for '%s'", category, dn->value);
-		return 0;	
+		return 0;
 	}
 
-	/*                                                                                                  
-        ** The saAmfCtDefClcCliTimeout attribute is "mandatory for all components except for
+	/*
+	** The saAmfCtDefClcCliTimeout attribute is "mandatory for all components except for
 	** external components"
-        */
-	if (!IS_COMP_LOCAL(category) &&
+	*/
+	if (IS_COMP_LOCAL(category) &&
 	    (immutil_getAttr("saAmfCtDefClcCliTimeout", attributes, 0, &time) != SA_AIS_OK)) {
 		LOG_ER("Required attribute saAmfCtDefClcCliTimeout not configured for '%s'", dn->value);
-		return 0;	
+		return 0;
 	}
 
-	/*                                                                                                  
-        ** The saAmfCtDefCallbackTimeout attribute "mandatory for all components except for
-	** non-proxied, non-SA-aware components"                                                                                                    
-        */
-	if (!IS_COMP_PROXIED(category) && !IS_COMP_SAAWARE(category) &&
+	/*
+	** The saAmfCtDefCallbackTimeout attribute "mandatory for all components except for
+	** non-proxied, non-SA-aware components"
+	*/
+	if ((IS_COMP_PROXIED(category) || IS_COMP_SAAWARE(category)) &&
 	    (immutil_getAttr("saAmfCtDefCallbackTimeout", attributes, 0, &time) != SA_AIS_OK)) {
 		LOG_ER("Required attribute saAmfCtDefCallbackTimeout not configured for '%s'", dn->value);
-		return 0;	
+		return 0;
 	}
 
 	/* 
@@ -213,12 +213,12 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 
 		if (immutil_getAttr("saAmfCtSwBundle", attributes, 0, &name) != SA_AIS_OK) {
 			LOG_ER("Required attribute saAmfCtSwBundle not configured for '%s'", dn->value);
-			return 0;	
+			return 0;
 		}
 
 		if (immutil_getStringAttr(attributes, "saAmfCtRelPathInstantiateCmd", 0) == NULL) {
 			LOG_ER("Required attribute saAmfCtRelPathInstantiateCmd not configured for '%s'", dn->value);
-			return 0;	
+			return 0;
 		}
 	}
 
@@ -229,7 +229,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	if (IS_COMP_LOCAL(category) && !(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category)) && !IS_COMP_SAAWARE(category) &&
 	    (immutil_getStringAttr(attributes, "saAmfCtRelPathTerminateCmd", 0) == NULL)) {
 		LOG_ER("Required attribute saAmfCtRelPathTerminateCmd not configured for '%s', cat=%x", dn->value, category);
-		return 0;	
+		return 0;
 	}
 
 	/*
@@ -239,7 +239,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	if (IS_COMP_LOCAL(category) && 
 	    (immutil_getStringAttr(attributes, "saAmfCtRelPathCleanupCmd", 0) == NULL)) {
 		LOG_ER("Required attribute saAmfCtRelPathCleanupCmd not configured for '%s'", dn->value);
-		return 0;	
+		return 0;
 	}
 
 	rc = immutil_getAttr("saAmfCtDefRecoveryOnError", attributes, 0, &uint32);
