@@ -1151,6 +1151,10 @@ uns32 avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_CTX
 	MDS_SEND_INFO *send_info = &mds_info.info.svc_send;
 	uns32 rc = NCSCC_RC_SUCCESS;
 
+	/* Don't send any messages if we are shutting down */
+	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN)
+		goto done;
+
 	/* populate the mds params */
 	memset(&mds_info, 0, sizeof(NCSMDS_INFO));
 
@@ -1189,6 +1193,7 @@ uns32 avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_CTX
 		resp->i_sender_dest = *dest;
 		resp->i_msg_ctxt = *mds_ctxt;
 	}
+done:
 
 	/* send the message */
 	rc = ncsmds_api(&mds_info);
@@ -1226,6 +1231,10 @@ uns32 avnd_mds_red_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_DEST *ad
 	MDS_SEND_INFO *send_info = &mds_info.info.svc_send;
 	MDS_SENDTYPE_RED_INFO *send = &send_info->info.red;
 	uns32 rc = NCSCC_RC_SUCCESS;
+
+	/* Don't send any messages if we are shutting down */
+	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN)
+		goto done;
 
 	/* populate the mds params */
 	memset(&mds_info, 0, sizeof(NCSMDS_INFO));
@@ -1369,6 +1378,7 @@ uns32 avnd_mds_set_vdest_role(AVND_CB *cb, SaAmfHAStateT role)
 	if (ncsvda_api(&vda_info) != NCSCC_RC_SUCCESS) {
 		return NCSCC_RC_FAILURE;
 	}
+done:
 
 	return NCSCC_RC_SUCCESS;
 }
