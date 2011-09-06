@@ -1906,6 +1906,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 {
 	AVD_SU *i_su;
 	AVD_COMP *i_comp;
+	AVD_SU_SI_REL *l_susi;
 
 	TRACE_ENTER();
 
@@ -1930,6 +1931,16 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 			i_su->pend_cbk.invocation = 0;
 			i_su->pend_cbk.admin_oper = 0;
 		}
+
+
+                /* Check if there was any admin operations going on SIs. */
+                for (l_susi = i_su->list_of_susi; l_susi != NULL; l_susi = l_susi->su_next) {
+                        if (l_susi->si->invocation != 0) {
+                                immutil_saImmOiAdminOperationResult(cb->immOiHandle, l_susi->si->invocation,
+                                                SA_AIS_ERR_TIMEOUT);
+                                l_susi->si->invocation = 0;
+                        }
+                }
 
 		i_comp = i_su->list_of_comp;
 		while (i_comp != NULL) {
@@ -2034,6 +2045,15 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 			i_su->pend_cbk.invocation = 0;
 			i_su->pend_cbk.admin_oper = 0;
 		}
+
+                /* Check if there was any admin operations going on SIs. */
+                for (l_susi = i_su->list_of_susi; l_susi != NULL; l_susi = l_susi->su_next) {
+                        if (l_susi->si->invocation != 0) {
+                                immutil_saImmOiAdminOperationResult(cb->immOiHandle, l_susi->si->invocation,
+                                                SA_AIS_ERR_TIMEOUT);
+                                l_susi->si->invocation = 0;
+                        }
+                }
 
 		i_comp = i_su->list_of_comp;
 		while (i_comp != NULL) {
