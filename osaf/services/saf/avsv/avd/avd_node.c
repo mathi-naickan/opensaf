@@ -963,11 +963,16 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 			su = su->avnd_list_su_next;
 		}		/* while(su != AVD_SU_NULL) */
 
-		if (is_assignments_done == true) {
-			/* node admin_state is temporarily set to new_admin_state as node->admin_state is used 
-			 * in the SI failover processing, It will be reset in the susi delete response processing
-			 */ 
+		if(invocation != 0) {
 			node_admin_state_set(node, new_admin_state);
+		} else {
+			if (is_assignments_done == true) {
+				/* In clm node adm operation, node admin_state is temporarily set to new_admin_state
+				 * as node->admin_state is used in the SI failover processing, It will be reset in 
+				 * the susi delete response processing
+				 */ 
+				node_admin_state_set(node, new_admin_state);
+			}
 		}
 
 		/* Now call the SG FSM for each of the SUs that have SI assignment. */
