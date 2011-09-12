@@ -1447,6 +1447,7 @@ uns32 avnd_su_pres_insting_compinstfail_hdler(AVND_CB *cb, AVND_SU *su, AVND_COM
 					goto done;
 			}
 		}		/* for */
+		m_AVND_SU_ALL_TERM_SET(su);
 	}
 
  done:
@@ -2200,6 +2201,7 @@ uns32 avnd_su_pres_inst_compinstfail_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *
 					goto done;
 			}
 		}		/* for */
+		m_AVND_SU_ALL_TERM_SET(su);
 	}
 
  done:
