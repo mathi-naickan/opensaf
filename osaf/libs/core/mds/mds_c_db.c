@@ -1339,7 +1339,8 @@ uns32 mds_subtn_tbl_get_details(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, N
 /*********************************************************
   Function NAME: mds_subtn_tbl_get_ref_hdl
 *********************************************************/
-uns32 mds_subtn_tbl_get_ref_hdl(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, MDS_SUBTN_REF_VAL *subscr_ref_hdl)
+uns32 mds_subtn_tbl_get_ref_hdl(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id,
+		 MDS_SUBTN_REF_VAL *subscr_ref_hdl, NCSMDS_SCOPE_TYPE *scope)
 {
 
 	MDS_SVC_INFO *svc_info;
@@ -1359,6 +1360,7 @@ uns32 mds_subtn_tbl_get_ref_hdl(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, M
 	while (temp_subtn_info != NULL) {
 		if (temp_subtn_info->sub_svc_id == subscr_svc_id) {
 			*subscr_ref_hdl = temp_subtn_info->subscr_req_hdl;
+			*scope = temp_subtn_info->scope;
 			m_MDS_LOG_DBG("MCM_DB : Leaving : S : mds_subtn_tbl_get_ref_hdl");
 			return NCSCC_RC_SUCCESS;
 		}

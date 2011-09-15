@@ -157,11 +157,12 @@ uns32 mds_mdtm_svc_uninstall_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SC
 				  MDS_SVC_PVT_SUB_PART_VER mds_svc_pvt_ver);
 uns32 mds_mdtm_svc_subscribe_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCOPE_TYPE install_scope,
 				  MDS_SVC_HDL svc_hdl, MDS_SUBTN_REF_VAL *subtn_ref_val);
-uns32 mds_mdtm_svc_unsubscribe_tipc(MDS_SUBTN_REF_VAL subtn_ref_val);
+uns32 mds_mdtm_svc_unsubscribe_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id,
+			 NCSMDS_SCOPE_TYPE install_scope, MDS_SUBTN_REF_VAL subtn_ref_val);
 uns32 mds_mdtm_vdest_install_tipc(MDS_VDEST_ID vdest_id);
 uns32 mds_mdtm_vdest_uninstall_tipc(MDS_VDEST_ID vdest_id);
 uns32 mds_mdtm_vdest_subscribe_tipc(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL *subtn_ref_val);
-uns32 mds_mdtm_vdest_unsubscribe_tipc(MDS_SUBTN_REF_VAL subtn_ref_val);
+uns32 mds_mdtm_vdest_unsubscribe_tipc(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL subtn_ref_val);
 uns32 mds_mdtm_tx_hdl_register_tipc(MDS_DEST adest);
 uns32 mds_mdtm_tx_hdl_unregister_tipc(MDS_DEST adest);
 
@@ -661,14 +662,20 @@ static uns32 mdtm_process_recv_events(void)
 							       NTOHL(event.s.seq.type), NTOHL(event.found_lower),
 							       NTOHL(event.found_upper), NTOHL(event.port.node), NTOHL(event.port.ref));
 
-						mdtm_process_discovery_events(TIPC_PUBLISHED, event);
+						if ( NCSCC_RC_SUCCESS != mdtm_process_discovery_events(TIPC_PUBLISHED, 
+									event)) {
+							m_MDS_LOG_INFO("MDTM: Published Event processing status: F");
+						}
 					} else if (NTOHL(event.event) == TIPC_WITHDRAWN) {
 						m_MDS_LOG_INFO("MDTM: Withdrawn: ");
 						m_MDS_LOG_INFO("MDTM:  <%u,%u,%u> port id <0x%08x:%u>\n",
 							       NTOHL(event.s.seq.type), NTOHL(event.found_lower),
 							       NTOHL(event.found_upper), NTOHL(event.port.node), NTOHL(event.port.ref));
 
-						mdtm_process_discovery_events(TIPC_WITHDRAWN, event);
+						if ( NCSCC_RC_SUCCESS != mdtm_process_discovery_events(TIPC_WITHDRAWN, 
+									event)) {
+							m_MDS_LOG_INFO("MDTM: Withdrawn event processing status: F");
+						}
 					} else if (NTOHL(event.event) == TIPC_SUBSCR_TIMEOUT) {
 						/* As the timeout passed in infinite, No need to check for the Timeout */
 						m_MDS_LOG_ERR("MDTM: Timeou Event");
@@ -2371,6 +2378,24 @@ uns32 mds_mdtm_node_subscribe_tipc(MDS_SVC_HDL svc_hdl, MDS_SUBTN_REF_VAL *subtn
 uns32 mds_mdtm_node_unsubscribe_tipc(MDS_SUBTN_REF_VAL subtn_ref_val)
 
 {
+#ifdef TIPC_SUB_CANCEL
+	struct tipc_subscr net_subscr;
+
+	memset(&net_subscr, 0, sizeof(net_subscr));
+	net_subscr.seq.type = HTONL(0);
+	net_subscr.seq.lower = HTONL(0);
+	net_subscr.seq.upper = HTONL(~0);
+	net_subscr.timeout = HTONL(FOREVER);
+	net_subscr.filter = HTONL(TIPC_SUB_CANCEL | TIPC_SUB_PORTS);
+	*((uint64_t *)net_subscr.usr_handle) = subtn_ref_val;
+
+	if (send(tipc_cb.Dsock, &net_subscr, sizeof(net_subscr), 0) != sizeof(net_subscr)) {
+		perror("failed to send network subscription");
+		m_MDS_LOG_ERR("MDTM: NODE-UNSUBSCRIBE Failure\n");
+		return NCSCC_RC_FAILURE;
+	}
+	--num_subscriptions;
+#endif
 	m_MDS_LOG_INFO("MDTM: In mds_mdtm_node_unsubscribe_tipc\n");
 	/* Presently TIPC doesnt supports the unsubscribe */
 	mdtm_del_from_ref_tbl(subtn_ref_val);
@@ -2503,12 +2528,35 @@ static uns32 mdtm_del_from_ref_tbl(MDS_SUBTN_REF_VAL ref)
             2 - NCSCC_RC_FAILURE
 
 *********************************************************/
-uns32 mds_mdtm_svc_unsubscribe_tipc(MDS_SUBTN_REF_VAL subtn_ref_val)
+uns32 mds_mdtm_svc_unsubscribe_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, 
+		NCSMDS_SCOPE_TYPE install_scope, MDS_SUBTN_REF_VAL subtn_ref_val)
 {
 	/*
 	   STEP 1: Get ref_val and call the TIPC unsubscribe with the ref_val
 	 */
 
+#ifdef TIPC_SUB_CANCEL
+	uns32 server_type = 0;
+	struct tipc_subscr subscr;
+	pwe_id = pwe_id << MDS_EVENT_SHIFT_FOR_PWE;
+	svc_id = svc_id & MDS_EVENT_MASK_FOR_SVCID;
+ 
+	server_type = server_type | MDS_TIPC_PREFIX | MDS_SVC_INST_TYPE | pwe_id | svc_id;
+
+	memset(&subscr, 0, sizeof(subscr));
+	subscr.seq.type = HTONL(server_type);
+	subscr.seq.lower = HTONL(0x00000000);
+	subscr.seq.upper = HTONL(0xffffffff);
+	subscr.timeout = HTONL(FOREVER);
+	subscr.filter = HTONL(TIPC_SUB_CANCEL | TIPC_SUB_PORTS);
+	*((uint64_t *)subscr.usr_handle) = subtn_ref_val;
+
+	if (send(tipc_cb.Dsock, &subscr, sizeof(subscr), 0) != sizeof(subscr)) {
+		m_MDS_LOG_ERR("MDTM: SVC-UNSUBSCRIBE Failure\n");
+		return NCSCC_RC_FAILURE;
+	}
+	--num_subscriptions;
+#endif
 	mdtm_del_from_ref_tbl(subtn_ref_val);
 
 	/* Presently 1.5 doesnt supports the unsubscribe */
@@ -2684,13 +2732,33 @@ uns32 mds_mdtm_vdest_subscribe_tipc(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL *su
 
 *********************************************************/
 
-uns32 mds_mdtm_vdest_unsubscribe_tipc(MDS_SUBTN_REF_VAL subtn_ref_val)
+uns32 mds_mdtm_vdest_unsubscribe_tipc(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL subtn_ref_val)
 {
 	/*
 	   STEP 1: Get ref_val and call the TIPC unsubscribe with the ref_val
 	 */
 	/* Fix me, Presently unsupported */
 	/* Presently 1.5 doesnt supports the unsubscribe */
+#ifdef TIPC_SUB_CANCEL
+	uns32 inst = 0, server_type = 0;
+	struct tipc_subscr subscr;
+
+	server_type = server_type | MDS_TIPC_PREFIX | MDS_VDEST_INST_TYPE;
+	inst |= vdest_id;
+	memset(&subscr, 0, sizeof(subscr));
+	subscr.seq.type = HTONL(server_type);
+	subscr.seq.lower = HTONL(inst);
+	subscr.seq.upper = HTONL(inst);
+	subscr.timeout = HTONL(FOREVER);
+	subscr.filter = HTONL(TIPC_SUB_CANCEL | TIPC_SUB_PORTS);
+	*((uint64_t *)subscr.usr_handle) = subtn_ref_val;
+
+	if (send(tipc_cb.Dsock, &subscr, sizeof(subscr), 0) != sizeof(subscr)) {
+		m_MDS_LOG_ERR("MDTM: VDEST-UNSUBSCRIBE Failure\n");
+		return NCSCC_RC_FAILURE;
+	}
+	--num_subscriptions;
+#endif
 	m_MDS_LOG_INFO("MDTM: VDEST-UNSUBSCRIBE Success\n");
 
 	return NCSCC_RC_SUCCESS;

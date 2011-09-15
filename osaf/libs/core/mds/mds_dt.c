@@ -101,13 +101,14 @@ uns32 mds_mdtm_svc_subscribe(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCOPE_T
 
 *********************************************************/
 /* Unsubscribing to services */
-uns32 mds_mdtm_svc_unsubscribe(MDS_SUBTN_REF_VAL subtn_ref_val)
+uns32 mds_mdtm_svc_unsubscribe(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, 
+		NCSMDS_SCOPE_TYPE install_scope, MDS_SUBTN_REF_VAL subtn_ref_val)
 {
 	/* We will need to subscribe on all domains.
 	   Not just over TIPC
 	 */
 #if MDS_OVER_TIPC
-	return mds_mdtm_svc_unsubscribe_tipc(subtn_ref_val);
+	return mds_mdtm_svc_unsubscribe_tipc(pwe_id, svc_id, install_scope, subtn_ref_val);
 #endif
 }
 
@@ -231,10 +232,10 @@ uns32 mds_mdtm_vdest_subscribe(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL *subtn_r
             2 - NCSCC_RC_FAILURE
 
 *********************************************************/
-uns32 mds_mdtm_vdest_unsubscribe(MDS_SUBTN_REF_VAL subtn_ref_val)
+uns32 mds_mdtm_vdest_unsubscribe(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL subtn_ref_val)
 {
 #if MDS_OVER_TIPC
-	return mds_mdtm_vdest_unsubscribe_tipc(subtn_ref_val);
+	return mds_mdtm_vdest_unsubscribe_tipc(vdest_id, subtn_ref_val);
 #endif
 }
 
