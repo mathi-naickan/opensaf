@@ -192,7 +192,7 @@ uns32 mds_mcm_vdest_destroy(NCSMDS_ADMOP_INFO *info)
 
 	if (local_vdest_policy == NCS_VDEST_TYPE_MxN) {
 		/* Unsubscribe for this vdest */
-		status = mds_mdtm_vdest_unsubscribe(subtn_ref_val);
+		status = mds_mdtm_vdest_unsubscribe(local_vdest_id, subtn_ref_val);
 		if (status != NCSCC_RC_SUCCESS) {
 			/* VDEST Unsubscription Failed */
 			m_MDS_LOG_ERR
@@ -1224,15 +1224,16 @@ uns32 mds_mcm_svc_unsubscribe(NCSMDS_INFO *info)
 	}
 
 	for (i = 0; i < info->info.svc_cancel.i_num_svcs; i++) {
+		NCSMDS_SCOPE_TYPE scope = NCSMDS_SCOPE_INTRAPCON;
 
-		status = NCSCC_RC_SUCCESS;
-		status = mds_subtn_tbl_get_ref_hdl(svc_hdl, info->info.svc_cancel.i_svc_ids[i], &subscr_req_hdl);
+		status = mds_subtn_tbl_get_ref_hdl(svc_hdl, info->info.svc_cancel.i_svc_ids[i], &subscr_req_hdl, &scope);
 		if (status == NCSCC_RC_FAILURE) {
 			/* Not able to get subtn ref hdl */
 		} else {
 			/* STEP 3: Call mcm_mdtm_unsubscribe(subtn_hdl) */
 			/* Inform MDTM about unsubscription */
-			mds_mdtm_svc_unsubscribe(subscr_req_hdl);
+			mds_mdtm_svc_unsubscribe(m_MDS_GET_PWE_ID_FROM_PWE_HDL((MDS_PWE_HDL)(info->i_mds_hdl)),  
+					info->info.svc_cancel.i_svc_ids[i], scope, subscr_req_hdl);
 		}
 
 		/* Delete all MDTM entries */

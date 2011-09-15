@@ -140,11 +140,11 @@ uns32 mds_mdtm_svc_uninstall_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCO
 				 MDS_SVC_PVT_SUB_PART_VER mds_svc_pvt_ver);
 uns32 mds_mdtm_svc_subscribe_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCOPE_TYPE install_scope,
 				 MDS_SVC_HDL svc_hdl, MDS_SUBTN_REF_VAL *subtn_ref_val);
-uns32 mds_mdtm_svc_unsubscribe_tcp(MDS_SUBTN_REF_VAL subtn_ref_val);
+uns32 mds_mdtm_svc_unsubscribe_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCOPE_TYPE install_scope, MDS_SUBTN_REF_VAL subtn_ref_val);
 uns32 mds_mdtm_vdest_install_tcp(MDS_VDEST_ID vdest_id);
 uns32 mds_mdtm_vdest_uninstall_tcp(MDS_VDEST_ID vdest_id);
 uns32 mds_mdtm_vdest_subscribe_tcp(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL *subtn_ref_val);
-uns32 mds_mdtm_vdest_unsubscribe_tcp(MDS_SUBTN_REF_VAL subtn_ref_val);
+uns32 mds_mdtm_vdest_unsubscribe_tcp(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL subtn_ref_val);
 uns32 mds_mdtm_tx_hdl_register_tcp(MDS_DEST adest);
 uns32 mds_mdtm_tx_hdl_unregister_tcp(MDS_DEST adest);
 

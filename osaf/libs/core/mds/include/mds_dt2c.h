@@ -343,7 +343,7 @@ uns32 (*mds_mdtm_svc_subscribe) (PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCO
 
 /*  added svc_hdl */
 /* SVC Unsubscribe */
-uns32 (*mds_mdtm_svc_unsubscribe) (MDS_SUBTN_REF_VAL subtn_ref_val);
+uns32 (*mds_mdtm_svc_unsubscribe) (PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCOPE_TYPE subscribe_scope, MDS_SUBTN_REF_VAL subtn_ref_val);
 
 /* VDEST Install */
 uns32 (*mds_mdtm_vdest_install) (MDS_VDEST_ID vdest_id);
@@ -355,7 +355,7 @@ uns32 (*mds_mdtm_vdest_uninstall) (MDS_VDEST_ID vdest_id);
 uns32 (*mds_mdtm_vdest_subscribe) (MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL *subtn_ref_val);
 
 /* VDEST Unsubscribe */
-uns32 (*mds_mdtm_vdest_unsubscribe) (MDS_SUBTN_REF_VAL subtn_ref_val);
+uns32 (*mds_mdtm_vdest_unsubscribe) (MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL subtn_ref_val);
 
 /* Tx Register (For incrementing the use count) */
 uns32 (*mds_mdtm_tx_hdl_register) (MDS_DEST adest);

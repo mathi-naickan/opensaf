@@ -398,7 +398,7 @@ extern uns32 mds_subtn_tbl_get_details(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_sv
 				       NCSMDS_SCOPE_TYPE *scope, MDS_VIEW *view);
 
 extern uns32 mds_subtn_tbl_get_ref_hdl(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id,
-				       MDS_SUBTN_REF_VAL *subscr_ref_hdl);
+				       MDS_SUBTN_REF_VAL *subscr_ref_hdl, NCSMDS_SCOPE_TYPE *scope);
 
 /* BLOCK SEND REQ TABLE Operations */
 

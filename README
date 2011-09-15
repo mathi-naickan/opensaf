@@ -248,7 +248,10 @@ Prerequisites
 
 The following software is required to build `OpenSAF 4.0':
 
-    * The Linux Kernel with TIPC development support (This is not required when the opensaf is build with option --disable-tipc)
+    * The Linux Kernel with TIPC development support (This is not required when the opensaf is 
+	build with option --disable-tipc). OpenSAF works with TIPC version 1.5 onwards. But it 
+	is adviced to use TIPC 1.6.2 and above, to get the TIPC service unsubscribe 
+	feature(Cancellation to a Subscription). 
     * An HPI implementation (e.g. OpenHPI), when PLM is enabled.
     * Libxml2
     * automake
