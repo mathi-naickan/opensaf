@@ -1522,7 +1522,6 @@ uns32 immnd_proc_server(uns32 *timeout)
 					immnd_ackToNid(rc);
 				}
 			} else if (immModel_getLoader(cb) == 0) {	/*Success in loading */
-				immnd_adjustEpoch(cb, SA_TRUE);
 				cb->mState = IMM_SERVER_READY;
 				immnd_ackToNid(NCSCC_RC_SUCCESS);
 				LOG_NO("SERVER STATE: IMM_SERVER_LOADING_SERVER --> IMM_SERVER_READY");
@@ -1569,7 +1568,6 @@ uns32 immnd_proc_server(uns32 *timeout)
 			immnd_ackToNid(rc);
 		}
 		if (immModel_getLoader(cb) == 0) {
-			immnd_adjustEpoch(cb, SA_TRUE);
 			immnd_ackToNid(NCSCC_RC_SUCCESS);
 			cb->mState = IMM_SERVER_READY;
 			LOG_NO("SERVER STATE: IMM_SERVER_LOADING_CLIENT --> IMM_SERVER_READY");

@@ -5620,7 +5620,7 @@ static uns32 immnd_evt_proc_dump_ok(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INF
 /****************************************************************************
  * Name          : immnd_evt_proc_abort_sync
  *
- * Description   : Function to process start sync message
+ * Description   : Function to process abort sync message
  *
  * Arguments     : IMMND_CB *cb - IMMND CB pointer
  *                 IMMSV_EVT *evt - Received Event structure
@@ -6555,6 +6555,9 @@ static void immnd_evt_proc_admo_finalize(IMMND_CB *cb,
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
+	SaBoolT wasLoading = 
+		((cb->mState == IMM_SERVER_LOADING_CLIENT) || (cb->mState == IMM_SERVER_LOADING_SERVER)) &&
+		immModel_getLoader(cb);
 
 	/* TODO: ABT should really remove any open ccbs owned by this admowner.
 	   Currently this cleanup is left for the closure of the imm-handle or
@@ -6563,6 +6566,11 @@ static void immnd_evt_proc_admo_finalize(IMMND_CB *cb,
 
 	assert(evt);
 	err = immModel_adminOwnerDelete(cb, evt->info.admFinReq.adm_owner_id, 0);
+
+	if(wasLoading && (immModel_getLoader(cb) == 0)) {
+		TRACE("Adjusting epoch directly after loading has completed");
+		immnd_adjustEpoch(cb, SA_TRUE); /* Moved to here from immnd_proc.c #1987 */
+	}
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
