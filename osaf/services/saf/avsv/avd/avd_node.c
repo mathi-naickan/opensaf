@@ -1290,12 +1290,29 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 
 void avd_node_add_su(AVD_SU *su)
 {
+	AVD_SU *i_su;
+	AVD_SU *prev_su = NULL;
+
 	if (strstr((char *)su->name.value, "safApp=OpenSAF") != NULL) {
-		su->avnd_list_su_next = su->su_on_node->list_of_ncs_su;
-		su->su_on_node->list_of_ncs_su = su;
+		i_su = su->su_on_node->list_of_ncs_su;
 	} else {
-		su->avnd_list_su_next = su->su_on_node->list_of_su;
-		su->su_on_node->list_of_su = su;
+		i_su = su->su_on_node->list_of_su;
+	}
+
+	for(;(i_su != NULL && i_su->saAmfSURank < su->saAmfSURank);i_su = i_su->avnd_list_su_next)
+		prev_su = i_su;
+
+	if (prev_su == NULL) {
+		if (strstr((char *)su->name.value, "safApp=OpenSAF") != NULL) {
+			su->avnd_list_su_next = su->su_on_node->list_of_ncs_su;
+			su->su_on_node->list_of_ncs_su = su;
+		} else {
+			su->avnd_list_su_next = su->su_on_node->list_of_su;
+			su->su_on_node->list_of_su = su;
+		}
+	} else {
+		prev_su->avnd_list_su_next = su;
+		su->avnd_list_su_next = i_su;
 	}
 }
 
