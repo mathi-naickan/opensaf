@@ -245,8 +245,16 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	rc = immutil_getAttr("saAmfCtDefRecoveryOnError", attributes, 0, &uint32);
 	assert(rc == SA_AIS_OK);
 
-	if (uint32 > SA_AMF_CONTAINER_RESTART) {
-		LOG_ER("Wrong saAmfCtDefRecoveryOnError value '%u'", uint32);
+	if ((uint32 <= SA_AMF_NO_RECOMMENDATION) || (uint32 > SA_AMF_NODE_FAILFAST)) {
+		LOG_ER("Illegal/unsupported saAmfCtDefRecoveryOnError value %u for '%s'",
+			   uint32, dn->value);
+		return 0;
+	}
+
+	rc = immutil_getAttr("saAmfCtDefDisableRestart", attributes, 0, &uint32);
+	if ((rc == SA_AIS_OK) && (uint32 > SA_TRUE)) {
+		LOG_ER("Illegal saAmfCtDefDisableRestart value %u for '%s'",
+			   uint32, dn->value);
 		return 0;
 	}
 
