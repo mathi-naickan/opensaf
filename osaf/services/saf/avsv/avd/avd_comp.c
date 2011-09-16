@@ -501,6 +501,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	SaAisErrorT rc;
 	SaNameT aname;
 	char *parent;
+	SaUint32T uint32;
 
 	if ((parent = strchr((char*)dn->value, ',')) == NULL) {
 		LOG_ER("No parent to '%s' ", dn->value);
@@ -527,6 +528,22 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 			return 0;
 		}
 	}
+
+	rc = immutil_getAttr("saAmfCompRecoveryOnError", attributes, 0, &uint32);
+	if ((rc == SA_AIS_OK) &&
+		((uint32 <= SA_AMF_NO_RECOMMENDATION) || (uint32 > SA_AMF_NODE_FAILFAST))) {
+		LOG_ER("Illegal/unsupported saAmfCompRecoveryOnError value %u for '%s'",
+			   uint32, dn->value);
+		return 0;
+	}
+
+	rc = immutil_getAttr("saAmfCompDisableRestart", attributes, 0, &uint32);
+	if ((rc == SA_AIS_OK) && (uint32 > SA_TRUE)) {
+		LOG_ER("Illegal saAmfCompDisableRestart value %u for '%s'",
+			   uint32, dn->value);
+		return 0;
+	}
+
 #if 0
 	if ((comp->comp_info.category == AVSV_COMP_TYPE_SA_AWARE) && (comp->comp_info.init_len == 0)) {
 		LOG_ER("Sa Aware Component: instantiation command not configured");
