@@ -35,6 +35,9 @@ OPENSAF_MANAGE_TIPC="yes"
 RETVAL=0
 TERMTIMEOUT=60
 
+nodetype=$(cat $pkgsysconfdir/node_type)
+nodeinitdotconf=$pkgsysconfdir/nodeinit.conf.$nodetype
+
 unload_tipc() {
 	# FIXME: Once tipc scripts are cleaned
 	pkill -9 nid_tipc*
@@ -170,23 +173,23 @@ check_transport() {
 	if [ "$MDS_TRANSPORT" = "TIPC" ] ; then
 		# Transport TIPC
 		check_tipc
-		sed -i 's/#*\(.*nid_tipc*\)/\1/gI' $pkgsysconfdir/nodeinit.conf 
+		sed -i 's/#*\(.*nid_tipc*\)/\1/gI' $nodeinitdotconf
 		#Now comment the line in the nodeinit.conf for TIPC
-		grep "osaf-dtm:DTM" $pkgsysconfdir/nodeinit.conf | grep "#" > /dev/null
+		grep "osaf-dtm:DTM" $nodeinitdotconf | grep "#" > /dev/null
 		ret_val=$?
 		if [ $ret_val -ne 0 ] ; then
 			#comment the line 
-		 	sed -i 's/\(.*osaf-dtm:DTM*\)/#\1/gI'  $pkgsysconfdir/nodeinit.conf 	
+		 	sed -i 's/\(.*osaf-dtm:DTM*\)/#\1/gI' $nodeinitdotconf
 		fi
 	else
 		# Transport TCP 
 		#Now comment the line in the nodeinit.conf for TCP
-		sed -i 's/#*\(.*osaf-dtm:DTM*\)/\1/gI' $pkgsysconfdir/nodeinit.conf 
-		grep "nid_tipc" $pkgsysconfdir/nodeinit.conf | grep "#" > /dev/null
+		sed -i 's/#*\(.*osaf-dtm:DTM*\)/\1/gI' $nodeinitdotconf
+		grep "nid_tipc" $nodeinitdotconf | grep "#" > /dev/null
 		ret_val=$?
 		if [ $ret_val -ne 0 ] ; then
 			#comment the line 
-		 	sed -i 's/\(.*nid_tipc*\)/#\1/gI'  $pkgsysconfdir/nodeinit.conf 	
+		 	sed -i 's/\(.*nid_tipc*\)/#\1/gI' $nodeinitdotconf
 		fi
 		generate_nodeid
 	fi
