@@ -151,6 +151,12 @@ static AVD_COMP_TYPE *comptype_create(const SaNameT *dn, const SaImmAttrValuesT_
 	error = immutil_getAttr("saAmfCtDefRecoveryOnError", attributes, 0, &compt->saAmfCtDefRecoveryOnError);
 	assert(error == SA_AIS_OK);
 
+	if (compt->saAmfCtDefRecoveryOnError == SA_AMF_NO_RECOMMENDATION) {
+		compt->saAmfCtDefRecoveryOnError = SA_AMF_COMPONENT_FAILOVER;
+		LOG_NO("COMPONENT_FAILOVER(%u) used instead of NO_RECOMMENDATION(%u) for '%s'",
+			   SA_AMF_COMPONENT_FAILOVER, SA_AMF_NO_RECOMMENDATION, dn->value);
+	}
+
 	(void)immutil_getAttr("saAmfCtDefDisableRestart", attributes, 0, &compt->saAmfCtDefDisableRestart);
 
 	return compt;
@@ -159,7 +165,7 @@ static AVD_COMP_TYPE *comptype_create(const SaNameT *dn, const SaImmAttrValuesT_
 static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attributes, CcbUtilOperationData_t *opdata)
 {
 	SaUint32T category;
-	SaUint32T uint32;
+	SaUint32T value;
 	char *parent;
 	SaNameT name;
 	SaTimeT time;
@@ -242,19 +248,23 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 		return 0;
 	}
 
-	rc = immutil_getAttr("saAmfCtDefRecoveryOnError", attributes, 0, &uint32);
+	rc = immutil_getAttr("saAmfCtDefRecoveryOnError", attributes, 0, &value);
 	assert(rc == SA_AIS_OK);
 
-	if ((uint32 <= SA_AMF_NO_RECOMMENDATION) || (uint32 > SA_AMF_NODE_FAILFAST)) {
+	if ((value < SA_AMF_NO_RECOMMENDATION) || (value > SA_AMF_NODE_FAILFAST)) {
 		LOG_ER("Illegal/unsupported saAmfCtDefRecoveryOnError value %u for '%s'",
-			   uint32, dn->value);
+			   value, dn->value);
 		return 0;
 	}
 
-	rc = immutil_getAttr("saAmfCtDefDisableRestart", attributes, 0, &uint32);
-	if ((rc == SA_AIS_OK) && (uint32 > SA_TRUE)) {
+	if (value == SA_AMF_NO_RECOMMENDATION)
+		LOG_NO("Invalid configuration, saAmfCtDefRecoveryOnError=NO_RECOMMENDATION(%u) for '%s'",
+			   value, dn->value);
+
+	rc = immutil_getAttr("saAmfCtDefDisableRestart", attributes, 0, &value);
+	if ((rc == SA_AIS_OK) && (value > SA_TRUE)) {
 		LOG_ER("Illegal saAmfCtDefDisableRestart value %u for '%s'",
-			   uint32, dn->value);
+			   value, dn->value);
 		return 0;
 	}
 
