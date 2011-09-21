@@ -1065,6 +1065,12 @@ static amf_comp_type_t *avnd_comptype_create(const SaNameT *dn)
 	if (immutil_getAttr("saAmfCtDefRecoveryOnError", attributes, 0, &compt->saAmfCtDefRecoveryOnError) != SA_AIS_OK)
 		assert(0);
 
+	if (compt->saAmfCtDefRecoveryOnError == SA_AMF_NO_RECOMMENDATION) {
+		compt->saAmfCtDefRecoveryOnError = SA_AMF_COMPONENT_FAILOVER;
+		LOG_NO("COMPONENT_FAILOVER(%u) used instead of NO_RECOMMENDATION(%u) for '%s'",
+			   SA_AMF_COMPONENT_FAILOVER, SA_AMF_NO_RECOMMENDATION, dn->value);
+	}
+
 	if (immutil_getAttr("saAmfCtDefDisableRestart", attributes, 0, &compt->saAmfCtDefDisableRestart) != SA_AIS_OK)
 		compt->saAmfCtDefDisableRestart = SA_FALSE;
 
@@ -1387,6 +1393,13 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes,
 
 	if (immutil_getAttr("saAmfCompRecoveryOnError", attributes, 0, &comp->err_info.def_rec) != SA_AIS_OK)
 		comp->err_info.def_rec = comptype->saAmfCtDefRecoveryOnError;
+	else {
+		if ((SaAmfRecommendedRecoveryT)comp->err_info.def_rec == SA_AMF_NO_RECOMMENDATION) {
+			comp->err_info.def_rec = SA_AMF_COMPONENT_FAILOVER;
+			LOG_NO("COMPONENT_FAILOVER(%u) used instead of NO_RECOMMENDATION(%u) for '%s'",
+				   SA_AMF_COMPONENT_FAILOVER, SA_AMF_NO_RECOMMENDATION, comp->name.value);
+		}
+	}
 
 	if (immutil_getAttr("saAmfCompDisableRestart", attributes, 0, &disable_restart) != SA_AIS_OK)
 		disable_restart = comptype->saAmfCtDefDisableRestart;

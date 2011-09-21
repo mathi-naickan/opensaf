@@ -501,7 +501,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	SaAisErrorT rc;
 	SaNameT aname;
 	char *parent;
-	SaUint32T uint32;
+	SaUint32T value;
 
 	if ((parent = strchr((char*)dn->value, ',')) == NULL) {
 		LOG_ER("No parent to '%s' ", dn->value);
@@ -529,18 +529,23 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 		}
 	}
 
-	rc = immutil_getAttr("saAmfCompRecoveryOnError", attributes, 0, &uint32);
-	if ((rc == SA_AIS_OK) &&
-		((uint32 <= SA_AMF_NO_RECOMMENDATION) || (uint32 > SA_AMF_NODE_FAILFAST))) {
-		LOG_ER("Illegal/unsupported saAmfCompRecoveryOnError value %u for '%s'",
-			   uint32, dn->value);
-		return 0;
+	rc = immutil_getAttr("saAmfCompRecoveryOnError", attributes, 0, &value);
+	if (rc == SA_AIS_OK) {
+		if ((value < SA_AMF_NO_RECOMMENDATION) || (value > SA_AMF_NODE_FAILFAST)) {
+			LOG_ER("Illegal/unsupported saAmfCompRecoveryOnError value %u for '%s'",
+				   value, dn->value);
+			return 0;
+		}
+
+		if (value == SA_AMF_NO_RECOMMENDATION)
+			LOG_NO("Invalid configuration, saAmfCompRecoveryOnError=NO_RECOMMENDATION(%u) for '%s'",
+				   value, dn->value);
 	}
 
-	rc = immutil_getAttr("saAmfCompDisableRestart", attributes, 0, &uint32);
-	if ((rc == SA_AIS_OK) && (uint32 > SA_TRUE)) {
+	rc = immutil_getAttr("saAmfCompDisableRestart", attributes, 0, &value);
+	if ((rc == SA_AIS_OK) && (value > SA_TRUE)) {
 		LOG_ER("Illegal saAmfCompDisableRestart value %u for '%s'",
-			   uint32, dn->value);
+			   value, dn->value);
 		return 0;
 	}
 
@@ -816,6 +821,12 @@ static AVD_COMP *comp_create(const SaNameT *dn, const SaImmAttrValuesT_2 **attri
 
 	if (immutil_getAttr("saAmfCompRecoveryOnError", attributes, 0, &comp->comp_info.def_recvr) != SA_AIS_OK)
 		comp->comp_info.def_recvr = comptype->saAmfCtDefRecoveryOnError;
+
+	if (comp->comp_info.def_recvr == SA_AMF_NO_RECOMMENDATION) {
+		comp->comp_info.def_recvr = SA_AMF_COMPONENT_FAILOVER;
+		LOG_NO("COMPONENT_FAILOVER(%u) used instead of NO_RECOMMENDATION(%u) for '%s'",
+			   SA_AMF_COMPONENT_FAILOVER, SA_AMF_NO_RECOMMENDATION, comp->comp_info.name.value);
+	}
 
 	if (immutil_getAttr("saAmfCompDisableRestart", attributes, 0, &comp->comp_info.comp_restart) != SA_AIS_OK)
 		comp->comp_info.comp_restart = comptype->saAmfCtDefDisableRestart;
@@ -1583,7 +1594,11 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 			recovery = htonl(recovery);
 			memcpy(&param.value[0], &recovery, param.value_len);
 			comp->comp_info.def_recvr = *((SaUint32T *)value);
-
+			if (comp->comp_info.def_recvr == SA_AMF_NO_RECOMMENDATION) {
+				comp->comp_info.def_recvr = SA_AMF_COMPONENT_FAILOVER;
+				LOG_NO("COMPONENT_FAILOVER(%u) used instead of NO_RECOMMENDATION(%u) for '%s'",
+					   SA_AMF_COMPONENT_FAILOVER, SA_AMF_NO_RECOMMENDATION, comp->comp_info.name.value);
+			}
 		} else if (!strcmp(attribute->attrName, "saAmfCompDisableRestart")) {
 			comp->comp_info.comp_restart = *((SaUint32T *)value);
 		} else if (!strcmp(attribute->attrName, "saAmfCompProxyCsi")) {
