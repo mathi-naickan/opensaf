@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash  
 #
 #      -*- OpenSAF  -*-
 #
@@ -219,10 +219,14 @@ cmd_installibs() {
 	-e "^/$lib_dir/ld-\|^/$lib_dir/libc.so" > $deplib
 
     for n in $(cat $deplib | sort | uniq); do
-	dst=usr/$lib_dir
-	echo $n | grep -q '^/lib' && dst=$lib_dir
-	echo "  $n -> rootfs/$dst/$(basename $n)"
-	cp -L $n $dst || die "Failed [cp -R $n $dst]"
+        # Skip OpenSAF libraries installed on the host
+        if echo $n | grep opensaf; then
+            continue
+        fi
+        dst=usr/$lib_dir
+        echo $n | grep -q '^/lib' && dst=$lib_dir
+        echo "  $n -> rootfs/$dst/$(basename $n)"
+        cp -L $n $dst || die "Failed [cp -R $n $dst]"
     done
 }
 
