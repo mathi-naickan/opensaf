@@ -994,7 +994,6 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			   and so store the callback parameters to send response later on. */
 			if (avd_snd_presence_msg(cb, su, TRUE) == NCSCC_RC_SUCCESS) {
 				m_AVD_SET_SU_TERM(cb, su, TRUE);
-				avd_su_oper_state_set(su, SA_AMF_OPERATIONAL_DISABLED);
 				avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
 
 				su->pend_cbk.admin_oper = op_id;
