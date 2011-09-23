@@ -841,7 +841,13 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 	case SA_AMF_ADMIN_UNLOCK:
 		avd_su_admin_state_set(su, SA_AMF_ADMIN_UNLOCKED);
 		if (su->num_of_comp == su->curr_num_comp) {
-			if (m_AVD_APP_SU_IS_INSVC(su, node)) {
+			if ((m_AVD_APP_SU_IS_INSVC(su, node)) && 
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED)) {
+				/* Pres state check is to prevent assignment to SU in case SU is instantiating in
+				 * locked state and somebody issues UNLOCK on SU. Since comp are in instantiating state,
+				 * so AMFND will not assign the role to components. Anyway when SU gets instantiated, then
+				 * assignment will be given to components/SU.
+				 */
 				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 				switch (su->sg_of_su->sg_redundancy_model) {
 				case SA_AMF_2N_REDUNDANCY_MODEL:
