@@ -845,7 +845,13 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 		while (su != NULL) {
 			m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
 
-			if (m_AVD_APP_SU_IS_INSVC(su, su_node_ptr)) {
+			if ((m_AVD_APP_SU_IS_INSVC(su, su_node_ptr)) &&
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED)) {
+				/* Pres state check is to prevent assignment to SU in case node is instantiating
+				 * in Node locked state and somebody issues UNLOCK on Node. Since SU are in instantiating
+				 * state, so AMFND will not assign the role to components. Anyway when SU gets 
+				 * instantiated, then assignment will be given to components/SU.
+				 */
 				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 				switch (su->sg_of_su->sg_redundancy_model) {
 				case SA_AMF_2N_REDUNDANCY_MODEL:
