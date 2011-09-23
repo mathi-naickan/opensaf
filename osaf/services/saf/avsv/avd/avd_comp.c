@@ -1329,7 +1329,16 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 			comp->comp_info.init_time = *((SaTimeT *)value);
 
 		} else if (!strcmp(attribute->attrName, "saAmfCompInstantiationLevel")) {
+			AVD_SU *su = comp->su;
+			param.attr_id = saAmfCompInstantiationLevel_ID;
+			param.value_len = sizeof(uns32);
+			memcpy(&param.value[0],(SaUint32T *)value , param.value_len);
 			comp->comp_info.inst_level = *((SaUint32T *)value);
+			
+			avd_su_remove_comp(comp);
+			comp->su = su;
+			avd_su_add_comp(comp);
+			
 		} else if (!strcmp(attribute->attrName, "saAmfCompNumMaxInstantiateWithoutDelay")) {
 
 			uns32 num_inst;

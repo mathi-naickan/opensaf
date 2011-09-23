@@ -700,10 +700,23 @@ uns32 avnd_comp_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 	switch (param->act) {
 	case AVSV_OBJ_OPR_MOD: {
 			AVND_COMP *comp = 0;
+			AVND_SU *su = 0;
+			SaNameT su_name;
 
 			comp = m_AVND_COMPDB_REC_GET(cb->compdb, param->name);
 			if (!comp) {
 				LOG_ER("failed to get %s", param->name.value);
+				goto done;
+			}
+			/* extract the su-name from comp dn */
+			memset(&su_name, 0, sizeof(SaNameT));
+			avsv_cpy_SU_DN_from_DN(&su_name, &param->name);
+			
+			/* get the su record */
+			su_name.length = su_name.length;
+			su = m_AVND_SUDB_REC_GET(cb->sudb, su_name);
+			if (!su) {
+				LOG_ER("no su in database for the comp %s", param->name.value);
 				goto done;
 			}
 
@@ -795,6 +808,24 @@ uns32 avnd_comp_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 			case saAmfCompNodeRebootCleanupFail_ID:
 				break;
 
+			case saAmfCompInstantiationLevel_ID: 
+				assert(sizeof(uns32) == param->value_len);
+				comp->inst_level = *(uns32 *)(param->value);
+				
+				/* Remove from the comp-list (maintained by su) */
+				rc = m_AVND_SUDB_REC_COMP_REM(*su, *comp);
+				if (NCSCC_RC_SUCCESS != rc) {
+					LOG_ER("%s: %s remove failed", __FUNCTION__, comp->name.value);
+					goto done;
+				}
+				
+				(&comp->su_dll_node)->prev = NULL;
+				(&comp->su_dll_node)->next = NULL;
+				
+				/* Add to the comp-list (maintained by su) */
+				m_AVND_SUDB_REC_COMP_ADD(*su, *comp, rc);
+				
+				break;
 			case saAmfCompRecoveryOnError_ID:
 				assert(sizeof(uns32) == param->value_len);
 				comp->err_info.def_rec = m_NCS_OS_NTOHL(*(uns32 *)(param->value));
