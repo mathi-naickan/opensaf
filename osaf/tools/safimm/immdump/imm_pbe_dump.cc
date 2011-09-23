@@ -1876,7 +1876,7 @@ void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 	classNameList = getClassNames(immHandle);
 	it = classNameList.begin();
 
-	sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('BEGIN EXCLUSIVE TRANSACTION') failed because:\n %s",
 			execErr);
@@ -1891,7 +1891,7 @@ void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 		it++;
 	}
 
-	sqlite3_exec(dbHandle, "COMMIT TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "COMMIT TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('COMMIT TRANSACTION') failed because:\n %s",
 			execErr);
@@ -1928,7 +1928,7 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 	classNameList = getClassNames(immHandle);
 	it = classNameList.begin();
 
-	sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('BEGIN EXCLUSIVE TRANSACTION') failed because:\n %s",
 			execErr);
@@ -1963,7 +1963,7 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 	obj_count = strtoul(result[ncols], NULL, 0);
 	TRACE("verifPbeState: obj_count:%u", obj_count);
 
-	sqlite3_exec(dbHandle, "ABORT TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "ABORT TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('ABORT TRANSACTION') failed because:\n %s",
 			execErr);
@@ -2029,7 +2029,7 @@ unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 		goto bailout;
 	}
 
-	sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('BEGIN EXCLUSIVE TRANSACTION') failed because:\n %s",
 			execErr);
@@ -2065,7 +2065,7 @@ unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 		goto bailout;
 	}
 
-	sqlite3_exec(dbHandle, "COMMIT TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "COMMIT TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('COMMIT TRANSACTION') failed because:\n %s",
 			execErr);
@@ -2089,7 +2089,7 @@ SaAisErrorT pbeBeginTrans(void* db_handle)
 	char *execErr=NULL;
 	int rc=0;
 
-	sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('BEGIN EXCLUSIVE TRANSACTION') failed because:\n %s",
 			execErr);
@@ -2138,7 +2138,7 @@ SaAisErrorT pbeCommitTrans(void* db_handle, SaUint64T ccbId, SaUint32T currentEp
 		}
 	}
 
-	sqlite3_exec(dbHandle, "COMMIT TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "COMMIT TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('COMMIT TRANSACTION') failed because:\n %s",
 			execErr);
@@ -2184,7 +2184,7 @@ void pbeAbortTrans(void* db_handle)
 	char *execErr=NULL;
 	int rc=0;
 
-	sqlite3_exec(dbHandle, "ABORT TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "ABORT TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('ABORT TRANSACTION') failed because:\n %s",
 			execErr);
