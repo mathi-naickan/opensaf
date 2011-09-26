@@ -395,8 +395,8 @@ static AVD_SU *su_create(const SaNameT *dn, const SaImmAttrValuesT_2 **attribute
 	assert(error == SA_AIS_OK);
 
 	if (immutil_getAttr("saAmfSURank", attributes, 0, &su->saAmfSURank) != SA_AIS_OK) {
-		/* Empty, assign default value */
-		su->saAmfSURank = 0;
+		/* Empty, assign default value (highest number => lowest rank) */
+		su->saAmfSURank = -1;
 	}
 
 	(void) immutil_getAttr("saAmfSUHostNodeOrNodeGroup", attributes, 0, &su->saAmfSUHostNodeOrNodeGroup);
