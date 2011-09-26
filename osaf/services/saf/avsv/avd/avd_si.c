@@ -34,10 +34,10 @@ static void avd_si_arrange_dep_csi(struct avd_csi_tag* csi)
 {
 	AVD_CSI *temp_csi = NULL;
 	AVD_SI *temp_si = NULL;
-revisit:
+
         temp_csi = csi->si->list_of_csi;
         while (temp_csi) {
-                if ((FALSE == temp_csi->dep_csi_added) && (0 == memcmp(&temp_csi->saAmfCSIDependencies, &csi->name, sizeof(SaNameT)))) {
+                if ((0 == memcmp(&temp_csi->saAmfCSIDependencies, &csi->name, sizeof(SaNameT)))) {
                         temp_csi->rank = csi->rank + 1;
                         /* We need to rearrange Dep CSI rank as per modified. */
                         /* Store the SI pointer as avd_si_remove_csi makes it NULL in the end */
@@ -45,11 +45,8 @@ revisit:
                         avd_si_remove_csi(temp_csi);
                         temp_csi->si = temp_si;
                         avd_si_add_csi_db(temp_csi);
-                        temp_csi->dep_csi_added = TRUE;
                         /* We need to check whether any other CSI is dependent on temp_csi.*/
                         avd_si_arrange_dep_csi(temp_csi);
-                        /* We need to revisit again as the list has been modified. */
-                        goto revisit;
                 }
                 temp_csi = temp_csi->si_list_of_csi_next;
         }

@@ -55,7 +55,6 @@ typedef struct avd_csi_tag {
 	SaNameT name;
 	SaNameT saAmfCSType;
 	SaNameT saAmfCSIDependencies;
-        bool dep_csi_added; /* Used when the saAmfCSIDependencies is getting added in the si rank list*/
         /* Rank is calculated based on CSI dependency. If no dependency configured then rank will be 1. 
            Else rank will one more than rank of saAmfCSIDependencies. */
 	uns32 rank;		/* The rank of the CSI in the SI 
