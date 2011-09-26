@@ -233,7 +233,6 @@ static uns32 avd_sirankedsu_delete(AVD_CL_CB *cb, AVD_SUS_PER_SI_RANK *ranked_su
 		/* log error */
 		return NCSCC_RC_FAILURE;
 	}
-	avd_si_remove_rankedsu(ranked_su_per_si->sus_per_si_rank_on_si, &ranked_su_per_si->su_name);
 
 	free(ranked_su_per_si);
 	return NCSCC_RC_SUCCESS;
@@ -322,6 +321,7 @@ static void avd_sirankedsu_del_si_list(AVD_CL_CB *cb, AVD_SUS_PER_SI_RANK *sus_p
 				    sus_per_si_rank->sus_per_si_rank_list_si_next;
 			}
 		}
+		avd_si_remove_rankedsu(sus_per_si_rank->sus_per_si_rank_on_si,&sus_per_si_rank->su_name);
 
 		sus_per_si_rank->sus_per_si_rank_list_si_next = NULL;
 		sus_per_si_rank->sus_per_si_rank_on_si = NULL;

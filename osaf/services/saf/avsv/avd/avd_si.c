@@ -163,7 +163,7 @@ void avd_si_remove_rankedsu(AVD_SI *si, const SaNameT *suname)
 	TRACE_ENTER();
 
 	for (tmp = si->rankedsu_list_head; tmp != NULL; tmp = tmp->next) {
-		if (memcmp(&tmp->suname, &suname, sizeof(SaNameT) == 0))
+		if (memcmp(&tmp->suname, suname, sizeof(SaNameT) == 0))
 			break;
 		prev = tmp;
 	}
