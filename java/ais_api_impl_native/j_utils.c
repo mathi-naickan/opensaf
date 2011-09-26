@@ -274,6 +274,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(
     if( ! JNU_ProtectionGroupChanges_initIDs_OK( _jniEnv ) ){
         return JNI_ERR; // EXIT POINT! Exception pending...
     }
+    if( ! JNU_ProcessMonitoring_initIDs_OK( _jniEnv ) ){
+        return JNI_ERR;
+    }
     // ais.amf.CsiDescriptor initialization
     if( ! JNU_CsiDescriptor_initIDs_OK( _jniEnv ) ){
         return JNI_ERR; // EXIT POINT! Exception pending...
