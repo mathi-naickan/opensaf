@@ -1284,7 +1284,7 @@ static uint32_t is_config_valid(SaNameT *sidep_name, CcbUtilOperationData_t *opd
 	CcbUtilOperationData_t *tmp;
 	uint32_t dep_saAmfSIRank, spons_saAmfSIRank;
 	uint32_t rc = false;
-	bool dependent_si_exist_in_curr_model = false;
+	bool dependent_si_is_assigned = false;
 	bool spons_si_exist_in_curr_model = false;
 
 	TRACE_ENTER();
@@ -1337,12 +1337,13 @@ static uint32_t is_config_valid(SaNameT *sidep_name, CcbUtilOperationData_t *opd
 			dep_saAmfSIRank = 0; /* default value is zero (lowest rank) if empty */
 	} else {
 		/* dependent SI exist in current model, get rank */
-		dependent_si_exist_in_curr_model = true;
+		if (dep_si->list_of_sisu)
+			dependent_si_is_assigned = true;
 		dep_saAmfSIRank = dep_si->saAmfSIRank;
 	}
 
-	/* don't allow to dynamically create a dependency from an SI already in the model */
-	if ((opdata != NULL) && dependent_si_exist_in_curr_model) {
+	/* don't allow to dynamically create a dependency from an assigned SI already in the model */
+	if ((opdata != NULL) && dependent_si_is_assigned) {
 		LOG_ER("SI dep validation: adding dependency from existing SI '%s' to SI '%s' is not allowed",
 			indx.si_name_prim.value, indx.si_name_sec.value);
 		goto done;
