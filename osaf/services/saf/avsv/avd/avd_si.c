@@ -406,8 +406,8 @@ static AVD_SI *si_create(SaNameT *si_name, const SaImmAttrValuesT_2 **attributes
 	(void)immutil_getAttr("saAmfSIProtectedbySG", attributes, 0, &si->saAmfSIProtectedbySG);
 
 	if (immutil_getAttr("saAmfSIRank", attributes, 0, &si->saAmfSIRank) != SA_AIS_OK) {
-		/* Empty, assign default value */
-		si->saAmfSIRank = 0;
+		/* Empty, assign default value (highest number => lowest rank) */
+		si->saAmfSIRank = -1;
 	}
 
 	/* Optional, [0..*] */
