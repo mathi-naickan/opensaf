@@ -128,7 +128,8 @@ const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX] = {
 	/* internal event types */
 	avnd_evt_comp_pres_fsm_evh,	/* AVND_EVT_COMP_PRES_FSM_EV */
 	avnd_evt_last_step_term_evh,	/* AVND_EVT_LAST_STEP_TERM */
-	avnd_evt_pid_exit_evh	/* AVND_EVT_PID_EXIT */
+	avnd_evt_pid_exit_evh,	/* AVND_EVT_PID_EXIT */
+	avnd_evt_tmr_qscing_cmpl_evh	/* AVND_EVT_TMR_QSCING_CMPL */
 };
 
 /**

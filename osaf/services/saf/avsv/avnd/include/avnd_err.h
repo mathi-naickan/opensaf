@@ -67,6 +67,7 @@ typedef enum avnd_err_src {
 	AVND_ERR_SRC_CBK_CSI_SET_FAILED,	/* AMF callback failed */
 	AVND_ERR_SRC_CBK_CSI_REM_FAILED,	/* AMF callback failed */
 	/* Add other sources of error detection */
+	AVND_ERR_SRC_QSCING_COMPL_TIMEOUT,	/* AMF qscing complete times out */
 
 	AVND_ERR_SRC_MAX
 } AVND_ERR_SRC;

@@ -45,6 +45,7 @@ typedef enum avnd_tmr_type {
 	AVND_TMR_CLC_PXIED_COMP_INST,	/* proxied inst timer */
 	AVND_TMR_CLC_PXIED_COMP_REG,	/* proxied orphan timer */
 	AVND_TMR_HB_DURATION,
+	AVND_TMR_QSCING_CMPL_RESP,	/* Qscing complete timer */
 	AVND_TMR_MAX
 } AVND_TMR_TYPE;
 
@@ -79,6 +80,18 @@ typedef struct avnd_tmr {
 /* Macro to stop the callback response timer */
 #define m_AVND_TMR_COMP_CBK_RESP_STOP(cb, cbn) \
             avnd_stop_tmr((cb), &(cbn).resp_tmr);
+
+
+/* Macro to start the qscing complete timer */
+#define m_AVND_TMR_COMP_QSCING_CMPL_START(cb, comp) \
+            (rc) = avnd_start_tmr((cb), &(comp->qscing_tmr), \
+                                  AVND_TMR_QSCING_CMPL_RESP, \
+                                  comp->quies_complete_cbk_timeout, comp->qscing_tmr.opq_hdl);
+
+/* Macro to stop the qscing complete timer */
+#define m_AVND_TMR_COMP_QSCING_CMPL_STOP(cb, comp) \
+            avnd_stop_tmr((cb), &(comp->qscing_tmr));
+
 
 /* Macro to start the comp-reg timer */
 #define m_AVND_TMR_COMP_REG_START(cb, comp, rc) \

@@ -128,6 +128,7 @@ AVND_EVT *avnd_evt_create(AVND_CB *cb,
 	case AVND_EVT_TMR_CLC_PXIED_COMP_INST:
 	case AVND_EVT_TMR_CLC_PXIED_COMP_REG:
 	case AVND_EVT_TMR_HB_DURATION:
+	case AVND_EVT_TMR_QSCING_CMPL:
 		evt->priority = NCS_IPC_PRIORITY_HIGH;	/* bump up the priority */
 		evt->info.tmr.opq_hdl = *(uns32 *)info;
 		break;
@@ -264,6 +265,7 @@ void avnd_evt_destroy(AVND_EVT *evt)
 	case AVND_EVT_TMR_CLC_PXIED_COMP_INST:
 	case AVND_EVT_TMR_CLC_PXIED_COMP_REG:
 	case AVND_EVT_TMR_HB_DURATION:
+	case AVND_EVT_TMR_QSCING_CMPL:
 		break;
 
 		/* mds event types */

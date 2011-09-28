@@ -2010,6 +2010,11 @@ uns32 avnd_comp_curr_info_del(AVND_CB *cb, AVND_COMP *comp)
 	comp->clc_info.am_start_retry_cnt = 0;
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_INST_RETRY_CNT);
 
+	/* Stop the qscing complete timer if started any */
+	if (m_AVND_TMR_IS_ACTIVE(comp->qscing_tmr)) {
+		m_AVND_TMR_COMP_QSCING_CMPL_STOP(cb, comp);
+	}
+
 	/* delete hc-list, cbk-list, pg-list & pm-list */
 	avnd_comp_hc_rec_del_all(cb, comp);
 	avnd_comp_cbq_del(cb, comp, TRUE);
