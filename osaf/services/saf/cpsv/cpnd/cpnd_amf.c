@@ -236,11 +236,8 @@ void cpnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *c
 	ncshm_give_hdl(gl_cpnd_cb_hdl);
 	m_LOG_CPND_CL(CPND_AMF_TERM_CB_INVOKED, CPND_FC_GENERIC, NCSFL_SEV_NOTICE, __FILE__, __LINE__);
 	sleep(1);
+	LOG_NO("Received AMF component terminate callback, exiting");
 	exit(0);
-
-	TRACE("THIS IS IN TERMINATE CALL BACK");
-
-	return;
 }
 
 /****************************************************************************

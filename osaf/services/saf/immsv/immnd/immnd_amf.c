@@ -75,9 +75,9 @@ static void immnd_amf_comp_terminate_callback(SaInvocationT invocation, const Sa
 {
 	TRACE_ENTER();
 	saAmfResponse(immnd_cb->amf_hdl, invocation, SA_AIS_OK);
-	LOG_NO("AMF Terminate Callback Invoked - exiting");
 	sleep(1);
 	TRACE_LEAVE();
+	LOG_NO("Received AMF component terminate callback, exiting");
 	exit(0);
 }
 

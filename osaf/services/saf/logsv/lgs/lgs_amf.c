@@ -340,6 +340,7 @@ static void amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT 
 	/* Disconnect from MDS */
 	lgs_mds_finalize(lgs_cb);
 	sleep(1);
+	LOG_NO("Received AMF component terminate callback, exiting");
 	exit(0);
 }
 

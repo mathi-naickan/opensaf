@@ -359,16 +359,10 @@ static SaAisErrorT compcstype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 	case CCBUTIL_DELETE:
 		cst = avd_compcstype_get(&opdata->objectName);
 		assert(cst);
-		if (cst->comp->su->sg_of_su->sg_ncs_spec)
-			if (cst->comp->su->su_on_node->node_state == AVD_AVND_STATE_ABSENT)
-				rc = SA_AIS_OK;
-			else
-				LOG_ER("Can only delete MW entities for absent nodes");
+		if (cst->comp->su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+			rc = SA_AIS_OK;
 		else
-			if (cst->comp->su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
-				rc = SA_AIS_OK;
-			else
-				LOG_ER("Deletion of SaAmfCompCsType requires parent SU to be in LOCKED-INSTANTIATION");
+			LOG_ER("Deletion of SaAmfCompCsType requires parent SU to be in LOCKED-INSTANTIATION");
 		break;
 	default:
 		assert(0);

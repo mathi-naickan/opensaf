@@ -63,6 +63,10 @@ void rde_saf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *co
 	TRACE_ENTER();
 
 	(void) saAmfResponse(rde_amf_cb->amf_hdl, invocation, SA_AIS_OK);
+
+	TRACE_LEAVE();
+	LOG_NO("Received AMF component terminate callback, exiting");
+	exit(0);
 }
 
 /****************************************************************************

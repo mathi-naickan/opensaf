@@ -461,8 +461,8 @@ static void dts_saf_comp_terminate_callback(SaInvocationT invocation, const SaNa
 	saAmfResponse(dts_cb_inst->amf_hdl, invocation, error);
 	/* Now destroy dts lib */
 	dts_lib_destroy();
-
-	return;
+	LOG_NO("Received AMF component terminate callback, exiting");
+	exit(0);
 }
 
 /*****************************************************************************\

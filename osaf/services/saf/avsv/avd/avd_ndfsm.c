@@ -238,8 +238,10 @@ void avd_nd_reg_comp_evt_hdl(AVD_CL_CB *cb, AVD_AVND *avnd)
 			continue;
 		}
 
-		/* Here an assumption is made that all NCS SUs are preinstantiable */
-		avd_snd_presence_msg(cb, ncs_su, FALSE);
+		if ((ncs_su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) ||
+			(ncs_su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED)) {
+			avd_snd_presence_msg(cb, ncs_su, FALSE);
+		}
 		ncs_su = ncs_su->avnd_list_su_next;
 	}
 
