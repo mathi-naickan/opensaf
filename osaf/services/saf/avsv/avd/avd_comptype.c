@@ -145,8 +145,11 @@ static AVD_COMP_TYPE *comptype_create(const SaNameT *dn, const SaImmAttrValuesT_
 	if ((str = immutil_getStringAttr(attributes, "saAmfCtDefAmStopCmdArgv", 0)) != NULL)
 		strcpy(compt->saAmfCtDefAmStopCmdArgv, str);
 
-	(void)immutil_getAttr("saAmfCtDefQuiescingCompleteTimeout", attributes, 0,
-			      &compt->saAmfCompQuiescingCompleteTimeout);
+	if ((IS_COMP_SAAWARE(compt->saAmfCtCompCategory) || IS_COMP_PROXIED_PI(compt->saAmfCtCompCategory)) &&
+		(immutil_getAttr("saAmfCtDefQuiescingCompleteTimeout", attributes, 0,
+						 &compt->saAmfCtDefQuiescingCompleteTimeout) != SA_AIS_OK)) {
+			compt->saAmfCtDefQuiescingCompleteTimeout = compt->saAmfCtDefCallbackTimeout;
+	}
 
 	error = immutil_getAttr("saAmfCtDefRecoveryOnError", attributes, 0, &compt->saAmfCtDefRecoveryOnError);
 	assert(error == SA_AIS_OK);
@@ -209,6 +212,17 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	    (immutil_getAttr("saAmfCtDefCallbackTimeout", attributes, 0, &time) != SA_AIS_OK)) {
 		LOG_ER("Required attribute saAmfCtDefCallbackTimeout not configured for '%s'", dn->value);
 		return 0;
+	}
+
+	/*
+	** The saAmfCtDefQuiescingCompleteTimeout attribute "is actually mandatory for SA-aware and proxied, 
+	** pre-instantiable components"
+	*/
+	if ((IS_COMP_SAAWARE(category) || IS_COMP_PROXIED_PI(category)) &&
+		(immutil_getAttr("saAmfCtDefQuiescingCompleteTimeout", attributes, 0, &time) != SA_AIS_OK)) {
+		LOG_NO("Required attribute saAmfCtDefQuiescingCompleteTimeout not configured for '%s'", dn->value);
+
+		// this is OK for backwards compatibility reasons
 	}
 
 	/* 

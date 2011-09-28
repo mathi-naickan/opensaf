@@ -140,7 +140,7 @@ typedef struct avd_amf_comp_type_tag {
 	char saAmfCtDefAmStartCmdArgv[AVSV_MISC_STR_MAX_SIZE];
 	char saAmfCtRelPathAmStopCmd[AVSV_MISC_STR_MAX_SIZE];
 	char saAmfCtDefAmStopCmdArgv[AVSV_MISC_STR_MAX_SIZE];
-	SaTimeT saAmfCompQuiescingCompleteTimeout;
+	SaTimeT saAmfCtDefQuiescingCompleteTimeout;
 	SaAmfRecommendedRecoveryT saAmfCtDefRecoveryOnError;
 	SaBoolT saAmfCtDefDisableRestart;
 

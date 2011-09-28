@@ -817,7 +817,7 @@ static AVD_COMP *comp_create(const SaNameT *dn, const SaImmAttrValuesT_2 **attri
 
 	if (immutil_getAttr("saAmfCompQuiescingCompleteTimeout", attributes,
 			    0, &comp->comp_info.quiescing_complete_timeout) != SA_AIS_OK)
-		comp->comp_info.quiescing_complete_timeout = comptype->saAmfCompQuiescingCompleteTimeout;
+		comp->comp_info.quiescing_complete_timeout = comptype->saAmfCtDefQuiescingCompleteTimeout;
 
 	if (immutil_getAttr("saAmfCompRecoveryOnError", attributes, 0, &comp->comp_info.def_recvr) != SA_AIS_OK)
 		comp->comp_info.def_recvr = comptype->saAmfCtDefRecoveryOnError;
