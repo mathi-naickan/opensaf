@@ -326,11 +326,13 @@ SmfImmCreateOperation::createAttrValues(void)
 		attr->attrName = (char *)(*iter).m_name.c_str();
 		attr->attrValueType = smf_stringToImmType((char *)(*iter).m_type.c_str());
 
-		assert((*iter).m_values.size() > 0);	//Must have at least one value
-                if ((*iter).m_values.size() == 1 && (!strcmp((*iter).getValues().front().c_str(),"<_empty_>"))) {
-                        attr->attrValuesNumber = 0;
-                }
-                else {
+		if ((*iter).m_values.size() == 0) {	//Must have at least one value
+			LOG_NO("attr value is not given for attr name %s", (*iter).m_name.c_str());
+			attr->attrValuesNumber = 0;
+		} else if ((*iter).m_values.size() == 1 && (!strcmp((*iter).getValues().front().c_str(),"<_empty_>"))) {
+			attr->attrValuesNumber = 0;
+		} 
+		else {
         		attr->attrValuesNumber = (*iter).m_values.size();
         		smf_stringsToValues(attr, (*iter).m_values);	//Convert the string to a SA Forum type
                 }
