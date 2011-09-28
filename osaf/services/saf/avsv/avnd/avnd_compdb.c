@@ -1059,8 +1059,13 @@ static amf_comp_type_t *avnd_comptype_create(const SaNameT *dn)
 		assert(compt->saAmfCtDefAmStopCmdArgv[i]);
 	}
 
-	(void)immutil_getAttr("saAmfCtDefQuiescingCompleteTimeout", attributes, 0,
-			      &compt->saAmfCompQuiescingCompleteTimeout);
+	if ((IS_COMP_SAAWARE(compt->saAmfCtCompCategory) || IS_COMP_PROXIED_PI(compt->saAmfCtCompCategory)) &&
+			(immutil_getAttr("saAmfCtDefQuiescingCompleteTimeout", attributes, 0,
+							&compt->saAmfCompQuiescingCompleteTimeout) != SA_AIS_OK)) {
+
+		compt->saAmfCompQuiescingCompleteTimeout = compt->saAmfCtDefCallbackTimeout;
+		LOG_NO("saAmfCtDefQuiescingCompleteTimeout for '%s' initialized with saAmfCtDefCallbackTimeout", dn->value);
+	}
 
 	if (immutil_getAttr("saAmfCtDefRecoveryOnError", attributes, 0, &compt->saAmfCtDefRecoveryOnError) != SA_AIS_OK)
 		assert(0);

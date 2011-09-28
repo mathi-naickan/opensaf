@@ -43,6 +43,9 @@
 #define IS_COMP_PROXIED(category) \
 	(((category) & SA_AMF_COMP_PROXIED))
 
+#define IS_COMP_PROXIED_PI(category) \
+	((category) == (SA_AMF_COMP_LOCAL | SA_AMF_COMP_PROXIED))
+
 #define IS_COMP_PROXIED_NPI(category) \
 	(((category) & SA_AMF_COMP_PROXIED_NPI))
 
