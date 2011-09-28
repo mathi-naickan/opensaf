@@ -136,6 +136,10 @@ locked (2). Uncomment the commented saAmfSIAdminState sections below.
 			<value>cleanup</value>
 		</attr>
 		<attr>
+			<name>saAmfCtDefQuiescingCompleteTimeout</name>
+			<value>10000000000</value>
+		</attr>
+		<attr>
 			<name>saAmfCtDefRecoveryOnError</name>
 			<value>2</value>
 		</attr>
