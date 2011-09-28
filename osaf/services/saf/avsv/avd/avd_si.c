@@ -336,18 +336,21 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 		}
 	}
 
-	if (immutil_getAttr("saAmfSIProtectedbySG", attributes, 0, &aname) == SA_AIS_OK) {
-		if (avd_sg_get(&aname) == NULL) {
-			if (opdata == NULL) {
-				LOG_ER("'%s' does not exist", aname.value);
-				return 0;
-			}
+	if (immutil_getAttr("saAmfSIProtectedbySG", attributes, 0, &aname) != SA_AIS_OK) {
+		LOG_ER("saAmfSIProtectedbySG not specified for '%s'", dn->value);
+		return 0;
+	}
 
-			/* SG does not exist in current model, check CCB */
-			if (ccbutil_getCcbOpDataByDN(opdata->ccbId, &aname) == NULL) {
-				LOG_ER("'%s' does not exist in existing model or in CCB", aname.value);
-				return 0;
-			}
+	if (avd_sg_get(&aname) == NULL) {
+		if (opdata == NULL) {
+			LOG_ER("'%s' does not exist", aname.value);
+			return 0;
+		}
+		
+		/* SG does not exist in current model, check CCB */
+		if (ccbutil_getCcbOpDataByDN(opdata->ccbId, &aname) == NULL) {
+			LOG_ER("'%s' does not exist in existing model or in CCB", aname.value);
+			return 0;
 		}
 	}
 
