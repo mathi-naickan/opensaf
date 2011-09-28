@@ -328,6 +328,9 @@ typedef struct avnd_comp_tag {
 	SaTimeT term_cbk_timeout;	/* terminate          */
 	SaTimeT csi_set_cbk_timeout;	/* csi set            */
 	SaTimeT quies_complete_cbk_timeout;	/* quiescing_complete */
+	/* Timer for qscing comlpete */
+	AVND_TMR qscing_tmr;
+	
 	SaTimeT csi_rmv_cbk_timeout;	/* csi remove         */
 	SaTimeT pxied_inst_cbk_timeout;	/* proxied instantiate */
 	SaTimeT pxied_clean_cbk_timeout;	/* proxied cleanup    */

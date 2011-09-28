@@ -85,6 +85,11 @@ uns32 avnd_evt_ava_csi_quiescing_compl_evh(AVND_CB *cb, AVND_EVT *evt)
 	comp = m_AVND_COMPDB_REC_GET(cb->compdb, qsc->comp_name);
 	assert(comp);
 
+	/* Stop the qscing complete timer if started any */
+	if (m_AVND_TMR_IS_ACTIVE(comp->qscing_tmr)) {
+		m_AVND_TMR_COMP_QSCING_CMPL_STOP(cb, comp);
+	}
+
 	/* npi comps dont interact with amf */
 	if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))
 		goto done;
@@ -170,6 +175,44 @@ done:
 	return rc;
 }
 
+/****************************************************************************
+  Name          : avnd_evt_tmr_qscing_cmpl_evh
+ 
+  Description   : This routine processes the qscing complete timer expiry.
+ 
+  Arguments     : cb  - ptr to the AvND control block
+                  evt - ptr to the AvND event
+ 
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ 
+  Notes         : None.
+******************************************************************************/
+uns32 avnd_evt_tmr_qscing_cmpl_evh(struct avnd_cb_tag *cb, struct avnd_evt_tag *evt) 
+{
+	AVND_TMR_EVT *tmr = &evt->info.tmr;
+	AVND_COMP *comp = 0;
+	AVND_ERR_INFO err_info;
+	uns32 rc = NCSCC_RC_SUCCESS;
+
+	TRACE_ENTER();
+
+	/* retrieve comp record */
+	comp = (AVND_COMP *)ncshm_take_hdl(NCS_SERVICE_ID_AVND, tmr->opq_hdl);
+	if (!comp) {
+		TRACE("COMP NULL For qscing complete tmr expiry");
+		
+		goto done;
+	}
+	ncshm_give_hdl(tmr->opq_hdl);
+	err_info.src = AVND_ERR_SRC_QSCING_COMPL_TIMEOUT;
+	err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
+
+	rc = avnd_err_process(cb, comp, &err_info);
+
+done:
+	TRACE_LEAVE();
+	return rc;
+}
 /****************************************************************************
   Name          : avnd_evt_ava_resp
  
@@ -402,6 +445,11 @@ uns32 avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 					m_AVND_TMR_COMP_CBK_RESP_STOP(cb, *cbk_rec)
 					m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, cbk_rec, AVND_CKPT_COMP_CBK_REC_TMR);
 				}
+
+				/* Now Start the QSCING complete timer */
+				comp->qscing_tmr.type = AVND_TMR_QSCING_CMPL_RESP;
+				comp->qscing_tmr.opq_hdl = comp->comp_hdl;
+				m_AVND_TMR_COMP_QSCING_CMPL_START(cb, comp);
 			}
 
 		}
