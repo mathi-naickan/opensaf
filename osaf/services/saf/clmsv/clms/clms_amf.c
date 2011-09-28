@@ -310,6 +310,7 @@ static void clms_amf_comp_terminate_callback(SaInvocationT invocation, const SaN
 	sleep(1);
 
 	TRACE_LEAVE();
+	LOG_NO("Received AMF component terminate callback, exiting");
 	exit(0);
 }
 

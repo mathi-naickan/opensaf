@@ -286,6 +286,7 @@ static void amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT 
 	/* Disconnect from MDS */
 	ntfs_mds_finalize(ntfs_cb);
 	sleep(1);
+	LOG_NO("Received AMF component terminate callback, exiting");
 	exit(0);
 }
 

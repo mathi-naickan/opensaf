@@ -1209,7 +1209,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 			goto done;
 		}
 
-		if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED || node->list_of_su == NULL) {
+		if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
 			LOG_NO("'%s' LOCK_INSTANTIATION: AMF node oper state disabled", node->name.value);
 			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;

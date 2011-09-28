@@ -793,7 +793,8 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 		goto done;
 	}
 
-	if (su->sg_of_su->sg_ncs_spec == SA_TRUE) {
+	if ((su->sg_of_su->sg_ncs_spec == SA_TRUE)
+		&& (cb->node_id_avd == su->su_on_node->node_info.nodeId)) {
 		rc = SA_AIS_ERR_NOT_SUPPORTED;
 		LOG_WA("Admin operation on OpenSAF service SU is not allowed");
 		goto done;
@@ -841,12 +842,16 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 	case SA_AMF_ADMIN_UNLOCK:
 		avd_su_admin_state_set(su, SA_AMF_ADMIN_UNLOCKED);
 		if (su->num_of_comp == su->curr_num_comp) {
-			if ((m_AVD_APP_SU_IS_INSVC(su, node)) && 
-				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED)) {
+			if (((m_AVD_APP_SU_IS_INSVC(su, node)) || (su->sg_of_su->sg_ncs_spec == true))
+				&& (su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED)) {
 				/* Pres state check is to prevent assignment to SU in case SU is instantiating in
 				 * locked state and somebody issues UNLOCK on SU. Since comp are in instantiating state,
 				 * so AMFND will not assign the role to components. Anyway when SU gets instantiated, then
 				 * assignment will be given to components/SU.
+				 */
+				/* Reason for adding "su->sg_of_su->sg_ncs_spec == true" is for Middleware component
+				 * node oper state and SU oper state are marked enabled after they gets assignments.
+				 * So, we cann't check compatibility with m_AVD_APP_SU_IS_INSVC for them.
 				 */
 				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 				switch (su->sg_of_su->sg_redundancy_model) {

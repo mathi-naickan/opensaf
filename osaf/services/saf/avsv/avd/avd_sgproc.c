@@ -438,7 +438,8 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		 * the SG FSM.
 		 */
 		if (su->sg_of_su->sg_ncs_spec == SA_TRUE) {
-			if (su->saAmfSuReadinessState == SA_AMF_READINESS_OUT_OF_SERVICE) {
+			m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
+			if (su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) {
 				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 				/* Run the SG FSM */
 				switch (su->sg_of_su->sg_redundancy_model) {
@@ -491,8 +492,7 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 					}
 					break;
 				}
-			} else
-				assert(0);
+			}
 		} else {	/* if(su->sg_of_su->sg_ncs_spec == SA_TRUE) */
 
 			old_state = su->saAmfSuReadinessState;

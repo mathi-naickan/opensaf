@@ -389,7 +389,8 @@ void cpd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *co
 		ncshm_give_hdl(cb->cpd_hdl);
 	}
 	m_LOG_CPD_CL(CPD_AMF_COMP_TERM_CB_INVOKED, CPD_FC_GENERIC, NCSFL_SEV_NOTICE, __FILE__, __LINE__);
-	return;
+	LOG_NO("Received AMF component terminate callback, exiting");
+	exit(0);
 }
 
 /****************************************************************************

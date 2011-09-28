@@ -1217,21 +1217,10 @@ static SaAisErrorT comp_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata
 
 	comp = avd_comp_get(&opdata->objectName);
 
-	if (comp->su->sg_of_su->sg_ncs_spec == TRUE) {
-		/* Middleware component */
-		if (comp->su->su_on_node->node_state != AVD_AVND_STATE_ABSENT) {
-			LOG_ER("Rejecting deletion of '%s'", opdata->objectName.value);
-			LOG_ER("MW object can only be deleted when its hosting node is down");
-			goto done;
-		}
-	}
-	else {
-		/* Non-middleware component */
-		if (comp->su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
-			LOG_ER("Rejecting deletion of '%s'", opdata->objectName.value);
-			LOG_ER("SU admin state is not locked instantiation required for deletion");
-			goto done;
-		}
+	if (comp->su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
+		LOG_ER("Rejecting deletion of '%s'", opdata->objectName.value);
+		LOG_ER("SU admin state is not locked instantiation required for deletion");
+		goto done;
 	}
 
 	rc = SA_AIS_OK;

@@ -431,9 +431,8 @@ void plms_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT
 	/* Destroy the cb */
 
 	sleep(1);
+	LOG_NO("Received AMF component terminate callback, exiting");
 	exit(0);
-
-	return;
 }
 
 /****************************************************************************

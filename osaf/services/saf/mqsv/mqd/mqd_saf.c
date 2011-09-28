@@ -276,13 +276,12 @@ void mqd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *co
 		saAmfResponse(pMqd->amf_hdl, invocation, saErr);
 		ncshm_give_hdl(pMqd->hdl);
 		sleep(1);
-		exit(0);
 	} else {
 		rc = NCSCC_RC_FAILURE;
 		m_LOG_MQSV_D(MQD_DONOT_EXIST, NCSFL_LC_MQSV_INIT, NCSFL_SEV_ERROR, rc, __FILE__, __LINE__);
-		exit(0);
 	}
-	return;
+	LOG_NO("Received AMF component terminate callback, exiting");
+	exit(0);
 }
 
 void mqd_amf_csi_rmv_callback(SaInvocationT invocation,

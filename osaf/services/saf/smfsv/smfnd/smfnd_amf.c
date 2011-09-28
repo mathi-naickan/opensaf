@@ -112,6 +112,7 @@ static void amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT 
 
 	TRACE_LEAVE();
 	sleep(1);
+	LOG_NO("Received AMF component terminate callback, exiting");
 	exit(0);
 }
 
