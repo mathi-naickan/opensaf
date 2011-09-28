@@ -78,13 +78,7 @@ uns32 avnd_evt_avd_reg_comp_evh(AVND_CB *cb, AVND_EVT *evt)
 		goto done;
 	info = &evt->info.avd->msg_info.d2n_reg_comp;
 
-	if (info->msg_id != (cb->rcv_msg_id + 1)) {
-		/* Log Error */
-		rc = NCSCC_RC_FAILURE;
-		LOG_EM("Message Id mismatch: %u", info->msg_id);
-		goto done;
-	}
-
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	/* 
@@ -2837,7 +2831,7 @@ uns32 avnd_evt_comp_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER2("'%s' op=%u", info->dn.value, info->oper_id);
 
-	assert( info->msg_id == cb->rcv_msg_id+1 );
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	comp = m_AVND_COMPDB_REC_GET(cb->compdb, info->dn);

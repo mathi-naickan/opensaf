@@ -387,20 +387,15 @@ uns32 avnd_evt_avd_reboot_evh(AVND_CB *cb, AVND_EVT *evt)
 {
 	AVSV_D2N_REBOOT_MSG_INFO *info;
 
-        info = &evt->info.avd->msg_info.d2n_reboot_info;
+	info = &evt->info.avd->msg_info.d2n_reboot_info;
 	TRACE_ENTER2("%u, %u", info->node_id, info->msg_id);
 
-        assert(AVSV_D2N_REBOOT_MSG == evt->info.avd->msg_type);
+	assert(AVSV_D2N_REBOOT_MSG == evt->info.avd->msg_type);
 
-        if (info->msg_id != (cb->rcv_msg_id + 1)) {
-		/* We need to go ahead even if there is some mismatch in seq id as this is reboot command and might 
-		   have come because of some problem only. */
-		LOG_ER("Mismatch in sequence number, info->msg_id %u, cb->rcv_msg_id %u", info->msg_id, cb->rcv_msg_id);
-        }
-
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 	opensaf_reboot(cb->node_info.nodeId, (char *)cb->node_info.executionEnvironment.value,
-			"This node received reboot command from amfd.");
+				   "This node received reboot command from amfd.");
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;

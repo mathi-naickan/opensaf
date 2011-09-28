@@ -64,15 +64,8 @@ uns32 avnd_evt_avd_reg_su_evh(AVND_CB *cb, AVND_EVT *evt)
 		goto done;
 
 	info = &evt->info.avd->msg_info.d2n_reg_su;
-	TRACE("Comp MsgId:%u and Recv Msg Id:%u",cb->rcv_msg_id,info->msg_id);
 
-	if (info->msg_id != (cb->rcv_msg_id + 1)) {
-		/* Log Error */
-		rc = NCSCC_RC_FAILURE;
-		LOG_EM("Message id mismatch! Received id: %u",info->msg_id);
-		goto done;
-	}
-
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	/* 
@@ -224,25 +217,16 @@ uns32 avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 	AVND_SU *su = 0;
 	uns32 rc = NCSCC_RC_SUCCESS;
 
-	TRACE_ENTER();
+	TRACE_ENTER2("'%s'", info->su_name.value);
 
 	/* get the su */
 	su = m_AVND_SUDB_REC_GET(cb->sudb, info->su_name);
 	if (!su) {
-		TRACE_LEAVE2("SU record not found");
-		return rc;
-	}
-
-	TRACE("'%s'", su->name.value);
-
-	if (info->msg_id != (cb->rcv_msg_id + 1)) {
-		/* Log Error */
-		rc = NCSCC_RC_FAILURE;
-		LOG_EM("%s %u Message Id mismatch, received msg id = %u",__FUNCTION__, __LINE__, info->msg_id);
-
+		LOG_ER("'%s' record not found", info->su_name.value);
 		goto done;
 	}
 
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	/* buffer the msg (if no assignment / removal is on) */
@@ -252,8 +236,7 @@ uns32 avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 		if (TRUE == su->su_is_external) {
 			m_AVND_SEND_CKPT_UPDT_ASYNC_ADD(cb, &(siq->info), AVND_CKPT_SIQ_REC);
 		}
-		TRACE_LEAVE();
-		return rc;
+		goto done;
 	}
 
 	/* the msg isn't buffered, process it */
@@ -422,7 +405,7 @@ uns32 avnd_evt_su_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER2("%s op=%u", info->dn.value, info->oper_id);
 
-	assert( info->msg_id == cb->rcv_msg_id+1 );
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	su = m_AVND_SUDB_REC_GET(cb->sudb, info->dn);

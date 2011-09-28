@@ -1284,13 +1284,9 @@ uns32 avnd_evt_avd_role_change_evh(AVND_CB *cb, AVND_EVT *evt)
 	TRACE("MsgId: %u,NodeId:%u, role rcvd:%u role present:%u",\
 			      info->msg_id, info->node_id, info->role, cb->avail_state_avnd);
 
-	if ((info->msg_id != 0) && (info->msg_id != (cb->rcv_msg_id + 1))) {
-		rc = NCSCC_RC_FAILURE;
-		LOG_EM("%s Message id mismatch: %u",__FUNCTION__, info->msg_id);
-		return rc;
-	}
-
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
+
 	prev_ha_state = cb->avail_state_avnd;
 
 	/* Ignore the duplicate roles. */

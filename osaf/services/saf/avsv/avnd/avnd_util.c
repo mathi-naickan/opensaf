@@ -141,3 +141,22 @@ uns32 avnd_msg_copy(AVND_CB *cb, AVND_MSG *dmsg, AVND_MSG *smsg)
 
 	return rc;
 }
+
+/**
+ * Verify that msg ID is in sequence otherwise order node reboot
+ * and abort process.
+ * @param rcv_msg_id
+ */
+void avnd_msgid_assert(uint32_t rcv_msg_id)
+{
+	uint32_t expected_msg_id = avnd_cb->rcv_msg_id + 1;
+
+	if (rcv_msg_id != expected_msg_id) {
+		char reason[128];
+		snprintf(reason, sizeof(reason), "Message ID mismatch, rec %u, expected %u",
+				 rcv_msg_id, expected_msg_id);
+		opensaf_reboot(0, NULL, reason);
+		abort();
+	}
+}
+

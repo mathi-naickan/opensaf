@@ -108,7 +108,7 @@ static uns32 avnd_evt_node_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER2("%s op=%u", info->dn.value, info->oper_id);
 
-	assert( info->msg_id == cb->rcv_msg_id+1 );
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	switch(info->oper_id) {
@@ -209,8 +209,7 @@ uns32 avnd_evt_avd_operation_request_evh(AVND_CB *cb, AVND_EVT *evt)
 	if (!m_AVND_CB_IS_AVD_UP(cb))
 		goto done;
 
-	assert(info->msg_id == (cb->rcv_msg_id + 1));
-
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	switch (param->class_id) {
@@ -1038,14 +1037,7 @@ uns32 avnd_evt_avd_shutdown_app_su_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
-	if (info->msg_id != (cb->rcv_msg_id + 1)) {
-		/* Log Error */
-		rc = NCSCC_RC_FAILURE;
-		LOG_EM("%s, MsgId mismatch: %u",__FUNCTION__, info->msg_id);
-
-		goto done;
-	}
-
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	if (cb->term_state == AVND_TERM_STATE_SHUTTING_APP_SU) {

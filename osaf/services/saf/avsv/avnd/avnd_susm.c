@@ -957,13 +957,7 @@ uns32 avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	info = &evt->info.avd->msg_info.d2n_prsc_su;
 
-	if (info->msg_id != (cb->rcv_msg_id + 1)) {
-		/* Log Error */
-		rc = NCSCC_RC_FAILURE;
-		LOG_EM("Message id mismatch: %u",info->msg_id);
-		goto done;
-	}
-
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	/* get the su */

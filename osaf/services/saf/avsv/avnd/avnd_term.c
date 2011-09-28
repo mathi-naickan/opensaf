@@ -278,13 +278,7 @@ uns32 avnd_evt_avd_set_leds_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
-	if (info->msg_id != (cb->rcv_msg_id + 1)) {
-		/* Log Error */
-		rc = NCSCC_RC_FAILURE;
-		LOG_EM("%s,Message Id mismatch:%u",__FUNCTION__,info->msg_id);
-		goto done;
-	}
-
+	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
 	if (cb->led_state == AVND_LED_STATE_GREEN) {
