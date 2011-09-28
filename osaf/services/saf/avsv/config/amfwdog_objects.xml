@@ -38,6 +38,10 @@
 			<value>stop</value>
 		</attr>
 		<attr>
+			<name>saAmfCtDefQuiescingCompleteTimeout</name>
+			<value>10000000000</value>
+		</attr>
+		<attr>
 			<name>saAmfCtDefRecoveryOnError</name>
 			<value>2</value>
 		</attr>

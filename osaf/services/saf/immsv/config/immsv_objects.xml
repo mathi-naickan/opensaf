@@ -45,6 +45,10 @@
 			<value>stop</value>
 		</attr>
 		<attr>
+			<name>saAmfCtDefQuiescingCompleteTimeout</name>
+			<value>10000000000</value>
+		</attr>
+		<attr>
 			<name>saAmfCtDefRecoveryOnError</name>
 			<value>6</value>
 		</attr>
@@ -89,6 +93,10 @@
 		<attr>
 			<name>saAmfCtDefCleanupCmdArgv</name>
 			<value>stop</value>
+		</attr>
+		<attr>
+			<name>saAmfCtDefQuiescingCompleteTimeout</name>
+			<value>10000000000</value>
 		</attr>
 		<attr>
 			<name>saAmfCtDefRecoveryOnError</name>

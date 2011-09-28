@@ -134,6 +134,10 @@ unlocked instantiation (3). Uncomment the commented saAmfSUAdminState sections b
 			<value>cleanup</value>
 		</attr>
 		<attr>
+			<name>saAmfCtDefQuiescingCompleteTimeout</name>
+			<value>10000000000</value>
+		</attr>
+		<attr>
 			<name>saAmfCtDefRecoveryOnError</name>
 			<value>2</value>
 		</attr>
