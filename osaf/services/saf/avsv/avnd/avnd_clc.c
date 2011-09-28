@@ -1357,30 +1357,31 @@ uns32 avnd_comp_clc_xxxing_instfail_hdler(AVND_CB *cb, AVND_COMP *comp)
 {
 	uns32 rc = NCSCC_RC_SUCCESS;
 
+	/* reset the comp-reg & instantiate params */
+	if (!m_AVND_COMP_TYPE_IS_PROXIED(comp))
+		m_AVND_COMP_REG_PARAM_RESET(cb, comp);
+	m_AVND_COMP_CLC_INST_PARAM_RESET(comp);
+
+	if (m_AVND_COMP_TYPE_IS_PROXY(comp))
+		rc = avnd_comp_proxy_unreg(cb, comp);
+
+	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
+
+	/* delete hc-list, cbk-list, pg-list & pm-list */
+	avnd_comp_hc_rec_del_all(cb, comp);
+	avnd_comp_cbq_del(cb, comp, TRUE);
+
+	/* re-using the funtion to stop all PM started by this comp */
+	avnd_comp_pm_finalize(cb, comp, comp->reg_hdl);
+	avnd_comp_pm_rec_del_all(cb, comp);	/*if at all anythnig is left behind */
+
+	/* no state transition */
+
 	/* cleanup the comp */
 	if (m_AVND_COMP_TYPE_IS_PROXIED(comp) && comp->pxy_comp != 0)
 		rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
 	else
 		rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
-
-	if (NCSCC_RC_SUCCESS == rc) {
-		/* reset the comp-reg & instantiate params */
-		if (!m_AVND_COMP_TYPE_IS_PROXIED(comp))
-			m_AVND_COMP_REG_PARAM_RESET(cb, comp);
-		m_AVND_COMP_CLC_INST_PARAM_RESET(comp);
-
-		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
-
-		/* delete hc-list, cbk-list, pg-list & pm-list */
-		avnd_comp_hc_rec_del_all(cb, comp);
-		avnd_comp_cbq_del(cb, comp, TRUE);
-
-		/* re-using the funtion to stop all PM started by this comp */
-		avnd_comp_pm_finalize(cb, comp, comp->reg_hdl);
-		avnd_comp_pm_rec_del_all(cb, comp);	/*if at all anythnig is left behind */
-
-		/* no state transition */
-	}
 
 	return rc;
 }
