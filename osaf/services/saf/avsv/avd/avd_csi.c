@@ -383,8 +383,8 @@ static SaAisErrorT csi_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 
 	switch (opdata->operationType) {
 	case CCBUTIL_CREATE:
-		if (is_config_valid(&opdata->objectName, opdata->param.create.attrValues, opdata))
-			rc = SA_AIS_OK;
+		if (!is_config_valid(&opdata->objectName, opdata->param.create.attrValues, opdata))
+			goto done;
 		break;
 	case CCBUTIL_MODIFY:
 		rc = csi_ccb_completed_modify_hdlr(opdata);
