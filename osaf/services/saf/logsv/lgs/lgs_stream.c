@@ -820,8 +820,18 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 	/* Open files on demand e.g. on new active after fail/switch-over. This
 	 * enables LOG to cope with temporary file system problems. */
 	
-	/* Creating config file on new ACTIVE */
 	if (stream->fd == -1) {
+		char command[PATH_MAX + 16];
+		
+		/* Creating directory of given path to store log and cfg files,
+		 * if not using shared file system. */
+		sprintf(command, "mkdir -p %s/%s", lgs_cb->logsv_root_dir, stream->pathName);
+		if (system(command) != 0) {
+			LOG_NO("Create directory '%s/%s' failed", lgs_cb->logsv_root_dir, stream->pathName);
+			rc = -1;
+			goto done;
+		}
+		/* Creating config file on new ACTIVE */
 		if (lgs_create_config_file(stream) != 0) {
 			TRACE("Creating config file failed");
 			rc = -1;
@@ -889,7 +899,7 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 	}
 
  done:
-	TRACE_LEAVE2("rc=%u", rc);
+	TRACE_LEAVE2("rc=%d", rc);
 	return rc;
 }
 
