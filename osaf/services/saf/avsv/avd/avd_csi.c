@@ -373,8 +373,9 @@ static SaAisErrorT csi_ccb_completed_create_hdlr(CcbUtilOperationData_t *opdata)
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
-	if (is_config_valid(&opdata->objectName, opdata->param.create.attrValues, opdata))
-		rc = SA_AIS_OK;
+
+	if (!is_config_valid(&opdata->objectName, opdata->param.create.attrValues, opdata))
+		goto done;
 
 	rc = immutil_getAttr("saAmfCSType", opdata->param.create.attrValues, 0, &cstype_name);
 	assert(rc == SA_AIS_OK);
