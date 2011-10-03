@@ -472,40 +472,20 @@ static SaAisErrorT node_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata
 
 	while ((attr_mod = opdata->param.modify.attrMods[i++]) != NULL) {
 		const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
-		void *value = attribute->attrValues[0];
 
-		if (!strcmp(attribute->attrName, "saAmfNodeClmNode")) {
-			LOG_ER("Modification of saAmfNodeClmNode not allowed");
-			rc = SA_AIS_ERR_BAD_OPERATION;
-			goto done;
-		} else if (!strcmp(attribute->attrName, "saAmfNodeSuFailOverProb")) {
-			SaTimeT su_failover_prob = *((SaTimeT *)value);
+		if (!strcmp(attribute->attrName, "saAmfNodeSuFailOverProb")) {
+			SaTimeT su_failover_prob = *((SaTimeT *)attribute->attrValues[0]);
 			if (su_failover_prob == 0) {
-				rc = SA_AIS_ERR_BAD_OPERATION;
-				goto done;
-			}
-		} else if (!strcmp(attribute->attrName, "saAmfNodeAutoRepair")) {
-			SaBoolT val = *((SaBoolT *)value);
-			if (val > SA_TRUE) {
-				rc = SA_AIS_ERR_BAD_OPERATION;
-				goto done;
-			}
-		} else if (!strcmp(attribute->attrName, "saAmfNodeFailfastOnTerminationFailure")) {
-			SaBoolT val = *((SaBoolT *)value);
-			if (val > SA_TRUE) {
-				rc = SA_AIS_ERR_BAD_OPERATION;
-				goto done;
-			}
-		} else if (!strcmp(attribute->attrName, "saAmfNodeFailfastOnInstantiationFailure")) {
-			SaBoolT val = *((SaBoolT *)value);
-			if (val > SA_TRUE) {
+				LOG_ER("Modification of '%s' failed - invalid saAmfNodeSuFailOverProb (0)",
+					   opdata->objectName.value);
 				rc = SA_AIS_ERR_BAD_OPERATION;
 				goto done;
 			}
 		} else if (!strcmp(attribute->attrName, "saAmfNodeSuFailoverMax")) {
-			/*  No validation needed, avoiding fall-thorugh to Unknown Attribute error-case */
+			/*  No validation needed, avoiding fall-through to Unknown Attribute error-case */
 		} else {
-			LOG_ER("Unknown attribute %s", attribute->attrName);
+			LOG_ER("Modification of '%s' failed - attribute '%s' cannot be modified", 
+				   opdata->objectName.value, attribute->attrName);
 			rc = SA_AIS_ERR_BAD_OPERATION;
 			goto done;
 		}
