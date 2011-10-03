@@ -2215,8 +2215,9 @@ static void dump_usrbuf(USRBUF *ub)
  *                                      fevs overflow. This to maintain sender
  *                                      order and not only IMMD fevs order.
  *                                      Sender order is currently used during
- *                                      sync to avoid finalizeSync bypassing
- *                                      any part of the sync contents.
+ *                                      finalizeSync when the finalizeSync has
+ *                                      been sent from coord, until it has been
+ *                                      received (cb->mSyncFinalizing is true).
  *                           SA_FALSE =>Message has already passed queue.
  *                                      Fevs order through IMMD is enough.
  *
@@ -2277,10 +2278,31 @@ static uns32 immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 			immModel_setAdmReqContinuation(cb, saInv, conn);
 
 		} else if((evt->info.fevsReq.sender_count == 0x1) && 
-			immModel_immNotWritable(cb)) {
+			(immModel_immNotWritable(cb) ||  (cb->mSyncFinalizing && cb->fevs_out_count))) {
 			/* sender_count set to 1 if we are to check locally for writability
 			  before sending to IMMD. This to avoid broadcasting requests that 
-			  are doomed anyway.  */
+			  are doomed anyway. Immnd coord opens for writability when 
+			  finalizeSync message is generated. But finalizeSync is asyncronous
+			  since 4.1 and may get enqueued into the out queue, instead of being
+			  sent immediately. While finalizeSync is in the out queue,
+                          syncronous fevs messages that require writability, could bypass finalizeSync.
+			  This is BAD because such messages can arrive back here at coord and be
+			  accepted, but will be rejected at other nodes until they receive finalizeSync
+			  and open for writes.
+
+			  Such bypass is prevented here by also screening on mSyncFinalizing,
+			  which is true starting when coord generates finalize sync and ends when coord
+			  receives its own finalize sync. This is actually more restrivtive than
+			  necessary. An optimization is to detect when finalizeSync is
+			  actually sent from coord, instead of waiting until it is received.
+			  As soon as it is has been sent from the coord, any subsequent sends
+			  from coord can not bypass the finalizeSync. We dont quite capture
+			  the send of finalizeSync, but if the out-queue is empty, then we 
+			  know finalizeSync must have been sent. 
+
+			  Note that fevs messages that do not require IMMND writability, such
+			  as runtime-attribute-updates, will not be affected by this.
+			*/
 
 			if(asyncReq) {
 				LOG_IN("Rare case (?) of enqueueing async & write message "
