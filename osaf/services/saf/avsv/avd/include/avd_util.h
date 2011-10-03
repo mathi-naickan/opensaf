@@ -34,6 +34,7 @@
 #ifndef AVD_MSG_H
 #define AVD_MSG_H
 
+#include <stdbool.h>
 #include <avsv_d2nmsg.h>
 #include <avd_cb.h>
 
@@ -160,5 +161,6 @@ extern uns32 amfd_switch_qsd_stdby(AVD_CL_CB *cb);
 extern uns32 amfd_switch_stdby_actv(AVD_CL_CB *cb);
 extern uns32 amfd_switch_qsd_actv(AVD_CL_CB *cb);
 extern uns32 amfd_switch_actv_qsd(AVD_CL_CB *cb);
+extern bool object_exist_in_imm(const SaNameT *dn);
 
 #endif

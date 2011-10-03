@@ -24,9 +24,8 @@
 ******************************************************************************
 */
 
-/*
- * Module Inclusion Control...
- */
+#include <saImmOm.h>
+#include <immutil.h>
 #include <logtrace.h>
 #include <string.h>
 #include <avd.h>
@@ -1844,3 +1843,28 @@ const char* avd_getparent(const char* dn)
 
 	return parent;
 }
+
+/**
+ * Verify the existence of an object in IMM
+ * @param dn
+ * 
+ * @return bool
+ */
+bool object_exist_in_imm(const SaNameT *dn)
+{
+	bool rc = false;
+	SaImmAccessorHandleT accessorHandle;
+	const SaImmAttrValuesT_2 **attributes;
+	SaImmAttrNameT attributeNames[] = {"SaImmAttrClassName", NULL};
+
+	immutil_saImmOmAccessorInitialize(avd_cb->immOmHandle, &accessorHandle);
+
+	if (immutil_saImmOmAccessorGet_2(accessorHandle, dn, attributeNames,
+									 (SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK)
+		rc = true;
+
+	immutil_saImmOmAccessorFinalize(accessorHandle);
+
+	return rc;
+}
+

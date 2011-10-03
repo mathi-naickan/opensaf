@@ -138,14 +138,15 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 {
 	SaAisErrorT rc;
 	SaNameT aname;
-	char *parent;
+	const char *parent;
+	unsigned int values_number;
 
-	if ((parent = strchr((char*)dn->value, ',')) == NULL) {
+	if ((parent = avd_getparent((const char*)dn->value)) == NULL) {
 		LOG_ER("No parent to '%s' ", dn->value);
 		return 0;
 	}
 
-	if (strncmp(++parent, "safSi=", 6) != 0) {
+	if (strncmp(parent, "safSi=", 6) != 0) {
 		LOG_ER("Wrong parent '%s' to '%s' ", parent, dn->value);
 		return 0;
 	}
@@ -165,6 +166,53 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 			return 0;
 		}
 	}
+
+	/* Verify that all (if any) CSI dependencies are valid */
+	if ((immutil_getAttrValuesNumber("saAmfCSIDependencies", attributes, &values_number) == SA_AIS_OK) &&
+		(values_number > 0)) {
+
+		int i;
+		SaNameT saAmfCSIDependency;
+		const char *dep_parent;
+
+		for (i = 0; i < values_number; i++) {
+			rc = immutil_getAttr("saAmfCSIDependencies", attributes, i, &saAmfCSIDependency);
+			assert(rc == SA_AIS_OK);
+
+			if (strncmp((char*)dn->value, (char*)saAmfCSIDependency.value, sizeof(dn->value)) == 0) {
+				LOG_ER("'%s' validation failed - dependency configured to itself!", dn->value);
+				return 0;
+			}
+
+			if (avd_csi_get(&saAmfCSIDependency) == NULL) {
+				/* CSI does not exist in current model, check CCB if passed as param */
+				if (opdata == NULL) {
+					/* initial loading, check IMM */
+					if (!object_exist_in_imm(&saAmfCSIDependency)) {
+						LOG_ER("'%s' validation failed - '%s' does not exist",
+							   dn->value, saAmfCSIDependency.value);
+						return 0;
+					}
+				} else if (ccbutil_getCcbOpDataByDN(opdata->ccbId, &saAmfCSIDependency) == NULL) {
+					LOG_ER("'%s' validation failed - '%s' does not exist in existing model or in CCB",
+						   dn->value, saAmfCSIDependency.value);
+					return 0;
+				}
+			}
+
+			if ((dep_parent = avd_getparent((const char*)saAmfCSIDependency.value)) == NULL) {
+				LOG_ER("'%s' validation failed - invalid saAmfCSIDependency '%s'",
+					   dn->value, saAmfCSIDependency.value);
+				return 0;
+			}
+
+			if (strncmp(parent, dep_parent, sizeof(dn->value)) != 0) {
+				LOG_ER("'%s' validation failed - dependency to CSI in other SI is not allowed", dn->value);
+				return 0;
+			}
+		}
+	}
+
 #if 0 // TODO
 	/* Verify that the SI can contain this CSI */
 	{
