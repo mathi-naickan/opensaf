@@ -896,6 +896,8 @@ uns32 amfd_switch_qsd_stdby(AVD_CL_CB *cb)
 uns32 amfd_switch_stdby_actv(AVD_CL_CB *cb)
 {
 	uns32 status = NCSCC_RC_SUCCESS;
+	AVD_SG *sg;
+	SaNameT dn = {0};
 	
 	TRACE_ENTER();
 
@@ -979,6 +981,13 @@ uns32 amfd_switch_stdby_actv(AVD_CL_CB *cb)
 
 	/* Send the message to other avd for role change rsp as success */
 	avd_d2d_chg_role_rsp(cb, NCSCC_RC_SUCCESS, SA_AMF_HA_ACTIVE);
+
+	/* Screen through all the SG's in the sg database and update si's si_dep_state */
+	for (sg = avd_sg_getnext(&dn); sg != NULL; sg = avd_sg_getnext(&dn)) {
+		if (sg->sg_fsm_state == AVD_SG_FSM_STABLE)
+			avd_sg_screen_si_si_dependencies(cb, sg);
+		dn = sg->name;
+	}
 
 	LOG_NO("Controller switch over done");
 	saflog(LOG_NOTICE, amfSvcUsrName, "Controller switch over done at %x", cb->node_id_avd);
