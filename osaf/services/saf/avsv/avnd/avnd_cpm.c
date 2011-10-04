@@ -33,6 +33,9 @@
 ******************************************************************************
 */
 
+#include <sys/types.h>
+#include <signal.h>
+
 #include "avnd.h"
 #include "avnd_mon.h"
 
@@ -549,6 +552,11 @@ void avnd_comp_pm_param_val(AVND_CB *cb,
 				return;
 			}
 
+			if (kill(pm_start->pid, 0) == -1) {
+				assert(errno == ESRCH);
+				*o_amf_rc = SA_AIS_ERR_NOT_EXIST;
+				return;
+			}
 		}
 		break;
 
@@ -582,6 +590,12 @@ void avnd_comp_pm_param_val(AVND_CB *cb,
 			/* if Handle dosen't match with that of PM Start */
 			if ((*o_pm_rec)->req_hdl != pm_stop->hdl) {
 				*o_amf_rc = SA_AIS_ERR_BAD_HANDLE;
+				return;
+			}
+
+			if (kill(pm_stop->pid, 0) == -1) {
+				assert(errno == ESRCH);
+				*o_amf_rc = SA_AIS_ERR_NOT_EXIST;
 				return;
 			}
 		}
