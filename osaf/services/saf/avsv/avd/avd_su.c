@@ -1129,8 +1129,13 @@ static SaAisErrorT su_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 	int i = 0;
 
 	while ((attr_mod = opdata->param.modify.attrMods[i++]) != NULL) {
+
+		/* Attribute value removed */
+		if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (attr_mod->modAttr.attrValues == NULL))
+			continue;
+
 		if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUFailover")) {
-			NCS_BOOL su_failover = *((SaTimeT *)attr_mod->modAttr.attrValues[0]);
+			bool su_failover = *((SaTimeT *)attr_mod->modAttr.attrValues[0]);
 			if (su_failover > SA_TRUE) {
 				LOG_ER("Invalid saAmfSUFailover %u", su_failover);
 				rc = SA_AIS_ERR_BAD_OPERATION;
@@ -1139,35 +1144,10 @@ static SaAisErrorT su_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 		} else if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUMaintenanceCampaign")) {
 			AVD_SU *su = avd_su_get(&opdata->objectName);
 
-			if (SA_IMM_ATTR_VALUES_DELETE == attr_mod->modType) {
-				if (su->saAmfSUMaintenanceCampaign.length == 0) {
-					LOG_ER("No value to clear for saAmfSUMaintenanceCampaign");
-					rc = SA_AIS_ERR_BAD_OPERATION;
-					goto done;
-				}
-			} else {
-				if (attr_mod->modAttr.attrValuesNumber == 0) {
-					if (su->saAmfSUMaintenanceCampaign.length == 0) {
-						LOG_ER("No value to clear for saAmfSUMaintenanceCampaign");
-						rc = SA_AIS_ERR_BAD_OPERATION;
-						goto done;
-					}
-				} else if (attr_mod->modAttr.attrValuesNumber == 1) {
-					SaNameT *saAmfSUMaintenanceCampaign = ((SaNameT *)attr_mod->modAttr.attrValues[0]);
-
-					if (su->saAmfSUMaintenanceCampaign.length > 0) {
-						LOG_ER("saAmfSUMaintenanceCampaign already set for %s", su->name.value);
-						rc = SA_AIS_ERR_BAD_OPERATION;
-						goto done;
-					}
-
-					if (saAmfSUMaintenanceCampaign->length == 0) {
-						LOG_ER("Illegal clearing of saAmfSUMaintenanceCampaign");
-						rc = SA_AIS_ERR_BAD_OPERATION;
-						goto done;
-					}
-				} else
-					assert(0); /* is not multivalue, IMM should enforce */
+			if (su->saAmfSUMaintenanceCampaign.length > 0) {
+				LOG_ER("saAmfSUMaintenanceCampaign already set for %s", su->name.value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
 			}
 		} else if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUType")) {
 			AVD_SU *su;
@@ -1322,45 +1302,46 @@ static void su_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 {
 	const SaImmAttrModificationT_2 *attr_mod;
 	int i = 0;
-	AVD_SU *su = NULL;
+	AVD_SU *su;
+	bool value_is_deleted;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
 	su = avd_su_get(&opdata->objectName);
-	while ((attr_mod = opdata->param.modify.attrMods[i++]) != NULL) {
-		if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUFailover")) {
-			NCS_BOOL su_failover = *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
-			su->saAmfSUFailover = su_failover;
-		} else if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUMaintenanceCampaign")) {
-			AVD_SU *su = avd_su_get(&opdata->objectName);
 
-			if (SA_IMM_ATTR_VALUES_DELETE == attr_mod->modType) {
+	while ((attr_mod = opdata->param.modify.attrMods[i++]) != NULL) {
+		/* Attribute value removed */
+		if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (attr_mod->modAttr.attrValues == NULL))
+			value_is_deleted = true;
+		else
+			value_is_deleted = false;
+
+		if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUFailover")) {
+			if (value_is_deleted)
+				su->saAmfSUFailover = su->su_type->saAmfSutDefSUFailover;
+			else
+				su->saAmfSUFailover = *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
+		} else if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUMaintenanceCampaign")) {
+			if (value_is_deleted) {
 				su->saAmfSUMaintenanceCampaign.length = 0;
 				TRACE("saAmfSUMaintenanceCampaign cleared for '%s'", su->name.value);
 			} else {
-				if (attr_mod->modAttr.attrValuesNumber == 1) {
-					assert(su->saAmfSUMaintenanceCampaign.length == 0);
-					su->saAmfSUMaintenanceCampaign = *((SaNameT *)attr_mod->modAttr.attrValues[0]);
-					TRACE("saAmfSUMaintenanceCampaign set to '%s' for '%s'",
-							su->saAmfSUMaintenanceCampaign.value, su->name.value);
-				} else if (attr_mod->modAttr.attrValues == 0) {
-					su->saAmfSUMaintenanceCampaign.length = 0;
-					TRACE("saAmfSUMaintenanceCampaign cleared for '%s'", su->name.value);
-				} else
-					assert(0);
+				assert(su->saAmfSUMaintenanceCampaign.length == 0);
+				su->saAmfSUMaintenanceCampaign = *((SaNameT *)attr_mod->modAttr.attrValues[0]);
+				TRACE("saAmfSUMaintenanceCampaign set to '%s' for '%s'",
+					  su->saAmfSUMaintenanceCampaign.value, su->name.value);
 			}
-                } else if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUType")) {
-                        struct avd_sutype *sut;
-                        SaNameT sutype_name = *(SaNameT*) attr_mod->modAttr.attrValues[0];
-                        sut = avd_sutype_get(&sutype_name);
-                        avd_sutype_remove_su(su);
-                        su->saAmfSUType = sutype_name;
-                        su->su_type = sut;
-                        avd_sutype_add_su(su);
-                        su->saAmfSUFailover = sut->saAmfSutDefSUFailover;
-                        su->su_is_external = sut->saAmfSutIsExternal;
-		}
-		else
+		} else if (!strcmp(attr_mod->modAttr.attrName, "saAmfSUType")) {
+			struct avd_sutype *sut;
+			SaNameT sutype_name = *(SaNameT*) attr_mod->modAttr.attrValues[0];
+			sut = avd_sutype_get(&sutype_name);
+			avd_sutype_remove_su(su);
+			su->saAmfSUType = sutype_name;
+			su->su_type = sut;
+			avd_sutype_add_su(su);
+			su->saAmfSUFailover = sut->saAmfSutDefSUFailover;
+			su->su_is_external = sut->saAmfSutIsExternal;
+		} else
 			assert(0);
 	}
 
