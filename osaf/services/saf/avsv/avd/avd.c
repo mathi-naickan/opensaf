@@ -186,6 +186,13 @@ uns32 avd_initialize(void)
 		goto done;
 	}
 
+	if ((rc = rda_get_role(&role)) != NCSCC_RC_SUCCESS) {
+		LOG_ER("rda_get_role FAILED");
+		goto done;
+	}
+
+	cb->avail_state_avd = role;
+
 	/* get the node id of the node on which the AVD is running. */
 	cb->node_id_avd = m_NCS_GET_NODE_ID;
 
@@ -214,13 +221,6 @@ uns32 avd_initialize(void)
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
-
-	if ((rc = rda_get_role(&role)) != NCSCC_RC_SUCCESS) {
-		LOG_ER("rda_get_role FAILED");
-		goto done;
-	}
-
-	cb->avail_state_avd = role;
 
 	if (NCSCC_RC_SUCCESS != avd_mds_set_vdest_role(cb, role)) {
 		LOG_ER("avd_mds_set_vdest_role FAILED");

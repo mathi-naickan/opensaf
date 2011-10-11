@@ -400,6 +400,10 @@ static uns32 avd_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 			if ((evt_info->i_node_id != cb->node_id_avd) && (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest))) {
 				cb->node_id_avd_other = evt_info->i_node_id;
 				cb->other_avd_adest = evt_info->i_dest;
+				if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+					TRACE("Standby peer up and out of sync");
+					avd_cb->stby_sync_state = AVD_STBY_OUT_OF_SYNC;
+				}
 			}
 			break;
 
@@ -425,9 +429,10 @@ static uns32 avd_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 		switch (evt_info->i_svc_id) {
 		case NCSMDS_SVC_ID_AVD:
 			/* if(Is this down from an Adest) && (Is this adest same as Adest in CB) */
-			if (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest)
-			    && m_NCS_MDS_DEST_EQUAL(&evt_info->i_dest, &cb->other_avd_adest)) {
+			if (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest) &&
+			    m_NCS_MDS_DEST_EQUAL(&evt_info->i_dest, &cb->other_avd_adest)) {
 				memset(&cb->other_avd_adest, '\0', sizeof(MDS_DEST));
+				avd_cb->stby_sync_state = AVD_STBY_IN_SYNC;
 			}
 			break;
 

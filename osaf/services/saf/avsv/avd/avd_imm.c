@@ -533,6 +533,12 @@ static SaAisErrorT ccb_object_create_cb(SaImmOiHandleT immoi_handle,
 
 	TRACE_ENTER2("CCB ID %llu, class %s, parent '%s'", ccb_id, class_name, parent_name->value);
 
+	if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE && avd_cb->stby_sync_state == AVD_STBY_OUT_OF_SYNC) {
+		LOG_ER("Configuration change not allowed, peer is syncing");
+		rc = SA_AIS_ERR_BAD_OPERATION;
+		goto done;
+	}
+
 	if ((ccb_util_ccb_data = ccbutil_getCcbData(ccb_id)) == NULL) {
 		LOG_ER("Failed to get CCB object for %llu", ccb_id);
 		rc = SA_AIS_ERR_NO_MEMORY;
@@ -606,6 +612,12 @@ static SaAisErrorT ccb_object_delete_cb(SaImmOiHandleT immoi_handle,
 
 	TRACE_ENTER2("CCB ID %llu, %s", ccb_id, object_name->value);
 
+	if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE && avd_cb->stby_sync_state == AVD_STBY_OUT_OF_SYNC) {
+		LOG_ER("Configuration change not allowed, peer is syncing");
+		rc = SA_AIS_ERR_BAD_OPERATION;
+		goto done;
+	}
+
 	if ((ccb_util_ccb_data = ccbutil_getCcbData(ccb_id)) != NULL) {
 		/* "memorize the request" */
 		ccbutil_ccbAddDeleteOperation(ccb_util_ccb_data, object_name);
@@ -613,7 +625,7 @@ static SaAisErrorT ccb_object_delete_cb(SaImmOiHandleT immoi_handle,
 		LOG_ER("Failed to get CCB object for %llu", ccb_id);
 		rc = SA_AIS_ERR_NO_MEMORY;
 	}
-
+done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
@@ -639,6 +651,12 @@ static SaAisErrorT ccb_object_modify_cb(SaImmOiHandleT immoi_handle,
 
 	TRACE_ENTER2("CCB ID %llu, %s", ccb_id, object_name->value);
 
+	if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE && avd_cb->stby_sync_state == AVD_STBY_OUT_OF_SYNC) {
+		LOG_ER("Configuration change not allowed, peer is syncing");
+		rc = SA_AIS_ERR_BAD_OPERATION;
+		goto done;
+	}
+
 	if ((ccb_util_ccb_data = ccbutil_getCcbData(ccb_id)) != NULL) {
 		/* "memorize the request" */
 		if (ccbutil_ccbAddModifyOperation(ccb_util_ccb_data, object_name, attr_mods) != 0) {
@@ -650,6 +668,7 @@ static SaAisErrorT ccb_object_modify_cb(SaImmOiHandleT immoi_handle,
 		rc = SA_AIS_ERR_NO_MEMORY;
 	}
 
+done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
@@ -675,6 +694,12 @@ static SaAisErrorT ccb_completed_cb(SaImmOiHandleT immoi_handle,
 	AVSV_AMF_CLASS_ID type;
 
 	TRACE_ENTER2("CCB ID %llu", ccb_id);
+
+	if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE && avd_cb->stby_sync_state == AVD_STBY_OUT_OF_SYNC) {
+		LOG_ER("Configuration change not allowed, peer is syncing");
+		rc = SA_AIS_ERR_BAD_OPERATION;
+		goto done;
+	}
 
 	/* "check that the sequence of change requests contained in the CCB is
 	   valid and that no errors will be generated when these changes
@@ -720,8 +745,8 @@ static void ccb_abort_cb(SaImmOiHandleT immoi_handle, SaImmOiCcbIdT ccb_id)
 
 	/* Return CCB container memory */
 	ccb_util_ccb_data = ccbutil_findCcbData(ccb_id);
-	assert(ccb_util_ccb_data);
-	ccbutil_deleteCcbData(ccb_util_ccb_data);
+	if (ccb_util_ccb_data != NULL)
+		ccbutil_deleteCcbData(ccb_util_ccb_data);
 
 	TRACE_LEAVE();
 }
