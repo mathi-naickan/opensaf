@@ -793,40 +793,41 @@ static uns32 sg_app_sg_admin_lock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 
 /**
  * perform unlock-instantiation on a given SG
+ * 
  * @param cb
  * @param sg
  */
-static uns32 sg_app_sg_admin_unlock_inst(AVD_CL_CB *cb, AVD_SG *sg)
+static void sg_app_sg_admin_unlock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 {
 	AVD_SU *su;
-	uns32 rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER2("%s", sg->name.value);
 
-	/* instantiate the SUs on this Node */
-	su = sg->list_of_su;
-	while (su != NULL) {
+	/* Instantiate the SUs in this SG */
+	for (su = sg->list_of_su; su != NULL; su = su->sg_list_su_next) {
 		if ((su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
 			(su->su_on_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)
 			&& (su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED)) {
 
-			if (su->saAmfSUPreInstantiable == TRUE) {
-				if (avd_snd_presence_msg(cb, su, FALSE) == NCSCC_RC_SUCCESS) {
-					m_AVD_SET_SU_TERM(cb, su, FALSE);
-				} else {
-					rc = NCSCC_RC_FAILURE;
-					LOG_WA("Failed Instantiation '%s'", su->name.value);
+			if (su->saAmfSUPreInstantiable == true) {
+				if (su->su_on_node->node_state == AVD_AVND_STATE_PRESENT) {
+					if (avd_snd_presence_msg(cb, su, false) != NCSCC_RC_SUCCESS) {
+						LOG_NO("%s: Failed to send Instantiation order of '%s' to %x",
+							   __FUNCTION__, su->name.value, su->su_on_node->node_info.nodeId);
+					}
 				}
+
+				/* set uncondionally of msg snd outcome */
+				m_AVD_SET_SU_TERM(cb, su, false);
+
 			} else {
 				avd_su_oper_state_set(su, SA_AMF_OPERATIONAL_ENABLED);
 				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 			}
 		}
-		su = su->sg_list_su_next;
 	}
 
-	TRACE_LEAVE2("'%d'", rc);
-	return rc;
+	TRACE_LEAVE();
 }
 
 static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
@@ -954,13 +955,8 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			goto done;
 		}
 
-		adm_state = sg->saAmfSGAdminState;
 		avd_sg_admin_state_set(sg, SA_AMF_ADMIN_LOCKED);
-		if (sg_app_sg_admin_unlock_inst(avd_cb, sg) != NCSCC_RC_SUCCESS) {
-			avd_sg_admin_state_set(sg, adm_state);
-			rc = SA_AIS_ERR_BAD_OPERATION;
-			goto done;
-		}
+		sg_app_sg_admin_unlock_inst(avd_cb, sg);
 
 		break;
 	case SA_AMF_ADMIN_SG_ADJUST:
