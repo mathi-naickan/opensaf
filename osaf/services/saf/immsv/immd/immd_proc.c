@@ -355,7 +355,7 @@ uns32 immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, NCS
 		}
 	}
 
-	if (active || possible_fo) {
+	if (active || possible_fo || !cb->immd_remote_up) {
 		/* 
 		 ** HAFE - Let IMMND subscribe for IMMND up/down events instead?
 		 ** ABT - Not for now. IMMND up/down are only subscribed by IMMD.
@@ -368,7 +368,7 @@ uns32 immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, NCS
 		 ** any duplicate (same sequence no).
 		 */
 		if (res == 0) {
-			if (!active) {
+			if (possible_fo) {
 				IMMSV_FEVS *old_msg = NULL;
 				uns16 back_count = 2;
 				TRACE_5("Re-broadcast the last two fevs messages received over mbcpsv");
