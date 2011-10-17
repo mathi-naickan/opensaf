@@ -23,6 +23,34 @@
 
 #include "immd.h"
 
+void immd_proc_rebroadcast_fevs(IMMD_CB *cb, uns16 back_count)
+{
+	IMMSV_EVT send_evt;
+	IMMSV_FEVS *old_msg = NULL;
+	assert(back_count > 0);
+	TRACE_5("Re-broadcast the last %u fevs messages received over mbcpsv", back_count);
+	do {
+		old_msg = immd_db_get_fevs(cb, back_count);
+		if (old_msg) {
+			TRACE_5("Resend message no %llu", old_msg->sender_count);
+			memset(&send_evt, 0, sizeof(IMMSV_EVT));
+			send_evt.type = IMMSV_EVT_TYPE_IMMD;
+			send_evt.info.immd.type = 0;
+			send_evt.info.immd.info.fevsReq.sender_count = old_msg->sender_count;
+			send_evt.info.immd.info.fevsReq.reply_dest = old_msg->reply_dest;
+			send_evt.info.immd.info.fevsReq.client_hdl = old_msg->client_hdl;
+			send_evt.info.immd.info.fevsReq.msg.size = old_msg->msg.size;
+			send_evt.info.immd.info.fevsReq.msg.buf = old_msg->msg.buf;
+
+			if (immd_evt_proc_fevs_req(cb, &(send_evt.info.immd), NULL, FALSE) != NCSCC_RC_SUCCESS) {
+				LOG_ER("Failed to re-send FEVS message %llu", old_msg->sender_count);
+			}
+		}
+
+		--back_count;
+	} while (back_count != 0);
+}
+
 void immd_proc_immd_reset(IMMD_CB *cb, NCS_BOOL active)
 {
 	IMMSV_EVT send_evt;
@@ -369,31 +397,7 @@ uns32 immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, NCS
 		 */
 		if (res == 0) {
 			if (possible_fo) {
-				IMMSV_FEVS *old_msg = NULL;
-				uns16 back_count = 2;
-				TRACE_5("Re-broadcast the last two fevs messages received over mbcpsv");
-				do {
-					old_msg = immd_db_get_fevs(cb, back_count);
-					if (old_msg) {
-						TRACE_5("Resend message no %llu", old_msg->sender_count);
-						memset(&send_evt, 0, sizeof(IMMSV_EVT));
-						send_evt.type = IMMSV_EVT_TYPE_IMMD;
-						send_evt.info.immd.type = 0;
-						send_evt.info.immd.info.fevsReq.sender_count = old_msg->sender_count;
-						send_evt.info.immd.info.fevsReq.reply_dest = old_msg->reply_dest;
-						send_evt.info.immd.info.fevsReq.client_hdl = old_msg->client_hdl;
-						send_evt.info.immd.info.fevsReq.msg.size = old_msg->msg.size;
-						send_evt.info.immd.info.fevsReq.msg.buf = old_msg->msg.buf;
-
-						if (immd_evt_proc_fevs_req(cb, &(send_evt.info.immd), NULL, FALSE)
-						    != NCSCC_RC_SUCCESS) {
-							LOG_ER("Failed to re-send FEVS message %llu",
-							       old_msg->sender_count);
-						}
-					}
-
-					--back_count;
-				} while (back_count != 0);
+				immd_proc_rebroadcast_fevs(cb, 2);
 			}
 
 			TRACE_5("Notify all remaining IMMNDs of the departed IMMND");

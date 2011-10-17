@@ -27,6 +27,7 @@ void immd_process_evt(void);
 EXTERN_C uns32 immd_amf_init(IMMD_CB *immd_cb);
 EXTERN_C uns32 immd_evt_proc_fevs_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_INFO *sinfo, NCS_BOOL dealocate);
 EXTERN_C int immd_proc_elect_coord(IMMD_CB *immd_cb, NCS_BOOL new_active);
+void immd_proc_rebroadcast_fevs(IMMD_CB *immd_cb, uns16 back_count);
 
 /* AMF Function Declerations */
 
