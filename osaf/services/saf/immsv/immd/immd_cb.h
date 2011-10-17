@@ -42,6 +42,7 @@
 
 typedef struct immd_saved_fevs_msg {
 	IMMSV_FEVS fevsMsg;
+	NCS_BOOL re_sent;
 	struct immd_saved_fevs_msg *next;
 } IMMD_SAVED_FEVS_MSG;
 

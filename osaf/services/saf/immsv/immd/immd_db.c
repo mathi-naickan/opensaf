@@ -344,6 +344,8 @@ void immd_db_save_fevs(IMMD_CB *cb, IMMSV_FEVS *fevs_msg)
 			free(prior->fevsMsg.msg.buf);
 			prior->fevsMsg.msg.buf = NULL;
 			prior->fevsMsg.msg.size = 0;
+			prior->next = NULL;
+			prior->re_sent = FALSE;
 			free(prior);
 		}
 	} else {
@@ -372,6 +374,14 @@ IMMSV_FEVS *immd_db_get_fevs(IMMD_CB *cb, const uns16 back_count)
 		old_msg = old_msg->next;
 	}
 
+	if(old_msgs[0]->re_sent) {
+		LOG_NO("Skipping re-send of fevs message %llu since it has "
+			"recently been resent.",
+			old_msgs[0]->fevsMsg.sender_count);
+		return NULL;
+
+	}
+	old_msgs[0]->re_sent = TRUE;
 	return &(old_msgs[0]->fevsMsg);
 }
 
@@ -385,6 +395,8 @@ void immd_db_purge_fevs(IMMD_CB *cb)
 		free(old->fevsMsg.msg.buf);
 		old->fevsMsg.msg.buf = NULL;
 		old->fevsMsg.msg.size = 0;
+		old->next = NULL;
+		old->re_sent = FALSE;
 		free(old);
 	}
 	TRACE_LEAVE();

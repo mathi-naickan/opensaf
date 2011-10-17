@@ -1934,7 +1934,7 @@ static uns32 immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 	if (mds_info->svc_id == NCSMDS_SVC_ID_IMMND)
 		TRACE_5("Received IMMND service event");
 	else if (mds_info->svc_id == NCSMDS_SVC_ID_IMMD)
-		TRACE_5("Received IMMD service event");
+		LOG_NO("Received IMMD service event");
 	else {
 		LOG_WA("Received a service event for an unknown service %u", mds_info->svc_id);
 		return NCSCC_RC_SUCCESS;
@@ -1949,6 +1949,10 @@ static uns32 immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 		if(cb->immd_remote_id == immd_get_slot_and_subslot_id_from_node_id(mds_info->node_id)) {
 			LOG_WA("IMMD lost contact with peer IMMD (NCSMDS_RED_DOWN)");
 			cb->immd_remote_up = FALSE;
+
+			if(!(cb->ha_state == SA_AMF_HA_ACTIVE)) {
+				immd_proc_rebroadcast_fevs(cb, 2);
+			}
 		}
 		break;
 
