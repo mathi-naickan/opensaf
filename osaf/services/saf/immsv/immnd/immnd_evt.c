@@ -2253,14 +2253,19 @@ static uns32 immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 	memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 	if (!immnd_is_immd_up(cb)) {
-		LOG_ER("IMMND - Director Service Is Down. Rejecting FEVS request.");
 		if(asyncReq) {
 			/* We could enqueue async messages (typically replies) but there
 			   is a risk that a failover would be followed by a "burst" of old replies,
 			   which could provoke more problems than it solves. 
 			*/
-			return NCSCC_RC_FAILURE;
+			if(cb->mState == IMM_SERVER_SYNC_SERVER) {
+				LOG_IN("Asyncronous FEVS request received when IMMD is down during sync, will buffer");
+			} else {
+				LOG_WA("IMMND - Director Service Is Down. Dropping asyncronous FEVS request.");
+				return NCSCC_RC_FAILURE;
+			}
 		} else {
+			LOG_WA("IMMND - Director Service Is Down. Rejecting FEVS request.");
 			error = SA_AIS_ERR_TRY_AGAIN;
 			goto agent_rsp;
 		}
@@ -2320,8 +2325,9 @@ static uns32 immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 		}
 	}
 
-	/* If overflow .....OR sync is on-going AND out-queue is not empty => go via out-queue */
-	if ((cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) || 
+	/* If overflow .....OR IMMD is down.....OR sync is on-going AND out-queue is not empty => 
+	   go via out-queue. The sync should be throttled by immnd_evt_proc_search_next. */
+	if ((cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) || !immnd_is_immd_up(cb) ||
 		((cb->mState == IMM_SERVER_SYNC_SERVER) && cb->fevs_out_count && asyncReq && newMsg)) {
 		if(asyncReq) {
 
@@ -3943,6 +3949,11 @@ static uns32 immnd_evt_proc_sync_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SE
 		send_evt.type = IMMSV_EVT_TYPE_IMMND;
 		send_evt.info.immnd.type = IMMND_EVT_ND2ND_SYNC_FINALIZE_2;
 
+		if (!immnd_is_immd_up(cb)) {
+			LOG_WA("ERR_TRY_AGAIN: IMMD is down can not progress with finalizeSync");
+			err = SA_AIS_ERR_TRY_AGAIN;
+			goto fail;
+		}
 #if 0				/* Enable this code only to test failure of sync-process during sync */
 		if (cb->mMyEpoch == 4) {
 			LOG_NO("ABT FAULT INJECTION finalize sync fails");
