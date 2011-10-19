@@ -431,19 +431,35 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 	const SaImmAttrModificationT_2 *attr_mod;
 	int i = 0;
 
+	TRACE_ENTER2("'%s'", opdata->objectName.value);
+
 	avd_sg = avd_sg_get(&opdata->objectName);
 	assert(avd_sg != NULL);
 
 	/* Validate whether we can modify it. */
 
-	if (avd_sg->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
+	if ((avd_sg->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION) ||
+		(avd_sg->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED)) {
+
 		i = 0;
 		while ((attr_mod = opdata->param.modify.attrMods[i++]) != NULL) {
 			const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
-			void *value = attribute->attrValues[0];
+			void *value = NULL;
+
+			/* Attribute value removed */
+			if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (attribute->attrValues == NULL))
+				continue;
+
+			value = attribute->attrValues[0];
 
 			if (!strcmp(attribute->attrName, "saAmfSGType")) {
 				SaNameT sg_type_name = *((SaNameT *)value);
+
+				if (avd_sg->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED) {
+					LOG_ER("%s: Attribute saAmfSGType cannot be modified when SG is not in locked instantion", __FUNCTION__);
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				}
 
 				avd_sg_type = avd_sgtype_get(&sg_type_name);
 				if (NULL == avd_sg_type) {
@@ -461,37 +477,16 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefActiveSUs")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefStandbySUs")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefInserviceSUs")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefAssignedSUs")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGMaxActiveSIsperSU")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGMaxStandbySIsperSU")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGAutoAdjustProb")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartProb")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartMax")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
-			} else {
-				assert(0);
-			}
-		}		/* while (attr_mod != NULL) */
-	} else if (avd_sg->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED) {
-		i = 0;
-		/* Modifications can be done for any parameters. */
-		while ((attr_mod = opdata->param.modify.attrMods[i++]) != NULL) {
-			const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
+				uint32_t pref_inservice_su;
+				pref_inservice_su = *((SaUint32T *)value);
 
-			if (!strcmp(attribute->attrName, "saAmfSGType")) {
-				LOG_ER("%s: Attribute saAmfSGType cannot be modified when SG is not in locked instantion", __FUNCTION__);
-				rc = SA_AIS_ERR_BAD_OPERATION;
-				goto done;
-			} else if (!strcmp(attribute->attrName, "saAmfSGSuHostNodeGroup")) {
-				LOG_ER("%s: Attribute saAmfSGSuHostNodeGroup cannot be modified when SG is unlocked", __FUNCTION__);
-				rc = SA_AIS_ERR_BAD_OPERATION;
-				goto done;
-			} else if (!strcmp(attribute->attrName, "saAmfSGAutoRepair")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGAutoAdjust")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefActiveSUs")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefStandbySUs")) {
-			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefInserviceSUs")) {
+				if ((pref_inservice_su == 0) ||
+					((avd_sg->sg_redundancy_model < SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL) &&
+					 (pref_inservice_su < AVSV_SG_2N_PREF_INSVC_SU_MIN))) {
+					LOG_ER("%s: Minimum preferred num of su should be 2 in 2N, N+M and NWay red models", __FUNCTION__);
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				}
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefAssignedSUs")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGMaxActiveSIsperSU")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGMaxStandbySIsperSU")) {
@@ -510,14 +505,20 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 		/* Modifications can be done for the following parameters. */
 		while ((attr_mod = opdata->param.modify.attrMods[i++]) != NULL) {
 			const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
-			void *value = attribute->attrValues[0];
+			void *value = NULL;
+
+			/* Attribute value removed */
+			if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (attribute->attrValues == NULL))
+				continue;
+
+			value = attribute->attrValues[0];
 
 			if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartProb")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartMax")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefInserviceSUs")) {
-				uns32 pref_inservice_su;
+				uint32_t pref_inservice_su;
 				pref_inservice_su = *((SaUint32T *)value);
 
 				if ((pref_inservice_su == 0) ||
@@ -536,6 +537,7 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 	}			/* Admin state is UNLOCKED */
 
 done:
+	TRACE_LEAVE();
 	return rc;
 }
 
@@ -612,141 +614,207 @@ static void sg_nd_attribute_update(AVD_SG *sg, uns32 attrib_id)
 	TRACE_LEAVE();
 }
 
+static unsigned int sg_su_cnt(AVD_SG *sg)
+{
+	AVD_SU *su;
+	int cnt;
+
+	for (su = sg->list_of_su, cnt = 0; su; su = su->sg_list_su_next)
+		cnt++;
+
+	return cnt;
+}
+
 static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 {
-	AVD_SG *avd_sg;
-	AVD_AMF_SG_TYPE *avd_sg_type;
+	AVD_SG *sg;
+	AVD_AMF_SG_TYPE *sg_type;
 	const SaImmAttrModificationT_2 *attr_mod;
 	int i = 0;
+	void *value = NULL;
+	bool value_is_deleted;
 
 	TRACE_ENTER2("'%s'", opdata->objectName.value);
 
-	avd_sg = avd_sg_get(&opdata->objectName);
-	assert(avd_sg != NULL);
+	sg = avd_sg_get(&opdata->objectName);
+	assert(sg != NULL);
 
-	/* Validate whether we can modify it. */
+	sg_type = avd_sgtype_get(&sg->saAmfSGType);
+	assert(NULL != sg_type);
 
-	if (avd_sg->saAmfSGAdminState != SA_AMF_ADMIN_UNLOCKED) {
+	if (sg->saAmfSGAdminState != SA_AMF_ADMIN_UNLOCKED) {
 		attr_mod = opdata->param.modify.attrMods[i++];
 		while (attr_mod != NULL) {
-			void *value;
 			const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
 
-			value = attribute->attrValues[0];
+			if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||	(attribute->attrValues == NULL)) {
+				/* Attribute value is deleted, revert to default value */
+				value_is_deleted = true;
+			} else {
+				/* Attribute value is modified */
+				value_is_deleted = false;
+				value = attribute->attrValues[0];
+			}
 
 			if (!strcmp(attribute->attrName, "saAmfSGType")) {
 				SaNameT sg_type_name = *((SaNameT *)value);
 
-				avd_sg->saAmfSGType = sg_type_name;
-				avd_sg_type = avd_sgtype_get(&sg_type_name);
-				assert(NULL != avd_sg_type);
+				sg_type = avd_sgtype_get(&sg_type_name);
+				assert(NULL != sg_type);
+
+				/* Remove from old type */
+				avd_sgtype_remove_sg(sg);
+
+				sg->saAmfSGType = sg_type_name;
 
 				/* Fill the relevant values from sg_type. */
-				avd_sg->saAmfSGAutoRepair = avd_sg_type->saAmfSgtDefAutoRepair;
-				avd_sg->saAmfSGAutoAdjust = avd_sg_type->saAmfSgtDefAutoAdjust;
-				avd_sg->saAmfSGAutoAdjustProb = avd_sg_type->saAmfSgtDefAutoAdjustProb;
-				avd_sg->saAmfSGCompRestartProb = avd_sg_type->saAmfSgtDefCompRestartProb;
-				avd_sg->saAmfSGCompRestartMax = avd_sg_type->saAmfSgtDefCompRestartMax;
-				avd_sg->saAmfSGSuRestartProb = avd_sg_type->saAmfSgtDefSuRestartProb;
-				avd_sg->saAmfSGSuRestartMax = avd_sg_type->saAmfSgtDefSuRestartMax;
-				avd_sg->sg_redundancy_model = avd_sg_type->saAmfSgtRedundancyModel;
+				sg->saAmfSGAutoRepair = sg_type->saAmfSgtDefAutoRepair;
+				sg->saAmfSGAutoAdjust = sg_type->saAmfSgtDefAutoAdjust;
+				sg->saAmfSGAutoAdjustProb = sg_type->saAmfSgtDefAutoAdjustProb;
+				sg->saAmfSGCompRestartProb = sg_type->saAmfSgtDefCompRestartProb;
+				sg->saAmfSGCompRestartMax = sg_type->saAmfSgtDefCompRestartMax;
+				sg->saAmfSGSuRestartProb = sg_type->saAmfSgtDefSuRestartProb;
+				sg->saAmfSGSuRestartMax = sg_type->saAmfSgtDefSuRestartMax;
+				sg->sg_redundancy_model = sg_type->saAmfSgtRedundancyModel;
 
-				/* Add sg to sg_type   */
-				/*  TODO remove from old type list */
-				avd_sg->sg_type = avd_sg_type;
-				avd_sg->sg_list_sg_type_next = avd_sg->sg_type->list_of_sg;
-				avd_sg->sg_type->list_of_sg = avd_sg;
+				/* Add to new type */
+				sg->sg_type = sg_type;
+				avd_sgtype_add_sg(sg);
+
 				/* update all the nodes with the modified values */
-				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartProb_ID);
-				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartMax_ID);
-				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartProb_ID);
-				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartMax_ID);
+				sg_nd_attribute_update(sg, saAmfSGSuRestartProb_ID);
+				sg_nd_attribute_update(sg, saAmfSGSuRestartMax_ID);
+				sg_nd_attribute_update(sg, saAmfSGCompRestartProb_ID);
+				sg_nd_attribute_update(sg, saAmfSGCompRestartMax_ID);
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoRepair")) {
-				avd_sg->saAmfSGAutoRepair = *((SaUint32T *)value);
+				if (value_is_deleted)
+					sg->saAmfSGAutoRepair = sg_type->saAmfSgtDefAutoRepair;
+				else
+					sg->saAmfSGAutoRepair = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoAdjust")) {
-				avd_sg->saAmfSGAutoAdjust = *((SaUint32T *)value);
+				if (value_is_deleted)
+					sg->saAmfSGAutoAdjust = sg_type->saAmfSgtDefAutoAdjust;
+				else
+					sg->saAmfSGAutoAdjust = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefActiveSUs")) {
-				avd_sg->saAmfSGNumPrefActiveSUs = *((SaUint32T *)value);
+				if (value_is_deleted)
+					sg->saAmfSGNumPrefActiveSUs = 1;
+				else
+					sg->saAmfSGNumPrefActiveSUs = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefStandbySUs")) {
-				avd_sg->saAmfSGNumPrefStandbySUs = *((SaUint32T *)value);
+				if (value_is_deleted)
+					sg->saAmfSGNumPrefStandbySUs = 1;
+				else
+					sg->saAmfSGNumPrefStandbySUs = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefInserviceSUs")) {
-				avd_sg->saAmfSGNumPrefInserviceSUs = *((SaUint32T *)value);
+				if (value_is_deleted)
+					sg->saAmfSGNumPrefInserviceSUs = sg_su_cnt(sg);
+				else
+					sg->saAmfSGNumPrefInserviceSUs = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefAssignedSUs")) {
-				avd_sg->saAmfSGNumPrefAssignedSUs = *((SaUint32T *)value);
+				if (value_is_deleted)
+					sg->saAmfSGNumPrefAssignedSUs = sg->saAmfSGNumPrefInserviceSUs;
+				else
+					sg->saAmfSGNumPrefAssignedSUs = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGMaxActiveSIsperSU")) {
-				avd_sg->saAmfSGMaxActiveSIsperSU = *((SaUint32T *)value);
+				if (value_is_deleted)
+					sg->saAmfSGMaxActiveSIsperSU = -1;
+				else
+					sg->saAmfSGMaxActiveSIsperSU = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGMaxStandbySIsperSU")) {
-				avd_sg->saAmfSGMaxStandbySIsperSU = *((SaUint32T *)value);
+				if (value_is_deleted)
+					sg->saAmfSGMaxStandbySIsperSU = -1;
+				else
+					sg->saAmfSGMaxStandbySIsperSU = *((SaUint32T *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoAdjustProb")) {
-				avd_sg->saAmfSGAutoAdjustProb = *((SaTimeT *)value);
+				if (value_is_deleted)
+					sg->saAmfSGAutoAdjustProb = sg_type->saAmfSgtDefAutoAdjustProb;
+				else
+					sg->saAmfSGAutoAdjustProb = *((SaTimeT *)value);
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartProb")) {
-				avd_sg->saAmfSGCompRestartProb = *((SaTimeT *)value);
-				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartProb_ID);
+				if (value_is_deleted)
+					sg->saAmfSGCompRestartProb = sg_type->saAmfSgtDefCompRestartProb;
+				else
+					sg->saAmfSGCompRestartProb = *((SaTimeT *)value);
+				sg_nd_attribute_update(sg, saAmfSGCompRestartProb_ID);
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartMax")) {
-				avd_sg->saAmfSGCompRestartMax = *((SaUint32T *)value);
-				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartMax_ID);
+				if (value_is_deleted)
+					sg->saAmfSGCompRestartMax = sg_type->saAmfSgtDefCompRestartMax;
+				else
+					sg->saAmfSGCompRestartMax = *((SaUint32T *)value);
+				sg_nd_attribute_update(sg, saAmfSGCompRestartMax_ID);
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
-				avd_sg->saAmfSGSuRestartProb = *((SaTimeT *)value);
-				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartProb_ID);
+				if (value_is_deleted)
+					sg->saAmfSGSuRestartProb = sg_type->saAmfSgtDefSuRestartProb;
+				else
+					sg->saAmfSGSuRestartProb = *((SaTimeT *)value);
+				sg_nd_attribute_update(sg, saAmfSGSuRestartProb_ID);
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
-				avd_sg->saAmfSGSuRestartMax = *((SaUint32T *)value);
-				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartMax_ID);
+				if (value_is_deleted)
+					sg->saAmfSGSuRestartMax = sg_type->saAmfSgtDefSuRestartMax;
+				else
+					sg->saAmfSGSuRestartMax = *((SaUint32T *)value);
+				sg_nd_attribute_update(sg, saAmfSGSuRestartMax_ID);
 			} else {
 				assert(0);
 			}
 
 			attr_mod = opdata->param.modify.attrMods[i++];
-		}		/* while (attr_mod != NULL) */
-
-		m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, avd_sg, AVSV_CKPT_AVD_SG_CONFIG);
-
-	} /* Admin state is not UNLOCKED */
-	else {			/* Admin state is UNLOCKED */
+		}
+	} else {			/* Admin state is UNLOCKED */
 		i = 0;
 		/* Modifications can be done for the following parameters. */
 		attr_mod = opdata->param.modify.attrMods[i++];
 		while (attr_mod != NULL) {
-			void *value;
 			const SaImmAttrValuesT_2 *attribute = &attr_mod->modAttr;
 
-			value = attribute->attrValues[0];
+			if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||	(attribute->attrValues == NULL)) {
+				/* Attribute value is deleted, revert to default value */
+				value_is_deleted = true;
+			} else {
+				/* Attribute value is modified */
+				value_is_deleted = false;
+				value = attribute->attrValues[0];
+			}
 
-			if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
-				avd_sg->saAmfSGSuRestartProb = *((SaTimeT *)value);
-				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartProb_ID);
+			if (!strcmp(attribute->attrName, "saAmfSGNumPrefInserviceSUs")) {
+				if (value_is_deleted)
+					sg->saAmfSGNumPrefInserviceSUs = sg_su_cnt(sg);
+				else
+					sg->saAmfSGNumPrefInserviceSUs = *((SaUint32T *)value);
 
-			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
-				avd_sg->saAmfSGSuRestartMax = *((SaUint32T *)value);
-				sg_nd_attribute_update(avd_sg, saAmfSGSuRestartMax_ID);
-
+				if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE)  {
+					if (avd_sg_app_su_inst_func(avd_cb, sg) != NCSCC_RC_SUCCESS) {
+						assert(0);
+					}
+				}
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartProb")) {
-				avd_sg->saAmfSGCompRestartProb = *((SaTimeT *)value);
-				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartProb_ID);
+				if (value_is_deleted)
+					sg->saAmfSGCompRestartProb = sg_type->saAmfSgtDefCompRestartProb;
+				else
+					sg->saAmfSGCompRestartProb = *((SaTimeT *)value);
+				sg_nd_attribute_update(sg, saAmfSGCompRestartProb_ID);
 
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartMax")) {
-				avd_sg->saAmfSGCompRestartMax = *((SaUint32T *)value);
-				sg_nd_attribute_update(avd_sg, saAmfSGCompRestartMax_ID);
+				if (value_is_deleted)
+					sg->saAmfSGCompRestartMax = sg_type->saAmfSgtDefCompRestartMax;
+				else
+					sg->saAmfSGCompRestartMax = *((SaUint32T *)value);
+				sg_nd_attribute_update(sg, saAmfSGCompRestartMax_ID);
 
-			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefInserviceSUs")) {
-				uns32 pref_inservice_su, back_val;
-				pref_inservice_su = *((SaUint32T *)value);
+			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
+				if (value_is_deleted)
+					sg->saAmfSGSuRestartProb = sg_type->saAmfSgtDefSuRestartProb;
+				else
+					sg->saAmfSGSuRestartProb = *((SaTimeT *)value);
+				sg_nd_attribute_update(sg, saAmfSGSuRestartProb_ID);
 
-				if ((pref_inservice_su == 0) ||
-				    ((avd_sg->sg_redundancy_model <
-				      SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL) &&
-				     (pref_inservice_su < AVSV_SG_2N_PREF_INSVC_SU_MIN))) {
-					/* minimum preferred num of su should be 2 in 2N, N+M and NWay 
-					   red models */
-					/* log information error */
-					assert(0);
-				}
-
-				back_val = avd_sg->saAmfSGNumPrefInserviceSUs;
-				avd_sg->saAmfSGNumPrefInserviceSUs = pref_inservice_su;
-				if (avd_sg_app_su_inst_func(avd_cb, avd_sg) != NCSCC_RC_SUCCESS) {
-					assert(0);
-				}
-				m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, avd_sg, AVSV_CKPT_AVD_SG_CONFIG);
+			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
+				if (value_is_deleted)
+					sg->saAmfSGSuRestartMax = sg_type->saAmfSgtDefSuRestartMax;
+				else
+					sg->saAmfSGSuRestartMax = *((SaUint32T *)value);
+				sg_nd_attribute_update(sg, saAmfSGSuRestartMax_ID);
 			} else {
 				assert(0);
 			}
