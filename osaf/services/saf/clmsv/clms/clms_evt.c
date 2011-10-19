@@ -879,7 +879,7 @@ static uns32 proc_track_stop_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 		goto snd_rsp;
 	}
 
-	if (client->track_flags == 0) {
+	if (!(client->track_flags & (SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY))) {
 		TRACE("Client didn't subscribe for track start");
 		ais_rc = SA_AIS_ERR_NOT_EXIST;
 		goto snd_rsp;
