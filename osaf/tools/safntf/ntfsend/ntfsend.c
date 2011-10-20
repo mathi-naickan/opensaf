@@ -78,7 +78,7 @@ static void usage(void)
 	printf("\t%s - send notification(s)\n", progname);
 
 	printf("\nSYNOPSIS\n");
-	printf("\t%s [OPTIONS]\n", progname);
+	printf("\t%s [-s  perceivedSeverity]\n", progname);
 
 	printf("\nDESCRIPTION\n");
 	printf("\t%s is a SAF NTF client used to send a notification.\n", progname);
@@ -910,7 +910,16 @@ int main(int argc, char *argv[])
 				myNotificationParams.probableCause = (SaNtfProbableCauseT)atoi(optarg);
 				break;
 			case 'r':
-				myNotificationParams.repeateSends = (unsigned int)atoi(optarg);
+				if (get_long_digit(optarg, &value)) {
+					myNotificationParams.repeateSends = (unsigned int) value;
+					if (!myNotificationParams.repeateSends) {
+						fprintf(stderr, "zero for repeateSends not allowed\n");
+						exit(EXIT_FAILURE);
+					}
+				} else {
+					fprintf(stderr, "repeatSends wrong format\n");
+					exit(EXIT_FAILURE);
+				}
 				break;
 			case 's':
 				myNotificationParams.perceivedSeverity = (SaNtfSeverityT)atoi(optarg);
