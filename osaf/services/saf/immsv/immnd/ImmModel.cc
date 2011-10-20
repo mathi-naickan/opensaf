@@ -542,7 +542,7 @@ immModel_getOldCriticalCcbs(IMMND_CB *cb,
     IdVector::iterator ix2;
     unsigned int ix;
 
-    if(ImmModel::instance(&cb->immModel)->getPbeOi(pbeConn, pbeNodeId)) {
+    if(ImmModel::instance(&cb->immModel)->getPbeOi(pbeConn, pbeNodeId, false)) {
         ImmModel::instance(&cb->immModel)->getOldCriticalCcbs(ccbs, pbeConn,
             pbeNodeId, pbeId);
         *ccbIdArrSize = ccbs.size();
@@ -565,7 +565,7 @@ immModel_pbeOiExists(IMMND_CB *cb)
 {
     SaUint32T pbeConn=0;
     unsigned int pbeNode=0;
-    return (ImmModel::instance(&cb->immModel)->getPbeOi(&pbeConn, &pbeNode)) ? 
+    return (ImmModel::instance(&cb->immModel)->getPbeOi(&pbeConn, &pbeNode, false)) ? 
         SA_TRUE : SA_FALSE;
 }
 
@@ -1928,23 +1928,42 @@ ImmModel::getMaxSyncBatchSize()
  * This is used both when testing for the presence of the PBE
  * and for locating the PBE when a message/upcall is to be sent 
  * to it.
+ *
+ * If fevsSafe is true, then a PBE-OI detected as dying at this node
+ * is still treated as if it exists. This to get uniformity of state
+ * change across all nodes. The connection is still returned as NULL
+ * if it is dead, which means ALL nodes will believe the PBE is at
+ * some another node, whereas it is really not attached anywhere. 
+ * This typically means that all nodes will wait for the PBE to
+ * re-attach. 
  */
-void *
-ImmModel::getPbeOi(SaUint32T* pbeConn, unsigned int* pbeNode)
+void *                                                       /*default true*/
+ImmModel::getPbeOi(SaUint32T* pbeConn, unsigned int* pbeNode, bool fevsSafe)
 {
+    *pbeConn = 0;
+    *pbeNode = 0;
     ClassMap::iterator ci = sClassMap.find(immClassName);
     assert(ci!=sClassMap.end());
     ClassInfo* classInfo = ci->second;
-    if((classInfo->mImplementer && 
-       classInfo->mImplementer->mId &&
-       !(classInfo->mImplementer->mDying))) {
-        *pbeConn = classInfo->mImplementer->mConn;
-        *pbeNode = classInfo->mImplementer->mNodeId;
-        return classInfo->mImplementer;
+    if(classInfo->mImplementer==NULL || classInfo->mImplementer->mId==0) {
+        return NULL;    
     }
-    *pbeConn = 0;
-    *pbeNode = 0;
-    return NULL;
+
+    /* PBE-OI exists but could be dying. */
+    if(classInfo->mImplementer->mDying) {
+        if(!fevsSafe) {
+            /* Not fevsSafe => immediately inform about dying PBE.*/
+            LOG_NO("ImmModel::getPbeOi reports missing PbeOi locally => unsafe");
+            return NULL;
+        }
+    } else {
+        /* Only assign conn when PBE is not dying. */
+        *pbeConn = classInfo->mImplementer->mConn;
+    }
+
+    *pbeNode = classInfo->mImplementer->mNodeId;
+
+     return classInfo->mImplementer;
 }
 
 /** 
@@ -2788,7 +2807,7 @@ ImmModel::attrCreate(ClassInfo* classInfo, const ImmsvAttrDefinition* attr,
             LOG_NO("ERR_INVALID_PARAM: attr def for '%s' is duplicated",
                 attrName.c_str());
             err = SA_AIS_ERR_INVALID_PARAM;
-	    goto done;
+            goto done;
         }
 
         /* Verify attribute name is unique within class case-insensitive. */
@@ -3751,9 +3770,12 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
         pbeNodeIdPtr = NULL;
     }
 
-    if(pbeNodeIdPtr && getPbeOi(&pbeConn, pbeNodeIdPtr)) {
+    if(pbeNodeIdPtr && getPbeOi(&pbeConn, pbeNodeIdPtr, false)) {
+        /* Unsafe getPbeOi used here which is ok since the only
+           potential effect is to NOT send an abort upcall to PBE
+           when PBE is down.*/
         /* There is a PBE and it is registered at this node.
-           Send abort also to pbe. */
+           Send abort also to pbe.*/
         connVector.push_back(pbeConn);
         TRACE_5("Ccb abort upcall for ccb %u for local PBE ", ccbId);
     }
@@ -5726,12 +5748,9 @@ ImmModel::ccbCompletedContinuation(const immsv_oi_ccb_upcall_rsp* rsp,
                 LOG_WA("Received commit/abort decision on ccb %u from terminated PBE", ccbId);
                 TRACE_LEAVE();
                 return; /* Intentionally drop the missmatched response.*/
-                /* If the PBE responds corrrectly, but crashes and gets deregistered
-                   as implementer before this reply reaches us, the reply should be
-                   seen as valid, but gets discard here. This could be fixed by
-                   replacing the getPbeOi call with code that checks against the 
-                   implementer info even when the implementer is marked as dead.
-                   getPbeOi returns NULL for the valid but dead case.
+                /* If the PBE responds correctly, but crashes and gets deregistered
+                   as implementer before this reply reaches us, the reply could be
+                   seen as valid, but gets discarded here.
                 */
             }
             if(rsp->result == SA_AIS_OK) {
@@ -7538,7 +7557,10 @@ ImmModel::getOldCriticalCcbs(IdVector& cv, SaUint32T *pbeConnPtr,
 
             TRACE("CCB %u is waiting on PBE commit", ccb->mId);
             ImplementerInfo* impInfo = (ImplementerInfo *)
-                getPbeOi(pbeConnPtr, pbeNodeIdPtr);
+                getPbeOi(pbeConnPtr, pbeNodeIdPtr, false);
+            /* Unsafe getPbeOI OK here because getOldCriticalCcbs is only a cleanup function.
+               It is also only executed at coord and PBE can only be colocated with coord.
+            */
 
             if(!impInfo) {
                 LOG_WA("No PBE implementer registered at this time, but CCB %u "
@@ -10897,10 +10919,10 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 //Yes, because the existence of a rt object is noted at 
                 //all nodes.
                 if((int) ci->mExtent.size() != (int) ioci->nrofInstances) {
-			LOG_IN("Synced class %s has %u instances should have %u", className.c_str(),
-				(unsigned int) ci->mExtent.size(), ioci->nrofInstances);
-			abort();
-		}
+                    LOG_IN("Synced class %s has %u instances should have %u", className.c_str(),
+                        (unsigned int) ci->mExtent.size(), ioci->nrofInstances);
+                    abort();
+                }
                 ++classCount;
                 if(ioci->classImplName.size) {
                     sz = strnlen((char *) ioci->classImplName.buf, 
