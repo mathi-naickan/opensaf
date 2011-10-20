@@ -1963,9 +1963,9 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 	obj_count = strtoul(result[ncols], NULL, 0);
 	TRACE("verifPbeState: obj_count:%u", obj_count);
 
-	rc = sqlite3_exec(dbHandle, "ABORT TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "ROLLBACK", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
-		LOG_ER("SQL statement ('ABORT TRANSACTION') failed because:\n %s",
+		LOG_ER("SQL statement ('ROLLBACK') failed because:\n %s",
 			execErr);
 		sqlite3_free(execErr);
 		goto bailout;
@@ -2184,11 +2184,12 @@ void pbeAbortTrans(void* db_handle)
 	char *execErr=NULL;
 	int rc=0;
 
-	rc = sqlite3_exec(dbHandle, "ABORT TRANSACTION", NULL, NULL, &execErr);
+	rc = sqlite3_exec(dbHandle, "ROLLBACK", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
-		LOG_ER("SQL statement ('ABORT TRANSACTION') failed because:\n %s",
+		LOG_ER("SQL statement ('ROLLBACK') failed because:\n %s",
 			execErr);
 		sqlite3_free(execErr);
+		abort();
 	}
 }
 
