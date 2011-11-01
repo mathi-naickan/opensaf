@@ -2375,7 +2375,7 @@ uns32 ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj)
 
 	m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_LOCK, 0);
 	if (0 != socketpair(AF_UNIX, SOCK_STREAM, 0, s_pair)) {
-		perror("socketpair:");
+		syslog(LOG_ERR, "%s: socketpair failed - %s", __FUNCTION__, strerror(errno));
 		m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
 		return NCSCC_RC_FAILURE;
 	}
@@ -2400,7 +2400,12 @@ uns32 ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj)
 	   it can lead to deadlocks among reader and writer applications. 
 	 */
 	flags = fcntl(o_sel_obj->raise_obj, F_GETFL, 0);
-	fcntl(o_sel_obj->raise_obj, F_SETFL, (flags | O_NONBLOCK));
+	if (fcntl(o_sel_obj->raise_obj, F_SETFL, (flags | O_NONBLOCK)) == -1) {
+		syslog(LOG_ERR, "%s: fcntl failed - %s", __FUNCTION__, strerror(errno));
+		(void) ncs_sel_obj_destroy(*o_sel_obj);
+		return NCSCC_RC_FAILURE;
+	}
+
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -2448,9 +2453,21 @@ uns32 ncs_sel_obj_raise_operation_shut(NCS_SEL_OBJ *i_ind_obj)
 
 uns32 ncs_sel_obj_ind(NCS_SEL_OBJ i_ind_obj)
 {
+	int rc;
+
+retry:
 	/* The following call can block, in such a case a failure is returned */
-	if (write(i_ind_obj.raise_obj, "A", 1) != 1)
+	if ((rc = write(i_ind_obj.raise_obj, "A", 1)) != 1) {
+		if (rc == -1) {
+			if (errno == EINTR)
+				goto retry;
+
+			syslog(LOG_ERR, "%s: write failed - %s", __FUNCTION__, strerror(errno));
+		}
+
 		return NCSCC_RC_FAILURE;
+	}
+
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -2504,8 +2521,7 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, NCS_BOOL nonblock, NCS_BOOL one_a
 				continue;
 			else {
 				/* Unknown error. */
-				DIAG("RMV_IND1. Returning -1\n");
-				perror("rmv_ind1:");
+				syslog(LOG_ERR, "%s: recv failed - %s", __FUNCTION__, strerror(errno));
 				return -1;
 			}
 		}
