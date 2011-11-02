@@ -6711,7 +6711,7 @@ SaAisErrorT saImmOmCcbFinalize(SaImmCcbHandleT ccbHandle)
 
 	immHandle = ccb_node->mImmHandle;
 	adminOwnerHdl = ccb_node->mAdminOwnerHdl;
-	ccbActive = ccb_node->mCcbId && !(ccb_node->mApplied || ccb_node->mAborted);
+	ccbActive = ccb_node->mCcbId && !(ccb_node->mApplied);
 	ccbId = ccb_node->mCcbId;
 	/* If something goes wrong below we still dont want the ccb_node anymore, 
 	   this is CCB finalize. Delete the ccb_node here.
@@ -6721,6 +6721,7 @@ SaAisErrorT saImmOmCcbFinalize(SaImmCcbHandleT ccbHandle)
 	ccb_node = NULL;
 
 	if (ccbActive) {
+		TRACE("Ccb is active when finalizing");
 		/* Get the Admin Owner info  */
 		imma_admin_owner_node_get(&cb->admin_owner_tree, &adminOwnerHdl, &ao_node);
 		if (!ao_node) {
