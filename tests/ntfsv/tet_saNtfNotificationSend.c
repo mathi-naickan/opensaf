@@ -189,8 +189,7 @@ void saNtfNotificationSend_02(void) {
 	test_validate(rc, SA_AIS_OK);
 }
 
-
-void saNtfNotificationSend_03(void) {
+void attr_ch_send(int wrongAttrType, SaAisErrorT expectedStatus){
 	SaNtfAttributeChangeNotificationT myNotification;
 	saNotificationAllocationParamsT myNotificationAllocationParams;
 	saNotificationFilterAllocationParamsT myNotificationFilterAllocationParams;
@@ -263,8 +262,10 @@ void saNtfNotificationSend_03(void) {
 	/* Set objectAttributes */
 	myNotification.changedAttributes[0].attributeId
 			= myNotificationParams.changedAttributes[0].attributeId;
-	myNotification.changedAttributes[0].attributeType
-				= myNotificationParams.changedAttributes[0].attributeType;
+	myNotification.changedAttributes[0].attributeType = myNotificationParams.changedAttributes[0].attributeType;
+	if (wrongAttrType)
+		myNotification.changedAttributes[0].attributeType = SA_NTF_VALUE_ARRAY+1;
+	
 	myNotification.changedAttributes[0].newAttributeValue.int64Val
 				= myNotificationParams.changedAttributes[0].newAttributeValue.int64Val;
 	myNotification.changedAttributes[0].oldAttributePresent
@@ -283,8 +284,12 @@ void saNtfNotificationSend_03(void) {
 	rc = saNtfNotificationSend(myNotification.notificationHandle);
 	safassert(saNtfNotificationFree(myNotification.notificationHandle), SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
-	test_validate(rc, SA_AIS_OK);
+	test_validate(rc, expectedStatus);
 
+}
+
+void saNtfNotificationSend_03(void) {
+	attr_ch_send(0, SA_AIS_OK);
 }
 
 SaAisErrorT send_st_ch(saNotificationAllocationParamsT *myNotificationAllocationParams,
@@ -405,7 +410,7 @@ void saNtfNotificationSend_09(void) {
 	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
-void saNtfNotificationSend_05(void) {
+void sec_al_send(int wrongValueType, SaAisErrorT expectedStatus){
 	SaNtfSecurityAlarmNotificationT  myNotification;
 	saNotificationAllocationParamsT myNotificationAllocationParams;
 	saNotificationFilterAllocationParamsT myNotificationFilterAllocationParams;
@@ -475,7 +480,8 @@ void saNtfNotificationSend_05(void) {
 	/* Set alarm detector */
 	myNotification.securityAlarmDetector->valueType = myNotificationParams.securityAlarmDetector.valueType;
 	myNotification.securityAlarmDetector->value.int32Val = myNotificationParams.securityAlarmDetector.value.int32Val;
-
+	if (wrongValueType)
+		myNotification.securityAlarmDetector->valueType = SA_NTF_VALUE_ARRAY + 1;
 	/* set additional text and additional info */
 	(void) strncpy(myNotification.notificationHeader.additionalText,
 			myNotificationParams.additionalText,
@@ -486,10 +492,13 @@ void saNtfNotificationSend_05(void) {
 	rc = saNtfNotificationSend(myNotification.notificationHandle);
 	safassert(saNtfNotificationFree(myNotification.notificationHandle), SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
-	test_validate(rc, SA_AIS_OK);
+	test_validate(rc, expectedStatus);
 
 }
 
+void saNtfNotificationSend_05(void) {
+	sec_al_send(0, SA_AIS_OK);
+}
 
 void saNtfNotificationSend_06(void) {
 	// TODO MiscellaneousNotification
@@ -634,6 +643,15 @@ void saNtfNotificationSend_08(void)
                          &myNotificationParams);
     test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
+
+void saNtfNotificationSend_10(void) {
+	attr_ch_send(1, SA_AIS_ERR_INVALID_PARAM);
+}
+
+void saNtfNotificationSend_11(void) {
+	sec_al_send(1, SA_AIS_ERR_INVALID_PARAM);
+}
+
 __attribute__ ((constructor)) static void saNtfNotificationSend_constructor(
 		void) {
 	test_suite_add(8, "Producer API 3 send");
@@ -654,5 +672,10 @@ __attribute__ ((constructor)) static void saNtfNotificationSend_constructor(
 					  "saNtfNotificationSend ObjectCreateDeleteNotification  SaNameT length=0");
 	test_case_add(8, saNtfNotificationSend_08,
 					  "saNtfNotificationSend ObjectCreateDeleteNotification  SaNameT length too large");
+	test_case_add(8, saNtfNotificationSend_10,
+					  "changedAttributes.attributeType failed SA_AIS_ERR_INVALID_PARAM");
+	test_case_add(8, saNtfNotificationSend_11,
+					  "securityAlarmDetector.valueType failed SA_AIS_ERR_INVALID_PARAM");
+	
 }
 
