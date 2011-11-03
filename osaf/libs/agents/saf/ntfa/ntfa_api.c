@@ -397,6 +397,12 @@ static SaAisErrorT checkSecurityAlarmParameters(SaNtfSecurityAlarmNotificationT 
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
+	if (notification->securityAlarmDetector->valueType < SA_NTF_VALUE_UINT8 ||
+	    notification->securityAlarmDetector->valueType > SA_NTF_VALUE_ARRAY) {
+		TRACE_1("Invalid securityAlarmDetector valueType");
+		return SA_AIS_ERR_INVALID_PARAM;
+	}
+	
 	if (*notification->severity < SA_NTF_SEVERITY_CLEARED || *notification->severity > SA_NTF_SEVERITY_CRITICAL) {
 		TRACE_1("Invalid Severity value");
 		return SA_AIS_ERR_INVALID_PARAM;
@@ -448,6 +454,9 @@ static SaAisErrorT checkAttributeChangeParameters(SaNtfAttributeChangeNotificati
 	for (i = 0; i < notification->numAttributes; i++) {
 		SaBoolT sp = notification->changedAttributes[i].oldAttributePresent;
 		if (sp != SA_FALSE && sp != SA_TRUE)
+			return SA_AIS_ERR_INVALID_PARAM;
+		if(notification->changedAttributes[i].attributeType < SA_NTF_VALUE_UINT8 ||
+		   notification->changedAttributes[i].attributeType > SA_NTF_VALUE_ARRAY)
 			return SA_AIS_ERR_INVALID_PARAM;
 	}
 	return checkHeader(&notification->notificationHeader);
