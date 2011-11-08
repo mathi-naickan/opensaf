@@ -542,6 +542,10 @@ void avd_mds_qsd_role_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 
 	TRACE_ENTER();
 
+	/* Give up our IMM OI implementer role */
+        (void)immutil_saImmOiImplementerClear(cb->immOiHandle);
+        cb->is_implementer = FALSE;
+
 	/* Now set the MBCSv role to quiesced, */
 	if (NCSCC_RC_SUCCESS != (status = avsv_set_ckpt_role(cb, SA_AMF_HA_QUIESCED))) {
 		/* Log error */
@@ -805,10 +809,6 @@ uns32 amfd_switch_actv_qsd(AVD_CL_CB *cb)
 	} else {
 		avd_d2n_msg_dequeue(cb);
 	}
-
-	/* Give up our IMM OI implementer role */
-	(void)immutil_saImmOiImplementerClear(cb->immOiHandle);
-	cb->is_implementer = FALSE;
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
