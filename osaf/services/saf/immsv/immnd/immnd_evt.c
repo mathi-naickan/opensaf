@@ -2670,9 +2670,10 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 			immnd_client_node_get(cb, tmp_hdl, &cl_node);
 			if (cl_node == NULL || cl_node->mIsStale) {
 				LOG_WA("IMMND - Client went down so no response");
-				TRACE_LEAVE();
-				return;	/*Note, this means that regardles of ccb outcome, 
-					   we can not reply to the process that started the ccb. */
+				/* If the client went down, then object must be either Commited or applied.
+                                  keeping the object in the IMMND may cause an abort(opensaf Ticket #2010),
+                                  in Sync*/
+				goto finalize_ccb;
 			}
 
 			/*Asyncronous agent calls can cause more than one continuation to be
@@ -2690,6 +2691,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 				LOG_ER("Failed to send response to agent/client over MDS rc:%u", rc);
 			}
 		}
+	finalize_ccb:
 		TRACE_2("CCB COMPLETED: TERMINATING CCB:%u", evt->info.ccbUpcallRsp.ccbId);
 		err = immModel_ccbFinalize(cb, evt->info.ccbUpcallRsp.ccbId);
 		if (err != SA_AIS_OK) {
