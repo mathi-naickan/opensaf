@@ -577,7 +577,6 @@ uns32 cpd_mds_quiesced_ack_process(CPD_CB *cb)
 	uns32 rc = NCSCC_RC_SUCCESS;
 
 	if (cb->is_quiesced_set) {
-		cb->ha_state = SA_AMF_HA_QUIESCED;	/* Set the HA State */
 		evt = m_MMGR_ALLOC_CPSV_EVT(NCS_SERVICE_ID_CPD);
 		if (!evt) {
 			m_LOG_CPD_CL(CPD_EVT_ALLOC_FAILED, CPD_FC_MEMFAIL, NCSFL_SEV_ERROR, __FILE__, __LINE__);

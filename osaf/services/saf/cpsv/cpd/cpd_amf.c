@@ -149,21 +149,15 @@ void cpd_saf_csi_set_cb(SaInvocationT invocation,
 			if (cb->cold_or_warm_sync_on == TRUE) {
 				TRACE("ACTIVE cpd_saf_csi_set_cb -cb->cold_or_warm_sync_on == TRUE ");
 			}
-
-			/* Give up our IMM OI implementer role */
-			saErr = immutil_saImmOiImplementerClear(cb->immOiHandle);
-			if (saErr != SA_AIS_OK) {
-				cpd_log(NCSFL_SEV_ERROR, "saImmOiImplementerClear failed: err = %d", saErr);
-			}
 		}
 
-		cb->ha_state = haState;
+		/* cb->ha_state = haState; */
 
 		/*     saAmfResponse(cb->amf_hdl, invocation, saErr); */
 
-      /** Change the MDS role **/
-
-		if (SA_AMF_HA_ACTIVE == cb->ha_state) {
+   		if (SA_AMF_HA_ACTIVE == haState) {
+		        /** Change the MDS role **/
+			cb->ha_state = haState;
 			mds_role = V_DEST_RL_ACTIVE;
 			TRACE("ACTIVE STATE");
 
@@ -175,7 +169,7 @@ void cpd_saf_csi_set_cb(SaInvocationT invocation,
 				exit(EXIT_FAILURE);
 			}
 			/*   anchor   = cb->cpd_anc; */
-		} else if (SA_AMF_HA_QUIESCED == cb->ha_state) {
+		} else if (SA_AMF_HA_QUIESCED == haState) {
 			mds_role = V_DEST_RL_QUIESCED;
 			cb->amf_invocation = invocation;
 			cb->is_quiesced_set = TRUE;
@@ -198,6 +192,8 @@ void cpd_saf_csi_set_cb(SaInvocationT invocation,
 					__FILE__, __LINE__);
 			return;
 		} else {
+      		        /** Change the MDS role **/
+		        cb->ha_state = haState;
 			mds_role = V_DEST_RL_STANDBY;
 			TRACE("STANDBY STATE");
 			/*   anchor   = cb->cpd_anc; */
