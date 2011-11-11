@@ -62,7 +62,7 @@ xxCLCCLIDIRxx/osaf-immnd:IMMND:S:xxCLCCLIDIRxx/osaf-immnd:4000:4:2:1:start:stop
 xxCLCCLIDIRxx/osaf-logd:LOGD:S:xxCLCCLIDIRxx/osaf-logd:4000:4:2:1:start:stop
 xxCLCCLIDIRxx/osaf-ntfd:NTFD:S:xxCLCCLIDIRxx/osaf-ntfd:4000:4:2:1:start:stop
 xxCLCCLIDIRxx/osaf-plmd:PLMD:S:xxCLCCLIDIRxx/osaf-plmd:4000:4:2:1:start:stop
-xxCLCCLIDIRxx/osaf-clmd:CLMD:S:xxCLCCLIDIRxx/osaf-clmd:4000:4:2:1:start:stop
+xxCLCCLIDIRxx/osaf-clmd:CLMD:S:xxCLCCLIDIRxx/osaf-clmd:192000:4:2:1:start:stop
 xxCLCCLIDIRxx/osaf-noded:CLMNA:S:xxCLCCLIDIRxx/osaf-noded:4000::2:1:start:stop
 xxCLCCLIDIRxx/osaf-amfd:AMFD:S:xxCLCCLIDIRxx/osaf-amfd:192000:-6:0:1:start:stop
 xxCLCCLIDIRxx/osaf-amfnd:AMFND:S:xxCLCCLIDIRxx/osaf-amfnd:192000::0:1:start:stop

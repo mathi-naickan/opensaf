@@ -369,8 +369,13 @@ SaAisErrorT clms_cluster_config_get(void)
 SaAisErrorT clms_imm_activate(CLMS_CB *cb)
 {
 	SaAisErrorT rc = SA_AIS_ERR_FAILED_OPERATION;
-
+	struct ImmutilWrapperProfile tmp_profile = immutilWrapperProfile;
+ 
 	TRACE_ENTER();
+ 
+	immutilWrapperProfile.errorsAreFatal = 0;
+	immutilWrapperProfile.retryInterval = 1000;
+	immutilWrapperProfile.nTries = 180;
 
 	if ((rc = clms_cluster_config_get()) != SA_AIS_OK) {
 		LOG_ER("clms_cluster_config_get failed rc:%u", rc);
@@ -404,6 +409,7 @@ SaAisErrorT clms_imm_activate(CLMS_CB *cb)
 	rc = SA_AIS_OK;
 
 done:
+	immutilWrapperProfile = tmp_profile;
 	TRACE_LEAVE();
 	return rc;
 }
