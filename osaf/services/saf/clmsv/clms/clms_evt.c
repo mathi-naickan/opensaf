@@ -637,6 +637,8 @@ static uns32 proc_mds_quiesced_ack_msg(CLMSV_CLMS_EVT * evt)
 	TRACE_ENTER();
 	if (clms_cb->is_quiesced_set == TRUE) {
 		clms_cb->ha_state = SA_AMF_HA_QUIESCED;
+		/* Give up our IMM OI implementer role */
+		(void)immutil_saImmOiImplementerClear(clms_cb->immOiHandle);
 		/* Inform MBCSV of HA state change */
 		if (clms_mbcsv_change_HA_state(clms_cb) != NCSCC_RC_SUCCESS)
 			TRACE("clms_mbcsv_change_HA_state FAILED");

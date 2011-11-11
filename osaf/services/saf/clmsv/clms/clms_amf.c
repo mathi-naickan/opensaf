@@ -114,8 +114,6 @@ static SaAisErrorT amf_quiesced_state_handler(CLMS_CB * cb, SaInvocationT invoca
 	SaUint32T nodeid = 0;
 	CLMS_CLUSTER_NODE *node = NULL;
 
-	/* Give up our IMM OI implementer role */
-	(void)immutil_saImmOiImplementerClear(cb->immOiHandle);
 
 	/*Stop timer if the switchover happens in middle of admin op */
 	while (NULL != (node = clms_node_getnext_by_id(nodeid))) {
