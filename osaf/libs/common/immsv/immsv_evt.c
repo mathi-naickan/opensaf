@@ -962,7 +962,7 @@ static uns32 immsv_evt_dec_admo(NCS_UBAID *i_ub, IMMSV_ADMO_LIST **p)
 		c8 = ncs_decode_8bit(&p8);
 		ncs_dec_skip_space(i_ub, 1);
 		(*p)->releaseOnFinalize = (c8 & ((uint8_t) 0x1));
-		(*p)->isDying = (c8 & ((uint8_t) 0x2));
+		(*p)->isDying = (c8 & ((uint8_t) 0x2))?0x1:0x0;
 		if((*p)->isDying) {TRACE("immsv_evt_dec_admo isDying == TRUE decoded");}
 
 		immsv_evt_dec_name_list(i_ub, &((*p)->touchedObjects));
