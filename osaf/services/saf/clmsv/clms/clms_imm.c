@@ -1918,6 +1918,13 @@ uns32 clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop)
 #endif
 		}
 	}
+
+	/* Update IMM in the case when node is not up */
+	if (nodeop->nodeup != SA_TRUE) {
+		nodeop->admin_state = SA_CLM_ADMIN_UNLOCKED;
+		clms_admin_state_update_rattr(nodeop);
+	}
+
 	/*Clear stat_change and admin_op after sending the callback */
 	nodeop->stat_change = SA_FALSE;
 	nodeop->admin_op = 0;
