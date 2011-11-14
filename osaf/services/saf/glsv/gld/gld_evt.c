@@ -653,9 +653,9 @@ static uns32 gld_quisced_process(GLSV_GLD_EVT *evt)
 	if (gld_cb->is_quiasced) {
 		gld_cb->ha_state = SA_AMF_HA_QUIESCED;
 		/* Give up our IMM OI implementer role */
-		error = immutil_saImmOiImplementerClear(gld_cb->immOiHandle);
-		if (error != SA_AIS_OK) {
-			gld_log(NCSFL_SEV_ERROR, "saImmOiImplementerClear failed: err = %d", error);
+		rc = immutil_saImmOiImplementerClear(gld_cb->immOiHandle);
+		if (rc != SA_AIS_OK) {
+			gld_log(NCSFL_SEV_ERROR, "saImmOiImplementerClear failed: err = %d", rc);
 		}
 
 		rc = glsv_gld_mbcsv_chgrole(gld_cb);
