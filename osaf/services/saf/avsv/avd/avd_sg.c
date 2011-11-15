@@ -1294,7 +1294,6 @@ void avd_sg_nwayact_screening_for_si_distr(AVD_SG *avd_sg)
 	/* Reset Max and Min ptrs. */
 	avd_sg->max_assigned_su = avd_sg->min_assigned_su = NULL;
 	avd_sg->si_tobe_redistributed = NULL;
-	m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(avd_cb, avd_sg, AVSV_CKPT_AVD_SI_TRANS);
 
         i_su = avd_sg->list_of_su;
 	while (i_su != NULL) {
