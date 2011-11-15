@@ -9481,9 +9481,9 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
         AdminOwnerVector::iterator i;
         
         for(i=sOwnerVector.begin(); i!=sOwnerVector.end();) {
-            if((*i)->mDying) {
-                LOG_WA("Removing admin owner %u %s which is in demise, before "
-                    "generating sync message", (*i)->mId,
+            if((*i)->mDying && !((*i)->mReleaseOnFinalize)) {
+                LOG_WA("Removing admin owner %u %s (ROF==FALSE) which is in demise, "
+                       "BEFORE generating finalize sync message", (*i)->mId,
                     (*i)->mAdminOwnerName.c_str());
                 assert(adminOwnerDelete((*i)->mId, true) == SA_AIS_OK);
                 //Above does a lookup of admin owner again.
@@ -9494,11 +9494,16 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
         }
         
         for(i=sOwnerVector.begin(); i!=sOwnerVector.end(); ++i) {
-            assert(!(*i)->mDying);
             ImmsvAdmoList* ai = (ImmsvAdmoList *) 
                 calloc(1, sizeof(ImmsvAdmoList));
             ai->id = (*i)->mId;
             ai->releaseOnFinalize = (SaBoolT) (*i)->mReleaseOnFinalize;
+
+            if(ai->releaseOnFinalize) {
+                ai->isDying = (SaBoolT) (*i)->mDying;
+            } else {
+                assert(!(*i)->mDying);
+            }
             ai->nodeId = (*i)->mNodeId;
             ai->adminOwnerName.size = (*i)->mAdminOwnerName.size();
             ai->adminOwnerName.buf = 
@@ -9528,7 +9533,23 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
         
         LOG_NO("finalizeSync message contains %u admin-owners", 
             (unsigned int) sOwnerVector.size());
-        
+
+        for(i=sOwnerVector.begin(); i!=sOwnerVector.end();) {
+            if((*i)->mDying) {
+                assert((*i)->mReleaseOnFinalize);
+                LOG_WA("Removing admin owner %u %s (ROF==TRUE) which is in demise, "
+                       "AFTER generating finalize sync message", (*i)->mId,
+                    (*i)->mAdminOwnerName.c_str());
+                assert(adminOwnerDelete((*i)->mId, true) == SA_AIS_OK);
+                //Above does a lookup of admin owner again.
+                i=sOwnerVector.begin();//Restart of iteration.
+            } else {
+                ++i;
+            }
+        }
+
+        /* Done with generate Admo */
+
         req->implementers = NULL;
         ImplementerVector::iterator i2;
         for(i2=sImplementerVector.begin(); i2!=sImplementerVector.end(); 
@@ -9614,10 +9635,9 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
         //Joiners will copy the finalize state.
         //old members (except coordinator) will verify equivalent state.
         if(isSyncClient) {
+            AdminOwnerVector::iterator i;
+
             //syncronize with the checkpoint
-            //sLastAdminOwnerId = req->lastAdminOwnerId;
-            //sLastCcbId = req->lastCcbId;
-            //sLastImplementerId = req->lastImplementerId;
             sLastContinuationId = req->lastContinuationId;
             
             //Sync currently existing AdminOwners.
@@ -9630,7 +9650,10 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 info->mAdminOwnerName.append((const char *) 
                     ai->adminOwnerName.buf, (size_t) ai->adminOwnerName.size);
                 info->mReleaseOnFinalize = ai->releaseOnFinalize;
-                info->mDying = false;
+                info->mDying = ai->isDying;
+                if(info->mDying) {
+                    assert(info->mReleaseOnFinalize);
+                }
                 
                 ImmsvObjNameList* nl = ai->touchedObjects;
                 TRACE_5("Synced admin owner %s",info->mAdminOwnerName.c_str());
@@ -9651,6 +9674,21 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 sOwnerVector.push_back(info);
                 ai = ai->next;
             }
+
+            for(i=sOwnerVector.begin(); i!=sOwnerVector.end();) {
+                if((*i)->mDying) {
+                    assert((*i)->mReleaseOnFinalize);
+                    LOG_WA("Removing admin owner %u %s (ROF==TRUE) which is in demise, "
+                           "AFTER receiving finalize sync message", (*i)->mId,
+                        (*i)->mAdminOwnerName.c_str());
+                    assert(adminOwnerDelete((*i)->mId, true) == SA_AIS_OK);
+                    //Above does a lookup of admin owner again.
+                    i=sOwnerVector.begin();//Restart of iteration.
+                } else {
+                    ++i;
+                }
+            }
+            /* Done with syncing Admo */
             
             //Sync currently existing implementers
             ImmsvImplList* ii = req->implementers;
@@ -9786,26 +9824,19 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             
             if(sLastContinuationId != (unsigned int) req->lastContinuationId) {
                 LOG_ER("Sync-verify: Established node has "
-                    "different Continuation count (%u) than expected (%u)",
+                    "different Continuation count (%u) than expected (%u) - aborting",
                     sLastContinuationId, req->lastContinuationId);
-                if(sLastContinuationId < 
-                    (unsigned int) req->lastContinuationId) {
-                    sLastContinuationId = req->lastContinuationId;
-                } else {
-                    LOG_ER("Continuation count is LARGER than coord - exiting");
-                    /* Could be a case of counter wrap arround on top of the 
-                       basic error of divergence. */
-                    exit(1);
-                }
+                /* Be strict. */
+                abort();
             }
             
             //verify currently existing AdminOwners.
 
             AdminOwnerVector::iterator i2;
             for(i2=sOwnerVector.begin(); i2!=sOwnerVector.end();) {
-                if((*i2)->mDying) {
-                    LOG_WA("Removing admin owner %u %s which is in demise, "
-                        "before receiving sync/verify message", 
+                if((*i2)->mDying && !((*i2)->mReleaseOnFinalize)) {
+                    LOG_WA("Removing admin owner %u %s (ROF==FALSE) which is in demise, "
+                        "BEFORE receiving sync/verify message", 
                         (*i2)->mId,
                         (*i2)->mAdminOwnerName.c_str());
                     assert(adminOwnerDelete((*i2)->mId, true) == SA_AIS_OK);
@@ -9825,7 +9856,6 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                     IdIs(ai->id));
                 assert(!(i2==sOwnerVector.end()));
                 AdminOwnerInfo* info = *i2;
-                assert(!info->mDying);
                 std::string ownerName((const char *) ai->adminOwnerName.buf,
                     (size_t) strnlen((const char *) ai->adminOwnerName.buf,
                         (size_t) ai->adminOwnerName.size));
@@ -9835,6 +9865,14 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                         info->mAdminOwnerName.c_str(), ai->id, 
                         ownerName.c_str());
                     assert(0);
+                }
+
+                if(info->mDying != ai->isDying) {
+                    LOG_ER("Sync-verify: Established node has "
+                        "different isDying flag (%u) for AdminOwner "
+                        "%s, should be %u.", info->mDying, 
+                        ownerName.c_str(), ai->isDying);
+                    abort();
                 }
                 if(info->mReleaseOnFinalize != ai->releaseOnFinalize) {
                     LOG_ER("Sync-verify: Established node has "
@@ -9867,6 +9905,25 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 }
                 ai = ai->next;
             }
+
+            for(i2=sOwnerVector.begin(); i2!=sOwnerVector.end();) {
+                if((*i2)->mDying) {
+                    assert((*i2)->mReleaseOnFinalize);
+                    LOG_WA("Removing admin owner %u %s (ROF==TRUE) which is in demise, "
+                        "AFTER receiving sync/verify message", 
+                        (*i2)->mId,
+                        (*i2)->mAdminOwnerName.c_str());
+                    assert(adminOwnerDelete((*i2)->mId, true) == SA_AIS_OK);
+                    //lookup of admin owner again.
+
+                    //restart of iteration again.
+                    i2=sOwnerVector.begin();
+                } else {
+                    ++i2;
+                }
+            }
+
+            /* Done with verify admo */
             
             //Verify currently existing implementers
             ImmsvImplList* ii = req->implementers;

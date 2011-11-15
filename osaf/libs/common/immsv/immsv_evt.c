@@ -920,8 +920,9 @@ static uns32 immsv_evt_enc_admo(NCS_UBAID *o_ub, IMMSV_ADMO_LIST *p)
 	immsv_evt_enc_inline_string(o_ub, os);
 
 	p8 = ncs_enc_reserve_space(o_ub, 1);
-	ncs_encode_8bit(&p8, (p->releaseOnFinalize) ? 1 : 0);
+	ncs_encode_8bit(&p8, (p->releaseOnFinalize) ? ((p->isDying)? 0x3 : 0x1) : 0x0);
 	ncs_enc_claim_space(o_ub, 1);
+	if(p->isDying) {TRACE("immsv_evt_enc_admo isDying == TRUE encoded");}
 
 	rc = immsv_evt_enc_name_list(o_ub, p->touchedObjects);
 
@@ -960,7 +961,9 @@ static uns32 immsv_evt_dec_admo(NCS_UBAID *i_ub, IMMSV_ADMO_LIST **p)
 		p8 = ncs_dec_flatten_space(i_ub, local_data, 1);
 		c8 = ncs_decode_8bit(&p8);
 		ncs_dec_skip_space(i_ub, 1);
-		(*p)->releaseOnFinalize = c8;
+		(*p)->releaseOnFinalize = (c8 & ((uint8_t) 0x1));
+		(*p)->isDying = (c8 & ((uint8_t) 0x2));
+		if((*p)->isDying) {TRACE("immsv_evt_dec_admo isDying == TRUE decoded");}
 
 		immsv_evt_dec_name_list(i_ub, &((*p)->touchedObjects));
 
