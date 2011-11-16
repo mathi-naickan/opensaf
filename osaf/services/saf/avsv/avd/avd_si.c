@@ -1046,26 +1046,26 @@ static void si_update_ass_state(AVD_SI *si)
 	case SA_AMF_2N_REDUNDANCY_MODEL:
 		/* fall through */
 	case SA_AMF_NPM_REDUNDANCY_MODEL:
-		if (si->saAmfSINumCurrActiveAssignments == 0) {
+		if ((si->saAmfSINumCurrActiveAssignments == 0) &&
+				(si->saAmfSINumCurrStandbyAssignments == 0)) {
 			newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
-		} else {
-			if (si->saAmfSINumCurrStandbyAssignments == 1)
-				newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
-			else
-				newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
-		}
+		} else if ((si->saAmfSINumCurrActiveAssignments == 1) &&
+				(si->saAmfSINumCurrStandbyAssignments == 1)) {
+			newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
+		} else
+			newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
 
 		break;
 	case SA_AMF_N_WAY_REDUNDANCY_MODEL:
-		if (si->saAmfSINumCurrActiveAssignments == 0) {
+		if ((si->saAmfSINumCurrActiveAssignments == 0) &&
+				(si->saAmfSINumCurrStandbyAssignments == 0)) {
 			newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
-		} else {
-			if (si->saAmfSINumCurrStandbyAssignments == si->saAmfSIPrefStandbyAssignments)
-				newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
-			else
-				newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
-		}
-		break;
+		} else if ((si->saAmfSINumCurrActiveAssignments == 1) &&
+		           (si->saAmfSINumCurrStandbyAssignments == si->saAmfSIPrefStandbyAssignments)) {
+		        newState = SA_AMF_ASSIGNMENT_FULLY_ASSIGNED;
+		} else
+		        newState = SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED;
+                break;
 	case SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL:
 		if (si->saAmfSINumCurrActiveAssignments == 0) {
 			newState = SA_AMF_ASSIGNMENT_UNASSIGNED;
