@@ -267,13 +267,18 @@ static SaAisErrorT cpd_saImmOiRtAttrUpdateCallback(SaImmOiHandleT immOiHandle,
 						attrMods[i] = &attr_output[attr_count];
 						++attr_count;
 					} else if (strcmp(attributeName, "saCkptCheckpointNumSections") == 0) {
-						if (cpd_fetch_num_sections(ckpt_node, cb) == NCSCC_RC_FAILURE) {
-							cpd_log(NCSFL_SEV_ERROR, "cpd_fetch_num_sections failed");
-							rc = SA_AIS_ERR_FAILED_OPERATION;
-							goto done;
+						if (ckpt_node->attributes.maxSections == 1) {
+							num_sections = ckpt_node->num_sections;
 						}
+						else {
+							if (cpd_fetch_num_sections(ckpt_node, cb) == NCSCC_RC_FAILURE) {
+								cpd_log(NCSFL_SEV_ERROR, "cpd_fetch_num_sections failed");
+								rc = SA_AIS_ERR_FAILED_OPERATION;
+								goto done;
+							}
 
-						num_sections = ckpt_node->num_sections;
+							num_sections = ckpt_node->num_sections;
+						}
 						attr_output[attr_count].modType = SA_IMM_ATTR_VALUES_REPLACE;
 						attr_output[attr_count].modAttr.attrName = attributeName;
 						attr_output[attr_count].modAttr.attrValuesNumber = 1;
