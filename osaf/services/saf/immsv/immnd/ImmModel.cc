@@ -2868,7 +2868,7 @@ ImmModel::commitModify(const std::string& dn, ObjectInfo* afterImage)
     assert(oi != sObjectMap.end());
     ObjectInfo* beforeImage = oi->second;
     if(beforeImage->mAdminOwnerAttrVal->empty()) {
-       /* Admin Owner apparently released (hard) during apply/commit.
+       /* Empty Admin Owner can imply (hard) release during apply/commit.
           This can happen if client invokes apply and then disconnects
           without waiting for reply. Typically because of timeout on
           the syncronous ccbApply. This can happen for large CCBs
@@ -7428,7 +7428,7 @@ SaAisErrorT ImmModel::adminOwnerRelease(std::string objectName,
     
     std::string loader("IMMLOADER");
 
-    if(obj->mObjFlags & IMM_RT_UPDATE_LOCK) {
+    if(!doIt && obj->mObjFlags & IMM_RT_UPDATE_LOCK) {
         LOG_IN("ERR_TRY_AGAIN: Object '%s' already subject of a persistent runtime "
                  "attribute update", objectName.c_str());    
         err = SA_AIS_ERR_TRY_AGAIN;
@@ -8197,6 +8197,15 @@ void ImmModel::pbePrtAttrUpdateContinuation(SaUint32T invocation,
     if(error == SA_AIS_OK) {
         LOG_IN("Update of PERSISTENT runtime attributes in object '%s'.", 
             objName.c_str());
+
+	if(beforeImage->mAdminOwnerAttrVal->empty()) {
+           /* Empty admin Owner can imply (hard) release during PRTA update.
+              The releaseOn finalize will have auto-released the adminOwner
+              on the before-image but not on the after image of modify.
+              Corrected here.
+           */
+            afim->mAdminOwnerAttrVal->setValueC_str(NULL);
+	}
 
         /* Discard beforeimage attr values. */
         for(oavi =  beforeImage->mAttrValueMap.begin();
