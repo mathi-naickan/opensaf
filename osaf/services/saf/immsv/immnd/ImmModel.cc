@@ -7380,6 +7380,13 @@ ImmModel::adminOwnerSet(std::string objectName, ObjectInfo* obj,
     
     //TODO: "IMMLOADER" should be environment variable.
     std::string loader("IMMLOADER");  
+
+    if(obj->mObjFlags & IMM_RT_UPDATE_LOCK) {
+        LOG_IN("ERR_TRY_AGAIN: Object '%s' already subject of a persistent runtime "
+                 "attribute update", objectName.c_str());    
+        err = SA_AIS_ERR_TRY_AGAIN;
+        goto done;
+    }
     
     //No need to check for interference with Ccb
     //If the object points to a CCb and the state of that ccb is
@@ -7401,6 +7408,7 @@ ImmModel::adminOwnerSet(std::string objectName, ObjectInfo* obj,
         err = SA_AIS_ERR_EXIST;
     }
     
+ done:
     /*TRACE_LEAVE();*/
     return err;
 }
@@ -7419,6 +7427,13 @@ SaAisErrorT ImmModel::adminOwnerRelease(std::string objectName,
     obj->getAdminOwnerName(&oldOwner);
     
     std::string loader("IMMLOADER");
+
+    if(obj->mObjFlags & IMM_RT_UPDATE_LOCK) {
+        LOG_IN("ERR_TRY_AGAIN: Object '%s' already subject of a persistent runtime "
+                 "attribute update", objectName.c_str());    
+        err = SA_AIS_ERR_TRY_AGAIN;
+        goto done;
+    }
     
     //TODO: Need to check for interference with Ccb!!
     //If the object points to a CCb and the state of that ccb is
@@ -7471,6 +7486,7 @@ SaAisErrorT ImmModel::adminOwnerRelease(std::string objectName,
             }
         }
     }
+ done:
     /*TRACE_LEAVE();*/
     return err;
 }
