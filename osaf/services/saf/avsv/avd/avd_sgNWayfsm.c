@@ -2297,8 +2297,8 @@ uns32 avd_sg_nway_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 	if (su->sg_of_su->si_tobe_redistributed) {
 		if (su->sg_of_su->min_assigned_su == su) {
 			/* determine if this si has a rel with the su */
-			for (curr_susi = si->list_of_sisu; curr_susi && (curr_susi->su != su);
-					curr_susi = curr_susi->si_next);
+			for (curr_susi = su->sg_of_su->si_tobe_redistributed->list_of_sisu; curr_susi && 
+					(curr_susi->su != su); curr_susi = curr_susi->si_next);
 			if (curr_susi) {
 				if ((curr_susi->state == SA_AMF_HA_ACTIVE) &&
 						(curr_susi->fsm == AVD_SU_SI_STATE_MODIFY)) {
@@ -2351,8 +2351,8 @@ uns32 avd_sg_nway_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 
 		} else if (su->sg_of_su->max_assigned_su == su) {
 			/* determine if this si has a rel with the max su */
-			for (curr_susi = si->list_of_sisu; curr_susi && (curr_susi->su != su);
-					curr_susi = curr_susi->si_next);
+			for (curr_susi = su->sg_of_su->si_tobe_redistributed->list_of_sisu; curr_susi && 
+					(curr_susi->su != su); curr_susi = curr_susi->si_next);
 			if (curr_susi) {
 				if ((curr_susi->state == SA_AMF_HA_QUIESCED) &&
 						(curr_susi->fsm == AVD_SU_SI_STATE_MODIFY)) {
@@ -2360,6 +2360,10 @@ uns32 avd_sg_nway_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 					/* add su to the su-oper list & transition to su-oper state */
 					avd_sg_su_oper_list_add(cb, su, FALSE);
 					m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_SU_OPER);
+				} else {
+					/* transition to sg-realign state */
+					m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_SG_REALIGN);
+					avd_sg_su_oper_list_add(cb, su, FALSE);
 				}
 			}
 
