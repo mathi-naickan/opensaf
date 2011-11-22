@@ -447,8 +447,8 @@ static uns32 assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 		else if (!m_AVND_SU_IS_RESTART(su) && (npi_prv_inst != npi_curr_inst))
 			su_ev = (TRUE == npi_curr_inst) ? AVND_SU_PRES_FSM_EV_INST : AVND_SU_PRES_FSM_EV_TERM;
 
-		/* we cant do anything on inst-failed SU, so just resp success for quiesced */
-		if (su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED)
+		/* we cant do anything on inst-failed SU or term-failed SU, so just resp success for quiesced */
+		if (su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED || su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED)
 			su_ev = AVND_SU_PRES_FSM_EV_MAX;
 
 		/* trigger the su fsm */
