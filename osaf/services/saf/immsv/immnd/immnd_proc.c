@@ -329,7 +329,6 @@ void immnd_proc_imma_discard_stales(IMMND_CB *cb)
 			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 			send_evt.type = IMMSV_EVT_TYPE_IMMA;
 			send_evt.info.imma.info.errRsp.error = SA_AIS_ERR_TRY_AGAIN;
-			assert(cl_node->tmpSinfo.stype == MDS_SENDTYPE_SNDRSP);
 			send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 			if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 				LOG_ER("Failed to send result to Sync Agent");
@@ -1095,7 +1094,6 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 		reply.info.imma.info.errRsp.error = SA_AIS_ERR_TIMEOUT;
 
 		for (ix = 0; ix < pbePrtoReqArrSize; ++ix) {
-			IMMSV_SEND_INFO *sinfo = NULL; 
 			SaImmHandleT tmp_hdl = m_IMMSV_PACK_HANDLE(pbePrtoReqArr[ix],
 				cb->node_id);
 			immnd_client_node_get(cb, tmp_hdl, &cl_node);
@@ -1105,10 +1103,7 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 				continue;
 			}
 			LOG_WA("Timeout on Persistent runtime Object Mutation, waiting on PBE");
-			sinfo = &cl_node->tmpSinfo;
-			assert(sinfo);
-			assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
-			rc = immnd_mds_send_rsp(cb, sinfo, &reply);
+			rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &reply);
 			if (rc != NCSCC_RC_SUCCESS) {
 				LOG_ER("Failed to send response to agent/client "
 					"over MDS rc:%u", rc);

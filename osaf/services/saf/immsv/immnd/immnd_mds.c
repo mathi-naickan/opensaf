@@ -47,6 +47,37 @@ MDS_CLIENT_MSG_FORMAT_VER immnd_immd_msg_fmt_table[IMMND_WRT_IMMD_SUBPART_VER_RA
 	1
 };
 
+
+SaAisErrorT immnd_mds_client_not_busy(IMMSV_SEND_INFO *s_info) 
+{
+	if(!(s_info->to_svc)) {
+		/* No current syncronous reply pending. */
+		assert(!(s_info->mSynReqCount));
+		return SA_AIS_OK;
+	}
+
+	/* Client is currently blocked waiting on reply. 
+	   This can happen if client has timed out in library
+	   on previous syncronous call. The call is here still
+	   being processed in the server. The server can then
+	   only reply immediately to this client, on *this* call.
+
+	   It could also happen if one handle is used concurrently
+	   by several client threads, making concurrent synchronous calls.
+	   This is not allowed though, see osaf/services/saf/immsv/README.
+	*/
+
+	if(s_info->mSynReqCount < 255) {
+		s_info->mSynReqCount++;
+		LOG_NO("ERR_TRY_AGAIN: Handle is busy with other syncronous call - timed out in client ?");
+		return SA_AIS_ERR_TRY_AGAIN;
+	}
+
+	LOG_NO("ERR_NO_RESOUCES: Handle use is blocked by pending reply on syncronous call");
+	return SA_AIS_ERR_NO_RESOURCES;
+}
+
+
 /****************************************************************************
  * Name          : immnd_mds_get_handle
  *
@@ -702,6 +733,14 @@ uns32 immnd_mds_send_rsp(IMMND_CB *cb, IMMSV_SEND_INFO *s_info, IMMSV_EVT *evt)
 	NCSMDS_INFO mds_info;
 	uns32 rc;
 
+	if(!(s_info->to_svc)) {
+		LOG_WA(">>s_info->to_svc == 0<< reply context destroyed before "
+			"this reply could be made");
+		return NCSCC_RC_FAILURE;
+	}
+
+	assert(s_info->stype == MDS_SENDTYPE_SNDRSP);
+
 	memset(&mds_info, 0, sizeof(NCSMDS_INFO));
 	mds_info.i_mds_hdl = cb->immnd_mds_hdl;
 	mds_info.i_svc_id = NCSMDS_SVC_ID_IMMND;
@@ -720,6 +759,11 @@ uns32 immnd_mds_send_rsp(IMMND_CB *cb, IMMSV_SEND_INFO *s_info, IMMSV_EVT *evt)
 
 	/* send the message */
 	rc = ncsmds_api(&mds_info);
+
+	/* Destroy reply context after reply has been sent
+	   Will also zero mSyncReqCount */
+	memset(s_info, 0, sizeof(IMMSV_SEND_INFO));
+
 	if (rc != NCSCC_RC_SUCCESS)
 		LOG_WA("MDS Send Failed");
 
