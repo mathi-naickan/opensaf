@@ -367,6 +367,7 @@ void dequeue_outgoing(IMMND_CB *cb);
 /* End  File : immnd_db.c */
 
 /* File : --- immnd_mds.c */
+SaAisErrorT immnd_mds_client_not_busy(IMMSV_SEND_INFO *s_info);
 uns32 immnd_mds_send_rsp(IMMND_CB *cb, IMMSV_SEND_INFO *s_info, IMMSV_EVT *evt);
 uns32 immnd_mds_msg_sync_send(IMMND_CB *cb, uns32 to_svc, MDS_DEST to_dest,
 			      IMMSV_EVT *i_evt, IMMSV_EVT **o_evt, uns32 timeout);

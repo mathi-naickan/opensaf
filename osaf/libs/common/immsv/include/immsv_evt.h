@@ -239,6 +239,7 @@ typedef struct immsv_send_info {
 	MDS_DEST dest;		/* Who to send */
 	MDS_SENDTYPES stype;	/* Send type */
 	MDS_SYNC_SND_CTXT ctxt;	/* MDS Opaque context */
+	uint8_t mSynReqCount;
 } IMMSV_SEND_INFO;
 
 typedef struct immsv_fevs {

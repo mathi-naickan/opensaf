@@ -1182,6 +1182,11 @@ static uns32 immnd_evt_proc_search_next(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 		goto agent_rsp;
 	}
 
+	error = immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
+	if(error != SA_AIS_OK) {
+		goto agent_rsp;
+	}
+
 	error = immModel_nextResult(cb, sn->searchOp, &rsp, &implConn, &implNodeId, &rtAttrsToFetch, &implDest);
 	if (error != SA_AIS_OK) {
 		goto agent_rsp;
@@ -1749,6 +1754,13 @@ static uns32 immnd_evt_proc_admowner_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SE
 		goto agent_rsp;
 	}
 
+	send_evt.info.imma.info.admInitRsp.error = 
+		immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
+
+	if(send_evt.info.imma.info.admInitRsp.error != SA_AIS_OK) {
+		goto agent_rsp;
+	}
+
 	/*aquire a ND sender count and send the fevs to ND (without waiting) */
 	cb->fevs_replies_pending++;	/*flow control */
 	if (cb->fevs_replies_pending > 1) {
@@ -1783,7 +1795,6 @@ static uns32 immnd_evt_proc_admowner_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SE
 	send_evt.type = IMMSV_EVT_TYPE_IMMA;
 	send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ADMINIT_RSP;
 
-	assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 	TRACE_2("immnd_evt:imm_adminOwner_init: SENDRSP FAIL %u ", send_evt.info.imma.info.admInitRsp.error);
 	rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
 
@@ -1850,6 +1861,14 @@ static uns32 immnd_evt_proc_impl_set(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_IN
 		}
 	}
 
+	send_evt.info.imma.info.implSetRsp.error = 
+		immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
+
+	if(send_evt.info.imma.info.implSetRsp.error != SA_AIS_OK) {
+		goto agent_rsp;
+	}
+
+
 	cb->fevs_replies_pending++;	/*flow control */
 	if (cb->fevs_replies_pending > 1) {
 		TRACE("Messages pending:%u", cb->fevs_replies_pending);
@@ -1888,7 +1907,6 @@ static uns32 immnd_evt_proc_impl_set(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_IN
 	send_evt.type = IMMSV_EVT_TYPE_IMMA;
 	send_evt.info.imma.type = IMMA_EVT_ND2A_IMPLSET_RSP;
 
-	assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 	TRACE_2("SENDRSP FAIL %u ", send_evt.info.imma.info.implSetRsp.error);
 	rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
 
@@ -1943,6 +1961,13 @@ static uns32 immnd_evt_proc_ccb_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_IN
 		goto agent_rsp;
 	}
 
+	send_evt.info.imma.info.ccbInitRsp.error = 
+		immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
+
+	if(send_evt.info.imma.info.ccbInitRsp.error != SA_AIS_OK) {
+		goto agent_rsp;
+	}
+
 	cb->fevs_replies_pending++;	/*flow control */
 	if (cb->fevs_replies_pending > 1) {
 		TRACE("Messages pending:%u", cb->fevs_replies_pending);
@@ -1977,7 +2002,6 @@ static uns32 immnd_evt_proc_ccb_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_IN
 	send_evt.type = IMMSV_EVT_TYPE_IMMA;
 	send_evt.info.imma.type = IMMA_EVT_ND2A_CCBINIT_RSP;
 
-	assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 	TRACE_2("SENDRSP FAIL %u ", send_evt.info.imma.info.ccbInitRsp.error);
 	rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
 
@@ -2038,6 +2062,11 @@ static uns32 immnd_evt_proc_rt_update(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_I
 		LOG_WA("ERR_TRY_AGAIN: Too many backloged fevs messages (> %u) rejecting rt_update request",
 			IMMND_FEVS_MAX_PENDING);
 		err = SA_AIS_ERR_TRY_AGAIN;
+		goto agent_rsp;
+	}
+
+	err = immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
+	if(err != SA_AIS_OK) {
 		goto agent_rsp;
 	}
 
@@ -2104,7 +2133,6 @@ static uns32 immnd_evt_proc_rt_update(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_I
 	send_evt.type = IMMSV_EVT_TYPE_IMMA;
 	send_evt.info.imma.info.errRsp.error = err;
 	send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
-	assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 	TRACE_2("SENDRSP RESULT %u ", err);
 	rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
 
@@ -2181,6 +2209,13 @@ static uns32 immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 			return NCSCC_RC_FAILURE;
 		} else {
 			error = SA_AIS_ERR_TRY_AGAIN;
+			goto agent_rsp;
+		}
+	}
+
+	if(!asyncReq) {
+		error = immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
+		if(error != SA_AIS_OK) {
 			goto agent_rsp;
 		}
 	}
@@ -2266,7 +2301,7 @@ static uns32 immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 	   Note should set up a wait time for the continuation roughly in line
 	   with IMMSV_WAIT_TIME. */
 	assert(rc == NCSCC_RC_SUCCESS);
-	if(sinfo) {
+	if(cl_node && sinfo && !asyncReq) {
 		cl_node->tmpSinfo = *sinfo;	//TODO: should be part of continuation?
 	}
 
@@ -2276,7 +2311,7 @@ static uns32 immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 	   But we should be able to use the agents
 	   count/continuation-id .. ? */
 
-	if (cl_node->mIsSync) {
+	if (cl_node && cl_node->mIsSync) {
 		assert(!cl_node->mSyncBlocked);
 		cl_node->mSyncBlocked = TRUE;
 	}
@@ -2290,7 +2325,7 @@ static uns32 immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 	send_evt.info.imma.info.errRsp.error = error;
 
 	assert(!asyncReq);
-	/*assert(sinfo->stype == MDS_SENDTYPE_SNDRSP); redundant */
+
 	TRACE_2("SENDRSP FAIL %u ", send_evt.info.imma.info.admInitRsp.error);
 	rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
 
@@ -2320,7 +2355,6 @@ static void immnd_evt_proc_ccb_obj_modify_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	SaUint32T reqConn = 0;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	TRACE_ENTER();
 
 	immModel_ccbObjModifyContinuation(cb,
@@ -2337,9 +2371,6 @@ static void immnd_evt_proc_ccb_obj_modify_rsp(IMMND_CB *cb,
 			return;	/*Note, this means that regardles of ccb outcome, 
 				   we can not reply to the process that started the ccb. */
 		}
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. AND dont forget time-outs. */
-		sinfo = &cl_node->tmpSinfo;
 
 		TRACE_2("SENDRSP %u", evt->info.ccbUpcallRsp.result);
 
@@ -2351,7 +2382,6 @@ static void immnd_evt_proc_ccb_obj_modify_rsp(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = evt->info.ccbUpcallRsp.result;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
-		assert(cl_node->tmpSinfo.stype == MDS_SENDTYPE_SNDRSP);
 
 		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
@@ -2385,7 +2415,6 @@ static void immnd_evt_proc_ccb_obj_create_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	SaUint32T reqConn = 0;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	TRACE_ENTER();
 
 	immModel_ccbObjCreateContinuation(cb,
@@ -2402,9 +2431,6 @@ static void immnd_evt_proc_ccb_obj_create_rsp(IMMND_CB *cb,
 			return;	/*Note, this means that regardles of ccb outcome, 
 				   we can not reply to the process that started the ccb. */
 		}
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. AND dont forget time-outs. */
-		sinfo = &cl_node->tmpSinfo;
 
 		TRACE_2("SENDRSP %u", evt->info.ccbUpcallRsp.result);
 
@@ -2415,9 +2441,8 @@ static void immnd_evt_proc_ccb_obj_create_rsp(IMMND_CB *cb,
 		}
 		send_evt.info.imma.info.errRsp.error = evt->info.ccbUpcallRsp.result;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS rc:%u", rc);
 		}
@@ -2449,7 +2474,6 @@ static void immnd_evt_proc_ccb_obj_delete_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	SaUint32T reqConn = 0;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	TRACE_ENTER();
 
 	immModel_ccbObjDelContinuation(cb, &(evt->info.ccbUpcallRsp), &reqConn);
@@ -2467,9 +2491,6 @@ static void immnd_evt_proc_ccb_obj_delete_rsp(IMMND_CB *cb,
 			return;	/*Note, this means that regardles of ccb outcome, 
 				   we can not reply to the process that started the ccb. */
 		}
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. AND dont forget time-outs. */
-		sinfo = &cl_node->tmpSinfo;
 
 		TRACE_2("SENDRSP %u", evt->info.ccbUpcallRsp.result);
 
@@ -2480,7 +2501,6 @@ static void immnd_evt_proc_ccb_obj_delete_rsp(IMMND_CB *cb,
 		}
 		send_evt.info.imma.info.errRsp.error = evt->info.ccbUpcallRsp.result;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
-		assert(cl_node->tmpSinfo.stype == MDS_SENDTYPE_SNDRSP);
 
 		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
@@ -2514,7 +2534,6 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	IMMND_IMM_CLIENT_NODE *oi_cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	SaUint32T reqConn = 0;
 	SaUint32T pbeConn = 0;
@@ -2670,21 +2689,16 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 			immnd_client_node_get(cb, tmp_hdl, &cl_node);
 			if (cl_node == NULL || cl_node->mIsStale) {
 				LOG_WA("IMMND - Client went down so no response");
-				/* If the client went down, then object must be either Commited or applied.
-                                  keeping the object in the IMMND may cause an abort(opensaf Ticket #2010),
-                                  in Sync*/
+				/* If the client went down, then object must be either commited or aborted.
+				   If the immModel_ccbFinalize is skipped over (below) then the CCB will be
+				   left suspended at this node indefinitely (opensaf Ticket #2010),    */ 
 				goto finalize_ccb;
 			}
-
-			/*Asyncronous agent calls can cause more than one continuation to be
-			   present for the SAME client. AND dont forget time-outs. */
-			sinfo = &cl_node->tmpSinfo;
 
 			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 			send_evt.type = IMMSV_EVT_TYPE_IMMA;
 			send_evt.info.imma.info.errRsp.error = err;
 			send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
-			assert(cl_node->tmpSinfo.stype == MDS_SENDTYPE_SNDRSP);
 
 			rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 			if (rc != NCSCC_RC_SUCCESS) {
@@ -2726,7 +2740,6 @@ static void immnd_evt_pbe_rt_obj_create_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	SaUint32T reqConn = 0;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	TRACE_ENTER();
 
 	immModel_pbePrtObjCreateContinuation(cb, evt->info.ccbUpcallRsp.inv,
@@ -2745,18 +2758,14 @@ static void immnd_evt_pbe_rt_obj_create_rsp(IMMND_CB *cb,
 				   we can not reply to the process that started the ccb. */
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		TRACE_2("SENDRSP %u", evt->info.ccbUpcallRsp.result);
 
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = evt->info.ccbUpcallRsp.result;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS rc:%u", rc);
 		}
@@ -2788,7 +2797,6 @@ static void immnd_evt_pbe_rt_attr_update_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	SaUint32T reqConn = 0;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	TRACE_ENTER();
 
 	immModel_pbePrtAttrUpdateContinuation(cb, evt->info.ccbUpcallRsp.inv,
@@ -2807,18 +2815,14 @@ static void immnd_evt_pbe_rt_attr_update_rsp(IMMND_CB *cb,
 				   we can not reply to the process that started the ccb. */
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		TRACE_2("SENDRSP %u", evt->info.ccbUpcallRsp.result);
 
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = evt->info.ccbUpcallRsp.result;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS rc:%u", rc);
 		}
@@ -2848,7 +2852,6 @@ static void immnd_evt_pbe_admop_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 	IMMSV_EVT send_evt;
 	SaUint32T reqConn = 0;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	TRACE_ENTER();
         SaUint32T admoId = m_IMMSV_UNPACK_HANDLE_HIGH(evt->info.admOpRsp.invocation);
 	assert(admoId == 0);
@@ -2889,17 +2892,13 @@ static void immnd_evt_pbe_admop_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 			return;
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = SA_AIS_OK;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS rc:%u", rc);
 		}
@@ -2930,7 +2929,6 @@ static void immnd_evt_pbe_rt_obj_deletes_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	SaUint32T reqConn = 0;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	TRACE_ENTER();
 
 	immModel_pbePrtObjDeletesContinuation(cb, evt->info.ccbUpcallRsp.inv,
@@ -2949,18 +2947,14 @@ static void immnd_evt_pbe_rt_obj_deletes_rsp(IMMND_CB *cb,
 				   we can not reply to the process that started the ccb. */
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		TRACE_2("SENDRSP %u", evt->info.ccbUpcallRsp.result);
 
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = evt->info.ccbUpcallRsp.result;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS rc:%u", rc);
 		}
@@ -3358,13 +3352,10 @@ static void immnd_evt_proc_admop(IMMND_CB *cb,
 					LOG_ER("MDS SEND FAILED on response to AdminOpInvokeAsync");
 				}
 			} else {
-				IMMSV_SEND_INFO *sinfo = &cl_node->tmpSinfo;
-				assert(sinfo);
-				assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 				send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 				send_evt.info.imma.info.errRsp.error = error;
 
-				if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+				if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 					LOG_ER("MDS SEND FAILED");
 				}
 			}
@@ -3402,7 +3393,6 @@ static void immnd_evt_proc_class_create(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	IMMND_IMM_CLIENT_NODE *pbe_cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaImmOiHandleT implHandle = 0LL;
 	SaUint32T reqConn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	SaUint32T nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
@@ -3506,8 +3496,6 @@ static void immnd_evt_proc_class_create(IMMND_CB *cb,
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client %llu went down so no response", clnt_hdl);
 			return;
-		} else {
-			sinfo = &cl_node->tmpSinfo;
 		}
 
 		TRACE_2("Send immediate reply to client");
@@ -3530,11 +3518,9 @@ static void immnd_evt_proc_class_create(IMMND_CB *cb,
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = error;
-		assert(sinfo);	/*fake for test */
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			TRACE_2("immnd_evt_class_create: SENDRSP FAIL");
 		}
 	}
@@ -3567,7 +3553,6 @@ static void immnd_evt_proc_class_delete(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	IMMND_IMM_CLIENT_NODE *pbe_cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaImmOiHandleT implHandle = 0LL;
 	SaUint32T reqConn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	SaUint32T nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
@@ -3607,7 +3592,7 @@ static void immnd_evt_proc_class_delete(IMMND_CB *cb,
 			immnd_client_node_get(cb, implHandle, &pbe_cl_node);
 			assert(pbe_cl_node);
 			if (pbe_cl_node->mIsStale) {
-				LOG_WA("PBE is down => class create is delayed!");
+				LOG_WA("PBE is down => class delete is delayed!");
 				/* ****
 				   An Mutation record should have been created in ImmModel to reflect
 				   the class create. This will bar the PBE being restarted with
@@ -3655,8 +3640,6 @@ static void immnd_evt_proc_class_delete(IMMND_CB *cb,
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client %llu went down so no response", clnt_hdl);
 			return;
-		} else {
-			sinfo = &cl_node->tmpSinfo;
 		}
 
 		TRACE_2("Send immediate reply to client");
@@ -3664,11 +3647,9 @@ static void immnd_evt_proc_class_delete(IMMND_CB *cb,
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = error;
-		assert(sinfo);	/*fake for test */
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			LOG_WA("immnd_evt_class_delete: SENDRSP FAILED TO SEND");
 		}
 	}
@@ -3817,7 +3798,6 @@ static void immnd_evt_proc_object_sync(IMMND_CB *cb,
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	TRACE_ENTER();
 
 	if (cb->mSync) {	/*This node is being synced => Accept the sync message. */
@@ -3840,17 +3820,13 @@ static void immnd_evt_proc_object_sync(IMMND_CB *cb,
 			return;
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = err;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
 		if (cl_node->mIsSync && cl_node->mSyncBlocked) {
-			if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+			if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 				LOG_ER("Failed to send sync-object result to Agent");
 			}
 		} else {
@@ -3889,7 +3865,6 @@ static void immnd_evt_proc_rt_object_create(IMMND_CB *cb,
 {
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	IMMND_IMM_CLIENT_NODE *pbe_cl_node = NULL;
 	SaImmOiHandleT implHandle = 0LL;
@@ -3974,17 +3949,13 @@ static void immnd_evt_proc_rt_object_create(IMMND_CB *cb,
 			return;
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		TRACE_2("send immediate reply to client/agent");
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = err;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send result to implementer over MDS");
 		}
 	}
@@ -4016,7 +3987,6 @@ static void immnd_evt_proc_object_create(IMMND_CB *cb,
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 
 	IMMND_IMM_CLIENT_NODE *oi_cl_node = NULL;
 	SaImmOiHandleT implHandle = 0LL;
@@ -4146,17 +4116,13 @@ static void immnd_evt_proc_object_create(IMMND_CB *cb,
 			return;
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		TRACE_2("send immediate reply to client/agent");
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = err;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send result to Agent over MDS");
 		}
 	}
@@ -4188,7 +4154,6 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 
 	IMMND_IMM_CLIENT_NODE *oi_cl_node = NULL;
 	SaImmOiHandleT implHandle = 0LL;
@@ -4321,24 +4286,20 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
-			return;
+			goto done; /* Dont leak memory on error */
 		}
-
-		sinfo = &cl_node->tmpSinfo;
 
 		TRACE_2("send immediate reply to client/agent");
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = err;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send result to Agent over MDS");
 		}
 	}
-
+ done:
 	/*Free the incomming events substructure. */
 	free(evt->info.objModify.objectName.buf);
 	evt->info.objModify.objectName.buf = NULL;
@@ -4372,7 +4333,6 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 {
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	IMMND_IMM_CLIENT_NODE *pbe_cl_node = NULL;
 	SaImmOiHandleT implHandle = 0LL;
@@ -4483,24 +4443,21 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
-			return;
+			goto done; /* Dont leak memory on error */
 		}
-
-		sinfo = &cl_node->tmpSinfo;
 
 		TRACE_2("send reply to client/agent");
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = err;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send result to OI client over MDS");
 		}
 	}
 
+ done:
 	/*Free the incomming events substructure. */
 	free(evt->info.objModify.objectName.buf);
 	evt->info.objModify.objectName.buf = NULL;
@@ -4621,7 +4578,6 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 
 	IMMND_IMM_CLIENT_NODE *oi_cl_node = NULL;
 	SaImmOiHandleT implHandle = 0LL;
@@ -4663,7 +4619,6 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 	   *do* wait for ack. In fact the ccb-commit/abort decision is delegated to
            the PBE when the completed upcall is done.
 	 */
-	/*TRACE("ABT: pbeNodeIdPtr:%p pbeConn:%u err:%u", pbeNodeIdPtr, pbeConn, err);*/
 	if(pbeNodeIdPtr && pbeConn && err==SA_AIS_OK) {
 		TRACE_5("PBE exists and is local to this node arrSize:%u", arrSize);
 		assert(cb->mIsCoord);
@@ -4803,17 +4758,13 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 			return;
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		TRACE_2("Send immediate reply to OM client");
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = err;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send result to Agent over MDS");
 		}
 	}
@@ -4843,7 +4794,6 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb,
 {
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	IMMND_IMM_CLIENT_NODE *pbe_cl_node = NULL;
 	SaImmOiHandleT implHandle = 0LL;
@@ -4983,17 +4933,13 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb,
 			return;
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		TRACE_2("send immediate reply to client/agent");
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.info.errRsp.error = err;
-		assert(sinfo);
-		assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send result to implementer over MDS");
 		}
 	}
@@ -5024,7 +4970,6 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaUint32T client = 0;
 	TRACE_ENTER();
 
@@ -5049,8 +4994,6 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 			return;
 		}
 
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
@@ -5059,7 +5002,7 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 
 		TRACE_2("SENDRSP %u", err);
 
-		if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
 	}
@@ -5091,7 +5034,6 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	IMMND_IMM_CLIENT_NODE *oi_cl_node = NULL;
 	SaImmOiHandleT implHandle = 0LL;
 	SaUint32T conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
@@ -5279,16 +5221,13 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 			if (cl_node == NULL || cl_node->mIsStale) {
 				LOG_WA("IMMND - Client went down so no response");
 			} else {
-				sinfo = &cl_node->tmpSinfo;
 				TRACE_2("send immediate reply to client");
 				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 				send_evt.type = IMMSV_EVT_TYPE_IMMA;
 				send_evt.info.imma.info.errRsp.error = err;
-				assert(sinfo);
-				assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 				send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-				if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
+				if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
 					LOG_ER("Failed to send result to Agent over MDS");
 				}
 			}
@@ -5712,7 +5651,6 @@ uns32 immnd_evt_proc_pbe_prto_purge_mutations(IMMND_CB *cb, IMMND_EVT *evt,
 		uns32 rc = NCSCC_RC_SUCCESS;
 		IMMSV_EVT send_evt;
 		IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-		IMMSV_SEND_INFO *sinfo = NULL;
 		int ix = 0;
 		assert(reqConnArr);
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
@@ -5728,11 +5666,8 @@ uns32 immnd_evt_proc_pbe_prto_purge_mutations(IMMND_CB *cb, IMMND_EVT *evt,
 				LOG_WA("IMMND - Client went down so no response");
 				continue;
 			}
-			sinfo = &cl_node->tmpSinfo;
-			assert(sinfo);
-			assert(sinfo->stype == MDS_SENDTYPE_SNDRSP);
 			TRACE("Sending TRY_AGAIN reply to connection %u", reqConnArr[ix]);
-			rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+			rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 			if (rc != NCSCC_RC_SUCCESS) {
 				LOG_ER("Failed to send response to agent/client "
 					"over MDS rc:%u", rc);
@@ -6209,7 +6144,6 @@ static void immnd_evt_proc_adminit_rsp(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
@@ -6227,11 +6161,6 @@ static void immnd_evt_proc_adminit_rsp(IMMND_CB *cb,
 			return;
 		}
 
-		/*Match against continuation.
-		   Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		if (err != SA_AIS_OK) {
@@ -6248,7 +6177,7 @@ static void immnd_evt_proc_adminit_rsp(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ADMINIT_RSP;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6381,7 +6310,6 @@ static void immnd_evt_proc_admo_set(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 
 	assert(evt);
@@ -6399,10 +6327,6 @@ static void immnd_evt_proc_admo_set(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. AND dont forget time-outs. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
@@ -6411,7 +6335,7 @@ static void immnd_evt_proc_admo_set(IMMND_CB *cb,
 
 		TRACE_2("SENDRSP %u", err);
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6439,7 +6363,6 @@ static void immnd_evt_proc_admo_release(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 
 	assert(evt);
@@ -6457,10 +6380,6 @@ static void immnd_evt_proc_admo_release(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. AND dont forget time-outs. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
@@ -6469,7 +6388,7 @@ static void immnd_evt_proc_admo_release(IMMND_CB *cb,
 
 		TRACE_2("SENDRSP %u", err);
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6497,7 +6416,6 @@ static void immnd_evt_proc_admo_clear(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 
 	assert(evt);
@@ -6515,10 +6433,6 @@ static void immnd_evt_proc_admo_clear(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. AND dont forget time-outs. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
@@ -6527,7 +6441,7 @@ static void immnd_evt_proc_admo_clear(IMMND_CB *cb,
 
 		TRACE_2("SENDRSP %u", err);
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6555,7 +6469,6 @@ static void immnd_evt_proc_admo_finalize(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	SaBoolT wasLoading = 
 		((cb->mState == IMM_SERVER_LOADING_CLIENT) || (cb->mState == IMM_SERVER_LOADING_SERVER)) &&
@@ -6581,10 +6494,6 @@ static void immnd_evt_proc_admo_finalize(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
@@ -6593,7 +6502,7 @@ static void immnd_evt_proc_admo_finalize(IMMND_CB *cb,
 
 		TRACE_2("SENDRSP %u", err);
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6656,7 +6565,6 @@ static void immnd_evt_proc_impl_set_rsp(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
@@ -6677,10 +6585,6 @@ static void immnd_evt_proc_impl_set_rsp(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		if (err != SA_AIS_OK) {
@@ -6697,7 +6601,7 @@ static void immnd_evt_proc_impl_set_rsp(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMPLSET_RSP;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6725,7 +6629,6 @@ static void immnd_evt_proc_impl_clr(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
@@ -6743,17 +6646,13 @@ static void immnd_evt_proc_impl_clr(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.info.imma.info.errRsp.error = err;
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6781,7 +6680,6 @@ static void immnd_evt_proc_cl_impl_set(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
@@ -6799,10 +6697,6 @@ static void immnd_evt_proc_cl_impl_set(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		if (err != SA_AIS_OK) {
@@ -6814,7 +6708,7 @@ static void immnd_evt_proc_cl_impl_set(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6847,7 +6741,6 @@ static void immnd_evt_proc_cl_impl_rel(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
@@ -6865,10 +6758,6 @@ static void immnd_evt_proc_cl_impl_rel(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		if (err != SA_AIS_OK) {
@@ -6881,7 +6770,7 @@ static void immnd_evt_proc_cl_impl_rel(IMMND_CB *cb,
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 		TRACE_2("SENDRSP OK");
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6909,7 +6798,6 @@ static void immnd_evt_proc_obj_impl_set(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
@@ -6928,10 +6816,6 @@ static void immnd_evt_proc_obj_impl_set(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.info.imma.info.errRsp.error = err;
@@ -6939,7 +6823,7 @@ static void immnd_evt_proc_obj_impl_set(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -6968,7 +6852,6 @@ static void immnd_evt_proc_obj_impl_rel(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
@@ -6987,10 +6870,6 @@ static void immnd_evt_proc_obj_impl_rel(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.info.imma.info.errRsp.error = err;
@@ -6998,7 +6877,7 @@ static void immnd_evt_proc_obj_impl_rel(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
@@ -7029,7 +6908,6 @@ static void immnd_evt_proc_ccbinit_rsp(IMMND_CB *cb,
 	uns32 rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	IMMSV_SEND_INFO *sinfo = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
@@ -7050,10 +6928,6 @@ static void immnd_evt_proc_ccbinit_rsp(IMMND_CB *cb,
 			return;
 		}
 
-		/*Asyncronous agent calls can cause more than one continuation to be
-		   present for the SAME client. */
-		sinfo = &cl_node->tmpSinfo;
-
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.info.imma.info.admInitRsp.error = err;
 
@@ -7068,7 +6942,7 @@ static void immnd_evt_proc_ccbinit_rsp(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_CCBINIT_RSP;
 
-		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+		rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failed to send response to agent/client over MDS");
 		}
