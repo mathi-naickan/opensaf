@@ -564,6 +564,58 @@ SmfCampStateInitial::execute(SmfUpgradeCampaign * i_camp)
 	//Prerequisite  check 10 "Upgrade-aware entities are ready for an upgrade campaign"
 	//TBD
 
+	// Check if parent/type has incorrect object DNs. This is an extra  prerequisite check not given in SMF specification
+	procIter = i_camp->m_procedure.begin();
+	while (procIter != i_camp->m_procedure.end()) {
+		SaSmfUpgrMethodT upType = (*procIter)->getUpgradeMethod()->getUpgradeMethod();
+		if (upType != SA_SMF_ROLLING) {
+			procIter++; /* go to the next procedure */
+			continue;
+		}
+		SmfRollingUpgrade *i_rollingUpgrade = (SmfRollingUpgrade *) (*procIter)->getUpgradeMethod();
+		const SmfByTemplate *byTemplate = (const SmfByTemplate *)i_rollingUpgrade->getUpgradeScope();
+		if (byTemplate == NULL) {
+			LOG_ER("SmfCampStateInitial::execute: no upgrade scope by template found");
+			error = "CAMP: No upgrade scope by template found";
+			goto exit_error;
+		}
+
+		const SmfTargetNodeTemplate *nodeTemplate = byTemplate->getTargetNodeTemplate();
+		const std::list < SmfParentType * >&actUnitTemplates = nodeTemplate->getActivationUnitTemplateList();
+		if (actUnitTemplates.size() == 0) {
+			procIter++;
+			continue;
+		}
+		std::list < SmfParentType * >::const_iterator it;
+		for (it = actUnitTemplates.begin(); it != actUnitTemplates.end(); ++it) { 
+			if (((*it)->getParentDn().size() != 0) && 
+				(strncmp((*it)->getParentDn().c_str(), "safSg=", strlen("safSg=")) != 0)) {
+				LOG_ER("SmfCampStateInitial::execute: given DN in parent %s is not SG's DN", (*it)->getParentDn().c_str());
+				error = "CAMP: parent object DN is not SG DN";
+				goto exit_error;
+			}
+
+			if ((*it)->getTypeDn().size() == 0) 
+				continue; /* type is optional */
+
+			if (strncmp((*it)->getTypeDn().c_str(), "safVersion=", strlen("safVersion=")) != 0) {
+				LOG_ER("SmfCampStateInitial::execute: given DN in type %s is not versioned CompType/SUType DN", (*it)->getTypeDn().c_str());
+				error = "CAMP: type object DN is not versioned type of CompType/SuType";
+				goto exit_error;
+			} else {
+				std::string temp = (*it)->getTypeDn().c_str();
+				std::string parentDn = (temp).substr((temp).find(',') + 1, std::string::npos);
+				if ((strncmp(parentDn.c_str(), "safCompType=", strlen("safCompType=")) != 0) 
+					&& (strncmp(parentDn.c_str(), "safSuType=", strlen("safSuType=")) != 0)) {
+					LOG_ER("SmfCampStateInitial::execute: given DN in type %s is not CompType/SUType DN", (*it)->getTypeDn().c_str());
+					error = "CAMP: type object DN is not CompType/SuType DN";
+					goto exit_error;
+				}
+			}
+		}
+		procIter++;
+	}
+
 	//Prerequisite  check 11 "All neccessary backup is created"
 	LOG_NO("CAMP: Create system backup %s", i_camp->getCampaignName().c_str());
 	if (smfd_cb->backupCreateCmd != NULL) {
