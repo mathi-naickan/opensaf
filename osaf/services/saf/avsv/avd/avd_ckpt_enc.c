@@ -1921,7 +1921,6 @@ static uns32 avd_entire_data_update(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc, NCS_BO
 	if (AVSV_COLD_SYNC_RSP_ASYNC_UPDT_CNT == enc->io_reo_type) {
 		if (c_sync) {
 			enc->io_msg_type = NCS_MBCSV_MSG_COLD_SYNC_RESP_COMPLETE;
-			avd_cb->stby_sync_state = AVD_STBY_IN_SYNC;
 			saflog(LOG_NOTICE, amfSvcUsrName, "Cold sync complete of %x", cb->node_id_avd_other);
 		} else
 			enc->io_msg_type = NCS_MBCSV_MSG_DATA_RESP_COMPLETE;
