@@ -193,6 +193,7 @@ void mqd_saf_csi_set_cb(SaInvocationT invocation,
 		for (pNdNode = (MQD_ND_DB_NODE *)ncs_patricia_tree_getnext(&pMqd->node_db, (uns8 *)0); pNdNode;
 		     pNdNode = (MQD_ND_DB_NODE *)ncs_patricia_tree_getnext(&pMqd->node_db, (uns8 *)&nodeid)) {
 			nodeid = pNdNode->info.nodeid;
+			TRACE_1("node=%u is notified to be down", (uint32_t)nodeid);
 			/* Post the event to MQD Thread */
 			if (pNdNode->info.timer.is_expired == TRUE) {
 				TRACE("NODE FOUND FOR CLEAN UP:CSI CALLBACK (TIMER EXPIRY CASE)");
@@ -220,6 +221,11 @@ void mqd_saf_csi_set_cb(SaInvocationT invocation,
 							return;
 						}
 					}
+				}
+				if (pNdNode->info.is_node_down == TRUE) {
+					mqd_tmr_stop(&pNdNode->info.timer);
+					mqd_del_node_down_info(pMqd, nodeid);
+					mqd_red_db_node_del(pMqd, pNdNode);
 				}
 			}
 		}
