@@ -1159,7 +1159,7 @@ static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration)
 	}
 
 	if(!(duration % 2) && !pbeIsInSync) { /* Every two seconds check on pbe */
-		if(cb->pbePid) {
+		if(cb->pbePid > 0) {
 			LOG_WA("Persistent back end process appears hung, restarting it.");
 			kill(cb->pbePid, SIGTERM);
 			/* Forces PBE to restart which forces syncronization. */
@@ -1693,7 +1693,7 @@ uns32 immnd_proc_server(uns32 *timeout)
 				LOG_NO("Still waiting for existing Ccbs to terminate "
 				       "after %u seconds. Aborting this sync attempt", jobDuration);
 				immnd_abortSync(cb);
-				if(cb->syncPid != 0) {
+				if(cb->syncPid > 0) {
 					LOG_WA("STOPPING sync process pid %u", cb->syncPid);
 					kill(cb->syncPid, SIGTERM);
 				}
