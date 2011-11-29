@@ -34,5 +34,6 @@
 
 EXTERN_C void mqd_clm_cluster_track_callback(const SaClmClusterNotificationBufferT *notificationBuffer,
 					     SaUint32T numberOfMembers, SaAisErrorT error);
+EXTERN_C void mqd_del_node_down_info(MQD_CB *pMqd, NODE_ID nodeid);
 
 #endif   /* MQD_CLM_H */
