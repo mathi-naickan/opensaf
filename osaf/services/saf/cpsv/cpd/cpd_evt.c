@@ -560,11 +560,6 @@ static uns32 cpd_evt_proc_ckpt_unlink(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_INFO *
 	cpd_a2s_ckpt_unlink_set(cb, ckpt_node);
 
  send_rsp:
-	memset(&send_evt, 0, sizeof(CPSV_EVT));
-	send_evt.type = CPSV_EVT_TYPE_CPND;
-	send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_UNLINK_ACK;
-	send_evt.info.cpnd.info.ulink_ack.error = rc;
-	proc_rc = cpd_mds_send_rsp(cb, sinfo, &send_evt);
 
 	if (rc == SA_AIS_OK) {
 		/* Broadcast the Unlink info to all CPNDs */
@@ -586,6 +581,12 @@ static uns32 cpd_evt_proc_ckpt_unlink(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_INFO *
 			}
 		}
 	}
+
+        memset(&send_evt, 0, sizeof(CPSV_EVT));
+        send_evt.type = CPSV_EVT_TYPE_CPND;
+        send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_UNLINK_ACK;
+        send_evt.info.cpnd.info.ulink_ack.error = rc;
+        proc_rc = cpd_mds_send_rsp(cb, sinfo, &send_evt);
 
 	return proc_rc;
 }
