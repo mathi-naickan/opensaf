@@ -931,7 +931,8 @@ uns32 avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceState
 			 * su termination, so we need not instantiate the comp, just reset
 			 * the failed flag.
 			 */
-			if (m_AVND_COMP_IS_FAILED(comp) && !comp->csi_list.n_nodes && !m_AVND_SU_IS_ADMN_TERM(comp->su))
+			if (m_AVND_COMP_IS_FAILED(comp) && !comp->csi_list.n_nodes &&
+			    !m_AVND_SU_IS_ADMN_TERM(comp->su) && (cb->oper_state == SA_AMF_OPERATIONAL_ENABLED))
 				rc = avnd_comp_clc_fsm_trigger(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_INST);
 			else if (m_AVND_COMP_IS_FAILED(comp) && !comp->csi_list.n_nodes) {
 				m_AVND_COMP_FAILED_RESET(comp);	/*if we moved from restart -> term

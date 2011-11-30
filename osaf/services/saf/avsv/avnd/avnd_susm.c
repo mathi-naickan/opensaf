@@ -692,8 +692,12 @@ uns32 avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
 
-		/* removal signifies an end to the recovery phase.. initiate repair */
-		if (m_AVND_SU_IS_FAILED(su) && !su->si_list.n_nodes)
+		/* 
+		 * Removal signifies an end to the recovery phase. Initiate repair
+		 * unless a NODE level recovery action is in progress.
+		 */
+		if (m_AVND_SU_IS_FAILED(su) && !su->si_list.n_nodes &&
+		    (cb->oper_state == SA_AMF_OPERATIONAL_ENABLED))
 			rc = avnd_err_su_repair(cb, su);
 	}
 
