@@ -492,7 +492,7 @@ uns32 cpd_mbcsv_enc_msg_resp(CPD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 
 	while (ckpt_node) {
 
-		if (ckpt_node->is_unlink_set == true ) {
+		if (ckpt_node->is_unlink_set == TRUE ) {
 			TRACE_1("cpd mbcsv enc continue  for ckpt_id %llx",ckpt_node->ckpt_id);
 			prev_ckpt_id = ckpt_node->ckpt_id;
 			ckpt_node = (CPD_CKPT_INFO_NODE *)ncs_patricia_tree_getnext(&cb->ckpt_tree, (uint8_t *)&prev_ckpt_id);
