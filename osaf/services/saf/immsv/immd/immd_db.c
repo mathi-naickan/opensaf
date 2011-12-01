@@ -374,15 +374,19 @@ IMMSV_FEVS *immd_db_get_fevs(IMMD_CB *cb, const uns16 back_count)
 		old_msg = old_msg->next;
 	}
 
-	if(old_msgs[0]->re_sent) {
-		LOG_NO("Skipping re-send of fevs message %llu since it has "
-			"recently been resent.",
-			old_msgs[0]->fevsMsg.sender_count);
-		return NULL;
+	if(old_msgs[0]){
+		if(old_msgs[0]->re_sent) {
+			LOG_NO("Skipping re-send of fevs message %llu since it has "
+				"recently been resent.",
+				old_msgs[0]->fevsMsg.sender_count);
+			return NULL;
 
+		}
+		old_msgs[0]->re_sent = TRUE;
+		return &(old_msgs[0]->fevsMsg);
+	}else{
+		return NULL;
 	}
-	old_msgs[0]->re_sent = TRUE;
-	return &(old_msgs[0]->fevsMsg);
 }
 
 void immd_db_purge_fevs(IMMD_CB *cb)
