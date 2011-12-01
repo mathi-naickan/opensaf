@@ -5856,6 +5856,7 @@ uns32 immnd_evt_proc_abort_sync(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *s
 			LOG_WA("SERVER STATE: IMM_SERVER_SYNC_CLIENT --> IMM SERVER LOADING PENDING (sync aborted)");
 			cb->mStep = 0;
 			cb->mJobStart = time(NULL);
+			assert(cb->mJobStart > ((time_t) 0));
 			cb->mMyEpoch = 0;
 			cb->mSync = FALSE;
 			assert(!(cb->mAccepted));
@@ -5983,6 +5984,7 @@ static uns32 immnd_evt_proc_start_sync(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_
 	} else if ((cb->mState == IMM_SERVER_SYNC_CLIENT) && (immnd_syncComplete(cb, SA_FALSE, cb->mStep))) {
 		cb->mStep = 0;
 		cb->mJobStart = time(NULL);
+		assert(cb->mJobStart > ((time_t) 0));
 		cb->mState = IMM_SERVER_READY;
 		immnd_ackToNid(NCSCC_RC_SUCCESS);
 		LOG_NO("SERVER STATE: IMM_SERVER_SYNC_CLIENT --> IMM SERVER READY (materialized by start sync)");
@@ -6112,6 +6114,7 @@ static uns32 immnd_evt_proc_loading_ok(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_
 			cb->mState = IMM_SERVER_LOADING_CLIENT;
 			cb->mStep = 0;
 			cb->mJobStart = time(NULL);
+			assert(cb->mJobStart > ((time_t) 0));
 			cb->mAccepted = TRUE;
 		}
 	} else if (cb->mState == IMM_SERVER_LOADING_SERVER) {

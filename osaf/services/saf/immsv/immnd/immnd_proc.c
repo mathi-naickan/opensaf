@@ -507,6 +507,7 @@ void immnd_announceDump(IMMND_CB *cb)
 		   Reduces risk of epoch race with dump.
 		 */
 		cb->mJobStart = time(NULL);
+		assert(cb->mJobStart > ((time_t) 0));
 	}
 }
 
@@ -1419,6 +1420,7 @@ uns32 immnd_proc_server(uns32 *timeout)
 	int32 coord, newEpoch;
 	int32 printFrq = (*timeout > 100) ? 5 : 50;
 	time_t now = time(NULL);
+	assert(now > ((time_t) 0));
 	uns32 jobDuration = now - cb->mJobStart;
 	if(!jobDuration) {++jobDuration;} /* Avoid jobDuraton of zero */
 	/*TRACE_ENTER(); */
