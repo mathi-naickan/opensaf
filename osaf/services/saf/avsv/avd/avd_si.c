@@ -193,9 +193,6 @@ void avd_si_delete(AVD_SI *si)
 	   director and on standby all the csi should be deleted because 
 	   csi delete is not checkpointed as and when it happens */
 	si_delete_csis(si);
-
-	/* All the SI Dependencies should have been unconfigured or deleted */
-	assert(si->spons_si_list == 0);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(avd_cb, si, AVSV_CKPT_AVD_SI_CONFIG);
 	avd_svctype_remove_si(si);
 	avd_app_remove_si(si->app, si);
@@ -802,8 +799,8 @@ static SaAisErrorT si_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 			goto done;
 		}
 		/* check for any SI-SI dependency configurations */
-		if (0 != si->num_dependents) {
-			LOG_ER("Dependents Exist; Cannot delete '%s'", si->name.value);
+		if (0 != si->num_dependents || si->spons_si_list != NULL) {
+			LOG_ER("Sponsors or Dependents Exist; Cannot delete '%s'", si->name.value);
 			goto done;
 		}
 		rc = SA_AIS_OK;
