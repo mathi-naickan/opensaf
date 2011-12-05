@@ -312,6 +312,7 @@ typedef struct cpsv_a2nd_open_req {
 typedef struct cpsv_a2nd_ckpt_close {
 	SaCkptHandleT client_hdl;
 	SaCkptCheckpointHandleT ckpt_id;
+	SaCkptCheckpointOpenFlagsT ckpt_flags;
 } CPSV_A2ND_CKPT_CLOSE;
 
 typedef struct cpsv_a2nd_ckpt_unlink {

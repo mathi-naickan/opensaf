@@ -1001,7 +1001,7 @@ static uns32 cpnd_evt_proc_ckpt_close(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO
 	/* reset the client info */
 	cpnd_restart_client_reset(cb, cp_node, cl_node);
 
-	rc = cpnd_send_ckpt_usr_info_to_cpd(cb, cp_node, cp_node->open_flags, CPSV_USR_INFO_CKPT_CLOSE);
+	rc = cpnd_send_ckpt_usr_info_to_cpd(cb, cp_node, evt->info.closeReq.ckpt_flags, CPSV_USR_INFO_CKPT_CLOSE);
 	if (rc != NCSCC_RC_SUCCESS) {
 		m_LOG_CPND_FFCL(CPND_MDS_SEND_FAIL, CPND_FC_HDLN, NCSFL_SEV_ERROR,
 				evt->info.closeReq.client_hdl, evt->info.closeReq.ckpt_id, __FILE__, __LINE__);

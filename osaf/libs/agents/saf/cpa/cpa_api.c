@@ -1234,6 +1234,7 @@ SaAisErrorT saCkptCheckpointClose(SaCkptCheckpointHandleT checkpointHandle)
 	evt.info.cpnd.type = CPND_EVT_A2ND_CKPT_CLOSE;
 	evt.info.cpnd.info.closeReq.client_hdl = lc_node->cl_hdl;
 	evt.info.cpnd.info.closeReq.ckpt_id = lc_node->gbl_ckpt_hdl;
+	evt.info.cpnd.info.closeReq.ckpt_flags = lc_node->open_flags;
 
 	/* Unlock before MDS send */
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
