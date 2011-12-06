@@ -436,9 +436,15 @@ uns32 avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 {
 	uns32 rc = NCSCC_RC_SUCCESS;
 
-	opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
-			"MDS down received for AVD");
+	TRACE_ENTER();
+	/* Don't issue reboot if it has been already issued.*/
+	if (SA_FALSE == cb->reboot_in_progress) {
+		cb->reboot_in_progress = SA_TRUE;
+		opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
+				"local AVD down(Adest) or both AVD down(Vdest) received");
+	}
 
+	TRACE_LEAVE();
 	return rc;
 }
 
