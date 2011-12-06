@@ -144,6 +144,7 @@ uns32 mds_mdtm_svc_unsubscribe_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id,
 	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_UNSUBSCRIBE_BUFFER_SIZE);
 
 	mdtm_del_from_ref_tbl(subtn_ref_val);
+	--mdtm_num_subscriptions;
 
 	m_MDS_LOG_INFO("MDTM: SVC-UNSUBSCRIBE Success\n");
 
@@ -438,15 +439,41 @@ uns32 mds_mdtm_vdest_subscribe_tcp(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL *sub
 }
 
 /**
- * Currently not in use
  *
- * @param adest
+ * @param vdest_id, subtn_ref_val 
  *
  * @return NCSCC_RC_SUCCESS
  *
  */
 uns32 mds_mdtm_vdest_unsubscribe_tcp(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL subtn_ref_val)
 {
+	MDS_MDTM_DTM_MSG unsubscr;
+	uns8 tcp_buffer[MDS_MDTM_DTM_UNSUBSCRIBE_BUFFER_SIZE];
+	/*
+	   STEP 1: Get ref_val and call the TCP unsubscribe with the ref_val
+	 */
+
+	memset(&tcp_buffer, 0, MDS_MDTM_DTM_UNSUBSCRIBE_BUFFER_SIZE);
+	memset(&unsubscr, 0, sizeof(MDS_MDTM_DTM_MSG));
+
+	unsubscr.size = MDS_MDTM_DTM_UNSUBSCRIBE_SIZE;
+	unsubscr.mds_version = MDS_SND_VERSION;
+	unsubscr.mds_indentifire = MDS_IDENTIFIRE;
+	unsubscr.type = MDS_MDTM_DTM_UNSUBSCRIBE_TYPE;
+	unsubscr.info.unsubscribe.sub_ref_val = subtn_ref_val;
+	unsubscr.info.unsubscribe.node_id = tcp_cb->node_id;
+	unsubscr.info.unsubscribe.process_id = mdtm_pid;
+
+	/* Convert into the encoded tcp_buffer before send */
+	mds_mdtm_enc_svc_unsubscribe(&unsubscr, tcp_buffer);
+
+	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
+	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_UNSUBSCRIBE_BUFFER_SIZE);
+
+	mdtm_del_from_ref_tbl(subtn_ref_val);
+	--mdtm_num_subscriptions;
+
+	m_MDS_LOG_INFO("MDTM: vdest-UNSUBSCRIBE Success\n");
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -555,6 +582,7 @@ uns32 mds_mdtm_node_unsubscribe_tcp(MDS_SUBTN_REF_VAL subtn_ref_val)
 	m_MDS_LOG_INFO("MDTM: In mds_mdtm_node_unsubscribe_tcp\n");
 
 	mdtm_del_from_ref_tbl(subtn_ref_val);
+	--mdtm_num_subscriptions;
 	m_MDS_LOG_INFO("MDTM: NODE-UNSUBSCRIBE Success\n");
 	return NCSCC_RC_SUCCESS;
 }
