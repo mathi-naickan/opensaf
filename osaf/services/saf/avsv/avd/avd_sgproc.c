@@ -181,6 +181,7 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	AVD_SU *su, *i_su;
 	SaAmfReadinessStateT old_state;
 	AVD_AVND *su_node_ptr = NULL;
+	bool node_reboot_req = true;
 
 	TRACE_ENTER2("from %x, '%s' state=%u", n2d_msg->msg_info.n2d_opr_state.node_id,
 	     n2d_msg->msg_info.n2d_opr_state.su_name.value,
@@ -276,6 +277,7 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				while (i_su != NULL) {
 					avd_su_readiness_state_set(i_su, SA_AMF_READINESS_OUT_OF_SERVICE);
 					if (i_su->list_of_susi != AVD_SU_SI_REL_NULL) {
+						node_reboot_req = false;
 						/* Since assignments exists call the SG FSM.
 						 */
 						switch (i_su->sg_of_su->sg_redundancy_model) {
@@ -351,7 +353,15 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 
 					i_su = i_su->avnd_list_su_next;
 				}	/* while(i_su != AVD_SU_NULL) */
-
+				if (node_reboot_req) {
+					if (cb->node_id_avd == node->node_info.nodeId) {
+						opensaf_reboot(node->node_info.nodeId,
+								(char *)node->node_info.executionEnvironment.value,
+								"Rebooting node reason Node Failover.");
+					} else {
+						avd_d2n_reboot_snd(node);
+					}      
+				}
 			} else {	/* if(n2d_msg->msg_info.n2d_opr_state.node_oper_state == NCS_OPER_STATE_DISABLE) */
 
 				if (su->list_of_susi != AVD_SU_SI_REL_NULL) {
