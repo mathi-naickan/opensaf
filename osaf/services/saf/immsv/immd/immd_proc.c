@@ -306,6 +306,7 @@ int immd_proc_elect_coord(IMMD_CB *cb, NCS_BOOL new_active)
 		send_evt.info.immnd.info.ctrl.fevsMsgStart = cb->fevsSendCount;
 		send_evt.info.immnd.info.ctrl.syncStarted = FALSE;
 		send_evt.info.immnd.info.ctrl.nodeEpoch = immnd_info_node->epoch;
+		send_evt.info.immnd.info.ctrl.pbeEnabled = (cb->mRim == SA_IMM_KEEP_REPOSITORY);
 
 		mbcp_msg.type = IMMD_A2S_MSG_INTRO_RSP;
 		mbcp_msg.info.ctrl = send_evt.info.immnd.info.ctrl;
