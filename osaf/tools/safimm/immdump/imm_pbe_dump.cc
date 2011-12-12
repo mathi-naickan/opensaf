@@ -1503,6 +1503,7 @@ void objectToPBE(std::string objectNameString,
 	int rc=0;
 	char *execErr=NULL;
 	sqlite3* dbHandle = (sqlite3 *) db_handle;
+	bool rdnFound=false;
 
 	std::string sqlE("INSERT INTO objects (obj_id, class_id, dn, last_ccb) values('");
 	std::string sqlF("INSERT INTO \"");
@@ -1562,6 +1563,14 @@ void objectToPBE(std::string objectNameString,
 		if ((*p)->attrValues == NULL || ((*p)->attrValuesNumber == 0))
 		{
 			continue;
+		}
+
+		if(attrFlags & SA_IMM_ATTR_RDN) {
+			if(rdnFound) {
+				LOG_ER("Duplicate RDN attribute");
+				goto bailout;
+			}
+			rdnFound = true;
 		}
 
 		if(attrFlags & SA_IMM_ATTR_RUNTIME) {
