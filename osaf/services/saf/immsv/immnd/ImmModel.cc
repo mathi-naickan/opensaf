@@ -3640,7 +3640,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(const ImmsvOmCcbObjectCreate* req,
             objectName.append((const char*)attrValues->n.attrValue.val.x.buf, 
                 strnlen((const char*)attrValues->n.attrValue.val.x.buf,
                     (size_t)attrValues->n.attrValue.val.x.size));
-         }
+        }
         attrValues = attrValues->next;
     }
     
@@ -7594,6 +7594,7 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
     immsv_attr_values_list* attrValues = NULL;
     bool isPersistent = false;
     bool nameCorrected = false;
+    bool rdnAttFound=false;
     
     /*Should rename member adminOwnerId. Used to store implid here.*/
     ImplementerInfo* info = findImplementer(req->adminOwnerId);
@@ -7690,6 +7691,15 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
         std::string attrName((const char*)attrValues->n.attrName.buf, sz);
         
         if (attrName == i4->first) { //Match on name for RDN attribute
+            if(rdnAttFound) {
+                LOG_NO("ERR_INVALID_PARAM: Rdn attribute occurs more than once "
+                    "in attribute list");
+                err = SA_AIS_ERR_INVALID_PARAM;
+                goto rtObjectCreateExit;
+            }
+
+            rdnAttFound = true;
+
             /* Sloppy type check, supplied value should EQUAL type in class */
             if((attrValues->n.attrValueType != SA_IMM_ATTR_SANAMET) &&
                 (attrValues->n.attrValueType != SA_IMM_ATTR_SASTRINGT)) {
@@ -7742,7 +7752,6 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
             objectName.append((const char*)attrValues->n.attrValue.val.x.buf, 
                 strnlen((const char*)attrValues->n.attrValue.val.x.buf,
                     (size_t)attrValues->n.attrValue.val.x.size));
-            break; //out of loop
         }
         attrValues = attrValues->next;
     }
