@@ -2593,10 +2593,17 @@ ImmModel::adminOwnerChange(const struct immsv_a2nd_admown_set* req,
                         i2 = std::find_if(sCcbVector.begin(), sCcbVector.end(),
                             CcbIdIs(ccbIdOfObj));
                         if (i2 != sCcbVector.end() && (*i2)->isActive()) {
-                            LOG_IN("ERR_BUSY: ccb id %u active on object %s", 
-                                ccbIdOfObj, objectName.c_str());
-                            TRACE_LEAVE();
-                            return SA_AIS_ERR_BUSY;
+                            std::string oldOwner;
+                            objectInfo->getAdminOwnerName(&oldOwner);
+                            if(!release && (adm->mAdminOwnerName == oldOwner)) {
+                                TRACE("Idempotent adminOwner set for %s on %s",
+                                    oldOwner.c_str(), objectName.c_str());
+                            } else {
+                                LOG_IN("ERR_BUSY: ccb id %u active on object %s", 
+                                    ccbIdOfObj, objectName.c_str());
+                                TRACE_LEAVE();
+                                return SA_AIS_ERR_BUSY;
+                            }
                         }
                     }
                     if(release) {
@@ -2626,11 +2633,19 @@ ImmModel::adminOwnerChange(const struct immsv_a2nd_admown_set* req,
                                                 sCcbVector.end(),
                                                 CcbIdIs(ccbIdOfObj));
                                             if (i2 != sCcbVector.end() && (*i2)->isActive()) {
-                                                LOG_IN("ERR_BUSY: ccb id %u active on"
-                                                    "object %s", ccbIdOfObj,
-                                                    subObjName.c_str());
-                                                TRACE_LEAVE();
-                                                return SA_AIS_ERR_BUSY;
+                                                std::string oldOwner;
+                                                subObj->getAdminOwnerName(&oldOwner);
+                                                if(!release && 
+                                                    adm->mAdminOwnerName == oldOwner) {
+                                                    TRACE("Idempotent adminOwner set for %s on %s",
+                                                        oldOwner.c_str(), subObjName.c_str());
+                                                } else {
+                                                    LOG_IN("ERR_BUSY: ccb id %u active on"
+                                                        "object %s", ccbIdOfObj, 
+                                                        subObjName.c_str());
+                                                    TRACE_LEAVE();
+                                                    return SA_AIS_ERR_BUSY;
+                                                }
                                             }
                                         }
                                         if(release) {
