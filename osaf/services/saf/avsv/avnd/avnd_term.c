@@ -91,8 +91,11 @@ static void avnd_last_step_clean(AVND_CB *cb)
 				exit(0);
 			}
 
-			avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
-			cleanup_call_cnt++;
+			/* Don't call cleanup script for PI/NPI components in UNINSTANTIATED state.*/
+			if (comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) {
+				avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+				cleanup_call_cnt++;
+			}
 
 			/* make avnd_err_process() a nop, will be called due to ava mds down */
 			comp->admin_oper = SA_TRUE;
