@@ -161,16 +161,17 @@ uns32 avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt)
 		rec = t_rec.next;
 	}
 
+	if ((cb->snd_msg_id != info->rcv_id_cnt) && (msg_found == false)) {
+		/* Log error, seems to be some problem.*/
+		LOG_EM("AVND record not found, after failover, snd_msg_id = %u, receive id = %u", cb->snd_msg_id,
+				info->rcv_id_cnt);
+		return NCSCC_RC_FAILURE;
+	}
+
 	/* 
 	 * Send PG tracking (START) message to new Active.
 	 */
 	avnd_send_pg_start_on_fover(cb);
-
-	if ((cb->snd_msg_id != info->rcv_id_cnt) && (msg_found == FALSE)) {
-		/* Log error, seems to be some problem. */
-		LOG_EM("AVND record not found, after failover, receive id = %u",info->rcv_id_cnt);
-		return NCSCC_RC_FAILURE;
-	}
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
