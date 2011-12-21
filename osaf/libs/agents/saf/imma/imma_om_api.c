@@ -1681,6 +1681,18 @@ SaAisErrorT saImmOmCcbObjectCreate_2(SaImmCcbHandleT ccbHandle,
 		attr = attrValues[i];
 		TRACE("attr:%s \n", attr->attrName);
 
+		/* Prevent duplicate attribute assignments */
+		IMMSV_ATTR_VALUES_LIST *p = evt.info.immnd.info.objCreate.attrValues;
+		while(p!= NULL) {
+			if(strcmp(attr->attrName, p->n.attrName.buf) == 0) {
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				TRACE_2("ERR_INVALID_PARAM: Attribute %s occurs multiple times "
+					"in attrValues parameter", attr->attrName);
+				goto mds_send_fail;
+			}
+			p = p->next;
+		}
+
 		/*Check that the user does not set value for System attributes. */
 
 		if (strcmp(attr->attrName, sysaClName) == 0) {
@@ -1719,7 +1731,7 @@ SaAisErrorT saImmOmCcbObjectCreate_2(SaImmCcbHandleT ccbHandle,
 		}
 
 		/*alloc-3 */
-		IMMSV_ATTR_VALUES_LIST *p = calloc(1, sizeof(IMMSV_ATTR_VALUES_LIST));
+		p = calloc(1, sizeof(IMMSV_ATTR_VALUES_LIST));
 
 		p->n.attrName.size = strlen(attr->attrName) + 1;
 		if (p->n.attrName.size >= SA_MAX_NAME_LENGTH) {
@@ -2147,8 +2159,22 @@ SaAisErrorT saImmOmCcbObjectModify_2(SaImmCcbHandleT ccbHandle,
 		attrMod = attrMods[i];
 
 		/*NOTE: Check that user does not set values for System attributes. */
+
+		IMMSV_ATTR_MODS_LIST *p = evt.info.immnd.info.objModify.attrMods;
+		while(p!=NULL) {
+			if(strcmp(attrMod->modAttr.attrName,  p->attrValue.attrName.buf) == 0) {
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				TRACE_2("ERR_INVALID_PARAM: Attribute %s occurs multiple times "
+					"in attrMods parameter", attrMod->modAttr.attrName);
+				goto mds_send_fail;
+			}
+
+			p = p->next;
+		}
+
+
 		/*alloc-2 */
-		IMMSV_ATTR_MODS_LIST *p = calloc(1, sizeof(IMMSV_ATTR_MODS_LIST));
+		p = calloc(1, sizeof(IMMSV_ATTR_MODS_LIST));
 		p->attrModType = attrMod->modType;
 		p->attrValue.attrName.size = strlen(attrMod->modAttr.attrName) + 1;
 

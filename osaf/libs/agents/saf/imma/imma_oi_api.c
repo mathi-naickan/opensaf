@@ -2105,8 +2105,21 @@ SaAisErrorT saImmOiRtObjectUpdate_2(SaImmOiHandleT immOiHandle,
 
 		/* TODO Check that the user does not set values for System attributes. */
 
+		/* Prevent duplicate attribute assignments */
+		IMMSV_ATTR_MODS_LIST *p = evt.info.immnd.info.objModify.attrMods;
+		while(p!=NULL) {
+			if(strcmp(attrMod->modAttr.attrName,  p->attrValue.attrName.buf) == 0) {
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				TRACE_2("ERR_INVALID_PARAM: Attribute %s occurs multiple times "
+					"in attrMods parameter", attrMod->modAttr.attrName);
+				goto skip_over_send;
+			}
+
+			p = p->next;
+		}
+
 		/*alloc-2 */
-		IMMSV_ATTR_MODS_LIST *p = calloc(1, sizeof(IMMSV_ATTR_MODS_LIST));
+		p = calloc(1, sizeof(IMMSV_ATTR_MODS_LIST));
 		p->attrModType = attrMod->modType;
 		p->attrValue.attrName.size = strlen(attrMod->modAttr.attrName) + 1;
 
@@ -2214,6 +2227,7 @@ SaAisErrorT saImmOiRtObjectUpdate_2(SaImmOiHandleT immOiHandle,
 		}
 	}
 
+ skip_over_send:
 	if (evt.info.immnd.info.objModify.objectName.buf) {	/*free-1 */
 		free(evt.info.immnd.info.objModify.objectName.buf);
 		evt.info.immnd.info.objModify.objectName.buf = NULL;
@@ -2387,6 +2401,18 @@ extern SaAisErrorT saImmOiRtObjectCreate_2(SaImmOiHandleT immOiHandle,
 		attr = attrValues[i];
 		TRACE("attr:%s \n", attr->attrName);
 
+		/* Prevent duplicate attribute assignments */
+		IMMSV_ATTR_VALUES_LIST *p = evt.info.immnd.info.objCreate.attrValues;
+		while(p!= NULL) {
+			if(strcmp(attr->attrName, p->n.attrName.buf) == 0) {
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				TRACE_2("ERR_INVALID_PARAM: Attribute %s occurs multiple times "
+					"in attrValues parameter", attr->attrName);
+				goto mds_send_fail;
+			}
+			p = p->next;
+		}
+
 		/*Check that the user does not set value for System attributes. */
 
 		if (strcmp(attr->attrName, sysaClName) == 0) {
@@ -2407,7 +2433,7 @@ extern SaAisErrorT saImmOiRtObjectCreate_2(SaImmOiHandleT immOiHandle,
 		}
 
 		/*alloc-3 */
-		IMMSV_ATTR_VALUES_LIST *p = calloc(1, sizeof(IMMSV_ATTR_VALUES_LIST));
+		p = calloc(1, sizeof(IMMSV_ATTR_VALUES_LIST));
 
 		p->n.attrName.size = strlen(attr->attrName) + 1;
 		if (p->n.attrName.size >= SA_MAX_NAME_LENGTH) {
