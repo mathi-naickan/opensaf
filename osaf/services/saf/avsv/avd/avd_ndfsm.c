@@ -407,6 +407,13 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
 			/* failover this node */
 			avd_node_mark_absent(node);
+			/* Remove the PG record first from the node otherwise 
+			   1. PG track callback will be tried to send to down node in avd_node_susi_fail_func, which 
+			   will fail because dest doesn't exist.
+			   2. PG track information will exist and when node rejoins, PG track will be sent to 
+			   AvND, since AvND doesn't previous information, AvND may crash.
+			 */
+                        avd_pg_node_csi_del_all(avd_cb, node);
 			avd_node_susi_fail_func(avd_cb, node);
 			avd_node_delete_nodeid(node);
 		} else {

@@ -164,16 +164,16 @@ uns32 avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt)
 		rec = t_rec.next;
 	}
 
-	/* 
-	 * Send PG tracking (START) message to new Active.
-	 */
-	avnd_send_pg_start_on_fover(cb);
-
 	if ((cb->snd_msg_id != info->rcv_id_cnt) && (msg_found == FALSE)) {
 		/* Log error, seems to be some problem. */
 		m_AVND_LOG_FOVER_EVTS(NCSFL_SEV_EMERGENCY, AVND_LOG_FOVR_REC_NOT_FOUND, info->rcv_id_cnt);
 		return NCSCC_RC_FAILURE;
 	}
+
+	/* 
+	 * Send PG tracking (START) message to new Active.
+	 */
+	avnd_send_pg_start_on_fover(cb);
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
