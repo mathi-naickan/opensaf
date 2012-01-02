@@ -597,12 +597,13 @@ uint32_t smfa_cbk_filter_match(SMFA_CLIENT_INFO *client_info,SMF_CBK_EVT *cbk_ev
 					osafassert(0);
 				}
 				if (cbk_evt->params){
-					evt->evt.cbk_evt.params = (SaStringT)calloc(1,strlen(cbk_evt->params));
+                                        evt->evt.cbk_evt.params = (SaStringT)calloc(1,cbk_evt->params_len + 1);
 					if (NULL == evt->evt.cbk_evt.params){
 						LOG_ER("SMFA: calloc FAILED, error: %s",strerror(errno));
 						osafassert(0);
 					}
-					strncpy(evt->evt.cbk_evt.params,cbk_evt->params,strlen(cbk_evt->params));
+                                        strncpy(evt->evt.cbk_evt.params,cbk_evt->params,cbk_evt->params_len);
+                                        /* calloc above has set the null char at the end of params */
 				}
 
 				evt->evt.cbk_evt.cbk_label.labelSize = cbk_evt->cbk_label.labelSize;
