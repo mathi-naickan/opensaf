@@ -141,7 +141,7 @@ void saLogWriteLogAsync_06(void)
     rc = saLogWriteLogAsync(logStreamHandle, invocation, -1, &genLogRecord);
     safassert(saLogFinalize(logHandle), SA_AIS_OK);
 
-    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+    test_validate(rc, SA_AIS_ERR_BAD_FLAGS);
 }
 
 void saLogWriteLogAsync_07(void)
@@ -233,7 +233,7 @@ void saLogWriteLogAsync_13(void)
     SaLogFileCreateAttributesT_2 appStream1LogFileCreateAttributes = {
         .logFilePathName = DEFAULT_APP_FILE_PATH_NAME,
         .logFileName = (SaStringT) "ticket203",
-        .maxLogFileSize = DEFAULT_APP_LOG_FILE_SIZE,
+        .maxLogFileSize = 4096,
         .maxLogRecordSize = 2048,
         .haProperty = SA_TRUE,
         .logFileFullAction = SA_LOG_FILE_FULL_ACTION_ROTATE,
