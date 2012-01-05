@@ -1134,9 +1134,14 @@ static SaAisErrorT imma_newCcbId(IMMA_CB *cb, IMMA_CCB_NODE *ccb_node,
 	TRACE("imma_newCcbId:create new ccb id with admoId:%u",	adminOwnerId);
 
 	osafassert(locked && *locked);
-	if (ccb_node->mAborted || ccb_node->mAugCcb) {
+
+	if (ccb_node->mAborted) {
 		rc = SA_AIS_ERR_FAILED_OPERATION;
-		ccb_node->mAborted = true;
+		goto fail;
+	}
+
+	if (ccb_node->mAugCcb) {
+		rc = SA_AIS_ERR_BAD_OPERATION;
 		goto fail;
 	}
 
@@ -6440,6 +6445,21 @@ SaAisErrorT saImmOmAdminOwnerSet(SaImmAdminOwnerHandleT adminOwnerHandle,
 
 	if(ao_node->mAugCcb) {
 		TRACE_2("Augmented CCB AdminOwner handle used in saImmOmAdminOwnerSet");
+		/* Verify that the ccb-node exists and that it is in an acceptable state.
+		   That is, the ccb is in scope of a callback and neither ccbApply or
+		   ccbFinalize  has been invoked on the augmentation. See #2426
+		 */
+		IMMA_CCB_NODE *ccb_node = NULL;
+		SaImmCcbHandleT ccbHandle = ao_node->mImmHandle; /* Same handle value used */
+		imma_ccb_node_get(&cb->ccb_tree, &ccbHandle, &ccb_node);
+		if (!ccb_node || 
+			!(ccb_node->mAugCcb) || ccb_node->mApplied || ccb_node->mAborted) {
+			TRACE_2("ERR_NO_RESOURCES: AdminOwner handle obtained from "
+				"saImmOiAugmentCcbInitialize can not be used in this"
+				"context.");
+			rc = SA_AIS_ERR_NO_RESOURCES;
+			goto done;
+		}
 	}
 
 	immHandle = ao_node->mImmHandle;
