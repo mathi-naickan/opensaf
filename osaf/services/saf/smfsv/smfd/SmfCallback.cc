@@ -230,11 +230,23 @@ SaAisErrorT SmfCallback::send_callback_msg(SaSmfPhaseT phase, std::string & step
 	fds[0].events = POLLIN;
 
 	TRACE_2("before poll, fds[0].fd = %d", fds[0].fd);
-	if( poll(fds, 1, m_time) == -1 ) {
-		LOG_ER ("poll failed, error = %s", strerror(errno));
-		ais_err = SA_AIS_ERR_TIMEOUT;
-		goto rem_invid;
+	while (true) {
+		/* m_time is given in nano sec (SaTimeT), poll only accepts milliseconds as timeout   */
+		/* m_time values smaller than 1000000 nano sec will result in a poll with timeout = 1 */
+		int polltimeout = (m_time > 0 && m_time < 1000000) ? 1 : m_time/ 1000000 ;
+		if (poll(fds, 1, polltimeout) == -1) {
+			if (errno == EINTR) {
+				continue;
+			}
+
+			LOG_ER ("poll failed, error = %s", strerror(errno));
+			ais_err = SA_AIS_ERR_TIMEOUT;
+			goto rem_invid;
+		}
+
+		break;
 	}
+
 	if (fds[0].revents & POLLIN) { 
 		/* receive from the mailbox fd */
 		if (NULL != (evt = (SMFSV_EVT *) m_NCS_IPC_NON_BLK_RECEIVE(cbk_mbx, evt))) {
