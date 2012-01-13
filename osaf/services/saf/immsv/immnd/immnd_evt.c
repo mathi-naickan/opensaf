@@ -34,6 +34,7 @@ static uint32_t immnd_evt_proc_imm_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 static uint32_t immnd_evt_proc_imm_resurrect(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo, SaBoolT isOm);
 static uint32_t immnd_evt_proc_imm_client_high(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo, SaBoolT isOm);
 static uint32_t immnd_evt_proc_recover_ccb_result(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo);
+static uint32_t	immnd_evt_proc_cl_imma_timeout(IMMND_CB *cb, IMMND_EVT *evt);
 
 static uint32_t immnd_evt_proc_sync_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo);
 
@@ -514,6 +515,10 @@ void immnd_process_evt(void)
 
 	case IMMND_EVT_A2ND_IMM_OI_FINALIZE:
 		rc = immnd_evt_proc_imm_finalize(cb, &evt->info.immnd, &evt->sinfo, SA_FALSE);
+		break;
+
+	case IMMND_EVT_A2ND_CL_TIMEOUT:
+		rc = immnd_evt_proc_cl_imma_timeout(cb, &evt->info.immnd);
 		break;
 
 	case IMMND_EVT_A2ND_IMM_OM_RESURRECT:
@@ -1282,6 +1287,16 @@ static uint32_t immnd_evt_proc_search_next(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_S
 
 	error = immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
 	if(error != SA_AIS_OK) {
+		if(error == SA_AIS_ERR_BAD_HANDLE) {
+			/* The connection appears to be hung indefinitely waiting for a reply
+			   on a previous syncronous call. Discard the connection and return
+			   BAD_HANDLE to allow client to recover and make progress.
+			 */
+			immnd_proc_imma_discard_connection(cb, cl_node);
+			rc = immnd_client_node_del(cb, cl_node);
+			osafassert(rc  == NCSCC_RC_SUCCESS);
+			free(cl_node);
+	        }
 		goto agent_rsp;
 	}
 
@@ -1575,7 +1590,7 @@ static uint32_t immnd_evt_proc_imm_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 	immnd_client_node_get(cb, evt->info.finReq.client_hdl, &cl_node);
 	/* Skipping check for stale client for this case (finalize client call) */
 	if (cl_node == NULL) {
-		LOG_ER("IMMND - Client Node Get Failed for cli_hdl %llu", evt->info.finReq.client_hdl);
+		LOG_WA("IMMND - Client Node Get Failed for cli_hdl %llu", evt->info.finReq.client_hdl);
 		send_evt.info.imma.info.errRsp.error = SA_AIS_ERR_BAD_HANDLE;
 		goto agent_rsp;
 	}
@@ -1597,6 +1612,64 @@ static uint32_t immnd_evt_proc_imm_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 	send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_FINALIZE_RSP;
 	rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
 	return rc;
+}
+
+
+/****************************************************************************
+ * Name          : immnd_evt_proc_cl_imma_timeout
+ *
+ * Description   : Function that receives message from an imma client that
+ *                 the client handle/node has timed out in the library on
+ *                 a syncronous downcall. This means that unless the reply
+ *                 (such as from an OI) does arrive to clear the call, then
+ *                 the handle/node is doomed in the current implementation.
+ *                 This is handled by reducing the number of TRY_AGAINs
+ *                 (rejected new syncronous calls) allowed on the blocked
+ *                 cl_node. 
+ *
+ * Arguments     : IMMND_CB *cb - IMMND CB pointer
+ *                 IMMSV_EVT *evt - Received Event structure
+ *                 SaBoolT isOm - true=> OM finalize, false => OI finalize.
+ *
+ * Return Values : NCSCC_RC_SUCCESS/Error.
+ *
+ * Notes         : None.
+ *****************************************************************************/
+static uint32_t	immnd_evt_proc_cl_imma_timeout(IMMND_CB *cb, IMMND_EVT *evt)
+{
+	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
+	TRACE_ENTER();
+
+	TRACE_2("timeout in imma library for handle: %llx", evt->info.finReq.client_hdl);
+	immnd_client_node_get(cb, evt->info.finReq.client_hdl, &cl_node);
+	if(!cl_node) {goto done;}
+
+	SaUint32T clientId = m_IMMSV_UNPACK_HANDLE_HIGH(evt->info.finReq.client_hdl);
+	if(immModel_purgeSyncRequest(cb, clientId)) {
+		/* One and only one request has been purged => no reply message send
+                   will be attempted for *that* request. We can safely clear the
+		   MDS reply info. This will also clear the handle for new use in
+                   sending syncronous requests.
+		*/
+		memset(&(cl_node->tmpSinfo), 0, sizeof(IMMSV_SEND_INFO));
+		osafassert(immnd_mds_client_not_busy(&(cl_node->tmpSinfo))==SA_AIS_OK);
+	} else {
+		/* The request could not be purged (depends on request type),
+		   or the reply has already been arrived but came too late
+		   to reach a client that has timedout. 
+		*/
+		if(immnd_mds_client_not_busy(&(cl_node->tmpSinfo))==SA_AIS_ERR_TRY_AGAIN) {
+			/* Reply has not arrived, i.e. the request type was not possible to
+			   purge. Force any subsequent syncronous calls to invalidate the
+			   handle. 
+			*/
+			cl_node->tmpSinfo.mSynReqCount = 255;
+		}
+	}
+
+ done:
+	TRACE_LEAVE();
+	return NCSCC_RC_SUCCESS;
 }
 
 /****************************************************************************
@@ -1858,6 +1931,16 @@ static uint32_t immnd_evt_proc_admowner_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV
 		immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
 
 	if(send_evt.info.imma.info.admInitRsp.error != SA_AIS_OK) {
+		if(send_evt.info.imma.info.admInitRsp.error == SA_AIS_ERR_BAD_HANDLE) {
+			/* The connection appears to be hung indefinitely waiting for a reply
+			   on a previous syncronous call. Discard the connection and return
+			   BAD_HANDLE to allow client to recover and make progress.
+			 */
+			immnd_proc_imma_discard_connection(cb, cl_node);
+			rc = immnd_client_node_del(cb, cl_node);
+			osafassert(rc  == NCSCC_RC_SUCCESS);
+			free(cl_node);
+		}
 		goto agent_rsp;
 	}
 
@@ -1966,6 +2049,16 @@ static uint32_t immnd_evt_proc_impl_set(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 		immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
 
 	if(send_evt.info.imma.info.implSetRsp.error != SA_AIS_OK) {
+		if(send_evt.info.imma.info.implSetRsp.error == SA_AIS_ERR_BAD_HANDLE) {
+			/* The connection appears to be hung indefinitely waiting for a reply
+			   on a previous syncronous call. Discard the connection and return
+			   BAD_HANDLE to allow client to recover and make progress.
+			 */
+			immnd_proc_imma_discard_connection(cb, cl_node);
+			rc = immnd_client_node_del(cb, cl_node);
+			osafassert(rc  == NCSCC_RC_SUCCESS);
+			free(cl_node);
+		}
 		goto agent_rsp;
 	}
 
@@ -2067,6 +2160,16 @@ static uint32_t immnd_evt_proc_ccb_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 		immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
 
 	if(send_evt.info.imma.info.ccbInitRsp.error != SA_AIS_OK) {
+		if(send_evt.info.imma.info.ccbInitRsp.error == SA_AIS_ERR_BAD_HANDLE) {
+			/* The connection appears to be hung indefinitely waiting for a reply
+			   on a previous syncronous call. Discard the connection and return
+			   BAD_HANDLE to allow client to recover and make progress.
+			 */
+			immnd_proc_imma_discard_connection(cb, cl_node);
+			rc = immnd_client_node_del(cb, cl_node);
+			osafassert(rc  == NCSCC_RC_SUCCESS);
+			free(cl_node);
+		}
 		goto agent_rsp;
 	}
 
@@ -2169,6 +2272,16 @@ static uint32_t immnd_evt_proc_rt_update(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 
 	err = immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
 	if(err != SA_AIS_OK) {
+		if(err == SA_AIS_ERR_BAD_HANDLE) {
+			/* The connection appears to be hung indefinitely waiting for a reply
+			   on a previous syncronous call. Discard the connection and return
+			   BAD_HANDLE to allow client to recover and make progress.
+			 */
+			immnd_proc_imma_discard_connection(cb, cl_node);
+			rc = immnd_client_node_del(cb, cl_node);
+			osafassert(rc  == NCSCC_RC_SUCCESS);
+			free(cl_node);
+		}
 		goto agent_rsp;
 	}
 
@@ -2338,6 +2451,16 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 	if(!asyncReq) {
 		error = immnd_mds_client_not_busy(&(cl_node->tmpSinfo));
 		if(error != SA_AIS_OK) {
+			if(error == SA_AIS_ERR_BAD_HANDLE) {
+				/* The connection appears to be hung indefinitely waiting for a reply
+				   on a previous syncronous call. Discard the connection and return
+				   BAD_HANDLE to allow client to recover and make progress.
+				*/
+				immnd_proc_imma_discard_connection(cb, cl_node);
+				rc = immnd_client_node_del(cb, cl_node);
+				osafassert(rc  == NCSCC_RC_SUCCESS);
+				free(cl_node);
+			}
 			goto agent_rsp;
 		}
 	}

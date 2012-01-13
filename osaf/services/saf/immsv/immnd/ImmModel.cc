@@ -683,6 +683,13 @@ immModel_protocol41Allowed(IMMND_CB *cb)
         SA_TRUE : SA_FALSE;
 }
 
+SaBoolT
+immModel_purgeSyncRequest(IMMND_CB *cb, SaUint32T clientId)
+{
+    return (ImmModel::instance(&cb->immModel)->purgeSyncRequest(clientId)) ?
+        SA_TRUE : SA_FALSE;
+}
+
 SaUint32T
 immModel_cleanTheBasement(IMMND_CB *cb, 
     SaInvocationT** admReqArr,
@@ -8446,6 +8453,109 @@ ImmModel::getAdminOwnerIdsForCon(SaUint32T dead, IdVector& cv)
                of this function. */
         }
     }
+}
+
+bool 
+ImmModel::purgeSyncRequest(SaUint32T clientId)
+{
+    TRACE_ENTER();
+    bool purged=false;
+    ContinuationMap2::iterator ci2;
+    ContinuationMap2::iterator ciFound = sAdmReqContinuationMap.end();
+    CcbVector::iterator i3;
+    CcbVector::iterator ccbFound = sCcbVector.end();
+
+    for(ci2=sAdmReqContinuationMap.begin(); ci2!=sAdmReqContinuationMap.end(); ++ci2) {
+        if(ci2->second.mConn == clientId) {
+            if(ciFound != sAdmReqContinuationMap.end()) {
+                LOG_WA("Attempt to purge syncronous request for client connection,"
+                    "but found multiple requests for that connection, "
+                     "incorrect use of imm handle");
+                return false;
+            }
+            ciFound = ci2;
+
+            SaInvocationT inv = ci2->first;
+            SaInt32T subinv = m_IMMSV_UNPACK_HANDLE_LOW(inv);
+            if(subinv < 0) {
+                LOG_WA("Attempt to purge syncronous request for client connection,"
+                    "but found an asyncronous admin op request for that connection,"
+                    "incorrect use of imm handle");
+                return false;
+            }
+        }
+    }
+
+    if(ciFound != sAdmReqContinuationMap.end()) {
+        sAdmReqContinuationMap.erase(ciFound);
+        purged = true;
+        TRACE_5("Purged Admin-op continuation");
+    }
+
+    ciFound = sSearchReqContinuationMap.end();
+    for(ci2=sSearchReqContinuationMap.begin(); ci2!=sSearchReqContinuationMap.end(); ++ci2) {
+        if(ci2->second.mConn == clientId) {
+            if(purged || (ciFound != sSearchReqContinuationMap.end())) {
+                LOG_WA("Attempt to purge syncronous request for client connection,"
+                    "but found multiple requests for that connection, "
+                    "incorrect use of imm handle");
+                return false;
+            }
+            ciFound = ci2;
+        }
+    }
+
+    if(ciFound != sSearchReqContinuationMap.end()) {
+        sSearchReqContinuationMap.erase(ciFound);
+        purged = true;
+        TRACE_5("Purged search request continuation");
+    }
+
+    ciFound = sPbeRtReqContinuationMap.end();
+    for(ci2=sPbeRtReqContinuationMap.begin(); ci2!=sPbeRtReqContinuationMap.end(); ++ci2) {
+        if(ci2->second.mConn == clientId) {
+            if(purged || (ciFound != sPbeRtReqContinuationMap.end())) {
+                LOG_WA("Attempt to purge syncronous request for client connection,"
+                    "but found multiple requests for that connection, "
+                    "incorrect use of imm handle");
+                return false;
+            }
+            ciFound = ci2;
+        }
+    }
+
+    if(ciFound != sPbeRtReqContinuationMap.end()) {
+        sPbeRtReqContinuationMap.erase(ciFound);
+        purged = true;
+        TRACE_5("Purged PRTA update continuation");
+    }
+
+    for(i3=sCcbVector.begin(); i3!=sCcbVector.end(); ++i3) {
+        if((*i3)->mOriginatingConn == clientId) {
+            if(purged || (ccbFound != sCcbVector.end())) {
+                LOG_WA("Attempt to purge syncronous request for client connection,"
+                    "but found multiple requests for that connection, "
+                    "incorrect use of imm handle");
+                return false;
+            }
+            ccbFound = i3;
+        }
+    }
+
+    if(ccbFound != sCcbVector.end()) {
+        /* To drop the ccb continuation, we simply set mOriginatingConn to zero,
+           which is the value it has on all nodes except at the node where the 
+           originating connection resides. By setting it to zero, we ensure that
+           no attempt can be made to reply to that connection for any continuation
+           on this ccb (e.g. a late arriving OI reply.
+        */
+        (*ccbFound)->mOriginatingConn = 0;
+        purged = true;
+        TRACE_5("Purged Ccb Op continuation");
+    }
+
+    TRACE_LEAVE();
+    return purged;
 }
 
 SaUint32T
