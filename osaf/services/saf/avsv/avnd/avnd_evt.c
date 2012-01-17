@@ -171,6 +171,8 @@ AVND_EVT *avnd_evt_create(AVND_CB *cb,
 		break;
 
 	case AVND_EVT_PID_EXIT:
+		evt->info.pm_evt.comp_name = ((AVND_COMP_PM_REC *)info)->comp->name;
+		evt->info.pm_evt.pid = ((AVND_COMP_PM_REC *)info)->pid;
 		evt->info.pm_evt.pm_rec = (AVND_COMP_PM_REC *)info;
 		break;
 
