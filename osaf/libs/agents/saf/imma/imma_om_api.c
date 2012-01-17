@@ -7734,6 +7734,16 @@ SaAisErrorT immsv_om_augment_ccb_initialize(
 			imma_admin_owner_node_get(&cb->admin_owner_tree, ownerHandle, &ao_node);
 			if(ao_node) {
 				ao_node->mAugCcb = true;
+				/* Inform the IMMNDs asyncronously of the extra admo*/
+				IMMSV_EVT evt;
+				memset(&evt, 0, sizeof(IMMSV_EVT));
+				evt.type = IMMSV_EVT_TYPE_IMMND;
+				evt.info.immnd.type = IMMND_EVT_A2ND_AUG_ADMO;
+				evt.info.immnd.info.objDelete.adminOwnerId = ao_node->mAdminOwnerId;
+				evt.info.immnd.info.objDelete.ccbId = ccb_node->mCcbId;
+				evt.info.immnd.info.objDelete.objectName.size = 0;
+
+				imma_evt_fake_evs(cb, &evt, NULL, 0, privateOmHandle, &locked, false);
 			}
 			
 		} else {

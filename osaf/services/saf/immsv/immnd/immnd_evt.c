@@ -111,6 +111,10 @@ static void immnd_evt_ccb_augment_init(IMMND_CB *cb,
 				       IMMND_EVT *evt,
 				       SaBoolT originatedAtThisNd, SaImmHandleT clnt_hdl, MDS_DEST reply_dest);
 
+static void immnd_evt_ccb_augment_admo(IMMND_CB *cb,
+				       IMMND_EVT *evt,
+				       SaBoolT originatedAtThisNd, SaImmHandleT clnt_hdl, MDS_DEST reply_dest);
+
 static void immnd_evt_proc_admop(IMMND_CB *cb,
 				 IMMND_EVT *evt,
 				 SaBoolT originatedAtThisNd, SaImmHandleT clnt_hdl, MDS_DEST reply_dest);
@@ -6074,6 +6078,10 @@ immnd_evt_proc_fevs_dispatch(IMMND_CB *cb, IMMSV_OCTET_STRING *msg,
 		immnd_evt_ccb_augment_init(cb, &frwrd_evt.info.immnd, originatedAtThisNd, clnt_hdl, reply_dest);
 		break;
 
+	case IMMND_EVT_A2ND_AUG_ADMO:
+		immnd_evt_ccb_augment_admo(cb, &frwrd_evt.info.immnd, originatedAtThisNd, clnt_hdl, reply_dest);
+		break;
+
 
 	case IMMND_EVT_A2ND_OI_IMPL_CLR:
 		immnd_evt_proc_impl_clr(cb, &frwrd_evt.info.immnd, originatedAtThisNd, clnt_hdl, reply_dest);
@@ -7722,6 +7730,15 @@ void immnd_evt_ccb_augment_init(IMMND_CB *cb, IMMND_EVT *evt,
 	TRACE_LEAVE();
 }
 
+void immnd_evt_ccb_augment_admo(IMMND_CB *cb, IMMND_EVT *evt,
+	SaBoolT originatedAtThisNd, SaImmHandleT clnt_hdl, MDS_DEST reply_dest)
+{
+	osafassert(evt);
+	TRACE_ENTER2("AdminOwner %u ccbId:%u", evt->info.objDelete.adminOwnerId, evt->info.objDelete.ccbId);
+	immModel_ccbAugmentAdmo(cb, evt->info.objDelete.adminOwnerId, evt->info.objDelete.ccbId);
+
+	TRACE_LEAVE();
+}
 
 /****************************************************************************
  * Name          : immnd_evt_proc_mds_evt

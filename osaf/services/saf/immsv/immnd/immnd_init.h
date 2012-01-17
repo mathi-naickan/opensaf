@@ -366,6 +366,9 @@ extern "C" {
 		SaUint32T originatingConn,
 		SaUint32T* adminOwnerId);
 
+	void immModel_ccbAugmentAdmo(IMMND_CB *cb,
+		SaUint32T adminOwnerId,
+		SaUint32T ccbId);
 
 #ifdef __cplusplus
 }

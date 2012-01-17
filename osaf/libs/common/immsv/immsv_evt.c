@@ -164,6 +164,7 @@ static const char *immnd_evt_names[] = {
 	"IMMND_EVT_ND2ND_ADMOP_RSP_2",   /* AdminOp sync p2p Reply - extended */
 	"IMMND_EVT_ND2ND_ASYNC_ADMOP_RSP_2", /* AdminOp async p2p Reply - extended */
 	"IMMND_EVT_A2ND_OI_CCB_AUG_INIT",
+	"IMMND_EVT_A2ND_AUG_ADMO",
 	"undefined (high)"
 };
 
@@ -2042,7 +2043,7 @@ static uint32_t immsv_evt_dec_sublevels(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 				o_evt->info.immnd.info.objModify.attrMods = p;
 			}
 		} else if ((o_evt->info.immnd.type == IMMND_EVT_A2ND_OBJ_DELETE) ||
-			   (o_evt->info.immnd.type == IMMND_EVT_A2ND_OI_OBJ_DELETE)) {
+			(o_evt->info.immnd.type == IMMND_EVT_A2ND_OI_OBJ_DELETE)) {
 			/*Decode the objectName */
 			IMMSV_OCTET_STRING *os = &(o_evt->info.immnd.info.objDelete.objectName);
 			immsv_evt_dec_inline_string(i_ub, os);
@@ -3086,6 +3087,7 @@ static uint32_t immsv_evt_enc_toplevel(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 
 		case IMMND_EVT_A2ND_OBJ_DELETE:	/* saImmOmCcbObjectDelete */
 		case IMMND_EVT_A2ND_OI_OBJ_DELETE:	/* saImmOiRtObjectDelete */
+		case IMMND_EVT_A2ND_AUG_ADMO:	/* Inform IMMNDs of admo for augment ccb*/
 			IMMSV_RSRV_SPACE_ASSERT(p8, o_ub, 4);
 			ncs_encode_32bit(&p8, immndevt->info.objDelete.ccbId);
 			ncs_enc_claim_space(o_ub, 4);
@@ -4369,6 +4371,7 @@ static uint32_t immsv_evt_dec_toplevel(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 
 		case IMMND_EVT_A2ND_OBJ_DELETE:	/* saImmOmCcbObjectDelete */
 		case IMMND_EVT_A2ND_OI_OBJ_DELETE:	/* saImmOiRtObjectDelete */
+		case IMMND_EVT_A2ND_AUG_ADMO:	/* Inform IMMNDs of admo for augment ccb*/
 			IMMSV_FLTN_SPACE_ASSERT(p8, local_data, i_ub, 4);
 			immndevt->info.objDelete.ccbId = ncs_decode_32bit(&p8);
 			ncs_dec_skip_space(i_ub, 4);

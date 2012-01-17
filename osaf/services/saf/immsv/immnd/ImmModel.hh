@@ -171,6 +171,9 @@ public:
                                        SaUint32T originatingConn,
                                        SaUint32T* adminOwnerId);
     
+    void                ccbAugmentAdmo(SaUint32T adminOwnerid,
+                                       SaUint32T ccbId);
+    
     SaAisErrorT         ccbObjectCreate(
                                         ImmsvOmCcbObjectCreate* req,
                                         SaUint32T* implConn,

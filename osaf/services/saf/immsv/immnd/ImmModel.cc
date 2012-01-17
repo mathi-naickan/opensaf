@@ -221,13 +221,14 @@ typedef enum {
 struct ObjectMutation
 {
     ObjectMutation(ImmMutationType opType) : mOpType(opType), 
-                                             //mBeforeImage(NULL),
                                              mAfterImage(NULL), 
                                              mContinuationId(0),
+                                             mAugmentAdmo(0),
                                              mWaitForImplAck(false),
                                              mIsAugDelete(false) { }
     ~ObjectMutation() { osafassert(mAfterImage == NULL);
                         mContinuationId=0;
+                        mAugmentAdmo=0;
                         mWaitForImplAck=false;
                         mIsAugDelete=false;
                       }
@@ -235,6 +236,7 @@ struct ObjectMutation
     ImmMutationType mOpType; 
     ObjectInfo* mAfterImage;
     SaUint32T mContinuationId;//used to identify related pending msg replies.
+    SaUint32T mAugmentAdmo; /* Aug admo with ROF==true for aug ccbCreates #2428 */
     bool mWaitForImplAck;  //ack required from implementer for THIS object
     bool mIsAugDelete;     //The mutation is an augmented delete.
 };
@@ -264,6 +266,7 @@ struct AugCcbParent
     ImmsvAttrNameList* mErrorStrings;   //Deferred errorStrings
     SaUint32T         mContinuationId;  //Deferred continuationId
     SaUint32T         mImplId;  /* ImplId for augmenting implementer*/
+    SaUint32T         mAugmentAdmo; /* Aug admo with ROF==true for aug ccbCreates #2428 */
 };
 
 struct CcbInfo
@@ -979,6 +982,13 @@ immModel_ccbAugmentInit(IMMND_CB *cb, IMMSV_OI_CCB_UPCALL_RSP *ccbUpcallRsp,
 {
     return ImmModel::instance(&cb->immModel)->ccbAugmentInit(ccbUpcallRsp,
         originatingNode, originatingConn, adminOwnerId);
+}
+
+void
+immModel_ccbAugmentAdmo(IMMND_CB *cb, SaUint32T adminOwnerId, 
+    SaUint32T ccbId)
+{
+    ImmModel::instance(&cb->immModel)->ccbAugmentAdmo(adminOwnerId, ccbId);
 }
 
 SaAisErrorT
@@ -4011,6 +4021,8 @@ ImmModel::ccbTerminate(SaUint32T ccbId)
                     sObjectMap.erase(oi);
                     osafassert(afim);
                     ImmAttrValueMap::iterator oavi;
+                    SaUint32T adminOwnerId = (omut->mAugmentAdmo)? omut->mAugmentAdmo : ccb->mAdminOwnerId;
+                    TRACE_2("Aborting Create of %s admo:%u", omit->first.c_str(), adminOwnerId);
                     for(oavi = afim->mAttrValueMap.begin();
                         oavi != afim->mAttrValueMap.end(); ++oavi) {
                         delete oavi->second;
@@ -4025,10 +4037,9 @@ ImmModel::ccbTerminate(SaUint32T ccbId)
                     //from the admin owner of the ccb being terminated, in case
                     //this is an abort.
                     i2 = std::find_if(sOwnerVector.begin(), sOwnerVector.end(),
-                        IdIs(ccb->mAdminOwnerId));
+                        IdIs(adminOwnerId));
                     if(i2 == sOwnerVector.end()) {
-                        LOG_WA("Admin owner id %u does not exist", 
-                            ccb->mAdminOwnerId);
+                        LOG_WA("Admin owner id %u does not exist", adminOwnerId);
                     } else {
                         (*i2)->mTouchedObjects.erase(afim);
                         //Note that on STL sets, the erase operation is
@@ -4264,6 +4275,7 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
     ccb->mAugCcbParent->mErrorStrings = ccb->mErrorStrings;
     ccb->mAugCcbParent->mContinuationId = rsp->inv;
     ccb->mAugCcbParent->mImplId = obj->mImplementer->mId;
+    ccb->mAugCcbParent->mAugmentAdmo = 0;
 
     ccb->mOriginatingConn = originatingConn;
     ccb->mOriginatingNode = originatingNode;
@@ -4274,6 +4286,33 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
  done:
     TRACE_LEAVE();
     return err;
+}
+
+void
+ImmModel::ccbAugmentAdmo(SaUint32T adminOwnerId, SaUint32T ccbId)
+{
+    CcbVector::iterator i1;
+    AdminOwnerVector::iterator i2;
+    CcbInfo* ccb = NULL;
+    TRACE_ENTER();
+    i1 = std::find_if(sCcbVector.begin(), sCcbVector.end(), CcbIdIs(ccbId));
+    if (i1 == sCcbVector.end()) {
+        LOG_ER("ccbAugmentAdmo: ccb id %u does not exist", ccbId);
+        goto done;
+    }
+    ccb = *i1;
+
+    if(ccb->mAugCcbParent == NULL) {
+        LOG_ER("ccbAugmentAdmo: could not set augment-admo because ccb %u is not in augment", ccbId);
+        goto done;
+    }
+
+    ccb->mAugCcbParent->mAugmentAdmo = adminOwnerId;
+    LOG_NO("Added augment admo-id:%u to ccb:%u, original admo-id:%u",
+    adminOwnerId, ccbId, ccb->mAdminOwnerId);
+
+ done:
+    TRACE_LEAVE();
 }
 
 void
@@ -4452,10 +4491,10 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     SaUint32T ccbId = req->ccbId;  //Warning: SaImmOiCcbIdT is 64-bits
     SaUint32T adminOwnerId = req->adminOwnerId;
     
-    CcbInfo* ccb = 0;
-    AdminOwnerInfo* adminOwner = 0;
-    ClassInfo* classInfo = 0;
-    ObjectInfo* parent = 0;
+    CcbInfo* ccb = NULL;
+    AdminOwnerInfo* adminOwner = NULL;
+    ClassInfo* classInfo = NULL;
+    ObjectInfo* parent = NULL;
     
     CcbVector::iterator i1;
     AdminOwnerVector::iterator i2;
@@ -4470,6 +4509,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     
     bool nameCorrected = false;
     bool rdnAttFound=false;
+    bool isAugAdmo=false;
 
     //int isLoading = this->getLoader() > 0;
     int isLoading = (sImmNodeState == IMM_NODE_LOADING);
@@ -4512,6 +4552,13 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
         err = SA_AIS_ERR_FAILED_OPERATION;
         goto ccbObjectCreateExit;
     }
+
+    if(ccb->mAugCcbParent && ccb->mAugCcbParent->mAugmentAdmo) {
+        adminOwnerId = ccb->mAugCcbParent->mAugmentAdmo;
+        isAugAdmo = true;
+        LOG_NO("Augmented ccbCreate uses augmentation AdminOwner %u to get ROF == true",
+            adminOwnerId);
+    }
     
     i2 = std::find_if(sOwnerVector.begin(), sOwnerVector.end(), 
         IdIs(adminOwnerId));
@@ -4525,11 +4572,15 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     
     osafassert(!adminOwner->mDying);
     
-    if(adminOwner->mId !=  ccb->mAdminOwnerId) {
-        LOG_WA("ERR_FAILED_OPERATION: Inconsistency between Ccb admoId:%u and AdminOwner-id:%u",
-            adminOwner->mId, ccb->mAdminOwnerId);
-        err = SA_AIS_ERR_FAILED_OPERATION;
-        goto ccbObjectCreateExit;
+    if(adminOwner->mId != ccb->mAdminOwnerId) {
+        if(isAugAdmo) {
+            osafassert(adminOwner->mReleaseOnFinalize);
+        } else {
+            LOG_WA("ERR_FAILED_OPERATION: Inconsistency between Ccb admoId:%u and AdminOwner-id:%u",
+                adminOwner->mId, ccb->mAdminOwnerId);
+            err = SA_AIS_ERR_FAILED_OPERATION;
+            goto ccbObjectCreateExit;
+        }
     }
     
     if (i3 == sClassMap.end()) {
@@ -4978,6 +5029,9 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
         if(err == SA_AIS_OK) {
             oMut = new ObjectMutation(IMM_CREATE);
             oMut->mAfterImage = object;
+            if(isAugAdmo) {
+                oMut->mAugmentAdmo = ccb->mAugCcbParent->mAugmentAdmo;
+            }
             
             // Prepare for call on object implementor 
             // and add implementer to ccb.
@@ -10353,14 +10407,14 @@ void ImmModel::pbePrtAttrUpdateContinuation(SaUint32T invocation,
         LOG_IN("Update of PERSISTENT runtime attributes in object '%s'.", 
             objName.c_str());
 
-	if(beforeImage->mAdminOwnerAttrVal->empty()) {
+        if(beforeImage->mAdminOwnerAttrVal->empty()) {
            /* Empty admin Owner can imply (hard) release during PRTA update.
               The releaseOn finalize will have auto-released the adminOwner
               on the before-image but not on the after image of modify.
               Corrected here.
            */
             afim->mAdminOwnerAttrVal->setValueC_str(NULL);
-	}
+        }
 
         /* Discard beforeimage attr values. */
         for(oavi =  beforeImage->mAttrValueMap.begin();

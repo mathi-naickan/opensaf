@@ -196,6 +196,7 @@ typedef enum immnd_evt_type {
 	IMMND_EVT_ND2ND_ADMOP_RSP_2 = 89,	/* AdminOperation sync fevs Reply (extended) */
 	IMMND_EVT_ND2ND_ASYNC_ADMOP_RSP_2 = 90,	/* AdminOperation async fevs Reply (extended) */
 	IMMND_EVT_A2ND_OI_CCB_AUG_INIT = 91, /* Init of OI augmented ccb handle */
+	IMMND_EVT_A2ND_AUG_ADMO = 92,        /* Inform IMMNDs of extra admo for augment ccb */
 
 	IMMND_EVT_MAX
 } IMMND_EVT_TYPE;
