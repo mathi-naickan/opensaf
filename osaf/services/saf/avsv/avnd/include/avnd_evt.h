@@ -151,6 +151,8 @@ typedef struct avnd_comp_fsm_evt {
 
 /* Event record to send PID exit event */
 typedef struct avnd_pm_mon_evt {
+	SaNameT comp_name;
+	SaUint64T pid;
 	AVND_COMP_PM_REC *pm_rec;
 } AVND_PM_MON_EVT;
 
