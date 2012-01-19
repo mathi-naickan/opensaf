@@ -725,6 +725,16 @@ SaAisErrorT saImmOmFinalize(SaImmHandleT immHandle)
 		rc = out_evt->info.imma.info.errRsp.error;
 		free(out_evt);
 		out_evt = NULL;
+
+		if(rc == SA_AIS_ERR_BAD_HANDLE) {
+			rc = SA_AIS_OK;
+			/* Client was already gone in local immnd server, but client node
+			   still present in the imma library. This can happen as a result
+			   of timeout on syncronous downcall. Continue the finalize here 
+			   in the library to deallocate the client-node in the library.
+			   No need to disturb the client doing this finalize, return OK.
+			*/
+		}
 	} else {
 		/* rc = SA_AIS_ERR_LIBRARY;
 		   This is a finalize, no point in disturbing the user with

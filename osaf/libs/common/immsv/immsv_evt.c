@@ -156,6 +156,18 @@ static const char *immnd_evt_names[] = {
 	"IMMND_EVT_A2ND_OBJ_SYNC_2",
 	"IMMND_EVT_A2ND_IMM_FEVS_2",
 	"IMMND_EVT_D2ND_GLOB_FEVS_REQ_2"
+	"IMMND_EVT_A2ND_CCB_COMPLETED_RSP_2",	/* Not used in 4.1 */
+	"IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP_2",	/* Not used in 4.1 */
+	"IMMND_EVT_A2ND_CCB_OBJ_MODIFY_RSP_2",	/* Not used in 4.1 */
+	"IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2",	/* Not used in 4.1 */
+	"IMMND_EVT_A2ND_ADMOP_RSP_2",           /* Not used in 4.1 */
+	"IMMND_EVT_A2ND_ASYNC_ADMOP_RSP_2",     /* Not used in 4.1 */
+	"IMMND_EVT_ND2ND_ADMOP_RSP_2",          /* Not used in 4.1 */
+	"IMMND_EVT_ND2ND_ASYNC_ADMOP_RSP_2",    /* Not used in 4.1 */
+	"IMMND_EVT_A2ND_OI_CCB_AUG_INIT",       /* Not used in 4.1 */
+	"IMMND_EVT_A2ND_AUG_ADMO",              /* Not used in 4.1 */
+	"IMMND_EVT_A2ND_CL_TIMEOUT",            /* Used in 4.1 */
+	"undefined (high)"
 };
 
 static const char *immsv_get_immnd_evt_name(unsigned int id)
@@ -2716,6 +2728,7 @@ static uns32 immsv_evt_enc_toplevel(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 		case IMMND_EVT_A2ND_IMM_OM_RESURRECT: /* ImmOm resurrect hdl */
 		case IMMND_EVT_A2ND_IMM_OI_RESURRECT: /* ImmOi resurrect hdl */
 		case IMMND_EVT_A2ND_SYNC_FINALIZE:	  /* immsv_finalize_sync */
+		case IMMND_EVT_A2ND_CL_TIMEOUT:	      /* lib timeout on sync call */
 			IMMSV_RSRV_SPACE_ASSERT(p8, o_ub, 8);
 			ncs_encode_64bit(&p8, immndevt->info.finReq.client_hdl);
 			ncs_enc_claim_space(o_ub, 8);
@@ -3919,6 +3932,7 @@ static uns32 immsv_evt_dec_toplevel(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 		case IMMND_EVT_A2ND_IMM_OM_RESURRECT: /* ImmOm resurrect hdl*/
 		case IMMND_EVT_A2ND_IMM_OI_RESURRECT: /* ImmOi resurrect hdl*/
 		case IMMND_EVT_A2ND_SYNC_FINALIZE:	/* immsv_finalize_sync */
+		case IMMND_EVT_A2ND_CL_TIMEOUT:       /* lib timeout on sync call */
 			IMMSV_FLTN_SPACE_ASSERT(p8, local_data, i_ub, 8);
 			immndevt->info.finReq.client_hdl = ncs_decode_64bit(&p8);
 			ncs_dec_skip_space(i_ub, 8);

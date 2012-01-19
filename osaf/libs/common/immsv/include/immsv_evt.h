@@ -179,6 +179,18 @@ typedef enum immnd_evt_type {
 	IMMND_EVT_A2ND_OBJ_SYNC_2 = 80,	/* immsv_sync */
 	IMMND_EVT_A2ND_IMM_FEVS_2 = 81,	/* Fake EVS msg from Agent (forward) */
 	IMMND_EVT_D2ND_GLOB_FEVS_REQ_2 = 82, /* Fake EVS msg from director (consume) */
+	IMMND_EVT_A2ND_CCB_COMPLETED_RSP_2 = 83,  /* Not used in 4.1 */
+	IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP_2 = 84, /* Not used in 4.1 */
+	IMMND_EVT_A2ND_CCB_OBJ_MODIFY_RSP_2 = 85, /* Not used in 4.1 */
+	IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2 = 86, /* Not used in 4.1 */
+	IMMND_EVT_A2ND_ADMOP_RSP_2 = 87,          /* Not used in 4.1 */
+	IMMND_EVT_A2ND_ASYNC_ADMOP_RSP_2 = 88,    /* Not used in 4.1 */
+	IMMND_EVT_ND2ND_ADMOP_RSP_2 = 89,         /* Not used in 4.1 */
+	IMMND_EVT_ND2ND_ASYNC_ADMOP_RSP_2 = 90,   /* Not used in 4.1 */
+	IMMND_EVT_A2ND_OI_CCB_AUG_INIT = 91,      /* Not used in 4.1 */
+	IMMND_EVT_A2ND_AUG_ADMO = 92,             /* Not used in 4.1 */
+	IMMND_EVT_A2ND_CL_TIMEOUT = 93, /* Inform local IMMND of a library timeout. */
+
 	IMMND_EVT_MAX
 } IMMND_EVT_TYPE;
 /* Make sure the string array in immsv_evt.c matches the IMMND_EVT_TYPE enum. */
