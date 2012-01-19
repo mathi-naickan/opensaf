@@ -8468,21 +8468,22 @@ ImmModel::purgeSyncRequest(SaUint32T clientId)
     for(ci2=sAdmReqContinuationMap.begin(); ci2!=sAdmReqContinuationMap.end(); ++ci2) {
         if(ci2->second.mConn == clientId) {
             if(ciFound != sAdmReqContinuationMap.end()) {
-                LOG_WA("Attempt to purge syncronous request for client connection,"
-                    "but found multiple requests for that connection, "
+                LOG_WA("Attempt to purge synchronous request for client connection,"
+                    "but found multiple synchronous requests for that connection, "
                      "incorrect use of imm handle");
                 return false;
             }
-            ciFound = ci2;
 
             SaInvocationT inv = ci2->first;
             SaInt32T subinv = m_IMMSV_UNPACK_HANDLE_LOW(inv);
             if(subinv < 0) {
-                LOG_WA("Attempt to purge syncronous request for client connection,"
-                    "but found an asyncronous admin op request for that connection,"
-                    "incorrect use of imm handle");
-                return false;
+                LOG_IN("Attempt to purge syncronous request for client connection,"
+                    "and found an asyncronous admin op request for that connection,"
+                    "ignoring the asyncronous continuation");
+		continue;
             }
+
+            ciFound = ci2;
         }
     }
 
