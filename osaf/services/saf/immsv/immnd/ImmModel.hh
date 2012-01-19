@@ -91,6 +91,7 @@ public:
 	                              const std::string& s2) const;
     bool                schemaChangeAllowed();
     bool                protocol41Allowed();
+    bool                purgeSyncRequest(SaUint32T clientId);
     bool                verifySchemaChange(const std::string& className,
                                             ClassInfo* oldClass,
                                             ClassInfo* newClass,

@@ -69,12 +69,12 @@ SaAisErrorT immnd_mds_client_not_busy(IMMSV_SEND_INFO *s_info)
 
 	if(s_info->mSynReqCount < 255) {
 		s_info->mSynReqCount++;
-		LOG_NO("ERR_TRY_AGAIN: Handle is busy with other syncronous call - timed out in client ?");
+		TRACE_2("ERR_TRY_AGAIN: Handle is busy with other syncronous call");
 		return SA_AIS_ERR_TRY_AGAIN;
 	}
 
-	LOG_NO("ERR_NO_RESOUCES: Handle use is blocked by pending reply on syncronous call");
-	return SA_AIS_ERR_NO_RESOURCES;
+	LOG_WA("ERR_BAD_HANDLE: Handle use is blocked by pending reply on syncronous call");
+	return SA_AIS_ERR_BAD_HANDLE;
 }
 
 
