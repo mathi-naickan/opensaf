@@ -2799,15 +2799,42 @@ SaAisErrorT imma_proc_check_stale(IMMA_CB *cb,
 	SaAisErrorT defaultEr)
 {
 	SaAisErrorT err = defaultEr;
+	IMMSV_EVT cutSyncCall_evt;
 	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS) {
 		IMMA_CLIENT_NODE  *cl_node=0;
 		imma_client_node_get(&cb->client_tree, &immHandle, &cl_node);
-		if (cl_node && cl_node->stale) {
+		if (!cl_node || cl_node->stale) {
 			/* We dont set exposed here because we are not exposed yet. */
 			err = SA_AIS_ERR_BAD_HANDLE;
 			TRACE_3("Client handle turned bad, IMMND restarted ?");
+		} else {
+			/* Prepare message for truncating this syncronous call (which just 
+			   got ERR_TIMEOUT) in local immnd. This drastically reduces the
+			   number of accepted retries at new use of this handle for 
+			   syncronous calls. Before this timeout, any other attempts
+			   to use this handle (by other threads concurrently) is actually
+			   not allowed. But after the timeout on this call, renewed use
+			   of this handle is allowed. On the client side, the previous
+			   syncronous call has now terminated with ERR_TIMEOUT. When
+			   the server receives the asyncronous CL_TIMEOUT message sent
+			   below, the previous syncronous call can also be terminated in
+			   the local immnd server, at its discretion.
+			 */
+			memset(&cutSyncCall_evt, 0, sizeof(IMMSV_EVT));
+			cutSyncCall_evt.type = IMMSV_EVT_TYPE_IMMND;
+			cutSyncCall_evt.info.immnd.type = IMMND_EVT_A2ND_CL_TIMEOUT;
+			cutSyncCall_evt.info.immnd.info.finReq.client_hdl = cl_node->handle;
 		}
+		
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
+
+		if(err == SA_AIS_ERR_TIMEOUT && cb->is_immnd_up) {
+			if(imma_mds_msg_send(cb->imma_mds_hdl, &cb->immnd_mds_dest,
+				   &cutSyncCall_evt, NCSMDS_SVC_ID_IMMND) != NCSCC_RC_SUCCESS){
+				/* Inform local immnd that this client has timed out*/
+				TRACE_3("imma_proc_check_stale: asyncronous send failed");
+			}
+		}
 	}
 
 	return err;
@@ -2922,6 +2949,7 @@ SaAisErrorT imma_evt_fake_evs(IMMA_CB *cb,
 		case NCSCC_RC_SUCCESS:
 			break;
 		case NCSCC_RC_REQ_TIMOUT:
+			osafassert(o_evt); /* timeout has to be on syncronous. */
 			rc = imma_proc_check_stale(cb, immHandle, SA_AIS_ERR_TIMEOUT);
 			break;
 
