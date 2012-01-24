@@ -260,6 +260,8 @@ AVND_CB *avnd_cb_create()
 
 	/*** initialize avnd dbs ***/
 
+	avnd_silist_init(cb);
+
 	/* initialize su db */
 	if (NCSCC_RC_SUCCESS != avnd_sudb_init(cb))
 		goto err;

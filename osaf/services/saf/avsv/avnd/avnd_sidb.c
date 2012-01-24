@@ -61,6 +61,121 @@ static uint32_t avnd_su_si_csi_del(AVND_CB *, AVND_SU *, AVND_SU_SI_REC *);
 #define m_AVND_SUDB_REC_SIQ_ADD(su, susi, rc) \
            (rc) = ncs_db_link_list_add(&(su).siq, &(susi).su_dll_node);
 
+/**
+ * Initialize the SI list
+ * @param cb
+ */
+void avnd_silist_init(AVND_CB *cb)
+{
+	cb->si_list.order = NCS_DBLIST_ASSCEND_ORDER;
+	cb->si_list.cmp_cookie = avsv_dblist_uns32_cmp;
+	cb->si_list.free_cookie = 0;
+}
+
+/**
+ * Get first SI from SI list
+ * 
+ * @return AVND_SU_SI_REC*
+ */
+AVND_SU_SI_REC *avnd_silist_getfirst(void)
+{
+	NCS_DB_LINK_LIST_NODE *p = m_NCS_DBLIST_FIND_FIRST(&avnd_cb->si_list);
+
+	if (p != NULL)
+		return (AVND_SU_SI_REC *) ((char*)p - ((char*) &((AVND_SU_SI_REC *)NULL)->cb_dll_node));
+	else
+		return NULL;
+}
+
+/**
+ * Get next SI from SI list
+ * @param si if NULL first SI is returned
+ * 
+ * @return AVND_SU_SI_REC*
+ */
+AVND_SU_SI_REC *avnd_silist_getnext(const AVND_SU_SI_REC *si)
+{
+	if (si) {
+		NCS_DB_LINK_LIST_NODE *p = m_NCS_DBLIST_FIND_NEXT(&si->cb_dll_node);
+
+		if (p != NULL)
+			return (AVND_SU_SI_REC *) ((char*)p - ((char*) &((AVND_SU_SI_REC *)NULL)->cb_dll_node));
+		else
+			return NULL;
+	}
+	else
+		return avnd_silist_getfirst();
+}
+
+/**
+ * Get previous SI from SI list
+ * @param si
+ * 
+ * @return AVND_SU_SI_REC*
+ */
+AVND_SU_SI_REC *avnd_silist_getprev(const AVND_SU_SI_REC *si)
+{
+	NCS_DB_LINK_LIST_NODE *p = m_NCS_DBLIST_FIND_PREV(&si->cb_dll_node);
+
+	if (p != NULL)
+		return (AVND_SU_SI_REC *) ((char*)p - ((char*) &((AVND_SU_SI_REC *)NULL)->cb_dll_node));
+	else
+		return NULL;
+}
+
+/**
+ * Get last SI from SI list
+ * 
+ * @return AVND_SU_SI_REC*
+ */
+
+AVND_SU_SI_REC *avnd_silist_getlast(void)
+{
+	NCS_DB_LINK_LIST_NODE *p = m_NCS_DBLIST_FIND_LAST(&avnd_cb->si_list);
+
+	if (p != NULL)
+		return (AVND_SU_SI_REC *) ((char*)p - ((char*) &((AVND_SU_SI_REC *)NULL)->cb_dll_node));
+	else
+		return NULL;
+}
+
+/**
+ * Return SI rank read from IMM
+ * 
+ * @param dn DN of SI
+ * 
+ * @return      rank of SI or -1 if not configured for SI
+ */
+static uint32_t get_sirank(const SaNameT *dn)
+{
+	SaAisErrorT error;
+	SaImmAccessorHandleT accessorHandle;
+	const SaImmAttrValuesT_2 **attributes;
+	SaImmAttrNameT attributeNames[2] = {"saAmfSIRank", NULL};
+	SaImmHandleT immOmHandle;
+	SaVersionT immVersion = {'A', 2, 1};
+	uint32_t rank = -1; // lowest possible rank if uninitialized
+
+	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
+	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+
+	osafassert((error = immutil_saImmOmAccessorGet_2(accessorHandle, dn,
+		attributeNames, (SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK);
+
+	osafassert((error = immutil_getAttr(attributeNames[0], attributes, 0, &rank)) == SA_AIS_OK);
+
+	// saAmfSIRank attribute has a default value of zero (returned by IMM)
+	if (rank == 0) {
+		// Unconfigured ranks are treated as lowest possible rank
+		rank = -1;
+	}
+
+	immutil_saImmOmAccessorFinalize(accessorHandle);
+	immutil_saImmOmFinalize(immOmHandle);
+
+	return rank;
+}
+
 /****************************************************************************
   Name          : avnd_su_si_rec_add
  
@@ -127,6 +242,15 @@ AVND_SU_SI_REC *avnd_su_si_rec_add(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *p
 	if (NCSCC_RC_SUCCESS != *rc) {
 		*rc = AVND_ERR_DLL;
 		goto err;
+	}
+
+	/* Add to global SI list sorted by rank if appl SU */
+	if (!su->is_ncs) {
+		uint32_t res;
+		si_rec->rank = get_sirank(&param->si_name);
+		si_rec->cb_dll_node.key = (uint8_t *)&si_rec->rank;
+		res = ncs_db_link_list_add(&cb->si_list, &si_rec->cb_dll_node);
+		osafassert(res == NCSCC_RC_SUCCESS);
 	}
 
 	/*
@@ -597,6 +721,9 @@ uint32_t avnd_su_si_rec_del(AVND_CB *cb, SaNameT *su_name, SaNameT *si_name)
 	rc = m_AVND_SUDB_REC_SI_REM(*su, *si_rec);
 	if (NCSCC_RC_SUCCESS != rc)
 		goto err;
+
+	/* remove from global SI list */
+	(void) ncs_db_link_list_delink(&cb->si_list, &si_rec->cb_dll_node);
 
 	TRACE_1("SU-SI record deleted, SU= %s : SI=%s",su_name->value,si_name->value);
 

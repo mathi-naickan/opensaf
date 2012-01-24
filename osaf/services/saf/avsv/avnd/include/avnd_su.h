@@ -80,7 +80,9 @@ typedef enum avnd_su_si_assign_state {
 /* SI definition */
 typedef struct avnd_su_si_rec {
 	NCS_DB_LINK_LIST_NODE su_dll_node;	/* node in the su-si dll */
+	NCS_DB_LINK_LIST_NODE cb_dll_node;	/* node in the su-si dll */
 	SaNameT name;	/* si name */
+	uint32_t rank;
 
 	SaAmfHAStateT curr_state;	/* current si ha state */
 	SaAmfHAStateT prv_state;	/* prv si ha state */
@@ -389,5 +391,11 @@ extern uint32_t avnd_evt_su_admin_op_req(struct avnd_cb_tag *cb, struct avnd_evt
 extern struct avnd_comp_csi_rec *avnd_su_si_csi_rec_add(struct avnd_cb_tag *, AVND_SU *,
                                                  struct avnd_su_si_rec *, struct avsv_susi_asgn *, uint32_t *);
 extern void avnd_su_pres_state_set(AVND_SU *su, SaAmfPresenceStateT newstate);
+
+extern void avnd_silist_init(struct avnd_cb_tag *cb);
+extern struct avnd_su_si_rec *avnd_silist_getfirst(void);
+extern struct avnd_su_si_rec *avnd_silist_getnext(const struct avnd_su_si_rec *);
+extern struct avnd_su_si_rec *avnd_silist_getprev(const struct avnd_su_si_rec *);
+extern struct avnd_su_si_rec *avnd_silist_getlast(void);
 
 #endif
