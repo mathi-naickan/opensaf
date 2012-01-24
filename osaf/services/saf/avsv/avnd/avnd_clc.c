@@ -716,8 +716,6 @@ static int all_comps_terminated(void)
 	int all_comps_terminated = 1;
 	TRACE_ENTER();
 
-	osafassert(avnd_cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN);
-
 	/* Scan all components to see if we're done terminating all comps */
 	comp = (AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
 	while (comp != 0) {
@@ -754,8 +752,8 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("Comp '%s', Ev '%u'", comp->name.value, ev);
 
-	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN) {
-		TRACE("Term state is AVND_TERM_STATE_OPENSAF_SHUTDOWN, event is'%s'",pres_state_evt[ev]);
+	if (m_AVND_IS_SHUTTING_DOWN(cb)) {
+		TRACE("Term state is SHUTDOWN, event is'%s'",pres_state_evt[ev]);
 		switch (ev) {
 		
 		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL:
@@ -2412,7 +2410,7 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 	TRACE_ENTER2("'%s':CLC CLI command type:'%s'",comp->name.value,clc_cmd_type[cmd_type]);
 
 	/* Refresh the component configuration, it may have changed */
-	if ((AVND_TERM_STATE_OPENSAF_SHUTDOWN != cb->term_state) && (avnd_comp_config_reinit(comp) != 0)) {
+	if (!m_AVND_IS_SHUTTING_DOWN(cb) && (avnd_comp_config_reinit(comp) != 0)) {
 		rc = NCSCC_RC_FAILURE;
 		goto err;
 	}

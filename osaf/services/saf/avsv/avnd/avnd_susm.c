@@ -186,7 +186,7 @@ AVND_SU_SIQ_REC *avnd_su_siq_rec_buf(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM 
 
 	/* buffer the msg, if SU is inst-failed and all comps are not terminated */
 	if (((su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) && (!m_AVND_SU_IS_ALL_TERM(su))) ||
-			(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN) || (m_AVND_SU_IS_RESTART(su))) {
+	    m_AVND_IS_SHUTTING_DOWN(cb) || (m_AVND_SU_IS_RESTART(su))) {
 		siq = avnd_su_siq_rec_add(cb, su, param, &rc);
 		TRACE_LEAVE();
 		return siq;
@@ -1067,8 +1067,8 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 	/* since AMFND is going down no need to process SU instantiate/terminate msg 
 	 * because SU instantiate will cause component information to be read from IMMND
 	 * and IMMND might have been already terminated and in that case AMFND will osafassert */
-	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN) {
-		TRACE("AMFND is in AVND_TERM_STATE_OPENSAF_SHUTDOWN state");
+	if (m_AVND_IS_SHUTTING_DOWN(cb)) {
+		TRACE("AMFND is in SHUTDOWN state");
 		goto done;
 	}
 

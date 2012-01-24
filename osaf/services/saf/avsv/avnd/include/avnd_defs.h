@@ -80,4 +80,7 @@ typedef enum {
 	AVND_LED_STATE_MAX
 } AVND_LED_STATE;
 
+#define m_AVND_IS_SHUTTING_DOWN(x) \
+	(AVND_TERM_STATE_OPENSAF_SHUTDOWN == (x)->term_state)
+
 #endif   /* !AVND_DEFS_H */

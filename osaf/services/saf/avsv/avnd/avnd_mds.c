@@ -1171,7 +1171,7 @@ uint32_t avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_
 	TRACE_ENTER2("Msg type '%u'", msg->type);
 
 	/* Don't send any messages if we are shutting down */
-	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN)
+	if (m_AVND_IS_SHUTTING_DOWN(cb))
 		goto done;
 
 	/* populate the mds params */
@@ -1216,7 +1216,7 @@ uint32_t avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_
 	/* send the message */
 	rc = ncsmds_api(&mds_info);
 	if (NCSCC_RC_SUCCESS != rc) {
-		if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN) {
+		if (m_AVND_IS_SHUTTING_DOWN(cb)) {
 			/* Don't log anything if we are shutting down */
 			TRACE("ncsmds_api for %u FAILED, dest=%" PRIx64, send_info->i_sendtype, *dest);
 		} else
@@ -1259,7 +1259,7 @@ uint32_t avnd_mds_red_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_DEST 
 	TRACE_ENTER2("Msg type '%u'", msg->type);
 
 	/* Don't send any messages if we are shutting down */
-	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN)
+	if (m_AVND_IS_SHUTTING_DOWN(cb))
 		goto done;
 
 	/* populate the mds params */
@@ -1284,7 +1284,7 @@ uint32_t avnd_mds_red_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_DEST 
 	/* send the message */
 	rc = ncsmds_api(&mds_info);
 	if (NCSCC_RC_SUCCESS != rc) {
-		if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN) {
+		if (m_AVND_IS_SHUTTING_DOWN(cb)) {
 			/* Don't log anything if we are shutting down */
 			TRACE("AVND MDS send failed: Msg type = %u, vdest = %" PRIu64 ", anchor = %" PRIu64,
 				msg->type,send->i_to_vdest,send->i_to_anc);
