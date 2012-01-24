@@ -203,7 +203,7 @@ static AVND_COMP_CLC_FSM_FN avnd_comp_clc_fsm[][AVND_COMP_CLC_PRES_FSM_EV_MAX - 
 
 static const char *pres_state_evt[] =
 {
-	"OUT_OF_RANGE"
+	"OUT_OF_RANGE",
 	"AVND_COMP_CLC_PRES_FSM_EV_INST",
 	"AVND_COMP_CLC_PRES_FSM_EV_INST_SUCC",
 	"AVND_COMP_CLC_PRES_FSM_EV_INST_FAIL",
@@ -723,6 +723,7 @@ static int all_comps_terminated(void)
 		    (comp->pres != SA_AMF_PRESENCE_INSTANTIATION_FAILED)) {
 			all_comps_terminated = 0;
 			TRACE("'%s' not terminated, pres.st=%u", comp->name.value, comp->pres);
+			break;
 		}
 
 		comp = (AVND_COMP *) ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)&comp->name);
@@ -771,11 +772,8 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 			}
 			break;
 		default:
-			LOG_NO("'%s':ignoring event=%u in state OPENSAF_SHUTDOWN", __FUNCTION__, ev);
 			break;
 		}
-
-		goto done; /* skip execution of event handlers in this state */
 	}
 
 	/* get the prv presence state */

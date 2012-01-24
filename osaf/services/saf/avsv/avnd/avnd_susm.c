@@ -748,9 +748,15 @@ uint32_t avnd_su_si_remove(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 	if (!m_AVND_SU_IS_PREINSTANTIABLE(su)) {
 		/* nothing to be done, termination already done in
 		   quiescing/quiesced state */
-		rc = avnd_su_si_oper_done(cb, su, si);
-		if (NCSCC_RC_SUCCESS != rc)
-			goto done;
+		if (su->pres == SA_AMF_PRESENCE_INSTANTIATED) {
+			rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_TERM);
+			if (NCSCC_RC_SUCCESS != rc)
+				goto done;
+		} else {
+			rc = avnd_su_si_oper_done(cb, su, si);
+			if (NCSCC_RC_SUCCESS != rc)
+				goto done;
+		}
 	}
 
  done:
@@ -799,6 +805,56 @@ static bool susi_operation_in_progress(AVND_SU *su, AVND_SU_SI_REC *si)
 
 	return opr_done;
 }
+
+/**
+ * Get a higher ranked SI (if any)
+ * @param si
+ * 
+ * @return AVND_SU_SI_REC*
+ */
+static AVND_SU_SI_REC *get_higher_ranked_si(const AVND_SU_SI_REC *si)
+{
+	AVND_SU_SI_REC *tmp = avnd_silist_getprev(si);
+
+	if (tmp) {
+		for (; tmp && (tmp->rank == si->rank); tmp = avnd_silist_getprev(tmp))
+			;
+	}
+
+	return tmp;
+}
+
+/**
+ * Are all SIs of the same rank as the passed SI removed/unassigned?
+ * 
+ * @param si
+ * 
+ * @return bool
+ */
+static bool all_sis_atrank_removed(const AVND_SU_SI_REC *si)
+{
+	const AVND_SU_SI_REC *tmp;
+
+	/* search forwards */
+	for (tmp = si; tmp && (tmp->rank == si->rank); tmp = avnd_silist_getnext(tmp)) {
+		if (!m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVED(tmp)) {
+			TRACE("%s not removed", tmp->name.value);
+			return false;
+		}
+	}
+
+	/* search backwards */
+	for (tmp = si; tmp && (tmp->rank == si->rank); tmp = avnd_silist_getprev(tmp)) {
+		if (!m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVED(tmp)) {
+			TRACE("%s not removed", tmp->name.value);
+			return false;
+		}
+	}
+
+	TRACE("all SIs at rank %u removed", si->rank);
+	return true;
+}
+
 /****************************************************************************
   Name          : avnd_su_si_oper_done
  
@@ -885,6 +941,28 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 			goto done;
 	}
 
+	if (si && (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED)) {
+		(void) avnd_evt_last_step_term_evh(cb, NULL);
+	} else if (si && (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED) &&
+		   m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVED(si)) {
+
+		if (all_sis_atrank_removed(si)) {
+			AVND_SU_SI_REC *tmp = get_higher_ranked_si(si);
+
+			if (tmp != NULL) {
+				uint32_t sirank = tmp->rank;
+
+				for (; tmp && (tmp->rank == sirank); tmp = avnd_silist_getprev(tmp)) {
+					uint32_t rc = avnd_su_si_remove(cb, tmp->su, tmp);
+					osafassert(rc == NCSCC_RC_SUCCESS);
+				}
+			} else {
+				/* no more assignments left, cleanup all components */
+				avnd_last_step_clean(cb);
+			}
+		}
+	}
+
 	/* Now correct si state if single csi was being removed. For the rest of csi assigned, si should be in 
 	   Assigned state*/
 	if ((si) && (AVSV_SUSI_ACT_DEL == si->single_csi_add_rem_in_si) && 
@@ -931,6 +1009,25 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 		if (m_AVND_SU_IS_FAILED(su) && !su->si_list.n_nodes &&
 		    (cb->oper_state == SA_AMF_OPERATIONAL_ENABLED))
 			rc = avnd_err_su_repair(cb, su);
+	}
+
+	if ((NULL == si) && (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED)) {
+		(void) avnd_evt_last_step_term_evh(cb, NULL);
+	} else if ((NULL == si) && (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)) {
+
+		AVND_SU_SI_REC *tmp = avnd_silist_getlast();
+		
+		if (tmp != NULL) {
+			uint32_t sirank = tmp->rank;
+
+			for (; tmp && (tmp->rank == sirank); tmp = avnd_silist_getprev(tmp)) {
+				uint32_t rc = avnd_su_si_remove(cb, tmp->su, tmp);
+				osafassert(rc == NCSCC_RC_SUCCESS);
+			}
+		} else {
+			/* no more assignments left, cleanup all components */
+			avnd_last_step_clean(cb);
+		}
 	}
 
 	/* 

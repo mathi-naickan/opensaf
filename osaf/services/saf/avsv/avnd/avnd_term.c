@@ -55,18 +55,14 @@ extern const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX];
   Notes         : All the errors are ignored and brute force is employed.
 
 ******************************************************************************/
-static void avnd_last_step_clean(AVND_CB *cb)
+void avnd_last_step_clean(AVND_CB *cb)
 {
 	AVND_COMP *comp;
 	int cleanup_call_cnt = 0;
 
 	TRACE_ENTER();
 
-	/* Protect from multiple stop attempts */
-	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN)
-		goto done;
-
-	cb->term_state = AVND_TERM_STATE_OPENSAF_SHUTDOWN;
+	LOG_NO("Terminating all AMF components");
 
 	comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)0);
 	while (comp != NULL) {
@@ -111,7 +107,6 @@ static void avnd_last_step_clean(AVND_CB *cb)
 		exit(0);
 	}
 
-done:
 	TRACE_LEAVE();
 }
 
@@ -139,68 +134,57 @@ done:
 ******************************************************************************/
 uint32_t avnd_evt_last_step_term_evh(AVND_CB *cb, AVND_EVT *evt)
 {
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	AVND_SU *su = 0;
-	bool empty_sulist = true;
+	AVND_SU_SI_REC *si;
+	uint32_t sirank;
+	bool si_removed = false;
 
 	TRACE_ENTER();
 
-	LOG_NO("Terminating all AMF components");
+	cb->term_state = AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED;
 
-	if (cb->term_state != AVND_TERM_STATE_SHUTTING_NCS_SI) {
-		avnd_last_step_clean(cb);
-	} else {
-		/* send terminate for all NCS SUs and when done send nis_notify */
+	/* Ensure all assignments are in stable state */
+	for (si = avnd_silist_getfirst(); si; si = avnd_silist_getnext(si)) {
+		if (si->su->is_ncs || si->su->su_is_external)
+			continue;
 
-		cb->term_state = AVND_TERM_STATE_SHUTTING_NCS_SU;
-
-		/* dont process unless AvD is up */
-		if (!m_AVND_CB_IS_AVD_UP(cb))
-			return rc;
-
-		su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
-
-		/* scan & drive the SU term by PRES_STATE FSM on each su */
-		while (su != 0) {
-			if ((su->is_ncs == SA_FALSE) || (true == su->su_is_external)) {
-				/* Don't process external components */
-				su = (AVND_SU *)
-				    ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)&su->name);
-				continue;
-			}
-
-			/* to be on safer side lets remove the si's remaining if any */
-			rc = avnd_su_si_remove(cb, su, 0);
-
-			/* delete all the curr info on su & comp */
-			rc = avnd_su_curr_info_del(cb, su);
-
-			/* now terminate the su */
-			if ((m_AVND_SU_IS_PREINSTANTIABLE(su)) &&
-			    (su->pres != SA_AMF_PRESENCE_UNINSTANTIATED) &&
-			    (su->pres != SA_AMF_PRESENCE_INSTANTIATION_FAILED)
-			    && (su->pres != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
-				empty_sulist = false;
-
-				/* trigger su termination for pi su */
-				rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_TERM);
-			}
-
-			su = (AVND_SU *)
-			    ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)&su->name);
-		}
-
-		if (empty_sulist == true) {
-			/* No SUs to be processed for termination.
-			 ** we are DONE.
-			 */
-			LOG_NO("%s: exiting", __FUNCTION__);
-			exit(0);
+		if ((si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_ASSIGNING) ||
+		    (si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_REMOVING)) {
+			LOG_NO("Waiting for '%s' (state %u)", si->name.value, si->curr_assign_state);
+			goto done;
 		}
 	}
 
-	TRACE_LEAVE2("retval=%u",rc);
-	return rc;
+	/* The SI list sorted by SI rank. Rank correspond to SI dependencies */
+	si = avnd_silist_getlast();
+	if (si)
+		sirank = si->rank;
+	else
+		goto cleanup_components;
+
+	cb->term_state = AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED;
+	LOG_NO("Removing assignments from AMF components");
+
+	/* Remove all assignments of equal rank */
+	for (; (si != NULL) && (si->rank == sirank); si = avnd_silist_getprev(si)) {
+
+		/* Remove assignments only for local application SUs */
+		if (si->su->is_ncs || si->su->su_is_external)
+			continue;
+
+		if (si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_REMOVED)
+			continue;
+
+		si_removed = true;
+		uint32_t rc = avnd_su_si_remove(cb, si->su, si);
+		osafassert(rc == NCSCC_RC_SUCCESS);
+	}
+
+cleanup_components:
+	if (!si_removed)
+		avnd_last_step_clean(cb);
+done:
+	TRACE_LEAVE();
+	return NCSCC_RC_SUCCESS;
 }
 
 /****************************************************************************

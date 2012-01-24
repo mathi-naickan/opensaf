@@ -640,6 +640,12 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 			break;
 
 		case NCSMDS_SVC_ID_AVA:
+			if (m_AVND_IS_SHUTTING_DOWN(cb)) {
+				// needs improvements, shutdown phases...
+				// phase1: CSI remove, phase2: cleanup
+				// Only in phase2 should AVA down be ignored
+				goto done;
+			}
 			/* create the mds event */
 			evt = avnd_evt_create(cb, AVND_EVT_MDS_AVA_DN, 0, &evt_info->i_dest, 0, 0, 0);
 			break;
@@ -677,7 +683,7 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 	/* if failure, free the event */
 	if (NCSCC_RC_SUCCESS != rc && evt)
 		avnd_evt_destroy(evt);
-
+done:
 	return rc;
 }
 
@@ -1170,10 +1176,6 @@ uint32_t avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_
 
 	TRACE_ENTER2("Msg type '%u'", msg->type);
 
-	/* Don't send any messages if we are shutting down */
-	if (m_AVND_IS_SHUTTING_DOWN(cb))
-		goto done;
-
 	/* populate the mds params */
 	memset(&mds_info, 0, sizeof(NCSMDS_INFO));
 
@@ -1187,6 +1189,9 @@ uint32_t avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_
 	switch (msg->type) {
 	case AVND_MSG_AVD:
 		send_info->i_to_svc = NCSMDS_SVC_ID_AVD;
+		/* Don't send any messages if we are shutting down */
+		if (m_AVND_IS_SHUTTING_DOWN(cb))
+			goto done;
 		break;
 
 	case AVND_MSG_AVA:

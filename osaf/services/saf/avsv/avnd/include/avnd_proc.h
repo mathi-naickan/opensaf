@@ -107,6 +107,7 @@ uint32_t avnd_evt_avd_ack_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
 uint32_t avnd_evt_avd_clm_node_on_fover(struct avnd_cb_tag *cb, struct avnd_evt_tag *evt);
 
 uint32_t avnd_evt_last_step_term_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
+void avnd_last_step_clean(struct avnd_cb_tag *cb);
 
 uint32_t avnd_evt_avd_set_leds_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
 uint32_t avnd_destroy(void);
