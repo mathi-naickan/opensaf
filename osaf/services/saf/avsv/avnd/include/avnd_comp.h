@@ -108,10 +108,10 @@ typedef struct avnd_comp_clc_info {
 	 * one outstanding command in execution other than AM related)
 	 */
 	AVND_COMP_CLC_CMD_TYPE exec_cmd;	/* command in execution */
-	uns32 cmd_exec_ctxt;	/* command execution context */
+	NCS_EXEC_HDL cmd_exec_ctxt;	/* command execution context */
 
 	AVND_COMP_CLC_CMD_TYPE am_exec_cmd;	/* command in execution */
-	uns32 am_cmd_exec_ctxt;	/* command execution context */
+	NCS_EXEC_HDL am_cmd_exec_ctxt;	/* command execution context */
 
 	/* comp reg tmr info */
 	SaTimeT inst_cmd_ts;	/* instantiate cmd start timestamp */
