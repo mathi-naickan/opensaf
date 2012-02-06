@@ -147,8 +147,12 @@ static void valuesToPBE(const SaImmAttrValuesT_2* p,
 void pbeAtomicSwitchFile(const char* filePath, std::string localTmpFilename)
 {
 	std::string globalTmpFilename;
+	std::string globalJournalFilename;
 	globalTmpFilename.append(filePath);
 	globalTmpFilename.append(".tmp"); 
+	globalJournalFilename.append(filePath);
+	globalJournalFilename.append("-journal"); 
+	int fd=(-1);
 	std::string oldFilename;
 	oldFilename.append(filePath);
 	oldFilename.append(".prev"); 
@@ -202,9 +206,27 @@ void pbeAtomicSwitchFile(const char* filePath, std::string localTmpFilename)
 		LOG_ER("Failed to move %s to %s error:%s",
 			globalTmpFilename.c_str(), filePath, strerror(errno));
 		exit(1);
-	} else {
-		LOG_NO("Moved %s to %s", globalTmpFilename.c_str(), filePath);
+	} 
+
+	LOG_NO("Moved %s to %s", globalTmpFilename.c_str(), filePath);
+
+	fd = open(globalJournalFilename.c_str(), O_RDONLY);
+	if(fd != (-1)) {
+		close(fd);
+		/* Remove -journal file */
+		if(unlink(globalJournalFilename.c_str()) != 0) {
+			LOG_WA("Failed to remove %s ", globalJournalFilename.c_str());
+		} else {
+			LOG_NO("Removed %s ", globalJournalFilename.c_str());
+			/* and remove corresponding imm.db.prev since it depends on the journal file */
+			if(unlink(oldFilename.c_str()) != 0) {
+				LOG_WA("Failed to remove %s ", oldFilename.c_str());
+			} else {
+				LOG_NO("Removed %s ", oldFilename.c_str());
+			}
+		}
 	}
+
 }
 
 
@@ -2267,7 +2289,7 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 
 void pbeRepositoryClose(void* dbHandle) 
 {
-	abort();
+	/* Dont abort, can be invoked from sigterm_handler */
 }
 
 void pbeAtomicSwitchFile(const char* filePath, std::string localTmpFilename)

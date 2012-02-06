@@ -877,6 +877,20 @@ static void sigusr2_handler(int sig)
 		printf("trace_category_set failed");
 }
 
+/**
+ * TERM signal handler to close sqlite handle
+ * @param sig
+ */
+static void sigterm_handler(int sig)
+{
+	if (sDbHandle != NULL) {
+		pbeRepositoryClose(sDbHandle);
+		sDbHandle = NULL;
+	}
+	exit(0);
+}
+
+
 SaAisErrorT pbe_daemon_imm_init(SaImmHandleT immHandle)
 {
 	SaAisErrorT rc;
@@ -998,6 +1012,12 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 		LOG_ER("signal USR2 failed: %s", strerror(errno));
 		exit(1);
 	}
+
+	if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
+		LOG_ER("Failed to registe signal handler for TERM: %s", strerror(errno));
+		exit(1);
+	}
+
 	/* Set up all file descriptors to listen to */
 	fds[FD_IMM_PBE_OI].fd = immOiSelectionObject;
 	fds[FD_IMM_PBE_OI].events = POLLIN;
