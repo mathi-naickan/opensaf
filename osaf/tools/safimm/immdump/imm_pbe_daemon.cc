@@ -25,10 +25,14 @@
 #include <poll.h>
 #include <stdio.h>
 #include <cstdlib>
+#include <nid_api.h> /* To define NCS_SEL_OBJ */
 
 
 #define FD_IMM_PBE_OI 0
 #define FD_IMM_PBE_OM 1
+#define FD_IMM_PBE_TERM 2
+
+static NCS_SEL_OBJ term_sel_obj; /* Selection object for TERM signal events */
 
 const unsigned int sleep_delay_ms = 500;
 const unsigned int max_waiting_time_ms = 5 * 1000;	/* 5 secs */
@@ -40,8 +44,8 @@ static SaSelectionObjectT immOiSelectionObject;
 static SaSelectionObjectT immOmSelectionObject;
 static int category_mask;
 
-static struct pollfd fds[2];
-static nfds_t nfds = 2;
+static struct pollfd fds[3];
+static nfds_t nfds = 3;
 
 static void* sDbHandle=NULL;
 static ClassMap* sClassIdMap=NULL;
@@ -917,13 +921,9 @@ static void sigusr2_handler(int sig)
  */
 static void sigterm_handler(int sig)
 {
-	if (sDbHandle != NULL) {
-		pbeRepositoryClose(sDbHandle);
-		sDbHandle = NULL;
-	}
-	exit(0);
+	ncs_sel_obj_ind(term_sel_obj);
+	signal(SIGTERM, SIG_IGN);
 }
-
 
 SaAisErrorT pbe_daemon_imm_init(SaImmHandleT immHandle)
 {
@@ -1047,6 +1047,11 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 		exit(1);
 	}
 
+	if (ncs_sel_obj_create(&term_sel_obj) != NCSCC_RC_SUCCESS) {
+		LOG_ER("ncs_sel_obj_create failed");
+		exit(1);
+	}
+
 	if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
 		LOG_ER("Failed to registe signal handler for TERM: %s", strerror(errno));
 		exit(1);
@@ -1057,6 +1062,8 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 	fds[FD_IMM_PBE_OI].events = POLLIN;
 	fds[FD_IMM_PBE_OM].fd = immOmSelectionObject;
 	fds[FD_IMM_PBE_OM].events = POLLIN;
+	fds[FD_IMM_PBE_TERM].fd = term_sel_obj.rmv_obj;
+	fds[FD_IMM_PBE_TERM].events = POLLIN;
 
         while(1) {
 		TRACE("PBE Daemon entering poll");
@@ -1094,7 +1101,15 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 			}
 		}
 
-		
+		if (fds[FD_IMM_PBE_TERM].revents & POLLIN) {
+			ncs_sel_obj_rmv_ind(term_sel_obj, true, true);
+			if (sDbHandle != NULL) {
+				LOG_NO("PBE received SIG_TERM, closing db handle");
+				pbeRepositoryClose(sDbHandle);
+				sDbHandle = NULL;
+			}
+			break;
+		}
 	}
 
 	LOG_IN("IMM PBE process EXITING...");
