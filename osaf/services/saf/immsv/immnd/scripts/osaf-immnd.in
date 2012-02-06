@@ -76,6 +76,8 @@ instantiate() {
 
 stop() {
 	echo -n "Stopping $prog: "
+    /usr/bin/killall immdump
+    /usr/bin/killall immload
 	killproc -p $pidfile $binary
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
