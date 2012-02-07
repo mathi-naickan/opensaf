@@ -876,7 +876,9 @@ AC_CONFIG_FILES([
         tests/unit_test_fw/Makefile
         tests/unit_test_fw/inc/Makefile])
 
-AC_CONFIG_SUBDIRS([contrib/plmc])
+if test "$enable_ais_plm" = yes; then
+	AC_CONFIG_SUBDIRS([contrib/plmc])
+fi
 
 AC_OUTPUT
 
