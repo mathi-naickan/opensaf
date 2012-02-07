@@ -82,17 +82,19 @@ if [ "$#" -lt "1" ] ||  [ "$#" -gt "4" ]
      echo " If you want to use TIPC in Non Networking mode"
      echo " Usage: $0 start &"
      echo " If you want to use TIPC in Networking mode"
-     echo " Usage: $0 start <ETH_Interface_nam > <number[1-9999]> &"
-     echo " Example: if u want to set ethernet interface as eth0 and number as 1000"
-     echo " $0 start eth0 1000 &"
+     echo " Usage: $0 start ifname[,ifname] <netid[1-9999]>"
+     echo " Example: interface eth0 and netid 7777"
+     echo " $0 start eth0 7777 &"
+     echo " Example: interface eth0 and eth1 and netid 9999"
+     echo " $0 start eth0,eth1 9999"
      exit 1
 fi
 
 ETH_NAME=$2
-CORE_ID=$3
+TIPC_NETID=$3
 
 if [ $# -gt 1 ] ; then 
-    if [ "$CORE_ID" -gt "9999" ] || [ "$CORE_ID" -lt "1" ]  
+    if [ "$TIPC_NETID" -gt "9999" ] || [ "$TIPC_NETID" -lt "1" ]  
       then 
         echo "CORE ID Should be in the range of 1 to 9999"
         echo "Quitting......"
@@ -151,7 +153,7 @@ function tipc_configure ()
     else
         echo "Configuring TIPC in Networking Mode..."
         ################ Address config and check #########
-        ${tipc_config} -netid=$CORE_ID -a=1.1.$TIPC_NODEID  
+        ${tipc_config} -netid=$TIPC_NETID -a=1.1.$TIPC_NODEID  
         ret_z2=$?
         if [ $ret_z2 -ne 0 ] ; then 
             echo "Unable to Configure TIPC address, Please try again, exiting" 
@@ -160,7 +162,7 @@ function tipc_configure ()
             exit 1
         fi
         ################ Interface config and check #########
-        ${tipc_config} -be=eth:$ETH_NAME 
+        ${tipc_config} -be=$(echo $ETH_NAME | sed 's/^/eth:/;s/,/,eth:/g')
         ret_z3=$?
         if [ $ret_z3 -ne 0 ] ; then 
             echo "Unable to Configure TIPC bearer interface, Please try again, exiting" 
@@ -186,7 +188,7 @@ else
     fi
 
     configured_net_id=`tipc-config -netid | cut -d: -f2`
-    opensaf_net_id=$CORE_ID
+    opensaf_net_id=$TIPC_NETID
     if [ $configured_net_id != $opensaf_net_id ]; then
         logger -t opensaf -s "TIPC network ID not configured to OpenSAF requirements, exiting..."
         exit 1
