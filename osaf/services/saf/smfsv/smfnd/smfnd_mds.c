@@ -242,7 +242,7 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info)
 			/* TODO: No lock is taken. This might be dangerous.*/
 			if (NCSMDS_SVC_ID_SMFA == svc_evt->i_svc_id){
 				cb->agent_cnt++;
-				LOG_NO("Count of agents incremeted to : %d",cb->agent_cnt);
+				TRACE("Count of agents incremeted to : %d",cb->agent_cnt);
 			}else if (NCSMDS_SVC_ID_SMFD == svc_evt->i_svc_id){
 				/* Catch the vdest of SMFD*/
 				if (m_MDS_DEST_IS_AN_ADEST(svc_evt->i_dest))
@@ -258,7 +258,7 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info)
 			 not the adest of agents and hence it is not possible to clean up cbk_list.*/
 			if (NCSMDS_SVC_ID_SMFA == svc_evt->i_svc_id){
 				cb->agent_cnt--;
-				LOG_NO("Count of agents decremeted to : %d",cb->agent_cnt);
+				TRACE("Count of agents decremeted to : %d",cb->agent_cnt);
 			}else if (NCSMDS_SVC_ID_SMFD == svc_evt->i_svc_id){
 				if (m_MDS_DEST_IS_AN_ADEST(svc_evt->i_dest))
 					return NCSCC_RC_SUCCESS;

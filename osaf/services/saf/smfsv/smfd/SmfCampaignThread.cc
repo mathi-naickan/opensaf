@@ -122,10 +122,11 @@ void SmfCampaignThread::main(NCSCONTEXT info)
 	 m_mbx(0),
 	 m_running(true), 
 	 m_campaign(campaign),
+	 m_semaphore(NULL),
 	 m_ntfHandle(0),
 	 m_tmpSmfUpgradeCampaign()
 {
-	sem_init(&m_semaphore, 0, 0);
+     
 }
 
 /** 
@@ -137,17 +138,6 @@ SmfCampaignThread::~SmfCampaignThread()
 	SaAisErrorT rc = saNtfFinalize(m_ntfHandle);
 	if (rc != SA_AIS_OK) {
 		LOG_ER("Failed to finalize NTF handle %u", rc);
-	}
-
-        //The temporary m_tmpSmfUpgradeCampaign is used because the Campaign
-        //object may be deleted (the m_campaign variable become empty), by the campaignThread 
-	//cleanup function before the SmfCampaignThread destructor is executed.
-
-	SmfUpgradeCampaign *upgradeCampaign = m_tmpSmfUpgradeCampaign;
-
-	if (upgradeCampaign != NULL) {
-		m_campaign->setUpgradeCampaign(NULL);
-		delete upgradeCampaign;
 	}
 
 	//Delete the IMM handler
@@ -166,6 +156,10 @@ int
 	uint32_t rc;
 
 	TRACE("Starting campaign thread %s", m_campaign->getDn().c_str());
+
+	sem_t localSemaphore;
+	sem_init(&localSemaphore, 0, 0);
+	m_semaphore = &localSemaphore;
 
 	/* Create the task */
 	int policy = SCHED_OTHER; /*root defaults */
@@ -189,7 +183,12 @@ int
 	}
 
 	/* Wait for the thread to start */
-	sem_wait(&m_semaphore);
+	while((sem_wait(&localSemaphore) == -1) && (errno == EINTR))
+               continue;       /* Restart if interrupted by handler */
+
+	m_semaphore = NULL;
+	sem_destroy(&localSemaphore);
+
 	return 0;
 }
 
@@ -202,13 +201,23 @@ int SmfCampaignThread::stop(void)
 	TRACE_ENTER();
 	TRACE("Stopping campaign thread %s", m_campaign->getDn().c_str());
 
+	sem_t localSemaphore;
+	sem_init(&localSemaphore, 0, 0);
+	m_semaphore = &localSemaphore;
+
 	/* send a message to the thread to make it terminate */
 	CAMPAIGN_EVT *evt = new CAMPAIGN_EVT();
 	evt->type = CAMPAIGN_EVT_TERMINATE;
 	this->send(evt);
 
 	/* Wait for the thread to terminate */
-	sem_wait(&m_semaphore);
+	while((sem_wait(&localSemaphore) == -1) && (errno == EINTR))
+               continue;       /* Restart if interrupted by handler */
+
+        //m_semaphore can not be written here since the thread may have already deleted the SmfCampaignThread object
+	//m_semaphore = NULL;
+	sem_destroy(&localSemaphore);
+
 	TRACE_LEAVE();
 	return 0;
 }
@@ -305,8 +314,12 @@ int SmfCampaignThread::send(CAMPAIGN_EVT * evt)
 {
 	uint32_t rc;
 
+	//Save the mailbox pointer since SmfCampaignThread object may be deleted 
+	//when SmfCampaignThread member variable m_mbx is used in m_NCS_IPC_SEND
+	SYSF_MBX tmp_mbx = m_mbx;
+
 	TRACE("Campaign thread send event type %d", evt->type);
-	rc = m_NCS_IPC_SEND(&m_mbx, (NCSCONTEXT) evt, NCS_IPC_PRIORITY_HIGH);
+	rc = m_NCS_IPC_SEND(&tmp_mbx, (NCSCONTEXT) evt, NCS_IPC_PRIORITY_HIGH);
 
 	return rc;
 }
@@ -521,10 +534,8 @@ void SmfCampaignThread::processEvt(void)
 		switch (evt->type) {
 		case CAMPAIGN_EVT_TERMINATE:
 			{
-				// Save a pointer to the SmfUpgradeCampaign since
-				// this pointer will be removed by the main process
-				// after ordering campaign thread terminate
-				m_tmpSmfUpgradeCampaign = m_campaign->getUpgradeCampaign();
+				delete m_campaign->getUpgradeCampaign();
+				m_campaign->setUpgradeCampaign(NULL);
 
 				/* */
 				m_running = false;
@@ -650,7 +661,9 @@ void SmfCampaignThread::main(void)
 		SaAmfHAStateT smfd_rda_role = SA_AMF_HA_STANDBY;
 
 		/* Mark the thread started */
-		sem_post(&m_semaphore);
+		if(m_semaphore != NULL) {
+			sem_post(m_semaphore);
+		}
 
 		if (initNtf() != 0) {
 			LOG_ER("initNtf failed");
@@ -676,13 +689,21 @@ void SmfCampaignThread::main(void)
 		}
 
 	} else {
-		sem_post(&m_semaphore);
 		LOG_ER("init failed");
+		if(m_semaphore != NULL) {
+			sem_post(m_semaphore);
+		}
 		return;
 	}
 	this->handleEvents();	/* runs forever until stopped */
 	/* Mark the thread terminated */
-	sem_post(&m_semaphore);
+	if(m_semaphore != NULL) {
+		//Write NULL just to clarify the SmfCampaign pointer is no longer available.
+                //The SmfCampaign objects will be deleted in smfd_campaign_oi cleanup
+		m_campaign = NULL;
+
+		sem_post(m_semaphore);
+	}
 
 	TRACE_LEAVE();
 }

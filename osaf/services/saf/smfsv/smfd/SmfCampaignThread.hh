@@ -198,7 +198,7 @@ class SmfCampaignThread {
 	SYSF_MBX m_cbkMbx;	/* mailbox for send/receive callback/response */
 	bool m_running;
 	SmfCampaign *m_campaign;
-	sem_t m_semaphore;
+	sem_t* m_semaphore;
 	SaNtfHandleT m_ntfHandle;
 	SaImmOiHandleT m_campOiHandle;	/* IMM OI handle */
 	SmfUpgradeCampaign * m_tmpSmfUpgradeCampaign; /*Used at campaign termination */

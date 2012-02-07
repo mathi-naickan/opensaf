@@ -132,7 +132,7 @@ class SmfProcedureThread {
 	SYSF_MBX m_cbk_mbx;	/* mailbox to send/receive callback/response */
 	bool m_running;
 	SmfUpgradeProcedure *m_procedure;
-	sem_t m_semaphore;
+	sem_t* m_semaphore;
 };
 
 #endif

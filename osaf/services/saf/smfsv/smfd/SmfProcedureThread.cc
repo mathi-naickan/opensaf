@@ -69,9 +69,9 @@ SmfProcedureThread::SmfProcedureThread(SmfUpgradeProcedure * procedure):
 	m_task_hdl(0),
 	m_mbx(0),
 	m_running(true), 
-	m_procedure(procedure)
+	m_procedure(procedure),
+	m_semaphore(NULL)
 {
-	sem_init(&m_semaphore, 0, 0);
 }
 
 /** 
@@ -92,6 +92,10 @@ SmfProcedureThread::start(void)
 
 	TRACE("Starting procedure thread %s", m_procedure->getDn().c_str());
 
+	sem_t localSemaphore;
+	sem_init(&localSemaphore, 0, 0);
+	m_semaphore = &localSemaphore;
+
 	/* Create the task */
 	int policy = SCHED_OTHER; /*root defaults */
 	int prio_val = sched_get_priority_min(policy);
@@ -100,21 +104,32 @@ SmfProcedureThread::start(void)
 	     m_NCS_TASK_CREATE((NCS_OS_CB) SmfProcedureThread::main, (NCSCONTEXT) this, (char *)"OSAF_SMF_PROC",
 			       prio_val, policy, m_PROCEDURE_STACKSIZE, &m_task_hdl)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("TASK_CREATE_FAILED");
+		m_semaphore = NULL;
+		sem_destroy(&localSemaphore);
 		return -1;
 	}
 
 	if ((rc =m_NCS_TASK_DETACH(m_task_hdl)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("TASK_START_DETACH\n");
+		m_semaphore = NULL;
+		sem_destroy(&localSemaphore);
 		return -1;
 	}
 
 	if ((rc = m_NCS_TASK_START(m_task_hdl)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("TASK_START_FAILED\n");
+		m_semaphore = NULL;
+		sem_destroy(&localSemaphore);
 		return -1;
 	}
 
 	/* Wait for the thread to start */
-	sem_wait(&m_semaphore);
+	while((sem_wait(&localSemaphore) == -1) && (errno == EINTR))
+               continue;       /* Restart if interrupted by handler */
+
+	m_semaphore = NULL;
+	sem_destroy(&localSemaphore);
+
 	return 0;
 }
 
@@ -128,13 +143,23 @@ SmfProcedureThread::stop(void)
 	TRACE_ENTER();
 	TRACE("Stopping procedure thread %s", m_procedure->getDn().c_str());
 
+	sem_t localSemaphore;
+	sem_init(&localSemaphore, 0, 0);
+	m_semaphore = &localSemaphore;
+
 	/* send a message to the thread to make it terminate */
 	PROCEDURE_EVT *evt = new PROCEDURE_EVT();
 	evt->type = PROCEDURE_EVT_TERMINATE;
 	this->send(evt);
 
 	/* Wait for the thread to terminate */
-	sem_wait(&m_semaphore);
+	while((sem_wait(&localSemaphore) == -1) && (errno == EINTR))
+               continue;       /* Restart if interrupted by handler */
+
+        //m_semaphore can not be written here since the thread may have already deleted the SmfProcedureThread object
+	//m_semaphore = NULL;
+	sem_destroy(&localSemaphore);
+
 	TRACE_LEAVE();
 	return 0;
 }
@@ -207,8 +232,12 @@ SmfProcedureThread::send(PROCEDURE_EVT * evt)
 {
 	uint32_t rc;
 
+	//Save the mailbox pointer since SmfProcedureThread object may be deleted 
+	//when SmfProcedureThread member variable m_mbx is used in m_NCS_IPC_SEND
+	SYSF_MBX tmp_mbx = m_mbx;
+	
 	TRACE("Procedure thread send event type %d", evt->type);
-	rc = m_NCS_IPC_SEND(&m_mbx, (NCSCONTEXT) evt, NCS_IPC_PRIORITY_HIGH);
+	rc = m_NCS_IPC_SEND(&tmp_mbx, (NCSCONTEXT) evt, NCS_IPC_PRIORITY_HIGH);
 	return rc;
 }
 
@@ -562,12 +591,16 @@ SmfProcedureThread::main(void)
 	TRACE_ENTER();
 	if (this->init() == 0) {
 		/* Mark the thread started */
-		sem_post(&m_semaphore);
+		if(m_semaphore != NULL) {
+			sem_post(m_semaphore);
+		}
 
 		this->handleEvents();	/* runs forever until stopped */
 
 		/* Mark the thread terminated */
-		sem_post(&m_semaphore);
+		if(m_semaphore != NULL) {
+			sem_post(m_semaphore);
+		}
 	} else {
 		LOG_ER("SmfProcedureThread: init failed");
 	}
