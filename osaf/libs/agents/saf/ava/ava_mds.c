@@ -590,7 +590,7 @@ uint32_t ava_mds_flat_dec(AVA_CB *cb, MDS_CALLBACK_DEC_FLAT_INFO *dec_info)
 							p8 = ncs_dec_flatten_space(dec_info->io_uba, (uint8_t *)&len, 2);
 							len = ncs_decode_16bit(&p8);
 							ncs_dec_skip_space(dec_info->io_uba, 2);
-							csi_set->attrs.list[i].string_ptr = calloc(1, len);
+							csi_set->attrs.list[i].string_ptr = calloc(1, len+1);
 							osafassert(csi_set->attrs.list[i].string_ptr);
 							rc = ncs_decode_n_octets_from_uba(dec_info->io_uba,
 								(uint8_t *)csi_set->attrs.list[i].string_ptr,
