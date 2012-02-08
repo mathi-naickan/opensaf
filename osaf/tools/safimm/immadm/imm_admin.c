@@ -110,21 +110,42 @@ static int init_param(SaImmAdminOperationParamsT_2 *param, char *arg)
 	int res = 0;
 	char *attrValue;
 	char *tmp = strdup(arg);
+	char *paramType = NULL;
+	char *paramName = NULL;
+	int offset = 0;
 
-	if ((param->paramName = strtok(tmp, PARAMDELIM)) == NULL) {
+	if ((paramName = strtok(tmp, PARAMDELIM)) == NULL) {
 		res = -1;
 		goto done;
 	}
 
-	if ((param->paramType = str2_saImmValueTypeT(strtok(NULL, PARAMDELIM))) == -1) {
+	offset += strlen(paramName);
+
+	if ((param->paramName = strdup(paramName)) == NULL) {
 		res = -1;
 		goto done;
 	}
 
+	if ((paramType = strtok(NULL, PARAMDELIM)) == NULL) {
+		res = -1;
+		goto done;
+	}
+
+	offset += strlen(paramType);
+
+	if ((param->paramType = str2_saImmValueTypeT(paramType)) == -1) {
+		res = -1;
+		goto done;
+	}
+
+	/* make sure there is a param value */
 	if ((attrValue = strtok(NULL, PARAMDELIM)) == NULL) {
 		res = -1;
 		goto done;
 	}
+
+	/* get the attrValue. Also account for the 2 colons used to separate the parameters */
+	attrValue = arg + offset + 2;
 
 	param->paramBuffer = immutil_new_attrValue(param->paramType, attrValue);
 
