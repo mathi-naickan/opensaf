@@ -31,3 +31,7 @@ librda_la_SOURCES = \
 	rda_papi.c
 
 librda_la_LDFLAGS = -version-info @OPENSAF_LIB_VERSION@
+
+librda_la_LIBADD = \
+	$(top_builddir)/osaf/libs/core/libopensaf_core.la
+
