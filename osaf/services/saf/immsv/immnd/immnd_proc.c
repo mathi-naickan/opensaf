@@ -581,7 +581,7 @@ immnd_getOsafImmPbeAdmopParam(SaImmAdminOperationIdT operationId, void* evt,
 		case OPENSAF_IMM_PBE_CLASS_CREATE:
 		case OPENSAF_IMM_PBE_CLASS_DELETE:
 			classDescr = (IMMSV_OM_CLASS_DESCR *) evt;
-			param->paramName.size = strlen(classNameParamName);
+			param->paramName.size = (SaUint32T) strlen(classNameParamName);
 			param->paramName.buf = (char *) classNameParamName;
 			param->paramType = SA_IMM_ATTR_SASTRINGT;
 			param->paramBuffer.val.x = classDescr->className;
@@ -590,7 +590,7 @@ immnd_getOsafImmPbeAdmopParam(SaImmAdminOperationIdT operationId, void* evt,
 
 		case OPENSAF_IMM_PBE_UPDATE_EPOCH:
 			cb = (IMMND_CB *) evt;
-			param->paramName.size = strlen(epochStr);
+			param->paramName.size = (SaUint32T) strlen(epochStr);
 			param->paramName.buf = (char *) epochStr;
 			param->paramType = SA_IMM_ATTR_SAUINT32T;
 			param->paramBuffer.val.sauint32 = cb->mMyEpoch;
@@ -666,7 +666,7 @@ void immnd_adjustEpoch(IMMND_CB *cb, SaBoolT increment)
 			send_evt.info.imma.info.admOpReq.continuationId = implHandle;
 			send_evt.info.imma.info.admOpReq.invocation = continuationId;
 			send_evt.info.imma.info.admOpReq.timeout = 0;
-			send_evt.info.imma.info.admOpReq.objectName.size = strlen(osafImmDn);
+			send_evt.info.imma.info.admOpReq.objectName.size = (SaUint32T) strlen(osafImmDn);
 			send_evt.info.imma.info.admOpReq.objectName.buf = (char *) osafImmDn;
 			send_evt.info.imma.info.admOpReq.params =
 				immnd_getOsafImmPbeAdmopParam(OPENSAF_IMM_PBE_UPDATE_EPOCH,
@@ -1239,9 +1239,9 @@ static int immnd_forkLoader(IMMND_CB *cb)
 {
 	char loaderName[1024];
 	const char *base = basename(cb->mProgName);
-	int myLen = strlen(base);
-	int myAbsLen = strlen(cb->mProgName);
-	int loaderBaseLen = strlen(loaderBase);
+	int myLen = (int) strlen(base);
+	int myAbsLen = (int) strlen(cb->mProgName);
+	int loaderBaseLen = (int) strlen(loaderBase);
 	int pid = (-1);
 	int i, j;
 
@@ -1288,9 +1288,9 @@ static int immnd_forkSync(IMMND_CB *cb)
 {
 	char loaderName[1024];
 	const char *base = basename(cb->mProgName);
-	int myLen = strlen(base);
-	int myAbsLen = strlen(cb->mProgName);
-	int loaderBaseLen = strlen(loaderBase);
+	int myLen = (int) strlen(base);
+	int myAbsLen = (int) strlen(cb->mProgName);
+	int loaderBaseLen = (int) strlen(loaderBase);
 	int pid = (-1);
 	int i, j;
 	int maxSyncBatchSize = immModel_getMaxSyncBatchSize(cb);
@@ -1344,8 +1344,8 @@ static int immnd_forkPbe(IMMND_CB *cb)
 	const char *base = basename(cb->mProgName);
 	char pbePath[1024];
 	int pid = (-1);
-	int dirLen = strlen(cb->mDir);
-	int pbeLen = strlen(cb->mPbeFile);
+	int dirLen = (int) strlen(cb->mDir);
+	int pbeLen = (int) strlen(cb->mPbeFile);
 	int i, j;
 	TRACE_ENTER();
 
@@ -1433,7 +1433,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 	int32_t printFrq = (*timeout > 100) ? 5 : 50;
 	time_t now = time(NULL);
 	osafassert(now > ((time_t) 0));
-	uint32_t jobDuration = now - cb->mJobStart;
+	uint32_t jobDuration = (uint32_t) now - cb->mJobStart;
 	if(!jobDuration) {++jobDuration;} /* Avoid jobDuraton of zero */
 	/*TRACE_ENTER(); */
 

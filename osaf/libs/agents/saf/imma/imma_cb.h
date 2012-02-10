@@ -191,7 +191,7 @@ int imma_oi_ccb_record_close_augment(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT cc
 
 /*admin_owner tree*/
 uint32_t imma_admin_owner_tree_init(IMMA_CB *cb);
-uint32_t imma_admin_owner_node_get(NCS_PATRICIA_TREE *admin_owner_tree,
+void imma_admin_owner_node_get(NCS_PATRICIA_TREE *admin_owner_tree,
 					 SaImmAdminOwnerHandleT *adm_hdl, IMMA_ADMIN_OWNER_NODE **adm_node);
 void imma_admin_owner_node_getnext(IMMA_CB *cb,
 					    SaImmAdminOwnerHandleT *adm_hdl, IMMA_ADMIN_OWNER_NODE **adm_node);
@@ -211,7 +211,7 @@ void imma_ccb_tree_cleanup(IMMA_CB *cb);
 
 /*search tree */
 uint32_t imma_search_tree_init(IMMA_CB *cb);
-uint32_t imma_search_node_get(NCS_PATRICIA_TREE *search_tree,
+void imma_search_node_get(NCS_PATRICIA_TREE *search_tree,
 				    SaImmSearchHandleT *search_hdl, IMMA_SEARCH_NODE **search_node);
 void imma_search_node_getnext(IMMA_CB *cb, SaImmSearchHandleT *search_hdl, IMMA_SEARCH_NODE **search_node);
 uint32_t imma_search_node_add(NCS_PATRICIA_TREE *search_tree, IMMA_SEARCH_NODE *search_node);

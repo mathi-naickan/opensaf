@@ -137,7 +137,7 @@ ImmAttrValue::setValueC_str(const char* str)
     }
     
     if(str) {
-        mValueSize=  strlen(str) + 1;
+        mValueSize=  (unsigned int) strlen(str) + 1;
         mValue = new char[mValueSize];
         strncpy(mValue, str, mValueSize);
     }

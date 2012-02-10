@@ -394,7 +394,7 @@ immModel_pbePrtoPurgeMutations(IMMND_CB *cb, SaUint32T nodeId, SaUint32T *reqArr
     ConnVector::iterator cvi;
     unsigned int ix = 0;
     ImmModel::instance(&cb->immModel)->pbePrtoPurgeMutations(nodeId, cv);
-    *reqArrSize = cv.size();
+    *reqArrSize = (SaUint32T) cv.size();
     if(*reqArrSize) {
             *reqConnArr = (SaUint32T *) malloc((*reqArrSize)* sizeof(SaUint32T));
              for(cvi = cv.begin(); cvi!= cv.end();++cvi,++ix) {
@@ -475,7 +475,7 @@ immModel_ccbObjectCreate(IMMND_CB *cb,
             pbeConn, pbeNodeId, objectName);
 
     if(err == SA_AIS_OK) {
-        objName->length = objectName.size();
+        objName->length = (SaUint16T) objectName.size();
         strncpy((char *)objName->value, objectName.c_str(), objName->length+1);
     }
 
@@ -496,7 +496,7 @@ immModel_getLocalAppliersForObj(IMMND_CB *cb,
     ImmModel::instance(&cb->immModel)->
         getLocalAppliersForObj(objName, ccbId, cv, externalRep==SA_TRUE);
 
-    SaUint32T arrSize = cv.size();
+    SaUint32T arrSize = (SaUint32T) cv.size();
 
     if(arrSize) {
         *aplConnArr = (SaUint32T *) malloc((arrSize) * sizeof(SaUint32T));
@@ -522,7 +522,7 @@ immModel_getLocalAppliersForCcb(IMMND_CB *cb,
     ImmModel::instance(&cb->immModel)->
         getLocalAppliersForCcb(ccbId, cv, applCtnPtr);
 
-    SaUint32T arrSize = cv.size();
+    SaUint32T arrSize = (SaUint32T) cv.size();
 
     if(arrSize) {
         *aplConnArr = (SaUint32T *) malloc((arrSize) * sizeof(SaUint32T));
@@ -551,7 +551,7 @@ immModel_ccbObjectModify(IMMND_CB *cb,
             pbeConn, pbeNodeId, objectName);
 
     if(err == SA_AIS_OK) {
-        objName->length = objectName.size();
+        objName->length = (SaUint16T) objectName.size();
         strncpy((char *)objName->value, objectName.c_str(), objName->length+1);
     }
 
@@ -583,7 +583,7 @@ immModel_ccbObjectDelete(IMMND_CB *cb,
     SaAisErrorT err = 
         ImmModel::instance(&cb->immModel)->ccbObjectDelete(req,
             reqConn, ov, cv, iv, pbeConn, pbeNodeId, augDelete);
-    *arrSize = cv.size();
+    *arrSize = (SaUint32T) cv.size();
     osafassert(*arrSize == iv.size());
     osafassert(*arrSize == ov.size());
     if((err == SA_AIS_OK) && (*arrSize)) {
@@ -617,7 +617,7 @@ immModel_getNonCriticalCcbs(IMMND_CB *cb,
     unsigned int ix;
     
     ImmModel::instance(&cb->immModel)->getNonCriticalCcbs(ccbs);
-    *ccbIdArrSize = ccbs.size();
+    *ccbIdArrSize = (SaUint32T) ccbs.size();
     if(*ccbIdArrSize) {
         *ccbIdArr = (SaUint32T *) malloc((*ccbIdArrSize) * sizeof(SaUint32T));
         
@@ -652,7 +652,7 @@ immModel_getOldCriticalCcbs(IMMND_CB *cb,
     if(ImmModel::instance(&cb->immModel)->getPbeOi(pbeConn, pbeNodeId, false)) {
         ImmModel::instance(&cb->immModel)->getOldCriticalCcbs(ccbs, pbeConn,
             pbeNodeId, pbeId);
-        *ccbIdArrSize = ccbs.size();
+        *ccbIdArrSize = (SaUint32T) ccbs.size();
         if(*ccbIdArrSize) {
             *ccbIdArr = (SaUint32T *)
                 malloc((*ccbIdArrSize) * sizeof(SaUint32T));
@@ -718,7 +718,7 @@ immModel_cleanTheBasement(IMMND_CB *cb,
         pbePrtoReqs,
         iAmCoordNow);
 
-    *admReqArrSize = admReqs.size();
+    *admReqArrSize = (SaUint32T) admReqs.size();
     if(*admReqArrSize) {
         *admReqArr = (SaInvocationT *) malloc((*admReqArrSize) *
             sizeof(SaInvocationT));
@@ -730,7 +730,7 @@ immModel_cleanTheBasement(IMMND_CB *cb,
         osafassert(ix==(*admReqArrSize));
     }
     
-    *searchReqArrSize = searchReqs.size();
+    *searchReqArrSize = (SaUint32T) searchReqs.size();
     if(*searchReqArrSize) {
         *searchReqArr = (SaInvocationT *) malloc((*searchReqArrSize) * 
             sizeof(SaInvocationT));
@@ -742,7 +742,7 @@ immModel_cleanTheBasement(IMMND_CB *cb,
         osafassert(ix==(*searchReqArrSize));
     }
     
-    *ccbIdArrSize = ccbs.size();
+    *ccbIdArrSize = (SaUint32T) ccbs.size();
     if(*ccbIdArrSize) {
         *ccbIdArr = (SaUint32T *) malloc((*ccbIdArrSize) * sizeof(SaUint32T));
         
@@ -754,7 +754,7 @@ immModel_cleanTheBasement(IMMND_CB *cb,
         osafassert(ix==(*ccbIdArrSize));
     }
 
-    *pbePrtoReqArrSize = pbePrtoReqs.size();
+    *pbePrtoReqArrSize = (SaUint32T) pbePrtoReqs.size();
     if(*pbePrtoReqArrSize) {
         *pbePrtoReqArr = (SaUint32T *) 
             malloc((*pbePrtoReqArrSize) * sizeof(SaUint32T));
@@ -791,7 +791,7 @@ immModel_ccbApply(IMMND_CB *cb,
     SaAisErrorT err = ImmModel::instance(&cb->immModel)->
         ccbApply(ccbId, reqConn, cv, implsv, ctnv);
     
-    *arrSize = cv.size();
+    *arrSize = (SaUint32T) cv.size();
     if(*arrSize) {
         *implConnArr = (SaUint32T *) malloc((*arrSize)* sizeof(SaUint32T));
         
@@ -825,7 +825,7 @@ immModel_ccbAbort(IMMND_CB *cb,
 
     bool aborted = ImmModel::instance(&cb->immModel)->ccbAbort(ccbId, cv, client, pbeNodeId);
     
-    *arrSize = cv.size();
+    *arrSize = (SaUint32T) cv.size();
     if(*arrSize) {
         *implConnArr = (SaUint32T *) malloc((*arrSize)* sizeof(SaUint32T));
         
@@ -847,7 +847,7 @@ immModel_getCcbIdsForOrigCon(IMMND_CB *cb,
     ConnVector::iterator cvi;
     unsigned int ix=0;
     ImmModel::instance(&cb->immModel)->getCcbIdsForOrigCon(deadCon, cv);
-    *arrSize = cv.size();
+    *arrSize = (SaUint32T) cv.size();
     if(*arrSize) {
         *ccbIdArr = (SaUint32T *) malloc((*arrSize)* sizeof(SaUint32T));
         for(cvi = cv.begin(); cvi!=cv.end(); ++cvi, ++ix) {
@@ -867,7 +867,7 @@ immModel_discardNode(IMMND_CB *cb,
     ConnVector::iterator cvi;
     unsigned int ix=0;
     ImmModel::instance(&cb->immModel)->discardNode(nodeId, cv);
-    *arrSize = cv.size();
+    *arrSize = (SaUint32T) cv.size();
     if(*arrSize) {
         *ccbIdArr = (SaUint32T *) malloc((*arrSize)* sizeof(SaUint32T));
         for(cvi = cv.begin(); cvi!=cv.end(); ++cvi, ++ix) {
@@ -887,7 +887,7 @@ immModel_getAdminOwnerIdsForCon(IMMND_CB *cb,
     ConnVector::iterator cvi;
     unsigned int ix=0;
     ImmModel::instance(&cb->immModel)->getAdminOwnerIdsForCon(deadCon, cv);
-    *arrSize = cv.size();
+    *arrSize = (SaUint32T) cv.size();
     if(*arrSize) {
         *admoIdArr = (SaUint32T *) malloc((*arrSize)* sizeof(SaUint32T));
         for(cvi = cv.begin(); cvi!=cv.end(); ++cvi, ++ix) {
@@ -962,7 +962,7 @@ immModel_ccbCommit(IMMND_CB *cb,
     SaBoolT pbeModeChange = (SaBoolT) 
         ImmModel::instance(&cb->immModel)->ccbCommit(ccbId, cv);
     
-    *arrSize = cv.size();
+    *arrSize = (SaUint32T) cv.size();
     if(*arrSize) {
         *implConnArr = (SaUint32T *) malloc((*arrSize)* sizeof(SaUint32T));
         
@@ -1464,7 +1464,7 @@ immModel_rtObjectDelete(IMMND_CB *cb,
         rtObjectDelete(req, implConn, (unsigned int) implNodeId,
             continuationId, pbeConn, pbeNodeId, ov);
 
-    (*arrSizePtr) = ov.size();
+    (*arrSizePtr) = (SaUint32T) ov.size();
     if((err == SA_AIS_OK) && (*arrSizePtr)) {
        *objNameArr = (SaStringT *) malloc((*arrSizePtr)* sizeof(SaStringT));
 
@@ -2956,7 +2956,8 @@ ImmModel::attrCreate(ClassInfo* classInfo, const ImmsvAttrDefinition* attr,
             
         AttrInfo* attrInfo = new AttrInfo;
         attrInfo->mValueType = attr->attrValueType;
-        attrInfo->mFlags = attr->attrFlags;
+	osafassert(attr->attrFlags < 0xffffffff);
+        attrInfo->mFlags = (SaUint32T) attr->attrFlags;
         attrInfo->mNtfId = attr->attrNtfId;
         if(attr->attrDefaultValue) {
             IMMSV_OCTET_STRING tmpos; //temporary octet string
@@ -3175,7 +3176,7 @@ ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard)
         
         if(immNotWritable()) {
             if(hard) {
-                unsigned int siz = (*i)->mTouchedObjects.size();
+                unsigned int siz = (unsigned int) (*i)->mTouchedObjects.size();
                 if(siz >= IMMSV_MAX_OBJECTS) {
                     LOG_WA("Forcing immediate hard delete of large (%u) admin owner with id:%u "
                            "to clear way for sync", siz, ownerId);
@@ -4995,7 +4996,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
 
                     p = new immsv_attr_values_list;
                     (*trailing_p) = p;
-                    p->n.attrName.size = attrName.size() +1;
+                    p->n.attrName.size = (SaUint32T) attrName.size() +1;
                     p->n.attrName.buf = strdup(attrName.c_str());
                     p->n.attrValueType = attr->mValueType;
                     p->n.attrMoreValues = NULL;
@@ -5144,7 +5145,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                 //TRACE("Missing parent %s has child %p", parentName.c_str(), object);
             }
             
-            unsigned int sze = sObjectMap.size();
+            unsigned int sze = (unsigned int) sObjectMap.size();
             if(sze >= 5000) {
                 if(sze%1000 == 0) {
                     LOG_WA("Number of objects in IMM is:%u", sze);
@@ -7396,7 +7397,7 @@ SaAisErrorT ImmModel::nextSyncResult(ImmsvOmRspSearchNext** rsp, ImmSearchOp& op
         AttrMap::iterator k = classInfo->mAttrMap.find(j->first);
         osafassert(k != classInfo->mAttrMap.end());
         //op.addAttribute(j->first, k->second->mValueType, k->second->mFlags);
-        attr->attrName.size = j->first.length()+1;
+        attr->attrName.size = (SaUint32T) j->first.length()+1;
         attr->attrName.buf = strdup(j->first.c_str());
         attr->attrValueType = k->second->mValueType;
 
@@ -7783,13 +7784,6 @@ ImmModel::nameToInternal(std::string& name)
         prev_chr = chr;
     }
 
-    /*
-    if(effective) {
-        TRACE_5("Replaced occurences of '\\,' with '\\#' result:%s",
-            name.c_str());
-    }
-    */
-
     return nameCheck(name, false);
 }
 
@@ -7808,13 +7802,6 @@ ImmModel::nameToExternal(std::string& name)
         }
         prev_chr = chr;
     }
-
-    /*
-    if(effective) {
-        TRACE_5("Replaced occurences of '\\#' with '\\,' result:%s",
-            name.c_str());
-    }
-    */
 }
 
 void
@@ -10243,7 +10230,7 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
                     */
                     attrValue->setValueC_str(object->mImplementer->mImplementerName.c_str());
                     p = new immsv_attr_values_list;
-                    p->n.attrName.size = attrName.size() + 1;
+                    p->n.attrName.size = (SaUint32T) attrName.size() + 1;
                     p->n.attrName.buf = strdup(attrName.c_str());
                     p->n.attrValueType = SA_IMM_ATTR_SASTRINGT;
                     p->n.attrMoreValues = NULL;
@@ -11550,7 +11537,7 @@ ImmModel::fetchRtUpdate(ImmsvOmObjectSync* syncReq, ImmsvOmCcbObjectModify* modR
                 syncFevsBase);
             modReq->attrMods = dRtAU.attrModsList;
             dRtAU.attrModsList = NULL;
-            modReq->objectName.size = sz;
+            modReq->objectName.size = (SaUint32T) sz;
             modReq->objectName.buf = syncReq->objectName.buf; /* Warning borrowed string. */
             retVal = true;
             attrUpdList->pop_front();
@@ -11974,7 +11961,7 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             }
 
             ai->nodeId = (*i)->mNodeId;
-            ai->adminOwnerName.size = (*i)->mAdminOwnerName.size();
+            ai->adminOwnerName.size = (SaUint32T) (*i)->mAdminOwnerName.size();
             ai->adminOwnerName.buf = 
                 strndup((char *) (*i)->mAdminOwnerName.c_str(),
                     ai->adminOwnerName.size);
@@ -11997,7 +11984,7 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                     osafassert(nameToInternal(objName));
                 }
 
-                nl->name.size = objName.size();
+                nl->name.size = (SaUint32T) objName.size();
                 nl->name.buf =strndup((char *) objName.c_str(), 
                     nl->name.size);
                 nl->next = ai->touchedObjects;
@@ -12047,7 +12034,7 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 ii->nodeId = (*i2)->mNodeId;
                 ii->mds_dest = (*i2)->mMds_dest;
             }
-            ii->implementerName.size = (*i2)->mImplementerName.size();
+            ii->implementerName.size = (SaUint32T) (*i2)->mImplementerName.size();
             ii->implementerName.buf = 
                 strndup((char *) (*i2)->mImplementerName.c_str(), 
                     ii->implementerName.size);
@@ -12065,17 +12052,17 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             ClassInfo* ci = i3->second;
             ImmsvClassList* ioci = (ImmsvClassList *) 
                 calloc(1, sizeof(ImmsvClassList));
-            ioci->className.size = i3->first.size();
+            ioci->className.size = (SaUint32T) i3->first.size();
             ioci->className.buf = 
                 strndup((char *) i3->first.c_str(), ioci->className.size);
             if(ci->mImplementer) {
-                ioci->classImplName.size = 
+		    ioci->classImplName.size = (SaUint32T)
                     ci->mImplementer->mImplementerName.size();
                 ioci->classImplName.buf = 
                     strndup((char *)ci->mImplementer->mImplementerName.c_str(),
                         ioci->classImplName.size);
             }
-            ioci->nrofInstances = ci->mExtent.size();
+            ioci->nrofInstances = (SaUint32T) ci->mExtent.size();
             ioci->next = req->classes;
             req->classes = ioci;
         }

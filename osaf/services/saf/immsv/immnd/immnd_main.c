@@ -131,10 +131,22 @@ static uint32_t immnd_initialize(char *progname)
 	immnd_cb->mDir = getenv("IMMSV_ROOT_DIRECTORY");
 	immnd_cb->mFile = getenv("IMMSV_LOAD_FILE");
 	if ((envVar = getenv("IMMSV_NUM_NODES"))) {
-		immnd_cb->mExpectedNodes = atoi(envVar);
+		int numNodes = atoi(envVar);
+		if(numNodes > 255) {
+			LOG_WA("IMMSV_NUM_NODES set to %u, must be "
+				"less than 256. Setting to 255", numNodes);
+			numNodes = 255;
+		}
+		immnd_cb->mExpectedNodes = (uint8_t) numNodes;
 	}
 	if ((envVar = getenv("IMMSV_MAX_WAIT"))) {
-		immnd_cb->mWaitSecs = atoi(envVar);
+		int waitSecs = atoi(envVar);
+		if(waitSecs > 255) {
+			LOG_WA("IMMSV_MAX_WAIT set to %u, must be "
+				"less than 256. Setting to 255", waitSecs);
+			waitSecs = 255;
+		}
+		immnd_cb->mWaitSecs = waitSecs;
 	}
 
 	if ((immnd_cb->mPbeFile = getenv("IMMSV_PBE_FILE")) != NULL) {
@@ -244,7 +256,7 @@ int main(int argc, char *argv[])
 	if (immnd_cb->nid_started)
 		fds[FD_AMF].fd = immnd_cb->usr1_sel_obj.rmv_obj;
 	else
-		fds[FD_AMF].fd = immnd_cb->amf_sel_obj;
+		fds[FD_AMF].fd = (int) immnd_cb->amf_sel_obj;
 
 	fds[FD_AMF].events = POLLIN;
 	fds[FD_MBX].fd = mbx_fd.rmv_obj;
@@ -254,7 +266,7 @@ int main(int argc, char *argv[])
 		/* Watch out for performance bug. Possibly change from event-count
 		   to recalculated timer. */
 		/* ABT 13/07 2009 actually using both event-count and recalculated timer now. */
-		uint32_t passed_time = start_time ? (m_NCS_GET_TIME_MS - start_time) : 0;
+		uint32_t passed_time = (uint32_t) start_time ? (m_NCS_GET_TIME_MS - start_time) : 0;
 
 		maxEvt = (timeout == 100) ? 50 : 100;
 
@@ -296,7 +308,7 @@ int main(int argc, char *argv[])
 						break;
 
 					TRACE("AMF Initialization SUCCESS......");
-					fds[FD_AMF].fd = immnd_cb->amf_sel_obj;
+					fds[FD_AMF].fd = (int) immnd_cb->amf_sel_obj;
 				}
 			}
 

@@ -204,9 +204,9 @@ uint32_t immnd_amf_init(IMMND_CB *cb)
 
 	if (health_key == NULL) {
 		strcpy((char *)healthy.key, "A1B2");
-		healthy.keyLen = strlen((char *)healthy.key);
+		healthy.keyLen = (SaUint16T) strlen((char *)healthy.key);
 	} else {
-		healthy.keyLen = strlen((char *)health_key);
+		healthy.keyLen = (SaUint16T) strlen((char *)health_key);
 		if (healthy.keyLen <= SA_MAX_NAME_LENGTH) {
 			strcpy((char *)healthy.key, health_key);
 		} else {

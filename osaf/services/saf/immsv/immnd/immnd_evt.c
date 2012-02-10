@@ -2573,7 +2573,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 	/*Borrow the octet buffer from the input message instead of copying */
 	send_evt.info.immd.info.fevsReq.msg.buf = evt->info.fevsReq.msg.buf;
 	send_evt.info.immd.info.fevsReq.isObjSync = (evt->type == IMMND_EVT_A2ND_IMM_FEVS_2)?
-		evt->info.fevsReq.isObjSync:0x0;
+		(uint8_t) evt->info.fevsReq.isObjSync:0x0;
 
 	/* send the request to the IMMD */
 
@@ -3969,7 +3969,7 @@ static void immnd_evt_proc_class_create(IMMND_CB *cb,
 				send_evt.info.imma.info.admOpReq.continuationId = implHandle;
 				send_evt.info.imma.info.admOpReq.invocation = continuationId;
 				send_evt.info.imma.info.admOpReq.timeout = 0;
-				send_evt.info.imma.info.admOpReq.objectName.size = strlen(osafImmDn);
+				send_evt.info.imma.info.admOpReq.objectName.size = (SaUint32T) strlen(osafImmDn);
 				send_evt.info.imma.info.admOpReq.objectName.buf =
 					(char *) osafImmDn;
 				send_evt.info.imma.info.admOpReq.params =
@@ -4115,7 +4115,7 @@ static void immnd_evt_proc_class_delete(IMMND_CB *cb,
 				send_evt.info.imma.info.admOpReq.continuationId = implHandle;
 				send_evt.info.imma.info.admOpReq.invocation = continuationId;
 				send_evt.info.imma.info.admOpReq.timeout = 0;
-				send_evt.info.imma.info.admOpReq.objectName.size = strlen(osafImmDn);
+				send_evt.info.imma.info.admOpReq.objectName.size = (SaUint32T) strlen(osafImmDn);
 				send_evt.info.imma.info.admOpReq.objectName.buf =
 					(char *) osafImmDn;
 				send_evt.info.imma.info.admOpReq.params =
@@ -5313,7 +5313,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 			int ix = 0;
 			for (; ix < arrSize && err == SA_AIS_OK; ++ix) {
 				send_evt.info.imma.info.objDelete.objectName.size = 
-					strlen(objNameArr[ix]);
+					(SaUint32T) strlen(objNameArr[ix]);
 				send_evt.info.imma.info.objDelete.objectName.buf = 
 					objNameArr[ix];
 
@@ -5364,7 +5364,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 					   No implementer upcalls are generated for any runtime objects
 					   (persistent or not) that are deleted as a side effect.
 					 */
-					send_evt.info.imma.info.objDelete.objectName.size = strlen(objNameArr[ix]);
+					send_evt.info.imma.info.objDelete.objectName.size = (SaUint32T) strlen(objNameArr[ix]);
 					send_evt.info.imma.info.objDelete.objectName.buf = objNameArr[ix];
 					send_evt.info.imma.info.objDelete.adminOwnerId = invocArr[ix];
 					send_evt.info.imma.info.objDelete.immHandle = implHandle;
@@ -5409,7 +5409,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 		for (; ix < arrSize && err == SA_AIS_OK; ++ix) { /* Iterate over deleted objects */
 			SaUint32T *applConnArr = NULL;
 			SaNameT objName;
-			objName.length = strlen(objNameArr[ix]);
+			objName.length = (SaUint32T) strlen(objNameArr[ix]);
 			send_evt.info.imma.info.objDelete.objectName.size = objName.length;
 			osafassert(objName.length < SA_MAX_NAME_LENGTH);
 			strncpy((char *) objName.value, objNameArr[ix], SA_MAX_NAME_LENGTH);
@@ -5579,7 +5579,7 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb,
 				int ix = 0;
 				for (; ix < arrSize && err == SA_AIS_OK; ++ix) {
 					send_evt.info.imma.info.objDelete.objectName.size = 
-						strlen(objNameArr[ix]);
+						(SaUint32T) strlen(objNameArr[ix]);
 					send_evt.info.imma.info.objDelete.objectName.buf = 
 						objNameArr[ix];
 
@@ -7772,7 +7772,7 @@ static void immnd_evt_proc_ccbinit_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	SaAisErrorT err;
-	NCS_NODE_ID nodeId;
+	SaUint32T nodeId;
 	SaUint32T conn;
 
 	osafassert(evt);

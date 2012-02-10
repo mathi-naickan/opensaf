@@ -1306,7 +1306,7 @@ SaAisErrorT saImmOmCcbInitialize(SaImmAdminOwnerHandleT adminOwnerHandle,
 	}
 	locked = true;
 
-	proc_rc = imma_admin_owner_node_get(&cb->admin_owner_tree, &adminOwnerHandle, &ao_node);
+	imma_admin_owner_node_get(&cb->admin_owner_tree, &adminOwnerHandle, &ao_node);
 	if (!ao_node) {
 		TRACE_2("ERR_BAD_HANDLE: Admin owner handle not valid");
 		rc = SA_AIS_ERR_BAD_HANDLE;
@@ -3311,7 +3311,7 @@ static SaAisErrorT admin_op_invoke_common(
 	/*locked == true already */
 
 	/* Get the Admin Owner info  */
-	(void)imma_admin_owner_node_get(&cb->admin_owner_tree, &ownerHandle, &ao_node);
+	imma_admin_owner_node_get(&cb->admin_owner_tree, &ownerHandle, &ao_node);
 	if (!ao_node) {
 		TRACE_2("ERR_BAD_HANDLE: No admin owner associated with admin owner handle!");
 		rc = SA_AIS_ERR_BAD_HANDLE;
@@ -5116,7 +5116,7 @@ SaAisErrorT saImmOmAccessorGet_2(SaImmAccessorHandleT accessorHandle,
 	}
 	/*locked is true already */
 
-	(void)imma_search_node_get(&cb->search_tree, &accessorHandle, &search_node);
+	imma_search_node_get(&cb->search_tree, &accessorHandle, &search_node);
 
 	if (!search_node) {
 		TRACE_2("ERR_BAD_HANDLE: Search node is missing");

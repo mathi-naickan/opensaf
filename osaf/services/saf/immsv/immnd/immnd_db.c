@@ -237,7 +237,7 @@ void immnd_enqueue_incoming_fevs_msg(IMMND_CB *cb, SaUint64T msgNo, SaImmHandleT
 
  expectations:
 	*next_expected = cb->highestProcessed + 1;
-	*andHowManyMore = (cb->fevs_in_list->msgNo) - (*next_expected);
+	*andHowManyMore = (SaUint32T) (cb->fevs_in_list->msgNo) - (*next_expected);
 }
 
 /***************************************************************************

@@ -808,13 +808,11 @@ uint32_t imma_admin_owner_tree_init(IMMA_CB *cb)
                   NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
   Notes         : The caller takes the cb lock before calling this function                 
 ******************************************************************************/
-uint32_t imma_admin_owner_node_get(NCS_PATRICIA_TREE *admin_owner_tree,
+void imma_admin_owner_node_get(NCS_PATRICIA_TREE *admin_owner_tree,
 	              SaImmAdminOwnerHandleT *adm_hdl, IMMA_ADMIN_OWNER_NODE **adm_node)
 {
 	*adm_node = (IMMA_ADMIN_OWNER_NODE *)
 	    ncs_patricia_tree_get(admin_owner_tree, (uint8_t *)adm_hdl);
-
-	return NCSCC_RC_SUCCESS;
 }
 
 /******************************************************************************
@@ -1117,13 +1115,11 @@ uint32_t imma_search_tree_init(IMMA_CB *cb)
                   NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
   Notes         : The caller takes the cb lock before calling this function 
 ******************************************************************************/
-uint32_t imma_search_node_get(NCS_PATRICIA_TREE *search_tree,
+void imma_search_node_get(NCS_PATRICIA_TREE *search_tree,
 			   SaImmSearchHandleT *search_hdl, IMMA_SEARCH_NODE **search_node)
 {
 	*search_node = (IMMA_SEARCH_NODE *)
 	    ncs_patricia_tree_get(search_tree, (uint8_t *)search_hdl);
-
-	return NCSCC_RC_SUCCESS;
 }
 
 /******************************************************************************
