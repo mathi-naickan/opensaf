@@ -202,7 +202,6 @@ SaAisErrorT NtfLogger::logNotification(NtfSmartPtr& notif)
     /* Write to the log if we're the local node */
     SaAisErrorT  errorCode = SA_AIS_OK;
     SaLogHeaderT logHeader;
-    SaTimeT      timeout;
     char addTextBuf[MAX_ADDITIONAL_TEXT_LENGTH];
     SaLogBufferT logBuffer;
     ntfsv_send_not_req_t* sendNotInfo;
@@ -239,8 +238,6 @@ SaAisErrorT NtfLogger::logNotification(NtfSmartPtr& notif)
         logHeader,
         &logBuffer
     };
-
-    timeout = LOG_NOTIFICATION_TIMEOUT;
 
     /* Also write alarms and security alarms to the alarm log */
     if ((notif->sendNotInfo_->notificationType == SA_NTF_TYPE_ALARM) ||
