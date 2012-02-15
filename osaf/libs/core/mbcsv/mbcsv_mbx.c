@@ -124,7 +124,6 @@ uint32_t mbcsv_rmv_entry(uint32_t pwe_hdl, SS_SVC_ID svc_id)
 {
 	MBCSV_MBX_KEY key;
 	MBCSV_MBX_INFO *tree_entry;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
 	memset(&key, '\0', sizeof(MBCSV_MBX_KEY));
@@ -136,7 +135,6 @@ uint32_t mbcsv_rmv_entry(uint32_t pwe_hdl, SS_SVC_ID svc_id)
 
 	if (NULL == (tree_entry = (MBCSV_MBX_INFO *)ncs_patricia_tree_get(&mbcsv_cb.mbx_list, (const uint8_t *)&key))) {
 		TRACE("Mailbox entry for this pwe and service ID:%u does not exist", svc_id);
-		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 

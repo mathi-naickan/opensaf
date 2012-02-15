@@ -2011,33 +2011,6 @@ unsigned int os_cur_cpu_usage(void)
 	return 0;
 }
 
-/*****************************************************************************
- **                                                                         **
- **                                                                         **
- **             Socket Support                                              **
- **                                                                         **
- **                                                                         **
- ****************************************************************************/
-
-      /** Construct a Filter to accept only multicast on our if_index.
-       This filter could be useful when opening a socket that will need
-    to receive multicast addressed datagrams.
-       **/
-
-/*****************************************************************************
- **                                                                         **
- **                                                                         **
- **                                                                         **
- ****************************************************************************/
-unsigned int linux_char_normalizer(void)
-{
-	unsigned int key = 0x00;
-	unsigned int chr;
-
-	chr = ncs_unbuf_getch();
-	return key;
-}
-
 /***************************************************************************
  *
  * ncs_os_target_init

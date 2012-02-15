@@ -117,8 +117,6 @@ extern "C" {
  ****************************************************************************/
 #define m_NCS_CONS_UNBUF_GETCHAR  m_NCS_OS_UNBUF_GETCHAR
 
-#define m_NCS_CONIO_NORMALIZE_CHR m_NCS_OS_NORMALIZE_CHR
-
 /*****************************************************************************
  **                                                                         **
  **                                                                         **

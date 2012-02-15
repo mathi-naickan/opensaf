@@ -149,9 +149,6 @@ extern void ncs_os_atomic_dec(uint32_t *p_uns32);
 
 #define m_NCS_OS_UNBUF_GETCHAR           ncs_unbuf_getch
 
-	unsigned int linux_char_normalizer(void);
-#define m_NCS_OS_NORMALIZE_CHR           linux_char_normalizer
-
 #define __NCSINC_LINUX__
 
 /*****************************************************************************

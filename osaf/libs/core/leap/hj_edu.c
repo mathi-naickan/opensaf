@@ -1030,11 +1030,8 @@ uint32_t ncs_edu_prfm_dec_on_non_ptr(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 		 */
 		if ((*ptr_data_len) != 0) {
 			NCSCONTEXT lcl_mem_ptr = NULL;
-			EDU_INST_SET *next_rule;
-			next_rule = ((EDU_INST_SET *)rule) + 1;
 
-			lcl_mem_ptr = m_NCS_MEM_ALLOC(l_size * (*ptr_data_len), NCS_MEM_REGION_PERSISTENT, next_rule->fld2,	/* Svc-ID */
-						      next_rule->fld5 /* Sub-ID */ );
+			lcl_mem_ptr = malloc(l_size * (*ptr_data_len));
 			if (lcl_mem_ptr == NULL) {
 				*o_err = EDU_ERR_MEM_FAIL;
 				return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);

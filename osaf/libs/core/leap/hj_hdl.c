@@ -420,7 +420,6 @@ void ncshm_give_hdl(uint32_t uhdl)
 {
 	HM_CELL *cell = NULL;
 	HM_HDL *hdl = (HM_HDL *)&uhdl;
-	uint32_t dummy = 0;
 	uint32_t pool_id = 0;
 
 	pool_id = m_HM_DETM_POOL_FRM_HDL(&uhdl);
@@ -432,7 +431,7 @@ void ncshm_give_hdl(uint32_t uhdl)
 	if ((cell = hm_find_cell(hdl)) != NULL) {
 		if (cell->seq_id == hdl->seq_id) {
 			if (--cell->use_ct < 1) {
-				dummy = m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);	/* Client BUG..Too many give()s!! */
+				m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);	/* Client BUG..Too many give()s!! */
 				cell->use_ct++;
 			} else {
 				if ((cell->busy == false) && (cell->use_ct == 1))
@@ -762,9 +761,8 @@ uint32_t ncslpg_give(NCSLPG_OBJ *pg, uint32_t ret)
 
 uint32_t ncslpg_create(NCSLPG_OBJ *pg)
 {
-	uint32_t dummy;
 	if (pg->open == true)
-		dummy = m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+		m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 	pg->open = true;
 	pg->inhere = 0;
 	return NCSCC_RC_SUCCESS;

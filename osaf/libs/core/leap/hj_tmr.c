@@ -176,7 +176,6 @@ uint32_t ncs_rp_tmr_start(NCS_RP_TMR_CB *tmr_cb, NCS_RP_TMR_HDL tmr_id, uint32_t
 	NCS_RP_TMR_INFO *tmr_list;
 	NCS_RP_TMR_INFO *prev_info;
 	uint32_t left_sec = 0;
-	uint32_t res = NCSCC_RC_SUCCESS;
 
 	m_NCS_LOCK(&tmr_cb->tmr_lock, NCS_LOCK_WRITE);
 
@@ -184,7 +183,6 @@ uint32_t ncs_rp_tmr_start(NCS_RP_TMR_CB *tmr_cb, NCS_RP_TMR_HDL tmr_id, uint32_t
 		/* timer Id possible validation */
 		if (tmr_id == NULL) {
 			m_RP_TMR_LOG_MSG("ncs_rp_tmr_start got invalid timer id", tmr_id);
-			res = NCSCC_RC_FAILURE;
 			break;
 		}
 
@@ -200,7 +198,6 @@ uint32_t ncs_rp_tmr_start(NCS_RP_TMR_CB *tmr_cb, NCS_RP_TMR_HDL tmr_id, uint32_t
 
 		if ((tmr_info->pnext != NULL) || (tmr_info->pprev != NULL) || (tmr_info->tmr_value != 0x0)) {
 			m_RP_TMR_LOG_MSG("ncs_rp_tmr_start timer is already started", tmr_id);
-			res = NCSCC_RC_FAILURE;
 			break;
 		}
 		tmr_info->callback_arg = arg;

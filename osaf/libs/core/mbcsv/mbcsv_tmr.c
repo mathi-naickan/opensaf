@@ -230,7 +230,6 @@ void ncs_mbcsv_tmr_expiry(void *uarg)
 	NCS_MBCSV_TMR *tmr;
 	PEER_INST *peer;
 	uint8_t type;
-	uint8_t event;
 	MBCSV_EVT *mbc_evt;	/* MBCSV event to be posted */
 
 	if (NULL == (mbc_evt = m_MMGR_ALLOC_MBCSV_EVT)) {
@@ -242,7 +241,6 @@ void ncs_mbcsv_tmr_expiry(void *uarg)
 	tmr = (NCS_MBCSV_TMR *)uarg;
 	peer = (PEER_INST *)tmr->xdb;
 	type = tmr->type;
-	event = ncs_mbcsv_tmr_db[type].event;
 
 	/* Clean up timer. */
 	TRACE("Timer expired. my role:%u, svc_id:%u, pwe_hdl:%u, peer_anchor:%" PRIu64 ", tmr type:%s",

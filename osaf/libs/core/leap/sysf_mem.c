@@ -803,7 +803,6 @@ char *sysf_reserve_at_end_amap(USRBUF **ppb, unsigned int *io_size,
 {
 	USRBUF *ub;
 	char *pContiguousData;
-	uint32_t ub_hdr_rsrv;
 	uint32_t ub_trlr_rsrv;
 	int32_t min_rsrv;
 	int32_t space_left;
@@ -814,7 +813,6 @@ char *sysf_reserve_at_end_amap(USRBUF **ppb, unsigned int *io_size,
 		ub = ub->link;	/* advance to the last one, if nec. */
 		*ppb = ub;	/* tell the caller... */
 	}
-	ub_hdr_rsrv = gl_ub_pool_mgr.pools[ub->pool_ops->pool_id].hdr_reserve;
 	ub_trlr_rsrv = gl_ub_pool_mgr.pools[ub->pool_ops->pool_id].trlr_reserve;
 
 	/* Determine the minimum bytes that need to be reserved in the least */
@@ -1167,7 +1165,6 @@ static char *sysf_reserve_in_mid(USRBUF *pb, unsigned int offset, unsigned int s
 	unsigned int pload_size;
 	unsigned int post_data_len;
 	unsigned int num_in_buf;
-	char *pload;
 	USRBUF *new_ub;
 	USRBUF *new_ub2;
 	USRDATA *ud;
@@ -1203,7 +1200,6 @@ static char *sysf_reserve_in_mid(USRBUF *pb, unsigned int offset, unsigned int s
 	}
 
 	pload_size = sizeof(pb->payload->Data);
-	pload = m_MMGR_DATA(pb, char *);
 	post_data_len = pb->count - offset;
 
 	/* 
