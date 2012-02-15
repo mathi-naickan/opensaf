@@ -100,7 +100,7 @@ void mqnd_process_evt(MQSV_EVT *evt)
 void mqnd_process_dsend_evt(MQSV_DSEND_EVT *evt)
 {
 	MQND_CB *cb;
-	uint32_t cb_hdl = m_MQND_GET_HDL(), rc = NCSCC_RC_SUCCESS;
+	uint32_t cb_hdl = m_MQND_GET_HDL();
 	TRACE_ENTER();
 
 	/* Get the CB from the handle */
@@ -115,11 +115,11 @@ void mqnd_process_dsend_evt(MQSV_DSEND_EVT *evt)
 	switch (evt->type.req_type) {
 	case MQP_EVT_SEND_MSG:
 	case MQP_EVT_SEND_MSG_ASYNC:
-		rc = mqnd_evt_proc_send_msg(cb, evt);
+		(void)mqnd_evt_proc_send_msg(cb, evt);
 		break;
 
 	case MQP_EVT_STAT_UPD_REQ:
-		rc = mqnd_evt_proc_update_stats_shm(cb, evt);
+		(void)mqnd_evt_proc_update_stats_shm(cb, evt);
 		break;
 
 	default:
@@ -1240,7 +1240,6 @@ uint32_t mqnd_evt_proc_tmr_expiry(MQND_CB *cb, MQSV_EVT *evt)
 	MQND_QNAME_NODE *pnode = NULL;
 	SaNameT qname;
 	ASAPi_OPR_INFO opr;
-	SaAisErrorT err = SA_AIS_OK;
 	MQSV_EVT transfer_complete;
 	MQSV_EVT *qtrans_evt = NULL;
 	MQND_QTRANSFER_EVT_NODE *qevt_node = NULL;
@@ -1370,7 +1369,6 @@ uint32_t mqnd_evt_proc_tmr_expiry(MQND_CB *cb, MQSV_EVT *evt)
 								  && (opr.info.msg.resp->info.nresp.err.errcode !=
 								      SA_AIS_ERR_NOT_EXIST))) {
 			LOG_ER("ERR_TRY_AGAIN: Asapi Opr Handler for NameResolve Request Failed");
-			err = SA_AIS_ERR_TRY_AGAIN;
 			goto error;
 		}
 

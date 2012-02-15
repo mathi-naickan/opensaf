@@ -242,7 +242,6 @@ uint32_t mqnd_send_msg_update_stats_shm(MQND_CB *cb, MQND_QUEUE_NODE *qnode, SaS
 
 uint32_t mqnd_shm_queue_ckpt_section_invalidate(MQND_CB *cb, MQND_QUEUE_NODE *qnode)
 {
-	SaAisErrorT err = SA_AIS_OK;
 	uint32_t offset;
 
 	MQND_QUEUE_CKPT_INFO *shm_base_addr;
@@ -251,7 +250,6 @@ uint32_t mqnd_shm_queue_ckpt_section_invalidate(MQND_CB *cb, MQND_QUEUE_NODE *qn
 
 	if (!qnode) {
 		LOG_ER("ERR_BAD_HANDLE: Queue Node is NULL");
-		err = SA_AIS_ERR_BAD_HANDLE;
 		return NCSCC_RC_FAILURE;
 	}
 

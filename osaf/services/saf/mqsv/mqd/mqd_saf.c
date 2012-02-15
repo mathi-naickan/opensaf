@@ -59,7 +59,6 @@ static uint32_t mqd_process_quisced_state(MQD_CB *pMqd, SaInvocationT invocation
 void mqd_saf_hlth_chk_cb(SaInvocationT invocation, const SaNameT *compName, SaAmfHealthcheckKeyT *checkType)
 {
 	MQD_CB *pMqd = 0;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	SaAisErrorT saErr = SA_AIS_OK;
 	/* Get the COntrol Block Pointer */
 	pMqd = ncshm_take_hdl(NCS_SERVICE_ID_MQD, gl_mqdinfo.inst_hdl);
@@ -68,7 +67,6 @@ void mqd_saf_hlth_chk_cb(SaInvocationT invocation, const SaNameT *compName, SaAm
 		ncshm_give_hdl(pMqd->hdl);
 	} else {
 		LOG_ER("%s:%u: Instance Doesn't Exist", __FILE__, __LINE__);
-		rc = NCSCC_RC_FAILURE;
 	}
 	return;
 }	/* End of mqd_saf_hlth_chk_cb() */

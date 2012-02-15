@@ -299,7 +299,6 @@ uint32_t mqd_timer_expiry_evt_process(MQD_CB *pMqd, NODE_ID *nodeid)
 static uint32_t mqd_nd_status_evt_process(MQD_CB *pMqd, MQD_ND_STATUS_INFO *nd_info)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	void *ptr = 0;
 	MQD_ND_DB_NODE *pNdNode = 0;
 	SaTimeT timeout = m_NCS_CONVERT_SATIME_TO_TEN_MILLI_SEC(MQD_ND_EXPIRY_TIME_STANDBY);
 	NODE_ID node_id = 0;
@@ -345,7 +344,6 @@ static uint32_t mqd_nd_status_evt_process(MQD_CB *pMqd, MQD_ND_STATUS_INFO *nd_i
 				msg.info.nd_stat_evt.nodeid = m_NCS_NODE_ID_FROM_MDS_DEST(nd_info->dest);
 				msg.info.nd_stat_evt.is_restarting = nd_info->is_up;
 				msg.info.nd_stat_evt.downtime = nd_info->event_time;
-				ptr = &(msg.info.nd_stat_evt);
 				mqd_a2s_async_update(pMqd, MQD_A2S_MSG_TYPE_MQND_STATEVT,
 						     (void *)(&msg.info.nd_stat_evt));
 			}

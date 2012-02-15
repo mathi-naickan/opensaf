@@ -422,13 +422,11 @@ void mqd_main_process(uint32_t hdl)
 	SaAisErrorT err = SA_AIS_OK;
 	NCS_MBCSV_ARG mbcsv_arg;
 	SaSelectionObjectT amfSelObj,clmSelObj;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 	/* Get the controll block */
 	pMqd = ncshm_take_hdl(NCS_SERVICE_ID_MQD, hdl);
 	if (!pMqd) {
 		LOG_ER("%s:%u: Instance Doesn't Exist", __FILE__, __LINE__);
-		rc = NCSCC_RC_FAILURE;
 		return;
 	}
 

@@ -1970,12 +1970,9 @@ SaAisErrorT mqa_send_message(SaMsgHandleT msgHandle,
 	MQSV_DSEND_EVT *qsend_evt = NULL;
 	SaMsgQueueHandleT queueHandle = 0;
 	MDS_DEST destination_mqnd;
-	SaNameT sender;
 	bool lock_taken = false;
 	uint32_t length, o_msg_fmt_ver = MQA_PVT_SUBPART_VERSION, to_dest_ver;
 
-	sender.length = 0;
-	sender.value[0] = '\0';
 
 	TRACE_ENTER2(" SaMsgHandle %llu", msgHandle);
 
@@ -3192,14 +3189,11 @@ saMsgMessageSendReceive(SaMsgHandleT msgHandle,
 	MDS_DEST destination_mqnd, reply_mds_dest;
 	MQSV_EVT msg_dlvr_ack;
 	uint8_t unicast = 0;
-	SaNameT sender;
 	uint32_t num_queues;
 	uint64_t reply_msgsize;
 	bool is_svc_allocated = false;
 	uint32_t length, to_dest_ver, o_msg_fmt_ver;
 
-	sender.length = 0;
-	sender.value[0] = '\0';
 
 	TRACE_ENTER2(" SaMsgHandle %llu ", msgHandle);
 

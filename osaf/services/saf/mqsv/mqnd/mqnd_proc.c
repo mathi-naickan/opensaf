@@ -941,7 +941,6 @@ uint32_t mqnd_proc_queue_close(MQND_CB *cb, MQND_QUEUE_NODE *qnode, SaAisErrorT 
 	MQND_QNAME_NODE *pnode = 0;
 	SaNameT qname;
 	*err = SA_AIS_OK;
-	SaMsgQueueHandleT listenerHandle;
 	MQND_QUEUE_CKPT_INFO queue_ckpt_node;
 	SaUint32T isQueueOpen = false;
 	TRACE_ENTER();
@@ -1116,7 +1115,6 @@ uint32_t mqnd_proc_queue_close(MQND_CB *cb, MQND_QUEUE_NODE *qnode, SaAisErrorT 
 			asapi_msg_free(&opr.info.msg.resp);
 
 		/* Delete the listener queue if it exists */
-		listenerHandle = qnode->qinfo.listenerHandle;
 		mqnd_listenerq_destroy(&qnode->qinfo);
 		qnode->qinfo.listenerHandle = 0;
 

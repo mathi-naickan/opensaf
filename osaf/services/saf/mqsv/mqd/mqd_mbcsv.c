@@ -1142,7 +1142,6 @@ static uint32_t mqd_copy_data_to_cold_sync_structure(MQD_OBJ_INFO *obj_info, MQD
 	NCS_Q_ITR itr;
 	MQD_OBJECT_ELEM *pOelm = 0;
 	MQD_TRACK_OBJ *pTrkObj = 0;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
 	memset(mbcsv_info, 0, sizeof(MQD_A2S_QUEUE_INFO));
@@ -1154,7 +1153,6 @@ static uint32_t mqd_copy_data_to_cold_sync_structure(MQD_OBJ_INFO *obj_info, MQD
 		mbcsv_info->ilist_info = m_MMGR_ALLOC_MQD_DEFAULT_VAL(mbcsv_info->ilist_cnt * sizeof(SaNameT));
 		if (!mbcsv_info->ilist_info) {
 			LOG_CR("%s:%u: ERR_MEMORY: Failed To Allocate Memory", __FILE__, __LINE__);
-			rc = SA_AIS_ERR_NO_MEMORY;
 			return SA_AIS_ERR_NO_MEMORY;
 		}
 	}
@@ -1164,7 +1162,6 @@ static uint32_t mqd_copy_data_to_cold_sync_structure(MQD_OBJ_INFO *obj_info, MQD
 		    m_MMGR_ALLOC_MQD_DEFAULT_VAL(mbcsv_info->track_cnt * sizeof(MQD_A2S_TRACK_INFO));
 		if (!mbcsv_info->track_info) {
 			LOG_CR("%s:%u: ERR_MEMORY: Failed To Allocate Memory", __FILE__, __LINE__);
-			rc = SA_AIS_ERR_NO_MEMORY;
 			return SA_AIS_ERR_NO_MEMORY;
 		}
 	}

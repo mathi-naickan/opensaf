@@ -322,7 +322,6 @@ static uint32_t mqd_mds_vdest_destroy(MQD_CB *pMqd)
 static uint32_t mqd_mds_cpy(MQD_CB *pMqd, MDS_CALLBACK_COPY_INFO *cpy)
 {
 	MQSV_EVT *pEvt = 0;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	if (!pMqd) {
 		LOG_ER("%s:%u: Instance Doesn't Exist", __FILE__, __LINE__);
 		return NCSCC_RC_FAILURE;
@@ -341,7 +340,6 @@ static uint32_t mqd_mds_cpy(MQD_CB *pMqd, MDS_CALLBACK_COPY_INFO *cpy)
 		return NCSCC_RC_SUCCESS;
 	} else {
 		LOG_CR("%s:%u: Failed To Allocate Memory", __FILE__, __LINE__);
-		rc = NCSCC_RC_FAILURE;
 		return NCSCC_RC_FAILURE;
 	}
 }	/* End of mqd_mds_cpy() */

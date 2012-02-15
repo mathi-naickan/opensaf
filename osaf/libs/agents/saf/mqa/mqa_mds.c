@@ -266,11 +266,9 @@ uint32_t mqa_mds_callback(struct ncsmds_callback_info *info)
 
 static uint32_t mqa_mds_cpy(MQA_CB *cb, MDS_CALLBACK_COPY_INFO *cpy)
 {
-	MQSV_EVT *pEvt = 0, *src;
+	MQSV_EVT *pEvt = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
-
-	src = (MQSV_EVT *)cpy->i_msg;
 
 	pEvt = m_MMGR_ALLOC_MQSV_EVT(NCS_SERVICE_ID_MQA);
 
