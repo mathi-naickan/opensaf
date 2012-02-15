@@ -233,7 +233,6 @@ static uint32_t eds_proc_init_msg(EDS_CB *cb, EDSV_EDS_EVT *evt)
 static uint32_t eds_proc_finalize_msg(EDS_CB *cb, EDSV_EDS_EVT *evt)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	uint32_t async_rc = NCSCC_RC_SUCCESS;
 	EDS_CKPT_DATA ckpt;
 	TRACE_ENTER2("reg_id: %u", evt->info.msg.info.api_info.param.finalize.reg_id);
 
@@ -245,7 +244,7 @@ static uint32_t eds_proc_finalize_msg(EDS_CB *cb, EDSV_EDS_EVT *evt)
 		if (cb->ha_state == SA_AMF_HA_ACTIVE) {	/*Revisit this */
 			memset(&ckpt, 0, sizeof(ckpt));
 			m_EDSV_FILL_ASYNC_UPDATE_FINALIZE(ckpt, evt->info.msg.info.api_info.param.finalize.reg_id)
-			async_rc = send_async_update(cb, &ckpt, NCS_MBCSV_ACT_ADD);
+			(void)send_async_update(cb, &ckpt, NCS_MBCSV_ACT_ADD);
 		}
 	} else
 		TRACE("Finalize cleanup failed for agent_dest: %" PRIx64 " ,reg_id: %u", evt->fr_dest,
@@ -928,7 +927,6 @@ static uint32_t eds_proc_eda_misc_msg(EDSV_EDS_EVT *evt)
 static uint32_t eds_proc_ret_tmr_exp_evt(EDSV_EDS_EVT *evt)
 {
 	EDS_RETAINED_EVT_REC *ret_evt;
-	uint32_t store_chan_id;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	EDS_CB *eds_cb;
 	TRACE_ENTER();
@@ -950,7 +948,6 @@ static uint32_t eds_proc_ret_tmr_exp_evt(EDSV_EDS_EVT *evt)
    /** store the chan id as we would need it
     ** after the event is freed
     **/
-	store_chan_id = ret_evt->chan_id;
 
 /* CHECKPOINT:
    if ( EDS_CB->ha_state == standby)
@@ -991,7 +988,6 @@ static uint32_t eds_proc_eda_updn_mds_msg(EDSV_EDS_EVT *evt)
 {
 	EDS_CB *cb = NULL;
 	EDS_CKPT_DATA ckpt;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	uint32_t async_rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("agent dest: %" PRIx64, evt->fr_dest);
 
@@ -1024,7 +1020,6 @@ static uint32_t eds_proc_eda_updn_mds_msg(EDSV_EDS_EVT *evt)
 			if (eds_eda_entry_valid(cb, evt->fr_dest)) {
 				if (NULL == (eda_down_rec = m_MMGR_ALLOC_EDA_DOWN_LIST(sizeof(EDA_DOWN_LIST)))) {
 					/* Log it */
-					rc = NCSCC_RC_OUT_OF_MEM;
 					LOG_ER("malloc failed for EDA down list");
 					break;
 				}

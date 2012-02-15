@@ -677,7 +677,6 @@ static uint32_t eds_add_chan_open_list(EDS_CB *cb, uint32_t reg_id, uint32_t cha
  ***************************************************************************/
 static void eds_channel_close_by_regid(EDS_CB *cb, uint32_t reg_id, bool forced)
 {
-	uint32_t rs;
 	EDA_REG_REC *reglist;
 	CHAN_OPEN_LIST *cl;
 	CHAN_OPEN_LIST *next;
@@ -694,7 +693,7 @@ static void eds_channel_close_by_regid(EDS_CB *cb, uint32_t reg_id, bool forced)
 	cl = reglist->chan_open_list;
 	while (cl) {
 		next = cl->next;
-		rs = eds_channel_close(cb, cl->reg_id, cl->chan_id, cl->chan_open_id, forced);
+		(void)eds_channel_close(cb, cl->reg_id, cl->chan_id, cl->chan_open_id, forced);
 		cl = next;
 	}
 	TRACE_LEAVE();
@@ -1578,7 +1577,6 @@ eds_channel_open(EDS_CB *cb, uint32_t reg_id, uint32_t flags,
  ***************************************************************************/
 uint32_t eds_channel_close(EDS_CB *cb, uint32_t reg_id, uint32_t chan_id, uint32_t chan_open_id, bool forced)
 {
-	uint32_t rs;
 	uint32_t copen_id_Net;
 	EDS_WORKLIST *wp;
 	CHAN_OPEN_REC *co;
@@ -1607,7 +1605,7 @@ uint32_t eds_channel_close(EDS_CB *cb, uint32_t reg_id, uint32_t chan_id, uint32
 	subrec = co->subsc_rec_head;	/* Point to first subscription record */
 	while (subrec) {	/* Make sure no subscriptions left */
 		next = subrec->next;
-		rs = eds_remove_subscription(cb,
+		(void)eds_remove_subscription(cb,
 					     subrec->reg_list->reg_id,
 					     subrec->chan_id, subrec->chan_open_id, subrec->subscript_id);
 		subrec = next;

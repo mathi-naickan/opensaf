@@ -392,7 +392,6 @@ SaAisErrorT saEvtFinalize(SaEvtHandleT evtHandle)
 	EDA_CLIENT_HDL_REC *hdl_rec = 0;
 	EDSV_MSG msg;
 	SaAisErrorT rc = SA_AIS_OK;
-	uint32_t reg_id;
 	TRACE_ENTER2("event handle: %llx", evtHandle);
 
 	/* retrieve EDA CB */
@@ -421,8 +420,7 @@ SaAisErrorT saEvtFinalize(SaEvtHandleT evtHandle)
 		TRACE_LEAVE();
 		return rc;
 	}
-	/* For Logging the Data */
-	reg_id = hdl_rec->eds_reg_id;
+	TRACE("reg_id: %u", hdl_rec->eds_reg_id);
    /** populate & send the finalize message 
     ** and make sure the finalize from the server
     ** end returned before deleting the local records.
@@ -823,7 +821,6 @@ SaAisErrorT saEvtChannelClose(SaEvtChannelHandleT channelHandle)
 	EDA_CHANNEL_HDL_REC *chan_hdl_rec;
 	EDSV_MSG msg;
 	SaAisErrorT rc = SA_AIS_OK;
-	uint32_t chan_id;
 	TRACE_ENTER2("channel handle: %llx", channelHandle);
 
 	/* retrieve EDA CB */
@@ -877,8 +874,6 @@ SaAisErrorT saEvtChannelClose(SaEvtChannelHandleT channelHandle)
 		return rc;
 	}
 
-	/* For logging */
-	chan_id = chan_hdl_rec->eds_chan_id;
 
    /** Populate a MDS message to send to the EDS
     ** for a channel close operation.

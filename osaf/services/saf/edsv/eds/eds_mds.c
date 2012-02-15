@@ -347,6 +347,8 @@ uint32_t eds_dec_publish_msg(NCS_UBAID *uba, long msg_hdl, uint8_t ckpt_flag)
 		if (pattern_ptr->patternSize == 0) {
 			p8 = ncs_dec_flatten_space(uba, local_data, 4);
 			fake_value = ncs_decode_32bit(&p8);
+			if (fake_value != 0)
+				TRACE_3("Non zero size for zero length pattern");
 			pattern_ptr->pattern = m_MMGR_ALLOC_EDSV_EVENT_DATA(0);
 			ncs_dec_skip_space(uba, 4);
 			total_bytes += 4;
@@ -521,6 +523,8 @@ uint32_t eds_dec_subscribe_msg(NCS_UBAID *uba, long msg_hdl, uint8_t ckpt_flag)
 		if (filter_ptr->filter.patternSize == 0) {
 			p8 = ncs_dec_flatten_space(uba, local_data, 4);
 			fake_value = ncs_decode_32bit(&p8);
+			if (fake_value != 0)
+				TRACE_3("nonzero filtersize for zero length filter!");
 			filter_ptr->filter.pattern = m_MMGR_ALLOC_EDSV_EVENT_DATA(0);
 			ncs_dec_skip_space(uba, 4);
 			total_bytes += 4;
@@ -1296,7 +1300,6 @@ static uint32_t eds_mds_svc_event(struct ncsmds_callback_info *info)
 	uint32_t eds_cb_hdl;
 	EDS_CB *eds_cb = NULL;
 	EDSV_EDS_EVT *evt = NULL;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	eds_cb_hdl = (uint32_t)info->i_yr_svc_hdl;
 
@@ -1309,7 +1312,6 @@ static uint32_t eds_mds_svc_event(struct ncsmds_callback_info *info)
 	/* First make sure that this event is indeed for us */
 	if (info->info.svc_evt.i_your_id != NCSMDS_SVC_ID_EDS) {
 		LOG_CR("The event does not belong to EDS. Invalid service_id: %u", info->info.svc_evt.i_your_id);
-		rc = NCSCC_RC_FAILURE;
 		goto give_hdl;
 	}
 
@@ -1318,7 +1320,6 @@ static uint32_t eds_mds_svc_event(struct ncsmds_callback_info *info)
 		if (info->info.svc_evt.i_change == NCSMDS_DOWN) {
 			/* As of now we are only interested in EDA events */
 			if (NULL == (evt = m_MMGR_ALLOC_EDSV_EDS_EVT)) {
-				rc = NCSCC_RC_FAILURE;
 				LOG_CR("malloc failed for EDS event");
 				goto give_hdl;
 			}
@@ -1340,7 +1341,6 @@ static uint32_t eds_mds_svc_event(struct ncsmds_callback_info *info)
 				LOG_WA("Mailbox IPC send failed for eda_down event, from node_id: %u",
 								 	evt->info.mds_info.node_id);
 				eds_evt_destroy(evt);
-				rc = NCSCC_RC_FAILURE;
 				goto give_hdl;
 			}
 
@@ -1387,12 +1387,9 @@ static uint32_t eds_mds_sys_event(struct ncsmds_callback_info *mds_info)
 
 static uint32_t eds_mds_quiesced_ack(struct ncsmds_callback_info *mds_info)
 {
-	uint32_t eds_cb_hdl;
 	EDS_CB *eds_cb = NULL;
 	EDSV_EDS_EVT *edsv_evt;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-
-	eds_cb_hdl = (uint32_t)mds_info->i_yr_svc_hdl;
 
    	/** allocate an EDSV_EDS_EVENT now **/
 	if (NULL == (edsv_evt = m_MMGR_ALLOC_EDSV_EDS_EVT)) {

@@ -614,6 +614,7 @@ static uint32_t eda_dec_delv_evt_cbk_msg(NCS_UBAID *uba, EDSV_MSG *msg)
 		if (pattern_ptr->patternSize == 0) {
 			p8 = ncs_dec_flatten_space(uba, local_data, 4);
 			fake_value = ncs_decode_32bit(&p8);
+			TRACE("pattern size: %u", fake_value);
 			/* Do so the free routine is happy */
 			pattern_ptr->pattern = m_MMGR_ALLOC_EDSV_EVENT_DATA(0);
 			ncs_dec_skip_space(uba, 4);

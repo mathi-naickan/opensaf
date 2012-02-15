@@ -185,7 +185,6 @@ static uint32_t eds_se_lib_destroy(NCS_LIB_REQ_INFO *req_info)
     /** Code to destroy the EDS **/
 	EDS_CB *eds_cb;
 	m_INIT_CRITICAL;
-	SaAisErrorT status = SA_AIS_OK;
 	TRACE_ENTER();
 
 	if (NULL == (eds_cb = (NCSCONTEXT)ncshm_take_hdl(NCS_SERVICE_ID_EDS, gl_eds_hdl))) {
@@ -199,7 +198,7 @@ static uint32_t eds_se_lib_destroy(NCS_LIB_REQ_INFO *req_info)
 		m_NCS_LOCK(&eds_cb->cb_lock, NCS_LOCK_WRITE);
 
 		/* deregister from AMF */
-		status = saAmfComponentUnregister(eds_cb->amf_hdl, &eds_cb->comp_name, NULL);
+		saAmfComponentUnregister(eds_cb->amf_hdl, &eds_cb->comp_name, NULL);
 
 		/* End association from the AMF lib */
 		saAmfFinalize(eds_cb->amf_hdl);
