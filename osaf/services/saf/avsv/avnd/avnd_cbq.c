@@ -844,7 +844,6 @@ void avnd_comp_cbq_del(AVND_CB *cb, AVND_COMP *comp, bool send_del_cbk)
 void avnd_comp_cbq_rec_pop_and_del(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CBK *rec, bool send_del_cbk)
 {
 	uint32_t found;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	NODE_ID dest_node_id = 0;
 
 	/* pop the record */
@@ -860,7 +859,7 @@ void avnd_comp_cbq_rec_pop_and_del(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CBK *
 				   So, this means that we need to send a del message to the
 				   same AvND as this may remain stale in case we don't sent 
 				   and there is no response from AvA. */
-				rc = avnd_avnd_cbk_del_send(cb, &comp->name, &rec->opq_hdl, &dest_node_id);
+				(void)avnd_avnd_cbk_del_send(cb, &comp->name, &rec->opq_hdl, &dest_node_id);
 
 			}	/* if(cb->node_info.nodeId != dest_node_id) */
 		}		/* if(true == send_del_cbk) */
@@ -1069,7 +1068,6 @@ void avnd_comp_unreg_cbk_process(AVND_CB *cb, AVND_COMP *comp)
 
 	AVND_COMP_CBK *cbk = 0, *temp_cbk_list = 0, *head = 0;
 	AVND_COMP_CSI_REC *csi = 0;
-	uint32_t rc = NCSCC_RC_SUCCESS, found = 0;
 
 	while ((comp->cbk_list != NULL) && (comp->cbk_list != cbk)) {
 		cbk = comp->cbk_list;
@@ -1078,10 +1076,15 @@ void avnd_comp_unreg_cbk_process(AVND_CB *cb, AVND_COMP *comp)
 		case AVSV_AMF_HC:
 		case AVSV_AMF_COMP_TERM:
 			{
-				/* pop this rec */
+				bool found = false;
+
 				m_AVND_COMP_CBQ_REC_POP(comp, cbk, found);
+
+				if (!found)
+					LOG_NO("%s - '%s' type:%u", __FUNCTION__, comp->name.value,
+						   cbk->cbk_info->type);
+
 				cbk->next = NULL;
-				/* if found == 0 , log a fatal error */
 
 				/*  add this rec on to temp_cbk_list */
 				{
@@ -1118,7 +1121,7 @@ void avnd_comp_unreg_cbk_process(AVND_CB *cb, AVND_COMP *comp)
 					break;
 				}
 
-				rc = avnd_comp_csi_assign_done(cb, comp, csi);
+				(void)avnd_comp_csi_assign_done(cb, comp, csi);
 			}
 			break;
 
@@ -1126,7 +1129,7 @@ void avnd_comp_unreg_cbk_process(AVND_CB *cb, AVND_COMP *comp)
 			{
 				csi = m_AVND_COMPDB_REC_CSI_GET(*comp, cbk->cbk_info->param.csi_rem.csi_name);
 				if (comp->csi_list.n_nodes) {
-					rc = avnd_comp_csi_remove_done(cb, comp, csi);
+					(void)avnd_comp_csi_remove_done(cb, comp, csi);
 				} else {
 					avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk, true);
 				}

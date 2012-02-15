@@ -580,10 +580,10 @@ typedef struct avnd_comp_tag {
                                            )
 
 /* macro to add a healthcheck record to the comp-hc list */
-#define m_AVND_COMPDB_REC_HC_ADD(comp, hc, rc) \
+#define m_AVND_COMPDB_REC_HC_ADD(comp, hc) \
 { \
    (hc).comp_dll_node.key = (uint8_t *)&(hc); \
-   (rc) = ncs_db_link_list_add(&(comp).hc_list, &(hc).comp_dll_node); \
+   (void)ncs_db_link_list_add(&(comp).hc_list, &(hc).comp_dll_node); \
 };
 
 /* macro to remove a healthcheck record from the comp-hc list */
@@ -745,14 +745,14 @@ typedef struct avnd_comp_tag {
 #define m_AVND_COMP_CBQ_REC_POP(comp, rec, o_found) \
 { \
    AVND_COMP_CBK *prv = (comp)->cbk_list, *curr; \
-   o_found = 0;\
+   o_found = false;\
    for (curr = (comp)->cbk_list; \
         curr && !(curr == (rec)); \
         prv = curr, curr = curr->next); \
    if (curr) \
    { \
       /* found the record... pop it */ \
-      o_found = 1;\
+      o_found = true;\
       if ( curr == (comp)->cbk_list ) \
          (comp)->cbk_list = curr->next; \
       else \

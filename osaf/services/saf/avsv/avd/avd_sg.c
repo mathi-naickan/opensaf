@@ -1308,8 +1308,6 @@ void avd_sg_nwayact_screening_for_si_distr(AVD_SG *avd_sg)
 	AVD_SU *i_su;
 	AVD_SI *i_si = NULL;
 	AVD_SU_SI_REL *su_si, *i_susi = NULL;
-	SaAmfHAStateT old_ha_state = SA_AMF_HA_ACTIVE;
-	AVD_SU_SI_STATE old_state = AVD_SU_SI_STATE_ASGN;
 
 	TRACE_ENTER();
 	osafassert(true == avd_sg->equal_ranked_su);
@@ -1389,8 +1387,6 @@ void avd_sg_nwayact_screening_for_si_distr(AVD_SG *avd_sg)
 			saAmfSUNumCurrActiveSIs, avd_sg->min_assigned_su->name.value, avd_sg->min_assigned_su->
 			saAmfSUNumCurrActiveSIs, avd_sg->si_tobe_redistributed->name.value);
 	/* Trigger SI redistribution/transfer here. Only one SI getting shifted from one SU to another SU */
-	old_ha_state = i_susi->state;
-	old_state = i_susi->fsm;
 
 	if (avd_susi_mod_send(i_susi, SA_AMF_HA_QUIESCED) != NCSCC_RC_SUCCESS) {
 		avd_sg->max_assigned_su = NULL;

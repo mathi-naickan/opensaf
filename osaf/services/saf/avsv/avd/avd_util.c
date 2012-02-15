@@ -953,7 +953,7 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi, AVSV_S
 	AVD_DND_MSG *susi_msg;
 	AVD_AVND *avnd;
 	AVD_COMP_CSI_REL *l_compcsi;
-	AVD_SU_SI_REL *l_susi, *a_susi, *i_susi;
+	AVD_SU_SI_REL *l_susi, *i_susi;
 	AVSV_SUSI_ASGN *compcsi_info;
 	SaAmfCSITransitionDescriptorT trans_dsc;
 
@@ -968,7 +968,6 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi, AVSV_S
 
 	/* Initialize the local variables to avoid warnings */
 	l_susi = susi;
-	a_susi = AVD_SU_SI_REL_NULL;
 	trans_dsc = SA_AMF_CSI_NEW_ASSIGN;
 
 	/* prepare the SU SI message. */

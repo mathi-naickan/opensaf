@@ -774,8 +774,6 @@ uint32_t avsv_edp_ckpt_msg_si_trans(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVSV_SI_TRANS_CKPT_MSG *struct_ptr = NULL, **d_ptr = NULL;
-        uint16_t base_ver = 0;
-        base_ver = AVSV_AVD_AVND_MSG_FMT_VER_3;
 
 	EDU_INST_SET avsv_ckpt_msg_si_trans_rules[] = {
 		{EDU_START, avsv_edp_ckpt_msg_si_trans, 0, 0, 0,

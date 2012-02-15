@@ -176,7 +176,6 @@ void avd_comp_delete(AVD_COMP *comp)
 static void comp_add_to_model(AVD_COMP *comp)
 {
 	SaNameT dn;
-	AVD_AVND *su_node_ptr = NULL;
 
 	TRACE_ENTER2("%s", comp->comp_info.name.value);
 
@@ -199,9 +198,7 @@ static void comp_add_to_model(AVD_COMP *comp)
 	 * corresponding node is UP send the component information
 	 * to the Node.
 	 */
-	if (false == comp->su->su_is_external) {
-		su_node_ptr = comp->su->su_on_node;
-	} else {
+	if (comp->su->su_is_external) {
 		/* This is an external SU, so there is no node assigned to it.
 		   For some purpose of validations and sending SU/Comps info to
 		   hosting node (Controllers), we can take use of the hosting
@@ -220,7 +217,6 @@ static void comp_add_to_model(AVD_COMP *comp)
 				comp->comp_info.category);
 			return;
 		}
-		su_node_ptr = avd_cb->ext_comp_info.local_avnd_node;
 	}
 
 	/* Verify if the SUs preinstan value need to be changed */

@@ -1366,7 +1366,6 @@ static uint32_t is_config_valid(SaNameT *sidep_name, CcbUtilOperationData_t *opd
 	uint32_t dep_saAmfSIRank, spons_saAmfSIRank;
 	uint32_t rc = false;
 	bool dependent_si_is_assigned = false;
-	bool spons_si_exist_in_curr_model = false;
 
 	TRACE_ENTER();
 	
@@ -1394,7 +1393,6 @@ static uint32_t is_config_valid(SaNameT *sidep_name, CcbUtilOperationData_t *opd
 			spons_saAmfSIRank = 0; /* default value is zero (lowest rank) if empty */
 	} else {
 		/* sponsor SI exist in current model, get rank */
-		spons_si_exist_in_curr_model = true;
 		spons_saAmfSIRank = spons_si->saAmfSIRank;
 	}
 

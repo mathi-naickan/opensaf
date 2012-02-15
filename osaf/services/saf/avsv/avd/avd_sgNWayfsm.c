@@ -996,8 +996,6 @@ done:
 static void avd_sg_nway_swap_si_redistr(AVD_SG *sg)
 {
 	AVD_SU_SI_REL *susi = NULL;
-	AVD_SU_SI_STATE old_fsm_state;
-	SaAmfHAStateT old_ha_state;
 
 	osafassert(sg->si_tobe_redistributed != NULL);
 	osafassert(sg->max_assigned_su != NULL);
@@ -1012,8 +1010,6 @@ static void avd_sg_nway_swap_si_redistr(AVD_SG *sg)
 	susi = avd_su_susi_find(avd_cb, sg->max_assigned_su, &sg->si_tobe_redistributed->name); 
 	osafassert(susi != NULL);
 
-	old_fsm_state = susi->fsm;
-	old_ha_state = susi->state;
 
 	if (susi->state == SA_AMF_HA_ACTIVE) {
 		/* if active assignment of an SI is to be transferred then first make the SU 

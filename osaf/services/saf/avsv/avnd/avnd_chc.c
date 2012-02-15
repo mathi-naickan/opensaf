@@ -487,7 +487,6 @@ AVND_COMP_HC_REC *avnd_comp_hc_rec_add(AVND_CB *cb, AVND_COMP *comp, AVSV_AMF_HC
 	AVND_COMP_HC_REC *rec = 0;
 	AVND_HC *hc = 0;
 	AVSV_HLT_KEY hlt_chk;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	uint32_t l_num;
 
 	if ((0 == (rec = calloc(1, sizeof(AVND_COMP_HC_REC)))))
@@ -535,7 +534,7 @@ AVND_COMP_HC_REC *avnd_comp_hc_rec_add(AVND_CB *cb, AVND_COMP *comp, AVSV_AMF_HC
 	rec->status = AVND_COMP_HC_STATUS_STABLE;
 
 	/* add the record to the healthcheck list */
-	m_AVND_COMPDB_REC_HC_ADD(*comp, *rec, rc);
+	m_AVND_COMPDB_REC_HC_ADD(*comp, *rec);
 
 	return rec;
 

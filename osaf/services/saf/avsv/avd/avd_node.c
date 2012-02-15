@@ -552,7 +552,6 @@ static void node_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 
 		if (!strcmp(attribute->attrName, "saAmfNodeSuFailOverProb")) {
 			SaTimeT su_failover_prob;
-			SaTimeT backup_time;
 			su_failover_prob = *((SaTimeT *)value);
 			SaTimeT temp_su_prob;
 
@@ -566,7 +565,6 @@ static void node_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 			param.name = node->name;
 
 			if (node->node_state != AVD_AVND_STATE_ABSENT) {
-				backup_time = node->saAmfNodeSuFailOverProb;
 				param.value_len = sizeof(SaTimeT);
 				memcpy((char *)&param.value[0], (char *)&su_failover_prob, param.value_len);
 
@@ -579,7 +577,6 @@ static void node_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 
 
 		} else if (!strcmp(attribute->attrName, "saAmfNodeSuFailoverMax")) {
-			uint32_t back_val;
 			uint32_t failover_val;
 
 			failover_val = *((SaUint32T *)value);
@@ -591,7 +588,6 @@ static void node_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 			param.name = node->name;
 
 			if (node->node_state != AVD_AVND_STATE_ABSENT) {
-				back_val = node->saAmfNodeSuFailoverMax;
 				param.value_len = sizeof(uint32_t);
 				m_NCS_OS_HTONL_P(&param.value[0], failover_val);
 				node->saAmfNodeSuFailoverMax = failover_val;

@@ -360,7 +360,6 @@ static void app_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation
 {
 	SaAisErrorT rc;
 	AVD_APP *app;
-	AVD_SG *sg;
 
 	TRACE_ENTER2("%s", object_name->value);
 
@@ -396,7 +395,6 @@ static void app_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation
 		}
 	}
 
-	sg = app->list_of_sg;
 	/* recursively perform admin op */
 #if 0
 	while (sg != NULL) {

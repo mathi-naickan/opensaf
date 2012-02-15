@@ -2766,7 +2766,6 @@ void avnd_comp_cmplete_all_csi_rec(AVND_CB *cb, AVND_COMP *comp)
 
 	AVND_COMP_CSI_REC *curr = 0, *prv = 0;
 	SaNameT csi_name;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("Comp '%s'", comp->name.value);
 	/* go and look for all csi's in assigning state and complete the assignment.
 	 * take care of assign-one and assign-all flags
@@ -2775,10 +2774,10 @@ void avnd_comp_cmplete_all_csi_rec(AVND_CB *cb, AVND_COMP *comp)
 	if (m_AVND_COMP_IS_ALL_CSI(comp)) {
 		curr = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
 		if (curr && m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr))
-			rc = avnd_comp_csi_assign_done(cb, curr->comp, 0);
+			(void)avnd_comp_csi_assign_done(cb, curr->comp, 0);
 		else if (curr && m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(curr))
 			/* generate csi-remove-done event... csi may be deleted */
-			rc = avnd_comp_csi_remove_done(cb, curr->comp, 0);
+			(void)avnd_comp_csi_remove_done(cb, curr->comp, 0);
 	} else {
 		/* scan the comp-csi list & reassign the csis */
 		curr = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
@@ -2787,10 +2786,10 @@ void avnd_comp_cmplete_all_csi_rec(AVND_CB *cb, AVND_COMP *comp)
 			csi_name = curr->name;
 
 			if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr))
-				rc = avnd_comp_csi_assign_done(cb, comp, curr);
+				(void)avnd_comp_csi_assign_done(cb, comp, curr);
 			else if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(curr))
 				/* generate csi-remove-done event... csi may be deleted */
-				rc = avnd_comp_csi_remove_done(cb, comp, curr);
+				(void)avnd_comp_csi_remove_done(cb, comp, curr);
 
 			if (0 == m_AVND_COMPDB_REC_CSI_GET(*comp, csi_name)) {
 				curr =
