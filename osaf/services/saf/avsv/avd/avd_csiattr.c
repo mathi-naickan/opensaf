@@ -175,7 +175,7 @@ static AVD_CSI_ATTR * csi_name_value_pair_find(AVD_CSI *csi, SaNameT *csiattr_na
         while (i_attr != NULL) {
 		if ((strncmp((char *)&i_attr->name_value.name.value, (char *)&csiattr_name->value, 
 						csiattr_name->length) == 0) &&
-				(strncmp((char *)&i_attr->name_value.string_ptr, value, strlen(value)) == 0)) {
+				(strncmp((char *)i_attr->name_value.string_ptr, value, strlen(value)) == 0)) {
 			return i_attr;
 		}
                 i_attr = i_attr->attr_next;
@@ -589,7 +589,7 @@ static void csiattr_modify_apply(CcbUtilOperationData_t *opdata)
 						 * This is to make  sure that csi_attr node in the csi->list_attributes
 						 * wont be deleted when there is only  one name+value pair is found
 						 */
-						memset(&tmp_csi_attr->name_value.string_ptr, 0, 
+						memset(tmp_csi_attr->name_value.string_ptr, 0, 
 							strlen(tmp_csi_attr->name_value.string_ptr));
 					} else {
 							avd_csi_remove_csiattr(csi, csiattr);
