@@ -136,7 +136,7 @@ typedef struct avnd_ha_state_change_evt {
 
 /* clc event definition */
 typedef struct avnd_clc_evt {
-	uint32_t exec_ctxt;	/* execution context */
+	NCS_EXEC_HDL exec_ctxt;	/* execution context */
 	NCS_OS_PROC_EXEC_STATUS_INFO exec_stat;	/* cmd execution status */
 
 	/* valid only when cmd launch (fork, exec etc) fails */
