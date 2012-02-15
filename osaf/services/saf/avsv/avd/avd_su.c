@@ -1073,6 +1073,12 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 
 	case SA_AMF_ADMIN_UNLOCK_INSTANTIATION:
 
+		if (NULL == su->list_of_comp) {
+			LOG_WA("There is no component configured for SU '%s'.", su->name.value);
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		}
+
 		/* For non-preinstantiable SU unlock-inst will not lead to its inst until unlock. */
 		if ( su->saAmfSUPreInstantiable == false ) {
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
