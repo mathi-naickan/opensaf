@@ -118,13 +118,9 @@ static SaAisErrorT write_log_record(SaLogHandleT logHandle,
 	SaAisErrorT errorCode;
 	SaInvocationT invocation;
 	int i = 0;
-	int write_index = 0;
 	int try_agains = 0;
 	struct pollfd fds[1];
 	int ret;
-
-	if (logRecord->logBuffer != NULL)
-		write_index = strlen((char *)logRecord->logBuffer->logBuf);
 
 	i++;
 

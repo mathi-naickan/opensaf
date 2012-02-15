@@ -916,7 +916,6 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 	lga_client_hdl_rec_t *hdl_rec;
 	lgsv_msg_t msg, *o_msg = NULL;
 	SaAisErrorT rc = SA_AIS_OK;
-	uint32_t lstr_id;
 	uint32_t mds_rc;
 
 	TRACE_ENTER();
@@ -943,8 +942,6 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 		goto done_give_hdl_all;
 	}
 
-	/* For logging */
-	lstr_id = lstr_hdl_rec->lgs_log_stream_id;
 
     /** Populate a MDS message to send to the LGS for a channel
      *  close operation.

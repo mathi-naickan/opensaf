@@ -117,35 +117,34 @@ char *lgs_get_time(void)
 	static char timeStampString[LGS_CREATE_CLOSE_TIME_LEN];
 	char srcString[5];
 	uint32_t stringSize;
-	uint32_t characters = 0;
 	time_t testTime;
 
 	time(&testTime);
 	timeStampData = localtime(&testTime);
 
 	stringSize = 5 * sizeof(char);
-	characters = snprintf(srcString, (size_t)stringSize, "%d", (timeStampData->tm_year + START_YEAR));
+	snprintf(srcString, (size_t)stringSize, "%d", (timeStampData->tm_year + START_YEAR));
 
 	strncpy(timeStampString, srcString, stringSize);
 
 	stringSize = 3 * sizeof(char);
-	characters = snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_mon + 1));
+	snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_mon + 1));
 
 	strncat(timeStampString, srcString, stringSize);
 
-	characters = snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_mday));
+	snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_mday));
 
 	strncat(timeStampString, srcString, stringSize);
 
 	strncat(timeStampString, "_", (2 * sizeof(char)));
 
-	characters = snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_hour));
+	snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_hour));
 	strncat(timeStampString, srcString, stringSize);
 
-	characters = snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_min));
+	snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_min));
 	strncat(timeStampString, srcString, stringSize);
 
-	characters = snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_sec));
+	snprintf(srcString, (size_t)stringSize, "%02d", (timeStampData->tm_sec));
 	strncat(timeStampString, srcString, stringSize);
 
 	timeStampString[15] = '\0';

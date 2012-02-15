@@ -351,7 +351,6 @@ static uint32_t proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt)
 {
 	TRACE_ENTER();
 	lgsv_ckpt_msg_t ckpt;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	uint32_t async_rc = NCSCC_RC_SUCCESS;
 
 	switch (evt->evt_type) {
@@ -379,7 +378,6 @@ static uint32_t proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt)
 			if (lgs_lga_entry_valid(lgs_cb, evt->fr_dest)) {
 				if (NULL == (lga_down_rec = (LGA_DOWN_LIST *) malloc(sizeof(LGA_DOWN_LIST)))) {
 				/* Log it */
-					rc = SA_AIS_ERR_NO_MEMORY;
 					LOG_WA("memory allocation for the LGA_DOWN_LIST failed");
 					break;
 				}
@@ -575,7 +573,6 @@ uint32_t lgs_cb_init(lgs_cb_t *lgs_cb)
 static uint32_t proc_initialize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	uint32_t async_rc = NCSCC_RC_SUCCESS;
 	SaAisErrorT ais_rc = SA_AIS_OK;
 	SaVersionT *version;
 	lgsv_msg_t msg;
@@ -604,7 +601,7 @@ static uint32_t proc_initialize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 		ckpt.header.data_len = 1;
 		ckpt.ckpt_rec.initialize_client.client_id = cb->last_client_id;
 		ckpt.ckpt_rec.initialize_client.mds_dest = evt->fr_dest;
-		async_rc = lgs_ckpt_send_async(cb, &ckpt, NCS_MBCSV_ACT_ADD);
+		(void)lgs_ckpt_send_async(cb, &ckpt, NCS_MBCSV_ACT_ADD);
 	}
 
  snd_rsp:
@@ -825,7 +822,7 @@ static SaAisErrorT file_attribute_cmp(lgsv_stream_open_req_t *open_sync_param, l
 
 static uint32_t proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 {
-	uint32_t rc = NCSCC_RC_SUCCESS, async_rc = NCSCC_RC_SUCCESS;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	SaAisErrorT ais_rv = SA_AIS_OK;
 	uint32_t lstr_id = (uint32_t)-1;
 	lgsv_msg_t msg;
@@ -914,7 +911,7 @@ static uint32_t proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	rc = lgs_mds_msg_send(cb, &msg, &evt->fr_dest, &evt->mds_ctxt, MDS_SEND_PRIORITY_HIGH);
 
 	if (ais_rv == SA_AIS_OK) {
-		async_rc = lgs_ckpt_stream_open(cb, logStream, open_sync_param);
+		(void)lgs_ckpt_stream_open(cb, logStream, open_sync_param);
 	}
 	free(open_sync_param->logFileFmt);
 	TRACE_LEAVE();

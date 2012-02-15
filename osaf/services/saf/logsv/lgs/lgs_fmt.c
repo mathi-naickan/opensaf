@@ -710,7 +710,6 @@ static int extractNotificationField(char *dest, size_t dest_size,
 	struct tm *eventTimeData;
 	SaTimeT totalTime;
 	SaInt32T fieldSize;
-	SaInt32T stringSize;
 	SaInt32T characters = 0;
 	SaUint16T fieldSizeOffset = 0;
 
@@ -724,17 +723,14 @@ static int extractNotificationField(char *dest, size_t dest_size,
 
 	switch (*fmtExpPtr++) {
 	case N_NOTIFICATION_ID_LETTER:
-		stringSize = 19 * sizeof(char);
 		characters = snprintf(dest, dest_size, "0x%#016llx", logRecord->logHeader.ntfHdr.notificationId);
 		break;
 
 	case N_EVENT_TIME_LETTER:
-		stringSize = 19 * sizeof(char);
 		characters = snprintf(dest, dest_size, "%#016llx", logRecord->logHeader.ntfHdr.eventTime);
 		break;
 
 	case N_EVENT_TIME_HOUR_LETTER:
-		stringSize = 3 * sizeof(char);
 		if (*twelveHourModeFlag == SA_TRUE) {
 			characters = snprintf(dest, dest_size, "%02d", (eventTimeData->tm_hour % 12));
 		} else {
@@ -743,17 +739,14 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		break;
 
 	case N_EVENT_TIME_MINUTE_LETTER:
-		stringSize = 3 * sizeof(char);
 		characters = snprintf(dest, dest_size, "%02d", eventTimeData->tm_min);
 		break;
 
 	case N_EVENT_TIME_SECOND_LETTER:
-		stringSize = 3 * sizeof(char);
 		characters = snprintf(dest, dest_size, "%02d", eventTimeData->tm_sec);
 		break;
 
 	case N_EVENT_TIME_12_24_MODE_LETTER:
-		stringSize = 3 * sizeof(char);
 		if (eventTimeData->tm_hour >= 00 && eventTimeData->tm_hour < 12) {
 			characters = snprintf(dest, dest_size, "am");
 		} else {
@@ -762,12 +755,10 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		break;
 
 	case N_EVENT_TIME_MONTH_LETTER:
-		stringSize = 3 * sizeof(char);
 		characters = snprintf(dest, dest_size, "%02d", (eventTimeData->tm_mon + 1));
 		break;
 
 	case N_EVENT_TIME_MON_LETTER:
-		stringSize = 4 * sizeof(char);
 		switch (eventTimeData->tm_mon) {
 		case MONTH_JANUARY:
 			characters = snprintf(dest, dest_size, "Jan");
@@ -825,17 +816,14 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		break;
 
 	case N_EVENT_TIME_DAY_LETTER:
-		stringSize = 3 * sizeof(char);
 		characters = snprintf(dest, dest_size, "%02d", eventTimeData->tm_mday);
 		break;
 
 	case N_EVENT_TIME_YEAR_LETTER:
-		stringSize = 3 * sizeof(char);
 		characters = snprintf(dest, dest_size, "%02d", eventTimeData->tm_year);
 		break;
 
 	case N_EVENT_TIME_FULL_YEAR_LETTER:
-		stringSize = 5 * sizeof(char);
 		characters = snprintf(dest, dest_size, "%d", (eventTimeData->tm_year + START_YEAR));
 		break;
 
@@ -919,7 +907,6 @@ static int extractSystemField(char *dest, size_t dest_size,
 			      SaStringT fmtExpPtr, SaUint16T *fmtExpPtrOffset, const SaLogRecordT *logRecord)
 {
 	SaInt32T fieldSize;
-	SaInt32T stringSize;
 	SaInt32T characters = 0;
 	SaUint16T fieldSizeOffset = 0;
 	*fmtExpPtrOffset = DEFAULT_FMT_EXP_PTR_OFFSET;
@@ -940,7 +927,6 @@ static int extractSystemField(char *dest, size_t dest_size,
 		break;
 
 	case S_SEVERITY_ID_LETTER:
-		stringSize = 3 * sizeof(char);
 		switch (logRecord->logHeader.genericHdr.logSeverity) {
 		case SA_LOG_SEV_EMERGENCY:
 			characters = snprintf(dest, dest_size, "EM");
