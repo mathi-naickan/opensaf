@@ -369,59 +369,22 @@ static uint32_t immnd_mds_dec(IMMND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 
 	IMMSV_EVT *evt;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	bool is_valid_msg_fmt = false;
 
-	if (dec_info->i_fr_svc_id == NCSMDS_SVC_ID_IMMA_OM) {
-		/*
-		   is_valid_msg_fmt = 
-		   m_NCS_MSG_FORMAT_IS_VALID(dec_info->i_msg_fmt_ver,
-		   IMMND_WRT_IMMA_OM_SUBPART_VER_MIN,
-		   IMMND_WRT_IMMA_OM_SUBPART_VER_MAX,
-		   immnd_imma_msg_fmt_table);
-		 */
-	} else if (dec_info->i_fr_svc_id == NCSMDS_SVC_ID_IMMA_OI) {
-		/*
-		   is_valid_msg_fmt = 
-		   m_NCS_MSG_FORMAT_IS_VALID(dec_info->i_msg_fmt_ver,
-		   IMMND_WRT_IMMA_OI_SUBPART_VER_MIN,
-		   IMMND_WRT_IMMA_OI_SUBPART_VER_MAX,
-		   immnd_imma_msg_fmt_table);
-		 */
-	} else if (dec_info->i_fr_svc_id == NCSMDS_SVC_ID_IMMND) {
-		/*
-		   is_valid_msg_fmt = 
-		   m_NCS_MSG_FORMAT_IS_VALID(dec_info->i_msg_fmt_ver,
-		   IMMND_WRT_IMMND_SUBPART_VER_MIN,
-		   IMMND_WRT_IMMND_SUBPART_VER_MAX,
-		   immnd_immnd_msg_fmt_table);
-		 */
-	} else if (dec_info->i_fr_svc_id == NCSMDS_SVC_ID_IMMD) {
-		is_valid_msg_fmt =
-		    m_NCS_MSG_FORMAT_IS_VALID(dec_info->i_msg_fmt_ver,
-					      IMMND_WRT_IMMD_SUBPART_VER_MIN,
-					      IMMND_WRT_IMMD_SUBPART_VER_MAX, immnd_immd_msg_fmt_table);
+	evt = calloc(1, sizeof(IMMSV_EVT));
+	if (!evt) {
+		LOG_WA("calloc failed");
+		return NCSCC_RC_FAILURE;
 	}
 
-	if (1 /*is_valid_msg_fmt */ ) {	/* TODO: ABT Does not work */
-		evt = calloc(1, sizeof(IMMSV_EVT));
-		if (!evt) {
-			LOG_WA("calloc failed");
-			return NCSCC_RC_FAILURE;
-		}
+	dec_info->o_msg = (NCSCONTEXT)evt;
 
-		dec_info->o_msg = (NCSCONTEXT)evt;
-
-		rc = immsv_evt_dec( /*&cb->immnd_edu_hdl, */ dec_info->io_uba, evt);
-		if (rc != NCSCC_RC_SUCCESS) {
-			LOG_WA("MDS Decode Failed");
-			free(dec_info->o_msg);
-			dec_info->o_msg = NULL;
-		}
-		return rc;
+	rc = immsv_evt_dec( /*&cb->immnd_edu_hdl, */ dec_info->io_uba, evt);
+	if (rc != NCSCC_RC_SUCCESS) {
+		LOG_WA("MDS Decode Failed");
+		free(dec_info->o_msg);
+		dec_info->o_msg = NULL;
 	}
-	/* Drop The Message - Incompatible Message Format Version */
-	LOG_WA("INVALID MSG FORMAT");
-	return NCSCC_RC_FAILURE;
+	return rc;
 }
 
 /****************************************************************************
@@ -506,57 +469,20 @@ static uint32_t immnd_mds_dec_flat(IMMND_CB *cb, MDS_CALLBACK_DEC_FLAT_INFO *inf
 	IMMSV_EVT *evt;
 	NCS_UBAID *uba = info->io_uba;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	bool is_valid_msg_fmt = false;
 
-	if (info->i_fr_svc_id == NCSMDS_SVC_ID_IMMA_OM) {
-		/*
-		   is_valid_msg_fmt = 
-		   m_NCS_MSG_FORMAT_IS_VALID(info->i_msg_fmt_ver,
-		   IMMND_WRT_IMMA_OM_SUBPART_VER_MIN,
-		   IMMND_WRT_IMMA_OM_SUBPART_VER_MAX,
-		   immnd_imma_msg_fmt_table);
-		 */
-	} else if (info->i_fr_svc_id == NCSMDS_SVC_ID_IMMA_OI) {
-		/*
-		   is_valid_msg_fmt = 
-		   m_NCS_MSG_FORMAT_IS_VALID(info->i_msg_fmt_ver,
-		   IMMND_WRT_IMMA_OI_SUBPART_VER_MIN,
-		   IMMND_WRT_IMMA_OI_SUBPART_VER_MAX,
-		   immnd_imma_msg_fmt_table);
-		 */
-	} else if (info->i_fr_svc_id == NCSMDS_SVC_ID_IMMND) {
-		/*
-		   is_valid_msg_fmt = 
-		   m_NCS_MSG_FORMAT_IS_VALID(info->i_msg_fmt_ver,
-		   IMMND_WRT_IMMND_SUBPART_VER_MIN,
-		   IMMND_WRT_IMMND_SUBPART_VER_MAX,
-		   immnd_immnd_msg_fmt_table);
-		 */
-	} else if (info->i_fr_svc_id == NCSMDS_SVC_ID_IMMD) {
-		is_valid_msg_fmt =
-		    m_NCS_MSG_FORMAT_IS_VALID(info->i_msg_fmt_ver,
-					      IMMND_WRT_IMMD_SUBPART_VER_MIN,
-					      IMMND_WRT_IMMD_SUBPART_VER_MAX, immnd_immd_msg_fmt_table);
+	evt = calloc(1, sizeof(IMMSV_EVT));
+	if (evt == NULL) {
+		LOG_WA("calloc failed");
+		return NCSCC_RC_FAILURE;
 	}
-
-	if (1 /*is_valid_msg_fmt */ ) {	/* TODO: ABT Does not work */
-		evt = calloc(1, sizeof(IMMSV_EVT));
-		if (evt == NULL) {
-			LOG_WA("calloc failed");
-			return NCSCC_RC_FAILURE;
-		}
-		info->o_msg = evt;
-		rc = immsv_evt_dec_flat(uba, evt);
-		if (rc != NCSCC_RC_SUCCESS) {
-			free(evt);
-			info->o_msg = NULL;
-			LOG_WA("MDS Decode Flat Failed");
-		}
-		return rc;
+	info->o_msg = evt;
+	rc = immsv_evt_dec_flat(uba, evt);
+	if (rc != NCSCC_RC_SUCCESS) {
+		free(evt);
+		info->o_msg = NULL;
+		LOG_WA("MDS Decode Flat Failed");
 	}
-	/* Drop The Message - Incompatible Message Format Version */
-	LOG_WA("INVALID MSG FORMAT IN DECODE FLAT");
-	return NCSCC_RC_FAILURE;
+	return rc;
 }
 
 /****************************************************************************

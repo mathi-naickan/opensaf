@@ -374,35 +374,20 @@ static uint32_t immd_mds_dec(IMMD_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 {
 	IMMSV_EVT *evt;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	bool is_valid_msg_fmt = false;
 
-	if (dec_info->i_fr_svc_id == NCSMDS_SVC_ID_IMMND) {
-		is_valid_msg_fmt =
-		    m_NCS_MSG_FORMAT_IS_VALID(dec_info->i_msg_fmt_ver,
-					      IMMD_WRT_IMMND_SUBPART_VER_MIN,
-					      IMMD_WRT_IMMND_SUBPART_VER_MAX, immd_immnd_msg_fmt_table);
+	evt = calloc(1, sizeof(IMMSV_EVT));
+	if (!evt)
+		return NCSCC_RC_FAILURE;
+
+	dec_info->o_msg = (NCSCONTEXT)evt;
+
+	rc = immsv_evt_dec( /*&cb->edu_hdl, */ dec_info->io_uba, evt);
+	if (rc != NCSCC_RC_SUCCESS) {
+		LOG_ER("IMMD - MDS Decode Failed");
+		free(dec_info->o_msg);
+		dec_info->o_msg = NULL;
 	}
-
-	if (1 /*is_valid_msg_fmt */ ) {	/*Does not work. */
-		evt = calloc(1, sizeof(IMMSV_EVT));
-		if (!evt)
-			return NCSCC_RC_FAILURE;
-
-		dec_info->o_msg = (NCSCONTEXT)evt;
-
-		rc = immsv_evt_dec( /*&cb->edu_hdl, */ dec_info->io_uba, evt);
-		if (rc != NCSCC_RC_SUCCESS) {
-			LOG_ER("IMMD - MDS Decode Failed");
-			free(dec_info->o_msg);
-			dec_info->o_msg = NULL;
-		}
-		return rc;
-	}
-
-	LOG_ER("INVALID MSG FORMAT VERSION IN DECODE FULL, "
-	       "VER %u SVC_ID  %u", dec_info->i_msg_fmt_ver, dec_info->i_fr_svc_id);
-
-	return NCSCC_RC_FAILURE;
+	return rc;
 }
 
 /****************************************************************************
@@ -471,35 +456,21 @@ static uint32_t immd_mds_dec_flat(IMMD_CB *cb, MDS_CALLBACK_DEC_FLAT_INFO *info)
 	IMMSV_EVT *evt;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	NCS_UBAID *uba = info->io_uba;
-	bool is_valid_msg_fmt = false;
 
-	if (info->i_fr_svc_id == NCSMDS_SVC_ID_IMMND) {
-		is_valid_msg_fmt =
-		    m_NCS_MSG_FORMAT_IS_VALID(info->i_msg_fmt_ver,
-					      IMMD_WRT_IMMND_SUBPART_VER_MIN,
-					      IMMD_WRT_IMMND_SUBPART_VER_MAX, immd_immnd_msg_fmt_table);
+	evt = (IMMSV_EVT *)calloc(1, sizeof(IMMSV_EVT));
+	if (evt == NULL) {
+		LOG_ER("IMMD - Evt calloc Failed");
+		return NCSCC_RC_FAILURE;
+	}
+	info->o_msg = evt;
+	rc = immsv_evt_dec_flat( /*&cb->edu_hdl, */ uba, evt);
+	if (rc == NCSCC_RC_FAILURE) {
+		LOG_ER("IMMD - MDS DECODE FLAT FAILED");
+		free(evt);
+		info->o_msg = NULL;
 	}
 
-	if (1 /*is_valid_msg_fmt */ ) {	/* ABT Does not work */
-		evt = (IMMSV_EVT *)calloc(1, sizeof(IMMSV_EVT));
-		if (evt == NULL) {
-			LOG_ER("IMMD - Evt calloc Failed");
-			return NCSCC_RC_FAILURE;
-		}
-		info->o_msg = evt;
-		rc = immsv_evt_dec_flat( /*&cb->edu_hdl, */ uba, evt);
-		if (rc == NCSCC_RC_FAILURE) {
-			LOG_ER("IMMD - MDS DECODE FLAT FAILED");
-			free(evt);
-			info->o_msg = NULL;
-		}
-
-		return rc;
-	}
-	/* Drop The message */
-	LOG_ER("INVALID MSG FORMAT VERSION IN DECODE FLAT, "
-	       "VER %u SVC_ID  %u", info->i_msg_fmt_ver, info->i_fr_svc_id);
-	return NCSCC_RC_FAILURE;
+	return rc;
 }
 
 /****************************************************************************

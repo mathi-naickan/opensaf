@@ -487,7 +487,6 @@ static uint32_t immnd_requestSync(IMMND_CB *cb)
 
 void immnd_announceDump(IMMND_CB *cb)
 {
-	uint32_t rc = NCSCC_RC_FAILURE;
 	IMMSV_EVT send_evt;
 	memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
@@ -498,7 +497,7 @@ void immnd_announceDump(IMMND_CB *cb)
 	send_evt.info.immd.info.ctrl_msg.pbeEnabled = 
 		cb->mPbeFile && (cb->mRim == SA_IMM_KEEP_REPOSITORY);
 	if (immnd_is_immd_up(cb)) {
-		rc = immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt);
+		(void)immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt);
 	}
 	/* Failure not handled. Should not be a problem. */
 

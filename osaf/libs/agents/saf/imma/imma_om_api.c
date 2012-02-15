@@ -3265,7 +3265,6 @@ static SaAisErrorT admin_op_invoke_common(
 	IMMSV_EVT *out_evt = NULL;
 	IMMA_ADMIN_OWNER_NODE *ao_node = NULL;
 	IMMA_CLIENT_NODE *cl_node = NULL;
-	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	bool locked = true;
 	SaImmHandleT immHandle=0LL;
 	SaUint32T adminOwnerId = 0;
@@ -3312,7 +3311,7 @@ static SaAisErrorT admin_op_invoke_common(
 	/*locked == true already */
 
 	/* Get the Admin Owner info  */
-	proc_rc = imma_admin_owner_node_get(&cb->admin_owner_tree, &ownerHandle, &ao_node);
+	(void)imma_admin_owner_node_get(&cb->admin_owner_tree, &ownerHandle, &ao_node);
 	if (!ao_node) {
 		TRACE_2("ERR_BAD_HANDLE: No admin owner associated with admin owner handle!");
 		rc = SA_AIS_ERR_BAD_HANDLE;
@@ -5089,7 +5088,6 @@ SaAisErrorT saImmOmAccessorGet_2(SaImmAccessorHandleT accessorHandle,
 				 const SaImmAttrNameT *attributeNames, SaImmAttrValuesT_2 ***attributes)
 {
 	SaAisErrorT rc = SA_AIS_OK;
-	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	bool locked = true;
 	IMMA_CB *cb = &imma_cb;
 	IMMA_SEARCH_NODE *search_node = NULL;
@@ -5118,7 +5116,7 @@ SaAisErrorT saImmOmAccessorGet_2(SaImmAccessorHandleT accessorHandle,
 	}
 	/*locked is true already */
 
-	proc_rc = imma_search_node_get(&cb->search_tree, &accessorHandle, &search_node);
+	(void)imma_search_node_get(&cb->search_tree, &accessorHandle, &search_node);
 
 	if (!search_node) {
 		TRACE_2("ERR_BAD_HANDLE: Search node is missing");

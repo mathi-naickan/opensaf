@@ -632,7 +632,6 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId)
 {
 	struct CcbUtilCcbData *ccbUtilCcbData;
-	struct CcbUtilOperationData *ccbUtilOperationData;
 	//const SaImmAttrModificationT_2 *attrMod;
 
 	TRACE_ENTER2("PBE APPLY CALLBACK cleanup CCB:%llu", ccbId);
@@ -641,8 +640,6 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 		LOG_WA("Failed to find CCB object for %llu - PBE restarted recently?", ccbId);
 		goto done;
 	}
-
-	ccbUtilOperationData = ccbUtilCcbData->operationListHead;
 
 	/* Verify ok outcome with ccbUtilCcbData->userData */
 
