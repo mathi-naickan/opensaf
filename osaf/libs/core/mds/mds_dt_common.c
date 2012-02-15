@@ -882,12 +882,9 @@ uint32_t mdtm_process_recv_data(uint8_t *buffer, uint16_t len, uint64_t transpor
 	} else {
 		/* We got a fragmented pkt, reassemble */
 		/* Check in reasssebly queue whether any pkts are present */
-		uint16_t more_frag = 0;
 		uint16_t frag_num = 0;
 		uint32_t seq_num = 0;
 		MDTM_REASSEMBLY_QUEUE *reassem_queue = NULL;
-
-		more_frag = ((pkt_type & MDTM_CHECK_MORE_FRAG) >> 15) & 0x1;
 
 		frag_num = (pkt_type & 0x7fff);
 

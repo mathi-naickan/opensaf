@@ -107,7 +107,7 @@ uint32_t dtm_intranode_process_pid_msg(uint8_t *buffer, int fd)
 	pid_node->node_id = m_NCS_GET_NODE_ID;
 	pid_node->pid_node.key_info = (uint8_t *)&pid_node->pid;
 
-	TRACE_1("DTM: INTRA: Processid message rcvd: pid=%d", process_id);
+	TRACE_1("DTM: INTRA: Processid message rcvd: pid=%d, node_id=%u", process_id, node_id);
 
 	ncs_patricia_tree_add(&dtm_intranode_cb->dtm_intranode_pid_list, (NCS_PATRICIA_NODE *)&pid_node->pid_node);
 	TRACE_LEAVE();
@@ -532,8 +532,8 @@ uint32_t dtm_intranode_process_subscribe_msg(uint8_t *buff, int fd)
 		dtm_intranode_add_subscr_to_pid_info(pid_node, subscr_data);
 		dtm_intranode_add_subscrlist_to_subscr_tree(subscr_node, subscr_info);
 
-		TRACE_1("DTM: INTRA: svc subscribe type=%d, inst=%d, scope=%d, pid=%d", server_type,
-		       server_inst_lower, subscr_scope, pid_node->pid);
+		TRACE_1("DTM: INTRA: svc subscribe type=%d, inst_low=%u, inst_high=%u, scope=%d, pid=%d", server_type,
+		       server_inst_lower, server_inst_higher, subscr_scope, pid_node->pid);
 		/* Now check the service installed list and send up message */
 
 		svc_node = dtm_intranode_get_svc_node(server_type);

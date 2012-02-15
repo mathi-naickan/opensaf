@@ -913,12 +913,11 @@ static uint32_t mds_mdtm_process_recvdata(uint32_t rcv_bytes, uint8_t *buff_in)
 	SaUint32T mds_indentifire;
 	uint32_t server_type;
 	uint32_t server_instance_lower;
-	uint32_t server_instance_upper;
 	NODE_ID node_id;
 	uint32_t process_id;
 	uint64_t ref_val;
 	MDS_DEST adest = 0;
-	uint32_t dest_nodeid, dest_process_id, src_nodeid, src_process_id;
+	uint32_t src_nodeid, src_process_id;
 	uint32_t buff_dump = 0;
 	uint64_t tcp_id;
 	uint8_t *buffer = buff_in;
@@ -939,7 +938,7 @@ static uint32_t mds_mdtm_process_recvdata(uint32_t rcv_bytes, uint8_t *buff_in)
 
 			server_type = ncs_decode_32bit(&buffer);
 			server_instance_lower = ncs_decode_32bit(&buffer);
-			server_instance_upper = ncs_decode_32bit(&buffer);
+			(void)ncs_decode_32bit(&buffer);
 			ref_val = ncs_decode_64bit(&buffer);
 			node_id = ncs_decode_32bit(&buffer);
 			process_id = ncs_decode_32bit(&buffer);
@@ -1035,8 +1034,8 @@ static uint32_t mds_mdtm_process_recvdata(uint32_t rcv_bytes, uint8_t *buff_in)
 	case MDTM_LIB_MESSAGE_TYPE:
 		{
 
-			dest_nodeid = ncs_decode_32bit(&buffer);
-			dest_process_id = ncs_decode_32bit(&buffer);
+			(void)ncs_decode_32bit(&buffer);
+			(void)ncs_decode_32bit(&buffer);
 			src_nodeid = ncs_decode_32bit(&buffer);
 			src_process_id = ncs_decode_32bit(&buffer);
 

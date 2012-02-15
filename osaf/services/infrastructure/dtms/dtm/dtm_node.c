@@ -308,6 +308,8 @@ void dtm_internode_process_poll_rcv_msg_common(DTM_NODE_DB * node, uint16_t loca
 		NODE_ID dst_nodeid = 0;
 		uint32_t dst_processid = 0;
 		dst_nodeid = ncs_decode_32bit(&data);
+		if (dtms_cb->node_id != dst_nodeid)
+			LOG_ER("Invalid dest_nodeid: %u received in dtm_internode_processing", dst_nodeid);
 		dst_processid = ncs_decode_32bit(&data);
 		dtm_internode_process_rcv_data_msg(node->buffer, dst_processid, (local_len_buf + 2));
 		node->bytes_tb_read = 0;

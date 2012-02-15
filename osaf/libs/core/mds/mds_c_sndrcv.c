@@ -916,7 +916,6 @@ static uint32_t mcm_pvt_normal_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr
 					       MDS_SVC_ID to_svc_id, MDS_SEND_INFO *req,
 					       MDS_SEND_PRIORITY_TYPE pri, uint32_t xch_id)
 {
-	PW_ENV_ID dest_pwe_id;
 	MDS_SVC_ID dest_svc_id, src_svc_id;
 	MDS_VDEST_ID dest_vdest_id;
 	MDS_DEST dest, ret_adest = 0;
@@ -962,7 +961,6 @@ static uint32_t mcm_pvt_normal_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr
 
 	svc_cb = (MDS_SVC_INFO *)hdl;
 
-	dest_pwe_id = m_MDS_GET_PWE_ID_FROM_SVC_HDL(svc_cb->svc_hdl);
 	dest_svc_id = to_svc_id;
 
 	dest_vdest_id = m_MDS_GET_INTERNAL_VDEST_ID_FROM_MDS_DEST(to_dest);
@@ -1106,7 +1104,6 @@ static uint32_t mcm_msg_cpy_send(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG *to_
 	NCSMDS_CALLBACK_INFO cbinfo;
 	NCSCONTEXT cpy = NULL;
 	NCSCONTEXT orig_msg = NULL;
-	PW_ENV_ID pwe_id;
 	MDTM_SEND_REQ req;
 	MDS_SVC_INFO *orig_sender_cb;
 	MDS_PWE_HDL orig_sender_pwe_hdl;
@@ -1116,7 +1113,6 @@ static uint32_t mcm_msg_cpy_send(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG *to_
 	MDS_SUBSCRIPTION_RESULTS_INFO *lcl_subtn_res = NULL;
 	m_MDS_LOG_DBG("MDS_SND_RCV : Entering mcm_msg_cpy_send\n");
 
-	pwe_id = m_MDS_GET_PWE_ID_FROM_SVC_HDL(svc_cb->svc_hdl);
 
 	memset(&cbinfo, 0, sizeof(cbinfo));
 	memset(&req, 0, sizeof(req));
@@ -1606,7 +1602,6 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 {
 	MDS_VDEST_ID dest_vdest_id;
 	MDS_SUBSCRIPTION_INFO *sub_info = NULL;
-	MDS_DEST dest;
 	V_DEST_QA anchor;
 	uint32_t disc_rc;
 	MDS_HDL env_hdl;
@@ -1669,7 +1664,6 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 		return NCSCC_RC_FAILURE;
 	} else {
 		if (dest_vdest_id == m_VDEST_ID_FOR_ADEST_ENTRY) {
-			dest = i_dest;
 
 			/* Query one type to get the tx_send_hdl(results) */
 			if (NCSCC_RC_SUCCESS !=
@@ -1691,7 +1685,6 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 			/* Destination svc is on vdest */
 			/* Check dest_svc_id, dest_pwe_id, Destination <ADEST, VDEST>,
 			   exists in subscription result table */
-			dest = 0;	/* CAUTION  is this correct */
 			bool flag_t = 0;
 			if (svc_cb->parent_vdest_info->policy == NCS_VDEST_TYPE_MxN)
 				flag_t = 1;
@@ -2176,7 +2169,6 @@ static uint32_t mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 					    MDS_SVC_ID to_svc_id, MDS_SEND_INFO *req,
 					    MDS_SEND_PRIORITY_TYPE pri, uint32_t xch_id, V_DEST_QA anchor)
 {
-	PW_ENV_ID dest_pwe_id;
 	MDS_SVC_ID dest_svc_id, src_svc_id;
 	MDS_VDEST_ID dest_vdest_id;
 	MDS_DEST dest = 0;
@@ -2217,7 +2209,6 @@ static uint32_t mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 
 	svc_cb = (MDS_SVC_INFO *)hdl;
 
-	dest_pwe_id = m_MDS_GET_PWE_ID_FROM_SVC_HDL(svc_cb->svc_hdl);
 	dest_svc_id = to_svc_id;
 
 	dest_vdest_id = m_MDS_GET_INTERNAL_VDEST_ID_FROM_MDS_DEST(to_dest);
@@ -2855,7 +2846,6 @@ static uint32_t mcm_pvt_process_sndrack_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 	NCSCONTEXT hdl;
 
 	MDS_SVC_INFO *svc_cb = NULL;
-	PW_ENV_ID dest_pwe_id;
 
 	MDS_SUBSCRIPTION_RESULTS_INFO *subs_result_hdl = NULL;
 	V_DEST_RL role_ret = 0;	/* Used only to get the subscription result ptr */
@@ -2892,8 +2882,6 @@ static uint32_t mcm_pvt_process_sndrack_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 	}
 
 	svc_cb = (MDS_SVC_INFO *)hdl;
-
-	dest_pwe_id = m_MDS_GET_PWE_ID_FROM_SVC_HDL(svc_cb->svc_hdl);
 
 	/* Check dest_svc_id, dest_pwe_id, Destination <ADEST, VDEST>,
 	   exists in subscription result table */

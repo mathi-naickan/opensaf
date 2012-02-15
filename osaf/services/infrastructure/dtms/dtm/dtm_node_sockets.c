@@ -1085,6 +1085,8 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uint8_t *data
 	}
 
 	mcast_flag = ncs_decode_8bit(&buffer);
+	TRACE("mcast flag: %" PRIu8, mcast_flag);
+
 	/* foreign_port = htons((in_port_t)(ncs_decode_16bit(&buffer))); */
 	foreign_port = ((in_port_t)(ncs_decode_16bit(&buffer)));
 	ip_addr_type = ncs_decode_8bit(&buffer);
