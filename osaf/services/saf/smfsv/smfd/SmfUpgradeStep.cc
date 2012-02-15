@@ -2121,8 +2121,6 @@ SmfUpgradeStep::getProcedure()
 bool SmfUpgradeStep::checkAndInvokeCallback (std::list < SmfCallback * > &callbackList, unsigned int camp_phase) 
 {
 	std::string stepDn = getDn();
-	SYSF_MBX cbkMbx;
-	cbkMbx = m_procedure->getProcThread()->getCbkMbx();
 	std::list < SmfCallback * >:: iterator cbkiter;
 	SaAisErrorT rc = SA_AIS_OK;
 
