@@ -605,7 +605,6 @@ static uint32_t gld_mds_glnd_down(GLSV_GLD_EVT *evt)
 {
 	GLSV_GLD_CB *gld_cb = evt->gld_cb;
 	GLSV_GLD_GLND_DETAILS *node_details = NULL;
-	bool orphan_flag;
 	GLSV_GLD_RSC_INFO *rsc_info;
 	uint32_t node_id;
 	uint32_t rc = NCSCC_RC_FAILURE;
@@ -616,7 +615,6 @@ static uint32_t gld_mds_glnd_down(GLSV_GLD_EVT *evt)
 	if ((evt == GLSV_GLD_EVT_NULL) || (gld_cb == NULL))
 		goto end;
 
-	orphan_flag = evt->info.rsc_details.orphan;
 	memcpy(&evt->fr_dest_id, &evt->info.glnd_mds_info.mds_dest_id, sizeof(MDS_DEST)
 	    );
 
@@ -861,7 +859,6 @@ static uint32_t gld_process_tmr_node_restart_wait_timeout(GLSV_GLD_EVT *evt)
 static uint32_t gld_process_send_non_master_status(GLSV_GLD_CB *gld_cb, GLSV_GLD_GLND_DETAILS *node_details, uint32_t status)
 {
 	GLSV_GLD_GLND_RSC_REF *glnd_rsc = NULL;
-	SaLckResourceIdT rsc_id;
 	GLSV_GLND_EVT glnd_evt;
 	NCSMDS_INFO snd_mds;
 	uint32_t res = NCSCC_RC_FAILURE;
@@ -869,7 +866,6 @@ static uint32_t gld_process_send_non_master_status(GLSV_GLD_CB *gld_cb, GLSV_GLD
 
 	glnd_rsc = (GLSV_GLD_GLND_RSC_REF *)ncs_patricia_tree_getnext(&node_details->rsc_info_tree, (uint8_t *)0);
 	while (glnd_rsc) {
-		rsc_id = glnd_rsc->rsc_id;
 		if (glnd_rsc->rsc_info->node_list->node_id != node_details->node_id) {
 			memset(&glnd_evt, '\0', sizeof(GLSV_GLND_EVT));
 
@@ -915,8 +911,6 @@ static uint32_t gld_process_send_non_master_status(GLSV_GLD_CB *gld_cb, GLSV_GLD
  *****************************************************************************/
 static uint32_t gld_debug_dump_cb(GLSV_GLD_EVT *evt)
 {
-	GLSV_GLD_CB *gld_cb = NULL;
-	gld_cb = evt->gld_cb;
 	gld_dump_cb();
 	return NCSCC_RC_SUCCESS;
 }

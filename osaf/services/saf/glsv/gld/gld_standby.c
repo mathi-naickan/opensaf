@@ -394,7 +394,6 @@ static uint32_t glsv_gld_standby_glnd_operational(GLSV_GLD_A2S_CKPT_EVT *async_e
 	GLSV_GLD_GLND_DETAILS *node_details = NULL;
 	GLSV_GLD_RSC_INFO *rsc_info = NULL;
 	GLSV_NODE_LIST *node_list = NULL;
-	bool orphan_flag;
 	uint32_t node_id;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
@@ -412,8 +411,6 @@ static uint32_t glsv_gld_standby_glnd_operational(GLSV_GLD_A2S_CKPT_EVT *async_e
 		rc = NCSCC_RC_FAILURE;
 		goto end;	
 	}
-
-	orphan_flag = async_evt->info.rsc_details.orphan;
 
 	if ((node_details = (GLSV_GLD_GLND_DETAILS *)ncs_patricia_tree_get(&gld_cb->glnd_details,
 									   (uint8_t *)&node_id)) != NULL) {

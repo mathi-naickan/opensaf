@@ -132,6 +132,7 @@ uint32_t glsv_gla_callback_queue_write(GLA_CB *gla_cb, SaLckHandleT handle, GLSV
 		return NCSCC_RC_FAILURE;
 	} else {
 		rc = m_NCS_IPC_SEND(&client_info->callbk_mbx, clbk_info, NCS_IPC_PRIORITY_NORMAL);
+		TRACE("IPC send returned : %u", rc);
 	}
 	m_NCS_UNLOCK(&gla_cb->cb_lock, NCS_LOCK_READ);
 

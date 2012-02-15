@@ -482,9 +482,7 @@ uint32_t gla_client_info_send(GLA_CB *gla_cb)
 {
 	GLA_CLIENT_INFO *client_info;
 	GLSV_GLND_EVT restart_client_info_evt;
-	SaLckHandleT hdl_id = 0;
 	uint32_t ret = NCSCC_RC_SUCCESS;
-	hdl_id = 0;
 	uint16_t lck_clbk = 0;
 	TRACE_ENTER();
 

@@ -919,7 +919,6 @@ static uint32_t glsv_gld_mbcsv_enc_msg_rsp(GLSV_GLD_CB *gld_cb, NCS_MBCSV_CB_ARG
 	EDU_ERR ederror = 0;
 	uint8_t *header;
 	uint8_t *async_cnt;
-	SaLckResourceIdT prev_rsc_id;
 	TRACE_ENTER();
 
 	/* COLD_SYNC_RESP IS DONE BY THE ACTIVE */
@@ -939,8 +938,6 @@ static uint32_t glsv_gld_mbcsv_enc_msg_rsp(GLSV_GLD_CB *gld_cb, NCS_MBCSV_CB_ARG
 	}
 
 	ncs_enc_claim_space(&arg->info.encode.io_uba, sizeof(uint8_t));
-
-	prev_rsc_id = gld_cb->prev_rsc_id;	/* NEED to see */
 
 	/* Get the first node  */
 	if (!gld_cb->prev_rsc_id)
