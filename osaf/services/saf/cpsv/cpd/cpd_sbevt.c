@@ -91,7 +91,7 @@ uint32_t cpd_sb_proc_ckpt_create(CPD_CB *cb, CPD_MBCSV_MSG *msg)
 	CPD_CKPT_MAP_INFO *map_info = NULL;
 	CPD_NODE_REF_INFO *nref_info = NULL;
 	CPD_CKPT_REF_INFO *cref_info = NULL;
-	uint32_t rc, proc_rc = NCSCC_RC_SUCCESS;
+	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	bool add_flag = true;
 	uint32_t count, dest_cnt;
 	NODE_ID key;
@@ -162,7 +162,6 @@ uint32_t cpd_sb_proc_ckpt_create(CPD_CB *cb, CPD_MBCSV_MSG *msg)
 		nref_info = m_MMGR_ALLOC_CPD_NODE_REF_INFO;
 		if (nref_info == NULL) {
 			LOG_CR("memory allocation for cpd standby evt failed");
-			rc = SA_AIS_ERR_NO_MEMORY;
 			proc_rc = NCSCC_RC_OUT_OF_MEM;
 			goto nref_info_alloc_fail;
 		}

@@ -295,7 +295,6 @@ SaAisErrorT saCkptSelectionObjectGet(SaCkptHandleT ckptHandle, SaSelectionObject
 	SaAisErrorT rc = SA_AIS_OK;
 	CPA_CB *cb = NULL;
 	CPA_CLIENT_NODE *cl_node = NULL;
-	uint32_t proc_rc = NCSCC_RC_FAILURE;
 
 	TRACE_ENTER2("SaCkptCheckpointHandleT passed is %llx",ckptHandle);
 
@@ -318,7 +317,7 @@ SaAisErrorT saCkptSelectionObjectGet(SaCkptHandleT ckptHandle, SaSelectionObject
 		goto lock_fail;
 	}
 
-	proc_rc = cpa_client_node_get(&cb->client_tree, &ckptHandle, &cl_node);
+	(void)cpa_client_node_get(&cb->client_tree, &ckptHandle, &cl_node);
 
 	if (!cl_node) {
 		TRACE_4("Cpa SelObjGet:client_node_get Api failed with return value:%d,ckptHandle:%llx",SA_AIS_ERR_BAD_HANDLE, ckptHandle);
@@ -721,7 +720,7 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 	/* convert the timeout to 10 ms value and add it to the sync send timeout */
 	time_out = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
 
-	if (timeout < NCS_SAF_MIN_ACCEPT_TIME) {
+	if (time_out < NCS_SAF_MIN_ACCEPT_TIME) {
 		rc = SA_AIS_ERR_TIMEOUT;
 		TRACE_4("Cpa CkptOpen failed Api failed with return value:%d,ckptHandle:%llx,timeout:%llu", rc, ckptHandle, timeout);
 		goto mds_send_fail;
@@ -802,8 +801,6 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 
                if ( add_flag == false)
                {
-                       SaSizeT ckpt_size=0;
-
                        gc_node->open.info.open.o_addr=out_evt->info.cpa.info.openRsp.addr;
                        gc_node->ckpt_creat_attri = out_evt->info.cpa.info.openRsp.creation_attr;
 
@@ -814,8 +811,6 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
                                gc_node->active_mds_dest = out_evt->info.cpa.info.openRsp.active_dest;
                        }
 
-                       ckpt_size=sizeof(CPSV_CKPT_HDR)+(gc_node->ckpt_creat_attri.maxSections *
-                                       (sizeof(CPSV_SECT_HDR)+gc_node->ckpt_creat_attri.maxSectionSize));
                }
 
                gc_node->ref_cnt++;
@@ -2166,7 +2161,6 @@ SaAisErrorT saCkptSectionIdFree(SaCkptCheckpointHandleT checkpointHandle, SaUint
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	CPA_CB *cb = NULL;
-	uint32_t proc_rc = NCSCC_RC_FAILURE;
 	CPA_CLIENT_NODE *cl_node = NULL;
 	CPA_LOCAL_CKPT_NODE *lc_node = NULL;
 
@@ -2188,7 +2182,7 @@ SaAisErrorT saCkptSectionIdFree(SaCkptCheckpointHandleT checkpointHandle, SaUint
 		goto lock_fail;
 	}
 
-	proc_rc = cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &checkpointHandle, &lc_node);
+	(void)cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &checkpointHandle, &lc_node);
 	if (!lc_node) {
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		TRACE_4("cpa StatusGet Api failed with return value:%d,ckptHandle:%llx", rc, checkpointHandle);
@@ -2196,7 +2190,7 @@ SaAisErrorT saCkptSectionIdFree(SaCkptCheckpointHandleT checkpointHandle, SaUint
 		goto fail;
 	}
 
-	proc_rc = cpa_client_node_get(&cb->client_tree, &lc_node->cl_hdl, &cl_node);
+	(void)cpa_client_node_get(&cb->client_tree, &lc_node->cl_hdl, &cl_node);
 
 	if (!cl_node) {
 		TRACE_4("cpa SelObjGet:client_node_get Api failed with return value:%d,cl_hdl:%llx ",SA_AIS_ERR_BAD_HANDLE, lc_node->cl_hdl);
@@ -2967,7 +2961,6 @@ SaAisErrorT saCkptSectionIterationNext(SaCkptSectionIterationHandleT sectionIter
 SaAisErrorT saCkptSectionIterationFinalize(SaCkptSectionIterationHandleT sectionIterationHandle)
 {
 	SaAisErrorT rc = SA_AIS_OK;
-	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	CPA_SECT_ITER_NODE *sect_iter_node = NULL;
 	CPA_CB *cb = NULL;
 	CPA_GLOBAL_CKPT_NODE *gc_node = NULL;
@@ -2991,20 +2984,20 @@ SaAisErrorT saCkptSectionIterationFinalize(SaCkptSectionIterationHandleT section
 		TRACE_4("Cpa SectIterFinalize:LOCK Api failed with return value:%d,sectionIterationHandle:%llx", rc, sectionIterationHandle);
 		goto lock_fail;
 	}
-	proc_rc = cpa_sect_iter_node_get(&cb->sect_iter_tree, &sectionIterationHandle, &sect_iter_node);
+	(void)cpa_sect_iter_node_get(&cb->sect_iter_tree, &sectionIterationHandle, &sect_iter_node);
 	if (!sect_iter_node) {
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		TRACE_4("Cpa SectIterFinalize failed with return value:%d,sectionIterationHandle:%llx", rc, sectionIterationHandle);
 		goto sect_iter_get_fail;
 	}
-	proc_rc = cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &sect_iter_node->lcl_ckpt_hdl, &lc_node);
+	(void)cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &sect_iter_node->lcl_ckpt_hdl, &lc_node);
 	if (!lc_node) {
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		TRACE_4("Cpa StatusGet Api failed with return value:%d,lcl_ckpt_hdl:%llx", rc, sect_iter_node->lcl_ckpt_hdl);
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		goto fail1;
 	}
-	proc_rc = cpa_client_node_get(&cb->client_tree, &lc_node->cl_hdl, &cl_node);
+	(void)cpa_client_node_get(&cb->client_tree, &lc_node->cl_hdl, &cl_node);
 	if (!cl_node) {
 		TRACE_4("Cpa SelObjGet:client_node_get failed with return value:%d,cl_hdl:%llx",SA_AIS_ERR_BAD_HANDLE, lc_node->cl_hdl);
 		rc = SA_AIS_ERR_BAD_HANDLE;
@@ -3021,7 +3014,7 @@ SaAisErrorT saCkptSectionIterationFinalize(SaCkptSectionIterationHandleT section
 		}
 	}
 
-	proc_rc = cpa_gbl_ckpt_node_find_add(&cb->gbl_ckpt_tree, &sect_iter_node->gbl_ckpt_hdl, &gc_node, &add_flag);
+	(void)cpa_gbl_ckpt_node_find_add(&cb->gbl_ckpt_tree, &sect_iter_node->gbl_ckpt_hdl, &gc_node, &add_flag);
 
 	if (!gc_node) {
 		TRACE_4("cpa - Global Ckpt Find Add Failed");
@@ -3712,7 +3705,6 @@ SaAisErrorT saCkptIOVectorElementDataFree(SaCkptCheckpointHandleT checkpointHand
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	CPA_CB *cb = NULL;
-	uint32_t proc_rc = NCSCC_RC_FAILURE;
 	CPA_CLIENT_NODE *cl_node = NULL;
 	CPA_LOCAL_CKPT_NODE *lc_node = NULL;
 	
@@ -3733,14 +3725,14 @@ SaAisErrorT saCkptIOVectorElementDataFree(SaCkptCheckpointHandleT checkpointHand
 		rc = SA_AIS_ERR_LIBRARY;
 		goto lock_fail;
 	}
-	proc_rc = cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &checkpointHandle, &lc_node);
+	(void)cpa_lcl_ckpt_node_get(&cb->lcl_ckpt_tree, &checkpointHandle, &lc_node);
 	if (!lc_node) {
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		TRACE_4("cpa StatusGet Api failed with return value:%d,ckptHandle:%llx", rc, checkpointHandle);
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		goto fail;
 	}
-	proc_rc = cpa_client_node_get(&cb->client_tree, &lc_node->cl_hdl, &cl_node);
+	(void)cpa_client_node_get(&cb->client_tree, &lc_node->cl_hdl, &cl_node);
 	if (!cl_node) {
 		TRACE_4("cpa SelObjGet:client_node_get Api failed with return value:%d,ckptHandle:%llx", SA_AIS_ERR_BAD_HANDLE, lc_node->cl_hdl);
 		rc = SA_AIS_ERR_BAD_HANDLE;

@@ -659,7 +659,6 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 {
 	CPD_CPND_INFO_NODE *cpnd_info = NULL;
 	CPD_CKPT_REF_INFO *cref_info;
-	uint32_t proc_rc;
 	CPD_CKPT_MAP_INFO *map_info = NULL;
 	bool ckptid_flag = true;
 	bool add_flag = false;
@@ -750,7 +749,7 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 					send_evt.info.cpnd.info.active_set.ckpt_id = ckpt_node->ckpt_id;
 					send_evt.info.cpnd.info.active_set.mds_dest = ckpt_node->active_dest;
 
-					proc_rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
+					(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
 					TRACE_4("cpd ckpt active change success for ckpt_id:%llx,active_dest:%"PRIu64,
 						ckpt_node->ckpt_id, ckpt_node->active_dest);
 					memset(&send_evt, 0, sizeof(CPSV_EVT));
@@ -758,7 +757,7 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 					send_evt.info.cpa.type = CPA_EVT_D2A_ACT_CKPT_INFO_BCAST_SEND;
 					send_evt.info.cpa.info.ackpt_info.ckpt_id = ckpt_node->ckpt_id;
 					send_evt.info.cpa.info.ackpt_info.mds_dest = ckpt_node->active_dest;
-					proc_rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPA);
+					(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPA);
 
 				}
 				/* if(ckpt_node->is_active_exists == false) */
@@ -772,7 +771,7 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 						send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_RDSET;
 						send_evt.info.cpnd.info.rdset.ckpt_id = ckpt_node->ckpt_id;
 						send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_START;
-						proc_rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
+						(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
 
 						TRACE_4("cpd ckpt rdset success for ckpt_id:%llx,active dest:%"PRIu64,
 							ckpt_node->ckpt_id, ckpt_node->active_dest);
@@ -801,14 +800,14 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 				cpd_ckpt_map_node_get(&cb->ckpt_map_tree, &ckpt_node->ckpt_name, &map_info);
 
 				/* Remove the ckpt_node */
-				proc_rc = cpd_ckpt_node_delete(cb, ckpt_node);
+				(void)cpd_ckpt_node_delete(cb, ckpt_node);
 
 				if (map_info) {
-					proc_rc = cpd_ckpt_map_node_delete(cb, map_info);
+					(void)cpd_ckpt_map_node_delete(cb, map_info);
 				}
 			} else {
 				/* Broadcast the info to all CPNDs */
-				proc_rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
+				(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
 				TRACE_4("cpd rep del success for ckpt_id:%llx,cpnd_dest:%"PRIu64,ckpt_node->ckpt_id, *cpnd_dest);
 
 				if (m_NCS_MDS_DEST_NODEID_EQUAL
@@ -845,7 +844,7 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 					send_evt.info.cpnd.info.active_set.ckpt_id = ckpt_node->ckpt_id;
 					send_evt.info.cpnd.info.active_set.mds_dest = ckpt_node->active_dest;
 
-					proc_rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
+					(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
 					TRACE_4("cpd ckpt active change success for ckpt_id:%llx,active dest:%"PRIu64,
 						ckpt_node->ckpt_id, ckpt_node->active_dest);
 
@@ -855,7 +854,7 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 					send_evt.info.cpa.type = CPA_EVT_D2A_ACT_CKPT_INFO_BCAST_SEND;
 					send_evt.info.cpa.info.ackpt_info.ckpt_id = ckpt_node->ckpt_id;
 					send_evt.info.cpa.info.ackpt_info.mds_dest = ckpt_node->active_dest;
-					proc_rc = cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPA);
+					(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPA);
 				}	/* if(ckpt_node->is_active_exists == false) */
 			}	/* else of if(ckpt_node->dest_cnt == 0) */
 		}

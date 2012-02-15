@@ -1535,7 +1535,6 @@ uint32_t cpnd_proc_sec_expiry(CPND_CB *cb, CPND_TMR_INFO *tmr_info)
  *****************************************************************************/
 uint32_t cpnd_open_active_sync_expiry(CPND_CB *cb, CPND_TMR_INFO *tmr_info)
 {
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	CPSV_EVT des_evt, *out_evt = NULL;
 	CPSV_EVT send_evt;
 	memset(&des_evt, '\0', sizeof(CPSV_EVT));
@@ -1543,7 +1542,7 @@ uint32_t cpnd_open_active_sync_expiry(CPND_CB *cb, CPND_TMR_INFO *tmr_info)
 	des_evt.type = CPSV_EVT_TYPE_CPD;
 	des_evt.info.cpd.type = CPD_EVT_ND2D_CKPT_DESTROY;
 	des_evt.info.cpd.info.ckpt_destroy.ckpt_id = tmr_info->ckpt_id;
-	rc = cpnd_mds_msg_sync_send(cb, NCSMDS_SVC_ID_CPD, cb->cpd_mdest_id, &des_evt, &out_evt, CPSV_WAIT_TIME);
+	(void)cpnd_mds_msg_sync_send(cb, NCSMDS_SVC_ID_CPD, cb->cpd_mdest_id, &des_evt, &out_evt, CPSV_WAIT_TIME);
 	if (out_evt && out_evt->info.cpnd.info.destroy_ack.error != SA_AIS_OK) {
 		TRACE_4("cpnd cpd new active destroy failed with error:%d",out_evt->info.cpnd.info.destroy_ack.error);
 	}
@@ -1554,10 +1553,10 @@ uint32_t cpnd_open_active_sync_expiry(CPND_CB *cb, CPND_TMR_INFO *tmr_info)
 	send_evt.info.cpa.type = CPA_EVT_ND2A_CKPT_OPEN_RSP;
 	send_evt.info.cpa.info.openRsp.lcl_ckpt_hdl = tmr_info->lcl_ckpt_hdl;
 	if (tmr_info->sinfo.stype == MDS_SENDTYPE_SNDRSP) {
-		rc = cpnd_mds_send_rsp(cb, &tmr_info->sinfo, &send_evt);
+		(void)cpnd_mds_send_rsp(cb, &tmr_info->sinfo, &send_evt);
 	} else {
 		send_evt.info.cpa.info.openRsp.invocation = tmr_info->invocation;
-		rc = cpnd_mds_msg_send(cb, tmr_info->sinfo.to_svc, tmr_info->sinfo.dest, &send_evt);
+		(void)cpnd_mds_msg_send(cb, tmr_info->sinfo.to_svc, tmr_info->sinfo.dest, &send_evt);
 	}
 	return NCSCC_RC_SUCCESS;
 }

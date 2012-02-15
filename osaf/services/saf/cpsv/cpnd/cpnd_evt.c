@@ -157,7 +157,6 @@ void cpnd_process_evt(CPSV_EVT *evt)
 {
 	CPND_CB *cb = NULL;
 	uint32_t cb_hdl = m_CPND_GET_CB_HDL;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 	CPND_SYNC_SEND_NODE *node = NULL;
 
    if(evt->type != CPSV_EVT_TYPE_CPND)
@@ -180,76 +179,76 @@ void cpnd_process_evt(CPSV_EVT *evt)
 
 	switch (evt->info.cpnd.type) {
 	case CPND_EVT_MDS_INFO:
-		rc = cpnd_evt_proc_mds_evt(cb, &evt->info.cpnd);
+		(void)cpnd_evt_proc_mds_evt(cb, &evt->info.cpnd);
 		break;
 
 	case CPND_EVT_TIME_OUT:
-		rc = cpnd_evt_proc_timer_expiry(cb, &evt->info.cpnd);
+		(void)cpnd_evt_proc_timer_expiry(cb, &evt->info.cpnd);
 		break;
 
 		/* Agent to ND */
 	case CPND_EVT_A2ND_CKPT_INIT:
-		rc = cpnd_evt_proc_ckpt_init(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_init(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_FINALIZE:
-		rc = cpnd_evt_proc_ckpt_finalize(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_finalize(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_OPEN:
-		rc = cpnd_evt_proc_ckpt_open(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_open(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_CLOSE:
-		rc = cpnd_evt_proc_ckpt_close(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_close(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_UNLINK:
-		rc = cpnd_evt_proc_ckpt_unlink(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_unlink(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_RDSET:
-		rc = cpnd_evt_proc_ckpt_rdset(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_rdset(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_AREP_SET:
-		rc = cpnd_evt_proc_ckpt_arep_set(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_arep_set(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_STATUS_GET:
-		rc = cpnd_evt_proc_ckpt_status_get(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_status_get(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_SECT_CREATE:
-		rc = cpnd_evt_proc_ckpt_sect_create(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_sect_create(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_SECT_DELETE:
-		rc = cpnd_evt_proc_ckpt_sect_delete(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_sect_delete(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_SECT_EXP_SET:
-		rc = cpnd_evt_proc_ckpt_sect_exp_set(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_sect_exp_set(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_SECT_ITER_REQ:
-		rc = cpnd_evt_proc_ckpt_sect_iter_req(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_sect_iter_req(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_ITER_GETNEXT:
-		rc = cpnd_evt_proc_ckpt_iter_getnext(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_iter_getnext(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_ND2ND_CKPT_ITER_NEXT_REQ:
-		rc = cpnd_evt_proc_ckpt_iter_next_req(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_iter_next_req(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_WRITE:
-		rc = cpnd_evt_proc_ckpt_write(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_write(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_CKPT_READ:
-		rc = cpnd_evt_proc_ckpt_read(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_read(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 /*
    case CPND_EVT_A2ND_CKPT_READ_ACK:
@@ -257,57 +256,57 @@ void cpnd_process_evt(CPSV_EVT *evt)
       break;
 */
 	case CPND_EVT_A2ND_CKPT_SYNC:
-		rc = cpnd_evt_proc_ckpt_sync(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_sync(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_A2ND_ARRIVAL_CB_REG:
-		rc = cpnd_evt_proc_arrival_cbreg(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_arrival_cbreg(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 	case CPND_EVT_D2ND_CKPT_ACTIVE_SET:	/* broadcast message */
-		rc = cpnd_evt_proc_ckpt_active_set(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_active_set(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_D2ND_CKPT_RDSET:
-		rc = cpnd_evt_proc_ckpt_rdset_info(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_rdset_info(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_D2ND_CKPT_SIZE:
-		rc = cpnd_evt_proc_ckpt_mem_size(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_mem_size(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_D2ND_CKPT_NUM_SECTIONS:
-		rc = cpnd_evt_proc_ckpt_num_sections(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_num_sections(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_D2ND_CKPT_REP_ADD:
-		rc = cpnd_evt_proc_ckpt_rep_add(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_rep_add(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_D2ND_CKPT_REP_DEL:
-		rc = cpnd_evt_proc_ckpt_rep_del(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_rep_del(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_D2ND_CKPT_UNLINK:
-		rc = cpnd_evt_proc_ckpt_unlink_info(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_unlink_info(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 /* FOR CPND REDUNDANCY */
 	case CPSV_D2ND_RESTART:
-		rc = cpsv_cpnd_restart(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpsv_cpnd_restart(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPSV_D2ND_RESTART_DONE:
-		rc = cpsv_cpnd_restart_done(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpsv_cpnd_restart_done(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 		/* shashi TBD :need to code for the following */
 
 	case CPND_EVT_D2ND_CKPT_DESTROY:
-		rc = cpnd_evt_proc_ckpt_destroy(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_destroy(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_D2ND_CKPT_CREATE:	/* happens for non-collocated and received
 						   by CPNDs on SCXB */
-		rc = cpnd_evt_proc_ckpt_create(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_ckpt_create(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 		/* end */
@@ -315,46 +314,45 @@ void cpnd_process_evt(CPSV_EVT *evt)
 /* ND-ND */
 
 	case CPND_EVT_ND2ND_ACTIVE_STATUS:
-		rc = cpnd_evt_proc_nd2nd_ckpt_status(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_nd2nd_ckpt_status(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_ND2ND_CKPT_SYNC_REQ:
-		rc = cpnd_evt_proc_nd2nd_ckpt_sync_req(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_nd2nd_ckpt_sync_req(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_ND2ND_CKPT_ACTIVE_SYNC:
-		rc = cpnd_evt_proc_nd2nd_ckpt_active_sync(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_nd2nd_ckpt_active_sync(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPSV_EVT_ND2ND_CKPT_SECT_CREATE_REQ:
-		rc = cpnd_evt_proc_nd2nd_ckpt_sect_create(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_nd2nd_ckpt_sect_create(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPSV_EVT_ND2ND_CKPT_SECT_DELETE_REQ:
-		rc = cpnd_evt_proc_nd2nd_ckpt_sect_delete(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_nd2nd_ckpt_sect_delete(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPSV_EVT_ND2ND_CKPT_SECT_EXPTMR_REQ:
-		rc = cpnd_evt_proc_nd2nd_ckpt_sect_exptmr_req(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_nd2nd_ckpt_sect_exptmr_req(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPSV_EVT_ND2ND_CKPT_SECT_ACTIVE_DATA_ACCESS_REQ:
-		rc = cpnd_evt_proc_nd2nd_ckpt_active_data_access_req(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_nd2nd_ckpt_active_data_access_req(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPSV_EVT_ND2ND_CKPT_SECT_ACTIVE_DATA_ACCESS_RSP:
-		rc = cpnd_evt_proc_nd2nd_ckpt_active_data_access_rsp(cb, &evt->info.cpnd, &evt->sinfo);
+		(void)cpnd_evt_proc_nd2nd_ckpt_active_data_access_rsp(cb, &evt->info.cpnd, &evt->sinfo);
 		break;
 
 	case CPND_EVT_CB_DUMP:
-		rc = cpnd_evt_proc_cb_dump(cb);
+		(void)cpnd_evt_proc_cb_dump(cb);
 		break;
-  case CPND_EVT_A2ND_CKPT_REFCNTSET:
-     rc = cpnd_evt_proc_ckpt_refcntset(cb, &evt->info.cpnd);
-     break;
+	case CPND_EVT_A2ND_CKPT_REFCNTSET:
+		(void)cpnd_evt_proc_ckpt_refcntset(cb, &evt->info.cpnd);
+		break;
 
 	default:
-		rc = NCSCC_RC_FAILURE;
 		break;
 	}
 

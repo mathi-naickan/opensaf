@@ -81,7 +81,6 @@ void cpd_process_evt(CPSV_EVT *evt)
 {
 	CPD_CB *cb;
 	uint32_t cb_hdl = m_CPD_GET_CB_HDL;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
 	if (evt->type != CPSV_EVT_TYPE_CPD) {
@@ -103,49 +102,46 @@ void cpd_process_evt(CPSV_EVT *evt)
 
 	switch (evt->info.cpd.type) {
 	case CPD_EVT_MDS_INFO:
-		rc = cpd_evt_proc_mds_evt(cb, &evt->info.cpd);
+		(void)cpd_evt_proc_mds_evt(cb, &evt->info.cpd);
 		break;
 	case CPD_EVT_TIME_OUT:
-		rc = cpd_evt_proc_timer_expiry(cb, &evt->info.cpd);
+		(void)cpd_evt_proc_timer_expiry(cb, &evt->info.cpd);
 		break;
 	case CPD_EVT_ND2D_CKPT_CREATE:
-		rc = cpd_evt_proc_ckpt_create(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_proc_ckpt_create(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 	case CPD_EVT_ND2D_CKPT_USR_INFO:
-		rc = cpd_evt_proc_ckpt_usr_info(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_proc_ckpt_usr_info(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 	case CPD_EVT_ND2D_CKPT_SEC_INFO_UPD:
-		rc = cpd_evt_proc_ckpt_sec_info_upd(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_proc_ckpt_sec_info_upd(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 	case CPD_EVT_ND2D_CKPT_UNLINK:
-		rc = cpd_evt_proc_ckpt_unlink(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_proc_ckpt_unlink(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 	case CPD_EVT_ND2D_CKPT_RDSET:
-		rc = cpd_evt_proc_ckpt_rdset(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_proc_ckpt_rdset(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 	case CPD_EVT_ND2D_ACTIVE_SET:
-		rc = cpd_evt_proc_active_set(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_proc_active_set(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 	case CPD_EVT_ND2D_CKPT_DESTROY:
-		rc = cpd_evt_proc_ckpt_destroy(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_proc_ckpt_destroy(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 	case CPD_EVT_ND2D_CKPT_DESTROY_BYNAME:
-		rc = cpd_evt_proc_ckpt_destroy_byname(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_proc_ckpt_destroy_byname(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 	case CPD_EVT_MDS_QUIESCED_ACK_RSP:
-		rc = cpd_evt_mds_quiesced_ack_rsp(cb, &evt->info.cpd, &evt->sinfo);
+		(void)cpd_evt_mds_quiesced_ack_rsp(cb, &evt->info.cpd, &evt->sinfo);
 		break;
 
 	case CPD_EVT_CB_DUMP:
-		rc = cpd_evt_proc_cb_dump(cb);
+		(void)cpd_evt_proc_cb_dump(cb);
 		break;
 	default:
 		/* Log the error TBD */
 		break;
 	}
-
-	/*  if(rc != NCSCC_RC_SUCCESS)
-	   TBD Log the error */
 
 	/* Return the Handle */
 	ncshm_give_hdl(cb_hdl);
@@ -861,7 +857,6 @@ uint32_t cpd_evt_proc_cb_dump(CPD_CB *cb)
  *****************************************************************************/
 static uint32_t cpd_evt_proc_timer_expiry(CPD_CB *cb, CPD_EVT *evt)
 {
-	uint32_t rc;
 	CPD_CPND_INFO_NODE *node_info = NULL;
 
 	CPD_TMR_INFO *tmr_info = &evt->info.tmr_info;
@@ -871,7 +866,7 @@ static uint32_t cpd_evt_proc_timer_expiry(CPD_CB *cb, CPD_EVT *evt)
 		if (cb->ha_state == SA_AMF_HA_ACTIVE) {
 			cpd_cpnd_info_node_get(&cb->cpnd_tree, &tmr_info->info.cpnd_dest, &node_info);
 			if (node_info) {
-				rc = cpd_process_cpnd_down(cb, &tmr_info->info.cpnd_dest);
+				(void)cpd_process_cpnd_down(cb, &tmr_info->info.cpnd_dest);
 			}
 		}
 		if (cb->ha_state == SA_AMF_HA_STANDBY) {
@@ -1001,7 +996,7 @@ static uint32_t cpd_cpnd_dest_replace(CPD_CB *cb, CPD_CKPT_REF_INFO *cref_info, 
  *****************************************************************************/
 static uint32_t cpnd_up_process(CPD_CB *cb, CPSV_MDS_INFO *mds_info, CPD_CPND_INFO_NODE *cpnd_info)
 {
-	CPD_CKPT_REF_INFO *cref_info = NULL, *cpd_ckpt_info = NULL;
+	CPD_CKPT_REF_INFO *cref_info = NULL;
 	CPSV_EVT send_evt;
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	uint32_t i = 0;
@@ -1012,7 +1007,6 @@ static uint32_t cpnd_up_process(CPD_CB *cb, CPSV_MDS_INFO *mds_info, CPD_CPND_IN
 	cpd_tmr_stop(&cpnd_info->cpnd_ret_timer);
 
 	cref_info = cpnd_info->ckpt_ref_list;
-	cpd_ckpt_info = cpnd_info->ckpt_ref_list;
 
 	if (cref_info)
 		cpd_cpnd_dest_replace(cb, cref_info, mds_info);

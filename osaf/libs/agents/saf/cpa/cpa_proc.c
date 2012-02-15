@@ -322,7 +322,6 @@ static void cpa_proc_async_open_rsp(CPA_CB *cb, CPA_EVT *evt)
 	}
 
 	if (evt->info.openRsp.error == SA_AIS_OK) {
-		SaSizeT ckpt_size = 0;
 
 		/* We got all the data that we want, update it */
 		lc_node->gbl_ckpt_hdl = evt->info.openRsp.gbl_ckpt_hdl;
@@ -355,9 +354,6 @@ static void cpa_proc_async_open_rsp(CPA_CB *cb, CPA_EVT *evt)
 				gc_node->active_mds_dest = evt->info.openRsp.active_dest;
 			}
 
-			ckpt_size = sizeof(CPSV_CKPT_HDR) + (gc_node->ckpt_creat_attri.maxSections *
-							     (sizeof(CPSV_SECT_HDR) +
-							      gc_node->ckpt_creat_attri.maxSectionSize));
 		}
 	}
 
@@ -412,7 +408,6 @@ static void cpa_proc_async_open_rsp(CPA_CB *cb, CPA_EVT *evt)
 ******************************************************************************/
 static void cpa_proc_async_sync_rsp(CPA_CB *cb, CPA_EVT *evt)
 {
-	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	CPA_CALLBACK_INFO *callback = NULL;
 	CPA_CLIENT_NODE *cl_node = NULL;
 	CPA_LOCAL_CKPT_NODE *lc_node = NULL;
@@ -425,7 +420,7 @@ static void cpa_proc_async_sync_rsp(CPA_CB *cb, CPA_EVT *evt)
 	}
 
 	/* Get the Client info */
-	proc_rc = cpa_client_node_get(&cb->client_tree, &evt->info.sync_rsp.client_hdl, &cl_node);
+	(void)cpa_client_node_get(&cb->client_tree, &evt->info.sync_rsp.client_hdl, &cl_node);
 	if (!cl_node) {
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		TRACE_LEAVE();
@@ -475,7 +470,7 @@ static void cpa_proc_async_sync_rsp(CPA_CB *cb, CPA_EVT *evt)
 ***************************************************************************************************/
 static void cpa_proc_ckpt_arrival_ntfy(CPA_CB *cb, CPA_EVT *evt)
 {
-	uint32_t proc_rc = NCSCC_RC_SUCCESS, i = 0;
+	uint32_t i = 0;
 	CPA_CALLBACK_INFO *callback = NULL;
 	CPA_CLIENT_NODE *cl_node = NULL;
 	CPA_LOCAL_CKPT_NODE *lc_node = NULL;
@@ -492,7 +487,7 @@ static void cpa_proc_ckpt_arrival_ntfy(CPA_CB *cb, CPA_EVT *evt)
 	}
 
 	/* Get the Client info */
-	proc_rc = cpa_client_node_get(&cb->client_tree, &evt->info.arr_msg.client_hdl, &cl_node);
+	(void)cpa_client_node_get(&cb->client_tree, &evt->info.arr_msg.client_hdl, &cl_node);
 	if (!cl_node) {
 		goto free_mem;
 	}
@@ -605,7 +600,6 @@ static uint32_t cpa_proc_ckpt_clm_status_changed(CPA_CB *cb, CPSV_EVT *evt)
 ******************************************************************************/
 static void cpa_proc_tmr_expiry(CPA_CB *cb, CPA_EVT *evt)
 {
-	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	CPA_TMR_INFO *tmr_info = &evt->info.tmr_info;
 	CPA_CALLBACK_INFO *callback = NULL;
 	CPA_CLIENT_NODE *cl_node = NULL;
@@ -627,7 +621,7 @@ static void cpa_proc_tmr_expiry(CPA_CB *cb, CPA_EVT *evt)
 		cpa_tmr_stop(&lc_node->async_req_tmr);
 
 		/* Get the Client info */
-		proc_rc = cpa_client_node_get(&cb->client_tree, &tmr_info->client_hdl, &cl_node);
+		(void)cpa_client_node_get(&cb->client_tree, &tmr_info->client_hdl, &cl_node);
 		if (!cl_node)
 			goto free_lock;
 
@@ -1303,11 +1297,10 @@ uint32_t cpa_proc_check_iovector(CPA_CB *cb, CPA_LOCAL_CKPT_NODE *lc_node, const
 			      uint32_t num_of_elmts, uint32_t *errflag)
 {
 	uint32_t iter, rc = NCSCC_RC_SUCCESS;
-	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	bool add_flag = false;
 	CPA_GLOBAL_CKPT_NODE *gc_node = NULL;
 
-	proc_rc = cpa_gbl_ckpt_node_find_add(&cb->gbl_ckpt_tree, &lc_node->gbl_ckpt_hdl, &gc_node, &add_flag);
+	(void)cpa_gbl_ckpt_node_find_add(&cb->gbl_ckpt_tree, &lc_node->gbl_ckpt_hdl, &gc_node, &add_flag);
 	if (gc_node == NULL) {
 		return NCSCC_RC_FAILURE;
 

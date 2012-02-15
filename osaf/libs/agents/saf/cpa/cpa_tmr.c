@@ -39,7 +39,6 @@ void cpa_timer_expiry(NCSCONTEXT uarg)
 
 	CPA_TMR *tmr = (CPA_TMR *)uarg;
 	uint32_t hdl;
-	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	/* retrieve CPA CB */
 	m_CPA_RETRIEVE_CB(cb);
@@ -59,7 +58,7 @@ void cpa_timer_expiry(NCSCONTEXT uarg)
 
 		ncshm_give_hdl(hdl);
 
-		rc = cpa_process_evt(cb, &evt);
+		(void)cpa_process_evt(cb, &evt);
 
 		if (tmr->tmr_id != TMR_T_NULL) {
 			m_NCS_TMR_DESTROY(tmr->tmr_id);

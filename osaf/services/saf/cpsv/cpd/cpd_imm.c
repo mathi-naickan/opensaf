@@ -631,10 +631,9 @@ static uint32_t cpd_fetch_num_sections(CPD_CKPT_INFO_NODE *ckpt_node, CPD_CB *cb
 static char *ckpt_replica_extract_node_name(char *src,char *key)
 {
 	char *dest = NULL;
-	SaUint32T len_src = 0, len_key = 0;
+	SaUint32T len_src = 0;
 	SaUint32T i = 0, k = 0;
 	len_src = strlen( src );
-	len_key = strlen( key );
 	dest = (char *) malloc( sizeof( char ) * len_src + 1 );
 	memset( dest, 0, sizeof( char ) * len_src + 1 );
 	for ( i = 0; i < len_src; i++ ) {
