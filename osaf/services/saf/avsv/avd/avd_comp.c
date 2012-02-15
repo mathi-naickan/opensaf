@@ -860,6 +860,7 @@ SaAisErrorT avd_comp_config_get(const SaNameT *su_name, AVD_SU *su)
 	const SaImmAttrValuesT_2 **attributes;
 	const char *className = "SaAmfComp";
 	AVD_COMP *comp;
+	unsigned int num_of_comp_in_su = 0;
 
 	TRACE_ENTER();
 
@@ -884,10 +885,17 @@ SaAisErrorT avd_comp_config_get(const SaNameT *su_name, AVD_SU *su)
 		if ((comp = comp_create(&comp_name, attributes)) == NULL)
 			goto done2;
 
+		num_of_comp_in_su ++;
 		comp_add_to_model(comp);
 
 		if (avd_compcstype_config_get(&comp_name, comp) != SA_AIS_OK)
 			goto done2;
+	}
+
+	/* If there are no component in the SU, we treat it as invalid configuration. */
+	if (0 == num_of_comp_in_su) {
+		LOG_ER("There is no component configured for SU '%s'", su_name->value);
+		goto done2;
 	}
 
 	error = SA_AIS_OK;
