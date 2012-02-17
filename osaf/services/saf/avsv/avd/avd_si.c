@@ -452,7 +452,8 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 
 static AVD_SI *si_create(SaNameT *si_name, const SaImmAttrValuesT_2 **attributes)
 {
-	int i, rc = -1;
+	unsigned int i;
+	int rc = -1;
 	AVD_SI *si;
 	AVD_SU_SI_REL *sisu;
 	AVD_COMP_CSI_REL *compcsi, *temp;
@@ -497,7 +498,13 @@ static AVD_SI *si_create(SaNameT *si_name, const SaImmAttrValuesT_2 **attributes
 
 	if (immutil_getAttr("saAmfSIRank", attributes, 0, &si->saAmfSIRank) != SA_AIS_OK) {
 		/* Empty, assign default value (highest number => lowest rank) */
-		si->saAmfSIRank = -1;
+		si->saAmfSIRank = ~0U;
+	}
+
+	/* If 0 (zero), treat as lowest possible rank. Should be a positive integer */
+	if (si->saAmfSIRank == 0) {
+		si->saAmfSIRank = ~0U;
+		TRACE("'%s' saAmfSIRank auto-changed to lowest", si->name.value);
 	}
 
 	/* Optional, [0..*] */

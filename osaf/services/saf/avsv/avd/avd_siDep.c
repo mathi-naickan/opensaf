@@ -1318,7 +1318,7 @@ static uint32_t is_config_valid(SaNameT *sidep_name, CcbUtilOperationData_t *opd
 	}
 
 	if (spons_saAmfSIRank == 0)
-		spons_saAmfSIRank = -1; /* zero means lowest possible rank */
+		spons_saAmfSIRank = ~0U; /* zero means lowest possible rank */
 
 	if ((dep_si = avd_si_get(&indx.si_name_sec)) == NULL) {
 		if (opdata == NULL) {
@@ -1350,7 +1350,7 @@ static uint32_t is_config_valid(SaNameT *sidep_name, CcbUtilOperationData_t *opd
 	}
 
 	if (dep_saAmfSIRank == 0)
-		dep_saAmfSIRank = -1; /* zero means lowest possible rank */
+		dep_saAmfSIRank = ~0U; /* zero means lowest possible rank */
 
 	/* higher number => lower rank, see 3.8.1.1 */
 	if (spons_saAmfSIRank > dep_saAmfSIRank) {
