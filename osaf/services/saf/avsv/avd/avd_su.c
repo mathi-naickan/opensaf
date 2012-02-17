@@ -417,7 +417,13 @@ static AVD_SU *su_create(const SaNameT *dn, const SaImmAttrValuesT_2 **attribute
 
 	if (immutil_getAttr("saAmfSURank", attributes, 0, &su->saAmfSURank) != SA_AIS_OK) {
 		/* Empty, assign default value (highest number => lowest rank) */
-		su->saAmfSURank = -1;
+		su->saAmfSURank = ~0U;
+	}
+
+	/* If 0 (zero), treat as lowest possible rank. Should be a positive integer */
+	if (su->saAmfSURank == 0) {
+		su->saAmfSURank = ~0U;
+		TRACE("'%s' saAmfSURank auto-changed to lowest", su->name.value);
 	}
 
 	(void) immutil_getAttr("saAmfSUHostNodeOrNodeGroup", attributes, 0, &su->saAmfSUHostNodeOrNodeGroup);
