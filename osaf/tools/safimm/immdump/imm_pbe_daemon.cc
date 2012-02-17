@@ -53,6 +53,9 @@ static unsigned int sObjCount=0;
 static unsigned int sClassCount=0;
 static unsigned int sEpoch=0;
 static unsigned int sNoStdFlags=0x00000000;
+static unsigned int sBufsize=256;
+
+
 
 static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 					  SaInvocationT invocation,
@@ -341,8 +344,8 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 	}
 
 	if(strncmp((char *) objectName->value, (char *) OPENSAF_IMM_OBJECT_DN, objectName->length) ==0) {
-		char buf[256];
-		snprintf(buf, sizeof(*buf),
+		char buf[sBufsize];
+		snprintf(buf, sBufsize,
 			"PBE will not allow modifications to object %s", (char *) OPENSAF_IMM_OBJECT_DN);
 		LOG_NO("%s", buf);
 		saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
@@ -493,7 +496,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 	SaAisErrorT rc = SA_AIS_OK;
 	struct CcbUtilCcbData *ccbUtilCcbData;
 	struct CcbUtilOperationData *ccbUtilOperationData;
-	char buf[256];
+	char buf[sBufsize];
 	TRACE_ENTER2("Completed callback for CCB:%llu", ccbId);
 
 	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) == NULL) {
@@ -567,7 +570,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 
 						case SA_IMM_ATTR_VALUES_ADD:
 							if(attMod->modAttr.attrValuesNumber == 0) {
-								snprintf(buf, sizeof(*buf),
+								snprintf(buf, sBufsize,
 									"PBE: Empty value used for adding to attribute %s",
 									attMod->modAttr.attrName);
 								LOG_NO("%s", buf);
@@ -583,7 +586,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 
 						case SA_IMM_ATTR_VALUES_DELETE:
 							if(attMod->modAttr.attrValuesNumber == 0) {
-								snprintf(buf, sizeof(*buf),
+								snprintf(buf, sBufsize,
 									"PBE: Empty value used for deleting from attribute %s",
 									attMod->modAttr.attrName);
 								LOG_NO("%s", buf);
@@ -611,7 +614,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 		TRACE("COMMIT PBE TRANSACTION for ccb %llu epoch:%u OK", ccbId, sEpoch);
 		/* Use ccbUtilCcbData->userData to record ccb outcome, verify in ccbApply/ccbAbort */
 	} else {
-		snprintf(buf, sizeof(*buf),
+		snprintf(buf, sBufsize,
 			"PBE COMMIT of sqlite transaction %llu epoch%u FAILED rc:%u", ccbId, sEpoch, rc);
 		TRACE("%s", buf);
 		saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
@@ -667,7 +670,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 	const SaImmClassNameT className, const SaNameT *parentName, const SaImmAttrValuesT_2 **attr)
 {
 	SaAisErrorT rc = SA_AIS_OK;
-	char buf[256];
+	char buf[sBufsize];
 	struct CcbUtilCcbData *ccbUtilCcbData;
 	bool rdnFound=false;
 	const SaImmAttrValuesT_2 *attrValue;
@@ -681,7 +684,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 		TRACE_ENTER2("CREATE CALLBACK CCB:%llu class:%s ROOT OBJECT (no parent)", ccbId, className);
 	}
 	if(!classInfo) {
-		snprintf(buf, sizeof(*buf), "PBE Internal error: class '%s' not found in classIdMap", className);
+		snprintf(buf, sBufsize, "PBE Internal error: class '%s' not found in classIdMap", className);
 		LOG_ER("%s", buf);
 		saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
 		rc = SA_AIS_ERR_BAD_OPERATION;
@@ -690,7 +693,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 
 	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) == NULL) {
 		if ((ccbUtilCcbData = ccbutil_getCcbData(ccbId)) == NULL) {
-			snprintf(buf, sizeof(*buf), "PBE Internal error: Failed to get CCB objectfor %llu", ccbId);
+			snprintf(buf, sBufsize, "PBE Internal error: Failed to get CCB objectfor %llu", ccbId);
 			LOG_ER("%s", buf);
 			saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
 			rc = SA_AIS_ERR_NO_MEMORY;
@@ -699,7 +702,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 	}
 
 	if(strncmp((char *) className, (char *) OPENSAF_IMM_CLASS_NAME, strlen(className)) == 0) {
-		snprintf(buf, sizeof(*buf),
+		snprintf(buf, sBufsize,
 			"PBE: will not allow creates of instances of class %s", (char *) OPENSAF_IMM_CLASS_NAME);
 		LOG_NO("%s", buf);
 		saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
@@ -720,7 +723,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 		SaImmAttrFlagsT attrFlags = classInfo->mAttrMap[attName];
 		if(attrFlags & SA_IMM_ATTR_RDN) {
 			if(rdnFound) {
-				snprintf(buf, sizeof(*buf),
+				snprintf(buf, sBufsize,
 					"PBE: More than one RDN attribute found in attribute list");
 				LOG_NO("%s", buf);
 				saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
@@ -751,7 +754,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 							"%s,%s", rdnVal->value, parentName->value);
 				}
 			} else {
-				snprintf(buf, sizeof(*buf),
+				snprintf(buf, sBufsize,
 					"PBE: Rdn attribute %s for class '%s' is neither SaStringT nor SaNameT!", 
 					attrValue->attrName, className);
 				LOG_NO("%s", buf);
@@ -764,7 +767,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 	}
 
 	if(!rdnFound) {
-		snprintf(buf, sizeof(*buf), "PBE: Could not find Rdn attribute for class '%s'!", className);
+		snprintf(buf, sBufsize, "PBE: Could not find Rdn attribute for class '%s'!", className);
 		LOG_ER("%s", buf);
 		saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
 		rc = SA_AIS_ERR_BAD_OPERATION;
@@ -815,12 +818,12 @@ static SaAisErrorT saImmOiCcbObjectDeleteCallback(SaImmOiHandleT immOiHandle, Sa
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	struct CcbUtilCcbData *ccbUtilCcbData;
-	char buf[256];
+	char buf[sBufsize];
 	TRACE_ENTER2("DELETE CALLBACK CCB:%llu object:%s", ccbId, objectName->value);
 
 	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) == NULL) {
 		if ((ccbUtilCcbData = ccbutil_getCcbData(ccbId)) == NULL) {
-			snprintf(buf, sizeof(*buf), "PBE: Failed to get CCB objectfor %llu", ccbId);
+			snprintf(buf, sBufsize, "PBE: Failed to get CCB objectfor %llu", ccbId);
 			LOG_WA("%s", buf);
 			saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
 			rc = SA_AIS_ERR_NO_MEMORY;
@@ -829,7 +832,7 @@ static SaAisErrorT saImmOiCcbObjectDeleteCallback(SaImmOiHandleT immOiHandle, Sa
 	}
 
 	if(strncmp((char *) objectName->value, (char *) OPENSAF_IMM_OBJECT_DN, objectName->length) ==0) {
-		snprintf(buf, sizeof(*buf), "PBE: will not allow delete of object %s", (char *) OPENSAF_IMM_OBJECT_DN);
+		snprintf(buf, sBufsize, "PBE: will not allow delete of object %s", (char *) OPENSAF_IMM_OBJECT_DN);
 		LOG_NO("%s", buf);
 		saImmOiCcbSetErrorString(immOiHandle, ccbId, buf);
 		rc = SA_AIS_ERR_BAD_OPERATION;
@@ -1026,6 +1029,8 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 	sDbHandle = dbHandle;
 	sClassIdMap = classIdMap;
 	sObjCount = objCount;
+
+	LOG_NO("pbeDaemon starting with obj-count:%u", sObjCount);
 
 	/* Restore also sClassCount. */
 	for(ci=sClassIdMap->begin(); ci!=sClassIdMap->end();++ci) {
