@@ -2207,7 +2207,7 @@ uint32_t ncs_os_process_execute_timed(NCS_OS_PROC_EXECUTE_TIMED_INFO *req)
 					syslog(LOG_ERR, "setuid %u failed - %s", buf.st_uid, strerror(errno));
 			} else {
 				syslog(LOG_ERR, "Could not stat %s - %s", req->i_script, strerror(errno));
-				return NCSCC_RC_FAILURE;
+				exit(128);
 			}
 		}
 #endif
