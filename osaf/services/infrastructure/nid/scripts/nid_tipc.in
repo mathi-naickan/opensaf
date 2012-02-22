@@ -37,8 +37,6 @@ USE_SUBSLOT_ID=${TIPC_USE_SUBSLOT_ID:-"YES"}
 SHIFT4=4
 NID_SVC_NAME=TIPC
 
-NAME=clmna
-
 # Make sure tipc-config is available, either in path or in default location
 tipc_config=$(which tipc-config 2> /dev/null)
 if ! [ -x ${tipc_config} ]; then
@@ -127,12 +125,16 @@ function tipc_configure ()
         echo "$NID_MAGIC:$NID_SVC_NAME:$DAEMON_START_FAILED" > $NIDFIFO
         exit 1
     fi
-    
-    ${tipc_config} -max_nodes=2000 
-    ret_val=$?
-    if [ $ret_val -ne 0 ] ; then 
-        echo "Unable to set the Max_nodes to 2000, Exitting ....."
-        exit 1
+
+    # max_nodes is not supported in TIPC 2.0
+    if ${tipc_config} -max_nodes 2> /dev/null; then
+        ${tipc_config} -max_nodes=2000 
+        ret_val=$?
+        if [ $ret_val -ne 0 ] ; then 
+            echo "Unable to set the Max_nodes to 2000, exiting ....."
+            modprobe -r tipc
+            exit 1
+        fi
     fi
 
     if [ $# -eq 1 ] ; then
