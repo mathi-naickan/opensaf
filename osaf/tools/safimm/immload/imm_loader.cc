@@ -411,7 +411,9 @@ bool createImmObject(SaImmClassNameT className,
 
     if (SA_AIS_OK != errorCode)
     {
-        LOG_ER("Failed to create the imm om object err: %d", errorCode);
+	LOG_ER("Failed to create object err: %d, class: %s, dn: '%s'. "
+		"Check for duplicate attributes, or trace immload",
+		errorCode, className, objectName);
         TRACE_LEAVE();
         return false;
     }
@@ -853,9 +855,9 @@ static void endElementHandler(void* userData,
             state->doneParsingClasses = 1;
 
             if(!opensafClassCreated) {
-                LOG_NO("Creating the class %s since it is missing from the "
-                       "imm.xml load file", OPENSAF_IMM_CLASS_NAME);
                 opensafClassCreate(state->immHandle);
+                LOG_NO("The class %s has been created since it was missing from the "
+                       "imm.xml load file", OPENSAF_IMM_CLASS_NAME);
             }
 
 
@@ -909,10 +911,10 @@ static void endElementHandler(void* userData,
         SaAisErrorT errorCode;
 
         if(!opensafObjectCreated) {
-            LOG_NO("Creating the %s object of class %s since it is missing "
+            opensafObjectCreate(state->ccbHandle);
+            LOG_NO("The %s object of class %s has been created since it was missing "
                 "from the imm.xml load file", OPENSAF_IMM_OBJECT_DN,
                 OPENSAF_IMM_CLASS_NAME);
-            opensafObjectCreate(state->ccbHandle);
         }
 
         /* Apply the object creations */
