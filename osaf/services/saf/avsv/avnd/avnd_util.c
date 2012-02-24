@@ -42,7 +42,8 @@ const char *presence_state[] =
 	"TERMINATING",
 	"RESTARTING",
 	"INSTANTIATION_FAILED",
-	"TERMINATION_FAILED"
+	"TERMINATION_FAILED",
+	"ORPHANED"
 };
 
 const char *ha_state[] = {
