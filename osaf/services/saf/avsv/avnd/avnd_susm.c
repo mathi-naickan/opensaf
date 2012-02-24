@@ -1602,6 +1602,8 @@ uint32_t avnd_su_pres_uninst_suinst_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *c
 	avnd_su_pres_state_set(su, SA_AMF_PRESENCE_INSTANTIATING);
 
  done:
+	if (rc == NCSCC_RC_FAILURE)
+		avnd_su_pres_state_set(su, SA_AMF_PRESENCE_INSTANTIATION_FAILED);
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }

@@ -1770,7 +1770,6 @@ int avnd_comp_config_reinit(AVND_COMP *comp)
 	/* need to get HC type configuration also if that has been recently created */
 	avnd_hctype_config_get(immOmHandle, &comp->saAmfCompType);
 
-	res = 0;
 done2:
 	immutil_saImmOmAccessorFinalize(accessorHandle);
 	immutil_saImmOmFinalize(immOmHandle);
