@@ -34,13 +34,23 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <libgen.h>
+#include <signal.h>
 
 #include <saAis.h>
 #include <saImmOm.h>
-
-#include "saf_error.h"
+#include <immutil.h>
+#include <saf_error.h>
 
 static SaVersionT immVersion = { 'A', 2, 11 };
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
+
+/* signal handler for SIGALRM */
+void sigalarmh(int sig)
+{
+        fprintf(stderr, "error - immfind command timed out (alarm)\n");
+        exit(EXIT_FAILURE);
+}
+
 
 static void usage(const char *progname)
 {
@@ -59,6 +69,8 @@ static void usage(const char *progname)
 	printf("\t\tonly search for objects of the specified class\n");
 	printf("\t-s, --scope=SCOPE\n");
 	printf("\t\tspecify search scope, valid scopes: sublevel subtree\n");
+	printf("\t-t, --timeout <sec>\n");
+	printf("\t\tutility timeout in seconds\n");
 	printf("\t-h, --help\n");
 	printf("\t\tthis help\n");
 
@@ -81,6 +93,7 @@ int main(int argc, char *argv[])
 	struct option long_options[] = {
 		{"class", required_argument, 0, 'c'},
 		{"scope", required_argument, 0, 's'},
+		{"timeout", required_argument, 0, 't'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
 	};
@@ -94,9 +107,10 @@ int main(int argc, char *argv[])
 	SaImmScopeT scope = SA_IMM_SUBTREE;	/* default search scope */
 	char classNameBuf[SA_MAX_NAME_LENGTH] = {0};
 	const char *className = classNameBuf;
+	unsigned long timeoutVal = 60;
 
 	while (1) {
-		c = getopt_long(argc, argv, "c:s:h", long_options, NULL);
+		c = getopt_long(argc, argv, "c:s:t:h", long_options, NULL);
 
 		if (c == -1)	/* have all command-line options have been parsed? */
 			break;
@@ -115,6 +129,10 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			break;
+		case 't':
+                        timeoutVal = strtol(optarg, (char **)NULL, 10);
+                        break;
+
 		case 'h':
 			usage(basename(argv[0]));
 			exit(EXIT_SUCCESS);
@@ -131,12 +149,19 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	signal(SIGALRM, sigalarmh);
+	alarm(timeoutVal);
+
+        immutilWrapperProfile.errorsAreFatal = 0;
+        immutilWrapperProfile.nTries = timeoutVal;
+        immutilWrapperProfile.retryInterval = 1000;
+
 	if (optind < argc) {
 		strncpy((char *)rootName.value, argv[optind], SA_MAX_NAME_LENGTH);
 		rootName.length = strlen((char *)rootName.value);
 	}
 
-	error = saImmOmInitialize(&immHandle, NULL, &immVersion);
+	error = immutil_saImmOmInitialize(&immHandle, NULL, &immVersion);
 	if (error != SA_AIS_OK) {
 		fprintf(stderr, "error - saImmOmInitialize FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
@@ -151,7 +176,7 @@ int main(int argc, char *argv[])
 		searchParam.searchOneAttr.attrValue = NULL;
 	}
 
-	error = saImmOmSearchInitialize_2(immHandle, &rootName, scope,
+	error = immutil_saImmOmSearchInitialize_2(immHandle, &rootName, scope,
 					  SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR, &searchParam, NULL,
 					  &searchHandle);
 	if (SA_AIS_OK != error) {
@@ -160,7 +185,7 @@ int main(int argc, char *argv[])
 	}
 
 	do {
-		error = saImmOmSearchNext_2(searchHandle, &objectName, &attributes);
+		error = immutil_saImmOmSearchNext_2(searchHandle, &objectName, &attributes);
 		if (error != SA_AIS_OK && error != SA_AIS_ERR_NOT_EXIST) {
 			fprintf(stderr, "error - saImmOmSearchNext_2 FAILED: %s\n", saf_error(error));
 			exit(EXIT_FAILURE);
@@ -169,13 +194,13 @@ int main(int argc, char *argv[])
 			printf("%s\n", objectName.value);
 	} while (error != SA_AIS_ERR_NOT_EXIST);
 
-	error = saImmOmSearchFinalize(searchHandle);
+	error = immutil_saImmOmSearchFinalize(searchHandle);
 	if (SA_AIS_OK != error) {
 		fprintf(stderr, "error - saImmOmSearchFinalize FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
 	}
 
-	error = saImmOmFinalize(immHandle);
+	error = immutil_saImmOmFinalize(immHandle);
 	if (SA_AIS_OK != error) {
 		fprintf(stderr, "error - saImmOmFinalize FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
