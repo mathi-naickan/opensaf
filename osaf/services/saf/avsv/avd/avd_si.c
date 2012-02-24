@@ -646,6 +646,32 @@ static SaAisErrorT si_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 				rc = SA_AIS_ERR_BAD_OPERATION;
 				break;
 			}
+
+			/* Only allow decrementation of saAmfSIPrefActiveAssignments in steps of one.
+			 * Assignment logic cannot handle larger steps. Incrementation is OK.
+			 */
+			if (attribute->attrValuesNumber > 0) {
+				SaUint32T prefActiveAssignments = *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
+				if ((prefActiveAssignments < si->saAmfSIPrefActiveAssignments) &&
+					(si->saAmfSIPrefActiveAssignments - prefActiveAssignments) > 1) {
+					LOG_ER("Invalid modification of '%s' - saAmfSIPrefActiveAssignments can only be"
+						   " decremented in steps of one (1)", si->name.value);
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					break;
+				}
+			}
+
+			/* Only allow deletion of value when current value is one or two because in apply
+			 * the default of one will be set when value is removed.
+			 */
+			if (((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (attr_mod->modAttr.attrValues == NULL)) &&
+				(si->saAmfSIPrefActiveAssignments > 2)) {
+				LOG_ER("Invalid modification of '%s' - saAmfSIPrefActiveAssignments can only be"
+					   " decremented in steps of one (1)", si->name.value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				break;
+			}
+
 		} else if (!strcmp(attribute->attrName, "saAmfSIPrefStandbyAssignments")) {
 			if (si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) {
 				LOG_ER("SG'%s' is not stable (%u)", si->sg_of_si->name.value, 
