@@ -1411,12 +1411,6 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes,
 		comp->inst_retry_delay = comp_global_attrs.saAmfDelayBetweenInstantiateAttempts;
 #endif
 
-	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_TERMINATE - 1];
-	if (immutil_getAttr("saAmfCompTerminateTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK)
-		cmd->timeout = comptype->saAmfCtDefCallbackTimeout;
-
-	comp->term_cbk_timeout = cmd->timeout;
-
 	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_CLEANUP - 1];
 	if (immutil_getAttr("saAmfCompCleanupTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK)
 		cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
@@ -1465,6 +1459,16 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes,
 	comp->is_restart_en = (disable_restart == SA_TRUE) ? false : true;
 
 	init_comp_category(comp, comptype->saAmfCtCompCategory);
+
+	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_TERMINATE - 1];
+	if (immutil_getAttr("saAmfCompTerminateTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK) {
+		if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
+			cmd->timeout = comptype->saAmfCtDefCallbackTimeout;
+			comp->term_cbk_timeout = cmd->timeout;
+		}
+		else
+			cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
+	}
 
 	if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))
 		m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
