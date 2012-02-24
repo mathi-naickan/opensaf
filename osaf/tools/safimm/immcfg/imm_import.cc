@@ -289,7 +289,7 @@ void setAdminOwnerHelper(ParserState* state, SaNameT *parentOfObject)
 	objectNames[1] = NULL;
 
 	LOG_IN("  Calling saImmOmAdminOwnerSet on parent '%s'", tmpStr);
-	int errorCode = saImmOmAdminOwnerSet(state->ownerHandle,
+	int errorCode = immutil_saImmOmAdminOwnerSet(state->ownerHandle,
 										 (const SaNameT**) objectNames,
 										 SA_IMM_ONE);
 
@@ -314,7 +314,7 @@ static void getClassFromImm(
 	SaImmClassCategoryT classCategory;
 	SaImmAttrDefinitionT_2 **attrDefinitions;
 
-	SaAisErrorT err = saImmOmClassDescriptionGet_2(
+	SaAisErrorT err = immutil_saImmOmClassDescriptionGet_2(
 												  state->immHandle, className, &classCategory, &attrDefinitions);
 	if (err != SA_AIS_OK) {
 		LOG_ER("Failed to fetch class description for %s loaded in IMM, "
@@ -532,7 +532,12 @@ static void createImmObject(ParserState* state)
 
 			LOG_IN("OBJECT '%s' OK", state->objectName);
 
-			immutil_saImmOmAccessorFinalize(accessorHandle);
+			errorCode = immutil_saImmOmAccessorFinalize(accessorHandle);
+			if (SA_AIS_OK != errorCode) {
+                                fprintf(stderr, "FAILED: saImmOmAccessorFinalize failed: %u\n", errorCode);
+                                exit(EXIT_FAILURE);
+                        }
+
 		} else {
 			fprintf(stderr, "FAILED to create object of class '%s', rc = %d\n",
 					className, errorCode);
@@ -1069,7 +1074,7 @@ static void endElementHandler(void* userData,
 
 			/* First time, initialize the imm object api */
 			TRACE_8("\n AdminOwner: %s \n", imm_import_adminOwnerName);
-			errorCode = saImmOmAdminOwnerInitialize(state->immHandle,
+			errorCode = immutil_saImmOmAdminOwnerInitialize(state->immHandle,
 				imm_import_adminOwnerName,
 				SA_TRUE,
 				&state->ownerHandle);
@@ -1081,7 +1086,7 @@ static void endElementHandler(void* userData,
 			state->adminInit = 1;
 
 			/* ... and initialize the imm ccb api  */
-			errorCode = saImmOmCcbInitialize(state->ownerHandle,
+			errorCode = immutil_saImmOmCcbInitialize(state->ownerHandle,
 				imm_import_ccb_safe?(SA_IMM_CCB_REGISTERED_OI|SA_IMM_CCB_ALLOW_NULL_OI):0x0,
 				&state->ccbHandle);
 			if (errorCode != SA_AIS_OK) {
@@ -1100,7 +1105,7 @@ static void endElementHandler(void* userData,
 
 		/* Apply the object creations */
 		if (state->ccbInit) {
-			errorCode = saImmOmCcbApply(state->ccbHandle);
+			errorCode = immutil_saImmOmCcbApply(state->ccbHandle);
 			if (SA_AIS_OK != errorCode) {
 				LOG_ER("Failed to apply object creations %d", errorCode);
 				exit(1);
@@ -1109,7 +1114,7 @@ static void endElementHandler(void* userData,
 
 		/* Finalize the ccb connection*/
 		if (state->ccbInit) {
-			errorCode = saImmOmCcbFinalize(state->ccbHandle);
+			errorCode = immutil_saImmOmCcbFinalize(state->ccbHandle);
 			if (SA_AIS_OK != errorCode) {
 				LOG_WA("Failed to finalize the ccb object connection %d",
 					   errorCode);
@@ -1120,7 +1125,7 @@ static void endElementHandler(void* userData,
 
 		/* Finalize the owner connection */
 		if (state->adminInit) {
-			errorCode = saImmOmAdminOwnerFinalize(state->ownerHandle);
+			errorCode = immutil_saImmOmAdminOwnerFinalize(state->ownerHandle);
 			if (SA_AIS_OK != errorCode) {
 				LOG_WA("Failed on saImmOmAdminOwnerFinalize (%d)",
 					   errorCode);
@@ -1131,7 +1136,7 @@ static void endElementHandler(void* userData,
 
 		/* Finalize the imm connection */
 		if (state->immInit) {
-			errorCode = saImmOmFinalize(state->immHandle);
+			errorCode = immutil_saImmOmFinalize(state->immHandle);
 			if (SA_AIS_OK != errorCode) {
 				LOG_WA("Failed on saImmOmFinalize (%d)", errorCode);
 			}
@@ -1796,7 +1801,7 @@ int loadImmXML(std::string xmlfile)
 
 	TRACE_8("Loading from %s", xmlfile.c_str());
 
-	errorCode = saImmOmInitialize(&(state.immHandle), NULL, &version);
+	errorCode = immutil_saImmOmInitialize(&(state.immHandle), NULL, &version);
 	if (SA_AIS_OK != errorCode) {
 		LOG_ER("Failed to initialize the IMM OM interface (%d)", errorCode);
 		exit(1);
@@ -1830,7 +1835,7 @@ int loadImmXML(std::string xmlfile)
 	/* Make sure to finalize the imm connections */
 	/* Finalize the ccb connection*/
 	if (state.ccbInit) {
-		errorCode = saImmOmCcbFinalize(state.ccbHandle);
+		errorCode = immutil_saImmOmCcbFinalize(state.ccbHandle);
 		if (SA_AIS_OK != errorCode) {
 			LOG_WA("Failed to finalize the ccb object connection %d",
 				   errorCode);
@@ -1839,7 +1844,7 @@ int loadImmXML(std::string xmlfile)
 
 	/* Finalize the owner connection */
 	if (state.adminInit) {
-		errorCode = saImmOmAdminOwnerFinalize(state.ownerHandle);
+		errorCode = immutil_saImmOmAdminOwnerFinalize(state.ownerHandle);
 		if (SA_AIS_OK != errorCode) {
 			LOG_WA("Failed on saImmOmAdminOwnerFinalize (%d)", errorCode);
 		}
@@ -1847,7 +1852,7 @@ int loadImmXML(std::string xmlfile)
 
 	/* Finalize the imm connection */
 	if (state.immInit) {
-		errorCode = saImmOmFinalize(state.immHandle);
+		errorCode = immutil_saImmOmFinalize(state.immHandle);
 		if (SA_AIS_OK != errorCode) {
 			LOG_WA("Failed on saImmOmFinalize (%d)", errorCode);
 		}

@@ -445,6 +445,9 @@ extern SaAisErrorT immutil_getAttrValuesNumber(const SaImmAttrNameT attrName,
 	                                             const SaImmClassNameT className,
 	                                             const SaImmClassCategoryT classCategory,
 	                                             const SaImmAttrDefinitionT_2** attrDefinitions);
+	
+	extern SaAisErrorT immutil_saImmOmClassDelete(SaImmCcbHandleT immCcbHandle,
+                                                     const SaImmClassNameT className);
 
 	extern SaAisErrorT immutil_saImmOmCcbObjectCreate_2(SaImmCcbHandleT immCcbHandle,
 	                                             const SaImmClassNameT className,

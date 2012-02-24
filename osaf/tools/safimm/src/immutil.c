@@ -1201,6 +1201,21 @@ SaAisErrorT immutil_saImmOmClassCreate_2(SaImmCcbHandleT immCcbHandle,
         return rc;
 }
 
+SaAisErrorT immutil_saImmOmClassDelete(SaImmCcbHandleT immCcbHandle,
+					 const SaImmClassNameT className)
+{
+	SaAisErrorT rc = saImmOmClassDelete(immCcbHandle, className);
+        unsigned int nTries = 1;
+        while(rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries){
+                usleep(immutilWrapperProfile.retryInterval * 1000);
+                rc = saImmOmClassDelete(immCcbHandle, className);
+                nTries++;
+        }
+        if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+                immutilError("saImmOmClassDelete FAILED, rc = %d", (int)rc);
+        return rc;
+}
+
 
 
 ////////////////////////////////////////////
