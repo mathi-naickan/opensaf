@@ -701,14 +701,17 @@ uint32_t avnd_su_si_remove(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
 		if (si) {
 			if (AVSV_SUSI_ACT_DEL == si->single_csi_add_rem_in_si) {
+				AVND_COMP_CSI_REC *next_csi;
+
 				/* We have to remove single csi. */
-				for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si->csi_list);
-					  curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
+				for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si->csi_list); curr_csi;) {
+					next_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node);
 					if (AVSV_SUSI_ACT_DEL == curr_csi->single_csi_add_rem_in_si) {
 						rc = avnd_comp_csi_remove(cb, curr_csi->comp, curr_csi);
 						if (NCSCC_RC_SUCCESS != rc)
 							goto done;
 					}
+					curr_csi = next_csi;
 				}
 			} else {
 				/* pick up the last csi */
