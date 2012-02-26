@@ -421,7 +421,7 @@ uint32_t avnd_hc_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 	case AVSV_OBJ_OPR_DEL: {
 		if (hc != NULL) {
 			rc = ncs_patricia_tree_del(&cb->hcdb, &hc->tree_node);
-			osafassert(rc = NCSCC_RC_SUCCESS);
+			osafassert(rc == NCSCC_RC_SUCCESS);
 			LOG_IN("Deleted '%s'", param->name.value);
 		} else {
 			/* 

@@ -186,7 +186,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	}
 
 	rc = immutil_getAttr("saAmfCtCompCategory", attributes, 0, &category);
-	osafassert(rc = SA_AIS_OK);
+	osafassert(rc == SA_AIS_OK);
 
 	/* We do not support Proxy, Container and Contained as of now. */
 	if (IS_COMP_PROXY(category) || IS_COMP_CONTAINER(category)|| IS_COMP_CONTAINED(category)) {
