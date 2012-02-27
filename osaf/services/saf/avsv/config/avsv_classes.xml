@@ -414,6 +414,7 @@
 			<type>SA_UINT32_T</type>
 			<category>SA_CONFIG</category>
 			<flag>SA_WRITABLE</flag>
+			<default-value>0</default-value>
 		</attr>
 		<attr>
 			<name>saAmfSUHostNodeOrNodeGroup</name>
