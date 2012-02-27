@@ -1340,6 +1340,12 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 				comp->comp_info.comp_restart = comp_type->saAmfCtDefDisableRestart;
 			else
 				comp->comp_info.comp_restart = *((SaUint32T *)value);
+
+			param.attr_id = saAmfCompDisableRestart_ID;
+			param.value_len = sizeof(uint32_t);
+			uint32_t restart = htonl(comp->comp_info.comp_restart);
+			memcpy(&param.value[0], &restart, param.value_len);
+
 		} else if (!strcmp(attribute->attrName, "saAmfCompProxyCsi")) {
 			if (value_is_deleted)
 				memset(&comp->comp_proxy_csi, 0, sizeof(comp->comp_proxy_csi));
