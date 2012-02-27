@@ -197,8 +197,8 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 			/* free all the CSI assignments and end this loop */
 			avd_compcsi_delete(cb, susi, true);
 			/* Unassign the SUSI */
-			avd_susi_delete(cb, susi, true);
 			avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_DEL, 0, 0);
+			avd_susi_delete(cb, susi, true);
 
 			goto done;
 		}
