@@ -412,14 +412,18 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 
 					i_su = i_su->avnd_list_su_next;
 				}	/* while(i_su != AVD_SU_NULL) */
+
 				if (node_reboot_req) {
-					if (cb->node_id_avd == node->node_info.nodeId) {
-						opensaf_reboot(node->node_info.nodeId,
-							(char *)node->node_info.executionEnvironment.value,
-							"Rebooting node reason Node Failover.");
-					} else {
+					if (node->saAmfNodeAutoRepair) {
+						saflog(LOG_NOTICE, amfSvcUsrName,
+							"Ordering reboot of '%s' as node fail/switch-over repair action",
+							node->name.value);
 						avd_d2n_reboot_snd(node);
-					}      
+					} else {
+						saflog(LOG_NOTICE, amfSvcUsrName,
+							"Autorepair disabled for '%s', NO reboot ordered",
+							node->name.value);
+					}
 				}
 
 			} else { /* if (n2d_msg->msg_info.n2d_opr_state.node_oper_state == SA_AMF_OPERATIONAL_DISABLED) */
@@ -1467,12 +1471,15 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		}
 		if (true == all_su_unassigned) {
 			/* All app su got unassigned, Safe to reboot the blade now. */
-			/* Check if it matches with controller id, then rather than sending to amfnd, reboot from here*/
-			if (cb->node_id_avd == node->node_info.nodeId) {
-				opensaf_reboot(node->node_info.nodeId, (char *)node->node_info.executionEnvironment.value,
-						"Rebooting the node because of Node Failover/Switchover.");
-			} else {
+			if (node->saAmfNodeAutoRepair) {
+				saflog(LOG_NOTICE, amfSvcUsrName,
+					"Ordering reboot of '%s' as node fail/switch-over repair action",
+					node->name.value);
 				avd_d2n_reboot_snd(node);
+			} else {
+				saflog(LOG_NOTICE, amfSvcUsrName,
+					"Autorepair disabled for '%s', NO reboot ordered",
+					node->name.value);
 			}
 		}
 	}
