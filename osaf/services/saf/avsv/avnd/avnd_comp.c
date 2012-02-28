@@ -1364,6 +1364,30 @@ done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
+/**
+ * @brief	Checks if any csi of same SI assigned to the component is in removing state 
+ *
+ * @param [in]	cmp
+ *		si
+ *
+ * @returns     true/false  
+ **/
+static bool csi_of_same_si_in_removing_state(const AVND_COMP *cmp, const AVND_SU_SI_REC *si)
+{
+	AVND_COMP_CSI_REC *curr_csi;
+	bool any_removing = false;
+	
+	for (curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&cmp->csi_list));
+		curr_csi;
+		curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_csi->comp_dll_node))) {
+		if ((curr_csi->si == si) && m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(curr_csi)){
+		        any_removing = true;
+		        break;
+		}
+	}
+	
+	return any_removing;
+}
 
 /****************************************************************************
   Name          : avnd_comp_csi_remove
@@ -1438,22 +1462,21 @@ uint32_t avnd_comp_csi_remove(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 				if ((m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNED(curr_csi))
 				    || (m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi))
 				    || (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr_csi))) {
+					if (!csi_of_same_si_in_removing_state(curr_csi->comp,curr_csi->si))
+						is_assigned = true;
 					m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi,
 									      AVND_COMP_CSI_ASSIGN_STATE_REMOVING);
 					m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi,
 									 AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
-					is_assigned = true;
 				}
 			}	/* for */
 
-			if (true == is_assigned)
+			if (true == is_assigned) {
 				/* remove the csis as the comp is aware of atleast one csi */
 				rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CSI_REM, 0, 0);
-			else
-				/* generate csi-done indication */
-				rc = avnd_comp_csi_remove_done(cb, comp, 0);
-			if (NCSCC_RC_SUCCESS != rc)
-				goto done;
+				if (NCSCC_RC_SUCCESS != rc)
+					goto done;
+			}
 		}
 
 		/* remove csis one at a time */
