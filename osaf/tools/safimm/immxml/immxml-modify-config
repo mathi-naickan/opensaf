@@ -248,6 +248,19 @@ cluster_downsize()
        cmd="amf-adm lock-in safAmfNode=$node,safAmfCluster=myAmfCluster"
        eval_or_store $cmd
        verifyExitCode $? "failed to eval/store $cmd"
+
+       #Find all opensaf SU's
+       MW_NODE_SUS=$(immfind -c SaAmfSU | grep "^safSu=$node,safSg=\(.*\),safApp=OpenSAF")   
+       for su in $MW_NODE_SUS ; do
+         cmd="amf-adm lock $su"
+         eval_or_store $cmd
+         verifyExitCode $? "failed to eval/store $cmd"
+
+         cmd="amf-adm lock-in $su"
+         eval_or_store $cmd
+         verifyExitCode $? "failed to eval/store $cmd"
+       done 
+
        PLMNODE=`cat $CURRENT_NODECFG | grep ".. $node " | awk '{ print $ 3 }'`
        trace "PLMNODE: $PLMNODE"
        cmd="amf-adm lock safNode=$PLMNODE,safCluster=myClmCluster"
