@@ -633,10 +633,14 @@ void avnd_comp_pm_finalize(AVND_CB *cb, AVND_COMP *comp, SaAmfHandleT hdl)
 	if (true == comp->su->su_is_external)
 		return;
 
-	while (0 != (rec = (AVND_COMP_PM_REC *)m_NCS_DBLIST_FIND_FIRST(&comp->pm_list))) {
+	rec = (AVND_COMP_PM_REC *)m_NCS_DBLIST_FIND_FIRST(&comp->pm_list);
+	while (rec) {
 		/* stop PM if comp's reg handle or hdl used for PM start is finalized */
 		if (hdl == rec->req_hdl || hdl == comp->reg_hdl) {
 			avnd_comp_pm_rec_del(cb, comp, rec);
+			rec = (AVND_COMP_PM_REC *)m_NCS_DBLIST_FIND_FIRST(&comp->pm_list);
+		} else {
+			rec = (AVND_COMP_PM_REC *)m_NCS_DBLIST_FIND_NEXT(&rec->comp_dll_node);
 		}
 	}
 	TRACE_LEAVE();
