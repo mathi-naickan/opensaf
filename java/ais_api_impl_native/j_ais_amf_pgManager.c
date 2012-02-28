@@ -1574,8 +1574,14 @@ static jboolean JNU_ProtectionGroupMember_set(
                             FID_PGM_rank,
                             (jint) saProtectionGroupMemberPtr->rank );
     // ha state
-    _haState = JNU_HaState_getEnum( jniEnv,
+    if ((saProtectionGroupMemberPtr->haState >= SA_AMF_HA_ACTIVE) &&
+        (saProtectionGroupMemberPtr->haState <= SA_AMF_HA_QUIESCING)) {
+        _haState = JNU_HaState_getEnum( jniEnv,
                                     saProtectionGroupMemberPtr->haState );
+    } else {
+        _haState = JNU_HaState_getEnum( jniEnv,
+                                    SA_AMF_HA_ACTIVE);
+    }
     if( _haState == NULL ){
 
         _TRACE2( "NATIVE ERROR: _haState is NULL\n" );
