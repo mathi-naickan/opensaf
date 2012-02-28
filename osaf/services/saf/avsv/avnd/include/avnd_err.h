@@ -75,7 +75,7 @@ typedef enum avnd_err_src {
 /* component error information */
 typedef struct avnd_cerr_info_tag {
 	AVND_ERR_SRC src;	/* error source */
-	AVSV_ERR_RCVR def_rec;	/* default comp recovery */
+	SaAmfRecommendedRecoveryT def_rec;	/* default comp recovery */
 	SaTimeT detect_time;	/* error detection time */
 	uint32_t restart_cnt;	/* restart counter */
 } AVND_CERR_INFO;

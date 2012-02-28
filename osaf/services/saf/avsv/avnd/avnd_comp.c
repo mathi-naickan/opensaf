@@ -1941,7 +1941,7 @@ uint32_t avnd_comp_csi_qscd_assign_fail_prc(AVND_CB *cb, AVND_COMP *comp, AVND_C
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("comp: '%s' : csi: '%s", comp->name.value, csi ? csi->name.value : NULL);
 
-	if ((comp->su->is_ncs == true) &&(SA_AMF_NODE_FAILFAST == comp->err_info.def_rec)) {
+	if ((comp->su->is_ncs == true) && (SA_AMF_NODE_FAILFAST == comp->err_info.def_rec)) {
 		LOG_ER("'%s' Faulted due to Quiesced Timeout, Recovery is nodeFailfast",
 				comp->name.value);
 		/* do the local node reboot for node_failfast or ncs component failure*/
