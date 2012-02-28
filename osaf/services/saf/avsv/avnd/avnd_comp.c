@@ -1929,6 +1929,14 @@ uns32 avnd_comp_csi_qscd_assign_fail_prc(AVND_CB *cb, AVND_COMP *comp, AVND_COMP
 	uns32 rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("comp: '%s' : csi: '%s", comp->name.value, csi ? csi->name.value : NULL);
 
+	if ((comp->su->is_ncs == true) &&(SA_AMF_NODE_FAILFAST == comp->err_info.def_rec)) {
+		LOG_ER("'%s' Faulted due to Quiesced Timeout, Recovery is nodeFailfast",
+				comp->name.value);
+		/* do the local node reboot for node_failfast or ncs component failure*/
+		opensaf_reboot(cb->node_info.nodeId, (char *)cb->node_info.executionEnvironment.value,
+				"Component faulted: recovery is node failfast");
+	}
+
 	/* mark the comp & su failed */
 	m_AVND_COMP_FAILED_SET(comp);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
