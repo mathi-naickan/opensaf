@@ -1778,7 +1778,6 @@ void avd_update_depstate_si_failover(AVD_SI *si, AVD_SU *su)
 		}
 		for (sisu = dep_si->list_of_sisu;sisu;sisu = sisu->si_next) {
 			TRACE("sisu si:%s su:%s state:%d fsm_state:%d",sisu->si->name.value,sisu->su->name.value,sisu->state,sisu->fsm);
-			
 			if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)
 				|| (sisu->state == SA_AMF_HA_QUIESCED))
 				&& (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
@@ -1957,7 +1956,7 @@ void avd_sidep_reset_dependents_depstate_in_sufault(AVD_SI *si)
  *
  * @return	true/false 
  **/
-bool avd_su_level_failover_possible(const AVD_SU *su)
+bool avd_si_dependency_exists_within_su(const AVD_SU *su)
 {
 	AVD_SU_SI_REL *susi;
 	bool spons_exist = false;
