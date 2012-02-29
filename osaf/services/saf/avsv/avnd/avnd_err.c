@@ -67,6 +67,7 @@ uint32_t avnd_err_rcvr_comp_restart(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_su_restart(AVND_CB *, AVND_SU *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_comp_failover(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_su_failover(AVND_CB *, AVND_SU *, AVND_COMP *);
+static uint32_t avnd_err_rcvr_node_switchover(AVND_CB *, AVND_SU *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_node_failover(AVND_CB *, AVND_SU *, AVND_COMP *);
 static uint32_t avnd_err_rcvr_node_failfast(AVND_CB *, AVND_SU *, AVND_COMP *);
 
@@ -509,14 +510,17 @@ uint32_t avnd_err_recover(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, uint32_t rc
 		break;
 
 	case SA_AMF_NODE_SWITCHOVER:
+		rc = avnd_err_rcvr_node_switchover(cb, su, comp);
+		break;
+
 	case SA_AMF_NODE_FAILOVER:
 		rc = avnd_err_rcvr_node_failover(cb, su, comp);
 		break;
 
 	case SA_AMF_NODE_FAILFAST:
 		rc = avnd_err_rcvr_node_failfast(cb, su, comp);
-
 		break;
+
 	case SA_AMF_CLUSTER_RESET:
 		/* not supported */
 		break;
@@ -749,6 +753,88 @@ uint32_t avnd_err_rcvr_su_failover(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_c
 
  done:
 	TRACE_LEAVE2("retval=%u", rc);
+	return rc;
+}
+
+/****************************************************************************
+  Name          : avnd_err_rcvr_node_switchover
+ 
+  Description   : This routine executes Node switchover recovery.
+ 
+  Arguments     : cb          - ptr to the AvND control block
+                  failed_su   - ptr to the failed su
+                  failed_comp - ptr to the failed comp
+ 
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ 
+  Notes         : None.
+
+******************************************************************************/
+uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP *failed_comp)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	TRACE_ENTER();
+
+	/* mark the comp failed */
+	m_AVND_COMP_FAILED_SET(failed_comp);
+	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_comp, AVND_CKPT_COMP_FLAG_CHANGE);
+
+	/* update comp oper state */
+	m_AVND_COMP_OPER_STATE_SET(failed_comp, SA_AMF_OPERATIONAL_DISABLED);
+	m_AVND_COMP_OPER_STATE_AVD_SYNC(cb, failed_comp, rc);
+	if (NCSCC_RC_SUCCESS != rc)
+		goto done;
+	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_comp, AVND_CKPT_COMP_OPER_STATE);
+
+	/* mark the su failed */
+	if (!m_AVND_SU_IS_FAILED(failed_su)) {
+		m_AVND_SU_FAILED_SET(failed_su);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
+	}
+
+	/* transition the su oper state to disabled */
+	m_AVND_SU_OPER_STATE_SET(failed_su, SA_AMF_OPERATIONAL_DISABLED);
+	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_OPER_STATE);
+
+	/* If the oper_state is already set to SA_AMF_OPERATIONAL_DISABLED, that means
+	   Node failover is already informed to AVD, so no need to resend again */
+	if(SA_AMF_OPERATIONAL_DISABLED != cb->oper_state) {
+		/* transition the node oper state to disabled */
+		cb->oper_state = SA_AMF_OPERATIONAL_DISABLED;
+
+		/* inform avd */
+		rc = avnd_di_oper_send(cb, failed_su, SA_AMF_NODE_FAILOVER);
+		if (NCSCC_RC_SUCCESS != rc)
+			goto done;
+	}
+
+
+	/*
+	 *  su-sis may be in assigning/removing state. signal csi
+	 * assign/remove done so that su-si assignment/removal algo can proceed.
+	 */
+	avnd_comp_cmplete_all_assignment(cb, failed_comp);
+
+	/* We are now in the context of failover, forget the restart */
+	if (failed_su->pres == SA_AMF_PRESENCE_RESTARTING || m_AVND_SU_IS_RESTART(failed_su)) {
+		m_AVND_SU_RESTART_RESET(failed_su);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
+	}
+
+	/* delete curr info of the failed comp */
+	rc = avnd_comp_curr_info_del(cb, failed_comp);
+	if (NCSCC_RC_SUCCESS != rc)
+		goto done;
+
+	/* terminate the failed comp */
+	if (m_AVND_SU_IS_PREINSTANTIABLE(failed_su)) {
+		rc = avnd_comp_clc_fsm_run(cb, failed_comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
+		if (NCSCC_RC_SUCCESS != rc)
+			goto done;
+	}
+
+ done:
+	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 
