@@ -114,4 +114,6 @@ extern void avd_update_depstate_si_failover(struct avd_si_tag *si, struct avd_su
 extern bool avd_su_level_failover_possible(const struct avd_su_tag *su);
 extern void send_active_to_dependents(const struct avd_si_tag *si);
 extern bool quiesced_done_for_all_dependents(const struct avd_si_tag *si, const struct avd_su_tag *su);
+extern void avd_si_dep_spons_state_modif(AVD_CL_CB *cb, struct avd_si_tag *si, struct avd_si_tag *si_dep,
+                                         AVD_SI_DEP_SPONSOR_SI_STATE spons_state);
 #endif

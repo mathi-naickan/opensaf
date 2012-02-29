@@ -2646,6 +2646,53 @@ uint32_t avd_sg_2n_realign_func(AVD_CL_CB *cb, AVD_SG *sg)
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
+static bool si_assignment_state_check(AVD_SI *si)
+{
+        AVD_SU_SI_REL *sisu;
+        bool assignmemt_status = false;
+
+        for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
+                if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+                                (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+                        assignmemt_status = true;
+                        break;
+                }
+        }       
+                
+        return assignmemt_status;
+}
+/**
+ * @brief   	Checks whether all sponsors of an SI are in assigned state or not 
+ *		Even if any one of the sponsor is in unassigned state, this routine
+ *		returns NCSCC_RC_FAILURE else NCSCC_RC_SUCCESS
+ *
+ * @param[in]	SI 
+ *
+ * @return	NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ *
+ **/
+static bool all_sponsors_assigned_active(AVD_SI *si)
+{
+	bool all_assigned_active = true;
+	AVD_SPONS_SI_NODE *spons_si;
+
+	TRACE_ENTER2("SI:%s",si->name.value);
+
+	if (si->spons_si_list == NULL) {
+		goto done;
+	}
+
+	for (spons_si = si->spons_si_list; spons_si ;spons_si = spons_si->next) {
+		if (si_assignment_state_check(spons_si->si) == false) {
+			all_assigned_active = false;
+			goto done;
+		}
+	}
+
+done:
+	TRACE_LEAVE2("all_assigned_active:%u",AVSV_CKPT_SI_DEP_STATE);
+	return all_assigned_active;
+}
 
 /*****************************************************************************
  * Function: avd_sg_2n_node_fail_su_oper
@@ -3055,7 +3102,6 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 
 	TRACE_LEAVE();
 }
-
 /*****************************************************************************
  * Function: avd_sg_2n_node_fail_func
  *
@@ -3107,6 +3153,16 @@ void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 						AVD_SU_SI_REL *susi;
 
 						for (susi = s_susi->su->list_of_susi; susi; susi = susi->su_next) {
+							if ((s_susi->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN) ||
+								(s_susi->si->si_dep_state == AVD_SI_UNASSIGNING_DUE_TO_DEP)) {
+								/* Before starting unassignment process of SI, check once again whether 
+								 * sponsor SIs are assigned back,if so move the SI state to ASSIGNED state 
+								 */
+								if (all_sponsors_assigned_active(s_susi->si))
+									si_dep_state_set(s_susi->si, AVD_SI_ASSIGNED);
+								else
+									avd_susi_del_send(s_susi); 	
+							}
 							if (avd_susi_role_failover(susi, su) == NCSCC_RC_FAILURE) {
 								TRACE(" Active role modification failed");
 								goto done;

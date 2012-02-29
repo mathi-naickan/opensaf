@@ -441,6 +441,7 @@ uint32_t avsv_edp_ckpt_msg_si(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVD_SI *struct_ptr = NULL, **d_ptr = NULL;
+	TRACE_ENTER();
 
 	EDU_INST_SET avsv_ckpt_msg_si_rules[] = {
 		{EDU_START, avsv_edp_ckpt_msg_si, 0, 0, 0, sizeof(AVD_SI), 0, NULL},
@@ -452,6 +453,7 @@ uint32_t avsv_edp_ckpt_msg_si(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((AVD_SI *)0)->si_switch, 0, NULL},
 		{EDU_EXEC, ncs_edp_sanamet, 0, 0, 0, (long)&((AVD_SI *)0)->saAmfSIProtectedbySG, 0, NULL},
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((AVD_SI *)0)->alarm_sent, 0, NULL},
+		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((AVD_SI *)0)->si_dep_state, 0, NULL},
 		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
 	};
 

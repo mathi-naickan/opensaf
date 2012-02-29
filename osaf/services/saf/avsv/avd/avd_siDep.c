@@ -53,8 +53,6 @@ static uint32_t avd_si_dep_si_unassigned(AVD_CL_CB *cb, AVD_SI *si);
 static uint32_t avd_check_si_state_enabled(AVD_CL_CB *cb, AVD_SI *si);
 static uint32_t avd_sg_red_si_process_assignment(AVD_CL_CB *cb, AVD_SI *si);
 static uint32_t avd_si_dep_state_evt(AVD_CL_CB *cb, AVD_SI *si, AVD_SI_SI_DEP_INDX *si_dep_idx);
-static void avd_si_dep_spons_state_modif(AVD_CL_CB *cb, AVD_SI *si, AVD_SI *si_dep,
-					 AVD_SI_DEP_SPONSOR_SI_STATE spons_state);
 static uint32_t avd_si_si_dep_cyclic_dep_find(AVD_CL_CB *cb, AVD_SI_SI_DEP_INDX *indx);
 static void avd_si_dep_start_unassign(AVD_CL_CB *cb, AVD_EVT *evt);
 static void avd_dependentsi_role_failover(AVD_SI *si);
@@ -81,8 +79,9 @@ void si_dep_state_set(AVD_SI *si, AVD_SI_DEP_STATE state)
 
 	si->si_dep_state = state;
 	TRACE("'%s' si_dep_state %s => %s", si->name.value, depstatename[old_state], depstatename[state]);
+	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, si, AVSV_CKPT_SI_DEP_STATE);
 
-	if (state == AVD_SI_SPONSOR_UNASSIGNED)
+	if ((state == AVD_SI_SPONSOR_UNASSIGNED) && (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE))
 		avd_screen_sponsor_si_state(avd_cb, si, false);
 }
 
@@ -538,11 +537,12 @@ void avd_tmr_si_dep_tol_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	 * in this state due to some other spons-SI.
 	 */
 	if (avd_check_si_state_enabled(cb, spons_si) != NCSCC_RC_SUCCESS) {
-		si_dep_state_set(si, AVD_SI_UNASSIGNING_DUE_TO_DEP);
+		if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+			si_dep_state_set(si, AVD_SI_UNASSIGNING_DUE_TO_DEP);
 
-		if (avd_si_dep_si_unassigned(cb, si) != NCSCC_RC_SUCCESS) {
-			/* Log the error */
-			TRACE("'%s' Dep SI unassignment failed", si->name.value);
+			if (avd_si_dep_si_unassigned(cb, si) != NCSCC_RC_SUCCESS) {
+				TRACE("'%s' Dep SI unassignment failed", si->name.value);
+			}
 		}
 	}
 done:
@@ -858,6 +858,7 @@ void avd_update_si_dep_state_for_spons_unassign(AVD_CL_CB *cb, AVD_SI *dep_si, A
 	switch (dep_si->si_dep_state) {
 	case AVD_SI_ASSIGNED:
 		if (si_dep_rec->saAmfToleranceTime > 0) {
+			TRACE("Starting Timer for SI:%s",dep_si->name.value);
 			/* Start the tolerance timer */
 			si_dep_state_set(dep_si, AVD_SI_TOL_TIMER_RUNNING);
 
@@ -869,7 +870,7 @@ void avd_update_si_dep_state_for_spons_unassign(AVD_CL_CB *cb, AVD_SI *dep_si, A
 			}
 
 			dep_si->tol_timer_count = 1;
-		} else {
+		} else if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
 			/* Send an event to start SI unassignment process */
 			avd_si_dep_state_evt(cb, dep_si, &si_dep_rec->indx_imm);
 		}
@@ -1674,11 +1675,6 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_AVND *node)
 		TRACE("SI doesnot have any dependencies");
 		goto done;
 	}   
-	if (si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
-		TRACE("SI's sponsor is not yet assigned ");
-		flag = false;
-		goto done;
-	}
 
 	for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
 		for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
@@ -1717,6 +1713,7 @@ bool avd_sidep_is_su_failover_possible(AVD_SU *su)
 
 	for (susi = su->list_of_susi;susi != NULL;susi = susi->su_next) {
 		if (susi->si->spons_si_list) {
+			TRACE(":susi:%s si_dep_state:%u state:%u fsm:%u",susi->si->name.value,susi->si->si_dep_state, susi->state,susi->fsm);
 			if (susi->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
 				TRACE("Role failover is deferred as sponsors role failover is under going");
 				flag = false;

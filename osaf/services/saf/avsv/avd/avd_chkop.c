@@ -962,6 +962,7 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action, MBCSV_REO_HDL reo_h
 	case AVSV_CKPT_SI_ADMIN_STATE:
 	case AVSV_CKPT_SI_ALARM_SENT:
 	case AVSV_CKPT_SI_ASSIGNMENT_STATE:
+	case AVSV_CKPT_SI_DEP_STATE:
 		cb->async_updt_cnt.si_updt++;
 		break;
 
@@ -1341,6 +1342,7 @@ static uint32_t avsv_validate_reo_type_in_csync(AVD_CL_CB *cb, uint32_t reo_type
 	case AVSV_CKPT_SI_ASSIGNMENT_STATE:
 	case AVSV_CKPT_SI_ADMIN_STATE:
 	case AVSV_CKPT_SI_ALARM_SENT:
+	case AVSV_CKPT_SI_DEP_STATE:
 		if (cb->synced_reo_type >= AVSV_CKPT_AVD_SI_CONFIG)
 			status = NCSCC_RC_SUCCESS;
 		break;

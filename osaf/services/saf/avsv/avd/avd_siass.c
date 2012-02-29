@@ -759,6 +759,9 @@ uint32_t avd_susi_role_failover(AVD_SU_SI_REL *sisu, AVD_SU *su)
         TRACE_ENTER2(" '%s' '%s'",sisu->si->name.value, sisu->su->name.value);
 
         if (sisu->si->spons_si_list) {
+		if ((sisu->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) || (sisu->si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING))
+                        goto done;
+			
                 /* Check if the sisu->si has dependency on any other Sponsor SI */
                 if(!avd_sidep_is_si_failover_possible(sisu->si, su->su_on_node)) {
                         TRACE("Role failover is deferred as sponsors role failover is under going");

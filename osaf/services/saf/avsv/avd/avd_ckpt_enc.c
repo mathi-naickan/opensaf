@@ -68,6 +68,7 @@ static uint32_t avsv_encode_ckpt_si_su_curr_stby(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC
 static uint32_t avsv_encode_ckpt_si_switch(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t avsv_encode_ckpt_si_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t avsv_encode_ckpt_si_assignment_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
+static uint32_t avsv_encode_ckpt_si_dep_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t avsv_encode_ckpt_si_alarm_sent(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t avsv_encode_ckpt_comp_proxy_comp_name(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
 static uint32_t avsv_encode_ckpt_comp_curr_num_csi_actv(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc);
@@ -168,7 +169,8 @@ const AVSV_ENCODE_CKPT_DATA_FUNC_PTR avsv_enc_ckpt_data_func_list[] = {
 	avsv_encode_ckpt_comp_pres_state,
 	avsv_encode_ckpt_comp_restart_count,
 	NULL,			/* AVSV_SYNC_COMMIT */
-	avsv_encode_ckpt_su_restart_count
+	avsv_encode_ckpt_su_restart_count,
+	avsv_encode_ckpt_si_dep_state
 };
 
 /*
@@ -1523,6 +1525,37 @@ static uint32_t avsv_encode_ckpt_si_assignment_state(AVD_CL_CB *cb, NCS_MBCSV_CB
 
 	return status;
 }
+/******************************************************************
+ * @brief    encodes si_dep_state during async update
+ *
+ * @param[in] cb
+ *
+ * @param[in] dec
+ *
+ *****************************************************************/
+static uint32_t avsv_encode_ckpt_si_dep_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc)
+{
+	uint32_t status = NCSCC_RC_SUCCESS;
+	EDU_ERR edu_rror = 0;
+
+	/* 
+	 * Action in this case is just to update. If action passed is add/rmv then log
+	 * error. Call EDU encode to encode this field.
+	 */
+	if (NCS_MBCSV_ACT_UPDATE == enc->io_action) {
+		status = m_NCS_EDU_SEL_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_si, &enc->io_uba,
+				EDP_OP_TYPE_ENC, (AVD_SI *)(NCS_INT64_TO_PTR_CAST(enc->io_reo_hdl)),
+				&edu_rror, enc->i_peer_version, 2, 1, 9);
+
+		if (status != NCSCC_RC_SUCCESS)
+			LOG_ER("%s: encode failed, ederror=%u", __FUNCTION__, edu_rror);
+	} else
+		osafassert(0);
+
+	osafassert(status == NCSCC_RC_SUCCESS);
+
+	return status;
+}
 
 /****************************************************************************\
  * Function: avsv_encode_ckpt_si_su_curr_active
@@ -1639,7 +1672,6 @@ static uint32_t avsv_encode_ckpt_si_alarm_sent(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *
 
 	return status;
 }
-
 /****************************************************************************\
  * Function: avsv_encode_ckpt_comp_proxy_comp_name
  *

@@ -25,6 +25,7 @@
 #include <logtrace.h>
 #include <avd.h>
 #include <avd_cluster.h>
+#include <avd_si_dep.h>
 
 /* Declaration of async update functions */
 static uint32_t avsv_decode_ckpt_avd_cb_config(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
@@ -67,6 +68,7 @@ static uint32_t avsv_decode_ckpt_si_su_curr_stby(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC
 static uint32_t avsv_decode_ckpt_si_switch(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t avsv_decode_ckpt_si_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t avsv_decode_ckpt_si_assignment_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
+static uint32_t avsv_decode_ckpt_si_dep_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t avsv_decode_ckpt_si_alarm_sent(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t avsv_decode_ckpt_comp_proxy_comp_name(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
 static uint32_t avsv_decode_ckpt_comp_curr_num_csi_actv(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec);
@@ -166,7 +168,8 @@ const AVSV_DECODE_CKPT_DATA_FUNC_PTR avsv_dec_ckpt_data_func_list[] = {
 	avsv_decode_ckpt_comp_pres_state,
 	avsv_decode_ckpt_comp_restart_count,
 	NULL,			/* AVSV_SYNC_COMMIT */
-	avsv_decode_ckpt_su_restart_count
+	avsv_decode_ckpt_su_restart_count,
+	avsv_decode_ckpt_si_dep_state
 };
 
 /*
@@ -1967,6 +1970,50 @@ static uint32_t avsv_decode_ckpt_si_assignment_state(AVD_CL_CB *cb, NCS_MBCSV_CB
 
 	/* Update the fields received in this checkpoint message */
 	si_struct->saAmfSIAssignmentState = si_ptr_dec->saAmfSIAssignmentState;
+
+	cb->async_updt_cnt.si_updt++;
+
+	return status;
+}
+/******************************************************************
+ * @brief    decodes si_dep_state during async update
+ *
+ * @param[in] cb
+ *
+ * @param[in] dec
+ *
+ *****************************************************************/
+static uint32_t avsv_decode_ckpt_si_dep_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
+{
+	uint32_t status = NCSCC_RC_SUCCESS;
+	AVD_SI *si_ptr_dec;
+	AVD_SI dec_si;
+	EDU_ERR edu_error = 0;
+	AVD_SI *si_struct;
+
+	TRACE_ENTER();
+
+	si_ptr_dec = &dec_si;
+
+
+	/* Action in this case is just to update */
+	status = ncs_edu_exec(&cb->edu_hdl, avsv_edp_ckpt_msg_si,
+	      &dec->i_uba, EDP_OP_TYPE_DEC, (AVD_SI **)&si_ptr_dec, &edu_error, 2, 1, 9);
+
+	osafassert(status == NCSCC_RC_SUCCESS);
+
+	if (NULL == (si_struct = avd_si_get(&si_ptr_dec->name)))
+		osafassert(0);
+
+	/* Update the fields received in this checkpoint message */
+	si_struct->si_dep_state = si_ptr_dec->si_dep_state;
+
+	TRACE("si:%s si_dep_state:%u si_struct->num_dependents:%u",si_struct->name.value,si_struct->si_dep_state,si_struct->num_dependents);
+	/* If the Sponsor SI is Unasiigned then iterate through all its dependents and start Tolerance timer for each dependent */
+	if ((si_struct->num_dependents) && (si_struct->si_dep_state == AVD_SI_SPONSOR_UNASSIGNED)) {
+		/* Check if this SI is a sponsor SI for some other SI, the take appropriate action */
+		avd_si_dep_spons_state_modif(cb, si_struct, NULL, AVD_SI_DEP_SPONSOR_UNASSIGNED);
+	}
 
 	cb->async_updt_cnt.si_updt++;
 
