@@ -29,6 +29,212 @@
 #include <avd_clm.h>
 #include <avd_si_dep.h>
 
+
+/*****************************************************************************
+ * Function: su_assigned_susi_find
+ *
+ * Purpose:  This function searches the entire SU to identify the
+ * 	     SUSIs belonging to a SI which has active and standby asssignments.
+ *
+ * Input: su - The pointer to the service unit. 
+ * 	  stby_susi - pointer to the pointer of standby SUSI if present.
+ *
+ * Returns: AVD_SU_SI_REL * Pointer to active SUSI if present.
+ *
+ * NOTES: This is a 2N redundancy model specific function.
+ *
+ *
+ **************************************************************************/
+
+static AVD_SU_SI_REL *su_assigned_susi_find(AVD_SU *su, AVD_SU_SI_REL **stby_susi)
+{
+	AVD_SU_SI_REL *susi, *another_su_susi;
+	bool act_found = false, quisced_found = false, std_found = false, any_susi_act_found = false;
+	AVD_SU_SI_REL *a_susi = NULL;
+	AVD_SU_SI_REL *s_susi = NULL;
+	AVD_SI *si_temp;
+
+	TRACE_ENTER2("'%s'", su->name.value);
+
+	for (susi = su->list_of_susi;NULL != susi;susi = susi->su_next ) {
+		if (SA_AMF_HA_ACTIVE == susi->state) {
+			act_found = true;
+			TRACE("Act su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+		} else if ((SA_AMF_HA_QUIESCED == susi->state) || (SA_AMF_HA_QUIESCING == susi->state)) {
+			quisced_found = true;
+			TRACE("Quisced su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+		} else if (SA_AMF_HA_STANDBY == susi->state) {
+			std_found = true;
+			TRACE("Stdby su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+		} else
+			osafassert(0);
+	}
+
+	TRACE("act_found'%u', quisced_found'%u', std_found'%u'", act_found, quisced_found, std_found);
+	/* If any one of the SUSI has Act assignment, then su will be said to be Act. */
+	if (true == act_found) {
+		/* Any one SI is act: SU state can be said to be Act. Find SUSI, which has both Act and Std assgnt.*/
+
+		/* Find SI, which has both Act and Stdby SUSI.*/
+		for (si_temp = su->sg_of_su->list_of_si;NULL != si_temp;si_temp = si_temp->sg_list_of_si_next) {
+			TRACE("si'%s'", si_temp->name.value);
+			/* check to see if this SI has both the assignments */
+			if (NULL == (susi = si_temp->list_of_sisu)) {
+				si_temp = si_temp->sg_list_of_si_next;
+				continue;
+			}
+			TRACE("su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+			if (NULL != susi->si_next) {
+				if (su == susi->su) {
+					a_susi = susi;
+					s_susi = susi->si_next;
+					TRACE("su'%s', si'%s'", susi->si_next->su->name.value, susi->si_next->si->name.value);
+					TRACE("Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+					TRACE("Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+				} else if (su == susi->si_next->su) {
+					s_susi = susi;
+					a_susi = susi->si_next;
+					TRACE("su'%s', si'%s'", susi->si_next->su->name.value, susi->si_next->si->name.value);
+					TRACE("Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+					TRACE("Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+				} else {
+					osafassert(0);
+				}
+				break;
+			}
+		}
+		osafassert(a_susi);
+		osafassert(s_susi);
+		TRACE("3. Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+		TRACE("3. Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+		goto done;
+	} else if ((true == quisced_found) && (false == std_found)) {
+		/* All are in quisced and none are there in stdby:
+		   SU state can be said to be Act if other Su is not Act. Find SUSI,which has both Act and Std assgnt.*/
+
+		/* Find SI, which has both Act and Stdby SUSI.*/
+		si_temp = su->sg_of_su->list_of_si;
+		while (NULL != si_temp) {
+			TRACE("si'%s'", si_temp->name.value);
+			/* check to see if this SI has both the assignments */
+			if (NULL == (susi = si_temp->list_of_sisu)) {
+				si_temp = si_temp->sg_list_of_si_next;
+				continue;
+			}
+			TRACE("su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+			if (NULL != susi->si_next) {
+				if (su == susi->su) {
+					/* If quisced_found is true, then we need to check wether any one SUSI is Act
+					   on another SU. If yes, then other SU will be considered as Act. */
+					another_su_susi = susi->si_next->su->list_of_susi;
+					while (NULL != another_su_susi) {
+						if (SA_AMF_HA_ACTIVE == another_su_susi->state) {
+							any_susi_act_found = true;
+							break;
+						}
+						another_su_susi = another_su_susi->su_next;
+					}
+					TRACE("any_susi_act_found '%u'", any_susi_act_found);
+					if (true == any_susi_act_found) {
+						s_susi = susi;
+						a_susi = susi->si_next;
+						TRACE("1. su'%s', si'%s'", susi->si_next->su->name.value, susi->si_next->si->name.value);
+						TRACE("1. Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+						TRACE("1. Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+					} else {
+						a_susi = susi;
+						s_susi = susi->si_next;
+						TRACE("1. su'%s', si'%s'", susi->si_next->su->name.value, susi->si_next->si->name.value);
+						TRACE("1. Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+						TRACE("1. Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+					}
+				} else if (su == susi->si_next->su) {
+
+					/* We need to check wether any one SUSI is Act on another SU. 
+					   If yes, then other SU will be considered as Act. */
+					another_su_susi = susi->su->list_of_susi;
+					while (NULL != another_su_susi) {
+						if (SA_AMF_HA_ACTIVE == another_su_susi->state) {
+							any_susi_act_found = true;
+							break;
+						}
+						another_su_susi = another_su_susi->su_next;
+					}
+					TRACE("any_susi_act_found '%u'", any_susi_act_found);
+					if (true == any_susi_act_found) {
+						a_susi = susi;
+						s_susi = susi->si_next;
+						TRACE("su'%s', si'%s'", susi->si_next->su->name.value, susi->si_next->si->name.value);
+						TRACE("Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+						TRACE("Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+					} else {
+						s_susi = susi;
+						a_susi = susi->si_next;
+						TRACE("su'%s', si'%s'", susi->si_next->su->name.value, susi->si_next->si->name.value);
+						TRACE("Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+						TRACE("Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+					}
+				} else {
+					osafassert(0);
+				}
+				break;
+			}
+			si_temp = si_temp->sg_list_of_si_next;
+		}/* while (NULL != si_temp)  */
+		osafassert(a_susi);
+		osafassert(s_susi);
+		TRACE("3. Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+		TRACE("3. Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+		goto done;
+
+	} else if ((true == std_found) && (false == quisced_found)) {
+		/* This means that there is no Act/Quisced assignment, then it may have all std assignment.*/
+		/* Find SI, which has both Act and Stdby SUSI.*/
+		si_temp = su->sg_of_su->list_of_si;
+		while (NULL != si_temp) {
+			TRACE("si'%s'", si_temp->name.value);
+			/* check to see if this SI has both the assignments */
+			if (NULL == (susi = si_temp->list_of_sisu)) {
+				si_temp = si_temp->sg_list_of_si_next;
+				continue;
+			}
+			TRACE("su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+			if (NULL != susi->si_next) {
+				if (su == susi->su) {
+					s_susi = susi;
+					a_susi = susi->si_next;
+					TRACE("su'%s', si'%s'", susi->si_next->su->name.value, susi->si_next->si->name.value);
+					TRACE("Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+					TRACE("Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+				} else if (su == susi->si_next->su) {
+					a_susi = susi;
+					s_susi = susi->si_next;
+					TRACE("su'%s', si'%s'", susi->si_next->su->name.value, susi->si_next->si->name.value);
+					TRACE("Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+					TRACE("Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+				} else {
+					osafassert(0);
+				}
+				break;
+			}
+			si_temp = si_temp->sg_list_of_si_next;
+		}
+		osafassert(a_susi);
+		osafassert(s_susi);
+		TRACE("3. Act su'%s', si'%s'", a_susi->su->name.value, a_susi->si->name.value);
+		TRACE("3. Std su'%s', si'%s'", s_susi->su->name.value, s_susi->si->name.value);
+		goto done;
+	} else
+		osafassert(0);
+
+done:
+	*stby_susi = s_susi;
+
+	TRACE_LEAVE2("act su: '%s', stdby su: '%s', si: '%s'", a_susi ? a_susi->su->name.value : NULL,
+			s_susi ? s_susi->su->name.value : NULL, a_susi ?  a_susi->si->name.value : NULL);
+	return a_susi;
+}
+
 /*****************************************************************************
  * Function: avd_sg_2n_act_susi
  *
@@ -49,76 +255,81 @@
 static AVD_SU_SI_REL *avd_sg_2n_act_susi(AVD_CL_CB *cb, AVD_SG *sg, AVD_SU_SI_REL **stby_susi)
 {
 
-	bool l_flag = true;
+	bool all_std_flag = true;
 	AVD_SU_SI_REL *susi;
-	AVD_SU_SI_REL *a_susi = AVD_SU_SI_REL_NULL;
-	AVD_SU_SI_REL *s_susi = AVD_SU_SI_REL_NULL;
+	AVD_SU_SI_REL *a_susi = NULL, *a_susi_1 = NULL, *a_susi_2 = NULL;
+	AVD_SU_SI_REL *s_susi = NULL, *s_susi_1 = NULL, *s_susi_2 = NULL;
 	AVD_SI *l_si;
+	AVD_SU *su_1 = NULL, *su_2 = NULL;
 
 	TRACE_ENTER2("'%s'", sg->name.value);
 
 	l_si = sg->list_of_si;
 
-	/* check for configured SIs and see if they have been already
-	 * assigned to SUs. Find the active and standby SUSI assignments. If any.
-	 */
-
-	while ((l_si != AVD_SI_NULL) && (l_flag == true)) {
-
-		if (l_si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
+	/* Find out single/both the assigned SUs of SG. */
+	while (NULL != l_si) {
+		if ((susi = l_si->list_of_sisu) == NULL) {
+			/* SI with no assignments!! Check another SI.*/
 			l_si = l_si->sg_list_of_si_next;
 			continue;
 		}
-			
-		/* check to see if this SI has both the assignments */
-		if ((susi = l_si->list_of_sisu) == AVD_SU_SI_REL_NULL) {
-			l_si = l_si->sg_list_of_si_next;
-			continue;
+		su_1 = susi->su;
+		TRACE("si'%s', su'%s', si'%s'", l_si->name.value, susi->su->name.value, susi->si->name.value);
+		/* Check whether SI is assigned on another SU. */
+		if (NULL != susi->si_next) {
+			TRACE("si'%s', su'%s', si'%s'", l_si->name.value, susi->si_next->su->name.value, susi->si_next->si->name.value);
+			/* Found another SU, so mark and break as we got both the SUs.*/
+			su_2 = susi->si_next->su;
+			break;	
 		}
-
-		switch (susi->state) {
-		case SA_AMF_HA_ACTIVE:
-		case SA_AMF_HA_QUIESCING:
-			/* Check if this SI has both active and standby assignments */
-			a_susi = susi;
-			if (susi->si_next != AVD_SU_SI_REL_NULL) {
-				s_susi = susi->si_next;
-				l_flag = false;
-			}
-			break;
-		case SA_AMF_HA_STANDBY:
-			/* Check if this SI has both active and standby assignments */
-			s_susi = susi;
-			if (susi->si_next != AVD_SU_SI_REL_NULL) {
-				a_susi = susi->si_next;
-				l_flag = false;
-			}
-			break;
-		case SA_AMF_HA_QUIESCED:
-			/* Check if this SI has both active and standby assignments */
-			if (susi->si_next != AVD_SU_SI_REL_NULL) {
-				if (susi->si_next->state == SA_AMF_HA_ACTIVE) {
-					s_susi = susi;
-					a_susi = susi->si_next;
-				} else {
-					a_susi = susi;
-					s_susi = susi->si_next;
-				}
-
-				l_flag = false;
-			} else {
-				a_susi = susi;
-			}
-			break;
-		default:
-			break;
-
-		}		/* switch(susi->state) */
-
 		l_si = l_si->sg_list_of_si_next;
+	}
 
-	}			/* while ((l_si != AVD_SI_NULL) && (l_flag == true)) */
+	if ((NULL == su_1) && (NULL == su_2))
+		goto done; /* None of SIs has assignments. Ideally if su_1 is NULL means, su_2 also NULL.*/
 
+	/* We have one/two SUs, any one can be Act/Stdby/Quiscing/Quisced.*/
+
+	TRACE("su_1'%s', su_2'%s'", su_1 ? su_1->name.value : NULL, su_2 ? su_2->name.value : NULL);
+	if ((NULL != su_1) && (NULL == su_2)) {
+		/* Only one SU i.e. su_1 has assignment. Find its HA state and return.*/
+		susi = su_1->list_of_susi;
+		while (NULL != susi) {
+			if ((SA_AMF_HA_ACTIVE == susi->state) || (SA_AMF_HA_QUIESCED == susi->state) || 
+					(SA_AMF_HA_QUIESCING == susi->state)) {
+				all_std_flag = false;
+				a_susi = susi;
+				break;
+			}
+			susi = susi->su_next;
+		}
+		if (false == all_std_flag) {
+			/* This means a_susi has been found and assigned and we are done.*/
+			osafassert(a_susi != NULL);
+		} else {
+			/* Assign any one of SUSI of the su_1.*/
+			s_susi = su_1->list_of_susi;
+			osafassert(s_susi != NULL);
+		}
+
+		/* Don't proceed now, we are done.*/
+		goto done;
+	}
+
+	if ((NULL != su_1) && (NULL != su_2)) {
+		/* Both SUs has assignment. Find their HA states and return.*/
+		a_susi_1 = su_assigned_susi_find(su_1, &s_susi_1);
+		/* Determining SUSI for su_2 may not be needed, but to make sure we have correct SUSI.*/
+		a_susi_2 = su_assigned_susi_find(su_2, &s_susi_2);
+		osafassert(a_susi_1 && s_susi_1);
+		osafassert(a_susi_1 == a_susi_2);
+		osafassert(s_susi_1 == s_susi_2);
+		a_susi = a_susi_1;
+		s_susi = s_susi_1;
+		goto done;
+	}
+
+done:
 	*stby_susi = s_susi;
 
 	TRACE_LEAVE2("act: '%s', stdby: '%s'", a_susi ? a_susi->su->name.value : NULL,
@@ -970,6 +1181,7 @@ uint32_t avd_sg_2n_su_fault_func(AVD_CL_CB *cb, AVD_SU *su)
 	AVD_SU *a_su;
 	AVD_SU_SI_REL *l_susi, *o_susi;
 	uint32_t rc = NCSCC_RC_FAILURE;
+	SaAmfHAStateT su_ha_state;
 
 	TRACE_ENTER2("'%s', %u", su->name.value, su->sg_of_su->sg_fsm_state);
 
@@ -1075,35 +1287,67 @@ uint32_t avd_sg_2n_su_fault_func(AVD_CL_CB *cb, AVD_SU *su)
 			 * standby SU assignment send D2N-INFO_SU_SI_ASSIGN remove all for the
 			 * SU. 
 			 */
-			if (su->list_of_susi->state == SA_AMF_HA_QUIESCING) {
-				if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-					goto done;
-				}
-				o_susi = AVD_SU_SI_REL_NULL;
-				a_su = su->sg_of_su->list_of_su;
-				while (a_su != NULL) {
-					avd_su_readiness_state_set(a_su, SA_AMF_READINESS_OUT_OF_SERVICE);
-					if ((a_su->list_of_susi != AVD_SU_SI_REL_NULL)
-					    && (a_su->list_of_susi->state == SA_AMF_HA_STANDBY)) {
-						o_susi = a_su->list_of_susi;
+			if (avd_si_dependency_exists_within_su(su)) {
+				su_ha_state = avd_su_state_determine(su);
+				if (su_ha_state == SA_AMF_HA_QUIESCING) {
+					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+						goto done;
 					}
-					a_su = a_su->sg_list_su_next;
-				}
-				avd_sg_admin_state_set(su->sg_of_su, SA_AMF_ADMIN_LOCKED);
-				if (o_susi != AVD_SU_SI_REL_NULL)
-					avd_sg_su_si_del_snd(cb, o_susi->su);
-			} /* if (su->list_of_susi->state == SA_AMF_HA_QUIESCING) */
-			else {
-				/* the SI relationships to the SU is standby Send 
-				 * D2N-INFO_SU_SI_ASSIGN remove all for the SU.
-				 */
-				if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
-					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-					goto done;
-				}
+                                        o_susi = AVD_SU_SI_REL_NULL;
+                                        a_su = su->sg_of_su->list_of_su;
+                                        while (a_su != NULL) {
+                                                avd_su_readiness_state_set(a_su, SA_AMF_READINESS_OUT_OF_SERVICE);
+                                                if ((a_su->list_of_susi != AVD_SU_SI_REL_NULL)
+                                                                && (a_su->list_of_susi->state == SA_AMF_HA_STANDBY)) {
+                                                        o_susi = a_su->list_of_susi;
+                                                }
+                                                a_su = a_su->sg_list_su_next;
+                                        }
+                                        avd_sg_admin_state_set(su->sg_of_su, SA_AMF_ADMIN_LOCKED);
+                                        if (o_susi != AVD_SU_SI_REL_NULL)
+                                                avd_sg_su_si_del_snd(cb, o_susi->su);
+				} else {
+					/* the SI relationships to the SU is standby Send
+					 * D2N-INFO_SU_SI_ASSIGN remove all for the SU.
+					 */
+					if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+						goto done;
+                                        }
 
-			}	/* else (su->list_of_susi->state == SA_AMF_HA_QUIESCING) */
+                                }       /* else (su->list_of_susi->state == SA_AMF_HA_QUIESCING) */
+			} else { 
+				if (su->list_of_susi->state == SA_AMF_HA_QUIESCING) {
+					if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+						goto done;
+					}
+					o_susi = AVD_SU_SI_REL_NULL;
+					a_su = su->sg_of_su->list_of_su;
+					while (a_su != NULL) {
+						avd_su_readiness_state_set(a_su, SA_AMF_READINESS_OUT_OF_SERVICE);
+						if ((a_su->list_of_susi != AVD_SU_SI_REL_NULL)
+								&& (a_su->list_of_susi->state == SA_AMF_HA_STANDBY)) {
+							o_susi = a_su->list_of_susi;
+						}
+						a_su = a_su->sg_list_su_next;
+					}
+					avd_sg_admin_state_set(su->sg_of_su, SA_AMF_ADMIN_LOCKED);
+					if (o_susi != AVD_SU_SI_REL_NULL)
+						avd_sg_su_si_del_snd(cb, o_susi->su);
+				} /* if (su->list_of_susi->state == SA_AMF_HA_QUIESCING) */
+				else {
+					/* the SI relationships to the SU is standby Send 
+					 * D2N-INFO_SU_SI_ASSIGN remove all for the SU.
+					 */
+					if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+						goto done;
+					}
+
+				}	/* else (su->list_of_susi->state == SA_AMF_HA_QUIESCING) */
+			}
 		} else {
 			LOG_ER("%s:%u: %u", __FILE__, __LINE__, su->sg_of_su->saAmfSGAdminState);
 			goto done;
@@ -2306,7 +2550,7 @@ uint32_t avd_sg_2n_susi_sucss_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *sus
 								   AVSV_SUSI_ACT act, SaAmfHAStateT state)
 {
 
-	AVD_SU_SI_REL *s_susi;
+	AVD_SU_SI_REL *s_susi, *n_susi;
 	AVD_SU *i_su, *a_su;
 	uint32_t rc = NCSCC_RC_FAILURE;
 
@@ -2369,7 +2613,28 @@ uint32_t avd_sg_2n_susi_sucss_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *sus
 					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
 				}
 			} /* if ((susi == AVD_SU_SI_REL_NULL) && (act == AVSV_SUSI_ACT_DEL)) */
-			else {
+			else if ((susi != AVD_SU_SI_REL_NULL) && (act == AVSV_SUSI_ACT_MOD) && 
+					(state == SA_AMF_HA_QUIESCED)) {
+				/* susi != null means that the assignment has been per SU level.*/
+				if (all_quiesced(susi->su)) {
+					/* quiesced all Send a D2N-INFO_SU_SI_ASSIGN with remove all for this SU. */
+					if (avd_sg_su_si_del_snd(cb, susi->su) == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+						goto done;
+					}
+
+				} else {
+					n_susi = next_susi_tobe_quiesced(susi);
+					if (n_susi) {
+
+						rc = avd_susi_mod_send(n_susi, state);
+						if (rc == NCSCC_RC_FAILURE) {
+							LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+							goto done;
+						}
+					}
+				}
+			} else {
 				LOG_EM("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)act));
 				LOG_EM("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
 				goto done;
@@ -2404,12 +2669,45 @@ uint32_t avd_sg_2n_susi_sucss_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *sus
 			else if ((susi == AVD_SU_SI_REL_NULL) && (act == AVSV_SUSI_ACT_DEL)) {
 				/* remove all. Free all the SI assignments to this SU */
 				avd_sg_su_asgn_del_util(cb, su, true, false);
+			} else if ((susi != AVD_SU_SI_REL_NULL) && (act == AVSV_SUSI_ACT_MOD) &&
+					(state == SA_AMF_HA_QUIESCED)) {
+				/* susi != null means that the assignment has been per SU level.*/
+				if (all_quiesced(susi->su)) {
+					/* quiesced all. Change admin state to lock and identify its 
+					 * standby SU assignment send D2N-INFO_SU_SI_ASSIGN remove all
+					 * for the SU. Send a D2N-INFO_SU_SI_ASSIGN with remove all for
+					 * this SU.
+					 */
+					avd_sg_2n_act_susi(cb, su->sg_of_su, &s_susi);
+					if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+						goto done;
+					}
+
+					if (s_susi != AVD_SU_SI_REL_NULL) {
+						avd_sg_su_si_del_snd(cb, s_susi->su);
+					}
+					avd_sg_admin_state_set(su->sg_of_su, SA_AMF_ADMIN_LOCKED);
+					a_su = su->sg_of_su->list_of_su;
+					while (a_su != NULL) {
+						avd_su_readiness_state_set(a_su, SA_AMF_READINESS_OUT_OF_SERVICE);
+						a_su = a_su->sg_list_su_next;
+					}
+				} else {
+					n_susi = next_susi_tobe_quiesced(susi);
+					if (n_susi) {
+						rc = avd_susi_mod_send(n_susi, su->sg_of_su->saAmfSGAdminState);
+						if (rc == NCSCC_RC_FAILURE) {
+							LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+							goto done;
+						}
+					}
+				}
 			} else {
 				LOG_EM("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)act));
 				LOG_EM("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
 				goto done;
 			}
-
 		}
 		/* if (su->sg_of_su->admin_state == NCS_ADMIN_STATE_SHUTDOWN) */
 		break;		/* case AVD_SG_FSM_SG_ADMIN: */
@@ -2686,8 +2984,9 @@ uint32_t avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 		break;		/* case AVD_SG_FSM_SI_OPER: */
 	case AVD_SG_FSM_SG_ADMIN:
 
-		if ((susi == AVD_SU_SI_REL_NULL) && (act == AVSV_SUSI_ACT_MOD) &&
+		if ((act == AVSV_SUSI_ACT_MOD) &&
 		    (state == SA_AMF_HA_QUIESCED) && (su->sg_of_su->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED)) {
+			/* susi is null or not null should not matter as we are sending su_si del for all anyway.*/
 			/* SG is admin lock. Message is quiesced all. 
 			 * Send a D2N-INFO_SU_SI_ASSIGN with remove all for this SU.
 			 */
@@ -2699,9 +2998,10 @@ uint32_t avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 		}		/* if ((susi == AVD_SU_SI_REL_NULL) && (act == AVSV_SUSI_ACT_MOD) &&
 				   (state == SA_AMF_HA_QUIESCED) && 
 				   (su->sg_of_su->admin_state == NCS_ADMIN_STATE_LOCK)) */
-		else if ((susi == AVD_SU_SI_REL_NULL) && (act == AVSV_SUSI_ACT_MOD) &&
+		else if ((act == AVSV_SUSI_ACT_MOD) &&
 			 ((state == SA_AMF_HA_QUIESCED) || (state == SA_AMF_HA_QUIESCING)) &&
 			 (su->sg_of_su->saAmfSGAdminState == SA_AMF_ADMIN_SHUTTING_DOWN)) {
+			/* susi is null or not null should not matter as we are sending su_si del for all anyway.*/
 			/* SG is admin shutdown. The message is quiescing all or quiesced all.
 			 * Change admin state to lock and identify its standby SU assignment 
 			 * send D2N-INFO_SU_SI_ASSIGN remove all for the SU. 
@@ -3428,6 +3728,7 @@ void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 	AVD_SU_SI_REL *a_susi, *s_susi;
 	AVD_SU *o_su, *i_su;
 	bool flag;
+	SaAmfHAStateT su_ha_state;
 
 	TRACE_ENTER2("'%s', %u", su->name.value, su->sg_of_su->sg_fsm_state);
 
@@ -3626,7 +3927,8 @@ void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 		} /* if (su->sg_of_su->admin_state == NCS_ADMIN_STATE_LOCK) */
 		else if (su->sg_of_su->saAmfSGAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
 			/* SG is admin shutdown */
-			if (su->list_of_susi->state == SA_AMF_HA_QUIESCING) {
+			su_ha_state = avd_su_state_determine(su);
+			if (su_ha_state == SA_AMF_HA_QUIESCING) {
 				/* the SI relationships to the SU is quiescing. Change admin state 
 				 * to lock, make the readiness state of all the SUs OOS.  Identify 
 				 * its standby SU assignment send D2N-INFO_SU_SI_ASSIGN remove all 
@@ -3825,7 +4127,7 @@ done:
 
 uint32_t avd_sg_2n_si_admin_down(AVD_CL_CB *cb, AVD_SI *si)
 {
-	AVD_SU_SI_REL *a_susi, *s_susi;
+	AVD_SU_SI_REL *a_susi = NULL, *s_susi = NULL;
 	uint32_t rc = NCSCC_RC_FAILURE;
 
 	TRACE_ENTER2("'%s', %u", si->name.value, si->sg_of_si->sg_fsm_state);
@@ -3898,13 +4200,17 @@ uint32_t avd_sg_2n_si_admin_down(AVD_CL_CB *cb, AVD_SI *si)
 			 * is being assigned quiescing state. Send a D2N-INFO_SU_SI_ASSIGN 
 			 * remove message for this SI to the other SU.
 			 */
-			if (si->list_of_sisu->state == SA_AMF_HA_QUIESCING) {
+			if ((si->list_of_sisu->state == SA_AMF_HA_QUIESCING) || 
+					(si->list_of_sisu->state == SA_AMF_HA_ACTIVE)) {
+				/* The first may be in any one of the Act, Quicing, Std. It will not be in Quisced
+				   because when it will move into quisced, then siadmin state will be locked. */
 				a_susi = si->list_of_sisu;
 				s_susi = si->list_of_sisu->si_next;
-			} else {
+			} else if (si->list_of_sisu->state == SA_AMF_HA_STANDBY){
 				s_susi = si->list_of_sisu;
 				a_susi = si->list_of_sisu->si_next;
-			}
+			} else
+				osafassert(0);
 
 			/* change the state of the SI to quiesced */
 			if (avd_susi_mod_send(a_susi, SA_AMF_HA_QUIESCED) != NCSCC_RC_SUCCESS)
@@ -3973,11 +4279,19 @@ uint32_t avd_sg_2n_sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg)
 			 * send D2N-INFO_SU_SI_ASSIGN remove all for standby SU.
 			 * Change state to SG admin state.
 			 */
-			if (avd_sg_su_si_mod_snd(cb, a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->su->name.value, a_susi->su->name.length);
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->si->name.value, a_susi->si->name.length);
-				goto done;
-			}
+			if (!avd_si_dependency_exists_within_su(a_susi->su)) {
+                                /* change the state for all assignments to quiesced. */
+                                if (avd_sg_su_si_mod_snd(cb, a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+                                        LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->su->name.value, a_susi->su->name.length);
+                                        LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->si->name.value, a_susi->si->name.length);
+                                        goto done;
+                                }
+                        } else {
+                                if (avd_sg_susi_mod_snd_honouring_si_dependency(a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+                                        LOG_NO("%s:%u: %s ", __FILE__, __LINE__,  a_susi->su->name.value);
+                                        goto done;
+                                }
+                        }
 
 			if (s_susi != AVD_SU_SI_REL_NULL) {
 				avd_sg_su_si_del_snd(cb, s_susi->su);
@@ -3991,10 +4305,18 @@ uint32_t avd_sg_2n_sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg)
 			 * Change state to SG_admin. If no active SU exist, change the SG 
 			 * admin state to LOCK, stay in stable state.
 			 */
-			if (avd_sg_su_si_mod_snd(cb, a_susi->su, SA_AMF_HA_QUIESCING) == NCSCC_RC_FAILURE) {
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->su->name.value, a_susi->su->name.length);
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->si->name.value, a_susi->si->name.length);
-				goto done;
+			if (!avd_si_dependency_exists_within_su(a_susi->su)) {
+				/* change the state for all assignments to quiesced. */
+				if (avd_sg_su_si_mod_snd(cb, a_susi->su, SA_AMF_HA_QUIESCING) == NCSCC_RC_FAILURE) {
+					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->su->name.value, a_susi->su->name.length);
+					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->si->name.value, a_susi->si->name.length);
+					goto done;
+				}
+			} else {
+				if (avd_sg_susi_mod_snd_honouring_si_dependency(a_susi->su, SA_AMF_HA_QUIESCING) == NCSCC_RC_FAILURE) {
+					LOG_NO("%s:%u: %s ", __FILE__, __LINE__,  a_susi->su->name.value);
+					goto done;
+				}
 			}
 
 			m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_SG_ADMIN);
@@ -4009,10 +4331,19 @@ uint32_t avd_sg_2n_sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg)
 			 * standby assignment.
 			 */
 			a_susi = avd_sg_2n_act_susi(cb, sg, &s_susi);
-			if (avd_sg_su_si_mod_snd(cb, a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->su->name.value, a_susi->su->name.length);
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->si->name.value, a_susi->si->name.length);
-				goto done;
+
+			if (!avd_si_dependency_exists_within_su(a_susi->su)) {
+				/* change the state for all assignments to quiesced. */
+				if (avd_sg_su_si_mod_snd(cb, a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->su->name.value, a_susi->su->name.length);
+					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->si->name.value, a_susi->si->name.length);
+					goto done;
+				}
+			} else {
+				if (avd_sg_susi_mod_snd_honouring_si_dependency(a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_NO("%s:%u: %s ", __FILE__, __LINE__, a_susi->su->name.value);
+					goto done;
+				}
 			}
 
 			if (s_susi != AVD_SU_SI_REL_NULL) {
@@ -4032,4 +4363,61 @@ uint32_t avd_sg_2n_sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg)
 done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
+}
+
+/**
+ * @brief         Determine the ha state of the SU. Please refer AMF B 4.1 Specs page 83 for transition flow.
+ *
+ * @param [in]    su
+ *
+ * @returns       HA State of the SU.
+ */
+SaAmfHAStateT avd_su_state_determine(AVD_SU *su) {
+	AVD_SU_SI_REL *susi;
+	SaAmfHAStateT ha_state = 0;
+	bool act_found = false, quisced_found = false, quiscing_found = false;
+
+	TRACE_ENTER2("SU '%s'", su->name.value);
+
+	susi = su->list_of_susi;
+	osafassert(susi);
+	while (NULL != susi) {
+		ha_state = susi->state;
+		if ((AVD_SU_SI_STATE_MODIFY == susi->fsm) && (SA_AMF_HA_QUIESCED == susi->state)) {
+			quisced_found =  true;
+			TRACE("Quisced su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+			break;
+		} else if ((AVD_SU_SI_STATE_MODIFY == susi->fsm) && (SA_AMF_HA_ACTIVE == susi->state)) {
+			act_found =  true;
+                        TRACE("Act su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+		} else if ((AVD_SU_SI_STATE_MODIFY == susi->fsm) && (SA_AMF_HA_QUIESCING == susi->state)) {
+			quiscing_found =  true;
+                        TRACE("Quiscing su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+		} else {
+                        ha_state = susi->state;
+                        TRACE("Assigned su'%s', si'%s', state'%u'", susi->su->name.value, susi->si->name.value, ha_state);
+                }
+		susi = susi->su_next;
+	} /* while (NULL != susi) */
+
+	TRACE("act_found'%u', quisced_found'%u', quiscing_found'%u'", act_found, quisced_found, 
+			quiscing_found);
+	if (true == quisced_found) {
+		/* Rule 1. => If any one of the SUSI has been found Mod Quisced, then state of SU will be said to be 
+		   Quisced.*/
+		ha_state = SA_AMF_HA_QUIESCED;
+	} else if (true == act_found) {
+		/* Rule 2. => If any one of the SUSI is Mod Act and there is no Mod Quisced, then state of SU will be 
+		   said to be Act.*/
+		ha_state = SA_AMF_HA_ACTIVE;
+	} else if (true == quiscing_found) {
+		/* Rule 3. => If any one of the SUSI is Mod Act and there is no Mod Quisced/Act, then state of SU 
+		   will be said to be Quiscing.*/
+		ha_state = SA_AMF_HA_QUIESCING;
+	} else {
+		/* All should be in assigned state.*/
+	}
+
+	TRACE_LEAVE2("state '%u'", ha_state);
+	return ha_state;
 }

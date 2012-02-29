@@ -158,4 +158,5 @@ extern uint32_t avd_susi_del_send(AVD_SU_SI_REL *susi);
 extern uint32_t avd_susi_role_failover(AVD_SU_SI_REL *sisu, AVD_SU *su);
 extern uint32_t avd_susi_role_failover2(AVD_SU_SI_REL *sisu, AVD_SU *su);
 extern bool si_assignment_state_check(AVD_SI *si);
+extern SaAmfHAStateT avd_su_state_determine(AVD_SU *su);
 #endif
