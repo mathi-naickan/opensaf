@@ -757,27 +757,40 @@ uint32_t avd_susi_role_failover(AVD_SU_SI_REL *sisu, AVD_SU *su)
         uint32_t rc = NCSCC_RC_SUCCESS;
 
         TRACE_ENTER2(" '%s' '%s'",sisu->si->name.value, sisu->su->name.value);
+	
+	if ((sisu->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) ||
+		(sisu->si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) ||
+		(sisu->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN)) {
+                goto done;
+        }
 
-        if (sisu->si->spons_si_list) {
-		if ((sisu->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) || (sisu->si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING))
-                        goto done;
-			
-                /* Check if the sisu->si has dependency on any other Sponsor SI */
-                if(!avd_sidep_is_si_failover_possible(sisu->si, su->su_on_node)) {
-                        TRACE("Role failover is deferred as sponsors role failover is under going");
-                        si_dep_state_set(sisu->si, AVD_SI_FAILOVER_UNDER_PROGRESS);
-                        goto done;
-                }
-        }
-        rc = avd_susi_mod_send(sisu, SA_AMF_HA_ACTIVE);
-        if (rc == NCSCC_RC_SUCCESS) {
-                if (sisu->si->num_dependents > 0) {
-                        /* This is a Sponsor SI update its dependent states */
-                        avd_update_depstate_si_failover(sisu->si, su);
-                }
-        }
+	if(avd_sidep_is_si_failover_possible(sisu->si, su)) {
+		rc = avd_susi_mod_send(sisu, SA_AMF_HA_ACTIVE);
+		if (rc == NCSCC_RC_SUCCESS) {
+			if (sisu->si->num_dependents > 0) {
+				/* This is a Sponsor SI update its dependent states */
+				avd_update_depstate_si_failover(sisu->si, su);
+			}
+		}
+	}
+
 done:
         TRACE_LEAVE2(":%d", rc);
         return rc;
+}
+bool si_assignment_state_check(AVD_SI *si)
+{
+        AVD_SU_SI_REL *sisu;
+        bool assignmemt_status = false;
+
+        for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
+                if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+                                (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+                        assignmemt_status = true;
+                        break;
+                }
+        }
+
+        return assignmemt_status;
 }
 

@@ -2401,13 +2401,15 @@ uint32_t avd_sg_su_si_mod_snd(AVD_CL_CB *cb, AVD_SU *su, SaAmfHAStateT state)
 	i_susi = su->list_of_susi;
 	while (i_susi != AVD_SU_SI_REL_NULL) {
 
-		if (i_susi->fsm == AVD_SU_SI_STATE_UNASGN) {
-			/* Ignore the SU SI that are getting deleted. */
+		if ((i_susi->fsm == AVD_SU_SI_STATE_UNASGN) ||
+			((state == SA_AMF_HA_QUIESCED) && (i_susi->state == SA_AMF_HA_QUIESCED))) {
+			/* Ignore the SU SI that are getting deleted 
+			 * If the operation is quiesced modification ignore the susi that
+			 * is already quiesced
+			 */
 			i_susi = i_susi->su_next;
 			continue;
 		}
-
-		/* All The SU SIs will be in the same state */
 
 		old_ha_state = i_susi->state;
 		old_state = i_susi->fsm;
@@ -2415,6 +2417,8 @@ uint32_t avd_sg_su_si_mod_snd(AVD_CL_CB *cb, AVD_SU *su, SaAmfHAStateT state)
 		i_susi->state = state;
 		i_susi->fsm = AVD_SU_SI_STATE_MODIFY;
 		m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, i_susi, AVSV_CKPT_AVD_SI_ASS);
+		avd_susi_update_assignment_counters(i_susi, AVSV_SUSI_ACT_MOD, old_ha_state, state);
+
 		i_susi = i_susi->su_next;
 	}
 
@@ -2439,14 +2443,6 @@ uint32_t avd_sg_su_si_mod_snd(AVD_CL_CB *cb, AVD_SU *su, SaAmfHAStateT state)
 		}
 
 		goto done;
-	} else {
-		for (i_susi = su->list_of_susi;i_susi != AVD_SU_SI_REL_NULL;i_susi = i_susi->su_next) {
-			if (i_susi->fsm == AVD_SU_SI_STATE_UNASGN) {
-				/* Ignore the SU SI that are getting deleted. */
-				continue;
-			}
-			avd_susi_update_assignment_counters(i_susi, AVSV_SUSI_ACT_MOD, old_ha_state, state);
-		}
 	}
 
 	rc = NCSCC_RC_SUCCESS;

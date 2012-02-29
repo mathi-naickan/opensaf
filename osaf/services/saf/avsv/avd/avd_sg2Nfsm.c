@@ -724,11 +724,20 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 			 * Send D2N-INFO_SU_SI_ASSIGN modify active all to the other SU. 
 			 * Add the SU to the operation list. Change state to SU_operation state.
 			 */
-
-			if (avd_sg_su_si_mod_snd(cb, o_susi->su, SA_AMF_HA_ACTIVE) == NCSCC_RC_FAILURE) {
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, o_susi->su->name.value, o_susi->su->name.length);
-				goto done;
+			if (avd_si_dependency_exists_within_su(su)) {
+				AVD_SU_SI_REL *susi;
+				for (susi = o_susi->su->list_of_susi;susi != NULL;susi = susi->su_next) {
+					if (avd_susi_role_failover(susi, su) == NCSCC_RC_FAILURE) {
+						LOG_NO(" %s: %u: Active role modification failed for  %s ",
+                                                                __FILE__, __LINE__, susi->su->name.value);
+						goto done;
+					}
+				}
+			} else {
+				/* There is no dependency between SI's within SU, so trigger SU level failover */
+				avd_su_role_failover(su, o_susi->su);
 			}
+
 			m_AVD_SET_SI_SWITCH(cb, (su->sg_of_su->admin_si), AVSV_SI_TOGGLE_STABLE);
 			m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 
@@ -760,9 +769,18 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 			 * operation list. Send D2N-INFO_SU_SI_ASSIGN with remove all to
 			 * this SU. Add this SU to operation list.
 			 */
-			if (avd_sg_su_si_mod_snd(cb, o_susi->su, SA_AMF_HA_ACTIVE) == NCSCC_RC_FAILURE) {
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, o_susi->su->name.value, o_susi->su->name.length);
-				goto done;
+			if (avd_si_dependency_exists_within_su(su)) {
+				AVD_SU_SI_REL *susi;
+				for (susi = o_susi->su->list_of_susi;susi != NULL;susi = susi->su_next) {
+					if (avd_susi_role_failover(susi, su) == NCSCC_RC_FAILURE) {
+						LOG_NO(" %s: %u: Active role modification failed for  %s ",
+                                                                __FILE__, __LINE__, susi->su->name.value);
+						goto done;
+					}
+				}
+			} else {
+				/* There is no dependency between SI's within SU, so trigger SU level failover */
+				avd_su_role_failover(su, o_susi->su);
 			}
 
 			avd_sg_su_si_del_snd(cb, su);
@@ -783,10 +801,16 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 			 * SU. Add this and the other SU to operation list. 
 			 * Change state to SG_realign.
 			 */
-
-			if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-				goto done;
+			if (avd_si_dependency_exists_within_su(su)) {
+				if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+					goto done;
+				}
+			} else {
+				if(avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+					goto done;
+				}
 			}
 
 			m_AVD_SET_SI_SWITCH(cb, (su->sg_of_su->admin_si), AVSV_SI_TOGGLE_STABLE);
@@ -812,10 +836,19 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 				 * with modified quiesced all to this SU. Add the SU to the 
 				 * SU operation list. Change state to SU_operation state.
 				 */
-				if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-					goto done;
+				 /* Check if there is dependency between SI's within SU */
+				if (avd_si_dependency_exists_within_su(su)) {
+					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+						goto done;
+					}
+				} else {
+					if(avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+						goto done;
+					}
 				}
+				
 				m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 				avd_sg_su_oper_list_add(cb, su, false);
 				m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SU_OPER);
@@ -849,11 +882,18 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 				 * quiesced all to this SU. Add the SU to the SU operation list. 
 				 * Change state to SU_operation state.
 				 */
-
-				if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-					goto done;
+				if (avd_si_dependency_exists_within_su(su)) {
+					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+						goto done;
+					}
+				} else {
+					if(avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+						goto done;
+					}
 				}
+
 				avd_si_admin_state_set((su->sg_of_su->admin_si), SA_AMF_ADMIN_UNLOCKED);
 				m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 				avd_sg_su_oper_list_add(cb, su, false);
@@ -1565,7 +1605,7 @@ done:
  *
  * @return      true/false 
  **/
-static bool quiesced_susi_in_su(AVD_SU *su)
+static bool quiesced_susi_in_su(const AVD_SU *su)
 {
 	AVD_SU_SI_REL *susi;
 
@@ -1585,7 +1625,7 @@ static bool quiesced_susi_in_su(AVD_SU *su)
  *
  * @return      true/false 
  **/
-static bool quiescing_susi_in_su(AVD_SU *su)
+static bool quiescing_susi_in_su(const AVD_SU *su)
 {
 	AVD_SU_SI_REL *susi;
 
@@ -1643,13 +1683,19 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 				if ((s_susi != AVD_SU_SI_REL_NULL) &&
 					(s_susi->su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE)) {
 					/* Got quiesced respponse for all susi, so start Active role modification based on dependency */
-					for (s_susi = s_susi->su->list_of_susi;s_susi != NULL;s_susi = s_susi->su_next) {
-						if (avd_susi_role_failover(s_susi, su) == NCSCC_RC_FAILURE) {
-							LOG_NO(" %s: %u: Active role modification failed for  %s ",
-									__FILE__, __LINE__, s_susi->su->name.value);
-							goto done;
+					if (avd_si_dependency_exists_within_su(su)) {
+						for (s_susi_temp = s_susi->su->list_of_susi;s_susi_temp != NULL;s_susi_temp = s_susi_temp->su_next) {
+							if (avd_susi_role_failover(s_susi_temp, su) == NCSCC_RC_FAILURE) {
+								LOG_NO(" %s: %u: Active role modification failed for  %s ",
+										__FILE__, __LINE__, s_susi_temp->su->name.value);
+								goto done;
+							}
 						}
+					} else {
+						/* There is no dependency between SI's within SU, so trigger SU level failover */
+						avd_su_role_failover(su, s_susi->su);
 					}
+
 				} else {
 					if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
 						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
@@ -1692,11 +1738,20 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 						}
 					}
 				} else {
-					if (avd_sg_su_si_mod_snd(cb, s_susi->su, SA_AMF_HA_ACTIVE) == NCSCC_RC_FAILURE) {
-						LOG_NO(" %s: %u: Active role modification failed for  %s ",
-							__FILE__, __LINE__, s_susi->su->name.value);
-						goto done;
-					}
+					 /* Got quiesced respponse for all susi, so start Active role modification based on dependency */
+                                        if (avd_si_dependency_exists_within_su(s_susi->su)) {
+                                                for (s_susi = s_susi->su->list_of_susi;s_susi != NULL;s_susi = s_susi->su_next) {
+                                                        if (avd_susi_role_failover(s_susi, su) == NCSCC_RC_FAILURE) {
+								LOG_NO(" %s: %u: Active role modification failed for  %s ",
+										__FILE__, __LINE__, s_susi->su->name.value);
+                                                                goto done;
+                                                        }
+                                                }
+                                        } else {
+                                                /* There is no dependency between SI's within SU, so trigger SU level failover */
+                                                avd_su_role_failover(su, s_susi->su);
+                                        }
+
 				}
 
 				/*
@@ -1848,7 +1903,7 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 					for (s_susi_temp = s_susi->su->list_of_susi;s_susi_temp != NULL;s_susi_temp = s_susi_temp->su_next) {
 						if (avd_susi_role_failover(s_susi_temp, su) == NCSCC_RC_FAILURE) {
 							LOG_NO(" %s: %u: Active role modification failed for  %s ",
-									__FILE__, __LINE__, s_susi->su->name.value);
+									__FILE__, __LINE__, s_susi_temp->su->name.value);
 							goto done;
 						}
 					}
@@ -2426,7 +2481,7 @@ uint32_t avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 		    (state == SA_AMF_HA_QUIESCED) && (su->su_switch == AVSV_SI_TOGGLE_SWITCH)
 		    && (su->sg_of_su->su_oper_list.su == su)) {
 			/* quiesced all and SU is in the operation list and the SU switch
-			 * state is true. Change the SU switch state to false. Send a 
+			 * state is true. Change the SU s,witch state to false. Send a 
 			 * D2N-INFO_SU_SI_ASSIGN with modified active all for the SU. 
 			 * Change the state to SG_realign.
 			 */
@@ -2726,21 +2781,6 @@ uint32_t avd_sg_2n_realign_func(AVD_CL_CB *cb, AVD_SG *sg)
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
-static bool si_assignment_state_check(AVD_SI *si)
-{
-        AVD_SU_SI_REL *sisu;
-        bool assignmemt_status = false;
-
-        for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
-                if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
-                                (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
-                        assignmemt_status = true;
-                        break;
-                }
-        }       
-                
-        return assignmemt_status;
-}
 /**
  * @brief   	Checks whether all sponsors of an SI are in assigned state or not 
  *		Even if any one of the sponsor is in unassigned state, this routine
@@ -3025,7 +3065,7 @@ static void avd_sg_2n_node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 
 static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 {
-	AVD_SU_SI_REL *a_susi, *s_susi;
+	AVD_SU_SI_REL *a_susi, *s_susi, *susi_temp;
 	AVD_SU *o_su;
 
 	TRACE_ENTER();
@@ -3046,12 +3086,30 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 			m_AVD_SET_SI_SWITCH(cb, (su->sg_of_su->admin_si), AVSV_SI_TOGGLE_STABLE);
 			m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 			if (s_susi->su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) {
-				/* in-service standby SU. Send D2N-INFO_SU_SI_ASSIGN modify
-				 * active all. Add that SU to operation list. Change state 
-				 * to SG_realign state. Free all the SI assignments to this SU.
-				 */
-				avd_su_role_failover(su, s_susi->su);
+				if (avd_si_dependency_exists_within_su(su)) {
+					for (susi_temp = s_susi->su->list_of_susi; susi_temp != NULL;
+							susi_temp = susi_temp->su_next) {
+						if ((susi_temp->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN) ||
+								(susi_temp->si->si_dep_state == AVD_SI_UNASSIGNING_DUE_TO_DEP)) {
+							/* Before starting unassignment process of SI, check once again whether 
+							 * sponsor SIs are assigned back,if so move the SI state to ASSIGNED state 
+							 */
+							if ((susi_temp->si))
+								si_dep_state_set(susi_temp->si, AVD_SI_ASSIGNED);
+							else
+								avd_susi_del_send(susi_temp); 	
+						}
+						if (avd_susi_role_failover(susi_temp, su) == NCSCC_RC_FAILURE) {
+							LOG_NO(" %s: %u: Active role modification failed for  %s ",
+									__FILE__, __LINE__, susi_temp->su->name.value);
+						}
+					}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
+				} else {
 
+					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
+					avd_su_role_failover(su, s_susi->su);
+				}
 			}
 
 			avd_sg_su_asgn_del_util(cb, su, true, false);
@@ -3105,7 +3163,29 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 				 * active all. Add that SU to operation list. Change state 
 				 * to SG_realign state. Free all the SI assignments to this SU.
 				 */
-				avd_su_role_failover(su, a_susi->su);
+				if (avd_si_dependency_exists_within_su(su)) {
+					for (susi_temp = a_susi->su->list_of_susi; susi_temp != NULL;
+							susi_temp = susi_temp->su_next) {
+						if ((susi_temp->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN) ||
+								(susi_temp->si->si_dep_state == AVD_SI_UNASSIGNING_DUE_TO_DEP)) {
+							/* Before starting unassignment process of SI, check once again whether 
+							 * sponsor SIs are assigned back,if so move the SI state to ASSIGNED state 
+							 */
+							if (all_sponsors_assigned_active(susi_temp->si))
+								si_dep_state_set(susi_temp->si, AVD_SI_ASSIGNED);
+							else
+								avd_susi_del_send(susi_temp);
+						}
+						if (avd_susi_role_failover(susi_temp, su) == NCSCC_RC_FAILURE) {
+							LOG_NO(" %s: %u: Active role modification failed for  %s ",
+									__FILE__, __LINE__, susi_temp->su->name.value);
+						}
+					}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
+				} else {
+					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
+					avd_su_role_failover(su, a_susi->su);
+				}
 
 			}
 
@@ -3127,8 +3207,30 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 				 * active all. Add that SU to operation list. Change state 
 				 * to SG_realign state. Free all the SI assignments to this SU.
 				 */
-				avd_su_role_failover(su, s_susi->su);
+				if (avd_si_dependency_exists_within_su(su)) {
+					for (susi_temp = s_susi->su->list_of_susi; susi_temp != NULL;
+							susi_temp = susi_temp->su_next) {
+						if ((susi_temp->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN) ||
+								(susi_temp->si->si_dep_state == AVD_SI_UNASSIGNING_DUE_TO_DEP)) {
+							/* Before starting unassignment process of SI, check once again whether 
+							 * sponsor SIs are assigned back,if so move the SI state to ASSIGNED state 
+							 */
+							if (all_sponsors_assigned_active(susi_temp->si))
+								si_dep_state_set(susi_temp->si, AVD_SI_ASSIGNED);
+							else
+								avd_susi_del_send(susi_temp); 	
+						}
+						if (avd_susi_role_failover(susi_temp, su) == NCSCC_RC_FAILURE) {
+							LOG_NO(" %s: %u: Active role modification failed for  %s ",
+									__FILE__, __LINE__, susi_temp->su->name.value);
+						}
+					}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
+				} else {
 
+					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
+					avd_su_role_failover(su, s_susi->su);
+				}
 			}
 
 			avd_sg_su_asgn_del_util(cb, su, true, false);
@@ -3153,7 +3255,30 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 					 * state to SG_realign state. Free all the SI assignments
 					 * to this SU.
 					 */
+				if (avd_si_dependency_exists_within_su(su)) {
+					for (susi_temp = s_susi->su->list_of_susi; susi_temp != NULL;
+							susi_temp = susi_temp->su_next) {
+						if ((susi_temp->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN) ||
+								(susi_temp->si->si_dep_state == AVD_SI_UNASSIGNING_DUE_TO_DEP)) {
+							/* Before starting unassignment process of SI, check once again whether 
+							 * sponsor SIs are assigned back,if so move the SI state to ASSIGNED state 
+							 */
+							if (all_sponsors_assigned_active(susi_temp->si))
+								si_dep_state_set(susi_temp->si, AVD_SI_ASSIGNED);
+							else
+								avd_susi_del_send(susi_temp); 	
+						}
+						if (avd_susi_role_failover(susi_temp, su) == NCSCC_RC_FAILURE) {
+							LOG_NO(" %s: %u: Active role modification failed for  %s ",
+									__FILE__, __LINE__, susi_temp->su->name.value);
+						}
+					}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
+				} else {
+
+					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
 					avd_su_role_failover(su, s_susi->su);
+				}
 
 					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 				}
@@ -3200,7 +3325,29 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 					 * SU to operation list. Free all the SI assignments to
 					 * this SU.
 					 */
-					avd_su_role_failover(su, s_susi->su);
+					if (avd_si_dependency_exists_within_su(su)) {
+						for (susi_temp = s_susi->su->list_of_susi; susi_temp != NULL;
+								susi_temp = susi_temp->su_next) {
+							if ((susi_temp->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN) ||
+									(susi_temp->si->si_dep_state == AVD_SI_UNASSIGNING_DUE_TO_DEP)) {
+								/* Before starting unassignment process of SI, check once again whether 
+								 * sponsor SIs are assigned back,if so move the SI state to ASSIGNED state 
+								 */
+								if (all_sponsors_assigned_active(susi_temp->si))
+									si_dep_state_set(susi_temp->si, AVD_SI_ASSIGNED);
+								else
+									avd_susi_del_send(susi_temp); 	
+							}
+							if (avd_susi_role_failover(susi_temp, su) == NCSCC_RC_FAILURE) {
+								LOG_NO(" %s: %u: Active role modification failed for  %s ",
+										__FILE__, __LINE__, susi_temp->su->name.value);
+								TRACE(" Active role modification failed");
+							}
+						}
+						avd_sg_su_oper_list_add(cb, s_susi->su, false);
+					} else {
+						avd_su_role_failover(su, s_susi->su);
+					}
 
 					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 				}
@@ -3295,7 +3442,8 @@ void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 									avd_susi_del_send(s_susi); 	
 							}
 							if (avd_susi_role_failover(susi, su) == NCSCC_RC_FAILURE) {
-								TRACE(" Active role modification failed");
+								LOG_NO(" %s: %u: Active role modification failed for  %s ",
+										__FILE__, __LINE__, susi->su->name.value);
 								goto done;
 							}
 							avd_sg_su_oper_list_add(cb, susi->su, false);

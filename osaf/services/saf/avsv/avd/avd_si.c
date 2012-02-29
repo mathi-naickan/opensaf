@@ -1254,8 +1254,10 @@ static void si_update_ass_state(AVD_SI *si)
 	if (newState != si->saAmfSIAssignmentState) {
 		TRACE("'%s' %s => %s", si->name.value,
 				   avd_ass_state[si->saAmfSIAssignmentState], avd_ass_state[newState]);
+		#if 0
 		saflog(LOG_NOTICE, amfSvcUsrName, "%s AssignmentState %s => %s", si->name.value,
 			   avd_ass_state[si->saAmfSIAssignmentState], avd_ass_state[newState]);
+		#endif
 		
 		si->saAmfSIAssignmentState = newState;
 

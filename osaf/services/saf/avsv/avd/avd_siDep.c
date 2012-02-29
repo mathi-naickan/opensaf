@@ -1652,7 +1652,83 @@ void avd_sidep_constructor(void)
 
 	avd_class_impl_set("SaAmfSIDependency", NULL, NULL, sidep_ccb_completed_cb, sidep_ccb_apply_cb);
 }
+void avd_sidep_start_tolerance_timer_for_dependant(AVD_SI *dep_si, AVD_SI *spons_si)
+{
+	AVD_SI_SI_DEP_INDX si_indx;
+	AVD_SI_SI_DEP *si_dep_rec;
 
+	TRACE("dep_si:%s spons_si:%s",dep_si->name.value,spons_si->name.value);
+
+	/* Frame the index completely to the associated si_dep_rec */
+	memset((char *)&si_indx, '\0', sizeof(AVD_SI_SI_DEP_INDX));
+	si_indx.si_name_prim.length = spons_si->name.length;
+	memcpy(si_indx.si_name_prim.value, spons_si->name.value, si_indx.si_name_prim.length);
+	si_indx.si_name_sec.length = dep_si->name.length;
+	memcpy(si_indx.si_name_sec.value, dep_si->name.value, dep_si->name.length);
+
+	si_dep_rec = avd_si_si_dep_find(avd_cb, &si_indx, true);
+	if (si_dep_rec != NULL) {
+		avd_update_si_dep_state_for_spons_unassign(avd_cb, dep_si, si_dep_rec);
+	} else {
+		TRACE("si_dep_rec is NULL");
+	}
+
+	TRACE_LEAVE();
+}
+void avd_sidep_update_dependents_state(AVD_SI *si, AVD_SI_DEP_SPONSOR_SI_STATE spons_state)
+{
+	AVD_SI_SI_DEP_INDX si_indx;
+	AVD_SI_SI_DEP *si_dep_rec;
+	AVD_SI *dep_si;
+
+	TRACE_ENTER2(": '%s'",si->name.value);
+
+	memset(&si_indx, '\0', sizeof(si_indx));
+	si_indx.si_name_prim.length = si->name.length;
+	memcpy(si_indx.si_name_prim.value, si->name.value, si_indx.si_name_prim.length);
+	si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_indx, true);
+
+	while (si_dep_rec != NULL) {
+		if (m_CMP_HORDER_SANAMET(si_dep_rec->indx_imm.si_name_prim, si_indx.si_name_prim) != 0) {
+			/* Seems no more node exists in spons_anchor tree with
+			 * "si_indx.si_name_prim" as primary key
+			 */
+			break;
+		}
+		dep_si = avd_si_get(&si_dep_rec->indx_imm.si_name_sec);
+		if (dep_si == NULL) {
+			/* No corresponding SI node?? some thing wrong */
+			si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
+			continue;
+		}
+		if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
+				(dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN)) {
+			if (spons_state == AVD_SI_DEP_SPONSOR_UNASSIGNED)
+				avd_sidep_start_tolerance_timer_for_dependant(dep_si, si);
+			else
+				si_dep_state_set(dep_si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+
+		}
+
+		si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
+	}
+	TRACE_LEAVE();
+}
+bool avd_si_assignment_state_check(AVD_SI *si)
+{
+	AVD_SU_SI_REL *sisu;
+	bool assignmemt_status = false;
+
+	for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
+		if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+				(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+			assignmemt_status = true;
+			break;
+		}
+	}
+
+        return assignmemt_status;
+}
 /**
  * @brief      Checks if role failover can be performed for this SI,
  *             role failover can not be done if the SI has dependency on
@@ -1663,36 +1739,95 @@ void avd_sidep_constructor(void)
  * @return	true/false 
  *             
  **/
-bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_AVND *node)
+bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 {
-	AVD_SPONS_SI_NODE *spons_si_node;
-	AVD_SU_SI_REL *sisu;
-	bool  flag = true;
+        AVD_SPONS_SI_NODE *spons_si_node;
+        AVD_SU_SI_REL *sisu, *tmp_sisu;                 
+        bool failover_possible = true;
+        bool assignmemt_status = false;
+        bool sponsor_in_modify_state = false;
 
-	TRACE_ENTER2("SI: '%s'",si->name.value);
+        TRACE_ENTER2("SI: '%s'",si->name.value);
 
-	if (si->spons_si_list == NULL) {
-		TRACE("SI doesnot have any dependencies");
-		goto done;
-	}   
-
-	for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
-		for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
-			if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)
-				|| (sisu->state == SA_AMF_HA_QUIESCED)) && (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
-				if (m_NCS_MDS_DEST_EQUAL(&sisu->su->su_on_node->adest,&node->adest)) {
-					/* This SI has dependency on an SI which has Active assignments
-					 * on the same node
-					 */
-					flag = false;
-					goto done;
-				}
-			}
-		}
-	}
+        /* Role failover triggered because of node going down */
+        if(su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
+                if (si->spons_si_list == NULL) {
+                        /* Check if the susi is in unassigned state
+                         * 1) Beacuse of admin operation
+                         * 2) SI has Active assignments on the node which went down and there is no Standby assignment for the SI 
+                         */
+                        if (((si->list_of_sisu) && (si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
+                                (m_NCS_MDS_DEST_EQUAL(&si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest))) ||
+                                ((assignmemt_status = si_assignment_state_check(si)) == false)) {
+                                avd_sidep_update_dependents_state(si, AVD_SI_DEP_SPONSOR_UNASSIGNED);
+                                failover_possible = false;
+                        }
+                        goto done;
+                }
+                for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
+                        assignmemt_status = false;
+                        /* Check the assignment of Sponsors, if any one of the sponsors are unassigned then delete the
+                         * dependent assignment. If the sponsor fsm is in modification state then set the si_dep_state 
+                         * to AVD_SI_FAILOVER_UNDER_PROGRESS
+                         */
+                        for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
+                                if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+                                        (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+                                        assignmemt_status = true;
+                                        if (sisu->fsm == AVD_SU_SI_STATE_MODIFY)
+                                                sponsor_in_modify_state = true;
+                                        break;
+                                }
+                        }
+                        if (((spons_si_node->si->list_of_sisu) && (spons_si_node->si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
+                                (m_NCS_MDS_DEST_EQUAL(&spons_si_node->si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest))) ||
+                                (assignmemt_status == false)) {
+                                for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next)
+                                        avd_susi_del_send(tmp_sisu);
+                                failover_possible = false;
+                        }
+                        if ((assignmemt_status == true)  && (sponsor_in_modify_state == AVD_SU_SI_STATE_MODIFY)){
+                                /* Set the si_dep_state to AVD_SI_FAILOVER_UNDER_PROGRESS */
+                                si_dep_state_set(si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+                        }
+                }
+        } else {
+		if (si->spons_si_list == NULL) {
+                        TRACE("SI doesnot have any dependencies");
+                        goto done;
+                }
+                bool sponsor_in_modify_state = false;
+                for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
+                        failover_possible = false;
+                        for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
+                                TRACE("sisu->si:%s state:%u fsm:%u",sisu->si->name.value,sisu->state,sisu->fsm);
+                                if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+                                        (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+                                        failover_possible = true;
+                                        if (sisu->fsm == AVD_SU_SI_STATE_MODIFY)
+                                                sponsor_in_modify_state = true;
+                                        break;
+                                }
+                        }
+                        if (failover_possible == false) {
+                                /* If Tolerance timer is not running delete the assignments */
+                                if (si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) {
+                                        for (tmp_sisu = si->list_of_sisu;tmp_sisu != NULL;tmp_sisu = tmp_sisu->si_next)
+                                                if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
+                                                        avd_susi_del_send(tmp_sisu);
+                                }
+                                goto done;
+                        }
+                }
+                if (sponsor_in_modify_state == true) {
+                        si_dep_state_set(si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+                        failover_possible = false;
+                        goto done;
+                }
+        }
 done:
-        TRACE_LEAVE2("return value: %d",flag);
-        return flag;
+        TRACE_LEAVE2("return value: %d",failover_possible);
+        return failover_possible;
 }
 /**
  * @brief      Checks if role failover can be performed for a SU. Role failover
@@ -1722,7 +1857,7 @@ bool avd_sidep_is_su_failover_possible(AVD_SU *su)
 			/* Check if susi->si has any dependency on si having Active asisgnments
 			 * on the other SU on the same node
 			 */
-			flag = avd_sidep_is_si_failover_possible(susi->si, su->su_on_node);
+			flag = avd_sidep_is_si_failover_possible(susi->si, su);
 			if (flag == false){
 				TRACE("Role failover is deferred as sponsors role failover is under going");
 				si_dep_state_set(susi->si, AVD_SI_FAILOVER_UNDER_PROGRESS);
@@ -1750,69 +1885,116 @@ done:
  **/
 void avd_update_depstate_si_failover(AVD_SI *si, AVD_SU *su)
 {
-	AVD_SI_SI_DEP_INDX si_indx;
-	AVD_SI_SI_DEP *si_dep_rec;
-	AVD_SI *dep_si;
-	AVD_SU_SI_REL *sisu;
+        AVD_SI_SI_DEP_INDX si_indx;
+        AVD_SI_SI_DEP *si_dep_rec;
+        AVD_SI *dep_si;
+        AVD_SU_SI_REL *sisu;
+        AVD_SPONS_SI_NODE *spons_si_node;
 
-	TRACE_ENTER2("si:%s",si->name.value);
+        TRACE_ENTER2("si:%s",si->name.value);
 
-	memset((char *)&si_indx, '\0', sizeof(si_indx));	
-	si_indx.si_name_prim.length = si->name.length;
-	memcpy(si_indx.si_name_prim.value, si->name.value, si_indx.si_name_prim.length);
+        memset((char *)&si_indx, '\0', sizeof(si_indx));
+        si_indx.si_name_prim.length = si->name.length;
+        memcpy(si_indx.si_name_prim.value, si->name.value, si_indx.si_name_prim.length);
 
-	si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_indx, true);
+        si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_indx, true);
 
-	while (si_dep_rec != NULL) {
-		if (m_CMP_HORDER_SANAMET(si_dep_rec->indx_imm.si_name_prim, si_indx.si_name_prim) != 0) {
-			/* Seems no more node exists in spons_anchor tree with
-			 * "si_indx.si_name_prim" as primary key
-			 */
-			break;
-		}
-		dep_si = avd_si_get(&si_dep_rec->indx_imm.si_name_sec);
-		if (dep_si == NULL) {
-			TRACE("No corresponding SI node?? some thing wrong");
-			si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
-			continue;
-		}
-		for (sisu = dep_si->list_of_sisu;sisu;sisu = sisu->si_next) {
-			TRACE("sisu si:%s su:%s state:%d fsm_state:%d",sisu->si->name.value,sisu->su->name.value,sisu->state,sisu->fsm);
-			if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)
-				|| (sisu->state == SA_AMF_HA_QUIESCED))
-				&& (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
-				//if ((sisu->su != su) &&
-					if ((m_NCS_MDS_DEST_EQUAL(&sisu->su->su_on_node->adest,&su->su_on_node->adest))) {
-					/* This SI has dependency on an SI which has Active assignments
-					 * on the same node
-					 */
-					si_dep_state_set(sisu->si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+        while (si_dep_rec != NULL) {
+                if (m_CMP_HORDER_SANAMET(si_dep_rec->indx_imm.si_name_prim, si_indx.si_name_prim) != 0) {
+                        /* Seems no more node exists in spons_anchor tree with
+                         * "si_indx.si_name_prim" as primary key
+                         */
+                        break;
+                }
+                dep_si = avd_si_get(&si_dep_rec->indx_imm.si_name_sec);
+                if (dep_si == NULL) {
+                        TRACE("No corresponding SI node?? some thing wrong");
+                        si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
+                        continue;
+                }
+                for (sisu = dep_si->list_of_sisu;sisu;sisu = sisu->si_next) {
+                        TRACE("sisu si:%s su:%s state:%d fsm_state:%d",sisu->si->name.value,sisu->su->name.value,sisu->state,sisu->fsm);
+                        if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)
+                                        || (sisu->state == SA_AMF_HA_QUIESCED))
+                                        && (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
 
-					/* Check if this SI has some dependents depending on it */
-					if (dep_si->num_dependents > 0) {
-						/* This SI also has dependents under it, update their state also */
-						avd_update_depstate_si_failover(dep_si, sisu->su);
-					}
-				} else {
-					if (si_dep_rec->saAmfToleranceTime > 0) {
-						/* Start the tolerance timer */
-						si_dep_state_set(dep_si, AVD_SI_TOL_TIMER_RUNNING);
+                                if(su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
+                                        if ((m_NCS_MDS_DEST_EQUAL(&sisu->su->su_on_node->adest,&su->su_on_node->adest))) {
+                                                if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
+                                                        (dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN) ||
+                                                        (dep_si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS)) {
 
-						/* Start the tolerance timer */
-						m_AVD_SI_DEP_TOL_TMR_START(avd_cb, si_dep_rec);
-						dep_si->tol_timer_count++;
-					} else {
-						/* Send an event to start SI unassignment process */
-						si_dep_state_set(dep_si, AVD_SI_READY_TO_UNASSIGN);
-						avd_update_si_dep_state_for_spons_unassign(avd_cb, dep_si, si_dep_rec);
-					}
-				}
-			}
-		}
-		si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
-	}
-	TRACE_LEAVE();
+                                                        si_dep_state_set(dep_si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+                                                        if (dep_si->num_dependents > 0) {
+                                                                /* This SI also has dependents under it, update their state also */
+                                                                avd_update_depstate_si_failover(dep_si, su);
+                                                        }
+                                                }
+                                        }
+				} else if (dep_si->sg_of_si == si->sg_of_si) {
+                                        if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
+                                                (dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN) ||
+                                                (dep_si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS)) {
+
+                                                si_dep_state_set(dep_si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+                                                if (dep_si->num_dependents > 0) {
+                                                        /* This SI also has dependents under it, update their state also */
+                                                        avd_update_depstate_si_failover(dep_si, su);
+                                                }
+                                        }
+                                }
+                        } else {
+                                /* In the case of su fault all the assignmemts on the Active SU will be removed
+                                 * So we need to consider Standby assignment only for doing role failover
+                                 */
+                                if ((su->saAmfSuReadinessState == SA_AMF_READINESS_OUT_OF_SERVICE) &&
+                                                (su->su_on_node->saAmfNodeOperState != SA_AMF_OPERATIONAL_DISABLED)) {
+
+                                        if ((((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCED))
+                                                && (sisu->fsm == AVD_SU_SI_STATE_UNASGN)) &&
+                                                ((sisu->si_next != AVD_SU_SI_REL_NULL) &&
+                                                (sisu->si_next->state == SA_AMF_HA_STANDBY) &&
+                                                (sisu->si_next->fsm == AVD_SU_SI_STATE_ASGND))) {
+
+                                                /* Check sponsors state */
+                                                bool sponsor_assignments_state = true;
+                                                for (spons_si_node = dep_si->spons_si_list;spons_si_node && sponsor_assignments_state == true;
+                                                        spons_si_node = spons_si_node->next) {
+                                                        if (spons_si_node->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS)
+                                                                continue;
+                                                        for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
+                                                                TRACE("sisu->si:%s state:%u fsm:%u",sisu->si->name.value,sisu->state,sisu->fsm);
+                                                                if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+                                                                                (sisu->fsm != AVD_SU_SI_STATE_UNASGN)){
+                                                                        break;
+                                                                }
+                                                                if (sisu->si_next == NULL) {
+                                                                        sponsor_assignments_state = false;
+                                                                        break;
+                                                                }
+                                                        }
+                                                }
+						if (sponsor_assignments_state == true) {
+
+                                                        if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
+                                                                (dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN) ||
+                                                                (dep_si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS)) {
+
+                                                                si_dep_state_set(dep_si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+                                                                if (dep_si->num_dependents > 0) {
+                                                                        avd_update_depstate_si_failover(dep_si, su);
+                                                                }
+                                                        }
+                                                }
+                                        }
+                                }
+                        }
+                }
+                si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
+        }
+        TRACE_LEAVE();
 }
+
 /**
  * @brief       Update the si_dep_state for all the dependent SI's
  *              that are depending on SI's which have active assignments
@@ -1943,6 +2125,7 @@ void avd_sidep_reset_dependents_depstate_in_sufault(AVD_SI *si)
 		}
 		si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
 	}
+
 	TRACE_LEAVE();
 }
 
@@ -1961,6 +2144,7 @@ bool avd_si_dependency_exists_within_su(const AVD_SU *su)
 	AVD_SU_SI_REL *susi;
 	bool spons_exist = false;
 	bool dep_exist = false;
+	TRACE_ENTER();
 
 	for (susi = su->list_of_susi; susi != NULL; susi = susi->su_next) {
 		if (!susi->si->num_dependents) {

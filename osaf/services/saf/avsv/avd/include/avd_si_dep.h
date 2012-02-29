@@ -108,7 +108,7 @@ extern void avd_sidep_constructor(void);
 extern void avd_sidep_reset_dependents_depstate_in_sufault(struct avd_si_tag *si);
 extern void si_dep_state_set(struct avd_si_tag *si, AVD_SI_DEP_STATE state);
 extern bool avd_sidep_is_su_failover_possible(struct avd_su_tag *su);
-extern bool avd_sidep_is_si_failover_possible(struct avd_si_tag *si, struct avd_avnd_tag *node);
+extern bool avd_sidep_is_si_failover_possible(struct avd_si_tag *si, struct avd_su_tag *su);
 extern void avd_update_depstate_su_rolefailover(struct avd_su_tag *su);
 extern void avd_update_depstate_si_failover(struct avd_si_tag *si, struct avd_su_tag *su);
 extern bool avd_si_dependency_exists_within_su(const struct avd_su_tag *su);

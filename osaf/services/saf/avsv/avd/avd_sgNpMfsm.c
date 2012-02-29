@@ -2428,7 +2428,7 @@ static void avd_sg_npm_stdbysu_role_change(AVD_SU *su)
 						|| (su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED)
 						|| (su->su_on_node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED)) {
 						/* Check if there is any dependency for performing failover for this act_susi */
-						flag = avd_sidep_is_si_failover_possible(act_susi->si, su->su_on_node);
+						flag = avd_sidep_is_si_failover_possible(act_susi->si, su);
 					}
 					if (flag == true) {
 
