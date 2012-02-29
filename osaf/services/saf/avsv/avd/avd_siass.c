@@ -754,15 +754,15 @@ void avd_susi_update_assignment_counters(AVD_SU_SI_REL *susi, AVSV_SUSI_ACT acti
  **/
 uint32_t avd_susi_role_failover(AVD_SU_SI_REL *sisu, AVD_SU *su)
 {
-        uint32_t rc = NCSCC_RC_SUCCESS;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 
-        TRACE_ENTER2(" '%s' '%s'",sisu->si->name.value, sisu->su->name.value);
-	
+	TRACE_ENTER2(" '%s' '%s'",sisu->si->name.value, sisu->su->name.value);
+
 	if ((sisu->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) ||
-		(sisu->si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) ||
-		(sisu->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN)) {
-                goto done;
-        }
+			(sisu->si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) ||
+			(sisu->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN)) {
+		goto done;
+	}
 
 	if(avd_sidep_is_si_failover_possible(sisu->si, su)) {
 		rc = avd_susi_mod_send(sisu, SA_AMF_HA_ACTIVE);
@@ -775,22 +775,22 @@ uint32_t avd_susi_role_failover(AVD_SU_SI_REL *sisu, AVD_SU *su)
 	}
 
 done:
-        TRACE_LEAVE2(":%d", rc);
-        return rc;
+	TRACE_LEAVE2(":%d", rc);
+	return rc;
 }
 bool si_assignment_state_check(AVD_SI *si)
 {
-        AVD_SU_SI_REL *sisu;
-        bool assignmemt_status = false;
+	AVD_SU_SI_REL *sisu;
+	bool assignmemt_status = false;
 
-        for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
-                if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
-                                (sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
-                        assignmemt_status = true;
-                        break;
-                }
-        }
+	for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
+		if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+			(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+			assignmemt_status = true;
+			break;
+		}
+	}
 
-        return assignmemt_status;
+	return assignmemt_status;
 }
 
