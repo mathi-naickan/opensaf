@@ -567,7 +567,7 @@ clnode_stale:
 	m_CPA_GIVEUP_CB;
 
 	if (rc == SA_AIS_OK) {
-		TRACE_4("Cpa CkptFinalize Api failed with return value:%d,ckptHandle:%llx", rc, ckptHandle);
+		TRACE_4("Cpa CkptFinalize Api success with return value:%d,ckptHandle:%llx", rc, ckptHandle);
 		ncs_cpa_shutdown();
 		ncs_agents_shutdown();
 	}
@@ -1705,7 +1705,7 @@ SaAisErrorT saCkptActiveReplicaSet(SaCkptCheckpointHandleT checkpointHandle)
  done:
 
 	if (rc == SA_AIS_OK) {
-		TRACE_1("Cpa ActiveRepSet Api failed with return value:%d,ckptHandle:%llx", rc, checkpointHandle);
+		TRACE_1("Cpa ActiveRepSet Api success with return value:%d,ckptHandle:%llx", rc, checkpointHandle);
 	}
 
 	TRACE_LEAVE2("API return code = %u", rc);

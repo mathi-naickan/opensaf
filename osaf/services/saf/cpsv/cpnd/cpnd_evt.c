@@ -81,6 +81,7 @@ static uint32_t cpnd_is_cpd_up(CPND_CB *cb);
 
 static uint32_t cpnd_transfer_replica(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaCkptCheckpointHandleT ckpt_id,
 				   CPSV_CPND_DEST_INFO *dest_list, CPSV_A2ND_CKPT_SYNC sync);
+static uint32_t cpnd_evt_proc_ckpt_ckpt_list_update(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO *sinfo);
 
 #if (CPSV_DEBUG == 1)
 static char *cpnd_evt_str[] = {
@@ -145,7 +146,8 @@ static char *cpnd_evt_str[] = {
 	"CPND_EVT_ND2ND_CKPT_ACTIVE_ITERNEXT",
 	"CPND_EVT_CB_DUMP",
 	"CPND_EVT_D2ND_CKPT_NUM_SECTIONS",
-   "CPND_EVT_A2ND_CKPT_REFCNTSET", 
+	"CPND_EVT_A2ND_CKPT_REFCNTSET", 
+   	"CPND_EVT_A2ND_CKPT_LIST_UPDATE", 	/* Checkpoint ckpt list update Call */
 	"CPND_EVT_MAX"
 };
 #endif
@@ -352,6 +354,10 @@ void cpnd_process_evt(CPSV_EVT *evt)
 		(void)cpnd_evt_proc_ckpt_refcntset(cb, &evt->info.cpnd);
 		break;
 
+	case CPND_EVT_A2ND_CKPT_LIST_UPDATE:
+		(void) cpnd_evt_proc_ckpt_ckpt_list_update(cb, &evt->info.cpnd, &evt->sinfo);
+		break;
+
 	default:
 		break;
 	}
@@ -474,6 +480,7 @@ static uint32_t cpnd_evt_proc_ckpt_finalize(CPND_CB *cb, CPND_EVT *evt, CPSV_SEN
 	CPND_CKPT_CLIENT_NODE *cl_node = NULL;
 	CPND_CKPT_NODE *cp_node = NULL;
 	SaAisErrorT error;
+	SaCkptCheckpointOpenFlagsT tmp_open_flags;
 
 	TRACE_ENTER();
 	memset(&send_evt, '\0', sizeof(CPSV_EVT));
@@ -503,11 +510,31 @@ static uint32_t cpnd_evt_proc_ckpt_finalize(CPND_CB *cb, CPND_EVT *evt, CPSV_SEN
 
 		/* reset the client info in shared memory */
 		cpnd_restart_client_reset(cb, cp_node, cl_node);
+		tmp_open_flags = 0;
 
-		/* Sending the Num Users, Num Writers , Num readers & Local Ref Count Update to CPD */
-		rc = cpnd_send_ckpt_usr_info_to_cpd(cb, cp_node, cp_node->open_flags, CPSV_USR_INFO_CKPT_CLOSE);
-		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE_4("cpnd mds send for ckpt usr info to cpd failed");
+		if (cl_node->ckpt_open_ref_cnt) {
+
+			if (cp_node->open_flags & SA_CKPT_CHECKPOINT_CREATE ) {			
+				tmp_open_flags = tmp_open_flags | SA_CKPT_CHECKPOINT_CREATE;
+				cp_node->open_flags = 0;
+			}
+
+			if(cl_node->open_reader_flags_cnt) {
+				tmp_open_flags = tmp_open_flags | SA_CKPT_CHECKPOINT_READ;
+				cl_node->open_reader_flags_cnt--;
+			}
+
+			if(cl_node->open_writer_flags_cnt) {
+				tmp_open_flags = tmp_open_flags | SA_CKPT_CHECKPOINT_WRITE;
+				cl_node->open_writer_flags_cnt--;
+			}
+
+			/* Sending the Num Users, Num Writers , Num readers & Local Ref Count Update to CPD */
+			rc = cpnd_send_ckpt_usr_info_to_cpd(cb, cp_node, tmp_open_flags, CPSV_USR_INFO_CKPT_CLOSE);
+			if (rc != NCSCC_RC_SUCCESS) {
+				TRACE_4("cpnd mds send for ckpt usr info to cpd failed");
+			}
+			cl_node->ckpt_open_ref_cnt--;
 		}
 		TRACE_1("cpnd client ckpt close success ckpt_app_hdl:%llx,ckpt_id:%llx,ckpt_lcl_ref_cnt:%u",cl_node->ckpt_app_hdl, 
 			cp_node->ckpt_id, cp_node->ckpt_lcl_ref_cnt);
@@ -645,6 +672,16 @@ static uint32_t cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_IN
 		TRACE_2("cpnd ckpt open success for client_hdl %llx,ckpt_id:%llx,active_mds_dest:%"PRIu64",ckpt_lcl_ref_cnt:%u",client_hdl, cp_node->ckpt_id,
 				  cp_node->active_mds_dest, cp_node->ckpt_lcl_ref_cnt);
 
+		if (evt->info.openReq.ckpt_flags & SA_CKPT_CHECKPOINT_READ)
+			cl_node->open_reader_flags_cnt++;
+		if (evt->info.openReq.ckpt_flags & SA_CKPT_CHECKPOINT_WRITE)
+			cl_node->open_writer_flags_cnt++;
+
+		cl_node->ckpt_open_ref_cnt++;
+
+		/* CPND RESTART UPDATE THE SHARED MEMORY WITH CLIENT INFO  */
+		cpnd_restart_set_reader_writer_flags_cnt(cb, cl_node);
+
 		goto agent_rsp;
 	}
 
@@ -723,7 +760,15 @@ static uint32_t cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_IN
 		cp_node->cpnd_dest_list = NULL;
 		cp_node->ckpt_name = ckpt_name;
 		cp_node->create_attrib = out_evt->info.cpnd.info.ckpt_info.attributes;
-		cp_node->open_flags = evt->info.openReq.ckpt_flags;
+		cp_node->open_flags = SA_CKPT_CHECKPOINT_CREATE;
+
+		if (evt->info.openReq.ckpt_flags & SA_CKPT_CHECKPOINT_READ)
+			cl_node->open_reader_flags_cnt++;
+		if (evt->info.openReq.ckpt_flags & SA_CKPT_CHECKPOINT_WRITE)
+			cl_node->open_writer_flags_cnt++;
+
+		cl_node->ckpt_open_ref_cnt++;
+
 		cp_node->ckpt_id = out_evt->info.cpnd.info.ckpt_info.ckpt_id;
 
 		if (out_evt->info.cpnd.info.ckpt_info.is_active_exists == true) {
@@ -882,6 +927,8 @@ static uint32_t cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_IN
 		if (send_evt.info.cpa.info.openRsp.error == SA_AIS_OK) {
 			TRACE_4("cpnd ckpt open success ckpt_name:%s,client_hdl:%llx,ckpt_id:%llx,active_mds_dest:%"PRIu64"",ckpt_name.value,
 			client_hdl, cp_node->ckpt_id,cp_node->active_mds_dest);
+			/* CPND RESTART UPDATE THE SHARED MEMORY WITH CLIENT INFO  */
+			cpnd_restart_set_reader_writer_flags_cnt(cb, cl_node);
 		}
 		goto agent_rsp;
 
@@ -898,6 +945,14 @@ static uint32_t cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_IN
 	cpnd_ckpt_replica_destroy(cb, cp_node, &error);
 
  ckpt_node_free_error:
+
+	if (evt->info.openReq.ckpt_flags & SA_CKPT_CHECKPOINT_READ)
+		cl_node->open_reader_flags_cnt--;
+	if (evt->info.openReq.ckpt_flags & SA_CKPT_CHECKPOINT_WRITE)
+		cl_node->open_writer_flags_cnt--;
+
+	cl_node->ckpt_open_ref_cnt--;
+
 	cpnd_ckpt_client_del(cp_node, cl_node);
 	cpnd_client_ckpt_info_del(cl_node, cp_node);
 
@@ -982,6 +1037,15 @@ static uint32_t cpnd_evt_proc_ckpt_close(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_I
 		rc = NCSCC_RC_FAILURE;
 		goto agent_rsp;
 	}
+
+	if (evt->info.closeReq.ckpt_flags & SA_CKPT_CHECKPOINT_READ)
+		cl_node->open_reader_flags_cnt--;
+	if (evt->info.closeReq.ckpt_flags & SA_CKPT_CHECKPOINT_WRITE)
+		cl_node->open_writer_flags_cnt--;
+
+	cl_node->ckpt_open_ref_cnt--;
+	/* CPND RESTART UPDATE THE SHARED MEMORY WITH CLIENT INFO  */
+	cpnd_restart_set_reader_writer_flags_cnt(cb, cl_node);
 
 	/* Read the out_evt.info.cpnd.info.cl_ack */
 	cpnd_ckpt_client_del(cp_node, cl_node);
@@ -1402,6 +1466,56 @@ static uint32_t cpnd_evt_proc_ckpt_rdset(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_I
 
 	if (out_evt)
 		cpnd_evt_destroy(out_evt);
+	TRACE_LEAVE();
+	return rc;
+}
+
+/****************************************************************************
+ * Name          : cpnd_evt_proc_ckpt_ckpt_list_update
+ *
+ * Description   : Function to update the List of ckpts opened by this client   
+ *                 from Applications. 
+ *
+ * Arguments     : CPND_CB *cb - CPND CB pointer
+ *                 CPSV_EVT *evt - Received Event structure
+ *                 CPSV_SEND_INFO *sinfo - Sender MDS information.
+ *
+ * Return Values : NCSCC_RC_SUCCESS/Error.
+ *
+ * Notes         : None.
+ *****************************************************************************/
+static uint32_t cpnd_evt_proc_ckpt_ckpt_list_update(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO *sinfo) {
+
+	CPND_CKPT_NODE *cp_node = NULL;
+	SaCkptHandleT client_hdl;
+	SaNameT ckpt_name;
+	CPSV_EVT send_evt;
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	CPND_CKPT_CLIENT_NODE *cl_node = NULL;
+
+	TRACE_ENTER();
+	memset(&send_evt, '\0', sizeof(CPSV_EVT));
+
+	ckpt_name = evt->info.ckptListUpdate.ckpt_name;
+	client_hdl = evt->info.ckptListUpdate.client_hdl;
+
+	if (((cp_node = cpnd_ckpt_node_find_by_name(cb, ckpt_name)) != NULL) && cp_node->is_unlink == false) {
+
+		cpnd_client_node_get(cb, client_hdl, &cl_node);
+		if (cl_node == NULL) {
+			TRACE_4("cpnd client hdl get failed for client hdl:%llx",client_hdl);
+
+		}
+		else {
+			cpnd_client_ckpt_info_add(cl_node, cp_node);
+		}
+
+	}
+	else {
+		TRACE_4("cpnd ckpt_name get failed or unlinked  for ckpt_name :%s",ckpt_name.value);
+
+	}
+
 	TRACE_LEAVE();
 	return rc;
 }

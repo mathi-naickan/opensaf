@@ -74,6 +74,9 @@ typedef struct ckpt_info {
 
 typedef struct client_info {
 	SaCkptHandleT ckpt_app_hdl;
+	uint32_t ckpt_open_ref_cnt;
+	uint32_t open_reader_flags_cnt;
+	uint32_t open_writer_flags_cnt;
 	MDS_DEST agent_mds_dest;
 	SaVersionT version;
 	uint16_t cbk_reg_info;

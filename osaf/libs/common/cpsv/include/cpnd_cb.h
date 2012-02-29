@@ -214,6 +214,9 @@ typedef struct cpnd_ckpt_ckpt_list_node {
 typedef struct cpnd_ckpt_client_node {
 	NCS_PATRICIA_NODE patnode;
 	SaCkptHandleT ckpt_app_hdl;	/* index for the client tree */
+	uint32_t ckpt_open_ref_cnt;
+	uint32_t open_reader_flags_cnt;
+	uint32_t open_writer_flags_cnt;
 	MDS_DEST agent_mds_dest;	/* mds dest of the agent */
 	uint32_t proc_id;		/* TBD Delete this */
 	SaVersionT version;

@@ -751,6 +751,7 @@ void cpnd_proc_cpa_down(CPND_CB *cb, MDS_DEST dest)
 	SaCkptHandleT prev_ckpt_hdl;
 	SaAisErrorT error;
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	SaCkptCheckpointOpenFlagsT tmp_open_flags;
 
 	TRACE_ENTER();
 
@@ -774,12 +775,33 @@ void cpnd_proc_cpa_down(CPND_CB *cb, MDS_DEST dest)
 					cp_node->ckpt_lcl_ref_cnt--;
 
 				cpnd_restart_client_reset(cb, cp_node, cl_node);
+				tmp_open_flags = 0;
 
-				rc = cpnd_send_ckpt_usr_info_to_cpd(cb, cp_node, cp_node->open_flags,
-								    CPSV_USR_INFO_CKPT_CLOSE);
-				if (rc != NCSCC_RC_SUCCESS) {
-					TRACE_4("cpnd mds send failed");
-					
+				if (cl_node->ckpt_open_ref_cnt) {
+
+					if (cp_node->open_flags & SA_CKPT_CHECKPOINT_CREATE ) {
+
+						tmp_open_flags = tmp_open_flags | SA_CKPT_CHECKPOINT_CREATE;
+						cp_node->open_flags = 0;
+					}
+
+					if(cl_node->open_reader_flags_cnt) {
+						tmp_open_flags = tmp_open_flags | SA_CKPT_CHECKPOINT_READ;
+						cl_node->open_reader_flags_cnt--;
+					}
+
+					if(cl_node->open_writer_flags_cnt) {
+						tmp_open_flags = tmp_open_flags | SA_CKPT_CHECKPOINT_WRITE;
+						cl_node->open_writer_flags_cnt--;
+					}
+
+					rc = cpnd_send_ckpt_usr_info_to_cpd(cb, cp_node,tmp_open_flags ,
+							CPSV_USR_INFO_CKPT_CLOSE);
+					if (rc != NCSCC_RC_SUCCESS) {
+						TRACE_4("cpnd mds send failed");
+
+					}
+					cl_node->ckpt_open_ref_cnt--;
 				}
 				TRACE_1("CPND - Checkpoint Close Success , cli_hdl/ckpt_id/lcl_ref_cnt %llx,%llx,%d",cl_node->ckpt_app_hdl, 
 					cp_node->ckpt_id, cp_node->ckpt_lcl_ref_cnt);
@@ -790,6 +812,7 @@ void cpnd_proc_cpa_down(CPND_CB *cb, MDS_DEST dest)
 						TRACE_4("cpnd ckpt replica close failed ckpt_id:%llx",cp_node->ckpt_id);
 					}
 				}
+				tmp_open_flags = 0;
 			}
 
 			/* CPND RESTART - FREE THE GLOBAL SHARED MEMORY */

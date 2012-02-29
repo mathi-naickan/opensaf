@@ -219,6 +219,7 @@ uint32_t cpnd_restart_shm_ckpt_free(CPND_CB *cb, CPND_CKPT_NODE *cp_node);
 void cpnd_restart_client_reset(CPND_CB *cb, CPND_CKPT_NODE *cp_node, CPND_CKPT_CLIENT_NODE *cl_node);
 void cpnd_restart_ckpt_name_length_reset(CPND_CB *cb, CPND_CKPT_NODE *cp_node);
 void cpnd_restart_set_arrcb(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_node);
+void cpnd_restart_set_reader_writer_flags_cnt(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_node);
 void cpnd_restart_set_close_flag(CPND_CB *cb, CPND_CKPT_NODE *cp_node);
 void cpnd_restart_update_timer(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaTimeT closetime);
 

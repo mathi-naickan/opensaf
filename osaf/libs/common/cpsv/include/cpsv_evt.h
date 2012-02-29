@@ -176,6 +176,7 @@ typedef enum cpnd_evt_type {
 
    CPND_EVT_D2ND_CKPT_NUM_SECTIONS,
    CPND_EVT_A2ND_CKPT_REFCNTSET,        /* ref cont opener's set call */
+   CPND_EVT_A2ND_CKPT_LIST_UPDATE,	/* Checkpoint ckpt list update Call */
    CPND_EVT_MAX
 
 }CPND_EVT_TYPE;
@@ -411,6 +412,11 @@ typedef struct cpsv_ckpt_data {
 	SaOffsetT dataOffset;
 	struct cpsv_ckpt_data *next;
 } CPSV_CKPT_DATA;
+
+typedef struct cpsv_a2nd_ckpt_list_update {
+	SaCkptHandleT client_hdl; 
+	SaNameT ckpt_name;
+} CPSV_A2ND_CKPT_LIST_UPDATE;
 
 #define CPSV_CKPT_ACCESS_WRITE           0x0
 #define CPSV_CKPT_ACCESS_OVWRITE         0x1
@@ -783,6 +789,7 @@ typedef struct cpnd_evt
 		/* Locally generated events */
 		CPSV_MDS_INFO mds_info;
 		CPND_TMR_INFO tmr_info;
+		CPSV_A2ND_CKPT_LIST_UPDATE  ckptListUpdate;
 
 	} info;
 } CPND_EVT;

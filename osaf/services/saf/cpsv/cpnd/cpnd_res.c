@@ -417,6 +417,9 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 				}
 				memset(cl_node, '\0', sizeof(CPND_CKPT_CLIENT_NODE));
 				cl_node->ckpt_app_hdl = cl_info.ckpt_app_hdl;
+				cl_node->ckpt_open_ref_cnt = cl_info.ckpt_open_ref_cnt;
+				cl_node->open_reader_flags_cnt = cl_info.open_reader_flags_cnt;
+				cl_node->open_writer_flags_cnt = cl_info.open_writer_flags_cnt;
 				cl_node->agent_mds_dest = cl_info.agent_mds_dest;
 				cl_node->offset = cl_info.offset;
 				cl_node->version = cl_info.version;
@@ -506,7 +509,6 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 							/* goto end; */
 						}
 						cpnd_ckpt_client_add(cp_node, cl_node);
-						cpnd_client_ckpt_info_add(cl_node, cp_node);
 					}
 					next_offset = tmp_cp_info.next;
 					if (next_offset >= 0) {
@@ -730,6 +732,9 @@ uint32_t cpnd_write_client_info(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_node, int
 	uint32_t rc = NCSCC_RC_SUCCESS, i_offset;
 
 	cl_info.ckpt_app_hdl = cl_node->ckpt_app_hdl;
+	cl_info.ckpt_open_ref_cnt = cl_node->ckpt_open_ref_cnt;
+	cl_info.open_reader_flags_cnt = cl_node->open_reader_flags_cnt;
+	cl_info.open_writer_flags_cnt  = cl_node->open_writer_flags_cnt;
 	cl_info.agent_mds_dest = cl_node->agent_mds_dest;
 	cl_info.version = cl_node->version;
 	cl_info.is_valid = 1;
@@ -758,6 +763,31 @@ void cpnd_restart_set_arrcb(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_node)
 	m_CPND_CLINFO_READ(cl_info, ((char *)cb->shm_addr.cli_addr) + sizeof(CLIENT_HDR),
 			   cl_node->offset * sizeof(CLIENT_INFO));
 	cl_info.arr_flag = cl_node->arrival_cb_flag;
+	m_CPND_CLINFO_UPDATE((char *)cb->shm_addr.cli_addr + sizeof(CLIENT_HDR),
+			cl_info, cl_node->offset * sizeof(CLIENT_INFO));
+
+}
+
+/******************************************************************************************
+ * Name         : reader_writer_flags_cnt
+ *
+ * Description  : To set the reader writer flags cnt in client node
+ *
+ * Arguments   : CPND_CKPT_CLIENT_NODE - client node , 
+ *
+ * Return Values : Success / Error
+ ******************************************************************************************/
+void cpnd_restart_set_reader_writer_flags_cnt(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_node)
+{
+	CLIENT_INFO cl_info;
+	memset(&cl_info, '\0', sizeof(CLIENT_INFO));
+
+	m_CPND_CLINFO_READ(cl_info, ((char *)cb->shm_addr.cli_addr) + sizeof(CLIENT_HDR),
+			cl_node->offset * sizeof(CLIENT_INFO));
+	cl_info.ckpt_open_ref_cnt = cl_node->ckpt_open_ref_cnt;
+	cl_info.open_reader_flags_cnt = cl_node->open_reader_flags_cnt;
+	cl_info.open_writer_flags_cnt = cl_node->open_writer_flags_cnt;
+
 	m_CPND_CLINFO_UPDATE((char *)cb->shm_addr.cli_addr + sizeof(CLIENT_HDR),
 			     cl_info, cl_node->offset * sizeof(CLIENT_INFO));
 

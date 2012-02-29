@@ -458,7 +458,7 @@ static uint32_t cpa_mds_svc_evt(CPA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt
 				if (cb->cpnd_sync_awaited == true) {
 					m_NCS_SEL_OBJ_IND(cb->cpnd_sync_sel);
 				}
-				m_NCS_UNLOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
+		
            /* Get the First Node */
            gc_node = (CPA_GLOBAL_CKPT_NODE *)ncs_patricia_tree_getnext(&cb->gbl_ckpt_tree,
                                            (uint8_t*)&prev_ckpt_id);
@@ -500,6 +500,45 @@ static uint32_t cpa_mds_svc_evt(CPA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt
 			break;
                }
            } 
+
+	   /* loop  the Lcl Checkpoint Details */
+	   TRACE("Number of nodes in Lcl CKPT Tree:  %d", cb->lcl_ckpt_tree.n_nodes);
+	   SaCkptCheckpointHandleT  prev_ckpt_id=0;
+	   CPA_LOCAL_CKPT_NODE *lc_node;
+	   CPSV_EVT evt;
+	   /* Get the First Node */
+	   lc_node = (CPA_LOCAL_CKPT_NODE *)ncs_patricia_tree_getnext(&cb->lcl_ckpt_tree,
+			   (uint8_t *)&prev_ckpt_id);
+	   while (lc_node) {
+		   prev_ckpt_id = lc_node->lcl_ckpt_hdl;
+
+		   /* Populate & Send the Open Event to CPND */
+		   memset(&evt, 0, sizeof(CPSV_EVT));
+		   evt.type = CPSV_EVT_TYPE_CPND;
+		   evt.info.cpnd.type = CPND_EVT_A2ND_CKPT_LIST_UPDATE;
+		   evt.info.cpnd.info.ckptListUpdate.client_hdl = lc_node->cl_hdl; 
+		   evt.info.cpnd.info.ckptListUpdate.ckpt_name = lc_node->ckpt_name ;
+
+		   proc_rc = cpa_mds_msg_send(cb->cpa_mds_hdl, &cb->cpnd_mds_dest, &evt, NCSMDS_SVC_ID_CPND);
+
+		   TRACE("------------------------------------------------------");
+		   TRACE(" Lcl CKPT Hdl:  = %d", (uint32_t)lc_node->lcl_ckpt_hdl);
+		   TRACE(" Client CKPT Hdl:  = %d", (uint32_t)lc_node->cl_hdl);
+		   TRACE(" Global CKPT Hdl:  = %d", (uint32_t)lc_node->gbl_ckpt_hdl);
+		   TRACE(" Open Flags:  = %d", (uint32_t)lc_node->open_flags);
+		   if (lc_node->async_req_tmr.is_active)
+			   TRACE("Timer Type %d is active", lc_node->async_req_tmr.type);
+		   else
+			   TRACE(" Timer is not active");
+
+		   TRACE(" End of Local CKPT Info");
+		   TRACE("------------------------------------------------------");
+
+		   lc_node = (CPA_LOCAL_CKPT_NODE *)ncs_patricia_tree_getnext(&cb->lcl_ckpt_tree,
+				   (uint8_t *)&prev_ckpt_id);
+	   }
+	   TRACE(" End of Local CKPT nodes information ");
+	   m_NCS_UNLOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
          }
 			break;
 		default:
