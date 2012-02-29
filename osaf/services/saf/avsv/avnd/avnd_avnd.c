@@ -394,8 +394,11 @@ uint32_t avnd_evt_avd_reboot_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
-	opensaf_reboot(cb->node_info.nodeId, (char *)cb->node_info.executionEnvironment.value,
-				   "This node received reboot command from amfd.");
+
+	LOG_NO("Received reboot order, ordering reboot now!");
+	opensaf_reboot(cb->node_info.nodeId,
+				   (char *)cb->node_info.executionEnvironment.value,
+				   "Received reboot order");
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;

@@ -733,6 +733,35 @@ static int all_comps_terminated(void)
 	return all_comps_terminated;
 }
 
+/**
+ * Check if all application components have been terminated.
+ * 
+ * @return bool
+ */
+static bool all_app_comps_terminated(void)
+{
+	AVND_COMP *comp;
+
+	for (comp = (AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
+		  comp;
+		  comp = (AVND_COMP *) ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)&comp->name)) {
+
+		/* Skip OpenSAF and external components */
+		if (comp->su->is_ncs || comp->su->su_is_external)
+			continue;
+
+		if ((comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) &&
+		    (comp->pres != SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
+			(comp->pres != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+
+			TRACE("'%s' not terminated, pres.st=%u", comp->name.value, comp->pres);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 /****************************************************************************
   Name          : avnd_comp_clc_fsm_run
  
@@ -772,6 +801,35 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 			}
 			break;
 		default:
+			break;
+		}
+	}
+
+	if (cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATING) {
+		TRACE("Term state is NODE_FAILOVER, event '%s'", pres_state_evt[ev]);
+		switch (ev) {
+		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC:
+			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+			if (all_app_comps_terminated()) {
+				cb->term_state = AVND_TERM_STATE_NODE_FAILOVER_TERMINATED;
+				LOG_NO("Terminated all application components");
+				LOG_NO("Informing director of node fail-over");
+				rc = avnd_di_oper_send(cb, cb->failed_su, SA_AMF_NODE_FAILOVER);
+				osafassert(NCSCC_RC_SUCCESS == rc);
+			}
+			break;
+		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL:
+			LOG_ER("'%s' termination failed", comp->name.value);
+			opensaf_reboot(avnd_cb->node_info.nodeId,
+						   (char *)avnd_cb->node_info.executionEnvironment.value,
+						   "Component termination failed at node failover");
+			LOG_ER("Exiting (due to comp term failed) to aid fast node reboot");
+			exit(0);
+			break;
+		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP:
+			break;
+		default:
+			osafassert(0);
 			break;
 		}
 	}

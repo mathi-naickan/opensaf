@@ -229,6 +229,47 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
+	/* Fake a response in fail-over state, everything is terminated... */
+	if (cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATED) {
+		AVND_SU_SI_REC *si = NULL;
+		AVND_SU_SI_REC *curr_si;
+		AVND_MSG msg;
+
+		if (!m_AVSV_SA_NAME_IS_NULL(info->si_name))
+			si = avnd_su_si_rec_get(cb, &info->su_name, &info->si_name);
+		curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
+		osafassert(curr_si);
+
+		msg.info.avd = calloc(1, sizeof(AVSV_DND_MSG));
+		osafassert(msg.info.avd);
+
+		msg.type = AVND_MSG_AVD;
+		msg.info.avd->msg_type = AVSV_N2D_INFO_SU_SI_ASSIGN_MSG;
+		msg.info.avd->msg_info.n2d_su_si_assign.msg_id = ++(cb->snd_msg_id);
+		msg.info.avd->msg_info.n2d_su_si_assign.node_id = cb->node_info.nodeId;
+		msg.info.avd->msg_info.n2d_su_si_assign.msg_act = info->msg_act;
+		msg.info.avd->msg_info.n2d_su_si_assign.su_name = su->name;
+		msg.info.avd->msg_info.n2d_su_si_assign.ha_state = info->ha_state;
+		msg.info.avd->msg_info.n2d_su_si_assign.error = NCSCC_RC_SUCCESS;
+
+		if (si) {
+			msg.info.avd->msg_info.n2d_su_si_assign.single_csi =
+				((si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_BASE) ? false : true);
+
+			msg.info.avd->msg_info.n2d_su_si_assign.si_name = si->name;
+			if (AVSV_SUSI_ACT_ASGN == si->single_csi_add_rem_in_si) {
+				msg.info.avd->msg_info.n2d_su_si_assign.msg_act =
+					(m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_ASSIGNED(curr_si) ||
+					 m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr_si)) ?
+							AVSV_SUSI_ACT_ASGN : AVSV_SUSI_ACT_DEL;
+			}
+		}
+
+		rc = avnd_di_msg_send(cb, &msg);
+		osafassert(rc == NCSCC_RC_SUCCESS);
+		goto done;
+	}
+
 	/* buffer the msg (if no assignment / removal is on) */
 	siq = avnd_su_siq_rec_buf(cb, su, info);
 	if (siq) {

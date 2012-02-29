@@ -278,6 +278,14 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 
 	m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
 
+	if (n2d_msg->msg_info.n2d_opr_state.rec_rcvr.saf_amf == SA_AMF_NODE_SWITCHOVER) {
+		saflog(LOG_NOTICE, amfSvcUsrName, "Node Switch-Over requested by '%s'",
+			   node->name.value);
+	} else if (n2d_msg->msg_info.n2d_opr_state.rec_rcvr.saf_amf == SA_AMF_NODE_FAILOVER) {
+		saflog(LOG_NOTICE, amfSvcUsrName, "Node Fail-Over requested by '%s'",
+			   node->name.value);
+	}
+
 	/* Verify that the SU and node oper state is diabled and rcvr is failfast */
 	if ((n2d_msg->msg_info.n2d_opr_state.su_oper_state == SA_AMF_OPERATIONAL_DISABLED) &&
 	    (n2d_msg->msg_info.n2d_opr_state.node_oper_state == SA_AMF_OPERATIONAL_DISABLED) &&
