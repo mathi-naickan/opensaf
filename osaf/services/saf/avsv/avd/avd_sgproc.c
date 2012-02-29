@@ -2491,10 +2491,14 @@ bool  quiesc_role_canbe_given_to_susi(const AVD_SU_SI_REL *susi)
 				continue;
 			}
 			for (sisu = dep_si->list_of_sisu; sisu ; sisu = sisu->si_next) {
-				if ((sisu->su == susi->su) && (sisu->state == SA_AMF_HA_ACTIVE)) {
-					quiesc_role = false;
-					goto done;
-				}
+				if (sisu->su == susi->su) {
+					if ((sisu->state == SA_AMF_HA_ACTIVE) ||
+						((sisu->state == SA_AMF_HA_QUIESCED) && (sisu->fsm == AVD_SU_SI_STATE_MODIFY))) {
+						quiesc_role = false;
+						goto done;
+					}       
+				}       
+
 			}
 			si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
 		}
@@ -2519,11 +2523,13 @@ uint32_t avd_sg_susi_mod_snd_honouring_si_dependency(AVD_SU *su, SaAmfHAStateT s
 	TRACE_ENTER2("'%s', state %u", su->name.value, state);
 
 	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
-		if (quiesc_role_canbe_given_to_susi(susi)) {
-			rc = avd_susi_mod_send(susi, state);
-			if (rc == NCSCC_RC_FAILURE) {
-				LOG_ER("%s:%u: %s", __FILE__, __LINE__, susi->su->name.value);
-				break;
+		if (susi->state != SA_AMF_HA_QUIESCED) {
+			if (quiesc_role_canbe_given_to_susi(susi)) {
+				rc = avd_susi_mod_send(susi, state);
+				if (rc == NCSCC_RC_FAILURE) {
+					LOG_ER("%s:%u: %s", __FILE__, __LINE__, susi->su->name.value);
+					break;
+				}
 			}
 		}
 	}

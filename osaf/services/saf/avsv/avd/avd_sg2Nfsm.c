@@ -1596,6 +1596,25 @@ done:
 	return a_susi;
 }
 /**
+ * @brief       Checks if any assignment is changing into quiesced state. If yes, then return true.
+ *              If all are quisced then return false.
+ *
+ * @param[in]   su
+ * 
+ * @return      true/false
+ **/
+static bool any_assignment_is_changing_to_quiesced(const AVD_SU *su)
+{
+	AVD_SU_SI_REL *susi;
+
+	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
+		if ((susi->state == SA_AMF_HA_QUIESCED) && (susi->fsm == AVD_SU_SI_STATE_MODIFY))
+			return true;
+	}
+	return false;
+}
+
+/**
  * @brief       Checks if any of the assignments has quiesced state 
  *		When checking if SU is in quiesced state, we need to check if any of the susi
  *		is in quiesced state or not, because in failure case there is possibility that
@@ -1677,6 +1696,8 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 		(su->sg_of_su->su_oper_list.su == su)) {
 		/* quiesced all and SU is in the operation list */
 
+		m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
+
 		avd_sg_2n_act_susi(cb, su->sg_of_su, &s_susi);
 		if (susi != NULL) {
 			if (all_quiesced(susi->su)) {
@@ -1705,18 +1726,21 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 				}
 			} else {
 				n_susi = next_susi_tobe_quiesced(susi);
-				if (n_susi) {
+				while (n_susi) {
 					/* determine the modify-state for active sis */
-					if (su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN)
+					if ((su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) ||
+						(su_node_ptr->saAmfNodeAdminState == SA_AMF_ADMIN_SHUTTING_DOWN)) {
 						ha_state = SA_AMF_HA_QUIESCING;
-					else
+					} else {
 						ha_state = SA_AMF_HA_QUIESCED;
+					}
 
 					rc = avd_susi_mod_send(n_susi, ha_state);
 					if (rc == NCSCC_RC_FAILURE) {
 						LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
 						goto done;
 					}
+					n_susi = next_susi_tobe_quiesced(susi);
 				}
 			}
 		} else {
@@ -1777,9 +1801,10 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 			}
 		}
 
-		m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
-		/* the admin state of the SU is shutdown change it to lock. */
-		if (su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
+		/* If shutdown admin operation is going on, change the state to Lock once all the assignments
+		 * are quiesced
+		 */
+                if ((su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) && (all_quiesced(su))) {
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
 		} else if (su_node_ptr->saAmfNodeAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
 			m_AVD_IS_NODE_LOCK((su_node_ptr), flag);
@@ -2848,7 +2873,7 @@ static void avd_sg_2n_node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 		 * so when checking whether SU is in quiesced or quiescing assignment processing
 		 * we need to check if any one of the susi is in  Quiesced or Quiescing state
 		 */
-		if ((quiesced_susi_in_su(su)) || (quiescing_susi_in_su(su))) {
+		if ((any_assignment_is_changing_to_quiesced(su)) || (quiescing_susi_in_su(su))) {
 			/* the SI relationships to the SU is quiesced assigning. If this 
 			 * SU admin is shutdown change to LOCK. If this SU switch state
 			 * is true change to false. Remove the SU from operation list
