@@ -1746,6 +1746,7 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 	bool failover_possible = true;
 	bool assignmemt_status = false;
 	bool sponsor_in_modify_state = false;
+	bool valid_standby = false;
 
 	TRACE_ENTER2("SI: '%s'",si->name.value);
 
@@ -1794,7 +1795,18 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 	} else {
 		if (si->spons_si_list == NULL) {
 			TRACE("SI doesnot have any dependencies");
-			goto done;
+			for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
+				if ((sisu->state == SA_AMF_HA_STANDBY) &&
+					(sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
+					(sisu->su->saAmfSuReadinessState != SA_AMF_READINESS_OUT_OF_SERVICE)) {
+					valid_standby = true;
+				}
+			}
+			if ((si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED) || (!valid_standby)) {
+				 failover_possible = false;
+				 goto done;
+			 }
+
 		}
 		bool sponsor_in_modify_state = false;
 		for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
@@ -1807,10 +1819,13 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 					if (sisu->fsm == AVD_SU_SI_STATE_MODIFY)
 						sponsor_in_modify_state = true;
 					break;
+				} else if ((sisu->state == SA_AMF_HA_STANDBY) && (sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
+						(sisu->su->saAmfSuReadinessState != SA_AMF_READINESS_OUT_OF_SERVICE)) {
+					valid_standby = true;	
 				}
 			}
-			if (failover_possible == false) {
-				/* If Tolerance timer is not running delete the assignments */
+			if ((failover_possible == false) && (valid_standby == false)) {
+				/* There is no Active assignment and no valid Standby which can take Active assignment */
 				if (si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) {
 					for (tmp_sisu = si->list_of_sisu;tmp_sisu != NULL;tmp_sisu = tmp_sisu->si_next)
 						if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)

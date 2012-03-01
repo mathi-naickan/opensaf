@@ -348,6 +348,20 @@ done:
 		s_susi ? s_susi->su->name.value : NULL);
 	return a_susi;
 }
+static bool avd_spon_state_check(AVD_SI *avd_si) {
+	AVD_SPONS_SI_NODE *temp_spon_list;
+	temp_spon_list = avd_si->spons_si_list; 
+	while (temp_spon_list) {
+		if ((temp_spon_list->si->si_dep_state == AVD_SI_NO_DEPENDENCY) || 
+				(temp_spon_list->si->si_dep_state == AVD_SI_SPONSOR_UNASSIGNED)) {
+			return false;
+		}
+		temp_spon_list = temp_spon_list->next;
+	}
+
+	return true;
+}
+
 
 /*****************************************************************************
  * Function: avd_sg_2n_su_chose_asgn
@@ -379,7 +393,7 @@ static AVD_SU *avd_sg_2n_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
 	AVD_SU_SI_REL *s_susi;
 	AVD_SU *a_su, *s_su, *return_su = NULL;
 	AVD_SI *i_si;
-	bool l_flag = true;
+	bool l_flag = true, sponsor_assigned = false;
 	AVD_SU_SI_REL *tmp_susi;
 
 	TRACE_ENTER2("'%s'", sg->name.value);
@@ -421,11 +435,12 @@ static AVD_SU *avd_sg_2n_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
 	for (i_si = sg->list_of_si; i_si != NULL; i_si = i_si->sg_list_of_si_next) {
 		/* Screen SI sponsors state and adjust the SI-SI dep state accordingly */
 		avd_screen_sponsor_si_state(cb, i_si, false);
+		sponsor_assigned = avd_spon_state_check(i_si);
 
 		if ((i_si->saAmfSIAdminState == SA_AMF_ADMIN_UNLOCKED) &&
 		    (i_si->max_num_csi == i_si->num_csi) && (i_si->list_of_csi != NULL) &&
 		    (i_si->si_dep_state != AVD_SI_SPONSOR_UNASSIGNED) &&
-		    (i_si->si_dep_state != AVD_SI_UNASSIGNING_DUE_TO_DEP) &&
+		    (i_si->si_dep_state != AVD_SI_UNASSIGNING_DUE_TO_DEP) && sponsor_assigned  &&
 		    (i_si->list_of_sisu == AVD_SU_SI_REL_NULL)) {
 			/* found a SI that needs active assignment. */
 			if (avd_new_assgn_susi(cb, a_su, i_si, SA_AMF_HA_ACTIVE, false, &tmp_susi) ==
@@ -1263,13 +1278,21 @@ uint32_t avd_sg_2n_su_fault_func(AVD_CL_CB *cb, AVD_SU *su)
 
 		if (l_susi == AVD_SU_SI_REL_NULL) {
 			/* Do nothing as already the su si is being removed */
-		} else if (l_susi->state == SA_AMF_HA_ACTIVE) {
+		} else if (avd_su_state_determine(su) == SA_AMF_HA_ACTIVE) {
 			/* If (the SU has active assignment Send D2N-INFO_SU_SI_ASSIGN
 			 * modify quiesced all. to the SU. Add the SU to the operation list.
 			 */
-			if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-				goto done;
+			if (!avd_si_dependency_exists_within_su(su)) {
+				/* change the state for all assignments to quiesced. */
+				if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+					goto done;
+				}
+			} else {
+				if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+					goto done;
+				}
 			}
 			avd_sg_su_oper_list_add(cb, su, false);
 		} else {
@@ -4099,15 +4122,24 @@ uint32_t avd_sg_2n_su_admin_fail(AVD_CL_CB *cb, AVD_SU *su, AVD_AVND *avnd)
 		break;		/* case AVD_SG_FSM_STABLE: */
 	case AVD_SG_FSM_SU_OPER:
 		if ((su->sg_of_su->su_oper_list.su == su) &&
-		    (avd_su_state_determine(su) == SA_AMF_HA_QUIESCING) &&
-		    ((su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED) ||
-		     ((avnd != NULL) && (avnd->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED)))) {
+				(avd_su_state_determine(su) == SA_AMF_HA_QUIESCING) &&
+				((su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED) ||
+				 ((avnd != NULL) && (avnd->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED)))) {
 			/* If the SU is in the operation list and the SU admin state is lock.
 			 * send D2N-INFO_SU_SI_ASSIGN modify quiesced message to the SU. 
 			 */
-			if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-				LOG_NO("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-				goto done;
+			if (!avd_si_dependency_exists_within_su(su)) {
+				/* change the state for all assignments to quiesced. */
+				if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_NO("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+					goto done;
+				} else {
+					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == 
+							NCSCC_RC_FAILURE) {
+						LOG_NO("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+						goto done;
+					}
+				}
 			}
 		}
 		break;		/* case AVD_SG_FSM_SU_OPER: */
