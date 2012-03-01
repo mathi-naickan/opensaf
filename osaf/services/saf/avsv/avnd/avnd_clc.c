@@ -983,15 +983,6 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_OPER_STATE);
 		}
 
-		/* instantiated -> terminating */
-		if ((SA_AMF_PRESENCE_INSTANTIATED == prv_st) && (SA_AMF_PRESENCE_TERMINATING == final_st)) {
-			m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
-			m_AVND_COMP_OPER_STATE_AVD_SYNC(cb, comp, rc);
-			if (NCSCC_RC_SUCCESS != rc)
-				goto done;
-			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_OPER_STATE);
-		}
-
 		/* instantiating -> inst-failed */
 		if ((SA_AMF_PRESENCE_INSTANTIATING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)) {
 			/* instantiation failed.. log it */

@@ -2034,7 +2034,9 @@ uint32_t avnd_comp_curr_info_del(AVND_CB *cb, AVND_COMP *comp)
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_ERR_INFO);
 
 		/* disable the oper state (if pi comp) */
-		if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
+		if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) &&
+				(m_AVND_COMP_PRES_STATE_IS_INSTANTIATIONFAILED(comp) ||
+				m_AVND_COMP_PRES_STATE_IS_TERMINATIONFAILED(comp))) {
 			m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
 			m_AVND_COMP_OPER_STATE_AVD_SYNC(cb, comp, rc);
 			if (NCSCC_RC_SUCCESS != rc)

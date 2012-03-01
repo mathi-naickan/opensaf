@@ -1451,6 +1451,18 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 				TRACE("SU oper state is disabled");
 		}
 
+		/* terminating -> term-failed */
+		if ((SA_AMF_PRESENCE_TERMINATING == prv_st) && (SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)) {
+			TRACE("Terminating -> Termination Failed");
+			m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
+			/* inform AvD about oper state change */
+			rc = avnd_di_oper_send(cb, su, 0);
+			if (NCSCC_RC_SUCCESS != rc)
+				goto done;
+
+		}
+
 	}
 
 	/* npi su */
@@ -1521,6 +1533,11 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 		     (SA_AMF_PRESENCE_INSTANTIATED == prv_st) ||
 		     (SA_AMF_PRESENCE_RESTARTING == prv_st)) && (SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)) {
 			TRACE("Terminating/Instantiated/Restarting -> Termination Failed");
+			m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
+			/* inform AvD about oper state change */
+			rc = avnd_di_oper_send(cb, su, 0);
+
 			/* si assignment/removal failed.. inform AvD */
 			rc = avnd_di_susi_resp_send(cb, su, m_AVND_SU_IS_ALL_SI(su) ? 0 : si);
 		}
