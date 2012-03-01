@@ -2667,13 +2667,14 @@ uint32_t avd_sg_2n_susi_sucss_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *sus
 
 				} else {
 					n_susi = next_susi_tobe_quiesced(susi);
-					if (n_susi) {
+					while (n_susi) {
 
 						rc = avd_susi_mod_send(n_susi, state);
 						if (rc == NCSCC_RC_FAILURE) {
 							LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
 							goto done;
 						}
+						n_susi = next_susi_tobe_quiesced(susi);
 					}
 				}
 			} else {
@@ -2737,12 +2738,13 @@ uint32_t avd_sg_2n_susi_sucss_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *sus
 					}
 				} else {
 					n_susi = next_susi_tobe_quiesced(susi);
-					if (n_susi) {
+					while (n_susi) {
 						rc = avd_susi_mod_send(n_susi, su->sg_of_su->saAmfSGAdminState);
 						if (rc == NCSCC_RC_FAILURE) {
 							LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
 							goto done;
 						}
+						n_susi = next_susi_tobe_quiesced(susi);
 					}
 				}
 			} else {
