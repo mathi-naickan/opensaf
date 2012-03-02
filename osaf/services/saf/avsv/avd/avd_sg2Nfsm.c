@@ -3149,38 +3149,6 @@ uint32_t avd_sg_2n_realign_func(AVD_CL_CB *cb, AVD_SG *sg)
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
-/**
- * @brief   	Checks whether all sponsors of an SI are in assigned state or not 
- *		Even if any one of the sponsor is in unassigned state, this routine
- *		returns NCSCC_RC_FAILURE else NCSCC_RC_SUCCESS
- *
- * @param[in]	SI 
- *
- * @return	NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- **/
-static bool all_sponsors_assigned_active(AVD_SI *si)
-{
-	bool all_assigned_active = true;
-	AVD_SPONS_SI_NODE *spons_si;
-
-	TRACE_ENTER2("SI:%s",si->name.value);
-
-	if (si->spons_si_list == NULL) {
-		goto done;
-	}
-
-	for (spons_si = si->spons_si_list; spons_si ;spons_si = spons_si->next) {
-		if (si_assignment_state_check(spons_si->si) == false) {
-			all_assigned_active = false;
-			goto done;
-		}
-	}
-
-done:
-	TRACE_LEAVE2("all_assigned_active:%u",AVSV_CKPT_SI_DEP_STATE);
-	return all_assigned_active;
-}
 
 /*****************************************************************************
  * Function: avd_sg_2n_node_fail_su_oper

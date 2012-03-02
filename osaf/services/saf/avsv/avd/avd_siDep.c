@@ -1757,12 +1757,26 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 			 * 1) Beacuse of admin operation
 			 * 2) SI has Active assignments on the node which went down and there is no Standby assignment for the SI 
 			 */
-			if (((si->list_of_sisu) && (si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
+			if ((si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED) ||
+				(si->sg_of_si->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED) ||
+				((si->list_of_sisu) && (si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
 				(m_NCS_MDS_DEST_EQUAL(&si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest))) ||
 				((assignmemt_status = si_assignment_state_check(si)) == false)) {
 				avd_sidep_update_dependents_state(si, AVD_SI_DEP_SPONSOR_UNASSIGNED);
 				failover_possible = false;
 			}
+			goto done;
+		}
+		if (si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) {
+			/* Dependant SI and Tolerance timer is running
+			 * No need to to do role failover stop the Tolerance timer and delete the assignments
+			 */
+			avd_si_dep_stop_tol_timer(avd_cb, si);
+			for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next) {
+				if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
+					avd_susi_del_send(tmp_sisu);
+			}
+			failover_possible = false;
 			goto done;
 		}
 		for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
@@ -1783,13 +1797,18 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 			if (((spons_si_node->si->list_of_sisu) && (spons_si_node->si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
 				(m_NCS_MDS_DEST_EQUAL(&spons_si_node->si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest))) ||
 				(assignmemt_status == false)) {
-				for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next)
-					avd_susi_del_send(tmp_sisu);
+				for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next) {
+					if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
+						avd_susi_del_send(tmp_sisu);
+				}
 				failover_possible = false;
 			}
 			if ((assignmemt_status == true)  && (sponsor_in_modify_state == AVD_SU_SI_STATE_MODIFY)){
 				/* Set the si_dep_state to AVD_SI_FAILOVER_UNDER_PROGRESS */
-				si_dep_state_set(si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+				if ((si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
+					(si->si_dep_state != AVD_SI_READY_TO_UNASSIGN)) {
+					si_dep_state_set(si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+				}
 			}
 		}
 	} else {
@@ -1935,9 +1954,10 @@ void avd_update_depstate_si_failover(AVD_SI *si, AVD_SU *su)
 
 				if(su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
 					if ((m_NCS_MDS_DEST_EQUAL(&sisu->su->su_on_node->adest,&su->su_on_node->adest))) {
-						if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
+						if(((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
 							(dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN) ||
-							(dep_si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS)) {
+							(dep_si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS)) &&
+							(all_sponsors_assigned_active(dep_si))) {
 
 							si_dep_state_set(dep_si, AVD_SI_FAILOVER_UNDER_PROGRESS);
 							if (dep_si->num_dependents > 0) {
@@ -2278,3 +2298,36 @@ done:
 	TRACE_LEAVE2(" :%u",quiesced);
 	return quiesced;
 }
+/**
+ * @brief       Checks whether all sponsors of an SI are in assigned state or not 
+ *              Even if any one of the sponsor is in unassigned state, this routine
+ *              returns NCSCC_RC_FAILURE else NCSCC_RC_SUCCESS
+ *
+ * @param[in]   SI 
+ *
+ * @return      NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ *
+ **/
+bool all_sponsors_assigned_active(AVD_SI *si)
+{
+	bool all_assigned_active = true;
+	AVD_SPONS_SI_NODE *spons_si;
+
+	TRACE_ENTER2("SI:%s",si->name.value);
+
+	if (si->spons_si_list == NULL) {
+		goto done;
+	}
+
+	for (spons_si = si->spons_si_list; spons_si ;spons_si = spons_si->next) {
+		if (si_assignment_state_check(spons_si->si) == false) {
+			all_assigned_active = false;
+			goto done;
+		}
+	}
+
+done:
+	TRACE_LEAVE2("all_assigned_active:%u",AVSV_CKPT_SI_DEP_STATE);
+	return all_assigned_active;
+}
+
