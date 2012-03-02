@@ -81,7 +81,6 @@ static AVD_SU_SI_REL *su_assigned_susi_find(AVD_SU *su, AVD_SU_SI_REL **stby_sus
 			TRACE("si'%s'", si_temp->name.value);
 			/* check to see if this SI has both the assignments */
 			if (NULL == (susi = si_temp->list_of_sisu)) {
-				si_temp = si_temp->sg_list_of_si_next;
 				continue;
 			}
 			TRACE("su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
