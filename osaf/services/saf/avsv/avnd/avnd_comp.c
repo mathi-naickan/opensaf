@@ -276,13 +276,12 @@ uint32_t avnd_evt_ava_finalize_evh(AVND_CB *cb, AVND_EVT *evt)
 	TRACE_ENTER();
 
 	/* 
-	 * Get the comp. As comp-name is derived from the AvA lib, it's 
-	 * non-existence is a fatal error
+	 * See appendix B. Non registered processes can use parts of the API.
+	 * For such processes finalize is OK, AMF has no allocated resources.
 	 */
 	comp = m_AVND_COMPDB_REC_GET(cb->compdb, fin->comp_name);
-	/*m_AVSV_ASSERT(comp); */
 	if (!comp) {
-		LOG_CR("Comp DB record lookup failed: '%s'", fin->comp_name.value);
+		TRACE("Comp DB record lookup failed: '%s'", fin->comp_name.value);
 		goto done;
 	}
 
