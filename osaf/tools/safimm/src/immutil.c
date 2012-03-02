@@ -17,7 +17,9 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#ifndef __USE_ISOC99
 #define __USE_ISOC99 // strtof and LLONG_MAX in older gcc versions like 4.3.2
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
