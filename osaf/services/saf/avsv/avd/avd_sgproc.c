@@ -1073,18 +1073,18 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				AVD_SU_SI_REL *t_sisu;
 				AVD_CSI *csi_tobe_deleted = NULL;
 
-                                osafassert(susi->csi_add_rem);
-                                susi->csi_add_rem = false;
-                                comp = avd_comp_get(&susi->comp_name);
-                                osafassert(comp);
-                                csi = avd_csi_get(&susi->csi_name);
-                                osafassert(csi);
+				osafassert(susi->csi_add_rem);
+				susi->csi_add_rem = false;
+				comp = avd_comp_get(&susi->comp_name);
+				osafassert(comp);
+				csi = avd_csi_get(&susi->csi_name);
+				osafassert(csi);
 
-                                for (t_comp_csi = susi->list_of_csicomp; t_comp_csi; t_comp_csi = t_comp_csi->susi_csicomp_next) { 
-                                        if ((t_comp_csi->comp == comp) && (t_comp_csi->csi == csi))
-                                                break;
-                                }
-                                osafassert(t_comp_csi);
+				for (t_comp_csi = susi->list_of_csicomp; t_comp_csi; t_comp_csi = t_comp_csi->susi_csicomp_next) { 
+					if ((t_comp_csi->comp == comp) && (t_comp_csi->csi == csi))
+						break;
+				}
+				osafassert(t_comp_csi);
 				m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, susi, AVSV_CKPT_AVD_SI_ASS);
 
 				/* Store csi if this is the last comp-csi to be deleted. */
@@ -1092,34 +1092,34 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				/* Delete comp-csi. */
 				avd_compcsi_from_csi_and_susi_delete(susi, t_comp_csi, false);
 
-                                /* Search for the next SUSI to be added csi. */
-                                t_sisu = susi->si->list_of_sisu;
-                                while(t_sisu) {
-                                        if (true == t_sisu->csi_add_rem) {
+				/* Search for the next SUSI to be added csi. */
+				t_sisu = susi->si->list_of_sisu;
+				while(t_sisu) {
+					if (true == t_sisu->csi_add_rem) {
 						all_csi_rem = false;
-                                                comp = avd_comp_get(&t_sisu->comp_name);
-                                                osafassert(comp);
-                                                csi = avd_csi_get(&t_sisu->csi_name);
-                                                osafassert(csi);
+						comp = avd_comp_get(&t_sisu->comp_name);
+						osafassert(comp);
+						csi = avd_csi_get(&t_sisu->csi_name);
+						osafassert(csi);
 
-                                                for (t_comp_csi = t_sisu->list_of_csicomp; t_comp_csi; t_comp_csi = t_comp_csi->susi_csicomp_next) {
-                                                        if ((t_comp_csi->comp == comp) && (t_comp_csi->csi == csi))
-                                                                break;
-                                                }
-                                                osafassert(t_comp_csi);
-                                                avd_snd_susi_msg(cb, t_sisu->su, t_sisu, AVSV_SUSI_ACT_DEL, true, t_comp_csi);
-                                                /* Break here. We need to send one by one.  */
-                                                break;
-                                        }
-                                        t_sisu = t_sisu->si_next;
-                                }/* while(t_sisu) */
+						for (t_comp_csi = t_sisu->list_of_csicomp; t_comp_csi; t_comp_csi = t_comp_csi->susi_csicomp_next) {
+							if ((t_comp_csi->comp == comp) && (t_comp_csi->csi == csi))
+								break;
+						}
+						osafassert(t_comp_csi);
+						avd_snd_susi_msg(cb, t_sisu->su, t_sisu, AVSV_SUSI_ACT_DEL, true, t_comp_csi);
+						/* Break here. We need to send one by one.  */
+						break;
+					}
+					t_sisu = t_sisu->si_next;
+				}/* while(t_sisu) */
 				if (true == all_csi_rem) {
 					/* All the csi removed, so now delete pg tracking and CSI. */
 					csi_cmplt_delete(csi_tobe_deleted, false);
 				}
-                                /* Comsume this message. */
-                                goto done;
-                        }
+				/* Comsume this message. */
+				goto done;
+			}
 			break;
 
 		case AVSV_SUSI_ACT_ASGN:

@@ -1991,23 +1991,23 @@ void avd_update_depstate_si_failover(AVD_SI *si, AVD_SU *su)
 						}
 						if (sponsor_assignments_state == true) {
 
-                                                        if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
-                                                                (dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN) ||
-                                                                (dep_si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS)) {
+							if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
+							   (dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN) ||
+							   (dep_si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS)) {
 
-                                                                si_dep_state_set(dep_si, AVD_SI_FAILOVER_UNDER_PROGRESS);
-                                                                if (dep_si->num_dependents > 0) {
-                                                                        avd_update_depstate_si_failover(dep_si, su);
-                                                                }
-                                                        }
-                                                }
-                                        }
-                                }
-                        }
-                }
-                si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
-        }
-        TRACE_LEAVE();
+								si_dep_state_set(dep_si, AVD_SI_FAILOVER_UNDER_PROGRESS);
+								if (dep_si->num_dependents > 0) {
+									avd_update_depstate_si_failover(dep_si, su);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
+	}
+	TRACE_LEAVE();
 }
 
 /**
@@ -2069,8 +2069,8 @@ static void avd_dependentsi_role_failover(AVD_SI *si)
 						TRACE("SI's sponsors are not yet assigned");
 						goto done;
 					}
-                                }
-                        }
+				}
+			}
 			/* All of the dependent's Sponsors's are in assigned state
 			 * So performing role modification for the stdby_su
 			 */
@@ -2185,49 +2185,49 @@ bool avd_si_dependency_exists_within_su(const AVD_SU *su)
  **/
 void send_active_to_dependents(const AVD_SI *si)
 {
-        AVD_SI_SI_DEP_INDX si_indx;
-        AVD_SI_SI_DEP *si_dep_rec;
-        AVD_SI *dep_si;
+	AVD_SI_SI_DEP_INDX si_indx;
+	AVD_SI_SI_DEP *si_dep_rec;
+	AVD_SI *dep_si;
 
-        TRACE_ENTER2(": '%s'",si->name.value);
+	TRACE_ENTER2(": '%s'",si->name.value);
 
-        memset(&si_indx, '\0', sizeof(si_indx));
-        si_indx.si_name_prim.length = si->name.length;
-        memcpy(si_indx.si_name_prim.value, si->name.value, si_indx.si_name_prim.length);
-        si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_indx, true);
+	memset(&si_indx, '\0', sizeof(si_indx));
+	si_indx.si_name_prim.length = si->name.length;
+	memcpy(si_indx.si_name_prim.value, si->name.value, si_indx.si_name_prim.length);
+	si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_indx, true);
 
-        while (si_dep_rec != NULL) {
-                if (m_CMP_HORDER_SANAMET(si_dep_rec->indx_imm.si_name_prim, si_indx.si_name_prim) != 0) {
-                        /* Seems no more node exists in spons_anchor tree with
-                         * "si_indx.si_name_prim" as primary key
-                         */
-                        break;
-                }
-                dep_si = avd_si_get(&si_dep_rec->indx_imm.si_name_sec);
-                if (dep_si == NULL) {
-                        /* No corresponding SI node?? some thing wrong */
-                        si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
-                        continue;
-                }
-                TRACE("dependent si:%s dep_si->si_dep_state:%d",dep_si->name.value,dep_si->si_dep_state);
-                if(dep_si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
+	while (si_dep_rec != NULL) {
+		if (m_CMP_HORDER_SANAMET(si_dep_rec->indx_imm.si_name_prim, si_indx.si_name_prim) != 0) {
+			/* Seems no more node exists in spons_anchor tree with
+			 * "si_indx.si_name_prim" as primary key
+			*/
+			break;
+		}
+		dep_si = avd_si_get(&si_dep_rec->indx_imm.si_name_sec);
+		if (dep_si == NULL) {
+			/* No corresponding SI node?? some thing wrong */
+			si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
+			continue;
+		}
+		TRACE("dependent si:%s dep_si->si_dep_state:%d",dep_si->name.value,dep_si->si_dep_state);
+		if(dep_si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
 			if (avd_check_si_dep_sponsors(avd_cb, dep_si, false) != NCSCC_RC_SUCCESS) {
 				/* Some of the sponsors are not yet in Active state */
 				si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
 				continue;
 			}
-                        AVD_SU_SI_REL *sisu;
-                        for (sisu = dep_si->list_of_sisu;sisu != NULL;sisu = sisu->si_next) {
-                                if (sisu->state == SA_AMF_HA_STANDBY) {
-                                        avd_susi_mod_send(sisu, SA_AMF_HA_ACTIVE);
-                                        break;
-                                }
-                        }
-                        si_dep_state_set(dep_si, AVD_SI_ASSIGNED);
-                }
-                si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
-        }
-        TRACE_LEAVE();
+			AVD_SU_SI_REL *sisu;
+			for (sisu = dep_si->list_of_sisu;sisu != NULL;sisu = sisu->si_next) {
+				if (sisu->state == SA_AMF_HA_STANDBY) {
+					avd_susi_mod_send(sisu, SA_AMF_HA_ACTIVE);
+					break;
+				}
+			}
+			si_dep_state_set(dep_si, AVD_SI_ASSIGNED);
+		}
+		si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
+	}
+	TRACE_LEAVE();
 }
 /**
  * @brief	Checks if quiesced response came for all of its dependents 	

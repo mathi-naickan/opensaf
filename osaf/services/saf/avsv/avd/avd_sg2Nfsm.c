@@ -684,8 +684,8 @@ SaAisErrorT avd_sg_2n_siswap_func(AVD_SI *si, SaInvocationT invocation)
 		goto done;
 	}
 
-        /* Since middleware components can still have si->list_of_sisu->si_next as not NULL, but we need to check
-           whether it is unlocked. We need to reject si_swap on controllers when stdby controller is locked. */
+	/* Since middleware components can still have si->list_of_sisu->si_next as not NULL, but we need to check
+	whether it is unlocked. We need to reject si_swap on controllers when stdby controller is locked. */
 	if (si->sg_of_si->sg_ncs_spec) {
 		/* Check if the Standby is there in unlocked state. */
 		node = avd_node_find_nodeid(avd_cb->node_id_avd_other);
@@ -779,9 +779,9 @@ static uint32_t avd_sg_2n_su_fault_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 
 	if (su->sg_of_su->su_oper_list.su == su) {
 		su_ha_state = avd_su_state_determine(su);
-                if (su_ha_state == SA_AMF_HA_QUIESCED) {
-                        m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
-                } else if (su_ha_state == SA_AMF_HA_QUIESCING) {
+		if (su_ha_state == SA_AMF_HA_QUIESCED) {
+			m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
+		} else if (su_ha_state == SA_AMF_HA_QUIESCING) {
 			if (avd_si_dependency_exists_within_su(su)) {
 				if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
 					LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
@@ -972,7 +972,7 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 				for (susi = o_susi->su->list_of_susi;susi != NULL;susi = susi->su_next) {
 					if (avd_susi_role_failover(susi, su) == NCSCC_RC_FAILURE) {
 						LOG_NO(" %s: %u: Active role modification failed for  %s ",
-                                                                __FILE__, __LINE__, susi->su->name.value);
+							   __FILE__, __LINE__, susi->su->name.value);
 						goto done;
 					}
 				}
@@ -1017,7 +1017,7 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 				for (susi = o_susi->su->list_of_susi;susi != NULL;susi = susi->su_next) {
 					if (avd_susi_role_failover(susi, su) == NCSCC_RC_FAILURE) {
 						LOG_NO(" %s: %u: Active role modification failed for  %s ",
-                                                                __FILE__, __LINE__, susi->su->name.value);
+							   __FILE__, __LINE__, susi->su->name.value);
 						goto done;
 					}
 				}
@@ -1334,19 +1334,19 @@ uint32_t avd_sg_2n_su_fault_func(AVD_CL_CB *cb, AVD_SU *su)
 						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
 						goto done;
 					}
-                                        o_susi = AVD_SU_SI_REL_NULL;
-                                        a_su = su->sg_of_su->list_of_su;
-                                        while (a_su != NULL) {
-                                                avd_su_readiness_state_set(a_su, SA_AMF_READINESS_OUT_OF_SERVICE);
-                                                if ((a_su->list_of_susi != AVD_SU_SI_REL_NULL)
-								&& (avd_su_state_determine(a_su) == SA_AMF_HA_STANDBY)){
-                                                        o_susi = a_su->list_of_susi;
-                                                }
-                                                a_su = a_su->sg_list_su_next;
-                                        }
-                                        avd_sg_admin_state_set(su->sg_of_su, SA_AMF_ADMIN_LOCKED);
-                                        if (o_susi != AVD_SU_SI_REL_NULL)
-                                                avd_sg_su_si_del_snd(cb, o_susi->su);
+					o_susi = AVD_SU_SI_REL_NULL;
+					a_su = su->sg_of_su->list_of_su;
+					while (a_su != NULL) {
+						avd_su_readiness_state_set(a_su, SA_AMF_READINESS_OUT_OF_SERVICE);
+						if ((a_su->list_of_susi != AVD_SU_SI_REL_NULL)
+							&& (avd_su_state_determine(a_su) == SA_AMF_HA_STANDBY)){
+							o_susi = a_su->list_of_susi;
+						}
+						a_su = a_su->sg_list_su_next;
+					}
+					avd_sg_admin_state_set(su->sg_of_su, SA_AMF_ADMIN_LOCKED);
+					if (o_susi != AVD_SU_SI_REL_NULL)
+						avd_sg_su_si_del_snd(cb, o_susi->su);
 				} else {
 					/* the SI relationships to the SU is standby Send
 					 * D2N-INFO_SU_SI_ASSIGN remove all for the SU.
@@ -1354,9 +1354,9 @@ uint32_t avd_sg_2n_su_fault_func(AVD_CL_CB *cb, AVD_SU *su)
 					if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
 						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
 						goto done;
-                                        }
+					}
 
-                                }       /* else (su_ha_state == SA_AMF_HA_QUIESCING) */
+				}       /* else (su_ha_state == SA_AMF_HA_QUIESCING) */
 			} else { 
 				if (avd_su_state_determine(su) == SA_AMF_HA_QUIESCING) {
 					if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
@@ -2048,18 +2048,18 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 					}
 				} else {
 					 /* Got quiesced respponse for all susi, so start Active role modification based on dependency */
-                                        if (avd_si_dependency_exists_within_su(s_susi->su)) {
-                                                for (s_susi = s_susi->su->list_of_susi;s_susi != NULL;s_susi = s_susi->su_next) {
-                                                        if (avd_susi_role_failover(s_susi, su) == NCSCC_RC_FAILURE) {
+					if (avd_si_dependency_exists_within_su(s_susi->su)) {
+						for (s_susi = s_susi->su->list_of_susi;s_susi != NULL;s_susi = s_susi->su_next) {
+							if (avd_susi_role_failover(s_susi, su) == NCSCC_RC_FAILURE) {
 								LOG_NO(" %s: %u: Active role modification failed for  %s ",
 										__FILE__, __LINE__, s_susi->su->name.value);
-                                                                goto done;
-                                                        }
-                                                }
-                                        } else {
-                                                /* There is no dependency between SI's within SU, so trigger SU level failover */
-                                                avd_su_role_failover(su, s_susi->su);
-                                        }
+								goto done;
+							}
+						}
+					} else {
+						/* There is no dependency between SI's within SU, so trigger SU level failover */
+						avd_su_role_failover(su, s_susi->su);
+					}
 
 				}
 
@@ -2089,7 +2089,7 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 		/* If shutdown admin operation is going on, change the state to Lock once all the assignments
 		 * are quiesced
 		 */
-                if ((su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) && (all_quiesced(su))) {
+		if ((su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) && (all_quiesced(su))) {
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
 		} else if (su_node_ptr->saAmfNodeAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
 			m_AVD_IS_NODE_LOCK((su_node_ptr), flag);
@@ -3308,20 +3308,20 @@ static void avd_sg_2n_node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 					 * assignments to this SU.
 					 */
 					/* Check if there is dependency between SI's within SU */
-                                        if (avd_si_dependency_exists_within_su(su)) {
-                                                for (s_susi_temp = s_susi->su->list_of_susi; s_susi_temp != NULL;
-                                                        s_susi_temp = s_susi_temp->su_next) {
-                                                        if (avd_susi_role_failover(s_susi_temp, su) == NCSCC_RC_FAILURE) {
+					if (avd_si_dependency_exists_within_su(su)) {
+						for (s_susi_temp = s_susi->su->list_of_susi; s_susi_temp != NULL;
+							  s_susi_temp = s_susi_temp->su_next) {
+							if (avd_susi_role_failover(s_susi_temp, su) == NCSCC_RC_FAILURE) {
 								LOG_NO(" %s: %u: Active role modification failed for  %s ",
 										__FILE__, __LINE__, s_susi_temp->su->name.value);
-                                                        }
-                                                }
-                                                avd_sg_su_oper_list_add(cb, s_susi->su, false);
-                                        } else {
+							}
+						}
+						avd_sg_su_oper_list_add(cb, s_susi->su, false);
+					} else {
 
-                                                /* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
-                                                avd_su_role_failover(su, s_susi->su);
-                                        }
+						/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
+						avd_su_role_failover(su, s_susi->su);
+					}
 				}
 
 				avd_sg_su_oper_list_del(cb, su, false);
@@ -4331,18 +4331,18 @@ uint32_t avd_sg_2n_sg_admin_down(AVD_CL_CB *cb, AVD_SG *sg)
 			 * Change state to SG admin state.
 			 */
 			if (!avd_si_dependency_exists_within_su(a_susi->su)) {
-                                /* change the state for all assignments to quiesced. */
-                                if (avd_sg_su_si_mod_snd(cb, a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-                                        LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->su->name.value, a_susi->su->name.length);
-                                        LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->si->name.value, a_susi->si->name.length);
-                                        goto done;
-                                }
-                        } else {
-                                if (avd_sg_susi_mod_snd_honouring_si_dependency(a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-                                        LOG_NO("%s:%u: %s ", __FILE__, __LINE__,  a_susi->su->name.value);
-                                        goto done;
-                                }
-                        }
+				/* change the state for all assignments to quiesced. */
+				if (avd_sg_su_si_mod_snd(cb, a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->su->name.value, a_susi->su->name.length);
+					LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, a_susi->si->name.value, a_susi->si->name.length);
+					goto done;
+				}
+			} else {
+				if (avd_sg_susi_mod_snd_honouring_si_dependency(a_susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_NO("%s:%u: %s ", __FILE__, __LINE__,  a_susi->su->name.value);
+					goto done;
+				}
+			}
 
 			if (s_susi != AVD_SU_SI_REL_NULL) {
 				avd_sg_su_si_del_snd(cb, s_susi->su);
@@ -4440,14 +4440,14 @@ SaAmfHAStateT avd_su_state_determine(AVD_SU *su) {
 			break;
 		} else if ((AVD_SU_SI_STATE_MODIFY == susi->fsm) && (SA_AMF_HA_ACTIVE == susi->state)) {
 			act_found =  true;
-                        TRACE("Act su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+			TRACE("Act su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
 		} else if ((AVD_SU_SI_STATE_MODIFY == susi->fsm) && (SA_AMF_HA_QUIESCING == susi->state)) {
 			quiscing_found =  true;
-                        TRACE("Quiscing su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
+			TRACE("Quiscing su'%s', si'%s'", susi->su->name.value, susi->si->name.value);
 		} else {
-                        ha_state = susi->state;
-                        TRACE("Assigned su'%s', si'%s', state'%u'", susi->su->name.value, susi->si->name.value, ha_state);
-                }
+			ha_state = susi->state;
+			TRACE("Assigned su'%s', si'%s', state'%u'", susi->su->name.value, susi->si->name.value, ha_state);
+		}
 		susi = susi->su_next;
 	} /* while (NULL != susi) */
 
