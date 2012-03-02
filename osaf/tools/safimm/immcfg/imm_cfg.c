@@ -172,6 +172,8 @@ static SaImmAttrModificationT_2 *new_attr_mod(const SaNameT *objectName, char *n
 		attrMod->modAttr.attrValuesNumber = 1;
 		attrMod->modAttr.attrValues = malloc(sizeof(SaImmAttrValueT *));
 		attrMod->modAttr.attrValues[0] = immutil_new_attrValue(attrMod->modAttr.attrValueType, value);
+		if (attrMod->modAttr.attrValues[0] == NULL)
+			res = -1;
 	} else {
 		attrMod->modAttr.attrValuesNumber = 0;
 		attrMod->modAttr.attrValues = NULL;

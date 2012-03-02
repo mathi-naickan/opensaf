@@ -17,12 +17,14 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#define __USE_ISOC99 // strtof and LLONG_MAX in older gcc versions like 4.3.2
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #include <assert.h>
 #include <stdarg.h>
 #include <syslog.h>
+#include <errno.h>
 
 #include <immutil.h>
 
@@ -554,94 +556,146 @@ void *immutil_new_attrValue(SaImmValueTypeT attrValueType, const char *str)
 {
 	void *attrValue = NULL;
 	size_t len;
-	unsigned int i;
-	char byte[5];
-	char* endMark;
+	char *endptr;
 
+	/*
+	** sizeof(long) varies between 32 and 64 bit machines. Therefore on a 
+	** 64 bit machine, a check is needed to ensure that the value returned
+	** from strtol() or strtoul() is not greater than what fits into 32 bits.
+	*/
 	switch (attrValueType) {
-	case SA_IMM_ATTR_SAINT32T:
+	case SA_IMM_ATTR_SAINT32T: {
+		errno = 0;
+		long value = strtol(str, &endptr, 0);
+		SaInt32T attr_value = value;
+		if ((errno != 0) || (endptr == str) || (*endptr != '\0')) {
+			fprintf(stderr, "int32 conversion failed\n");
+			return NULL;
+		}
+		if (value != attr_value) {
+			printf("int32 conversion failed, value too large\n");
+			return NULL;
+		}
 		attrValue = malloc(sizeof(SaInt32T));
-		*((SaInt32T *)attrValue) = strtol(str, NULL, 10);
+		*((SaInt32T *)attrValue) = value;
 		break;
-	case SA_IMM_ATTR_SAUINT32T:
+	}
+	case SA_IMM_ATTR_SAUINT32T: {
+		errno = 0;
+		unsigned long value = strtoul(str, &endptr, 0);
+		SaUint32T attr_value = value;
+		if ((errno != 0) || (endptr == str) || (*endptr != '\0')) {
+			fprintf(stderr, "uint32 conversion failed\n");
+			return NULL;
+		}
+		if (value != attr_value) {
+			printf("uint32 conversion failed, value too large\n");
+			return NULL;
+		}
 		attrValue = malloc(sizeof(SaUint32T));
-		*((SaUint32T *)attrValue) = strtol(str, NULL, 10);
+		*((SaUint32T *)attrValue) = value;
 		break;
+	}
 	case SA_IMM_ATTR_SAINT64T:
+		// fall-through, same basic data type
+	case SA_IMM_ATTR_SATIMET: {
+		errno = 0;
+		long long value = strtoll(str, &endptr, 0);
+		if ((errno != 0) || (endptr == str) || (*endptr != '\0')) {
+			fprintf(stderr, "int64 conversion failed\n");
+			return NULL;
+		}
 		attrValue = malloc(sizeof(SaInt64T));
-		*((SaInt64T *)attrValue) = strtoll(str, NULL, 10);
+		*((SaInt64T *)attrValue) = value;
 		break;
-	case SA_IMM_ATTR_SAUINT64T:
+	}
+	case SA_IMM_ATTR_SAUINT64T: {
+		errno = 0;
+		unsigned long long value = strtoull(str, &endptr, 0);
+		if ((errno != 0) || (endptr == str) || (*endptr != '\0')) {
+			fprintf(stderr, "uint64 conversion failed\n");
+			return NULL;
+		}
 		attrValue = malloc(sizeof(SaUint64T));
-		*((SaUint64T *)attrValue) = strtoll(str, NULL, 10);
+		*((SaUint64T *)attrValue) = value;
 		break;
-	case SA_IMM_ATTR_SATIMET:
-		attrValue = malloc(sizeof(SaTimeT));
-		*((SaTimeT *)attrValue) = strtoll(str, NULL, 10);
+	}
+	case SA_IMM_ATTR_SAFLOATT: {
+		errno = 0;
+		float myfloat = strtof(str, &endptr);
+		if (((myfloat == 0) && (endptr == str)) ||
+		    (errno == ERANGE) || (*endptr != '\0')) {
+			fprintf(stderr, "float conversion failed\n");
+			return NULL;
+		}
+		attrValue = malloc(sizeof(SaFloatT));
+		*((SaFloatT *)attrValue) = myfloat;
 		break;
-	case SA_IMM_ATTR_SAFLOATT:
-		{
-			SaFloatT myfloat;
-			attrValue = malloc(sizeof(SaFloatT));
-			sscanf(str, "%f", &myfloat);
-			*((SaFloatT *)attrValue) = myfloat;
-			break;
+	}
+	case SA_IMM_ATTR_SADOUBLET: {
+		errno = 0;
+		double mydouble = strtod(str, &endptr);
+		if (((mydouble == 0) && (endptr == str)) ||
+		    (errno == ERANGE) || (*endptr != '\0')) {
+			fprintf(stderr, "double conversion failed\n");
+			return NULL;
 		}
-	case SA_IMM_ATTR_SADOUBLET:
-		{
-			double mydouble;
-			attrValue = malloc(sizeof(double));
-			sscanf(str, "%lf", &mydouble);
-			*((double *)attrValue) = mydouble;
-			break;
+		attrValue = malloc(sizeof(SaDoubleT));
+		*((SaDoubleT *)attrValue) = mydouble;
+		break;
+	}
+	case SA_IMM_ATTR_SANAMET: {
+		SaNameT *mynamet;
+		len = strlen(str);
+		if (len > SA_MAX_NAME_LENGTH) {
+			fprintf(stderr, "too long SaNameT\n");
+			return NULL;
 		}
-	case SA_IMM_ATTR_SANAMET:
-		{
-			SaNameT *mynamet;
-			attrValue = mynamet = malloc(sizeof(SaNameT));
-			mynamet->length = strlen(str);
-			strncpy((char *)mynamet->value, str, SA_MAX_NAME_LENGTH);
-			break;
+		attrValue = mynamet = malloc(sizeof(SaNameT));
+		mynamet->length = len;
+		strncpy((char *)mynamet->value, str, SA_MAX_NAME_LENGTH);
+		break;
+	}
+	case SA_IMM_ATTR_SASTRINGT: {
+		attrValue = malloc(sizeof(SaStringT));
+		*((SaStringT *)attrValue) = strdup(str);
+		break;
+	}
+	case SA_IMM_ATTR_SAANYT: {
+		char* endMark;
+		SaBoolT even = SA_TRUE;
+		char byte[5];
+		unsigned int i;
+
+		len = strlen(str);
+		if(len % 2) {
+			len = len/2 + 1;
+			even = SA_FALSE;
+		} else {
+			len = len/2;
 		}
-	case SA_IMM_ATTR_SASTRINGT:
-		{
-			attrValue = malloc(sizeof(SaStringT));
-			*((SaStringT *)attrValue) = strdup(str);
-			break;
-		}
-	case SA_IMM_ATTR_SAANYT:
-		{
-			SaBoolT even = SA_TRUE;
-			len = strlen(str);
-			if(len % 2) {
-				len = len/2 + 1;
-				even = SA_FALSE;
+		attrValue = malloc(sizeof(SaAnyT));
+		((SaAnyT*)attrValue)->bufferAddr = 
+			(SaUint8T*)malloc(sizeof(SaUint8T) * len);
+		((SaAnyT*)attrValue)->bufferSize = len;
+
+		byte[0] = '0';
+		byte[1] = 'x';
+		byte[4] = '\0';
+
+		endMark = byte + 4;
+
+		for (i = 0; i < len; i++) {
+			byte[2] = str[2*i];
+			if(even || (i + 1 < len)) {
+				byte[3] = str[2*i + 1];
 			} else {
-				len = len/2;
+				byte[3] = '0';
 			}
-			attrValue = malloc(sizeof(SaAnyT));
-			((SaAnyT*)attrValue)->bufferAddr = 
-				(SaUint8T*)malloc(sizeof(SaUint8T) * len);
-			((SaAnyT*)attrValue)->bufferSize = len;
-
-			byte[0] = '0';
-			byte[1] = 'x';
-			byte[4] = '\0';
-
-			endMark = byte + 4;
-
-			for (i = 0; i < len; i++)
-			{
-				byte[2] = str[2*i];
-				if(even || (i + 1 < len)) {
-					byte[3] = str[2*i + 1];
-				} else {
-					byte[3] = '0';
-				}
-				((SaAnyT*)attrValue)->bufferAddr[i] = 
-					(SaUint8T)strtod(byte, &endMark);
-			}
+			((SaAnyT*)attrValue)->bufferAddr[i] = 
+				(SaUint8T)strtod(byte, &endMark);
 		}
+	}
 	default:
 		break;
 	}
