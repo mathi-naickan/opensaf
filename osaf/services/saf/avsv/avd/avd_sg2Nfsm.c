@@ -327,7 +327,7 @@ static AVD_SU_SI_REL *avd_sg_2n_act_susi(AVD_CL_CB *cb, AVD_SG *sg, AVD_SU_SI_RE
 		   state. Here both the SUs are in Quisced state. In this case, avd_su_assigned_susi_find(su_1) will
 		   return SU1 as Act and SU2 as standby. Similarly, avd_su_assigned_susi_find(su_2) will return SU2
 		   as Act and SU2 as standby. */
-		if ((SA_AMF_HA_QUIESCED = avd_su_state_determine(su_1)) && 
+		if ((SA_AMF_HA_QUIESCED == avd_su_state_determine(su_1)) && 
 				(SA_AMF_HA_QUIESCED == avd_su_state_determine(su_2))) {
 			osafassert(a_susi_1->su == s_susi_2->su);
 			osafassert(a_susi_2->su == s_susi_1->su);
