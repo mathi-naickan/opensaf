@@ -252,10 +252,25 @@ AVND_PG_TRK *avnd_pgdb_trk_rec_add(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_INFO *t
 		/* add to the dll */
 		if (NCSCC_RC_SUCCESS != ncs_db_link_list_add(&pg->trk_list, &pg_trk->pg_dll_node))
 			goto err;
-	}
 
-	/* update the params */
-	pg_trk->info.flags = trk_info->flags;
+		pg_trk->info.flags = trk_info->flags;
+	} else {
+
+		/* Revert the flags for CHANGES and CHANGES_ONLY */
+		if(m_AVND_PG_TRK_IS_CHANGES(pg_trk) && (trk_info->flags & SA_TRACK_CHANGES_ONLY)) {
+			m_AVND_PG_TRK_CHANGES_RESET(pg_trk);
+			m_AVND_PG_TRK_CHANGES_ONLY_SET(pg_trk);
+		}
+		if(m_AVND_PG_TRK_IS_CHANGES_ONLY(pg_trk) && (trk_info->flags & SA_TRACK_CHANGES)) {
+			m_AVND_PG_TRK_CHANGES_ONLY_RESET(pg_trk);
+			m_AVND_PG_TRK_CHANGES_SET(pg_trk);
+		}
+		/* If the current is also set, then set it in DB. Anyway, this gets reset in the end of the flow in 
+		   avnd_pg_track_start(). */
+		if(trk_info->flags & SA_TRACK_CURRENT) {
+			m_AVND_PG_TRK_CURRENT_SET(pg_trk);
+		}
+	}
 	pg_trk->info.mds_ctxt = trk_info->mds_ctxt;
 	pg_trk->info.is_syn = trk_info->is_syn;
 
