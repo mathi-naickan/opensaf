@@ -759,7 +759,6 @@ uint32_t avd_susi_role_failover(AVD_SU_SI_REL *sisu, AVD_SU *su)
 	TRACE_ENTER2(" '%s' '%s'",sisu->si->name.value, sisu->su->name.value);
 
 	if ((sisu->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) ||
-			(sisu->si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) ||
 			(sisu->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN)) {
 		goto done;
 	}

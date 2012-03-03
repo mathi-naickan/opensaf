@@ -864,17 +864,22 @@ static uint32_t avd_sg_2n_su_fault_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 			 * modify quiesced to this SU. Change state to SG_realign. 
 			 * Add this SU to the operation list.
 			 */
-			if (avd_si_dependency_exists_within_su(su)) {
-				if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-					LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
-					goto done;
+			if (avd_su_fsm_state_determine(su) == AVD_SU_SI_STATE_ASGND) {
+				if (avd_si_dependency_exists_within_su(su)) {
+					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+						goto done;
+					}
+				} else {
+					/* change the state for all assignments to quiesced. */
+					if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+						goto done;
+					}
 				}
 			} else {
-				/* change the state for all assignments to quiesced. */
-				if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-					LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
-					goto done;
-				}
+				/* SU fault has happened during Act transition, so delete the assignment.*/
+				avd_sg_su_si_del_snd(cb, su);
 			}
 
 			/* add the SU to the operation list and change the SG FSM to SG realign. */
@@ -1610,9 +1615,22 @@ static uint32_t avd_sg_2n_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 				else if ((o_su->list_of_susi != AVD_SU_SI_REL_NULL) &&
 					 (avd_su_state_determine(o_su) == SA_AMF_HA_QUIESCED) &&
 					 (avd_su_fsm_state_determine(o_su) == AVD_SU_SI_STATE_ASGND)) {
+
+					if (avd_si_dependency_exists_within_su(o_su)) {
+						for (i_susi = o_su->list_of_susi; i_susi != NULL; i_susi = i_susi->su_next) {
+							if (avd_susi_role_failover(i_susi, su) == NCSCC_RC_FAILURE) {
+								LOG_NO(" %s: %u: Active role modification failed for  %s ",
+										__FILE__, __LINE__, i_susi->su->name.value);
+								goto done;
+							}
+						}
+					} else {
+						/* There is no dependency between SI's within SU, so trigger SU level
+						   failover */
+						avd_sg_su_si_mod_snd(cb, o_su, SA_AMF_HA_ACTIVE);
+					}
 					avd_sg_su_asgn_del_util(cb, su, true, false);
 					avd_sg_su_oper_list_del(cb, su, false);
-					avd_sg_su_si_mod_snd(cb, o_su, SA_AMF_HA_ACTIVE);
 				}
 				/* if ((o_su->list_of_susi != AVD_SU_SI_REL_NULL) &&
 				   (avd_su_state_determine(o_su) == SA_AMF_HA_QUIESCED) &&

@@ -1767,6 +1767,8 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 			}
 			goto done;
 		}
+
+		failover_possible = false;
 		if (si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) {
 			/* Dependant SI and Tolerance timer is running
 			 * No need to to do role failover stop the Tolerance timer and delete the assignments
@@ -1776,7 +1778,6 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 				if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
 					avd_susi_del_send(tmp_sisu);
 			}
-			failover_possible = false;
 			goto done;
 		}
 		for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
@@ -1785,24 +1786,35 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 			 * dependent assignment. If the sponsor fsm is in modification state then set the si_dep_state 
 			 * to AVD_SI_FAILOVER_UNDER_PROGRESS
 			 */
-			for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
-				if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
-					(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
-					assignmemt_status = true;
-					if (sisu->fsm == AVD_SU_SI_STATE_MODIFY)
-						sponsor_in_modify_state = true;
-					break;
-				}
-			}
-			if (((spons_si_node->si->list_of_sisu) && (spons_si_node->si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
-				(m_NCS_MDS_DEST_EQUAL(&spons_si_node->si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest))) ||
-				(assignmemt_status == false)) {
+			if ((spons_si_node->si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED) ||
+					(spons_si_node->si->sg_of_si->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED) ||
+					((spons_si_node->si->list_of_sisu) && (spons_si_node->si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
+					 (m_NCS_MDS_DEST_EQUAL(&spons_si_node->si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest)))) { 
 				for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next) {
 					if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
 						avd_susi_del_send(tmp_sisu);
 				}
-				failover_possible = false;
+				goto done;
 			}
+			for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
+				TRACE("sisu:%s state:%u fsm:%u",sisu->si->name.value,sisu->state,sisu->fsm);
+				if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+						(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+					assignmemt_status = true;
+					if(!m_NCS_MDS_DEST_EQUAL(&sisu->su->su_on_node->adest,&su->su_on_node->adest)) {
+						if (sisu->fsm == AVD_SU_SI_STATE_MODIFY)
+							sponsor_in_modify_state = true;
+						break;
+					}
+				}
+			}
+			if (assignmemt_status == false) {
+				for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next) {
+					if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
+						avd_susi_del_send(tmp_sisu);
+				}
+				goto done;
+			} 
 			if ((assignmemt_status == true)  && (sponsor_in_modify_state == AVD_SU_SI_STATE_MODIFY)){
 				/* Set the si_dep_state to AVD_SI_FAILOVER_UNDER_PROGRESS */
 				if ((si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
@@ -1814,22 +1826,27 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 	} else {
 		if (si->spons_si_list == NULL) {
 			TRACE("SI doesnot have any dependencies");
-			for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
-				if ((sisu->state == SA_AMF_HA_STANDBY) &&
-					(sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
-					(sisu->su->saAmfSuReadinessState != SA_AMF_READINESS_OUT_OF_SERVICE)) {
-					valid_standby = true;
+			/* Check whether valid standby SU is there for performing role failover */
+			for (sisu = si->list_of_sisu;sisu != NULL;sisu = sisu->si_next) {
+				if (sisu->su != su) {
+					if (((sisu->state == SA_AMF_HA_STANDBY) || (sisu->state == SA_AMF_HA_QUIESCED)) && 
+						(sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
+						(sisu->su->saAmfSuReadinessState != SA_AMF_READINESS_OUT_OF_SERVICE)) {
+						valid_standby = true;
+					}
 				}
 			}
+
 			if ((si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED) || (!valid_standby)) {
 				 failover_possible = false;
-				 goto done;
-			 }
+			}
+			goto done;
 
 		}
 		bool sponsor_in_modify_state = false;
 		for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
 			failover_possible = false;
+			valid_standby = false;
 			for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
 				TRACE("sisu->si:%s state:%u fsm:%u",sisu->si->name.value,sisu->state,sisu->fsm);
 				if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
@@ -1838,9 +1855,16 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 					if (sisu->fsm == AVD_SU_SI_STATE_MODIFY)
 						sponsor_in_modify_state = true;
 					break;
-				} else if ((sisu->state == SA_AMF_HA_STANDBY) && (sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
+				} else if ((spons_si_node->si->sg_of_si == si->sg_of_si) && (sisu->su != su) &&
+					(!valid_standby)) {
+					/* Sponsor also belongs to the same SG 
+					 * Check if it has valid standby susi for failover 
+					 */
+					if (((sisu->state == SA_AMF_HA_STANDBY) || (sisu->state == SA_AMF_HA_QUIESCED)) &&
+						(sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
 						(sisu->su->saAmfSuReadinessState != SA_AMF_READINESS_OUT_OF_SERVICE)) {
-					valid_standby = true;	
+						valid_standby = true;	
+					}
 				}
 			}
 			if ((failover_possible == false) && (valid_standby == false)) {
@@ -2207,9 +2231,20 @@ void send_active_to_dependents(const AVD_SI *si)
 {
 	AVD_SI_SI_DEP_INDX si_indx;
 	AVD_SI_SI_DEP *si_dep_rec;
+	AVD_SU_SI_REL *sisu;
 	AVD_SI *dep_si;
+	AVD_SU *active_su  = NULL;
 
 	TRACE_ENTER2(": '%s'",si->name.value);
+
+	/* determine the active su */
+	for (sisu = si->list_of_sisu;sisu != NULL;sisu = sisu->si_next) {
+		if ((sisu->state == SA_AMF_HA_ACTIVE) && 
+			(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+			active_su = sisu->su;
+			break;
+		}       
+	}   
 
 	memset(&si_indx, '\0', sizeof(si_indx));
 	si_indx.si_name_prim.length = si->name.length;
@@ -2238,9 +2273,13 @@ void send_active_to_dependents(const AVD_SI *si)
 			}
 			AVD_SU_SI_REL *sisu;
 			for (sisu = dep_si->list_of_sisu;sisu != NULL;sisu = sisu->si_next) {
-				if (sisu->state == SA_AMF_HA_STANDBY) {
-					avd_susi_mod_send(sisu, SA_AMF_HA_ACTIVE);
-					break;
+				if (sisu->su == active_su) {
+					if (((sisu->state == SA_AMF_HA_STANDBY) ||
+						(sisu->state == SA_AMF_HA_QUIESCED)) &&
+						(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+						avd_susi_mod_send(sisu, SA_AMF_HA_ACTIVE);
+						break;
+					}
 				}
 			}
 			si_dep_state_set(dep_si, AVD_SI_ASSIGNED);
