@@ -29,8 +29,197 @@
 #include <avd_clm.h>
 #include <avd_si_dep.h>
 
-static AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su);
+/**
+ * @brief         Determine fsm state of an SU.
+ *
+ * @param [in]    su
+ *
+ * @returns       FSM State of the SU.
+ */
+AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
+	AVD_SU_SI_REL *temp_susi;
+	bool assigning_flag = false, assigned_flag = false, modify_flag = false, unassingned_flag = false;
+	AVD_SU_SI_STATE fsm_state = AVD_SU_SI_STATE_ABSENT;
 
+	TRACE_ENTER2("SU '%s'", su->name.value);
+
+	temp_susi = su->list_of_susi;
+	osafassert(temp_susi);
+	while (NULL != temp_susi) {
+		fsm_state = temp_susi->fsm;
+		if (AVD_SU_SI_STATE_ASGN == temp_susi->fsm) {
+			assigning_flag =  true;
+			TRACE("Assigning su'%s', si'%s'", temp_susi->su->name.value, temp_susi->si->name.value);
+			break;
+		} else if (AVD_SU_SI_STATE_UNASGN == temp_susi->fsm) {
+			unassingned_flag =  true;
+			TRACE("Unassigned su'%s', si'%s'", temp_susi->su->name.value, temp_susi->si->name.value);
+			break;
+		} else if (AVD_SU_SI_STATE_MODIFY == temp_susi->fsm) {
+			modify_flag =  true;
+			TRACE("Modified su'%s', si'%s'", temp_susi->su->name.value, temp_susi->si->name.value);
+			break;
+		} else if (AVD_SU_SI_STATE_ASGND == temp_susi->fsm) {
+			assigned_flag =  true;
+			TRACE("Assigned su'%s', si'%s'", temp_susi->su->name.value, temp_susi->si->name.value);
+		} else {
+			osafassert(0);
+		}
+		temp_susi = temp_susi->su_next;
+	}
+
+	TRACE("assigning_flag'%u', unassingned_flag'%u', assigned_flag'%u', modify_flag'%u'", assigning_flag, 
+			unassingned_flag, assigned_flag, modify_flag);
+
+	if (true == modify_flag) {
+		/* Rule 1. => If any one of the SUSI is Mod, then SU will be said to be modified. The other SUSI can 
+		   be in assigning/assigned state in transition.*/
+		fsm_state = AVD_SU_SI_STATE_MODIFY;
+	} else if (true == assigning_flag) {
+		/* Rule 2. => If any one of the SUSI is assigning, SU will be said to be Assigning. The other SUSI
+		   can be in assigned state in transition.*/
+		fsm_state = AVD_SU_SI_STATE_ASGN;
+	} else if ((true == unassingned_flag) && (false == assigned_flag)) {
+		/* Rule 2. => If any one of the SUSI is unassigned, then SU will be said to be Unassigned.*/
+		fsm_state = AVD_SU_SI_STATE_UNASGN;
+	} else if ((true == assigned_flag) && (false == unassingned_flag)) {
+		/* Rule 3. => All are assigned */ 
+		fsm_state = AVD_SU_SI_STATE_ASGND;
+	} else {
+		osafassert(0);
+	}
+
+	TRACE_LEAVE2("fsm state '%u'", fsm_state);
+	return fsm_state;
+}
+
+/**
+ * @brief	  checks whether all assignments are quiesced or not 
+ *
+ * @param [in]	  su
+ *
+ * @returns	  true/false  
+ */
+static bool all_quiesced(const AVD_SU *su)
+{
+	AVD_SU_SI_REL *susi;
+
+	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
+		if ((susi->state != SA_AMF_HA_QUIESCED) || (susi->fsm != AVD_SU_SI_STATE_ASGND))
+			return false;
+	}
+
+	return true;
+}
+/**
+ * @brief        checks whether all assignments are done on this su 
+ *
+ * @param [in]   su
+ *
+ * @returns      true/false  
+ */
+bool all_assignments_done(const AVD_SU *su)
+{
+	AVD_SU_SI_REL *susi;
+
+	for (susi = su->list_of_susi;susi != NULL;susi = susi->su_next) {
+		if (AVD_SU_SI_STATE_ASGND != susi->fsm)
+			return false;
+	}
+
+	return true;
+}
+/**
+ * @brief	  Quiesced role modifications has to be done in reverse order of si-si dependency.	  
+ *		  When susi response is received for quiesced modification, this routine finds 
+ *		  which is the next susi to be quiesced based on si-si dependency. 
+ *
+ * @param [in]	  susi for which we got the response 
+ *
+ * @returns	  pointer to AVD_SU_SI_REL 
+ */
+static AVD_SU_SI_REL *next_susi_tobe_quiesced(const AVD_SU_SI_REL *susi)
+{
+	AVD_SU_SI_REL *a_susi;
+	AVD_SPONS_SI_NODE *spons_si_node;
+
+	TRACE_ENTER2("'%s' '%s'", susi->si->name.value, susi->su->name.value);
+
+	for (a_susi = susi->su->list_of_susi; a_susi; a_susi = a_susi->su_next) {
+		if (a_susi->state == SA_AMF_HA_ACTIVE) {
+			for (spons_si_node = susi->si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
+				if (spons_si_node->si == a_susi->si) {
+					/* Check if quiesced response came for all of its dependents */ 
+					if (quiesced_done_for_all_dependents(spons_si_node->si, susi->su)) {
+						goto done;
+					}
+				}
+			}
+		}
+	}
+done:
+	TRACE_LEAVE2("next_susi: %s",a_susi ? a_susi->si->name.value : NULL);
+	return a_susi;
+}
+/**
+ * @brief       Checks if any assignment is changing into quiesced state. If yes, then return true.
+ *              If all are quisced then return false.
+ *
+ * @param[in]   su
+ * 
+ * @return      true/false
+ **/
+static bool any_assignment_is_changing_to_quiesced(const AVD_SU *su)
+{
+	AVD_SU_SI_REL *susi;
+
+	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
+		if ((susi->state == SA_AMF_HA_QUIESCED) && (susi->fsm == AVD_SU_SI_STATE_MODIFY))
+			return true;
+	}
+	return false;
+}
+
+/**
+ * @brief       Checks if any of the assignments has quiesced state 
+ *		When checking if SU is in quiesced state, we need to check if any of the susi
+ *		is in quiesced state or not, because in failure case there is possibility that
+ *		only some assignments will be in quiesced state
+ *
+ * @param[in]   su 
+ *
+ * @return      true/false 
+ **/
+static bool quiesced_susi_in_su(const AVD_SU *su)
+{
+	AVD_SU_SI_REL *susi;
+
+	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
+		if ((susi->state == SA_AMF_HA_QUIESCED))
+			return true;
+	}
+	return false;
+}
+/**
+ * @brief       Checks if any of the assignments has quiescing state 
+ *		When checking if SU is in quiescing state, we need to check if any of the susi
+ *		is in quiescing state or not, because in failure case there is possibility that
+ *		only some assignments will be in quiescing state
+ *
+ * @param[in]   su 
+ *
+ * @return      true/false 
+ **/
+static bool quiescing_susi_in_su(const AVD_SU *su)
+{
+	AVD_SU_SI_REL *susi;
+
+	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
+		if ((susi->state == SA_AMF_HA_QUIESCING))
+			return true;
+	}
+	return false;
+}
 /*****************************************************************************
  * Function: su_assigned_susi_find
  *
@@ -1491,7 +1680,7 @@ uint32_t avd_sg_2n_su_insvc_func(AVD_CL_CB *cb, AVD_SU *su)
 static uint32_t avd_sg_2n_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
 					  AVSV_SUSI_ACT act, SaAmfHAStateT state)
 {
-	AVD_SU_SI_REL *i_susi, *s_susi, *o_susi, *a_susi;
+	AVD_SU_SI_REL *i_susi, *s_susi, *o_susi, *a_susi, *n_susi;
 	AVD_SU *o_su, *l_su;
 	bool flag, as_flag;
 	uint32_t rc = NCSCC_RC_FAILURE;
@@ -1674,10 +1863,21 @@ static uint32_t avd_sg_2n_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 						   (avd_su_state_determine(o_su) == SA_AMF_HA_ACTIVE)) */
 					else if ((o_su->list_of_susi != AVD_SU_SI_REL_NULL) &&
 						 (avd_su_state_determine(o_su) == SA_AMF_HA_STANDBY)) {
-						if (avd_sg_su_si_mod_snd(cb, o_su, SA_AMF_HA_ACTIVE) == NCSCC_RC_FAILURE) {
-							LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, o_su->name.value,
-											 o_su->name.length);
-							goto done;
+						if (avd_si_dependency_exists_within_su(o_su)) {
+							for (i_susi = o_su->list_of_susi; i_susi != NULL; i_susi = i_susi->su_next) {
+								if (avd_susi_role_failover(i_susi, su) == NCSCC_RC_FAILURE) {
+									LOG_NO(" %s: %u: Active role modification failed for  %s ",
+											__FILE__, __LINE__, i_susi->su->name.value);
+									goto done;
+								}
+							}
+						} else {
+							/* There is no dependency between SI's within SU, so trigger SU level
+							   failover */
+							if (avd_sg_su_si_mod_snd(cb, o_su, SA_AMF_HA_ACTIVE) == NCSCC_RC_FAILURE) {
+								LOG_ER("%s:%u: %s", __FILE__, __LINE__, o_su->name.value);
+								goto done;
+							}
 						}
 
 						avd_sg_su_asgn_del_util(cb, su, true, false);
@@ -1816,145 +2016,43 @@ static uint32_t avd_sg_2n_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 					send_active_to_dependents(susi->si);
 			}
 			/* if (as_flag == false) */
-		} /* if ((state == SA_AMF_HA_ACTIVE) || (state == SA_AMF_HA_STANDBY)) */
-		else {
-			LOG_EM("%s:%u: %u", __FILE__, __LINE__, state);
-			LOG_EM("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+		} 
+		else if ((act == AVSV_SUSI_ACT_MOD) && (state == SA_AMF_HA_QUIESCED)) {
+
+			avd_sg_2n_act_susi(cb, su->sg_of_su, &s_susi);
+
+			if (all_quiesced(susi->su)) {
+				if (su->saAmfSuReadinessState == SA_AMF_READINESS_OUT_OF_SERVICE) {
+					/* this SU is out of service Send a D2N-INFO_SU_SI_ASSIGN with 
+					 * remove all to the SU.
+					 */ 
+					if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+					}
+				}
+			} else {
+				n_susi = next_susi_tobe_quiesced(susi);
+				while (n_susi) {
+					rc = avd_susi_mod_send(n_susi, SA_AMF_HA_QUIESCED);
+					if (rc == NCSCC_RC_FAILURE) {
+						LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+						goto done;
+					}
+					n_susi = next_susi_tobe_quiesced(susi);
+				}
+			}
 			goto done;
 		}
-	}			/* else (susi == AVD_SU_SI_REL_NULL) */
+		else {
+			LOG_EM("%s:%u: %u", __FILE__, __LINE__, state);
+			LOG_EM("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+		}
+	}
 
 	rc = NCSCC_RC_SUCCESS;
 done:
 	TRACE_LEAVE2("rc:%u", rc);
 	return rc;
-}
-/**
- * @brief	  checks whether all assignments are quiesced or not 
- *
- * @param [in]	  su
- *
- * @returns	  true/false  
- */
-static bool all_quiesced(const AVD_SU *su)
-{
-	AVD_SU_SI_REL *susi;
-
-	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
-		if ((susi->state != SA_AMF_HA_QUIESCED) || (susi->fsm != AVD_SU_SI_STATE_ASGND))
-			return false;
-	}
-
-	return true;
-}
-/**
- * @brief        checks whether all assignments are done on this su 
- *
- * @param [in]   su
- *
- * @returns      true/false  
- */
-bool all_assignments_done(const AVD_SU *su)
-{
-	AVD_SU_SI_REL *susi;
-
-	for (susi = su->list_of_susi;susi != NULL;susi = susi->su_next) {
-		if (AVD_SU_SI_STATE_ASGND != susi->fsm)
-			return false;
-	}
-
-	return true;
-}
-/**
- * @brief	  Quiesced role modifications has to be done in reverse order of si-si dependency.	  
- *		  When susi response is received for quiesced modification, this routine finds 
- *		  which is the next susi to be quiesced based on si-si dependency. 
- *
- * @param [in]	  susi for which we got the response 
- *
- * @returns	  pointer to AVD_SU_SI_REL 
- */
-static AVD_SU_SI_REL *next_susi_tobe_quiesced(const AVD_SU_SI_REL *susi)
-{
-	AVD_SU_SI_REL *a_susi;
-	AVD_SPONS_SI_NODE *spons_si_node;
-
-	TRACE_ENTER2("'%s' '%s'", susi->si->name.value, susi->su->name.value);
-
-	for (a_susi = susi->su->list_of_susi; a_susi; a_susi = a_susi->su_next) {
-		if (a_susi->state == SA_AMF_HA_ACTIVE) {
-			for (spons_si_node = susi->si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
-				if (spons_si_node->si == a_susi->si) {
-					/* Check if quiesced response came for all of its dependents */ 
-					if (quiesced_done_for_all_dependents(spons_si_node->si, susi->su)) {
-						goto done;
-					}
-				}
-			}
-		}
-	}
-done:
-	TRACE_LEAVE2("next_susi: %s",a_susi ? a_susi->si->name.value : NULL);
-	return a_susi;
-}
-/**
- * @brief       Checks if any assignment is changing into quiesced state. If yes, then return true.
- *              If all are quisced then return false.
- *
- * @param[in]   su
- * 
- * @return      true/false
- **/
-static bool any_assignment_is_changing_to_quiesced(const AVD_SU *su)
-{
-	AVD_SU_SI_REL *susi;
-
-	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
-		if ((susi->state == SA_AMF_HA_QUIESCED) && (susi->fsm == AVD_SU_SI_STATE_MODIFY))
-			return true;
-	}
-	return false;
-}
-
-/**
- * @brief       Checks if any of the assignments has quiesced state 
- *		When checking if SU is in quiesced state, we need to check if any of the susi
- *		is in quiesced state or not, because in failure case there is possibility that
- *		only some assignments will be in quiesced state
- *
- * @param[in]   su 
- *
- * @return      true/false 
- **/
-static bool quiesced_susi_in_su(const AVD_SU *su)
-{
-	AVD_SU_SI_REL *susi;
-
-	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
-		if ((susi->state == SA_AMF_HA_QUIESCED))
-			return true;
-	}
-	return false;
-}
-/**
- * @brief       Checks if any of the assignments has quiescing state 
- *		When checking if SU is in quiescing state, we need to check if any of the susi
- *		is in quiescing state or not, because in failure case there is possibility that
- *		only some assignments will be in quiescing state
- *
- * @param[in]   su 
- *
- * @return      true/false 
- **/
-static bool quiescing_susi_in_su(const AVD_SU *su)
-{
-	AVD_SU_SI_REL *susi;
-
-	for (susi = su->list_of_susi; susi; susi = susi->su_next) {
-		if ((susi->state == SA_AMF_HA_QUIESCING))
-			return true;
-	}
-	return false;
 }
  /*****************************************************************************
  * Function: avd_sg_2n_susi_sucss_su_oper
@@ -4457,68 +4555,3 @@ SaAmfHAStateT avd_su_state_determine(AVD_SU *su) {
 	TRACE_LEAVE2("state '%u'", ha_state);
 	return ha_state;
 }
-
-/**
- * @brief         Determine fsm state of an SU.
- *
- * @param [in]    su
- *
- * @returns       FSM State of the SU.
- */
-AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
-	AVD_SU_SI_REL *temp_susi;
-	bool assigning_flag = false, assigned_flag = false, modify_flag = false, unassingned_flag = false;
-	AVD_SU_SI_STATE fsm_state = AVD_SU_SI_STATE_ABSENT;
-
-	TRACE_ENTER2("SU '%s'", su->name.value);
-
-	temp_susi = su->list_of_susi;
-	osafassert(temp_susi);
-	while (NULL != temp_susi) {
-		fsm_state = temp_susi->fsm;
-		if (AVD_SU_SI_STATE_ASGN == temp_susi->fsm) {
-			assigning_flag =  true;
-			TRACE("Assigning su'%s', si'%s'", temp_susi->su->name.value, temp_susi->si->name.value);
-			break;
-		} else if (AVD_SU_SI_STATE_UNASGN == temp_susi->fsm) {
-			unassingned_flag =  true;
-			TRACE("Unassigned su'%s', si'%s'", temp_susi->su->name.value, temp_susi->si->name.value);
-			break;
-		} else if (AVD_SU_SI_STATE_MODIFY == temp_susi->fsm) {
-			modify_flag =  true;
-			TRACE("Modified su'%s', si'%s'", temp_susi->su->name.value, temp_susi->si->name.value);
-			break;
-		} else if (AVD_SU_SI_STATE_ASGND == temp_susi->fsm) {
-			assigned_flag =  true;
-			TRACE("Assigned su'%s', si'%s'", temp_susi->su->name.value, temp_susi->si->name.value);
-		} else {
-			osafassert(0);
-		}
-		temp_susi = temp_susi->su_next;
-	}
-
-	TRACE("assigning_flag'%u', unassingned_flag'%u', assigned_flag'%u', modify_flag'%u'", assigning_flag, 
-			unassingned_flag, assigned_flag, modify_flag);
-
-	if (true == modify_flag) {
-		/* Rule 1. => If any one of the SUSI is Mod, then SU will be said to be modified. The other SUSI can 
-		   be in assigning/assigned state in transition.*/
-		fsm_state = AVD_SU_SI_STATE_MODIFY;
-	} else if (true == assigning_flag) {
-		/* Rule 2. => If any one of the SUSI is assigning, SU will be said to be Assigning. The other SUSI
-		   can be in assigned state in transition.*/
-		fsm_state = AVD_SU_SI_STATE_ASGN;
-	} else if ((true == unassingned_flag) && (false == assigned_flag)) {
-		/* Rule 2. => If any one of the SUSI is unassigned, then SU will be said to be Unassigned.*/
-		fsm_state = AVD_SU_SI_STATE_UNASGN;
-	} else if ((true == assigned_flag) && (false == unassingned_flag)) {
-		/* Rule 3. => All are assigned */ 
-		fsm_state = AVD_SU_SI_STATE_ASGND;
-	} else {
-		osafassert(0);
-	}
-
-	TRACE_LEAVE2("fsm state '%u'", fsm_state);
-	return fsm_state;
-}
-
