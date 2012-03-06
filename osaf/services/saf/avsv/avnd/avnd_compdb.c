@@ -864,9 +864,9 @@ uns32 avnd_comp_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 				break;
 			case saAmfCompDisableRestart_ID: {
 				uint32_t disable_restart;
-				osafassert(sizeof(uint32_t) == param->value_len);
+				assert(sizeof(uint32_t) == param->value_len);
 				disable_restart = ntohl(*(uint32_t *)(param->value));
-				osafassert(disable_restart <= SA_TRUE);
+				assert(disable_restart <= SA_TRUE);
 				comp->is_restart_en = (disable_restart == SA_TRUE) ? false : true;
 				LOG_NO("saAmfCompDisableRestart changed to %u for '%s'", 
 					   disable_restart, comp->name.value);
