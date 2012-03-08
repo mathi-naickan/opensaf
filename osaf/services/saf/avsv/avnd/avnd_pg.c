@@ -293,6 +293,7 @@ static uint32_t avnd_process_pg_track_start_rsp_on_fover(AVND_CB *cb, AVND_PG *p
 			if (NULL == pg_mem) {
 				pg_mem = avnd_pgdb_mem_rec_add(cb, pg, mem_info);
 			} else {
+				pg_mem->mem_exist = true;
 				/* Compare the data and give call back of there is mis-match */
 				if (pg_mem->info.member.haState != mem_info->member.haState) {
 					pg_mem->info.member.haState = mem_info->member.haState;
