@@ -2881,31 +2881,27 @@ uint32_t avnd_evt_comp_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 	return rc;   
 }
 
-/****************************************************************************
-  Name          : avnd_validate_comp_and_createdb 
-
-  Description   : This routine checks whether the comp belong to the same node.
-                  If this is the case then it creates comp db. 
-
-  Arguments     : cb   - ptr to the AvND control block
-                  comp - ptr to comp dn name
-
-  Return Values : None.
-
-  Notes         : This function will be called in local as well as internode 
-                  comp scenario.
-******************************************************************************/
-static SaAisErrorT  avnd_validate_comp_and_createdb(AVND_CB *cb, SaNameT *comp_dn)
+/**
+ * If comp belong to this node, create comp db.
+ * 
+ * @param cb ptr to the AvND control block
+ * @param comp_dn ptr to comp dn name
+ * 
+ * @return SaAisErrorT SA_AIS_OK when OK
+ */
+static SaAisErrorT avnd_validate_comp_and_createdb(AVND_CB *cb, SaNameT *comp_dn)
 {
 	SaNameT su_dn;
 	char *p;
 	AVND_SU *su;
 
 	memset(&su_dn, 0, sizeof(SaNameT));
-        p = strstr((char*)comp_dn->value, "safSu");
-        osafassert(p);
-        su_dn.length = strlen(p);
-        memcpy(su_dn.value, p, comp_dn->length);
+	p = strstr((char*)comp_dn->value, "safSu");
+	if (p == NULL)
+		return SA_AIS_ERR_INVALID_PARAM;
+
+	su_dn.length = strlen(p);
+	memcpy(su_dn.value, p, comp_dn->length);
 
 	/* We got the name of SU, check whether this SU exists or not in our DB. */
 	if(NULL == (su = m_AVND_SUDB_REC_GET(cb->sudb, su_dn)))
