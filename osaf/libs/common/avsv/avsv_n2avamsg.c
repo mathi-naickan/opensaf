@@ -352,7 +352,8 @@ void avsv_amf_cbk_free(AVSV_AMF_CBK_INFO *cbk_info)
  
   Notes         : None.
 ******************************************************************************/
-uint32_t avsv_amf_csi_attr_list_copy(SaAmfCSIAttributeListT *dattr, SaAmfCSIAttributeListT *sattr)
+uint32_t avsv_amf_csi_attr_list_copy(SaAmfCSIAttributeListT *dattr,
+				     const SaAmfCSIAttributeListT *sattr)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	uint32_t cnt;
@@ -361,33 +362,27 @@ uint32_t avsv_amf_csi_attr_list_copy(SaAmfCSIAttributeListT *dattr, SaAmfCSIAttr
 		goto done;
 
 	dattr->attr = malloc(sizeof(SaAmfCSIAttributeT) * sattr->number);
-	if (!dattr->attr) {
-		rc = NCSCC_RC_FAILURE;
-		goto done;
-	}
+	osafassert(dattr->attr);
 
 	for (cnt = 0; cnt < sattr->number; cnt++) {
 		/* alloc memory for attr name & value */
-		dattr->attr[cnt].attrName = malloc(strlen((char*)sattr->attr[cnt].attrName));
-		if (!dattr->attr[cnt].attrName) {
-			free(dattr->attr[cnt].attrName);
-			goto done;
-		}
+		size_t attrNameSize = strlen((char*)sattr->attr[cnt].attrName) + 1;
+		dattr->attr[cnt].attrName = malloc(attrNameSize);
+		osafassert(dattr->attr[cnt].attrName);
 
-		dattr->attr[cnt].attrValue = malloc(strlen((char*)sattr->attr[cnt].attrValue));
-		if (!dattr->attr[cnt].attrValue) {
-			free(dattr->attr[cnt].attrName);
-			free(dattr->attr[cnt].attrValue);
-			goto done;
-		}
+		size_t attrValueSize = strlen((char*)sattr->attr[cnt].attrValue) + 1;
+		dattr->attr[cnt].attrValue = malloc(attrValueSize);
+		osafassert(dattr->attr[cnt].attrValue);
 
 		/* copy the attr name & value */
-		strcpy((char*)dattr->attr[cnt].attrName, (char*)sattr->attr[cnt].attrName);
-		strcpy((char*)dattr->attr[cnt].attrValue, (char*)sattr->attr[cnt].attrValue);
+		strncpy((char*)dattr->attr[cnt].attrName,
+			(char*)sattr->attr[cnt].attrName, attrNameSize);
+		strncpy((char*)dattr->attr[cnt].attrValue,
+			(char*)sattr->attr[cnt].attrValue, attrValueSize);
 
 		/* increment the attr name-val pair cnt that is copied */
 		dattr->number++;
-	}			/* for */
+	}
 
  done:
 	if (NCSCC_RC_SUCCESS != rc) {
