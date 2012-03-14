@@ -792,7 +792,9 @@ static bool susi_operation_in_progress(AVND_SU *su, AVND_SU_SI_REC *si)
 						t_si; t_si = (si) ? 0 : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&t_si->su_dll_node)) {
 					for (t_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&t_si->csi_list);
 							t_csi; t_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&t_csi->si_dll_node)) {
-						if (m_AVND_COMP_IS_FAILED(t_csi->comp))
+						if (m_AVND_COMP_IS_FAILED(t_csi->comp)
+								|| (su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED)
+								|| (su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED))
 							continue;
 						else if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(t_csi) ||
 								m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(t_csi) ||

@@ -1653,7 +1653,9 @@ static int assign_all_csis_at_rank(struct avnd_su_si_rec *si, uint32_t rank, boo
 		  csi != NULL;
 		  csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&csi->si_dll_node)) {
 
-		if (csi->rank == rank) {
+		if (csi->rank == rank &&
+				(csi->si->curr_assign_state != AVND_SU_SI_ASSIGN_STATE_ASSIGNED)
+				&& (csi->si->curr_assign_state != AVND_SU_SI_ASSIGN_STATE_REMOVED)) {
 			rc = avnd_comp_csi_assign(avnd_cb, csi->comp, (single_csi) ? csi : NULL);
 			if (NCSCC_RC_SUCCESS != rc)
 				break;
