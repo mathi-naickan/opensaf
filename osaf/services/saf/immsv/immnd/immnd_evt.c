@@ -6427,6 +6427,9 @@ static uns32 immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_IN
 			LOG_WA("MESSAGE:%llu OUT OF ORDER my highest processed:%llu", msgNo, cb->highestProcessed);
 			exit(1);
 			immnd_enqueue_incoming_fevs_msg(cb, msgNo, clnt_hdl, reply_dest, msg, &next_expected, &andHowManyMore);
+		}else if(cb->mSync){ /* If we receive out of sync message at the time of syncing */
+			LOG_WA("Sync MESSAGE:%llu OUT OF ORDER my highest processed:%llu", msgNo, cb->highestProcessed);
+			immnd_ackToNid(NCSCC_RC_FAILURE);
 		}
 
 		/*If next_expected!=0 we send request to re-send message(s) to Director. 
