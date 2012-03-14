@@ -1315,7 +1315,6 @@ void avd_sg_nway_screen_si_distr_equal(AVD_SG *sg)
 	sg->max_assigned_su = NULL; 
 	sg->min_assigned_su = NULL;
 	sg->si_tobe_redistributed = NULL;
-	m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(avd_cb, sg, AVSV_CKPT_AVD_SI_TRANS);
 
 	/* first screen for equal number of active assignments 
 	 * among the SUs if active assignments are already 

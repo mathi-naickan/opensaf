@@ -2134,7 +2134,6 @@ static void avd_sg_npm_screening_for_si_redistr(AVD_SG *avd_sg)
         avd_sg->max_assigned_su = NULL;
 	avd_sg->min_assigned_su = NULL;
         avd_sg->si_tobe_redistributed = NULL;
-	 m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(avd_cb, avd_sg, AVSV_CKPT_AVD_SI_TRANS);
 
         i_su = avd_sg->list_of_su;
 	/* Screen Active SUs */
