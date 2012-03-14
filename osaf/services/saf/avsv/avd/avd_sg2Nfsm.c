@@ -994,9 +994,15 @@ static uint32_t avd_sg_2n_su_fault_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 				}
 			}
 		} else {
-			LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-			LOG_ER("%s:%u: %u", __FILE__, __LINE__, su_ha_state);
-			goto done;
+			/* This may happen
+			   1. when Act SU is locked and it is transitioning into Quisced and the same
+			   time stdby SU faulted.
+			   2. Durin SI-SWAP when Act SU goes to Quiesced, Std SU goes to Act and Quiesced SU
+			   goes to Std and if it fails, then we seed to delete the assignments. */
+			if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
+				LOG_ER("%s:%u: %s", __FILE__, __LINE__, su->name.value);
+				goto done;
+			}
 		}
 	} else {		/* if(su->sg_of_su->su_oper_list.su == su) */
 
