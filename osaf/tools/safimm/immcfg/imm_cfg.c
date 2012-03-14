@@ -234,6 +234,8 @@ static SaImmAttrValuesT_2 *new_attr_value(const SaImmClassNameT className, char 
 	attrValue->attrValuesNumber = 1;
 	attrValue->attrValues = malloc(sizeof(SaImmAttrValueT *));
 	attrValue->attrValues[0] = immutil_new_attrValue(attrValue->attrValueType, isRdn ? nameval : value);
+	if(attrValue->attrValues[0] = NULL)
+		res = -1;
 
  done:
 	free(name);
