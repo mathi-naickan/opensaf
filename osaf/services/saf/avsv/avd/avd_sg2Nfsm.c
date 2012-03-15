@@ -1488,8 +1488,8 @@ uint32_t avd_sg_2n_su_fault_func(AVD_CL_CB *cb, AVD_SU *su)
 					goto done;
 				}
 			} else {
-				if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-					LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+				if (avd_sg_su_si_del_snd(cb, su) == NCSCC_RC_FAILURE) {
+					LOG_ER("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
 					goto done;
 				}
 			}
