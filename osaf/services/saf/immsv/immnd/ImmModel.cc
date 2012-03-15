@@ -8450,20 +8450,20 @@ ImmModel::purgeSyncRequest(SaUint32T clientId)
 
     for(ci2=sAdmReqContinuationMap.begin(); ci2!=sAdmReqContinuationMap.end(); ++ci2) {
         if(ci2->second.mConn == clientId) {
-            if(ciFound != sAdmReqContinuationMap.end()) {
-                LOG_WA("Attempt to purge synchronous request for client connection,"
-                    "but found multiple synchronous requests for that connection, "
-                     "incorrect use of imm handle");
-                return false;
-            }
-
             SaInvocationT inv = ci2->first;
             SaInt32T subinv = m_IMMSV_UNPACK_HANDLE_LOW(inv);
             if(subinv < 0) {
                 LOG_IN("Attempt to purge syncronous request for client connection,"
-                    "and found an asyncronous admin op request for that connection,"
-                    "ignoring the asyncronous continuation");
-		continue;
+                    "and found an asyncronous admin op request %d for that connection,"
+                    "ignoring the asyncronous continuation", subinv);
+                continue;
+            }
+
+            if(ciFound != sAdmReqContinuationMap.end()) {
+                LOG_WA("Attempt to purge synchronous request %d for client connection,"
+                    "but already purged other synchronous admin op requests for that "
+                    "connection, incorrect use of imm handle", subinv);
+                return false;
             }
 
             ciFound = ci2;
@@ -8473,14 +8473,14 @@ ImmModel::purgeSyncRequest(SaUint32T clientId)
     if(ciFound != sAdmReqContinuationMap.end()) {
         sAdmReqContinuationMap.erase(ciFound);
         purged = true;
-        TRACE_5("Purged Admin-op continuation");
+        TRACE_5("Purged syncronous Admin-op continuation");
     }
 
     ciFound = sSearchReqContinuationMap.end();
     for(ci2=sSearchReqContinuationMap.begin(); ci2!=sSearchReqContinuationMap.end(); ++ci2) {
         if(ci2->second.mConn == clientId) {
             if(purged || (ciFound != sSearchReqContinuationMap.end())) {
-                LOG_WA("Attempt to purge syncronous request for client connection,"
+                LOG_WA("Attempt to purge syncronous search request for client connection,"
                     "but found multiple requests for that connection, "
                     "incorrect use of imm handle");
                 return false;
@@ -8499,7 +8499,7 @@ ImmModel::purgeSyncRequest(SaUint32T clientId)
     for(ci2=sPbeRtReqContinuationMap.begin(); ci2!=sPbeRtReqContinuationMap.end(); ++ci2) {
         if(ci2->second.mConn == clientId) {
             if(purged || (ciFound != sPbeRtReqContinuationMap.end())) {
-                LOG_WA("Attempt to purge syncronous request for client connection,"
+                LOG_WA("Attempt to purge syncronous PRTA request for client connection,"
                     "but found multiple requests for that connection, "
                     "incorrect use of imm handle");
                 return false;
@@ -8515,15 +8515,24 @@ ImmModel::purgeSyncRequest(SaUint32T clientId)
     }
 
     for(i3=sCcbVector.begin(); i3!=sCcbVector.end(); ++i3) {
-        if((*i3)->mOriginatingConn == clientId) {
+        if(((*i3)->mOriginatingConn == clientId) && ((*i3)->mWaitStartTime > ((time_t) 0))) {
+            SaUint32T ccbId = (*i3)->mId;
+
+            if((*i3)->mState > IMM_CCB_CRITICAL) {
+                LOG_IN("Attempt to purge syncronous request for client connection,"
+                   "ignoring CCB %u with state > IMM_CCB_CRITICAL", ccbId);
+                continue;
+            }
+
             if(purged || (ccbFound != sCcbVector.end())) {
-                LOG_WA("Attempt to purge syncronous request for client connection,"
+                LOG_WA("Attempt to purge syncronous CCB request for client connection,"
                     "but found multiple requests for that connection, "
                     "incorrect use of imm handle");
                 return false;
             }
             ccbFound = i3;
         }
+
     }
 
     if(ccbFound != sCcbVector.end()) {
@@ -8535,7 +8544,8 @@ ImmModel::purgeSyncRequest(SaUint32T clientId)
         */
         (*ccbFound)->mOriginatingConn = 0;
         purged = true;
-        TRACE_5("Purged Ccb Op continuation");
+        TRACE_5("Purged Ccb continuation for ccb:%u in state %u", 
+            (*ccbFound)->mId, (*ccbFound)->mState);
     }
 
     TRACE_LEAVE();
