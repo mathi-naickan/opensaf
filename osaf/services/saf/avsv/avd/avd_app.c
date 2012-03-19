@@ -486,7 +486,7 @@ SaAisErrorT avd_app_config_get(void)
 			goto done2;
 	}
 
-	osafassert(rc == SA_AIS_ERR_NOT_EXIST);
+	assert(rc == SA_AIS_ERR_NOT_EXIST);
 	error = SA_AIS_OK;
  done2:
 	(void)immutil_saImmOmSearchFinalize(searchHandle);

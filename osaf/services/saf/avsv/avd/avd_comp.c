@@ -924,7 +924,7 @@ SaAisErrorT avd_comp_config_get(const SaNameT *su_name, AVD_SU *su)
 		goto done2;
 	}
 
-	osafassert(rc == SA_AIS_ERR_NOT_EXIST);
+	assert(rc == SA_AIS_ERR_NOT_EXIST);
 	error = SA_AIS_OK;
 
 done2:

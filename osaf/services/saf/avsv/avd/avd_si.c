@@ -620,7 +620,7 @@ SaAisErrorT avd_si_config_get(AVD_APP *app)
 			goto done2;
 	}
 
-	osafassert(rc == SA_AIS_ERR_NOT_EXIST);
+	assert(rc == SA_AIS_ERR_NOT_EXIST);
 	error = SA_AIS_OK;
 
  done2:
