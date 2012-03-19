@@ -441,13 +441,18 @@ static SaAisErrorT app_rt_attr_cb(SaImmOiHandleT immOiHandle,
 
 SaAisErrorT avd_app_config_get(void)
 {
-	SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION;
+	SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION, rc;
 	SaImmSearchHandleT searchHandle;
 	SaImmSearchParametersT_2 searchParam;
 	SaNameT dn;
 	const SaImmAttrValuesT_2 **attributes;
 	const char *className = "SaAmfApplication";
 	AVD_APP *app;
+	SaImmAttrNameT configAttributes[] = {
+		"saAmfAppType",
+		"saAmfApplicationAdminState",
+		NULL
+	};
 
 	TRACE_ENTER();
 
@@ -456,15 +461,15 @@ SaAisErrorT avd_app_config_get(void)
 	searchParam.searchOneAttr.attrValue = &className;
 
 	if (immutil_saImmOmSearchInitialize_2(avd_cb->immOmHandle, NULL, SA_IMM_SUBTREE,
-		SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR, &searchParam,
-		NULL, &searchHandle) != SA_AIS_OK) {
+		SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
+		configAttributes, &searchHandle) != SA_AIS_OK) {
 
-		LOG_ER("No AMF applications found");
+		LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, error);
 		goto done1;
 	}
 
-	while (immutil_saImmOmSearchNext_2(searchHandle, &dn,
-		(SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
+	while ((rc = immutil_saImmOmSearchNext_2(searchHandle, &dn,
+		(SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK) {
 
 		if (!is_config_valid(&dn, attributes, NULL))
 			goto done2;
@@ -481,6 +486,7 @@ SaAisErrorT avd_app_config_get(void)
 			goto done2;
 	}
 
+	osafassert(rc == SA_AIS_ERR_NOT_EXIST);
 	error = SA_AIS_OK;
  done2:
 	(void)immutil_saImmOmSearchFinalize(searchHandle);

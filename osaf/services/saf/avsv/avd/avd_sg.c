@@ -392,12 +392,31 @@ done:
 SaAisErrorT avd_sg_config_get(const SaNameT *app_dn, AVD_APP *app)
 {
 	AVD_SG *sg;
-	SaAisErrorT error;
+	SaAisErrorT error, rc;
 	SaImmSearchHandleT searchHandle;
 	SaImmSearchParametersT_2 searchParam;
 	SaNameT dn;
 	const SaImmAttrValuesT_2 **attributes;
 	const char *className = "SaAmfSG";
+	SaImmAttrNameT configAttributes[] = {
+		"saAmfSGType",
+		"saAmfSGSuHostNodeGroup",
+		"saAmfSGAutoRepair",
+		"saAmfSGAutoAdjust",
+		"saAmfSGNumPrefActiveSUs",
+		"saAmfSGNumPrefStandbySUs",
+		"saAmfSGNumPrefInserviceSUs",
+		"saAmfSGNumPrefAssignedSUs",
+		"saAmfSGMaxActiveSIsperSU",
+		"saAmfSGMaxStandbySIsperSU",
+		"saAmfSGAutoAdjustProb",
+		"saAmfSGCompRestartProb",
+		"saAmfSGCompRestartMax",
+		"saAmfSGSuRestartProb",
+		"saAmfSGSuRestartMax",
+		"saAmfSGAdminState",
+		NULL
+	};
 
 	TRACE_ENTER();
 
@@ -405,17 +424,18 @@ SaAisErrorT avd_sg_config_get(const SaNameT *app_dn, AVD_APP *app)
 	searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
 	searchParam.searchOneAttr.attrValue = &className;
 
+
 	error = immutil_saImmOmSearchInitialize_2(avd_cb->immOmHandle, app_dn, SA_IMM_SUBTREE,
-		SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR, &searchParam,
-		NULL, &searchHandle);
+		SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
+		configAttributes, &searchHandle);
 
 	if (SA_AIS_OK != error) {
-		LOG_ER("saImmOmSearchInitialize_2 failed: %u", error);
+		LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, error);
 		goto done1;
 	}
 
-	while (immutil_saImmOmSearchNext_2(searchHandle, &dn,
-		(SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
+	while ((rc = immutil_saImmOmSearchNext_2(searchHandle, &dn,
+		(SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK) {
 
 		if (!is_config_valid(&dn, attributes, NULL)) {
 			error = SA_AIS_ERR_FAILED_OPERATION;
@@ -435,6 +455,7 @@ SaAisErrorT avd_sg_config_get(const SaNameT *app_dn, AVD_APP *app)
 		}
 	}
 
+	osafassert(rc == SA_AIS_ERR_NOT_EXIST);
 	error = SA_AIS_OK;
 
 done2:
