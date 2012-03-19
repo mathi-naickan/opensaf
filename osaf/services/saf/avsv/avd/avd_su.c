@@ -622,13 +622,22 @@ done:
 
 SaAisErrorT avd_su_config_get(const SaNameT *sg_name, AVD_SG *sg)
 {
-	SaAisErrorT error;
+	SaAisErrorT error, rc;
 	SaImmSearchHandleT searchHandle;
 	SaImmSearchParametersT_2 searchParam;
 	SaNameT su_name;
 	const SaImmAttrValuesT_2 **attributes;
 	const char *className = "SaAmfSU";
 	AVD_SU *su;
+	SaImmAttrNameT configAttributes[] = {
+		"saAmfSUType",
+		"saAmfSURank",
+		"saAmfSUHostNodeOrNodeGroup",
+		"saAmfSUFailover",
+		"saAmfSUMaintenanceCampaign",
+		"saAmfSUAdminState",
+		NULL
+	};
 
 	TRACE_ENTER();
 
@@ -637,15 +646,16 @@ SaAisErrorT avd_su_config_get(const SaNameT *sg_name, AVD_SG *sg)
 	searchParam.searchOneAttr.attrValue = &className;
 
 	error = immutil_saImmOmSearchInitialize_2(avd_cb->immOmHandle, sg_name, SA_IMM_SUBTREE,
-		SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR, &searchParam,
-		NULL, &searchHandle);
+		SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
+		configAttributes, &searchHandle);
 
 	if (SA_AIS_OK != error) {
-		LOG_ER("No objects found (1)");
+		LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, error);
 		goto done1;
 	}
 
-	while (immutil_saImmOmSearchNext_2(searchHandle, &su_name, (SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
+	while ((rc = immutil_saImmOmSearchNext_2(searchHandle, &su_name,
+					(SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK) {
 		if (!is_config_valid(&su_name, attributes, NULL)) {
 			error = SA_AIS_ERR_FAILED_OPERATION;
 			goto done2;
@@ -664,6 +674,7 @@ SaAisErrorT avd_su_config_get(const SaNameT *sg_name, AVD_SG *sg)
 		}
 	}
 
+	osafassert(rc == SA_AIS_ERR_NOT_EXIST);
 	error = SA_AIS_OK;
 
  done2:

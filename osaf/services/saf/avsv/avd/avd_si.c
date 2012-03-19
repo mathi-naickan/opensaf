@@ -570,13 +570,24 @@ done:
  */
 SaAisErrorT avd_si_config_get(AVD_APP *app)
 {
-	SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION;
+	SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION, rc;
 	SaImmSearchHandleT searchHandle;
 	SaImmSearchParametersT_2 searchParam;
 	SaNameT si_name;
 	const SaImmAttrValuesT_2 **attributes;
 	const char *className = "SaAmfSI";
 	AVD_SI *si;
+	SaImmAttrNameT configAttributes[] = {
+		"saAmfSvcType",
+		"saAmfSIProtectedbySG",
+		"saAmfSIRank",
+		"saAmfSIActiveWeight",
+		"saAmfSIStandbyWeight",
+		"saAmfSIPrefActiveAssignments",
+		"saAmfSIPrefStandbyAssignments",
+		"saAmfSIAdminState",
+		NULL
+	};
 
 	TRACE_ENTER();
 
@@ -584,15 +595,16 @@ SaAisErrorT avd_si_config_get(AVD_APP *app)
 	searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
 	searchParam.searchOneAttr.attrValue = &className;
 
-	if (immutil_saImmOmSearchInitialize_2(avd_cb->immOmHandle, &app->name, SA_IMM_SUBTREE,
-	      SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR, &searchParam,
-	      NULL, &searchHandle) != SA_AIS_OK) {
+	if ((rc = immutil_saImmOmSearchInitialize_2(avd_cb->immOmHandle, &app->name, SA_IMM_SUBTREE,
+	      SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR, &searchParam,
+	      configAttributes, &searchHandle)) != SA_AIS_OK) {
 
-		LOG_ER("No objects found (1)");
+		LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, rc);
 		goto done1;
 	}
 
-	while (immutil_saImmOmSearchNext_2(searchHandle, &si_name, (SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
+	while ((rc = immutil_saImmOmSearchNext_2(searchHandle, &si_name,
+					(SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK) {
 		if (!is_config_valid(&si_name, attributes, NULL))
 			goto done2;
 
@@ -608,6 +620,7 @@ SaAisErrorT avd_si_config_get(AVD_APP *app)
 			goto done2;
 	}
 
+	osafassert(rc == SA_AIS_ERR_NOT_EXIST);
 	error = SA_AIS_OK;
 
  done2:

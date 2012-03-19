@@ -861,6 +861,32 @@ SaAisErrorT avd_comp_config_get(const SaNameT *su_name, AVD_SU *su)
 	const char *className = "SaAmfComp";
 	AVD_COMP *comp;
 	unsigned int num_of_comp_in_su = 0;
+	SaImmAttrNameT configAttributes[] = {
+		"saAmfCompType",
+		"saAmfCompCmdEnv",
+		"saAmfCompInstantiateCmdArgv",
+		"saAmfCompInstantiateTimeout",
+		"saAmfCompInstantiationLevel",
+		"saAmfCompNumMaxInstantiateWithoutDelay",
+		"saAmfCompNumMaxInstantiateWithDelay",
+		"saAmfCompDelayBetweenInstantiateAttempts",
+		"saAmfCompTerminateCmdArgv",
+		"saAmfCompTerminateTimeout",
+		"saAmfCompCleanupCmdArgv",
+		"saAmfCompCleanupTimeout",
+		"saAmfCompAmStartCmdArgv",
+		"saAmfCompAmStartTimeout",
+		"saAmfCompNumMaxAmStartAttempts",
+		"saAmfCompAmStopCmdArgv",
+		"saAmfCompAmStopTimeout",
+		"saAmfCompNumMaxAmStopAttempts",
+		"saAmfCompCSISetCallbackTimeout",
+		"saAmfCompCSIRmvCallbackTimeout",
+		"saAmfCompQuiescingCompleteTimeout",
+		"saAmfCompRecoveryOnError",
+		"saAmfCompDisableRestart",
+		NULL
+	};
 
 	TRACE_ENTER();
 
@@ -869,15 +895,15 @@ SaAisErrorT avd_comp_config_get(const SaNameT *su_name, AVD_SU *su)
 	searchParam.searchOneAttr.attrValue = &className;
 
 	if ((rc = immutil_saImmOmSearchInitialize_2(avd_cb->immOmHandle, su_name,
-		SA_IMM_SUBTREE, SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR,
-		&searchParam, NULL, &searchHandle)) != SA_AIS_OK) {
+		SA_IMM_SUBTREE, SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_SOME_ATTR,
+		&searchParam, configAttributes, &searchHandle)) != SA_AIS_OK) {
 
-		LOG_ER("saImmOmSearchInitialize_2 failed: %u", rc);
+		LOG_ER("%s: saImmOmSearchInitialize_2 failed: %u", __FUNCTION__, rc);
 		goto done1;
 	}
 
-	while (immutil_saImmOmSearchNext_2(searchHandle, &comp_name,
-		(SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
+	while ((rc = immutil_saImmOmSearchNext_2(searchHandle, &comp_name,
+		(SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK) {
 
 		if (!is_config_valid(&comp_name, attributes, NULL))
 			goto done2;
@@ -898,6 +924,7 @@ SaAisErrorT avd_comp_config_get(const SaNameT *su_name, AVD_SU *su)
 		goto done2;
 	}
 
+	osafassert(rc == SA_AIS_ERR_NOT_EXIST);
 	error = SA_AIS_OK;
 
 done2:
