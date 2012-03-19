@@ -6338,14 +6338,9 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 		search_node->mLastAttributes = 0;
 	}
 
-	/* If something goes wrong below we still dont want the search_node anymore, 
-	   this is search finalize. Delete the search node here.
-	*/
 	immHandle = search_node->mImmHandle;
 	searchId = search_node->mSearchId;
-	imma_search_node_delete(cb, search_node);
-	search_node = NULL;
-	
+
 	imma_client_node_get(&cb->client_tree, &immHandle, &cl_node);
 
 	if (!(cl_node && cl_node->isOm)) {
@@ -6357,6 +6352,8 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 	if (cl_node->stale) {
 		TRACE_1("IMM Handle %llx is stale", immHandle);
 		error = SA_AIS_OK;	/*Dont punish the client for closing stale handle */
+		imma_search_node_delete(cb, search_node);
+		search_node = NULL;
 		goto release_lock;
 	}
 
@@ -6373,6 +6370,7 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 	locked = false;
 	cl_node = NULL;
+	search_node = NULL;
 
 	/* IMMND GOES DOWN */
 	if (cb->is_immnd_up == false) {
@@ -6389,10 +6387,7 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 			break;
 
 		case NCSCC_RC_REQ_TIMOUT:
-			/*error = imma_proc_check_stale(cb, immHandle,
-			  SA_AIS_ERR_TIMEOUT);*/
-			/* Ignore the probably stale handle since this is a finalize. */
-			TRACE_3("Got ERR_TIMEOUT in saImmOmSearchFinalize - ignoring");
+			error = imma_proc_check_stale(cb, immHandle, SA_AIS_ERR_TIMEOUT);
 			goto mds_failed;
 			break;
 
@@ -6410,6 +6405,30 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 		}
 		free(out_evt);
 		out_evt=NULL;
+
+		if(error == SA_AIS_ERR_BAD_HANDLE) {
+			/* Because this is finalize, BAD_HANDLE from the server is
+			   here hidden from the client. But remove the search-node from
+			   library. BAD_HANDLE detected in the library is not hidden 
+			   from the client. */
+			error = SA_AIS_OK;
+		}
+
+		if(error == SA_AIS_OK) {/* i.e. not TRY_AGAIN or TIMEOUT */
+			if(!locked) {
+				if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
+					TRACE_4("ERR_LIBRARY: Lock failed");
+					error = SA_AIS_ERR_LIBRARY;
+					goto release_cb;
+				}
+				locked = true;
+			}
+			imma_search_node_get(&cb->search_tree, &searchHandle, &search_node);
+			if(search_node) {
+				imma_search_node_delete(cb, search_node);
+				search_node = NULL;
+			}
+		}
 	}
 
  mds_failed:
@@ -7027,19 +7046,6 @@ SaAisErrorT saImmOmAdminOwnerFinalize(SaImmAdminOwnerHandleT adminOwnerHandle)
 
 	immHandle = ao_node->mImmHandle;
 	adminOwnerId = ao_node->mAdminOwnerId;
-	/* If something goes wrong below we still dont want the ao_node anymore, 
-	   this is admin owner finalize. Delete the ao node here.
-
-	   Any Ccb handles that are open and associated with AO are closed by 
-	   imma_admin_owner_node_delete. 
-	   Same goes for server side. Any open ccb-ids related to the admin owner 
-	   are aborted.
-	   Note: Any cb in exclusive mode is orphaned! The ccb_node can then only be
-	   deallocated by an explicit saImmOmCcbFinalize (when it is no longer in 
-	   exclusive mode).
-	*/
-	imma_admin_owner_node_delete(cb, ao_node);
-	ao_node = NULL;
 
 	imma_client_node_get(&cb->client_tree, &immHandle, &cl_node);
 	if (!(cl_node && cl_node->isOm)) {
@@ -7057,6 +7063,8 @@ SaAisErrorT saImmOmAdminOwnerFinalize(SaImmAdminOwnerHandleT adminOwnerHandle)
 	if (cl_node->stale) {
 		TRACE_1("IMM Handle %llx is stale", immHandle);
 		rc = SA_AIS_OK;	/*Dont punish the client for closing stale handle */
+		imma_admin_owner_node_delete(cb, ao_node);
+		ao_node = NULL;
 		goto done;
 	}
 
@@ -7073,6 +7081,7 @@ SaAisErrorT saImmOmAdminOwnerFinalize(SaImmAdminOwnerHandleT adminOwnerHandle)
 
 	rc = imma_evt_fake_evs(cb, &finalize_evt, &out_evt, timeout, cl_node->handle, &locked, false);
 	cl_node = NULL;
+	ao_node = NULL;
 
 	if (out_evt) {
 		osafassert(out_evt->type == IMMSV_EVT_TYPE_IMMA);
@@ -7080,10 +7089,43 @@ SaAisErrorT saImmOmAdminOwnerFinalize(SaImmAdminOwnerHandleT adminOwnerHandle)
 		if (rc == SA_AIS_OK) {
 			rc = out_evt->info.imma.info.errRsp.error;
 		}
-		TRACE("AdminOwnerFinalize returned: %u", rc);
+		TRACE("AdminOwnerFinalize Internally returned: %u", rc);
 		
 		free(out_evt);
 		out_evt=NULL;
+
+		if(rc == SA_AIS_ERR_BAD_HANDLE) {
+			/* Because this is finalize, BAD_HANDLE from the server is
+			   here hidden from the client. But remove the admo-node from
+			   library. BAD_HANDLE detected in the library is not hidden 
+			   from the client. */
+			rc = SA_AIS_OK;
+		}
+
+		if(rc == SA_AIS_OK) {/* i.e. not TRY_AGAIN or TIMEOUT */
+			if(!locked) {
+				if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
+					TRACE_4("ERR_LIBRARY: Lock failed");
+					rc = SA_AIS_ERR_LIBRARY;
+					goto lock_fail;
+				}
+				locked = true;
+			}
+			imma_admin_owner_node_get(&cb->admin_owner_tree, &adminOwnerHandle, &ao_node);
+			if(ao_node) {
+				/* 
+				   Any Ccb handles that are open and associated with AO are
+				   closed by imma_admin_owner_node_delete. 
+				   Note: Any ccb in exclusive mode is orphaned! The ccb_node
+				   can then only be deallocated by an explicit saImmOmCcbFinalize
+				   (when it is no longer in exclusive mode).
+				   Same goes for server side. Any open ccb-ids related to the
+				   admin owner are aborted, unless they are in critical.
+				*/
+				imma_admin_owner_node_delete(cb, ao_node);
+				ao_node = NULL;
+			}
+		}
 	}
 
  done:
@@ -7155,15 +7197,16 @@ SaAisErrorT saImmOmCcbFinalize(SaImmCcbHandleT ccbHandle)
 	adminOwnerHdl = ccb_node->mAdminOwnerHdl;
 	ccbActive = ccb_node->mCcbId && !(ccb_node->mApplied);
 	ccbId = ccb_node->mCcbId;
-	/* If something goes wrong below we still dont want the ccb_node anymore, 
-	   this is CCB finalize. Delete the ccb_node here.
-	*/
-	ccb_node->mExclusive = true;
-	imma_ccb_node_delete(cb, ccb_node);
-	ccb_node = NULL;
+
+	ccb_node->mExclusive = true; 
 
 	if (ccbActive) {
 		TRACE("Ccb is active when finalizing");
+		/* If the ccb is not active, then there is no CCB (id) in the server.
+		   Then the CCB session (node) only exists in the IMMA library.
+		   No message should be sent to the server for that case. 
+		 */
+
 		/* Get the Admin Owner info  */
 		imma_admin_owner_node_get(&cb->admin_owner_tree, &adminOwnerHdl, &ao_node);
 		if (!ao_node) {
@@ -7185,6 +7228,8 @@ SaAisErrorT saImmOmCcbFinalize(SaImmCcbHandleT ccbHandle)
 		if (cl_node->stale) {
 			TRACE_1("IMM Handle %llx is stale", immHandle);
 			rc = SA_AIS_OK;	/*Dont punish the client for closing stale handle */
+			imma_ccb_node_delete(cb, ccb_node);
+			ccb_node = NULL;
 			goto done;
 		}
 
@@ -7201,6 +7246,7 @@ SaAisErrorT saImmOmCcbFinalize(SaImmCcbHandleT ccbHandle)
 
 		rc = imma_evt_fake_evs(cb, &evt, &out_evt, timeout, cl_node->handle, &locked, false);
 		cl_node = NULL;
+		ccb_node = NULL;
 
 		if (out_evt) {
 			osafassert(out_evt->type == IMMSV_EVT_TYPE_IMMA);
@@ -7212,6 +7258,35 @@ SaAisErrorT saImmOmCcbFinalize(SaImmCcbHandleT ccbHandle)
 
 			free(out_evt);
 			out_evt=NULL;
+
+			if(rc == SA_AIS_ERR_BAD_HANDLE) {
+				/* Because this is finalize, BAD_HANDLE from the server is
+				   here hidden from the client. But remove the ccb-node from
+				   library. BAD_HANDLE detected in the library is not hidden 
+				   from the client. */
+				rc = SA_AIS_OK;
+			}
+		}/*out_evt*/
+	}/*ccbActive*/
+
+
+	if(!locked) {
+		if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
+			TRACE_4("ERR_LIBRARY: Lock failed");
+			rc = SA_AIS_ERR_LIBRARY;
+			goto lock_fail;
+		}
+		locked = true;
+	}
+
+	imma_ccb_node_get(&cb->ccb_tree, &ccbHandle, &ccb_node);
+	if(ccb_node) {
+		if(rc == SA_AIS_OK) {/* i.e. not TRY_AGAIN or TIMEOUT */
+			imma_ccb_node_delete(cb, ccb_node);
+			ccb_node = NULL;
+		} else {
+			/* TRY_AGAIN or TIMEOUT => allow user to try finalize again. */
+			ccb_node->mExclusive = false;
 		}
 	}
 
