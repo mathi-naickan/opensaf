@@ -206,6 +206,10 @@ static void clm_track_cb(const SaClmClusterNotificationBufferT_4 *notificationBu
 		goto done;
 	}
 
+	/*
+	** The CLM cluster can be larger than the AMF cluster thus it is not an
+	** error if the corresponding AMF node cannot be found.
+	*/
 	for (i = 0; i < notificationBuffer->numberOfItems; i++)
 	{
 		notifItem = &notificationBuffer->notification[i];
@@ -214,7 +218,8 @@ static void clm_track_cb(const SaClmClusterNotificationBufferT_4 *notificationBu
 			if(notifItem->clusterChange == SA_CLM_NODE_LEFT) {
 				node = avd_node_find_nodeid(notifItem->clusterNode.nodeId);
 				if (node == NULL) {
-					LOG_ER("Node not a member");
+					LOG_IN("%s: CLM node '%s' is not an AMF cluster member",
+						   __FUNCTION__, notifItem->clusterNode.nodeName.value);
 					goto done;
 				}
 				/* store the invocation for clm response */
@@ -230,7 +235,8 @@ static void clm_track_cb(const SaClmClusterNotificationBufferT_4 *notificationBu
 		case SA_CLM_CHANGE_START:
 			node = avd_node_find_nodeid(notifItem->clusterNode.nodeId);
 			if (node == NULL) {
-				LOG_ER("Node not a member");
+				LOG_IN("%s: CLM node '%s' is not an AMF cluster member",
+					   __FUNCTION__, notifItem->clusterNode.nodeName.value);
 				goto done;
 			}
 			if ( notifItem->clusterChange == SA_CLM_NODE_LEFT ||
@@ -252,7 +258,8 @@ static void clm_track_cb(const SaClmClusterNotificationBufferT_4 *notificationBu
 			    (notifItem->clusterChange == SA_CLM_NODE_SHUTDOWN)) {
 				node = avd_node_find_nodeid(notifItem->clusterNode.nodeId);
 				if (node == NULL) {
-					LOG_ER("Node not a member");
+					LOG_IN("%s: CLM node '%s' is not an AMF cluster member",
+						   __FUNCTION__, notifItem->clusterNode.nodeName.value);
 					goto done;
 				}
 				TRACE(" Node Left: rootCauseEntity %s for node %u", rootCauseEntity->value, 
@@ -333,7 +340,7 @@ static void clm_track_cb(const SaClmClusterNotificationBufferT_4 *notificationBu
 						clm_node_join_complete(node);
 					}
 				} else {
-					LOG_NO("AMF-node not configured on this CLM-node '%s'",
+					LOG_IN("AMF-node not configured on this CLM-node '%s'",
 							notifItem->clusterNode.nodeName.value);
 				}
 			}

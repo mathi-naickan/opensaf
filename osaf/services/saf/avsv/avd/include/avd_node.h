@@ -79,7 +79,8 @@ typedef struct avd_avnd_tag {
 						 * in network order.
 						 */
 
-	SaNameT name;                   /*SaAmfNode Name */ 
+	SaNameT name; /* DN */ 
+	char *node_name;    /* RDN value, normally the short host name */
 	SaClmClusterNodeT_4 node_info;	/* the node information of the node on
 					 * which this AvND exists. The length
 					 * field of nodeName structure is in

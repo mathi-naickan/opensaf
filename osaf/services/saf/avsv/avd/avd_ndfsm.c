@@ -150,6 +150,8 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		goto done;
 	}
 
+	LOG_NO("Node '%s' joined the cluster", avnd->node_name);
+
 	/* If component message is sent change state to no config or else skip
 	 * all the comming up states and jump to present state. This is because
 	 * the node doesnt have any components meaning that even the NCS component
@@ -727,6 +729,8 @@ void avd_node_mark_absent(AVD_AVND *node)
 
 	avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_DISABLED);
 	avd_node_state_set(node, AVD_AVND_STATE_ABSENT);
+
+	LOG_NO("Node '%s' left the cluster", node->node_name);
 
 	node->adest = 0;
 	node->rcv_msg_id = 0;
