@@ -184,11 +184,8 @@ static void clm_node_exit_complete(SaClmNodeIdT nodeId)
 		goto done;
         }
 
-	avd_node_mark_absent(node);
-	avd_node_susi_fail_func(avd_cb, node);
+	avd_node_failover(node);
 
-	/* Remove the node from the node_id tree. */
-	avd_node_delete_nodeid(node);
 done:
 	TRACE_LEAVE();
 }

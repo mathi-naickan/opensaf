@@ -752,3 +752,19 @@ void avd_comp_validation_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 done:
 	TRACE_LEAVE();
 }
+
+
+/**
+ * An AMF node has left the cluster. Cleanup the node state and fail over services to other nodes.
+ * @param node
+ */
+void avd_node_failover(AVD_AVND *node)
+{
+	TRACE_ENTER2("'%s'", node->name.value);
+	avd_node_mark_absent(node);
+	avd_pg_node_csi_del_all(avd_cb, node);
+	avd_node_susi_fail_func(avd_cb, node);
+	avd_node_delete_nodeid(node);
+	TRACE_LEAVE();
+}
+

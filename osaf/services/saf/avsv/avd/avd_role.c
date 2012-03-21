@@ -333,13 +333,7 @@ static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role)
 	avd_cb->is_implementer = true;
 
 
-	avd_node_mark_absent(failed_node);
-
-	/* Fail over all SI assignments */
-	avd_node_susi_fail_func(avd_cb, failed_node);
-
-	/* Remove the node from the node_id tree. */
-	avd_node_delete_nodeid(failed_node);
+	avd_node_failover(failed_node);
 
 	LOG_NO("FAILOVER StandBy --> Active DONE!");
 	status = NCSCC_RC_SUCCESS;

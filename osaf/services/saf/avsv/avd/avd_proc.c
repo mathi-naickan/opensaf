@@ -403,11 +403,7 @@ static void handle_event_in_failover_state(AVD_EVT *evt)
 			node_id = node->node_info.nodeId;
 
 			if (AVD_AVND_STATE_ABSENT == node->node_state) {
-				/* Fail over all SI assignments */
-				avd_node_susi_fail_func(avd_cb, node);
-
-				/* Remove the node from the node_id tree. */
-				avd_node_delete_nodeid(node);
+				avd_node_failover(node);
 			}
 		}
 	}
@@ -518,7 +514,7 @@ void avd_main_proc(void)
 
 		if (fds[FD_CLM].revents & POLLIN) {
 			TRACE("CLM event rec");
-			error = saClmDispatch(cb->clmHandle, SA_DISPATCH_ALL);
+			error = saClmDispatch(cb->clmHandle, SA_DISPATCH_ONE);
 
 			if (error != SA_AIS_OK)
 				LOG_ER("main: saClmDispatch FAILED %u", error);
