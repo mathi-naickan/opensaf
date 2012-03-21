@@ -1265,8 +1265,21 @@ uint32_t avnd_evt_avd_hb_evh(AVND_CB *cb, AVND_EVT *evt)
  */
 uint32_t avnd_evt_tmr_avd_hb_duration_evh(AVND_CB *cb, AVND_EVT *evt)
 {
+	int status;
+
 	TRACE_ENTER();
-	opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
-			"AMF director heart beat timeout");
+
+	LOG_ER("AMF director heart beat timeout, generating core for amfd");
+
+	if ((status = system("killall -ABRT osafamfd")) == -1)
+		syslog(LOG_ERR, "system(killall) FAILED %x", status);
+
+	/* allow core to be created */
+	sleep(1);
+
+	opensaf_reboot(avnd_cb->node_info.nodeId,
+				   (char *)avnd_cb->node_info.executionEnvironment.value,
+				   "AMF director heart beat timeout");
+
 	return NCSCC_RC_SUCCESS;
 }
