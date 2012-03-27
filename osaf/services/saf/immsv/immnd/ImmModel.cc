@@ -3499,6 +3499,8 @@ ImmModel::commitModify(const std::string& dn, ObjectInfo* afterImage)
     ObjectMap::iterator oi = sObjectMap.find(dn);
     assert(oi != sObjectMap.end());
     ObjectInfo* beforeImage = oi->second;
+    ClassInfo* classInfo = beforeImage->mClassInfo;
+    assert(classInfo);
     if(beforeImage->mAdminOwnerAttrVal->empty()) {
        /* Empty Admin Owner can imply (hard) release during apply/commit.
           This can happen if client invokes apply and then disconnects
@@ -3520,15 +3522,22 @@ ImmModel::commitModify(const std::string& dn, ObjectInfo* afterImage)
     ImmAttrValueMap::iterator oavi;
     for(oavi = beforeImage->mAttrValueMap.begin();
         oavi != beforeImage->mAttrValueMap.end(); ++oavi) {
-        delete oavi->second; 
+        AttrMap::iterator i4 = classInfo->mAttrMap.find(oavi->first);
+        assert(i4!=classInfo->mAttrMap.end());
+        if(i4->second->mFlags & SA_IMM_ATTR_CONFIG) {
+            delete oavi->second; 
+        }
     }
-    beforeImage->mAttrValueMap.clear(); 
     
     for(oavi = afterImage->mAttrValueMap.begin();
         oavi != afterImage->mAttrValueMap.end(); ++oavi) {
-        beforeImage->mAttrValueMap[oavi->first] = oavi->second;
-        if(oavi->first == std::string(SA_IMM_ATTR_ADMIN_OWNER_NAME)) {
-            beforeImage->mAdminOwnerAttrVal = oavi->second;
+        AttrMap::iterator i4 = classInfo->mAttrMap.find(oavi->first);
+        assert(i4!=classInfo->mAttrMap.end());
+        if(i4->second->mFlags & SA_IMM_ATTR_CONFIG) {
+            beforeImage->mAttrValueMap[oavi->first] = oavi->second;
+            if(oavi->first == std::string(SA_IMM_ATTR_ADMIN_OWNER_NAME)) {
+                beforeImage->mAdminOwnerAttrVal = oavi->second;
+            }
         }
     }
     afterImage->mAttrValueMap.clear();
@@ -4900,19 +4909,24 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
             ImmAttrValue* oldValue = oavi->second;
             ImmAttrValue* newValue = NULL;
             
-            if(oldValue->isMultiValued()) {
-                newValue = new ImmAttrMultiValue(*((ImmAttrMultiValue *) 
-                                                     oldValue));
-            } else {
-                newValue = new ImmAttrValue(*oldValue);
-            }
+            i4 = classInfo->mAttrMap.find(oavi->first);
+            assert(i4!=classInfo->mAttrMap.end());
+            /* Only copy config attributes to afim. */
+            if(i4->second->mFlags & SA_IMM_ATTR_CONFIG) {
+                if(oldValue->isMultiValued()) {
+                    newValue = new ImmAttrMultiValue(*((ImmAttrMultiValue *) 
+                                                         oldValue));
+                } else {
+                    newValue = new ImmAttrValue(*oldValue);
+                }
             
-            //Set admin owner as a regular attribute and then also a pointer
-            //to the attrValue for efficient access.
-            if(oavi->first == std::string(SA_IMM_ATTR_ADMIN_OWNER_NAME)) {
-                afim->mAdminOwnerAttrVal = newValue;
+                //Set admin owner as a regular attribute and then also a pointer
+                //to the attrValue for efficient access.
+                if(oavi->first == std::string(SA_IMM_ATTR_ADMIN_OWNER_NAME)) {
+                    afim->mAdminOwnerAttrVal = newValue;
+                }
+                afim->mAttrValueMap[oavi->first] = newValue;
             }
-            afim->mAttrValueMap[oavi->first] = newValue;
         }
     }
     
