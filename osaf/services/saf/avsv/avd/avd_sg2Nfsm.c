@@ -1059,22 +1059,22 @@ static uint32_t avd_sg_2n_su_fault_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 			 * modify quiesced to this SU. Change state to SG_realign. 
 			 * Add this SU to the operation list.
 			 */
-			if (avd_su_fsm_state_determine(su) == AVD_SU_SI_STATE_ASGND) {
-				if (avd_si_dependency_exists_within_su(su)) {
+			if (avd_si_dependency_exists_within_su(su)) {
+				 if (avd_su_fsm_state_determine(su) == AVD_SU_SI_STATE_ASGND) {
 					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
 						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
 						goto done;
 					}
 				} else {
-					/* change the state for all assignments to quiesced. */
-					if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
-						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
-						goto done;
-					}
+					/* SU fault has happened during Act transition, so delete the assignment.*/
+					avd_sg_su_si_del_snd(cb, su);
 				}
 			} else {
-				/* SU fault has happened during Act transition, so delete the assignment.*/
-				avd_sg_su_si_del_snd(cb, su);
+				/* change the state for all assignments to quiesced. */
+				if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+					LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
+					goto done;
+				}
 			}
 
 			/* add the SU to the operation list and change the SG FSM to SG realign. */
