@@ -1442,10 +1442,10 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		}
 		/* also check for pending clm callback operations */ 
 		if (su->su_on_node->clm_pend_inv != 0) {
-			if((su->saAmfSUNumCurrActiveSIs == 0) && 
-					(su->saAmfSUNumCurrStandbySIs == 0))
+			if((su->saAmfSUNumCurrActiveSIs == 0) && (su->saAmfSUNumCurrStandbySIs == 0)
+					&& (su->list_of_susi == NULL)) 
 				su->su_on_node->su_cnt_admin_oper--;
-			if (su->su_on_node->su_cnt_admin_oper == 0) {
+			if ((su->su_on_node->su_cnt_admin_oper == 0) && (su->list_of_susi == NULL)) {
 				/* since unassignment of all SIs on this node has been done
 				   now go on with the terminataion */
 				/* clm admin lock/shutdown operations were on, so we need to reset 
