@@ -18,8 +18,6 @@
 #include "immnd.h"
 #include <nid_start_util.h>
 
-#define NCS_SAF_ACCEPT_TIME 1000
-
 /****************************************************************************
  * Name          : immnd_saf_health_chk_callback
  *
@@ -136,15 +134,67 @@ static void immnd_saf_csi_set_cb(SaInvocationT invocation,
 	return;
 }
 
+/**
+ * Thread start routine to register with AMF and start health check
+ * Error handling: exits process at failure
+ * @param __cb control block pointer
+ */
+static void* amf_init_start(void *__cb)
+{
+	SaAisErrorT error;
+	IMMND_CB *cb = (IMMND_CB *) __cb;
+	const char *health_key;
+	SaAmfHealthcheckKeyT healthy;
+
+	TRACE_ENTER();
+
+	error = saAmfComponentRegister(cb->amf_hdl, &cb->comp_name, NULL);
+	if (error != SA_AIS_OK) {
+		LOG_ER("saAmfComponentRegister failed: %u, exiting", error);
+		exit(1);
+	}
+
+	/*   start the AMF Health Check  */
+	memset(&healthy, 0, sizeof(healthy));
+	health_key = getenv("IMMSV_ENV_HEALTHCHECK_KEY");
+
+	if (health_key == NULL) {
+		strncpy((char *)healthy.key, "A1B2", sizeof(healthy.key));
+		healthy.keyLen = (SaUint16T) strlen((char *)healthy.key);
+	} else {
+		healthy.keyLen = (SaUint16T) strlen((char *)health_key);
+		if (healthy.keyLen < sizeof(healthy.key)) {
+			strncpy((char *)healthy.key, health_key, sizeof(healthy.key));
+		} else {
+			LOG_ER("Health check key too long:%u", healthy.keyLen);
+			exit(1);
+		}
+	}
+
+	error = saAmfHealthcheckStart(cb->amf_hdl, &cb->comp_name, &healthy,
+				      SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_RESTART);
+	if (error != SA_AIS_OK) {
+		LOG_ER("saAmfHealthcheckStart failed: %u, exiting", error);
+		exit(1);
+	}
+
+	TRACE_LEAVE();
+	return NULL;
+}
+
 /****************************************************************************
  * Name          : immnd_amf_init
  *
- * Description   : IMMND initializes AMF for involking process and registers 
- *                 the various callback functions.
+ * Description   : IMMND initializes AMF for invoking process and registers
+ *                 the various callback functions. Non blocking.
  *
  * Arguments     : immnd_cb - control block pointer.
  *
  * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ *                 At SUCCESS the following control block members are initialized:
+ *                    amf_hdl
+ *                    comp_name
+ *                    amf_sel_obj
  *
  * Notes         : None.
  *****************************************************************************/
@@ -154,16 +204,14 @@ uint32_t immnd_amf_init(IMMND_CB *cb)
 	SaVersionT version;
 	SaAisErrorT error;
 	uint32_t res = NCSCC_RC_FAILURE;
-	SaClmClusterNodeT cluster_node;
-	const char *health_key;
-	SaAmfHealthcheckKeyT healthy;
+	pthread_t thread;
+	pthread_attr_t attr;
 
 	TRACE_ENTER();
 
-	memset(&cluster_node, 0, sizeof(SaClmClusterNodeT));
-
 	if (cb->nid_started &&
-	    (amf_comp_name_get_set_from_file("IMMND_COMP_NAME_FILE", &cb->comp_name) != NCSCC_RC_SUCCESS))
+		(amf_comp_name_get_set_from_file("IMMND_COMP_NAME_FILE",
+			&cb->comp_name) != NCSCC_RC_SUCCESS))
 		goto done;
 
 	memset(&amfCallbacks, 0, sizeof(SaAmfCallbacksT));
@@ -174,6 +222,11 @@ uint32_t immnd_amf_init(IMMND_CB *cb)
 
 	m_IMMSV_GET_AMF_VER(version);
 
+	/*
+	 * Perform the non blocking part of initialization.
+	 * If the AMF implementation of these calls would change and become
+	 * synchronous, this code would have to be changed too.
+	 */
 	error = saAmfInitialize(&cb->amf_hdl, &amfCallbacks, &version);
 	if (error != SA_AIS_OK) {
 		LOG_ER("saAmfInitialize failed");
@@ -192,38 +245,16 @@ uint32_t immnd_amf_init(IMMND_CB *cb)
 		goto done;
 	}
 
-	error = saAmfComponentRegister(cb->amf_hdl, &cb->comp_name, NULL);
-	if (error != SA_AIS_OK) {
-		LOG_ER("saAmfComponentRegister failed: %u", error);
+	/* Start a thread to take care of the blocking part of initialization */
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, NULL, amf_init_start, cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
 		goto done;
 	}
 
-	/*   start the AMF Health Check  */
-	memset(&healthy, 0, sizeof(healthy));
-	health_key = getenv("IMMSV_ENV_HEALTHCHECK_KEY");
-
-	if (health_key == NULL) {
-		strcpy((char *)healthy.key, "A1B2");
-		healthy.keyLen = (SaUint16T) strlen((char *)healthy.key);
-	} else {
-		healthy.keyLen = (SaUint16T) strlen((char *)health_key);
-		if (healthy.keyLen <= SA_MAX_NAME_LENGTH) {
-			strcpy((char *)healthy.key, health_key);
-		} else {
-			LOG_ER("Health check key too long:%u", healthy.keyLen);
-			/* SA_MAX_NAME_LENGTH is an arbitrary length delimiter in this 
-			   case. On the other hand, it should be long enough for all
-			   reasonable health check keys */
-			goto done;
-		}
-	}
-
-	error = saAmfHealthcheckStart(cb->amf_hdl, &cb->comp_name, &healthy,
-				      SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_RESTART);
-	if (error != SA_AIS_OK) {
-		LOG_ER("saAmfHealthcheckStart failed: %u", error);
-		goto done;
-	}
+	pthread_attr_destroy(&attr);
 
 	res = NCSCC_RC_SUCCESS;
 
