@@ -315,6 +315,53 @@ static void immd_amf_csi_rmv_callback(SaInvocationT invocation,
 	TRACE_LEAVE();
 }
 
+/**
+ * Thread start routine to register with AMF and start health check
+ * Error handling: exits process at failure
+ * @param __cb control block pointer
+ */
+static void* amf_init_start(void *notused)
+{
+	SaAisErrorT error;
+	const char *health_key;
+	SaAmfHealthcheckKeyT healthy;
+
+	TRACE_ENTER();
+
+	error = saAmfComponentRegister(immd_cb->amf_hdl, &immd_cb->comp_name, NULL);
+	if (error != SA_AIS_OK) {
+		LOG_ER("saAmfComponentRegister failed: %u, exiting", error);
+		exit(1);
+	}
+
+	memset(&healthy, 0, sizeof(healthy));
+	health_key = getenv("IMMSV_ENV_HEALTHCHECK_KEY");
+
+	if (health_key == NULL) {
+		strncpy((char *)healthy.key, "A1B2", sizeof(healthy.key));
+		healthy.keyLen = (SaUint16T) strlen((char *)healthy.key);
+	} else {
+		healthy.keyLen = (SaUint16T) strlen((char *)health_key);
+		if (healthy.keyLen < sizeof(healthy.key)) {
+			strncpy((char *)healthy.key, health_key, sizeof(healthy.key));
+		} else {
+			LOG_ER("Health check key too long:%u", healthy.keyLen);
+			exit(1);
+		}
+	}
+
+	error = saAmfHealthcheckStart(immd_cb->amf_hdl, &immd_cb->comp_name,
+		&healthy, SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_FAILOVER);
+
+	if (error != SA_AIS_OK) {
+		LOG_ER("saAmfHealthcheckStart failed: %u, exiting", error);
+		exit(1);
+	}
+
+	TRACE_LEAVE();
+	return NULL;
+}
+
 /****************************************************************************
  * Name          : amf_init
  *
@@ -333,12 +380,13 @@ uint32_t immd_amf_init(IMMD_CB *immd_cb)
 	SaVersionT amf_version;
 	SaAisErrorT error;
 	uint32_t res = NCSCC_RC_FAILURE;
-	SaAmfHealthcheckKeyT healthy;
-	char *health_key;
+	pthread_t thread;
+	pthread_attr_t attr;
 
 	TRACE_ENTER();
 
-	if (amf_comp_name_get_set_from_file("IMMD_COMP_NAME_FILE", &immd_cb->comp_name) != NCSCC_RC_SUCCESS)
+	if (amf_comp_name_get_set_from_file("IMMD_COMP_NAME_FILE",
+			&immd_cb->comp_name) != NCSCC_RC_SUCCESS)
 		goto done;
 
 	memset(&amfCallbacks, 0, sizeof(SaAmfCallbacksT));
@@ -350,9 +398,20 @@ uint32_t immd_amf_init(IMMD_CB *immd_cb)
 
 	m_IMMSV_GET_AMF_VER(amf_version);
 
+	/*
+	 * Perform the non blocking part of initialization.
+	 * If the AMF implementation of these calls would change and become
+	 * synchronous, this code would have to be changed too.
+	 */
 	error = saAmfInitialize(&immd_cb->amf_hdl, &amfCallbacks, &amf_version);
 	if (error != SA_AIS_OK) {
 		LOG_ER("saAmfInitialize failed");
+		goto done;
+	}
+
+	error = saAmfComponentNameGet(immd_cb->amf_hdl, &immd_cb->comp_name);
+	if (error != SA_AIS_OK) {
+		LOG_ER("saAmfComponentNameGet failed");
 		goto done;
 	}
 
@@ -362,37 +421,16 @@ uint32_t immd_amf_init(IMMD_CB *immd_cb)
 		goto done;
 	}
 
-	memset(&healthy, 0, sizeof(healthy));
-	health_key = getenv("IMMSV_ENV_HEALTHCHECK_KEY");
-	if (health_key == NULL) {
-		strcpy((char *)healthy.key, "A1B2");
-		healthy.keyLen = strlen((char *)healthy.key);
-	} else {
-		healthy.keyLen = strlen((char *)health_key);
-		if (healthy.keyLen <= SA_MAX_NAME_LENGTH) {
-			strcpy((char *)healthy.key, health_key);
-		} else {
-			LOG_ER("Health check key too long:%u", healthy.keyLen);
-			/* SA_MAX_NAME_LENGTH is an arbitrary length delimiter in this 
-			   case. On the other hand, it should be long enough for all
-			   reasonable health check keys */
-			goto done;
-		}
-	}
+	/* Start a thread to take care of the blocking part of initialization */
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	error = saAmfHealthcheckStart(immd_cb->amf_hdl, &immd_cb->comp_name,
-				      &healthy, SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_FAILOVER);
-
-	if (error != SA_AIS_OK) {
-		LOG_ER("saAmfHealthcheckStart failed");
+	if (pthread_create(&thread, NULL, amf_init_start, NULL) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
 		goto done;
 	}
 
-	error = saAmfComponentRegister(immd_cb->amf_hdl, &immd_cb->comp_name, NULL);
-	if (error != SA_AIS_OK) {
-		LOG_ER("saAmfComponentRegister failed: %u", error);
-		goto done;
-	}
+	pthread_attr_destroy(&attr);
 
 	res = NCSCC_RC_SUCCESS;
 
