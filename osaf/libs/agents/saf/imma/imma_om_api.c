@@ -7236,11 +7236,12 @@ int imma_om_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, NCS_BOOL *locked)
 	assert(locked && *locked);
 	assert(cl_node && cl_node->stale);
 	SaImmHandleT immHandle = cl_node->handle;
+	SaAisErrorT err_resurrect=SA_AIS_OK;
 
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 	*locked = FALSE;
 	cl_node = NULL;
-	if (!imma_proc_resurrect_client(cb, immHandle, TRUE)) {
+	if (!imma_proc_resurrect_client(cb, immHandle, TRUE, &err_resurrect)) {
 		TRACE_3("Failed to resurrect OM handle <c:%u, n:%x>",
 			m_IMMSV_UNPACK_HANDLE_HIGH(immHandle),
 			m_IMMSV_UNPACK_HANDLE_LOW(immHandle));

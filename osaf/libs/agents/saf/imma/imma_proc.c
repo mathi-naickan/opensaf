@@ -1411,7 +1411,7 @@ IMMA_CALLBACK_INFO *imma_callback_ipc_rcv(IMMA_CLIENT_NODE *cl_node)
  
   Notes         : None
 ******************************************************************************/
-uns32 imma_proc_resurrect_client(IMMA_CB *cb, SaImmHandleT immHandle, int isOm)
+uns32 imma_proc_resurrect_client(IMMA_CB *cb, SaImmHandleT immHandle, int isOm, SaAisErrorT *err_resurrect)
 {
     TRACE_ENTER();
     IMMA_CLIENT_NODE    *cl_node=NULL;
@@ -1496,6 +1496,11 @@ uns32 imma_proc_resurrect_client(IMMA_CB *cb, SaImmHandleT immHandle, int isOm)
         }
 		free(out_evt);
 		out_evt = NULL;
+    }
+    *err_resurrect = err;
+    if(err == SA_AIS_ERR_TRY_AGAIN){
+	    TRACE_3("Recieved TRY_AGAIN while resurrecting");
+	    goto failure;
     }
 
     if (err != SA_AIS_OK)

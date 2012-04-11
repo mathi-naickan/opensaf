@@ -43,7 +43,7 @@ static const char *sysaClName = SA_IMM_ATTR_CLASS_NAME;
 static const char *sysaAdmName = SA_IMM_ATTR_ADMIN_OWNER_NAME;
 static const char *sysaImplName = SA_IMM_ATTR_IMPLEMENTER_NAME;
 
-static int imma_oi_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, NCS_BOOL *locked);
+static int imma_oi_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, NCS_BOOL *locked, SaAisErrorT * err_cli_res);
 
 /****************************************************************************
   Name          :  SaImmOiInitialize
@@ -396,7 +396,10 @@ SaAisErrorT saImmOiSelectionObjectGet(SaImmOiHandleT immOiHandle, SaSelectionObj
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if (rc == SA_AIS_ERR_TRY_AGAIN) {
+			goto resurrect_failed;
+		} 
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -493,11 +496,13 @@ SaAisErrorT saImmOiDispatch(SaImmOiHandleT immOiHandle, SaDispatchFlagsT dispatc
 		TRACE_1("Remaining clients to acively resurrect: %d",
 			cb->dispatch_clients_to_resurrect);
 
-		if (!imma_oi_resurrect(cb, cl_node, &locked)) {
-            TRACE_2("ERR_BAD_HANDLE: Failed to resurrect stale OI handle <c:%u, n:%x>",
-                m_IMMSV_UNPACK_HANDLE_HIGH(immOiHandle),
-                m_IMMSV_UNPACK_HANDLE_LOW(immOiHandle));
-            rc = SA_AIS_ERR_BAD_HANDLE;
+		if (!imma_oi_resurrect(cb, cl_node, &locked, &rc)) {
+			if(rc != SA_AIS_ERR_TRY_AGAIN) {
+				TRACE_2("ERR_BAD_HANDLE: Failed to resurrect stale OI handle <c:%u, n:%x>",
+					m_IMMSV_UNPACK_HANDLE_HIGH(immOiHandle),
+					m_IMMSV_UNPACK_HANDLE_LOW(immOiHandle));
+				rc = SA_AIS_ERR_BAD_HANDLE;
+			}
 			goto fail;
 		}
 
@@ -823,7 +828,11 @@ SaAisErrorT saImmOiAdminOperationResult(SaImmOiHandleT immOiHandle, SaInvocation
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto stale_handle; 
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -1006,7 +1015,11 @@ SaAisErrorT saImmOiImplementerSet(SaImmOiHandleT immOiHandle, const SaImmOiImple
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -1199,7 +1212,11 @@ SaAisErrorT saImmOiImplementerClear(SaImmOiHandleT immOiHandle)
 		free(cl_node->mImplementerName);
 		cl_node->mImplementerName = NULL;
 
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -1359,7 +1376,11 @@ SaAisErrorT saImmOiClassImplementerSet(SaImmOiHandleT immOiHandle, const SaImmCl
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -1522,7 +1543,11 @@ SaAisErrorT saImmOiClassImplementerRelease(SaImmOiHandleT immOiHandle, const SaI
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -1694,7 +1719,11 @@ SaAisErrorT saImmOiObjectImplementerSet(SaImmOiHandleT immOiHandle, const SaName
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -1877,7 +1906,11 @@ SaAisErrorT saImmOiObjectImplementerRelease(SaImmOiHandleT immOiHandle, const Sa
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -2041,7 +2074,11 @@ SaAisErrorT saImmOiRtObjectUpdate_2(SaImmOiHandleT immOiHandle,
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -2335,7 +2372,11 @@ extern SaAisErrorT saImmOiRtObjectCreate_2(SaImmOiHandleT immOiHandle,
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -2607,7 +2648,11 @@ SaAisErrorT saImmOiRtObjectDelete(SaImmOiHandleT immOiHandle, const SaNameT *obj
 
 	if (cl_node->stale) {
 		TRACE_1("Handle %llx is stale", immOiHandle);
-		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked);
+		NCS_BOOL resurrected = imma_oi_resurrect(cb, cl_node, &locked, &rc);
+		if(rc == SA_AIS_ERR_TRY_AGAIN) {
+			assert(!resurrected);
+			goto bad_handle; /* Handle is actually not bad yet. */
+		}
 
 		if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: LOCK failed");
@@ -2793,7 +2838,7 @@ static SaBoolT imma_implementer_set(IMMA_CB *cb, SaImmOiHandleT immOiHandle)
 	return SA_FALSE;
 }
 
-int imma_oi_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, NCS_BOOL *locked)
+int imma_oi_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, NCS_BOOL *locked, SaAisErrorT * err_cli_res)
 {
 	IMMSV_EVT  finalize_evt, *out_evt = NULL;
 	TRACE_ENTER();
@@ -2804,7 +2849,7 @@ int imma_oi_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, NCS_BOOL *locked)
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 	*locked = FALSE;
 	cl_node = NULL;
-	if (!imma_proc_resurrect_client(cb, immOiHandle, FALSE)) {
+	if (!imma_proc_resurrect_client(cb, immOiHandle, FALSE, err_cli_res)) {
 		TRACE_3("Failed to resurrect OI handle <c:%u, n:%x>",
 			m_IMMSV_UNPACK_HANDLE_HIGH(immOiHandle),
 			m_IMMSV_UNPACK_HANDLE_LOW(immOiHandle));
