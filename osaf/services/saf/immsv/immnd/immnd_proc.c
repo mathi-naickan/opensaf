@@ -558,6 +558,7 @@ static uns32 immnd_announceSync(IMMND_CB *cb, SaUint32T newEpoch)
 
 	if (rc != NCSCC_RC_SUCCESS) {
 		LOG_ER("Coord failed to send start of sync to IMMD");
+		cb->mSyncRequested = true; /* revert sync request marker back to on */
 		return 0;
 	}
 
