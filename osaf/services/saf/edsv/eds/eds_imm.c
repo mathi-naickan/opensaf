@@ -182,15 +182,17 @@ SaAisErrorT eds_imm_init(EDS_CB *cb)
  * Declare yourself (ACTIVE) as the implementer for the event service runtime objects.
  * @return void *
  */
-void * _eds_imm_declare_implementer(void *_immOiHandle)
+void * _eds_imm_declare_implementer(void *_cb)
 {
 	SaAisErrorT rc;
-	SaImmOiHandleT *immOiHandle = (SaImmOiHandleT *) _immOiHandle;
-	rc = immutil_saImmOiImplementerSet(*immOiHandle, implementer_name); 
+	EDS_CB *cb = (EDS_CB *) _cb;
+	rc = immutil_saImmOiImplementerSet(cb->immOiHandle, implementer_name); 
 	if(rc != SA_AIS_OK) {
 		LOG_ER("saImmOiImplementerSet failed with error: %u", rc);
 		exit(EXIT_FAILURE);
 	}
+
+	cb->is_impl_set = true;
 
 	return NULL;
 }
@@ -204,13 +206,13 @@ void * _eds_imm_declare_implementer(void *_immOiHandle)
 
  Notes:    If it fails it will exit the process
 \**************************************************************************/
-void eds_imm_declare_implementer(SaImmOiHandleT *immOiHandle)
+void eds_imm_declare_implementer(EDS_CB *cb)
 {
 	pthread_t thread;
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	if (pthread_create(&thread, NULL, _eds_imm_declare_implementer, immOiHandle) != 0) {
+	if (pthread_create(&thread, NULL, _eds_imm_declare_implementer, cb) != 0) {
 		LOG_ER("pthread create failed: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}

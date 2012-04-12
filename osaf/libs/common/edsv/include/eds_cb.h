@@ -261,6 +261,7 @@ typedef struct eds_cb_tag {
 	NCS_PATRICIA_TREE eds_cluster_nodes_list;
 	SaImmOiHandleT immOiHandle;	/* IMM OI Handle */
 	SaSelectionObjectT imm_sel_obj;	/* Selection object to wait for IMM events */
+	bool is_impl_set;
 } EDS_CB;
 
 
@@ -335,6 +336,6 @@ bool is_node_a_member(EDS_CB *, NODE_ID);
 EDS_WORKLIST *get_channel_from_worklist(EDS_CB *cb, SaNameT chan_name);
 SaAisErrorT eds_imm_init(EDS_CB *cb);
 void eds_imm_reinit_bg(EDS_CB * cb);
-void eds_imm_declare_implementer(SaImmOiHandleT *OiHandle);
+void eds_imm_declare_implementer(EDS_CB *cb);
 
 #endif

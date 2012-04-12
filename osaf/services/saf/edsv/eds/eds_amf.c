@@ -101,6 +101,8 @@ uint32_t eds_quiesced_state_handler(EDS_CB *cb, SaInvocationT invocation)
 	error = immutil_saImmOiImplementerClear(cb->immOiHandle);
 	if (error != SA_AIS_OK)
 		LOG_ER("saImmOiImplementerClear failed with rc = %d", error);
+	else
+		cb->is_impl_set = false;
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
@@ -277,7 +279,7 @@ eds_amf_CSI_set_callback(SaInvocationT invocation,
 				 * Need to check for transition from QUEISCED back to ACTIVE 
 				 */
 				if (eds_cb->ha_state == SA_AMF_HA_ACTIVE) {
-					eds_imm_declare_implementer(&eds_cb->immOiHandle);
+					eds_imm_declare_implementer(eds_cb);
 				}
 			}
 		}

@@ -71,6 +71,8 @@ uint32_t eds_cb_init(EDS_CB *eds_cb)
 	/* Assign Initial HA state */
 	eds_cb->ha_state = EDS_HA_INIT_STATE;
 	eds_cb->csi_assigned = false;
+	eds_cb->is_impl_set = false;
+
 	/* Assign Version. Currently, hardcoded, This will change later */
 	m_GET_MY_VERSION(eds_cb->eds_version);
 
@@ -188,11 +190,7 @@ void eds_main_process(SYSF_MBX *mbx)
 	ncshm_give_hdl(gl_eds_hdl);
 
 	/* Initialize with IMM */
-	if (eds_imm_init(eds_cb) == SA_AIS_OK) {
-		if (eds_cb->ha_state == SA_AMF_HA_ACTIVE) {
-			eds_imm_declare_implementer(&eds_cb->immOiHandle);
-		}
-	} else {
+	if (eds_imm_init(eds_cb) != SA_AIS_OK) {
 		LOG_ER("Imm Init Failed. Exiting");
 		exit(EXIT_FAILURE);
 	}
@@ -213,7 +211,7 @@ void eds_main_process(SYSF_MBX *mbx)
 
 	while (1) {
 
-		if (eds_cb->immOiHandle != 0) {
+		if ((eds_cb->immOiHandle != 0) && (eds_cb->is_impl_set == true)){
 			fds[FD_IMM].fd = eds_cb->imm_sel_obj;
 			fds[FD_IMM].events = POLLIN;
 			nfds = FD_IMM + 1;
@@ -281,6 +279,7 @@ void eds_main_process(SYSF_MBX *mbx)
 				/* Invalidate the IMM OI handle. */
 				saImmOiFinalize(eds_cb->immOiHandle);
 				eds_cb->immOiHandle = 0;
+				eds_cb->is_impl_set = false;
 				eds_imm_reinit_bg(eds_cb);
 				
 			} else if (error != SA_AIS_OK) {
