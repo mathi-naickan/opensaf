@@ -177,8 +177,7 @@ typedef struct clms_cb_t {
 	CLMA_DOWN_LIST *clma_down_list_tail;
 	NODE_DOWN_LIST *node_down_list_head;	/*NODE_DOWN record - Fix when active node goes down */
 	NODE_DOWN_LIST *node_down_list_tail;
-	/*NCS_LOCK lock; */
-
+	bool is_impl_set;
 } CLMS_CB;
 
 typedef struct clms_lock_tmr_t {

@@ -632,6 +632,7 @@ static uint32_t proc_mds_quiesced_ack_msg(CLMSV_CLMS_EVT * evt)
 		/* Update control block */
 		saAmfResponse(clms_cb->amf_hdl, clms_cb->amf_inv, SA_AIS_OK);
 		clms_cb->is_quiesced_set = false;
+		clms_cb->is_impl_set = false;
 	}
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;

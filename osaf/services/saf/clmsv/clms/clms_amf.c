@@ -90,6 +90,7 @@ static SaAisErrorT amf_quiescing_state_handler(CLMS_CB * cb, SaInvocationT invoc
 
 	/* Give up our IMM OI implementer role */
 	(void)immutil_saImmOiImplementerClear(cb->immOiHandle);
+	cb->is_impl_set = false;
 
 	TRACE_LEAVE();
 	return saAmfCSIQuiescingComplete(cb->amf_hdl, invocation, SA_AIS_OK);

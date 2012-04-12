@@ -98,6 +98,8 @@ static void *imm_impl_set_node_down_proc(void *_cb)
 	clms_cb->node_down_list_head = NULL;
 	clms_cb->node_down_list_tail = NULL;
 
+	cb->is_impl_set = true;
+
 	TRACE_LEAVE();
 	return NULL;
 }
@@ -404,6 +406,7 @@ SaAisErrorT clms_imm_activate(CLMS_CB *cb)
 		}
 
 		clms_all_node_rattr_update();
+		cb->is_impl_set = true;
 	}
 
 	rc = SA_AIS_OK;
@@ -2096,6 +2099,7 @@ static void  *clm_imm_reinit_thread(void * _cb)
 			LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster rc:%u, exiting", ais_rc);
 			exit(EXIT_FAILURE);
 		}
+		cb->is_impl_set = true;
 	}
 
 	TRACE_LEAVE();

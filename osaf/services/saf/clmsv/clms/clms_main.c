@@ -226,6 +226,7 @@ uint32_t clms_cb_init(CLMS_CB * clms_cb)
 	clms_cb->csi_assigned = false;
 	clms_cb->curr_invid = 1;
 	clms_cb->immOiHandle = 0;
+	clms_cb->is_impl_set = false;
 
 	/* Assign Version. Currently, hardcoded, This will change later */
 	clms_cb->clm_ver.releaseCode = CLM_RELEASE_CODE;
@@ -404,7 +405,7 @@ int main(int argc, char *argv[])
 
 	while (1) {
 
-		if (clms_cb->immOiHandle != 0) {
+		if ((clms_cb->immOiHandle != 0) && (clms_cb->is_impl_set == true)) {
 			fds[FD_IMM].fd = clms_cb->imm_sel_obj;
 			fds[FD_IMM].events = POLLIN;
 			nfds = NUM_FD;
@@ -483,6 +484,7 @@ int main(int argc, char *argv[])
 					 */
 					saImmOiFinalize(clms_cb->immOiHandle);
 					clms_cb->immOiHandle = 0;
+					clms_cb->is_impl_set = false;
 
 					/* Initiate IMM reinitializtion in the background */
 					clm_imm_reinit_bg(clms_cb);
