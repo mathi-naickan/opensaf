@@ -482,6 +482,7 @@ void gld_main_process(SYSF_MBX *mbx)
 		LOG_ER("Handle take failed");
 		goto end;
 	}
+	gld_cb->is_impl_set = false;
 	mbx_fd = ncs_ipc_get_sel_obj(&gld_cb->mbx);
 	error = saAmfSelectionObjectGet(gld_cb->amf_hdl, &amf_sel_obj);
 
@@ -501,7 +502,7 @@ void gld_main_process(SYSF_MBX *mbx)
 	fds[FD_IMM].events = POLLIN;
 
 	while (1) {
-		if (gld_cb->immOiHandle != 0) {
+		if ((gld_cb->immOiHandle != 0) && (gld_cb->is_impl_set == true)){
 			fds[FD_IMM].fd = gld_cb->imm_sel_obj;
 			fds[FD_IMM].events = POLLIN;
 			nfds = FD_IMM + 1;
@@ -567,6 +568,7 @@ void gld_main_process(SYSF_MBX *mbx)
 				 ** is used in context of these functions.
 				 */
 				gld_cb->immOiHandle = 0;
+				gld_cb->is_impl_set = false;
 				gld_imm_reinit_bg(gld_cb);
 			} else if (error != SA_AIS_OK) {
 				TRACE_2("saImmOiDispatch FAILED: %u", error);

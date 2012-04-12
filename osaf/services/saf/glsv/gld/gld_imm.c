@@ -242,6 +242,7 @@ void *_gld_imm_declare_implementer(void *cb)
 		LOG_ER("saImmOiImplementerSet FAILED, rc = %u", error);
 		exit(EXIT_FAILURE);
 	}
+	gld_cb->is_impl_set = true;
 	return NULL;
 }
 
@@ -274,8 +275,9 @@ static void *gld_imm_reinit_thread(void *_cb)
 	error = gld_imm_init(cb);
 	if (error == SA_AIS_OK) {
 		/* If this is the active server, become implementer again. */
-		if (cb->ha_state == SA_AMF_HA_ACTIVE)
+		if (cb->ha_state == SA_AMF_HA_ACTIVE) {
 			_gld_imm_declare_implementer(cb);
+		}
 	} else {
 
 		LOG_ER("gld_imm_initialize FAILED: %s", strerror(error));

@@ -685,7 +685,7 @@ static uint32_t gld_quisced_process(GLSV_GLD_EVT *evt)
 		if (rc != SA_AIS_OK) {
 			LOG_ER("saImmOiImplementerClear failed: err = %d", rc);
 		}
-
+		gld_cb->is_impl_set = false;
 		rc = glsv_gld_mbcsv_chgrole(gld_cb);
 		if (rc != NCSCC_RC_SUCCESS) {
 			m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);

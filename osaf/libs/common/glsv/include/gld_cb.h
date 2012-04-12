@@ -109,6 +109,7 @@ typedef struct glsv_gld_cb_tag {
 	SaImmOiHandleT immOiHandle;	/* IMM OI Handle */
 	SaSelectionObjectT imm_sel_obj;	/*Selection object to wait for 
 					   IMM events */
+	bool is_impl_set;
 } GLSV_GLD_CB;
 
 #define GLD_CB_NULL  ((GLSV_GLD_CB *)0)
