@@ -18,8 +18,6 @@
 #include "imm_dumper.hh"
 #include <errno.h>
 #include <signal.h>
-//#include <fcntl.h>
-#include <assert.h>
 #include <saImmOi.h>
 #include "immutil.h"
 #include <poll.h>
@@ -27,6 +25,7 @@
 #include <cstdlib>
 #include <nid_api.h> /* To define NCS_SEL_OBJ */
 
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 #define FD_IMM_PBE_OI 0
 #define FD_IMM_PBE_OM 1
@@ -72,7 +71,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		bool schemaChange = false;
 		bool persistentExtent = false; /* ConfigC or PrtoC. Only relevant if schmaChange == true */
 		if(!param || (param->paramType != SA_IMM_ATTR_SASTRINGT)) {
-			(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
+			rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
 			goto done;
 		}
 		TRACE("paramName: %s paramType: %u value:%s", param->paramName, param->paramType, *((SaStringT *) param->paramBuffer));
@@ -93,7 +92,11 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 				LOG_IN("PBE detected schema change for class %s", className.c_str());
 				schemaChange = true;
 				AttrMap::iterator ami = theClass->mAttrMap.begin();
-				assert(ami != theClass->mAttrMap.end());
+				if(ami == theClass->mAttrMap.end()) {
+					LOG_ER("No attributes in class definition");
+					rc = SA_AIS_ERR_FAILED_OPERATION;
+					goto done;
+				}
 				while(ami != theClass->mAttrMap.end()) {
 					SaImmAttrFlagsT attrFlags = ami->second;
 					if(attrFlags & SA_IMM_ATTR_CONFIG) {
@@ -112,7 +115,11 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 					LOG_IN("PBE removed %u old instances of class %s", instances, className.c_str());
 				}
 				deleteClassToPBE(className, sDbHandle, theClass);
-				assert(sClassIdMap->erase(className) == 1);
+				if(sClassIdMap->erase(className) != 1) {
+					LOG_ER("sClassIdMap->erase(className) != 1");
+					rc = SA_AIS_ERR_FAILED_OPERATION;
+					goto done;
+				}
 				delete theClass;
 				theClass = NULL;
 				LOG_IN("PBE removed old class definition for %s", className.c_str());
@@ -157,11 +164,11 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		   unused (in immsv) error code SA_AIS_ERR_REPAIR_PENDING. This way the immnd can tell that this
 		   is supposed to be an ok reply on PBE_CLASS_CREATE. This usage is internal to immsv.
 		*/
-		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_REPAIR_PENDING);
+		rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_REPAIR_PENDING);
 
 	} else if(opId == OPENSAF_IMM_PBE_CLASS_DELETE) {
 		if(!param || (param->paramType != SA_IMM_ATTR_SASTRINGT)) {
-			(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
+			rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
 			goto done;
 		}
 		TRACE("paramName: %s paramType: %u value:%s", param->paramName, param->paramType, *((SaStringT *) param->paramBuffer));
@@ -199,7 +206,11 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 			goto done;
 		}
 
-		assert(sClassIdMap->erase(className) == 1);
+		if(sClassIdMap->erase(className) != 1) {
+			LOG_ER("sClassIdMap->erase(className) != 1");
+			rc = SA_AIS_ERR_FAILED_OPERATION;
+			goto done;
+		}
 		delete theClass;
 		TRACE("Commit PBE transaction for class delete");
 		/* We only reply with ok result. PBE failed class delete handled by timeout, cleanup.
@@ -207,11 +218,11 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		   unused (in immsv) error code SA_AIS_ERR_NO_SPACE. This way the immnd can tell that this
 		   is supposed to be an ok reply on PBE_CLASS_DELETE. This usage is internal to immsv.
 		*/
-		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_NO_SPACE);
+		rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_NO_SPACE);
 
 	} else if(opId == OPENSAF_IMM_PBE_UPDATE_EPOCH) {
 		if(!param || (param->paramType != SA_IMM_ATTR_SAUINT32T)) {
-			(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
+			rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
 			goto done;
 		}
 		TRACE("paramName: %s paramType: %u value:%u", param->paramName, param->paramType, *((SaUint32T *) param->paramBuffer));
@@ -255,7 +266,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		   tell that this is supposed to be an ok reply on PBE_UPDATE_EPOCH. This usage is
 		   internal to immsv.
 		*/
-		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_QUEUE_NOT_AVAILABLE);
+		rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_QUEUE_NOT_AVAILABLE);
 	} else if(opId == OPENSAF_IMM_NOST_FLAG_ON) {
 		SaNameT myObj;
 		strcpy((char *) myObj.value, OPENSAF_IMM_OBJECT_DN);
@@ -269,7 +280,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		if(!param || (param->paramType != SA_IMM_ATTR_SAUINT32T) || 
 			strcmp(param->paramName, (char *) OPENSAF_IMM_ATTR_NOSTD_FLAGS)) {
 			LOG_IN("Incorrect parameter to NostdFlags-ON, should be 'flags:SA_UINT32_T:nnnn");
-			(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
+			rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
 			goto done;
 		}
 
@@ -284,7 +295,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 				attMod.modAttr.attrName, (char *) myObj.value, rc);
 		}
 
-		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+		rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 	} else if(opId == OPENSAF_IMM_NOST_FLAG_OFF) {
 		SaNameT myObj;
 		strcpy((char *) myObj.value, OPENSAF_IMM_OBJECT_DN);
@@ -298,7 +309,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		if(!param || (param->paramType != SA_IMM_ATTR_SAUINT32T) ||
 			strcmp(param->paramName, (char *) OPENSAF_IMM_ATTR_NOSTD_FLAGS)) {
 			LOG_IN("Incorrect parameter to NostdFlags-OFF, should be 'flags:SA_UINT32_T:nnnn");
-			(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
+			rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
 			goto done;
 		}
 
@@ -313,14 +324,18 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 				attMod.modAttr.attrName, (char *) myObj.value, rc);
 		}
 
-		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+		rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 	} else {
 		LOG_WA("Invalid operation ID %llu", (SaUint64T) opId);
-		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
+		rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
 	}
  done:
-	assert(rc == SA_AIS_OK);
 	TRACE_LEAVE();
+	if(rc != SA_AIS_OK) {
+		pbeRepositoryClose(sDbHandle);
+		LOG_ER("Exiting rc=%u (line:%u)", rc, __LINE__);
+		exit(1);
+	}
 }
 
 static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
@@ -348,7 +363,11 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		 */
 	} else {
 		/* "memorize the modification request" */
-		assert(ccbutil_ccbAddModifyOperation(ccbUtilCcbData, objectName, attrMods) == 0);
+		if(ccbutil_ccbAddModifyOperation(ccbUtilCcbData, objectName, attrMods) != 0) {
+			LOG_ER("ccbutil_ccbAddModifyOperation did NOT return zero");
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		}
 	}
 
 	if(ccbId == 0) {
@@ -356,7 +375,11 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		int ix=0;
 		std::string objName;
 		operation = ccbutil_getNextCcbOp(0, NULL);
-		assert(operation);
+		if(operation == NULL) {
+			LOG_ER("ccbutil_getNextCcbOp(0, NULL) returned NULL");
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		}
 		
 		TRACE("Update of PERSISTENT runtime attributes in object with DN: %s",
 			operation->objectName.value);
@@ -694,7 +717,12 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 	/* "memorize the creation request" */
 
 	operation = ccbutil_ccbAddCreateOperation(ccbUtilCcbData, className, parentName, attr);
-	assert(operation);
+	if(operation == NULL) {
+		LOG_ER("ccbutil_ccbAddCreateOperation returned NULL");
+		rc = SA_AIS_ERR_BAD_OPERATION;
+		goto done;
+	}
+
 	/* Find the RDN attribute, construct the object DN and store it with the object. */
 	while((attrValue = attr[i++]) != NULL) {
 		std::string attName(attrValue->attrName);
@@ -745,10 +773,13 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 		goto done;
 	}
 
-	assert(operation->objectName.length > 0);
+	if(operation->objectName.length <= 0) {
+		LOG_ER("operation->objectName.length can not be zero or negative");
+		rc = SA_AIS_ERR_BAD_OPERATION;
+		goto done;		
+	}
 
 	if(ccbId == 0) {
-		assert(operation);
 		TRACE("Create of PERSISTENT runtime object with DN: %s",
 			operation->objectName.value);
 		rc = pbeBeginTrans(sDbHandle);
@@ -965,11 +996,14 @@ SaAisErrorT pbe_daemon_imm_init(SaImmHandleT immHandle)
 		SaImmAttrValuesT_2 ** resultAttrs;
 		rc = saImmOmAccessorGet_2(accessorHandle, &myObj, attNames, &resultAttrs);
 		if(rc == SA_AIS_OK) {
-			assert(resultAttrs[0] && 
-				(resultAttrs[0]->attrValueType == SA_IMM_ATTR_SAUINT32T) &&
-				(resultAttrs[0]->attrValuesNumber == 1));
-			sNoStdFlags = *((SaUint32T *) resultAttrs[0]->attrValues[0]);
-			TRACE("NostdFlags initialized to %x", sNoStdFlags);
+			if(resultAttrs[0]==NULL || 
+				(resultAttrs[0]->attrValueType != SA_IMM_ATTR_SAUINT32T) ||
+				(resultAttrs[0]->attrValuesNumber != 1)) {
+				rc = SA_AIS_ERR_FAILED_OPERATION;
+			} else {
+				sNoStdFlags = *((SaUint32T *) resultAttrs[0]->attrValues[0]);
+				TRACE("NostdFlags initialized to %x", sNoStdFlags);
+			}
 		}
 	}
 
@@ -980,7 +1014,6 @@ SaAisErrorT pbe_daemon_imm_init(SaImmHandleT immHandle)
 
 	return rc;
 }
-
 
 void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 	unsigned int objCount)
@@ -996,6 +1029,11 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 	sClassIdMap = classIdMap;
 	sObjCount = objCount;
 
+	immutilWrapperProfile.errorsAreFatal = 0;
+	immutilWrapperProfile.retryInterval = 400;
+	immutilWrapperProfile.nTries = 5;
+
+
 	/* Restore also sClassCount. */
 	for(ci=sClassIdMap->begin(); ci!=sClassIdMap->end();++ci) {
 
@@ -1005,21 +1043,25 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 	}
 
 	if (pbe_daemon_imm_init(immHandle) != SA_AIS_OK) {
+		pbeRepositoryClose(sDbHandle);
 		exit(1);
 	}
 
 	if (signal(SIGUSR2, sigusr2_handler) == SIG_ERR) {
 		LOG_ER("signal USR2 failed: %s", strerror(errno));
+		pbeRepositoryClose(sDbHandle);
 		exit(1);
 	}
 
 	if (ncs_sel_obj_create(&term_sel_obj) != NCSCC_RC_SUCCESS) {
 		LOG_ER("ncs_sel_obj_create failed");
+		pbeRepositoryClose(sDbHandle);
 		exit(1);
 	}
 
 	if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
 		LOG_ER("Failed to registe signal handler for TERM: %s", strerror(errno));
+		pbeRepositoryClose(sDbHandle);
 		exit(1);
 	}
 

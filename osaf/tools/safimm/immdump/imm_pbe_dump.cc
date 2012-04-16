@@ -60,7 +60,9 @@ static void typeToPBE(SaImmAttrDefinitionT_2* p,
 			break;
 
 		default:
-			TRACE_4("Unknown value type %u", p->attrValueType);
+			LOG_ER("Unknown value type %u. Exiting (line:%u)",
+				p->attrValueType, __LINE__);
+			sqlite3_close((sqlite3 *) dbHandle);
 			exit(1);
 	}
 }
@@ -101,7 +103,7 @@ static void valuesToPBE(const SaImmAttrValuesT_2* p,
 
 		default:
 			LOG_ER("Unknown value type: %u (line:%u)", p->attrValueType, __LINE__);
-			abort();
+			goto bailout;
 	}
 	sqlG.append(objIdStr);
 	sqlG.append("', '");
@@ -118,10 +120,16 @@ static void valuesToPBE(const SaImmAttrValuesT_2* p,
 			LOG_ER("SQL statement ('%s') failed because:\n %s", sqlG1.c_str(),
 				execErr);
 			sqlite3_free(execErr);
-			exit(1);
+			goto bailout;
 		}
 	}
 	TRACE_LEAVE();
+	return;
+
+ bailout:
+	sqlite3_close((sqlite3 *) dbHandle);
+	LOG_ER("Exiting (line:%u)", __LINE__);
+	exit(1);	
 }
 
 
@@ -479,7 +487,7 @@ ClassInfo* classToPBE(std::string classNameString,
 	{
 		TRACE_4("Failed to get the description for the %s class error:%u - exiting",
 			classNameString.c_str(), errorCode);
-		exit(1);
+		goto bailout;
 	}
 
 	snprintf(classIdStr, STRINT_BSZ, "%u", class_id);
@@ -873,6 +881,7 @@ void stampObjectWithCcbId(void* db_handle, const char* object_id,  SaUint64T ccb
 		LOG_ER("SQL statement ('%s') failed because:\n %s", 
 			stampObj.c_str(), execErr);
 		sqlite3_free(execErr);
+		sqlite3_close((sqlite3 *) dbHandle);
 		exit(1);
 	}
 	TRACE_LEAVE();
@@ -2220,8 +2229,12 @@ void pbeAbortTrans(void* db_handle)
 		LOG_ER("SQL statement ('ROLLBACK') failed because:\n %s",
 			execErr);
 		sqlite3_free(execErr);
-		abort();
+		goto bailout;
 	}
+ bailout:
+	sqlite3_close(dbHandle);
+	LOG_ER("Exiting (line:%u)", __LINE__);
+	exit(1);
 }
 
 SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T currentEpoch)
@@ -2265,7 +2278,7 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T cur
 		if(ccbEpoch > currentEpoch) {
 			LOG_ER("Recovered CCB has higher epoch (%u) than current epoch (%u) not allowed.",
 				ccbEpoch, currentEpoch);
-			exit(1);
+			goto bailout;
 		}
 		err = SA_AIS_OK;
 	}
