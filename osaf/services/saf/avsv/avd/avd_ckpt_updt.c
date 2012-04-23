@@ -17,6 +17,7 @@
 
 #include <logtrace.h>
 #include <avd.h>
+#include <avd_csi.h>
 
 static char *action_name[] = {
 	"invalid",
@@ -391,12 +392,15 @@ uint32_t avd_ckpt_si_trans(AVD_CL_CB *cb, AVSV_SI_TRANS_CKPT_MSG *si_trans_ckpt,
  *
  * 
 \**************************************************************************/
-uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_MBCSV_ACT_TYPE action)
+uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_MBCSV_CB_DEC *dec)
 {
 	uint32_t status = NCSCC_RC_SUCCESS;
 	AVD_SU_SI_REL *su_si_rel_ptr;
 	AVD_SU *su_ptr;
 	AVD_SI *si_ptr_up;
+	AVD_COMP *comp_ptr;
+	AVD_CSI *csi_ptr;
+	NCS_MBCSV_ACT_TYPE action = dec->i_action;
 
 	TRACE_ENTER2("'%s' '%s'", su_si_ckpt->si_name.value, su_si_ckpt->su_name.value);
 
@@ -406,6 +410,9 @@ uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_
 	osafassert(su_ptr);
 	si_ptr_up = avd_si_get(&su_si_ckpt->si_name);
 	osafassert(si_ptr_up);
+	/* Since csi_add_rem flag is not memset in older versions, make sure it is set here. */
+	if(dec->i_peer_version <= AVD_AVD_MSG_FMT_VER_3)
+		su_si_ckpt->csi_add_rem = 0;
 
 	switch (action) {
 	case NCS_MBCSV_ACT_ADD:
@@ -430,6 +437,24 @@ uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_
 			if (su_si_rel_ptr->csi_add_rem) {
 				su_si_rel_ptr->comp_name = su_si_ckpt->comp_name;
 				su_si_rel_ptr->csi_name = su_si_ckpt->csi_name;
+				TRACE("compcsi create for '%s' '%s'", su_si_rel_ptr->comp_name.value, su_si_rel_ptr->csi_name.value);
+				if ((comp_ptr = avd_comp_get(&(su_si_rel_ptr->comp_name))) == NULL) {
+					LOG_ER("avd_comp_get FAILED for '%s'", su_si_rel_ptr->comp_name.value);
+					return NCSCC_RC_FAILURE;
+				}
+				if ((csi_ptr = avd_csi_get (&(su_si_rel_ptr->csi_name))) == NULL) {
+					/* This condition will arise if there is some delay in the ccb apply callback
+					 * So create csi and add it to the csi_db here, later in the ccb apply callback
+					 * attributes will be updated and csi will be added to the model
+					 */
+					csi_ptr = csi_create(&su_si_rel_ptr->csi_name);
+					osafassert(csi_ptr);
+				}
+				if ((avd_compcsi_create(su_si_rel_ptr, csi_ptr, comp_ptr, false)) == NULL) {
+					LOG_ER("avd_compcsi_create FAILED for csi '%s' comp '%s'",
+						su_si_rel_ptr->csi_name.value,su_si_rel_ptr->comp_name.value);
+					return NCSCC_RC_FAILURE;
+				}	
 			} else {
 				memset(&(su_si_rel_ptr->comp_name),0,sizeof(SaNameT));
 				memset(&(su_si_rel_ptr->csi_name),0,sizeof(SaNameT));
@@ -441,8 +466,42 @@ uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_
 		break;
 	case NCS_MBCSV_ACT_RMV:
 		if (NULL != su_si_rel_ptr) {
-			avd_compcsi_delete(cb, su_si_rel_ptr, true);
-			avd_susi_delete(cb, su_si_rel_ptr, true);
+			if(su_si_ckpt->csi_add_rem) {
+				TRACE("compcsi remove for '%s' '%s'", su_si_ckpt->comp_name.value, su_si_ckpt->csi_name.value);
+				if ((comp_ptr = avd_comp_get(&(su_si_ckpt->comp_name))) == NULL) {
+					LOG_ER("avd_comp_get FAILED for '%s'",su_si_ckpt->comp_name.value);
+					return NCSCC_RC_FAILURE;
+				}
+
+				if ((csi_ptr = avd_csi_get (&(su_si_ckpt->csi_name))) == NULL) {
+					LOG_ER("avd_csi_get FAILED for '%s'",su_si_ckpt->csi_name.value);
+					return NCSCC_RC_FAILURE;
+				}
+				/* Find the relevant comp-csi to send susi delete. */
+				AVD_COMP_CSI_REL *t_csicomp;
+				for (t_csicomp = su_si_rel_ptr->list_of_csicomp;t_csicomp;t_csicomp = t_csicomp->susi_csicomp_next) {
+					if ((t_csicomp->csi == csi_ptr) && (t_csicomp->comp == comp_ptr))
+						break;
+				}
+				if (!t_csicomp) {
+					LOG_ER("csicomp not found csi:'%s' comp:'%s'",su_si_ckpt->csi_name.value,su_si_ckpt->comp_name.value);
+					return NCSCC_RC_FAILURE;
+				}
+
+				/* Delete comp-csi. */
+				avd_compcsi_from_csi_and_susi_delete(su_si_rel_ptr, t_csicomp, false);
+
+				if (csi_ptr->list_compcsi == NULL ) {
+					/* delete the pg-node list */
+					avd_pg_csi_node_del_all(avd_cb, csi_ptr);
+
+					/* free memory and remove from DB */
+					avd_csi_delete(csi_ptr);
+				}
+			} else {
+				avd_compcsi_delete(cb, su_si_rel_ptr, true);
+				avd_susi_delete(cb, su_si_rel_ptr, true);
+			}
 		} else {
 			LOG_ER("%s: %s %s does not exist", __FUNCTION__,
 				su_si_ckpt->su_name.value, su_si_ckpt->si_name.value);

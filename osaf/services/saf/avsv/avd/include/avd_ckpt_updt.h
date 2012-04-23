@@ -41,7 +41,7 @@ uint32_t avd_ckpt_su(AVD_CL_CB *cb, AVD_SU *su, NCS_MBCSV_ACT_TYPE action);
 uint32_t avd_ckpt_si(AVD_CL_CB *cb, AVD_SI *si, NCS_MBCSV_ACT_TYPE action);
 uint32_t avd_ckpt_su_oper_list(AVD_CL_CB *cb, AVD_SU *su_ptr, NCS_MBCSV_ACT_TYPE action);
 uint32_t avd_ckpt_sg_admin_si(AVD_CL_CB *cb, NCS_UBAID *uba, NCS_MBCSV_ACT_TYPE action);
-uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_MBCSV_ACT_TYPE action);
+uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_MBCSV_CB_DEC *dec);
 uint32_t avd_ckpt_si_trans(AVD_CL_CB *cb, AVSV_SI_TRANS_CKPT_MSG *si_trans, NCS_MBCSV_ACT_TYPE action);
 uint32_t avd_ckpt_comp(AVD_CL_CB *cb, AVD_COMP *comp, NCS_MBCSV_ACT_TYPE action);
 uint32_t avsv_ckpt_add_rmv_updt_sus_per_si_rank_data(AVD_CL_CB *cb,

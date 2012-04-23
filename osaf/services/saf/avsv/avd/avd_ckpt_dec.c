@@ -695,9 +695,9 @@ static uint32_t avsv_decode_ckpt_avd_siass(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 		break;
 
 	case NCS_MBCSV_ACT_RMV:
-		/* Send only key information */
-		status = ncs_edu_exec(&cb->edu_hdl, avsv_edp_ckpt_msg_siass, &dec->i_uba,
-			EDP_OP_TYPE_DEC, (AVSV_SU_SI_REL_CKPT_MSG **)&su_si_ckpt, &ederror, 2, 1, 2);
+		status = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_siass,
+				&dec->i_uba, EDP_OP_TYPE_DEC, (AVSV_SU_SI_REL_CKPT_MSG **)&su_si_ckpt,
+				&ederror, dec->i_peer_version);
 		break;
 
 	default:
@@ -709,7 +709,7 @@ static uint32_t avsv_decode_ckpt_avd_siass(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 		return status;
 	}
 
-	avd_ckpt_siass(cb, su_si_ckpt, dec->i_action);
+	avd_ckpt_siass(cb, su_si_ckpt, dec);
 
 	/* If update is successful, update async update count */
 	if (NCSCC_RC_SUCCESS == status)
@@ -3008,7 +3008,7 @@ static uint32_t avsv_decode_cold_sync_rsp_avd_siass(AVD_CL_CB *cb, NCS_MBCSV_CB_
 			LOG_ER("%s: decode failed, ederror=%u", __FUNCTION__, ederror);
 		}
 
-		status = avd_ckpt_siass(cb, su_si_ckpt, dec->i_action);
+		status = avd_ckpt_siass(cb, su_si_ckpt, dec);
 
 		if (status != NCSCC_RC_SUCCESS) {
 			return NCSCC_RC_FAILURE;

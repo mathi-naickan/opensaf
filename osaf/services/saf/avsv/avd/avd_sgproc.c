@@ -1074,6 +1074,9 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				AVD_CSI *csi_tobe_deleted = NULL;
 
 				osafassert(susi->csi_add_rem);
+				/* Checkpointing for compcsi removal */
+				m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV (avd_cb, susi, AVSV_CKPT_AVD_SI_ASS);
+
 				susi->csi_add_rem = false;
 				comp = avd_comp_get(&susi->comp_name);
 				osafassert(comp);

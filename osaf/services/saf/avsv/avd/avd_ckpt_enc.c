@@ -625,6 +625,7 @@ static uint32_t avsv_encode_ckpt_avd_siass(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc)
 	AVSV_SU_SI_REL_CKPT_MSG su_si_ckpt;
 	EDU_ERR ederror = 0;
 
+	memset(&su_si_ckpt, 0, sizeof(su_si_ckpt));
 	/* 
 	 * Check for the action type (whether it is add, rmv or update) and act
 	 * accordingly. If it is update or add, encode entire data. If it is rmv
@@ -647,9 +648,12 @@ static uint32_t avsv_encode_ckpt_avd_siass(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc)
 		break;
 
 	case NCS_MBCSV_ACT_RMV:
-		/* Send only key information */
-		status = m_NCS_EDU_SEL_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_siass, &enc->io_uba,
-			EDP_OP_TYPE_ENC, &su_si_ckpt, &ederror, enc->i_peer_version, 2, 1, 2);
+		su_si_ckpt.csi_add_rem = ((AVD_SU_SI_REL *)(NCS_INT64_TO_PTR_CAST(enc->io_reo_hdl)))->csi_add_rem;
+		su_si_ckpt.comp_name = ((AVD_SU_SI_REL *)(NCS_INT64_TO_PTR_CAST(enc->io_reo_hdl)))->comp_name;
+		su_si_ckpt.csi_name = ((AVD_SU_SI_REL *)(NCS_INT64_TO_PTR_CAST(enc->io_reo_hdl)))->csi_name;
+
+		status = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_siass,
+				&enc->io_uba, EDP_OP_TYPE_ENC, &su_si_ckpt, &ederror, enc->i_peer_version);
 		break;
 
 	default:
@@ -2442,6 +2446,7 @@ static uint32_t avsv_encode_cold_sync_rsp_avd_siass(AVD_CL_CB *cb, NCS_MBCSV_CB_
 	 * in the same update.
 	 */
 	su_name.length = 0;
+	memset(&su_si_ckpt, 0, sizeof(su_si_ckpt));
 	for (su = avd_su_getnext(&su_name); su != NULL;
 	     su = avd_su_getnext(&su_name)) {
 		su_si_ckpt.su_name = su->name;

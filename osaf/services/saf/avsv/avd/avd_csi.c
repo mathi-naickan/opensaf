@@ -26,22 +26,6 @@
 
 static NCS_PATRICIA_TREE csi_db;
 
-/**
- * Add the CSI to the DB
- * @param csi
- */
-static void csi_add_to_model(AVD_CSI *csi)
-{
-	unsigned int rc;
-
-	rc = ncs_patricia_tree_add(&csi_db, &csi->tree_node);
-	osafassert(rc == NCSCC_RC_SUCCESS);
-
-	csi->cstype = avd_cstype_get(&csi->saAmfCSType);
-	avd_cstype_add_csi(csi);
-	avd_si_add_csi(csi);
-}
-
 void avd_csi_delete(AVD_CSI *csi)
 {
 	AVD_CSI_ATTR *temp;
@@ -248,24 +232,46 @@ static bool csi_add_csidep(AVD_CSI *csi,AVD_CSI_DEPS *new_csi_dep)
 
 	return csi_added;
 }
-
-static AVD_CSI *csi_create(const SaNameT *csi_name, const SaImmAttrValuesT_2 **attributes, const SaNameT *si_name)
+/**
+ * @brief	creates new csi and adds csi node to the csi_db 
+ *
+ * @param[in]	csi_name 
+ *
+ * @return	pointer to AVD_CSI	
+ */
+AVD_CSI *csi_create(const SaNameT *csi_name)
 {
-	int rc = -1;
 	AVD_CSI *csi;
-	unsigned int values_number = 0;
-	SaAisErrorT error;
 
 	TRACE_ENTER2("'%s'", csi_name->value);
 
 	if ((csi = calloc(1, sizeof(*csi))) == NULL) {
 		LOG_ER("calloc FAILED");
-		return NULL;
+		osafassert(0);
 	}
-
 	memcpy(csi->name.value, csi_name->value, csi_name->length);
 	csi->name.length = csi_name->length;
 	csi->tree_node.key_info = (uint8_t *)&(csi->name);
+
+	if (ncs_patricia_tree_add(&csi_db, &csi->tree_node) != NCSCC_RC_SUCCESS)
+		osafassert(0);
+
+	return csi;
+}
+/**
+ * @brief	Reads csi attributes  from imm and csi to the model
+ *
+ * @param[in]	csi_name 
+ *
+ * @return	pointer to AVD_CSI	
+ */
+static void csi_get_attr_and_add_to_model(AVD_CSI *csi, const SaImmAttrValuesT_2 **attributes, const SaNameT *si_name)
+{
+	int rc = -1;
+	unsigned int values_number = 0;
+	SaAisErrorT error;
+
+	TRACE_ENTER2("'%s'", csi->name.value);
 
 	/* initialize the pg node-list */
 	csi->pg_node_list.order = NCS_DBLIST_ANY_ORDER;
@@ -284,22 +290,20 @@ static AVD_CSI *csi_create(const SaNameT *csi_name, const SaImmAttrValuesT_2 **a
 			int i;
 			bool found = false;
 			AVD_CSI_DEPS *new_csi_dep = NULL;
-			
+
 			for (i = 0; i < values_number; i++) {
 				if (!found)
 					new_csi_dep  =  calloc(1, sizeof(*new_csi_dep));
-	               		if (immutil_getAttr("saAmfCSIDependencies", attributes, i,
+				if (immutil_getAttr("saAmfCSIDependencies", attributes, i,
 					&new_csi_dep->csi_dep_name_value) != SA_AIS_OK) {
-                               		LOG_ER("Get saAmfCSIDependencies FAILED for '%s'", csi_name->value);
-                               		goto done;
+					LOG_ER("Get saAmfCSIDependencies FAILED for '%s'", csi->name.value);
+					goto done;
 				}
 				found = csi_add_csidep(csi,new_csi_dep);
 			}
 			if (found == true)
 				free (new_csi_dep);
 		}
-
-
 	} else {
 		csi->rank = 1;
 		TRACE_ENTER2("DEP not configured, marking rank 1. Csi'%s', Rank'%u'",csi->name.value,csi->rank);
@@ -308,15 +312,17 @@ static AVD_CSI *csi_create(const SaNameT *csi_name, const SaImmAttrValuesT_2 **a
 	csi->cstype = avd_cstype_get(&csi->saAmfCSType);
 	csi->si = avd_si_get(si_name);
 
+	avd_cstype_add_csi(csi);
+	avd_si_add_csi(csi);
+
 	rc = 0;
 
  done:
 	if (rc != 0) {
 		free(csi);
-		csi = NULL;
+		osafassert(0);
 	}
 	TRACE_LEAVE(); 
-	return csi;
 }
 
 /**
@@ -356,10 +362,9 @@ SaAisErrorT avd_csi_config_get(const SaNameT *si_name, AVD_SI *si)
 
 		if ((csi = avd_csi_get (&csi_name)) == NULL)
 		{
-			if ((csi = csi_create(&csi_name, attributes, si_name)) == NULL)
-				goto done2;
+			csi = csi_create(&csi_name);
 
-			csi_add_to_model(csi);
+			csi_get_attr_and_add_to_model(csi, attributes, si_name);
 		}
 
 		if (avd_csiattr_config_get(&csi_name, csi) != SA_AIS_OK) {
@@ -626,11 +631,13 @@ static void ccb_apply_delete_hdlr(AVD_CSI *csi)
 
         TRACE_ENTER2("'%s'", csi->name.value);
 	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) { 
-		/* delete the pg-node list */
-		avd_pg_csi_node_del_all(avd_cb, csi);
+		if (csi->list_compcsi == NULL ) {
+			/* delete the pg-node list */
+			avd_pg_csi_node_del_all(avd_cb, csi);
 
-		/* free memory and remove from DB */
-		avd_csi_delete(csi);
+			/* free memory and remove from DB */
+			avd_csi_delete(csi);
+		}
 		goto done;
 	}
 
@@ -745,12 +752,15 @@ static void csi_ccb_apply_create_hdlr(struct CcbUtilOperationData *opdata)
         TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
 
-	csi = csi_create(&opdata->objectName, opdata->param.create.attrValues,
-			opdata->param.create.parentName);
-	osafassert(csi);
-	csi_add_to_model(csi);
+	if ((csi = avd_csi_get (&opdata->objectName)) == NULL) {
+		/* this check is added because, some times there is possibility that before getting ccb apply callback
+		 * we might get compcsi create checkpoint and csi will be created as part of checkpoint processing
+		 */
+		csi = csi_create(&opdata->objectName);
+	} 
+	csi_get_attr_and_add_to_model(csi, opdata->param.create.attrValues, opdata->param.create.parentName);
 
-	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) 
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
 		goto done;
 
 	/* Check whether si has been assigned to any SU. */
