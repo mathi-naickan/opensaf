@@ -133,13 +133,16 @@ ImmSearchOp::nextResult(IMMSV_OM_RSP_SEARCH_NEXT** rsp, SaUint32T* connp,
             }
             
             if((*i).valuep) {
-                //There is a current value for the attribute.
+                //There is possibly a value for the attribute in the OI
                 if(rtsToFetch && ((*i).flags & SA_IMM_ATTR_RUNTIME) &&
                     ! ((*i).flags & SA_IMM_ATTR_CACHED) &&
                     ! ((*i).flags & SA_IMM_ATTR_PERSISTENT)) {
                     //Dont set any value for non-cached and non-persistent
                     //runtime attributes, unless this is the local fetch
                     //of just those runtime attributes
+                    attr->attrValuesNumber=0;
+                } else if((*i).valuep->empty()) {
+                    //Value fetched from the OI for the attribute is empty.
                     attr->attrValuesNumber=0;
                 } else {
                     attr->attrValuesNumber = (*i).valuep->extraValues() + 1;
