@@ -458,14 +458,14 @@ static uint32_t assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 			if (single_csi) {
 				for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si->csi_list),
 					rank = curr_csi->rank;
-					(curr_csi != NULL) && (curr_csi->rank == rank);
+					(curr_csi != NULL) && ((curr_csi->rank == rank) || (curr_csi->si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_ASGN));
 					curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
 					curr_csi->comp->assigned_flag = false;
 				}
 			}
 			for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si->csi_list),
 				 rank = curr_csi->rank;
-				  (curr_csi != NULL) && (curr_csi->rank == rank);
+				  (curr_csi != NULL) && ((curr_csi->rank == rank) || (curr_csi->si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_ASGN));
 				  curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
 
 				if (AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED != curr_csi->curr_assign_state) {
@@ -490,14 +490,14 @@ static uint32_t assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 			if (single_csi) {
 				for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_LAST(&si->csi_list),
 					rank = curr_csi->rank;
-					(curr_csi != NULL) && (curr_csi->rank == rank);
+					(curr_csi != NULL) && ((curr_csi->rank == rank) || (curr_csi->si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_ASGN));
 					curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&curr_csi->si_dll_node)) {
 					curr_csi->comp->assigned_flag = false;
 				}
 			}
 			for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_LAST(&si->csi_list),
 				 rank = curr_csi->rank;
-				  (curr_csi != NULL) && (curr_csi->rank == rank);
+				  (curr_csi != NULL) && ((curr_csi->rank == rank) || (curr_csi->si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_ASGN));
 				  curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&curr_csi->si_dll_node)) {
 
 				/* We need to send only one csi set for a comp having  more than one CSI assignment for
