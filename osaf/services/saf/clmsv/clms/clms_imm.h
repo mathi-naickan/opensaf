@@ -44,5 +44,5 @@ extern uint32_t clms_prep_and_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node,
 				      SaClmClusterNotificationT_4 * notify);
 extern uint32_t clms_send_track_local(CLMS_CLUSTER_NODE * node, CLMS_CLIENT_INFO * client, 
 				     SaClmChangeStepT step);
-
+extern void clms_trackresp_patricia_init(CLMS_CLUSTER_NODE * node);
 #endif

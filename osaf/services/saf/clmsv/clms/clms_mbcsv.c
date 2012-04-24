@@ -276,6 +276,8 @@ static uint32_t ckpt_proc_node_csync_rec(CLMS_CB * cb, CLMS_CKPT_REC * data)
 		}
 		memset(node,0,sizeof(CLMS_CLUSTER_NODE));
 		prepare_cluster_node(node, param);      
+		/*Init patricia trackresp for each node */
+		clms_trackresp_patricia_init(node);	
 		clms_node_add_to_model(node);
 		if (node->node_id != 0) {
 			tmp_node = clms_node_get_by_id(node->node_id);

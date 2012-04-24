@@ -36,7 +36,7 @@ static SaVersionT immVersion = { 'A', 2, 1 };
 * Initialize the track response patricia tree for the node
 * @param[in] node node to initialize trackresponse tree
 */
-static void clms_trackresp_patricia_init(CLMS_CLUSTER_NODE * node)
+void clms_trackresp_patricia_init(CLMS_CLUSTER_NODE * node)
 {
 	NCS_PATRICIA_PARAMS trackresp_param;
 	TRACE_ENTER();
@@ -696,7 +696,7 @@ static void clms_create_track_resp_list(CLMS_CLUSTER_NODE * node, CLMS_CLIENT_IN
 	trk->client_dest = client->mds_dest;
 	trk->client_id_net = client->client_id_net;
 	trk->inv_id = client->inv_id;
-	trk->pat_node.key_info = (uint8_t *)&client->inv_id;	/*Key Info as inv id */
+	trk->pat_node.key_info = (uint8_t *)&trk->inv_id;	/*Key Info as inv id */
 
 	if (ncs_patricia_tree_add(&node->trackresp, &trk->pat_node) != NCSCC_RC_SUCCESS) {
 		LOG_ER("patricia tree add failed for CLMS_TRACK_INFO inv_id %llu",client->inv_id);
