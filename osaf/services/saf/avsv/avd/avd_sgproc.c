@@ -2340,6 +2340,7 @@ uint32_t avd_sg_su_asgn_del_util(AVD_CL_CB *cb, AVD_SU *su, bool del_flag, bool 
 			while (i_susi != AVD_SU_SI_REL_NULL) {
 				if (i_susi->fsm != AVD_SU_SI_STATE_UNASGN) {
 					i_susi->state = SA_AMF_HA_QUIESCED;
+					i_susi->fsm = AVD_SU_SI_STATE_ASGND;
 					m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, i_susi, AVSV_CKPT_AVD_SI_ASS);
 					avd_gen_su_ha_state_changed_ntf(cb, i_susi);
 					avd_susi_update_assignment_counters(i_susi, AVSV_SUSI_ACT_MOD,
