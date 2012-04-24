@@ -306,4 +306,5 @@ extern void avd_sg_admin_state_set(AVD_SG* sg, SaAmfAdminStateT state);
 extern void avd_sg_nwayact_screening_for_si_distr(AVD_SG *avd_sg);
 extern void avd_sg_nway_screen_si_distr_equal(AVD_SG *sg);
 extern void avd_su_role_failover(struct avd_su_tag *su, struct avd_su_tag *stdby_su);
+extern bool sg_is_tolerance_timer_running_for_any_si(AVD_SG *sg);
 #endif

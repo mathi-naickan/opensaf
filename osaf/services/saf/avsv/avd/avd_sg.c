@@ -943,6 +943,26 @@ static void sg_app_sg_admin_unlock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 	TRACE_LEAVE();
 }
 
+/**
+ * @brief       Checks if Tolerance timer is running for any of the SI's of the SG  
+ *
+ * @param[in]  sg
+ *
+ * @return  true/false
+ **/
+bool sg_is_tolerance_timer_running_for_any_si(AVD_SG *sg)
+{
+	AVD_SI  *si;
+
+	for (si = sg->list_of_si; si != NULL; si = si->sg_list_of_si_next) {
+		if (si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) {
+			TRACE("Tolerance timer running for si: %s",si->name.value);
+			return true;
+		}
+	}
+
+	return false;
+}
 static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 	const SaNameT *object_name, SaImmAdminOperationIdT op_id,
 	const SaImmAdminOperationParamsT_2 **params)
@@ -966,6 +986,12 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		goto done;
 	}
 
+	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
+	if (sg_is_tolerance_timer_running_for_any_si(sg)) {
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		LOG_WA("Tolerance timer is running for some of the SI's in the SG '%s', so differing admin opr",sg->name.value);
+		goto done;
+	}
 	switch (op_id) {
 	case SA_AMF_ADMIN_UNLOCK:
 		if (sg->saAmfSGAdminState == SA_AMF_ADMIN_UNLOCKED) {

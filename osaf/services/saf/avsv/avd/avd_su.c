@@ -868,6 +868,12 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 		LOG_WA("SG state is not stable"); /* whatever that means... */
 		goto done;
 	}
+	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
+	if (sg_is_tolerance_timer_running_for_any_si(su->sg_of_su)) {
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		LOG_WA("Tolerance timer is running for some of the SI's in the SG '%s', so differing admin opr",su->sg_of_su->name.value);
+		goto done;
+	}
 
 	if ( ((su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) && (op_id == SA_AMF_ADMIN_UNLOCK)) ||
 	     ((su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED)   && (op_id == SA_AMF_ADMIN_LOCK))   ||

@@ -793,6 +793,12 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		LOG_WA("Admin operation %llu on MW SI is not allowed", operationId);
 		goto done;
 	}
+	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
+        if (sg_is_tolerance_timer_running_for_any_si(si->sg_of_si)) {
+                rc = SA_AIS_ERR_TRY_AGAIN;
+                LOG_WA("Tolerance timer is running for some of the SI's in the SG '%s', so differing admin opr",si->sg_of_si->name.value);
+                goto done;
+        }
 
 	switch (operationId) {
 	case SA_AMF_ADMIN_UNLOCK:
