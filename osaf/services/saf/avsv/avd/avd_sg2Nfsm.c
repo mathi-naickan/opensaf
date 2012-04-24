@@ -2293,11 +2293,18 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 		m_AVD_SET_SG_FSM(cb, su->sg_of_su, AVD_SG_FSM_STABLE);
 		/* find the SI on which SWAP admin operation is pending */
 		for (l_susi = su->list_of_susi; l_susi != NULL && l_susi->si->invocation == 0; l_susi = l_susi->su_next);
-		osafassert(l_susi != NULL);
-		immutil_saImmOiAdminOperationResult(cb->immOiHandle, l_susi->si->invocation, SA_AIS_OK);
-		l_susi->si->invocation = 0;
-		LOG_NO("%s Swap done", l_susi->si->name.value);
-		saflog(LOG_NOTICE, amfSvcUsrName, "%s Swap done", l_susi->si->name.value);
+		if (l_susi != NULL){
+			immutil_saImmOiAdminOperationResult(cb->immOiHandle, l_susi->si->invocation, SA_AIS_OK);
+			l_susi->si->invocation = 0;
+			LOG_NO("%s Swap done", l_susi->si->name.value);
+			saflog(LOG_NOTICE, amfSvcUsrName, "%s Swap done", l_susi->si->name.value);
+		}
+		else {
+			/* si->invocation field is not check pointed. If controller failovers when si-swap
+			   operation is in progress, si->invocation will be zero on the new active controller.
+			   Log an error when si-swap operation completes.*/
+			LOG_ER("Swap done, but invocationId for the swap operation not found '%s'", su->name.value);
+		}
 
 		if (su->sg_of_su->sg_ncs_spec)
 			amfd_switch(avd_cb);
