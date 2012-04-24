@@ -3181,7 +3181,19 @@ void avd_sg_nway_node_fail_stable(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 
 				/* add su to su-oper list */
 				avd_sg_su_oper_list_add(cb, curr_sisu->su, false);
-			}
+			} else {
+				/* As susi failover is not possible, delete all the assignments 
+				   corresponding to curr_susi->si except on failed node.
+				 */
+				for (curr_sisu = curr_susi->si->list_of_sisu ;
+					curr_sisu != NULL; curr_sisu = curr_sisu->si_next) {
+					if (curr_sisu != curr_susi) {
+						rc = avd_susi_del_send(curr_sisu);
+						if (NCSCC_RC_SUCCESS == rc)
+							avd_sg_su_oper_list_add(cb, curr_sisu->su, false);
+					}
+				}
+                        }
 		}
 
 		/* transition to sg-realign state */
