@@ -1747,6 +1747,10 @@ void avd_sidep_unassign_dependents(AVD_SI *si, AVD_SU *su)
 
 			}
 		}
+		/* If this dependent SI is sponsor too, then unassign its dependents also */
+		if (dep_si->num_dependents > 0)
+                        avd_sidep_unassign_dependents(dep_si, su);
+
 		si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
 	}
 	TRACE_LEAVE();
