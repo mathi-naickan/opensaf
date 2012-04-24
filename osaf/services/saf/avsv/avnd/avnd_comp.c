@@ -1802,7 +1802,33 @@ done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
+/**
+ * @brief       Checks if all csis of all the sis in this su are in removed state
+ *
+ * @param [in]  cmp
+ *
+ * @returns     true/false
+ **/
+static bool all_csis_in_removed_state(const AVND_SU *su)
+{
+	AVND_COMP_CSI_REC *curr_csi;
+	AVND_SU_SI_REC *curr_si;
+	bool all_csi_removed = true;
 
+	for (curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
+			curr_si && all_csi_removed;
+			curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_si->su_dll_node)) {
+		for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&curr_si->csi_list);
+				curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
+			if (!m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVED(curr_csi)) {
+				all_csi_removed= false;
+				break;
+			}
+		}
+	}
+
+	return all_csi_removed;
+}
 /****************************************************************************
   Name          : avnd_comp_csi_remove_done
  
@@ -1907,13 +1933,15 @@ find_next:
 		}
 
 		/* remove all the csis belonging to this comp */
-		if (curr_csi)
+		if (curr_csi){
 			rc = avnd_comp_csi_remove(cb, curr_csi->comp, 0);
-		else
-			/* all csis belonging to the si are assigned */
-			rc = avnd_su_si_oper_done(cb, comp->su, 0);
-		if (NCSCC_RC_SUCCESS != rc)
-			goto done;
+		}
+		else {
+			/* su operation doone if all csis in all sis of su are in removed state*/
+			if(all_csis_in_removed_state(comp->su)) {
+				rc = avnd_su_si_oper_done(cb, comp->su, 0);
+			}
+		}
 	}
 
  done:
