@@ -1675,11 +1675,33 @@ void avd_sidep_start_tolerance_timer_for_dependant(AVD_SI *dep_si, AVD_SI *spons
 
 	TRACE_LEAVE();
 }
-void avd_sidep_update_dependents_state(AVD_SI *si, AVD_SI_DEP_SPONSOR_SI_STATE spons_state)
+/**
+ * @brief      Remove all the assignments of an SI 
+ *
+ * @param[in]  si
+ **/
+void avd_si_unassign(AVD_SI *si)
+{
+        AVD_SU_SI_REL *sisu;
+
+        for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
+                if (sisu->fsm != AVD_SU_SI_STATE_UNASGN)
+                        avd_susi_del_send(sisu);
+        }
+}
+/**
+ * @brief	If role failover is not possible for the Sponsor SI, this routine iterates through all of its dependantsi and
+ *		1) removes the SI assignments, if the dependant has Active assignment on the which went down
+ *		2) starts tolerance timer if the dependant SI has Active assignment on some other node 
+ *
+ * @param[in]  si
+ **/
+void avd_sidep_unassign_dependents(AVD_SI *si, AVD_SU *su)
 {
 	AVD_SI_SI_DEP_INDX si_indx;
 	AVD_SI_SI_DEP *si_dep_rec;
 	AVD_SI *dep_si;
+	AVD_SU_SI_REL *sisu;
 
 	TRACE_ENTER2(": '%s'",si->name.value);
 
@@ -1701,29 +1723,75 @@ void avd_sidep_update_dependents_state(AVD_SI *si, AVD_SI_DEP_SPONSOR_SI_STATE s
 			si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
 			continue;
 		}
-		if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
-				(dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN)) {
-			if (spons_state == AVD_SI_DEP_SPONSOR_UNASSIGNED)
-				avd_sidep_start_tolerance_timer_for_dependant(dep_si, si);
-			else
-				si_dep_state_set(dep_si, AVD_SI_FAILOVER_UNDER_PROGRESS);
-
+		/* Get the Active susi */
+		for (sisu = dep_si->list_of_sisu;sisu;sisu = sisu->si_next) {
+			if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+					(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+				break;
+			}
+		}
+		if (sisu == NULL) {
+			si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
+			continue;
 		}
 
+		/* if dependant SI has Active assignment on the node which went down, remove the assignments 
+		 * else start Tolerance timer
+		 */
+		if (m_NCS_MDS_DEST_EQUAL(&sisu->su->su_on_node->adest,&su->su_on_node->adest)) {
+			avd_si_unassign(dep_si);
+		} else {
+			if((dep_si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
+					(dep_si->si_dep_state != AVD_SI_READY_TO_UNASSIGN)) {
+				avd_sidep_start_tolerance_timer_for_dependant(dep_si, si);
+
+			}
+		}
 		si_dep_rec = avd_si_si_dep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
 	}
 	TRACE_LEAVE();
 }
-bool avd_si_assignment_state_check(AVD_SI *si)
+/**
+ * @brief       Checks the following assignment status of an SI during failover
+ *              1) Whether SI has Active assignment
+ *              2) Whether SI has valid standby assignments which can take Active role 
+ *
+ * @param[in]  si -- SI for which assignment state needs to be checked
+ * @param[in]  su -- SU which faulted 
+ * @param[out] active_sisu -- active susi assignments 
+ * @param[out] valid_stdby_sisu -- valid standby assignment 
+ *
+ * @return  true/false    
+ **/
+bool si_assignment_check_during_failover(AVD_SI *si, AVD_SU *su, AVD_SU_SI_REL **active_sisu, AVD_SU_SI_REL **valid_stdby_sisu)
 {
 	AVD_SU_SI_REL *sisu;
 	bool assignmemt_status = false;
 
 	for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
-		if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+		if ((sisu->su != su) && (*valid_stdby_sisu == NULL)) {
+			if (((sisu->state == SA_AMF_HA_STANDBY) || (sisu->state == SA_AMF_HA_QUIESCED)) &&
+				(sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
+				(sisu->su->saAmfSuReadinessState != SA_AMF_READINESS_OUT_OF_SERVICE)) {
+				*valid_stdby_sisu = sisu;
+				if ((*active_sisu) && (*valid_stdby_sisu))
+					break;
+				else
+					continue;
+			}
+		}
+		if (*active_sisu == NULL) {
+			if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING) ||
+				(sisu->state == SA_AMF_HA_QUIESCED)) &&
 				(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
-			assignmemt_status = true;
-			break;
+				*active_sisu = sisu;
+				assignmemt_status = true;
+
+				if ((*active_sisu) && (*valid_stdby_sisu))
+					break;
+				else
+					continue;
+			}
 		}
 	}
 
@@ -1743,15 +1811,16 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 {
 	AVD_SPONS_SI_NODE *spons_si_node;
 	AVD_SU_SI_REL *sisu, *tmp_sisu;                 
+	AVD_SU_SI_REL *active_sisu = NULL, *valid_stdby_sisu = NULL;
 	bool failover_possible = true;
 	bool assignmemt_status = false;
-	bool sponsor_in_modify_state = false;
 	bool valid_standby = false;
 
 	TRACE_ENTER2("SI: '%s'",si->name.value);
 
 	/* Role failover triggered because of node going down */
 	if(su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
+		assignmemt_status = si_assignment_check_during_failover(si, su, &active_sisu, &valid_stdby_sisu);
 		if (si->spons_si_list == NULL) {
 			/* Check if the susi is in unassigned state
 			 * 1) Beacuse of admin operation
@@ -1761,66 +1830,51 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 				(si->sg_of_si->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED) ||
 				((si->list_of_sisu) && (si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
 				(m_NCS_MDS_DEST_EQUAL(&si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest))) ||
-				((assignmemt_status = si_assignment_state_check(si)) == false)) {
-				avd_sidep_update_dependents_state(si, AVD_SI_DEP_SPONSOR_UNASSIGNED);
+				(valid_stdby_sisu == NULL)) {
+
 				failover_possible = false;
+				if (si->num_dependents > 0)
+					avd_sidep_unassign_dependents(si, su);
 			}
 			goto done;
 		}
 
-		failover_possible = false;
 		if (si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) {
 			/* Dependant SI and Tolerance timer is running
 			 * No need to to do role failover stop the Tolerance timer and delete the assignments
 			 */
 			avd_si_dep_stop_tol_timer(avd_cb, si);
-			for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next) {
-				if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
-					avd_susi_del_send(tmp_sisu);
-			}
+			avd_si_unassign(si);
+
+			failover_possible = false;
+			if (si->num_dependents > 0)
+				avd_sidep_unassign_dependents(si, su);
 			goto done;
 		}
+		/* Case of dependant SI
+		 * Failover is possible for the dependant only in the following case
+		 * 1) None of its sponsors have Active assignment on the node which went down
+		 * 2) None of its sponsors SI is undergoing admin lock operation
+		 */
 		for (spons_si_node = si->spons_si_list;spons_si_node;spons_si_node = spons_si_node->next) {
 			assignmemt_status = false;
-			/* Check the assignment of Sponsors, if any one of the sponsors are unassigned then delete the
-			 * dependent assignment. If the sponsor fsm is in modification state then set the si_dep_state 
-			 * to AVD_SI_FAILOVER_UNDER_PROGRESS
-			 */
+			active_sisu = NULL;
+			valid_stdby_sisu = NULL;
+
+			assignmemt_status = si_assignment_check_during_failover(spons_si_node->si, su, &active_sisu, &valid_stdby_sisu);
+
 			if ((spons_si_node->si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED) ||
 					(spons_si_node->si->sg_of_si->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED) ||
 					((spons_si_node->si->list_of_sisu) && (spons_si_node->si->list_of_sisu->si_next == AVD_SU_SI_REL_NULL) &&
-					 (m_NCS_MDS_DEST_EQUAL(&spons_si_node->si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest)))) { 
-				for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next) {
-					if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
-						avd_susi_del_send(tmp_sisu);
-				}
+					 (m_NCS_MDS_DEST_EQUAL(&spons_si_node->si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest))) ||
+					((assignmemt_status ==  false) && (valid_stdby_sisu == NULL))) {
+				avd_si_unassign(si);
+				failover_possible = false;
 				goto done;
 			}
-			for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
-				TRACE("sisu:%s state:%u fsm:%u",sisu->si->name.value,sisu->state,sisu->fsm);
-				if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
-						(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
-					assignmemt_status = true;
-					if(!m_NCS_MDS_DEST_EQUAL(&sisu->su->su_on_node->adest,&su->su_on_node->adest)) {
-						if (sisu->fsm == AVD_SU_SI_STATE_MODIFY)
-							sponsor_in_modify_state = true;
-						break;
-					}
-				}
-			}
-			if (assignmemt_status == false) {
-				for (tmp_sisu = si->list_of_sisu;tmp_sisu;tmp_sisu = tmp_sisu->si_next) {
-					if (tmp_sisu->fsm != AVD_SU_SI_STATE_UNASGN)
-						avd_susi_del_send(tmp_sisu);
-				}
-				goto done;
-			} 
-			if ((assignmemt_status == true)  && (sponsor_in_modify_state == AVD_SU_SI_STATE_MODIFY)){
-				/* Set the si_dep_state to AVD_SI_FAILOVER_UNDER_PROGRESS */
-				if ((si->si_dep_state != AVD_SI_TOL_TIMER_RUNNING) ||
-					(si->si_dep_state != AVD_SI_READY_TO_UNASSIGN)) {
-					si_dep_state_set(si, AVD_SI_FAILOVER_UNDER_PROGRESS);
-				}
+			if ((spons_si_node->si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) ||
+				((active_sisu) && (m_NCS_MDS_DEST_EQUAL(&active_sisu->su->su_on_node->adest,&su->su_on_node->adest)))) {
+				failover_possible = false;
 			}
 		}
 	} else {
