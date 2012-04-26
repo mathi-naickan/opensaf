@@ -344,7 +344,7 @@ static void su_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 				su->pend_cbk.invocation, SA_AIS_OK);
 			
 			/* Hand over to SG and let it do the rest */
-			(void) avd_sg_app_su_inst_func(cb, su->sg);
+			(void) avd_sg_app_su_inst_func(cb, su->sg_of_su);
 		} else {
 			LOG_WA("Bad presence state %u after '%s' adm repaired", pres, su->name.value);
 			immutil_saImmOiAdminOperationResult(cb->immOiHandle,

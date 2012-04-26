@@ -121,7 +121,7 @@ AVD_SU *avd_su_get_or_create(const SaNameT *dn)
 	AVD_SU *su = avd_su_get(dn);
 
 	if (!su) {
-		TRACE("'%s' does not exist, creating it", dn->value);
+		LOG_NO("'%s' does not exist, creating it", dn->value);
 		su = avd_su_new(dn);
 		osafassert(su != NULL);
 		avd_su_db_add(su);
@@ -549,7 +549,7 @@ static void su_add_to_model(AVD_SU *su)
 	TRACE_ENTER2("%s", su->name.value);
 
 	/* Check parent link to see if it has been added already */
-	if (su->sg != NULL) {
+	if (su->sg_of_su != NULL) {
 		TRACE("already added");
 		goto done;
 	}
@@ -559,7 +559,14 @@ static void su_add_to_model(AVD_SU *su)
 		new_su = 1;
 
 	avsv_sanamet_init(&su->name, &dn, "safSg");
-	su->sg = avd_sg_get(&dn);
+
+	/*
+	** Refresh the SG reference, by now it must exist.
+	** An SU can be created (on the standby) from the checkpointing logic.
+	** In that case the SG reference could now be NULL.
+	*/
+	su->sg_of_su = avd_sg_get(&dn);
+	osafassert(su->sg_of_su);
 
 	avd_su_db_add(su);
 	su->su_type = avd_sutype_get(&su->saAmfSUType);

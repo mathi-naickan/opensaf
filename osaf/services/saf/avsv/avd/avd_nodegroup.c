@@ -251,7 +251,7 @@ done1:
 static bool su_is_mapped_to_node_via_nodegroup(const AVD_SU *su, const AVD_AMF_NG *ng)
 {
 	if ((memcmp(&ng->ng_name, &su->saAmfSUHostNodeOrNodeGroup, sizeof(SaNameT)) == 0) ||
-	    (memcmp(&ng->ng_name, &su->sg->saAmfSGSuHostNodeGroup, sizeof(SaNameT)) == 0)) {
+	    (memcmp(&ng->ng_name, &su->sg_of_su->saAmfSGSuHostNodeGroup, sizeof(SaNameT)) == 0)) {
 		
 		TRACE("SU '%s' mapped using '%s'", su->name.value, ng->ng_name.value);
 		return true;
