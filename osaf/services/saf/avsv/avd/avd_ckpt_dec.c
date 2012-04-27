@@ -1998,7 +1998,7 @@ static uint32_t avsv_decode_ckpt_si_dep_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *d
 
 	/* Action in this case is just to update */
 	status = ncs_edu_exec(&cb->edu_hdl, avsv_edp_ckpt_msg_si,
-	      &dec->i_uba, EDP_OP_TYPE_DEC, (AVD_SI **)&si_ptr_dec, &edu_error, 2, 1, 9);
+	      &dec->i_uba, EDP_OP_TYPE_DEC, (AVD_SI **)&si_ptr_dec, &edu_error, 2, 1, 10);
 
 	osafassert(status == NCSCC_RC_SUCCESS);
 

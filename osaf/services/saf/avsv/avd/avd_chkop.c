@@ -928,6 +928,13 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action, MBCSV_REO_HDL reo_h
 		cb->async_updt_cnt.sg_updt++;
 		break;
 
+	case AVSV_CKPT_SU_RESTART_COUNT:
+		if (avd_cb->avd_peer_ver < AVD_MBCSV_SUB_PART_VERSION_4) {
+			/* No need to send the message to old std as this async is newly added. */
+			return NCSCC_RC_SUCCESS;
+		}
+		cb->async_updt_cnt.su_updt++;
+		break;
 	case AVSV_CKPT_AVD_SU_CONFIG:
 		if ((avd_cb->avd_peer_ver >= AVD_MBCSV_SUB_PART_VERSION_4) && 
 		   ((action == NCS_MBCSV_ACT_ADD) || 
@@ -945,10 +952,16 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action, MBCSV_REO_HDL reo_h
 	case AVSV_CKPT_SU_READINESS_STATE:
 	case AVSV_CKPT_SU_ACT_STATE:
 	case AVSV_CKPT_SU_PREINSTAN:
-	case AVSV_CKPT_SU_RESTART_COUNT:
 		cb->async_updt_cnt.su_updt++;
 		break;
 
+	case AVSV_CKPT_SI_DEP_STATE:
+		if (avd_cb->avd_peer_ver < AVD_MBCSV_SUB_PART_VERSION_4) {
+			/* No need to send the message to old std as this async is newly added. */
+			return NCSCC_RC_SUCCESS;
+		}
+		cb->async_updt_cnt.si_updt++;
+		break;
 	case AVSV_CKPT_AVD_SI_CONFIG:
 		if ((avd_cb->avd_peer_ver >= AVD_MBCSV_SUB_PART_VERSION_4) && 
 		   ((action == NCS_MBCSV_ACT_ADD) || 
@@ -962,7 +975,6 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action, MBCSV_REO_HDL reo_h
 	case AVSV_CKPT_SI_ADMIN_STATE:
 	case AVSV_CKPT_SI_ALARM_SENT:
 	case AVSV_CKPT_SI_ASSIGNMENT_STATE:
-	case AVSV_CKPT_SI_DEP_STATE:
 		cb->async_updt_cnt.si_updt++;
 		break;
 

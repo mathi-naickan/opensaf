@@ -1549,7 +1549,7 @@ static uint32_t avsv_encode_ckpt_si_dep_state(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *e
 	if (NCS_MBCSV_ACT_UPDATE == enc->io_action) {
 		status = m_NCS_EDU_SEL_VER_EXEC(&cb->edu_hdl, avsv_edp_ckpt_msg_si, &enc->io_uba,
 				EDP_OP_TYPE_ENC, (AVD_SI *)(NCS_INT64_TO_PTR_CAST(enc->io_reo_hdl)),
-				&edu_rror, enc->i_peer_version, 2, 1, 9);
+				&edu_rror, enc->i_peer_version, 2, 1, 10);
 
 		if (status != NCSCC_RC_SUCCESS)
 			LOG_ER("%s: encode failed, ederror=%u", __FUNCTION__, edu_rror);
