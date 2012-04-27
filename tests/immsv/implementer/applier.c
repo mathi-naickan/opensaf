@@ -112,7 +112,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 
 	ccbutil_ccbAddCreateOperation(ccbUtilCcbData, className, parentName, attr);
  done:
-	return SA_AIS_OK;
+	return rc;
 }
 
 static SaAisErrorT saImmOiCcbObjectDeleteCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId,
@@ -158,7 +158,6 @@ static void saImmOiCcbAbortCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId)
 {
 	struct CcbUtilCcbData *ccbUtilCcbData;
-	struct CcbUtilOperationData *ccbUtilOperationData;
 
 	printf("APPLY CALLBACK on %s cleanup CCB:%llu\n", implName, ccbId);
 
@@ -167,11 +166,20 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 		goto done;
 	}
 
-	ccbUtilOperationData = ccbUtilCcbData->operationListHead;
-
 	ccbutil_deleteCcbData(ccbUtilCcbData);
  done:
 	return;
+}
+
+static SaAisErrorT saImmOiRtAttrUpdateCallback(SaImmOiHandleT handle,
+    const SaNameT *objectName,
+    const SaImmAttrNameT *attributeNames)
+{
+    assert(objectName != NULL);
+    assert(attributeNames != NULL);
+
+    //    return saImmOiRtObjectUpdate_2(handle, objectName, (const SaImmAttrModificationT_2**) attrMods);
+    return SA_AIS_OK;
 }
 
 int main(int argc, char *argv[])
@@ -196,7 +204,7 @@ int main(int argc, char *argv[])
 		.saImmOiCcbObjectCreateCallback = saImmOiCcbObjectCreateCallback,
 		.saImmOiCcbObjectDeleteCallback = saImmOiCcbObjectDeleteCallback,
 		.saImmOiCcbObjectModifyCallback = saImmOiCcbObjectModifyCallback,
-		.saImmOiRtAttrUpdateCallback = NULL
+		.saImmOiRtAttrUpdateCallback = saImmOiRtAttrUpdateCallback
 	};
 	struct pollfd fds[1];
 	SaImmOiHandleT immOiHandle = 0LL;
@@ -257,10 +265,32 @@ int main(int argc, char *argv[])
 		objectName.length = strlen((char *)objectName.value);
 
 		printf("Class: %s\n", objectName.value);
-		error = saImmOiClassImplementerSet(immOiHandle, (SaImmClassNameT) objectName.value);
-		if (error != SA_AIS_OK) {
-			fprintf(stderr, "error - saImmOiClassImplementerSet FAILED: %s\n", saf_error(error));
-			exit(EXIT_FAILURE);
+
+		if(!strcmp((const char *) objectName.value, "OpensafImmRtTest")) {
+			/* Special test case for RTO's. 
+			   Class OpensafImmRtTest foundd at samples/immsv/immsv_test_classes_rtobj.xml
+			*/
+			SaStringT str1="testRdn=ZZZ";
+			SaImmAttrValueT strValues[] = {&str1};
+			SaImmAttrValuesT_2 v1 = { "testRdn",  SA_IMM_ATTR_SASTRINGT, 1, (void**)strValues };
+			const SaImmAttrValuesT_2* attrValues[] = {&v1, NULL};
+
+			error = saImmOiRtObjectCreate_2(immOiHandle, (SaImmClassNameT) objectName.value, NULL, attrValues);
+			if (error != SA_AIS_OK && error != SA_AIS_ERR_EXIST) {
+				fprintf(stderr, "error - saImmOiClassImplementerSet FAILED: %s\n", saf_error(error));
+				exit(EXIT_FAILURE);
+			}
+			if(error == SA_AIS_OK) {
+				printf("Runtime object: %s created\n", str1);
+			} else {
+				printf("Runtime object: %s exists\n", str1);
+			}
+		} else {
+			error = saImmOiClassImplementerSet(immOiHandle, (SaImmClassNameT) objectName.value);
+			if (error != SA_AIS_OK) {
+				fprintf(stderr, "error - saImmOiClassImplementerSet FAILED: %s\n", saf_error(error));
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		optind++;
