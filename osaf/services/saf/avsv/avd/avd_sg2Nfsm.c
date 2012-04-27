@@ -3978,7 +3978,28 @@ void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 					 * SU SI relationships of this SU.  Remove the SU from the SU 
 					 * operation list.
 					 */
-					avd_su_role_failover(su, o_su);
+                                        if (avd_si_dependency_exists_within_su(su)) {
+                                                AVD_SU_SI_REL *susi;
+
+                                                for (susi = o_su->list_of_susi; susi; susi = susi->su_next) {
+							if ((susi->si->si_dep_state == AVD_SI_READY_TO_UNASSIGN) ||
+									(susi->si->si_dep_state == AVD_SI_UNASSIGNING_DUE_TO_DEP)) {
+								avd_susi_del_send(susi);
+							} else {
+								if (avd_susi_role_failover(susi, su) == NCSCC_RC_FAILURE) {
+									LOG_NO(" %s: %u: Active role modification failed for  %s ",
+											__FILE__, __LINE__, susi->su->name.value);
+									goto done;
+								}
+							}
+							avd_sg_su_oper_list_add(cb, susi->su, false);
+                                                }
+
+                                        } else {
+                                                /* There is no dependency between SI's within SU, so trigger SU level failover */
+						avd_su_role_failover(su, o_su);
+                                        }
+
 
 					avd_sg_su_asgn_del_util(cb, su, true, false);
 					avd_sg_su_oper_list_del(cb, su, false);
