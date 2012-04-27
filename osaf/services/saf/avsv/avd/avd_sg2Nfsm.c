@@ -1336,7 +1336,7 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 					}
 				}
 
-				avd_si_admin_state_set((su->sg_of_su->admin_si), SA_AMF_ADMIN_UNLOCKED);
+				avd_si_admin_state_set((su->sg_of_su->admin_si), SA_AMF_ADMIN_LOCKED);
 				m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 				avd_sg_su_oper_list_add(cb, su, false);
 				m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SU_OPER);
@@ -1351,7 +1351,7 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 				if (avd_susi_mod_send(o_susi, SA_AMF_HA_ACTIVE) != NCSCC_RC_SUCCESS)
 					goto done;
 
-				avd_si_admin_state_set((su->sg_of_su->admin_si), SA_AMF_ADMIN_UNLOCKED);
+				avd_si_admin_state_set((su->sg_of_su->admin_si), SA_AMF_ADMIN_LOCKED);
 				m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 				avd_sg_su_si_del_snd(cb, su);
 				avd_sg_su_oper_list_add(cb, su, false);

@@ -1896,7 +1896,8 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 			}
 
 			if ((si->saAmfSIAdminState == SA_AMF_ADMIN_LOCKED) || (!valid_standby)) {
-				 failover_possible = false;
+				failover_possible = false;
+				avd_si_unassign(si);
 			}
 			goto done;
 
