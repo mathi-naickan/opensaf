@@ -58,7 +58,6 @@ AVD_SU *avd_su_new(const SaNameT *dn)
 	su->name.length = dn->length;
 	su->tree_node.key_info = (uint8_t *)&(su->name);
 	avsv_sanamet_init(dn, &sg_name, "safSg");
-	su->sg_of_su = avd_sg_get(&sg_name);
 	su->saAmfSUFailover = false;
 	su->term_state = false;
 	su->su_switch = AVSV_SI_TOGGLE_STABLE;
@@ -121,7 +120,7 @@ AVD_SU *avd_su_get_or_create(const SaNameT *dn)
 	AVD_SU *su = avd_su_get(dn);
 
 	if (!su) {
-		LOG_NO("'%s' does not exist, creating it", dn->value);
+		TRACE("'%s' does not exist, creating it", dn->value);
 		su = avd_su_new(dn);
 		osafassert(su != NULL);
 		avd_su_db_add(su);
