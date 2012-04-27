@@ -146,8 +146,18 @@ void avd_reg_su_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	 */
 
 	if (n2d_msg->msg_info.n2d_reg_su.error == NCSCC_RC_SUCCESS) {
-		/* the AVND has been successfully updated with the SU information
-		 */
+		AVD_SU *su;
+
+		/* the node has been successfully updated with SU information */
+		avd_node_state_set(node, AVD_AVND_STATE_NCS_INIT);
+
+		/* Instantiate all OpenSAF SUs on this node */
+		for (su = node->list_of_ncs_su; su != NULL; su = su->avnd_list_su_next) {
+			if ((su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) ||
+			    (su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED)) {
+				avd_snd_presence_msg(cb, su, false);
+			}
+		}
 
 		avsv_dnd_msg_free(n2d_msg);
 		evt->info.avnd_msg = NULL;

@@ -152,17 +152,7 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 
 	LOG_NO("Node '%s' joined the cluster", avnd->node_name);
 
-	/* If component message is sent change state to no config or else skip
-	 * all the comming up states and jump to present state. This is because
-	 * the node doesnt have any components meaning that even the NCS component
-	 * is not present.
-	 */
-	if (comp_sent == true) {
-		avd_node_state_set(avnd, AVD_AVND_STATE_NO_CONFIG);
-		m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, avnd, AVSV_CKPT_AVND_NODE_STATE);
-	} else {
-		avd_nd_reg_comp_evt_hdl(cb, avnd);
-	}
+	avd_node_state_set(avnd, AVD_AVND_STATE_NO_CONFIG);
 
 	/* checkpoint the node. */
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, avnd, AVSV_CKPT_AVD_NODE_CONFIG);
