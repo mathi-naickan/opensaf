@@ -35,6 +35,38 @@
 
 
 
+/**
+ * @brief Append a string, escaping any quote characters in it
+ * @param i_quote : [in] quote character to escape when appending the i_suffix
+ *                       string
+ * @param io_base : [in:out] string to be appended to
+ * @param i_suffix : [in] string to append at the end of io_base
+ *
+ * Append the string i_suffix to the string io_base, replacing any occurrences
+ * of the character i_quote with pairs of i_quote characters.
+ *
+ * @b Example:
+ * @code
+ * std::string io_base("Time is now ");
+ * append_quoted_string('\'', io_base, "eight o'clock");
+ * // io_base now contains the string "Time is now eight o''clock"
+ * @endcode
+ */
+static void append_quoted_string(char i_quote,
+	std::string& io_base,
+	const std::string& i_suffix)
+{
+	const char two_quotes[] = { i_quote, i_quote };
+	std::string::size_type start = 0;
+	std::string::size_type end;
+	while ((end = i_suffix.find(i_quote, start)) != i_suffix.npos) {
+		io_base.append(i_suffix.substr(start, end - start));
+		io_base.append(two_quotes, sizeof(two_quotes));
+		start = end + 1;
+	}
+	io_base.append(i_suffix.substr(start));
+}
+
 static void typeToPBE(SaImmAttrDefinitionT_2* p, 
 	void* dbHandle, std::string * table_def)
 {
@@ -112,7 +144,7 @@ static void valuesToPBE(const SaImmAttrValuesT_2* p,
 	for (unsigned int i = 0; i < p->attrValuesNumber; i++)
 	{
 		std::string sqlG1(sqlG);
-		sqlG1.append(valueToString(p->attrValues[i], p->attrValueType));
+		append_quoted_string('\'', sqlG1, valueToString(p->attrValues[i], p->attrValueType));
 		sqlG1.append("')");
 		TRACE("GENERATED G:%s", sqlG1.c_str());
 		rc = sqlite3_exec(dbHandle, sqlG1.c_str(), NULL, NULL, &execErr);
@@ -608,7 +640,7 @@ ClassInfo* classToPBE(std::string classNameString,
 			sqlD2.append("', '");
 			sqlD2.append((*p)->attrName);
 			sqlD2.append("', '");
-			sqlD2.append(valueToString((*p)->attrDefaultValue, 
+			append_quoted_string('\'', sqlD2, valueToString((*p)->attrDefaultValue,
 					     (*p)->attrValueType));
 			sqlD2.append("')");
 			TRACE("GENERATED D2: (%s)", sqlD2.c_str());
@@ -1205,7 +1237,7 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 		sql212.append(attrValue->attrName);
 		sql212.append(val_attr);
 		for(ix=0; ix < attrValue->attrValuesNumber; ++ix) {
-			sql212.append(valueToString(attrValue->attrValues[ix], attr_type));
+			append_quoted_string('\'', sql212, valueToString(attrValue->attrValues[ix], attr_type));
 			if(text_val) {
 				sql212.append("'");
 			}
@@ -1267,7 +1299,7 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 		sqlite3_free_table(result2);
 		for(ix=0; ix < attrValue->attrValuesNumber; ++ix) {
 		TRACE_3("COMPONENT TEST BRANCH 6");
-			sql23.append(valueToString(attrValue->attrValues[ix], attr_type));
+			append_quoted_string('\'', sql23, valueToString(attrValue->attrValues[ix], attr_type));
 			if(text_val) {sql23.append("'");}
 			TRACE("GENERATED 23:%s", sql23.c_str());
 			rc = sqlite3_exec(dbHandle, sql23.c_str(), NULL, NULL, &zErr);
@@ -1418,7 +1450,7 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 		sql22.append("\" set \"");
 		sql22.append(attrValue->attrName);
 		sql22.append("\" = '");
-		sql22.append(valueToString(attrValue->attrValues[0], attrValue->attrValueType));
+		append_quoted_string('\'', sql22, valueToString(attrValue->attrValues[0], attrValue->attrValueType));
 		sql22.append("' where obj_id = ");
 		sql22.append(object_id);
 		sqlite3_free_table(result2);
@@ -1875,7 +1907,7 @@ void objectToPBE(std::string objectNameString,
 			sqlF1.append("\"");
 
 			sqlF2.append("', '");
-			sqlF2.append(valueToString(*((*p)->attrValues),
+			append_quoted_string('\'', sqlF2, valueToString(*((*p)->attrValues),
 					     (*p)->attrValueType));
 		}
 	}
