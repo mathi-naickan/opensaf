@@ -4982,9 +4982,10 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
             }
 
 
-            if(pbeNodeIdPtr || 
-                (object->mImplementer && object->mImplementer->mNodeId)) {
-                /* PBE or regular impl exists => ensure create up-call is complete
+            if(pbeNodeIdPtr || /* PBE exists */
+                  (object->mImplementer && object->mImplementer->mNodeId) || /* Implemener exists */
+                  (!classInfo->mAppliers.empty())) { /* Appliers exists */
+                /* PBE or impl or applier exists => ensure create up-call is complete
                    by appending missing attributes.
                 */
                 bool found = false;
