@@ -26,6 +26,7 @@
 #include <getopt.h>
 #include <assert.h>
 #include <libgen.h>
+#include <unistd.h>
 
 #define XML_VERSION "1.0"
 

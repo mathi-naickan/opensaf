@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <wait.h>
+#include <unistd.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

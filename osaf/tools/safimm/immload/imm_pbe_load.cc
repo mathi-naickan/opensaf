@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <cstdlib>
+#include <unistd.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

@@ -19,6 +19,7 @@
 #include "imm_dumper.hh"
 #include <iostream>
 #include <libxml/encoding.h>
+#include <unistd.h>
 
 /* Functions */
 
