@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
 		goto fm_init_failed;
 	}
 
+	fm_cb->csi_assigned = false;
 
 	/* Get mailbox selection object */
 	mbx_sel_obj = m_NCS_IPC_GET_SEL_OBJ(&fm_cb->mbx);
@@ -316,12 +317,16 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt)
 		LOG_NO("Role: %s, Node Down for node id: %x", role_string[fm_cb->role], fm_mbx_evt->node_id);
 		if ((fm_cb->role == PCS_RDA_STANDBY)||(fm_cb->role == PCS_RDA_QUIESCED)) {
 			if ((fm_mbx_evt->node_id == fm_cb->peer_node_id)) {
-/* Start Promote active timer */
-				if ((fm_cb->peer_node_name.length != 0) && (fm_cb->role != PCS_RDA_QUIESCED)) {
-
-					LOG_NO("Promote active timer started");
+				/* Start Promote active timer */
+				if ((fm_cb->role != PCS_RDA_QUIESCED) && (fm_cb->active_promote_tmr_val != 0)){
 					fm_tmr_start(&fm_cb->promote_active_tmr, fm_cb->active_promote_tmr_val);
+					LOG_NO("Promote active timer started");
 				} else {
+					/* Check whether node(AMF) initialization is done */
+					if (fm_cb->csi_assigned == false) {
+						opensaf_reboot(0, NULL,
+						"Failover occurred, but this node is not yet ready");
+					}
 					fm_cb->role = PCS_RDA_ACTIVE;
 					opensaf_reboot(fm_cb->peer_node_id, (char *)fm_cb->peer_node_name.value,
 						"Received Node Down for Active peer");
@@ -341,6 +346,11 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt)
 	case FM_EVT_TMR_EXP:
 /* Timer Expiry event posted */
 		if (fm_mbx_evt->info.fm_tmr->type == FM_TMR_PROMOTE_ACTIVE) {
+			/* Check whether node(AMF) initialization is done */
+			if (fm_cb->csi_assigned == false) {
+				opensaf_reboot(0, NULL,
+				"Failover occurred, but this node is not yet ready");
+			}
 /* Now. Try resetting other blade */
 			fm_cb->role = PCS_RDA_ACTIVE;
 

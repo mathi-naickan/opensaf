@@ -119,6 +119,7 @@ void fm_saf_CSI_set_callback(SaInvocationT invocation,
 	if (fm_amf_cb != NULL) {
 		fm_cb->role = haState;
 		error = saAmfResponse(fm_amf_cb->amf_hdl, invocation, error);
+		fm_cb->csi_assigned = true;
 	}
 	fm_amf_give_hdl();
 	TRACE_LEAVE();

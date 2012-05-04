@@ -67,6 +67,7 @@ typedef struct fm_cb {
 
 /* Time in terms of one hundredth of seconds (500 for 5 secs.) */
 	uint32_t active_promote_tmr_val;
+	bool csi_assigned;
 } FM_CB;
 
 extern char *role_string[];
