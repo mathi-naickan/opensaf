@@ -70,6 +70,8 @@ if [ "$self_node_id" = "$node_id" ] || [ $node_id = 0 ]; then
 	# uncomment the following line if debugging errors that keep restarting the node
 	# exit 0
 
+        logger -t "opensaf_reboot" "Rebooting local node"
+
 # On systems with faster processor (16 core), even with "reboot -f" in place in opensaf_reboot script,
 # FMD process on the same node gets enough time to kill the other controller due to getting TIPC link down
 # resulted due to tipc bearer disable. Hence killing the processes amfnd, amfd and fmd before invoking
