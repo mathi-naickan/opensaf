@@ -35,13 +35,22 @@
 #include <ctype.h>
 #include <libgen.h>
 #include <time.h>
+#include <signal.h>
 
 #include <saAis.h>
 #include <saImmOm.h>
-
-#include "saf_error.h"
+#include <immutil.h>
+#include <saf_error.h>
 
 static SaVersionT immVersion = { 'A', 2, 11 };
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
+
+/* signal handler for SIGALRM */ 
+void sigalarmh(int sig) 
+{
+	fprintf(stderr, "error - immlist command timed out (alarm)\n");
+	exit(EXIT_FAILURE);
+}
 
 static void usage(const char *progname)
 {
@@ -60,6 +69,8 @@ static void usage(const char *progname)
 	printf("\t-c, --class - display class definition\n");
 	printf("\t-h, --help - display this help and exit\n");
 	printf("\t-p, --pretty-print=<yes|no> - select pretty print, default yes\n");
+	printf("\t-t, --timeout <sec>\n");
+	printf("\t\tutility timeout in seconds\n");
 
 	printf("\nEXAMPLE\n");
 	printf("\timmlist -a saAmfApplicationAdminState safApp=OpenSAF\n");
@@ -238,7 +249,7 @@ static void display_class_definition(const SaImmClassNameT className,
 	SaImmAttrDefinitionT_2 *attrDefinition;
 	int i;
 
-	error = saImmOmClassDescriptionGet_2(immHandle, className, &classCategory, &attrDefinitions);
+	error = immutil_saImmOmClassDescriptionGet_2(immHandle, className, &classCategory, &attrDefinitions);
 
 	if (SA_AIS_OK != error) {
 		fprintf(stderr, "error - saImmOmClassDescriptionGet_2 FAILED: %s\n", saf_error(error));
@@ -323,7 +334,7 @@ static void display_class_definition(const SaImmClassNameT className,
 		printf("}\n");
 	}
 
-	(void)saImmOmClassDescriptionMemoryFree_2(immHandle, attrDefinitions);
+	(void)immutil_saImmOmClassDescriptionMemoryFree_2(immHandle, attrDefinitions);
 }
 
 static void display_object(const char *name,
@@ -340,7 +351,7 @@ static void display_object(const char *name,
 	strncpy((char *)objectName.value, name, SA_MAX_NAME_LENGTH);
 	objectName.length = strlen((char *)objectName.value);
 
-	error = saImmOmAccessorGet_2(accessorHandle, &objectName, attributeNames, &attributes);
+	error = immutil_saImmOmAccessorGet_2(accessorHandle, &objectName, attributeNames, &attributes);
 	if (SA_AIS_OK != error) {
 		if (error == SA_AIS_ERR_NOT_EXIST)
 			fprintf(stderr, "error - object or attribute does not exist\n");
@@ -384,6 +395,7 @@ int main(int argc, char *argv[])
 	struct option long_options[] = {
 		{"attribute", required_argument, 0, 'a'},
 		{"class", no_argument, 0, 'c'},
+		{"timeout", required_argument, 0, 't'},
 		{"help", no_argument, 0, 'h'},
 		{"pretty-print", required_argument, 0, 'p'},
 		{0, 0, 0, 0}
@@ -396,9 +408,10 @@ int main(int argc, char *argv[])
 	int pretty_print = 1;
 	int class_desc_print = 0;
 	int rc = EXIT_SUCCESS;
+	unsigned long timeoutVal = 60;
 
 	while (1) {
-		c = getopt_long(argc, argv, "a:p:ch", long_options, NULL);
+		c = getopt_long(argc, argv, "a:p:t:ch", long_options, NULL);
 
 		if (c == -1)	/* have all command-line options have been parsed? */
 			break;
@@ -412,6 +425,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'c':
 			class_desc_print = 1;
+			break;
+		case 't':
+			timeoutVal = strtol(optarg, (char **)NULL, 10);
 			break;
 		case 'h':
 			usage(basename(argv[0]));
@@ -428,6 +444,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	signal(SIGALRM, sigalarmh);
+	alarm(timeoutVal);
+
 	/* Need at least one object to operate on */
 	if ((argc - optind) == 0) {
 		fprintf(stderr, "error - wrong number of arguments\n");
@@ -435,7 +454,11 @@ int main(int argc, char *argv[])
 		goto done;
 	}
 
-	error = saImmOmInitialize(&immHandle, NULL, &immVersion);
+	immutilWrapperProfile.errorsAreFatal = 0;
+	immutilWrapperProfile.nTries = timeoutVal;
+	immutilWrapperProfile.retryInterval = 1000;
+
+	error = immutil_saImmOmInitialize(&immHandle, NULL, &immVersion);
 	if (error != SA_AIS_OK) {
 		fprintf(stderr, "error - saImmOmInitialize FAILED: %s\n", saf_error(error));
 		rc = EXIT_FAILURE;
@@ -448,7 +471,7 @@ int main(int argc, char *argv[])
 			optind++;
 		}
 	} else {
-		error = saImmOmAccessorInitialize(immHandle, &accessorHandle);
+		error = immutil_saImmOmAccessorInitialize(immHandle, &accessorHandle);
 		if (SA_AIS_OK != error) {
 			fprintf(stderr, "error - saImmOmAccessorInitialize FAILED: %s\n", saf_error(error));
 			rc = EXIT_FAILURE;
@@ -461,7 +484,7 @@ int main(int argc, char *argv[])
 			optind++;
 		}
 
-		error = saImmOmAccessorFinalize(accessorHandle);
+		error = immutil_saImmOmAccessorFinalize(accessorHandle);
 		if (SA_AIS_OK != error) {
 			fprintf(stderr, "error - saImmOmAccessorFinalize FAILED: %s\n", saf_error(error));
 			rc = EXIT_FAILURE;
@@ -470,7 +493,7 @@ int main(int argc, char *argv[])
 	}
 
 done_finalize:
-	error = saImmOmFinalize(immHandle);
+	error = immutil_saImmOmFinalize(immHandle);
 	if (SA_AIS_OK != error) {
 		fprintf(stderr, "error - saImmOmFinalize FAILED: %s\n", saf_error(error));
 		rc = EXIT_FAILURE;

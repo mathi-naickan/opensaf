@@ -22,12 +22,15 @@ bin_PROGRAMS = immlist
 
 immlist_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-I$(top_srcdir)/osaf/tools/safimm/include
+	-I$(top_srcdir)/osaf/tools/safimm/include \
+	-I$(top_srcdir)/osaf/libs/common/immsv/include
 
 immlist_SOURCES = \
+	$(top_srcdir)/osaf/tools/safimm/src/immutil.c \
 	$(top_srcdir)/osaf/tools/safimm/src/saf_error.c \
 	imm_list.c
 
 immlist_LDADD = \
 	$(top_builddir)/osaf/libs/core/libopensaf_core.la \
-	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la \
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOi.la
