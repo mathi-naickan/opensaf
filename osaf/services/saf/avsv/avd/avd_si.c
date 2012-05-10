@@ -739,7 +739,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 
 		if (si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) {
 			LOG_WA("SI unlock of %s failed, SG not stable", objectName->value);
-			rc = SA_AIS_ERR_BAD_OPERATION;
+			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
 		}
 
@@ -817,7 +817,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			    (si->saAmfSIAdminState != SA_AMF_ADMIN_SHUTTING_DOWN) ||
 			    (adm_state != SA_AMF_ADMIN_LOCKED)) {
 				LOG_WA("'%s' other semantics...", objectName->value);
-				rc = SA_AIS_ERR_BAD_OPERATION;
+				rc = SA_AIS_ERR_TRY_AGAIN;
 				goto done;
 			}
 		}

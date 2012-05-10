@@ -820,7 +820,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 	}
 
 	if (cb->init_state != AVD_APP_STATE ) {
-		rc = SA_AIS_ERR_NOT_READY;
+		rc = SA_AIS_ERR_TRY_AGAIN;
 		LOG_WA("AMF (state %u) is not available for admin ops", cb->init_state);
 		goto done;
 	}
@@ -1022,7 +1022,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 		}
 
 		if ( su->list_of_susi != NULL ) {
-			rc = SA_AIS_ERR_NOT_READY;
+			rc = SA_AIS_ERR_TRY_AGAIN;
 			LOG_WA("SIs still assigned to this SU");
 			goto done;
 		}
