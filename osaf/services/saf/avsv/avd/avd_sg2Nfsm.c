@@ -1319,11 +1319,18 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 		if (l_susi != AVD_SU_SI_REL_NULL) {
 			if (l_susi->state == SA_AMF_HA_QUIESCING) {
 				/* this SI relation with the SU is quiescing assigning/assigned
-				 * Change the SI admin state to unlock. Remove the SI from the 
-				 * SI admin pointer. Send D2N-INFO_SU_SI_ASSIGN with modified 
-				 * quiesced all to this SU. Add the SU to the SU operation list. 
-				 * Change state to SU_operation state.
+				 * Change the SI admin state to Locked. Remove the SI from the 
+				 * SI admin pointer. Change the susi->state to quiesced and send
+				 * quiesced  modification to the remaining susi in this su. 
+				 * Add the SU to the SU operation list.Change SG fsm to su_oper.
 				 */
+				l_susi->state = SA_AMF_HA_QUIESCED; 
+				l_susi->fsm = AVD_SU_SI_STATE_ASGND;
+				m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, l_susi, AVSV_CKPT_AVD_SI_ASS);
+				avd_gen_su_ha_state_changed_ntf(avd_cb, l_susi);
+				avd_susi_update_assignment_counters(l_susi, AVSV_SUSI_ACT_MOD, SA_AMF_HA_QUIESCING, SA_AMF_HA_QUIESCED);
+				avd_susi_update(l_susi, l_susi->state);
+
 				if (avd_si_dependency_exists_within_su(su)) {
 					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
 						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);

@@ -1836,6 +1836,7 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 				(m_NCS_MDS_DEST_EQUAL(&si->list_of_sisu->su->su_on_node->adest,&su->su_on_node->adest))) ||
 				(valid_stdby_sisu == NULL)) {
 
+				avd_si_unassign(si);
 				failover_possible = false;
 				if (si->num_dependents > 0)
 					avd_sidep_unassign_dependents(si, su);
