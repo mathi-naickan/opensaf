@@ -110,7 +110,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 			/* Node does not exist in current model, check CCB */
 			if (ccbutil_getCcbOpDataByDN(opdata->ccbId, name) == NULL) {
 				LOG_ER("'%s' does not exist either in model or CCB", name->value);
-				return SA_AIS_ERR_BAD_OPERATION;
+				return 0;
 			}
 		}
 	}
