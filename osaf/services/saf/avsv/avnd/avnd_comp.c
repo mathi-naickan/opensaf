@@ -1965,7 +1965,7 @@ find_next:
  
   Notes         : None
 ******************************************************************************/
-uint32_t avnd_comp_csi_qscd_assign_fail_prc(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *csi)
+uint32_t avnd_comp_csi_qscd_assign_fail_prc(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *csi, AVND_ERR_INFO *err_info)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("comp: '%s' : csi: '%s", comp->name.value, csi ? csi->name.value : NULL);
@@ -1996,12 +1996,11 @@ uint32_t avnd_comp_csi_qscd_assign_fail_prc(AVND_CB *cb, AVND_COMP *comp, AVND_C
 	if (NCSCC_RC_SUCCESS != rc)
 		goto done;
 
-	/* clean the failed comp */
-	if (m_AVND_SU_IS_PREINSTANTIABLE(comp->su)) {
-		rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
-		if (NCSCC_RC_SUCCESS != rc)
-			goto done;
-	}
+	err_info->src = AVND_ERR_SRC_CBK_CSI_SET_TIMEOUT;
+	err_info->rec_rcvr.raw = comp->err_info.def_rec;
+	rc = avnd_err_process(cb, comp, err_info);
+	if (NCSCC_RC_SUCCESS != rc)
+		goto done;
 
 	/* update su oper state */
 	if (m_AVND_SU_OPER_STATE_IS_ENABLED(comp->su)) {

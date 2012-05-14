@@ -424,8 +424,8 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 					LOG_ER("%s got failure %u for qsd cbk", comp->name.value, resp->err);
 				}
 
-				/* => quiesced assignment failed.. dont treat it as a comp failure */
-				rc = avnd_comp_csi_qscd_assign_fail_prc(cb, comp, csi);
+				/* => quiesced assignment failed, treat it as a comp failure */
+				rc = avnd_comp_csi_qscd_assign_fail_prc(cb, comp, csi, &err_info);
 				if (NCSCC_RC_SUCCESS != rc)
 					goto done;
 			} else {
@@ -572,7 +572,7 @@ uint32_t avnd_evt_tmr_cbk_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 			exit(1);
 		}
 
-		rc = avnd_comp_csi_qscd_assign_fail_prc(cb, rec->comp, csi);
+		rc = avnd_comp_csi_qscd_assign_fail_prc(cb, rec->comp, csi, &err_info);
 	} else if (AVSV_AMF_PXIED_COMP_INST == rec->cbk_info->type) {
 		rc = avnd_comp_clc_fsm_run(cb, rec->comp, AVND_COMP_CLC_PRES_FSM_EV_INST_FAIL);
 	} else if (AVSV_AMF_PXIED_COMP_CLEAN == rec->cbk_info->type) {
