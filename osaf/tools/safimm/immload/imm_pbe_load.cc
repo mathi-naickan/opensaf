@@ -663,17 +663,37 @@ int loadImmFromPbe(void* pbeHandle)
 	char *execErr=NULL;
 	int rc=0;
 	ClassInfoMap  classInfoMap;
+	unsigned int retries=0;
 	TRACE_ENTER();
 	assert(dbHandle);
 
-	rc = sqlite3_exec(dbHandle, beginT, NULL, NULL, &execErr);
-	if (rc != SQLITE_OK) {
-		LOG_ER("SQL statement ('%s') failed because:\n %s",
-			beginT, execErr);
-		sqlite3_free(execErr);
-		goto bailout;
+	do {
+		rc = sqlite3_exec(dbHandle, beginT, NULL, NULL, &execErr);
+		if (rc == SQLITE_BUSY) {
+			LOG_WA("SQL statement ('%s') failed because:(%u)\n %s\n retrying",
+				beginT, rc, execErr);
+			sqlite3_free(execErr);
+			usleep(500000);
+		} else if(rc != SQLITE_OK) {
+			LOG_WA("SQL statement ('%s') failed because:(%u)\n %s\n escalating",
+				beginT, rc, execErr);
+			sqlite3_free(execErr);
+			goto bailout;
+		}
+	} while (rc == SQLITE_BUSY && ++retries < 40);
+
+	if(rc != SQLITE_OK) {
+		LOG_ER("Repeated tries to start sqlite loading transaction failed, database locked? rc(%d)", rc);
+		/* In this case do not escalate the error, because that will assume the imm.db is corrupt.
+		   The problem here is more likely a locking conflict on imm.db, meaning that this
+		   loading attempt is being made while another user is concurrently claiming exclusive
+		   use of the imm.db. This is likely to be caused by a poorly coordinated cluster restart.
+		   The "other user" is likely to be a lingering PBE (on the other SC) or a lingering POSIX 
+		   file lock in an NFS client cache. 
+		 */
+		sqlite3_close(dbHandle);
+		exit(1);
 	}
-	TRACE_2("Successfully executed %s", beginT);
 
 	errorCode = saImmOmInitialize(&immHandle, NULL, &version);
 	if (SA_AIS_OK != errorCode) {
@@ -730,6 +750,7 @@ int loadImmFromPbe(void* pbeHandle)
 	return 1;
 
  bailout:
+	sqlite3_close(dbHandle);
 	return 0;
 }
 
