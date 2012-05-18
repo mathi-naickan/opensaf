@@ -167,7 +167,7 @@ uns32 mds_mdtm_svc_install_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCOPE
 {
 	uns32 server_type = 0, server_inst = 0;
 	MDS_MDTM_DTM_MSG svc_install;
-	NCS_VDEST_TYPE policy = 0;
+	NCS_VDEST_TYPE policy = vdest_policy;
 	uns8 tcp_buffer[MDS_MDTM_DTM_SVC_INSTALL_BUFFER_SIZE];
 	MDS_SVC_ARCHWORD_TYPE archword = MDS_SELF_ARCHWORD;
 	pwe_id = pwe_id << MDS_EVENT_SHIFT_FOR_PWE;
@@ -241,7 +241,7 @@ uns32 mds_mdtm_svc_uninstall_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SCO
 	uns32 server_inst = 0, server_type = 0;
 	MDS_MDTM_DTM_MSG svc_uninstall;
 	uns8 tcp_buffer[MDS_MDTM_DTM_SVC_UNINSTALL_BUFFER_SIZE];
-	NCS_VDEST_TYPE policy = 0;
+	NCS_VDEST_TYPE policy = vdest_policy;
 	MDS_SVC_ARCHWORD_TYPE archword = MDS_SELF_ARCHWORD;
 	pwe_id = pwe_id << MDS_EVENT_SHIFT_FOR_PWE;
 	svc_id = svc_id & MDS_EVENT_MASK_FOR_SVCID;
