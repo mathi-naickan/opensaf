@@ -270,11 +270,6 @@ int SmfCampaignThread::init(void)
 		return -1;
 	}
 
-        if (m_campaign->initExecution() != SA_AIS_OK) {
-		LOG_ER("initialization of campaign FAILED");
-                return -1;
-        }
-
 	TRACE_LEAVE();
 	return 0;
 }
@@ -663,6 +658,11 @@ void SmfCampaignThread::main(void)
 		/* Mark the thread started */
 		if(m_semaphore != NULL) {
 			sem_post(m_semaphore);
+		}
+
+		/* Start campaign execution */
+		if (m_campaign->initExecution() != SA_AIS_OK) {
+			LOG_ER("Initialization of campaign FAILED");
 		}
 
 		if (initNtf() != 0) {
