@@ -2631,7 +2631,6 @@ static SaAisErrorT avd_d2n_reboot_snd(AVD_AVND *node)
  *                 role failover can be performed or not
  *              b. If so sends D2N-INFO_SU_SI_ASSIGN modify active all
  *                 to  the Stdby SU
- *              c. Adds the SU to su_oper_list
  *
  * @param[in]   su
  *              stdby_su
@@ -2655,12 +2654,6 @@ void avd_su_role_failover(AVD_SU *su, AVD_SU *stdby_su)
 		if (rc == NCSCC_RC_SUCCESS) {
 			/* Update the dependent SI's dep_state */
 			avd_update_depstate_su_rolefailover(su);
-
-			/* add the SU to the operation list */
-			m_AVD_CHK_OPLIST(stdby_su, flag);
-			if (flag == false) {
-				avd_sg_su_oper_list_add(avd_cb, stdby_su, false);
-			}
 		}
 	}
 	TRACE_LEAVE();

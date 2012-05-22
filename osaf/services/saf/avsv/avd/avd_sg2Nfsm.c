@@ -3351,12 +3351,12 @@ static void avd_sg_2n_node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 										__FILE__, __LINE__, s_susi_temp->su->name.value);
 							}
 						}
-						avd_sg_su_oper_list_add(cb, s_susi->su, false);
 					} else {
 
 						/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
 						avd_su_role_failover(su, s_susi->su);
 					}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 				}
 
 				avd_sg_su_oper_list_del(cb, su, false);
@@ -3433,12 +3433,12 @@ static void avd_sg_2n_node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 										__FILE__, __LINE__, s_susi_temp->su->name.value);
 							}
 						}
-						avd_sg_su_oper_list_add(cb, s_susi->su, false);
 					} else {
 
 						/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
 						avd_su_role_failover(su, s_susi->su);
 					}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 				}
 
 				avd_sg_su_oper_list_del(cb, su, false);
@@ -3473,7 +3473,6 @@ static void avd_sg_2n_node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 									__FILE__, __LINE__, s_susi_temp->su->name.value);
 						}
 					}
-					avd_sg_su_oper_list_add(cb, su->sg_of_su->su_oper_list.su, false);
 				} else {
 
 					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
@@ -3507,7 +3506,6 @@ static void avd_sg_2n_node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 									__FILE__, __LINE__, s_susi_temp->su->name.value);
 						}
 					}
-					avd_sg_su_oper_list_add(cb, su->sg_of_su->su_oper_list.su, false);
 				} else {
 
 					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
@@ -3588,12 +3586,12 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 									__FILE__, __LINE__, susi_temp->su->name.value);
 						}
 					}
-					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 				} else {
 
 					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
 					avd_su_role_failover(su, s_susi->su);
 				}
+				avd_sg_su_oper_list_add(cb, s_susi->su, false);
 			}
 
 			avd_sg_su_asgn_del_util(cb, su, true, false);
@@ -3665,12 +3663,11 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 									__FILE__, __LINE__, susi_temp->su->name.value);
 						}
 					}
-					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 				} else {
 					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
 					avd_su_role_failover(su, a_susi->su);
 				}
-
+				avd_sg_su_oper_list_add(cb, a_susi->su, false);
 			}
 
 			avd_sg_su_asgn_del_util(cb, su, true, false);
@@ -3709,12 +3706,12 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 									__FILE__, __LINE__, susi_temp->su->name.value);
 						}
 					}
-					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 				} else {
 
 					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
 					avd_su_role_failover(su, s_susi->su);
 				}
+				avd_sg_su_oper_list_add(cb, s_susi->su, false);
 			}
 
 			avd_sg_su_asgn_del_util(cb, su, true, false);
@@ -3757,12 +3754,12 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 									__FILE__, __LINE__, susi_temp->su->name.value);
 						}
 					}
-					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 				} else {
 
 					/* Send D2N-INFO_SU_SI_ASSIGN  modify active all. */
 					avd_su_role_failover(su, s_susi->su);
 				}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 
 					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 				}
@@ -3828,10 +3825,10 @@ static void avd_sg_2n_node_fail_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 								TRACE(" Active role modification failed");
 							}
 						}
-						avd_sg_su_oper_list_add(cb, s_susi->su, false);
 					} else {
 						avd_su_role_failover(su, s_susi->su);
 					}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 
 					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 				}
@@ -3931,14 +3928,13 @@ void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 										__FILE__, __LINE__, susi->su->name.value);
 								goto done;
 							}
-							avd_sg_su_oper_list_add(cb, susi->su, false);
-							m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 						}
 
 					} else {
 						/* There is no dependency between SI's within SU, so trigger SU level failover */
 						avd_su_role_failover(su, s_susi->su);
 					}
+					avd_sg_su_oper_list_add(cb, s_susi->su, false);
 				}
 				m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 				avd_sg_su_asgn_del_util(cb, su, true, false);
@@ -4013,14 +4009,13 @@ void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 									goto done;
 								}
 							}
-							avd_sg_su_oper_list_add(cb, susi->su, false);
                                                 }
 
                                         } else {
                                                 /* There is no dependency between SI's within SU, so trigger SU level failover */
 						avd_su_role_failover(su, o_su);
                                         }
-
+					avd_sg_su_oper_list_add(cb, o_su, false);
 
 					avd_sg_su_asgn_del_util(cb, su, true, false);
 					avd_sg_su_oper_list_del(cb, su, false);
