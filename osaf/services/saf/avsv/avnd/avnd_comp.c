@@ -1543,8 +1543,10 @@ uint32_t avnd_comp_csi_reassign(AVND_CB *cb, AVND_COMP *comp)
 	/* check whether previous assign state was assignig and the operation was target_all
 	 * if it was target all, we will reassign csi with target_all flag  
 	 */
-	if (m_AVND_COMP_IS_ALL_CSI(comp))
+	if (m_AVND_COMP_IS_ALL_CSI(comp)){
 		m_AVND_COMP_ALL_CSI_RESET(comp);
+		m_AVND_SU_ALL_SI_SET(comp->su);
+	}
 
 	/* scan the comp-csi list & reassign the csis */
 	curr = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
@@ -1778,7 +1780,7 @@ uint32_t avnd_comp_csi_assign_done(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_R
 				rc = assign_all_csis_at_rank(csi->si, rank, true);
 			} else {
 				/* all csis belonging to the si are assigned */
-				rc = avnd_su_si_oper_done(cb, comp->su, csi->si);
+				rc = avnd_su_si_oper_done(cb, comp->su, m_AVND_SU_IS_ALL_SI(comp->su) ? NULL : csi->si);
 			}
 		}
 	} else {		/* assign all the csis belonging to the next rank in one shot */
