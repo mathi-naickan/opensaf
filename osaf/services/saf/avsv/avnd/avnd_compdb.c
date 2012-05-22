@@ -1401,6 +1401,9 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes,
 	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_INSTANTIATE - 1];
 	if (immutil_getAttr("saAmfCompInstantiateTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK) {
 		cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
+		comp->pxied_inst_cbk_timeout = comptype->saAmfCtDefCallbackTimeout;
+	} else {
+		comp->pxied_inst_cbk_timeout = cmd->timeout;
 	}
 
 	if (immutil_getAttr("saAmfCompInstantiationLevel", attributes, 0, &comp->inst_level) != SA_AIS_OK)
@@ -1422,8 +1425,12 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes,
 #endif
 
 	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_CLEANUP - 1];
-	if (immutil_getAttr("saAmfCompCleanupTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK)
+	if (immutil_getAttr("saAmfCompCleanupTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK) {
 		cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
+		comp->pxied_clean_cbk_timeout = comptype->saAmfCtDefCallbackTimeout;
+	} else {
+		comp->pxied_clean_cbk_timeout = cmd->timeout;
+	}
 
 	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_AMSTART - 1];
 	if (immutil_getAttr("saAmfCompAmStartTimeout", attributes, 0, &cmd->timeout) != SA_AIS_OK)
