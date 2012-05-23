@@ -1,3 +1,730 @@
+OpenSAF 4.2.1 (released 2012-05-23)
+
+    This is a maintenance release. The following items were fixed and/or added:
+
+    * AVSv:removed addition of su to su_op_list from su_role_failover #2668
+    * AVSv/amfnd: Updating instantiation/Cleanup Timeout for proxied cmp #2661
+    * AVSv/amfnd: Sending su level resp when comp restarts during susi modification #2625
+    * MDS:TCP : vdest_policy is properly updated in MDS TCP service install & uninstall #2667
+    * Immsv: SQLITE_BUSY from start of sqlite loading transaction causes retry (#2658)
+    * avnd:use recommended recovery action for quiesced timeout #2335
+    * AVSV: Updating the state to quiesced, if fault happens  when SI shutdwn flow is in progress #2648
+    * AVSV/amfd: Returning failure if node doesn't exists in DB during NodeGroup creation (#2626)
+    * tools/safimm: utility timeout option and TRY_AGAIN handling for immlist (#1012)
+    * avsv/avd: return TRYAGAIN for a few more admin ops (#2651)
+    * saf/immsv: Add missing include for of unistd.h (#2638)
+    * Immsv: All config attributes appended to CcbCreate callback when applier exists (#2630)
+    * opensaf: added print message to opensaf_reboot script during reboot of local node - context of (#2609)
+    * FM: Avoid failover and reboot local node when standby init is not completed (#2609)
+    * tools/safimm: escape quote characters in attribute values before sending to sqlite (#2641)
+    * AVSV/amfd: Don't terminate SUs in case of mismatch between PrefInserviceSUs and No Of configured SUs (#2217)
+    * AVSV/amfd: During admin lock of sponsor si, deleting stdby susi of only sponsor si (#2553)
+    * AVSv/amfd: Ordering comp list in su and csi list in si lexicographically (#2565)
+    * MDS: Added handling for out of order of Subscription and Data messages(2611)
+    * avsv/avd: instantiate SUs after registration (#2601)
+    * AVSv:Performing susi level failover if si dep exists within SU when nodefailvr occurs in REALIGN fsm #2561
+    * AVSv:Setting the admin state to Locked state,even if shutdown opr fails #2541
+    * Immsv: Support for RTO testing in testprogram `applier´ (#2632)
+    * Immsv: Fetch of pure RTAs handles the empty value correctly (#2632)
+    * avsv: do not setup references to other objs in su_new (#2635)
+    * AVSvL: Added version check for SI Dep state during enc/dec #2540
+    * avsv: remove double SG ref in SU and reinit ref in add_to_model (#2635)
+    * AVSv: Remove all the assignments of an SI when susi role failover is not possible #2360
+    * AVSv:Not allowing si/su/sg admin operations when Tolerance timer is running  #2567
+    * clmsv: Initialize track pat node at standby during sequence of node create after a delete (#2226)
+    * AVSv: Avoiding amfd crash if controller failover happens during si-swap operation #2559
+    * AVSv/avnd: csi remove callbacks to all comps of SU #2552
+    * AVSv: Setting the susi->fsm to AVD_SU_SI_STATE_ASGND in su shutdown response #2588
+    * AVSv:During failover, if dependent SI which is sponsor too is unassigned then unassign its dependents too #2531
+    * AVSv: Checking for a valid standby susi during node failover #2554
+    * AVSv:ignoring rank for adding new CSI #2600
+    * AVSv: Added checkpoint processing of compcsi #2613
+    * Immsv: immdump/PBE avoids abort (core dumping) on error (#2597)
+    * glsv: add imm selection object to poll only after saImmOIImplementerSet() succeeds (#2536)
+    * edsv: add imm selection object to poll only after saImmOIImplementerSet() succeeds (#2536)
+    * clmsv: add imm selection object to poll only after saImmOIImplementerSet() succeeds (#2536)
+    * Immsv: SyncRequested flag reverted back to on when failure to send to IMMD (#2617)
+    * immsv: imma_oi supports TRY_AGAIN on handle resurrect during sync (#2616)
+    * immsv/immnd: handle AMF blocking calls done in separate thread (#1713)
+    * immsv/immd: handle AMF blocking calls done in separate thread (#1713)
+    * avsv: generate core for amfd when HB tmo is detected
+    * avsv: node join/leave related logging improvements
+    * avsv: delete PG track info also when node leave via CLM callback (#2592)
+    * AVSV: Terminating su after deleting assignments during clm node lock #2353
+    * AVSv:deleting assignments if su fault happens during Act transition in si-si dep case #2537
+    * immsv: ccbObjectModify avoids interfering with RTA update (#2602)
+    * immsv: Admo/search/ccb finalize made sensitive to return code from immnd (#2556)
+    * avsv/avd: don't fetch pure runtime attrs from IMM (#2587)
+    * immsv: Corrected purging of ccb-request-continuations (#2502)
+    * AVSv: removing the assignmemts for entire SU when su_fault happens in sg_realign fsm #2535
+    * AVSv/avnd: successful quiesced response for inst or term failed su #2549
+    * AVSV: Sending Delete assignment in case std assignment timeout #2533
+    * AVSv: Not checkpointing SI_TRANS info before screening for equal distribution in NWay & NPM #2548
+    * Immsv:Inform the immnd failure to nid when there is msgno missmatch while syncing(#2504)
+    * tools/safimm: Return value verification is added while verifying attribute value type(#2527)
+    * tools/safimm: Return value verification is added while verifying attribute value type(#2527)
+    * avsv/avnd: allocate more bytes for copy dest (#2583)
+    * avsv/avnd: error handling for bad DN in comp register (#2582)
+    * AVSV: Marked existing pg record as valid in failover case #2142
+    * AVSv: Handling per susi quiesced response in SG Realign state #2530
+    * AVSV: Corrected logic to prevserve track flags to avoid overwrite #2035
+    * AVSv: handling su fault when role failover from standby to Active fails #2526
+    * AVSv:deleting assignmnts if tol_tmr is running for deps during failover #2524
+    * fixed compile problems with GCC 4.4.5 introduced in #2303 fix
+    * AVSv: fixed comparision check in avd_sg_2n_act_susi #2516
+    * AVSv:Fixed comparision issue in avd_sg_2n_act_susi #2522
+    * AVSv:removed extra next in for loop #2516
+    * avsv/avnd: finalize for unregistered processes (#2011)
+    * tools/safimm: harden immcfg input validation (#2303)
+    * avsv/avd: white space changes ONLY (see hg diff -wb)
+    * avnd: handle op state correctly during term failed(#2376)
+    * AvSv: Sending quiesced for all the sponsors in quiesced rsp in SG admin state #2455
+    * AVSv: Corrected dependency check when SU faulted in su opr state #2447
+    * AVSv: determining the SU state based on assigned susi #2447
+    * AVSv:Handling failover in SG admin state and corrected logic in deciding SU state #2447
+    * CPSV : Fixed mismatch of open reference count between CPA , CPD & CPND (#2405)
+    * AVSv: Sending quiesc role to Sponsor only after receiving quscd response from dependents #2455
+    * AVSv: removed spaces in the avd_siDep.c
+    * AVSv: Handling role failover in SI Oper state when si-si dep within su is configured #2469
+    * AvSv:Handling role failover in SU oper state when si-si dep within SU is configured #2447
+    * AvSv:Checkpointing Si Dep state and Impl of Tol timer #2468
+    * avsv/avnd: node fail-over implemented (#2290)
+    * avsv/avnd: separated node fail and switch over handling (#2290)
+    * avsv/avnd: corrected gcc 4.6.1 issue introduced in 3343 (#2490)
+    * AVSV: no multiple csi remove callbacks with target_all to same comp #2487
+    * Java: Passing state as Act in JNU API incase state is0 in CSI Remove PG callback #2492
+    * IMMSV TOOLS: Addind lock and lock-in during cluster downsize #2490
+    * AVSV: Rebooting node in case MW director comp quiesced cbk timeout #2441
+    * AVSV: Corrected looping logic for Passive Monitoring #2154
+    * avsv/avd: don't use freed memory (#2489)
+    * avsv/config: default value for SU rank is zero (#2325)
+    * avsv/avd: corrected handling of changes to saAmfCompDisableRestart (#2388)
+    * avsv/avd: reboot node using node director (#2186)
+    * avsv: bug fix unintended assignments (#2488)
+    * tools/safimm: utility timeout option and TRY_AGAIN handling for immcfg(#1012)
+    * tools/safimm: utility timeout option and TRY_AGAIN handling for immfind(#1012)
+    * avsv/avnd: INSTANTIATION-FAILED when no SaAmfNodeSwBundle is found (#2183)
+    * avsv/avnd: support ORPHANED(8) in avnd_comp_pres_state_set (#2236)
+    * avsv/avnd: default value for saAmfCompTerminateTimeout is comp category dependent (#2482)
+    * avsv/avnd: harden avnd_su_si_remove (#2022)
+    * avsv/avd: reject decrementing saAmfSIPrefActiveAssignments in steps more than one (#2396)
+    * immsv: Better logging by immload when object creation fails (#2486)
+    * opensaf: support multiple TIPC bearers (#1948)
+    * opensaf: support for TIPC 2.0 (#2438)
+    * leap: ncs_os_process_execute_timed use magic exit code 128 (#2474)
+    * immsv: Fixed incorrect error log messages in imm_pbe_daemon.cc (#2479)
+    * build: undo conditional inclusion of plmc in AC_CONFIG_SUBDIRS
+    * avsv/avd: treat zero SI rank as lowest (#2070)
+    * avsv/avd: treat zero SU rank as lowest (#2093)
+    * avsv/avd: check node and SG admin states at SU unlock (#2436)
+    * AVSv: handling pm exit evt when main thread (#2435)
+    * avsv/avnd: at shutdown remove CSIs from components before cleanup (#2414)
+    * avsv/avnd: introduced macro for shutdown state (#2414)
+    * avsv/avnd: introduced global SI list sorted by SI rank (#2414)
+    * avsv/avd: don't allow unlocking an SU without components (#2049)
+    * avsv/avd: allow deletion of CSI attribute value (#2440)
+    * smfsv: gcc4.6 changes (#1928)
+    * ntfsv: gcc4.6 changes (#1928)
+    * mqsv: gcc4.6 changes (#1928)
+    * mds: gcc4.6 changes (#1928)
+    * logsv: gcc4.6 changes (#1928)
+    * leap & core: gcc4.6 changes (#1928)
+    * immsv: Fixed warnings generated with -Wconversion
+    * immsv: gcc4.6 changes (#1928)
+    * glsv: gcc4.6 changes (#1928)
+    * edsv: gcc4.6 changes (#1928)
+    * cpsv: gcc4.6 changes (#1928)
+    * avsv: gcc4.6 changes (#1928)
+    * avsv/avnd: fixed type for execution context (#2454)
+    * avsv/ava: buffer overflow in ava_mds.c (#2456)
+    * logtest: correct test input(#2430)
+    * build: agents depend on core (#2464)
+    * build: include libopensaf_core in librda (#2464)
+    * SMF, no interference in thread termination (#2450)
+    * tools/safimm: allow parameter values to contain ":" (#2448)
+    * build: only configure plmc when plm is enabled (#2460)
+    * immsv: Moved PBE handle close out of signal handler (#2453)
+    * immsv: PBE TERM signal-handler & remove imm.db-journal on new imm.db (#2453)
+    * immsv: Immnd stop script kills immdump/immload before terminating immnd (#2449)
+    * immsv:Reject duplicate attribute assignements (#2412)
+    * immsv: purge of syncronous request ignores async admop requests (#2433)
+    * immsv: Immnd tries to purge sync request when informed of imma timeout (#2433)
+    * immsv: Syncronous timeout in imma informs immnd asyncronously (#2433)
+    * immsv: Imma informs immnd of augment-admo with rof==true for augmented creates (#2428)
+    * SMFD callback is using correct poll timeout value (#2423)
+    * SMFA callback stringToPass correctly terminated (#2429)
+    * immsv: Use of ccb-augment handles in wrong context gives error (#2426)
+
+OpenSAF 4.2.0 (released 2012-01-09)
+
+    This version is a major update. The following items were fixed and/or added:
+
+    * AVSV: Ava,Proper handling of invalid csi_name in saAmfProtectionGroupTrack_4 #2136
+    * avsv/avnd: added assignment syslogging (#2425)
+    * AVSv: Delete PG record node down event #1817
+    * AVSv: Sending new assignment when the components gets restarted #2417
+    * immsv-doc: README adjusted on admo-release for augmented Ccb (#2422)
+    * immsv: ccb-finalize on empty ccb-augment shall not abort original ccb (#2241)
+    * avsv/avd: removed last remains of SU si_max_active/si_max_standby (#2418)
+    * avsv/avd: reversed calc of saAmfSUPreInstantiable (#2418)
+    * OpenSAF AMF model corrected (#2418)
+    * avsv/avd: validate saAmfSGMaxActiveSIsperSU/saAmfSGMaxStandbySIsperSU acc to red model (#2418)
+    * avsv/avd: corrected 2N assignment alg (#2418)
+    * ntfsv: update lib version
+    * ntfsv: check return value for pthread_mutex functions(#1453) part4
+    * ntfsv: ntfa thread safe variable data (#1453 part3)
+    * ntfsv: ntfa thread safe read/send/finalize (#1453 part2)
+    * ntfsv: ntfa thread safe subscribe (#1453 part1)
+    * AvSv: Allow CSI Attrbutes greater than 255 bytes,#2302
+    * uml: added build_testprog cmd to build_uml
+    * AvSv: Allow CSI Attrbutes greater than 255 bytes,#2302
+    * AVSv:Not calling cleanup script for components in UNINSTANTIATED state #2198
+    * immsv: Discriminate between regular & augmented ccb delete continuations (#2420)
+    * AVSv:Check added to see if per SU level failover can be done or not #2332
+    * immsv: Allow idempotent saimmOmAdminOwnerSet for objects in active ccb (#2419)
+    * AVSv: Added check to select the next unassigned csi based on dependencies #2305
+    * AVSV:2N, support added when multiple SI's are assigned to the same su #2259
+    * AVSV: support added for si-si dependency within SU for 2N #2259
+    * immsv: Reject duplicate rdn attribute values in RTO-create (#2410)
+    * immsv: Reject duplicate rdn attribute values in ccb-create (#2410)
+    * tools/safimm: immadm tryagain handling added (#2413)
+    * README: Notes added for upgrade and setting up nonroot in make install (#2023, #2309)
+    * immsv: Remove IMMD SBY glitch on PBE enablement (#2408)
+    * Cpsv: Update the number_sections to local database in REP_SYNC_RESP (#2385)
+    * immsv: revert extra logging also for immnd_evt.c (#1996)
+    * avsv/avnd: corrected env var memory management #2234
+    * avsv/avd: revert to default IMMA sync tmo (#2329)
+    * immsv: Immnd sync-client correctly sets mApplier flag in implementer (#1996)
+    * immsv: revert extra logging changeset (3115:89d002c48c57)  (#1996)
+    * AVSV: Reboot the node even if no assignment  exists #2137
+    * immsv: Extra loging for class-implementer-set/release (#1996)
+    * AVSv:Not issueing opensaf_reboot if already issued #1986
+    * MDS:TCP comment removed ,#2165
+    * MDS:TCP update subscription count on unsubscribe,#2165
+    * Cpsv:Now saCkptCheckpointClose  will pass open_flags in Close evnt to CPND (#2400)
+    * AVSv: not updating the counters if susi is in unassigned state #2357
+    * AVSv: Not deleting dependent SI if dependency configured #2289
+    * IMMD crashes when saved_msgs is NULL updated patch (#2381)
+    * immsv: Do not trust time() returning a positive value (#2373)
+    * immsv: Kill of sync or pbe only when pid>0 (#2373)
+    * avsv/avnd: skip SU repair if recovery is at node level (#2326)
+    * samples/amf: removed unnecessary SI from config
+    * Cpsv:Prevented the Unlinkid ckpts to standby CPND in Cold Sync process process(#2266)
+    * MQSv:Cleaning the node database in mqd as soon as node left from the cluster #2351
+    * build: reverted changeset 3002:0732a1e1623f
+    * avsv/avnd: do not export env vars for proxied comps (#2317)
+    * avsv/avd: create SU obj to store runtime attr update (#2337)
+    * avsv/avd: reverted changeset 2935:402094237a99
+    * SMF validates parent/type in activationUnitTemplate, fixes #2285
+    * mbcsv: reverted changeset 3041 (turning warmsync off) for ticket #1495
+    * immsv: Prevent mismatch for response on syncronous client call (#2284)
+    * immsv: Compensate for hard admo-release during PRTA update (#2342)
+    * immsv: AdminOwner-Set/Release gets TRY_AGAIN when conflict with PRTA update (#2342)
+    * build/packaging: python bindings is set to disabled by default (#2237)
+    * AVSV fixed build issue introduced in 3061 #2301
+    * AVSv: Updating SI pointer during SI Distribution in Nway #2301
+    * AVSv: In NPI SU, not including si name in susi msg from avnd to avd #2111
+    * AVSv: sending success resp for qusced evnt when NPI SU is in term-failed state #2158
+    * opensaf: use single quotation marks in rpm spec for echoing to sudoers
+    * avsv/avnd: remove references to NTF (#2308)
+    * cpsv: update imm with num sections set to 1 when default section exists (#2313)
+    * immsv: Correction to patch for imm-sync handling of admo release (#2010 #2298)
+    * immsv: Correction to imm-sync handling of hard release of admo with ROF==true (#2010 #2298)
+    * immsv: converting some LOG_IN back to LOG_NO (#2010 #2298)
+    * MBCSv: Turn off warm sync on an explicit request(#1495)
+    * cpsv: Fixed num_users , num_readers and num_writers updated issue in cpd  (#2310)
+    * opensaf: main info files updated for 4.2
+    * cpsv: adjusted checkpoint_access for backward compatibility part2 (#2307)
+    * AVSv: No alarms during failover #1572
+    * cpsv: adjusted checkpoint_access for backward compatibility (#2307)
+    * cpsv: decode 8 bit for is_ckpt_open and all_repl_evt_flag part2 (#2307)
+    * cpsv: decode 8 bit for is_ckpt_open (#2307)
+    * AVSv:Not checkpointing SI_TRANS info before screening for equal distribution #2286
+    * opensaf: improved sudo handling (#2106)
+    * clmsv: update imm when node is down for SA_CLM_ADMIN_UNLOCK admin op (#2185)
+    * AVSv:In the si-si dep flows, dont delete susi if already delete is sent #2263
+    * avsv/avd: initialize term callback tmo (#2296)
+    * avsv/avd: respond to IMM directly in RT attr callback (#2299)
+    * AVSV: changed SaBoolT flag to bool in AVSV_SU_INFO_MSG #2253
+    * AVSv:Updating susi assignment countrs at the time of role sending #1870
+    * CLMs: Clearing the IMM implementer in the quiesced ack, #2288
+    * GLSv:ImplementerClear is done in the QuiscedAck #2230
+    * clmsv: set immutils retry to 180sec during initialization (#2292)
+    * clmsv: fail if error during initialization (#2292)
+    * avsv/avd: consider existing SI deps when refreshing config at standby (#2283)
+    * python: package in noarch rpm (#2087)
+    * avsv/avd: set immutils retry to 180sec (#2260)
+    * Immsv:assert in ImmModel::finalizeSync at ImmModel.cc:11788(#2010)
+    * AVSv: Clearing the IMM implementer in the quiesced ack #2248
+    * smfsv: procedure objects always removed at commit (#2208)
+    * Cpsv:Fixed early QUIESCED sate update, to process all pending messages before QUIESCED (#2270)
+    * ntfsv: ntfa validate SaNtfValueTypeT (#2163)
+    * ntfsv: correct encoding return values (#2163)
+    * ntfsv: ntftest validate SaNtfValueTypeT (#2163)
+    * immsv: saImmOmInitialize_o2 gets correct version populated (#2246)
+    * immsv:saImmOmCcbFinalize must not bypass informing server of ccb-handle close (#2225)
+    * immsv:saImmOmAdminOperationMemoryFree validates handle & version (#2232)
+    * immsv: operationId > SA_IMM_PARAM_ADMOP_ID_ESC allowed for A.2.1 handles (#2223)
+    * immsv: imm-handle-initialize sets correct version as out param (#2246)
+    * immsv: AdminOperationInvoke_2/_o2() fails with FAILED_OPERATION when no callback at OI (#2238)
+    * immsv: saImmOmAdminOperationInvokeAsync_2 returns ERR_INIT on missing A.2.11 callback (#2235)
+    * avsv/avd: use LOG at standby (#2241)
+    * avsv/avd: empty imm job queue when no longer implementer (#2149)
+    * avsv/avd: reduce blocked time for OI calls (#2149)
+    * avsv/avd: improved error handling for OI runtime owner calls (#2149)
+    * avsv/avd: move of IMM related code (#2149)
+    * avsv/avd: use job queue for IMM updates (#2149)
+    * leap: handle EINTR in ncs_sel_obj_ind (#2184)
+    * avsv/avnd: export env vars for NPI comps acc. to spec (#2234)
+    * immsv: Admin-op A.2.11 APIs only allowed with A.2.11 version (#2242)
+    * immsv: saImmOiCcbSetErrorString only allowed in valid context (#2233)
+    * immsv: PRIu64 used in imma_mds.c printouts (#2282)
+    * immsv: Failed CCB abort must avoid false abort callback to appliers (#2268)
+    * immsv: Create, delete or update of runtime data not allowed for appliers (#2265)
+    * immsv: imma handles marked stale & exposed by mds message loss (#2202)
+    * SMF: No memory leakage at admin operation call (#2209)
+    * immsv: ABORT TRANSACTION corrected to ROLLBACK in imm_pbe_dump.cc (#2250)
+    * immsv: Remove sleep(5) from tests/immsv/implementer/applier.c (#2256)
+    * immsv: Make connection handling of PBE-OI fevs-safe (#2010)
+    * ntfsv: ntfsend validate input (#688)
+    * SMF: empty string accepted as do/undoCliCommand (#2216)
+    * ntfsv: correct error code from notification allocate API (#2075)
+    * ntfsv: ntftest add test for allocate too big datasize (#2075)
+    * immsv: Changed some log/trace messages in IMMND to improve diagnostics (#2010)
+    * immsv: IMMND shall not drop async requests when IMMD is down during sync (#2010)
+    * CLM: Corrected return value for saClmClusterTrackStop #2080
+    * avsv/avd: reject config changes when syncing (#2135)
+    * avsv/avd: hardened validation of SaAmfSG modifications (#2182)
+    * MDS:Support added for the msg loss detec. at the recr app service,#1795
+    * smfsv: use osafassert (#2214)
+    * clmsv: use osafassert (#2214)
+    * ntfsv: use osafassert (#2214)
+    * logsv: use osafassert (#2214)
+    * avsv: use osafassert (#2214)
+    * immsv: use osafassert (#2214)
+    * leap: osafassert added (#2214)
+    * Protection group callback is incorrectly removed(#2086)
+    * Immsv: Resend of last fevs messages at both IMMND DOWN and IMMD DOWN (#2224)
+    * immsv: SBY IMMD handles IMMND down when there is no active IMMD (#2210)
+    * avsv/avd: hardened validation of SaAmfSI modifications (#2203)
+    * ntfsv: update README file (#2187)
+    * ava: handle compName in protection group tracking correctly(#2033)
+    * sed of nodeinit.conf follows symlink during 'make install' (#2091)
+    * Removed immomcmd.py to eliminate ip conflicts as agreed in TLC
+    * avsv/avd: unlock-in of SG, don't send msgs to absent node directors (#2117)
+    * CLM:not throwing an Exception when null is passes as cbk param in the initialization #2150
+    * AVSv: Not checking NPI SU presence state while performing UNLOCK opr #2190
+    * GLSv:Corrected the default status return value while building res info after restart #2156
+    * GLSv: Corrected the default return value in mbcsv decode processing #2211
+    * avsv/avd: hardened validation of SaAmfSU modifications (#2189)
+    * avsv/avd: hardened validation of SaAmfNode modifications (#2180)
+    * avsv/avd: support deletion of values from SaAmfComp instances (#2068)
+    * avsv/avd: reset msg IDs when avnd leaves cluster (#2109)
+    * immcfg: Better error printout fot ERR_TIMEOUT on CcbApply (#1786)
+    * immsv: Increment handle timestamp until locally unique (#2103)
+    * immsv: README updated with additional review comments (#1983)
+    * avsv/avnd: reject pmstart for non existent PIDs (#2151)
+    * immsv: admoInit, implSet, ccbInit wait for finalizeSync (#1996, #2051)
+    * immsv: Force syncronous fevs at coord to wait for finalizeSync (#2010)
+    * AVSv:Update the si's si_dep_state properly after controller switchover #2044
+    * AVSv:In NPM, handling SG fsm state properly during role failover #2047
+    * avsv/avnd: SU FSM avoid tracing NULL comps (#2133)
+    * avsv/avd: validate CSI dependencies better (#2138)
+    * logsv: Creating directory of given path to store log files and cfg files for an appliction stream #2153
+    * AVSv: creation of csi not allowed when safCSType doesnot exist #2082
+    * Substitued with proper license
+    * opensaf: configure mandatory attribute saAmfCtDefQuiescingCompleteTimeout for components (#2097)
+    * avsv: validate saAmfCtDefQuiescingCompleteTimeout and initialize when missing (#2097)
+    * avsv/avnd: node reboot on msg ID mismatch (#2122)
+    * AvSv: Update comp callback records properly, #2050
+    * avsv/avd: reject SIs without a saAmfSIProtectedbySG value (#2123)
+    * AvSv: Qscing Complete timer support added, #2060
+    * AVSv:Corrected memcmp issue in sirankedsu deleteion  #2001
+    * samples/amf: sa-aware CLC-CLI script, use logger cmd (#2008)
+    * immsv: Remove too strict assert in imma_proc.c (#2089)
+    * SMFD logs message and does not assert if attr value is not given in campaign, #2085
+    * AVSv:Support for removal of middleware SU's #2023
+    * samples: AMF wrapper component, makefile change (#2008)
+    * samples: AMF wrapper component (#2008)
+    * tools/safntf: correct severity printout for ntfsubscribe (#2094)
+    * ntfsv: add readInitialize filter check (#2032)
+    * ntfsv: ntftest complement readInitialize tests (#2032)
+    * ntfsv: add check for search mode input (#2028)
+    * ntfsv: ntftest complement search mode test (#2028)
+    * immsv: README updated from review comments (#1983)
+    * immsv: update of osaf/services/saf/immsv/README (#1983)
+    * GLSv: Fixed trace issues introduced as part of logtrace integration #1756
+    * avsv/avd: empty saAmfSIRank gives lowest possible rank (#2105)
+    * avsv/avd: empty saAmfSURank gives lowest possible rank (#2093)
+    * avsv/avd: allow adding SI dependencies from unassigned SIs (#2037)
+    * AMF JNI:ProcessMonitoring Class Attributes initialized in java native lib #2065
+    * avsv: Change NO_RECOMMENDATION to COMPONENT_FAILOVER for backwards compability (#1629)
+    * immsv: Correct omitted assignements of return value in PBE dump (#2100)
+    * AVSv:Fixed issue in deleting sirankedsu from SI,when SI is deleted #2001
+    * AVSv: fixed build issues introduced as part of fix #2067
+    * AVSv: support for dynamic update of saAmfCompInstantiationLevel #2067
+    * AVSv:Removed reading runtime attrb CSIAssignment from IMM #2015
+    * AMFD checkpoints currNumSGs in SG add/del flow only if peer version is < 4.2, fixes #2078
+    * AVSv:Check is added to send assgnmnts only if the SU is in instantiated state #2057
+    * AVSv:Keeping SU opr state as Enabled after SU lock-instantiation #2004
+    * UML: adapted to changed samples
+    * UML: skip OpenSAF libraries installed on host
+    * SAF header files UNIXified (#2088)
+    * samples: improved AMF sa_aware (#2008)
+    * opensafd: sed real file (#1878)
+    * MQSV:Traces updated when null parameters are passed to api #2062
+    * avsv/avd: validate RecoveryOnError and DisableRestart (#1629)
+    * GLSv:removed logging resource_name in trace_enter to avoid crashes #1756
+    * Updated 00-README.conf with OpenSAF process priorities info #1761
+    * amf-state: use echo in a portable way (#1865)
+    * immsv: Epoch set directly after loading completed (#1987)
+    * smfnd run as root (#2053)
+    * Immsv: Adminoperation callback will fail if we have same invocation ID (#2056)
+    * MDS: Unsubscription to Service supported for TIPC 1.6.2 and above, #2052
+    * AVSv:SU instant order is maintained by adding SU's based on SuRank to node->list_of_su #2038
+    * immsv: Refactor code in saImmOiAugmentCcbInitialize (#2041)
+    * immsv: Use weak linking for internal om_augmnet_ccb calls (#2041)
+    * AVSv:deleted logging comp info in the avnd_su_pres_insting_suterm_hdler#2055
+    * AVSv:updating the SU term state while terminating the comps having actv CSI assignments#2003
+    * Reverting trace_enter2 to trace_enter as fix for #1754
+    * Removed * from ckptHandle in trace enter for trace changes pushed as part of #1754
+    * Added tag 4.2.FC for changeset 300404d780ca
+    * Update configure.ac file for version 4.2.FC
+    * fixed the build issue - #1761
+    * OpenSAF process,threads priorities & policies made configurable #1761
+    * AVSv:node adminstate is updated properly when node lock opr is issued #2043
+    * samples: snmpd AMF integration with some HA characteristics (#2008)
+    * tools/safamf: amfpm command introduced (#1951)
+    * amf-state: determine system health (#1865)
+    * Read-Write permissions for 'others' for MDS tcp server socket (#2039)
+    * MQSv:reading 1byte from msgques for sending notification#1999
+    * AVSv:replaced assert with Log Error #2026
+    * AVSv:Corrected invocation Id while sending failure response to node lck opr #1957
+    * AVSv:Avoid sending messages from amfnd to amfd during shutdown #1873
+    * UML changes for run as opensaf (#1716)
+    * avsv/avd: saAmfCtDefCallbackTimeout not req for non-proxied, non-sa-aware (#2012)
+    * CPSV:Now ckpt_node will be deleted irrelevant of saImmOiRtObjectDelete() return value Ticket#2002
+    * safimm/immcfg: SA_IMM_CCB_ALLOW_NULL_OI requires A.2.11 API version (#1997)
+    * AVSv:si-si dependency functionality during node failover #1513
+    * immsv: Removed LOG_INFO for non error case in imma_om_api.c(#2024)
+    * immsv: imm_import.cc safe mode uses SA_IMM_CCB_ALLOW_NULL_OI (#1997)
+    * AVSv: Support for multiple CSI dependencies is added #1881
+    * MDS:TCP: IPV6 Supported for TCP transport of MDS,#1683
+    * AvSv: Corrected the Non terminating loop, #1956
+    * pyosaf: Adding sample code to illustrate use of python bindings
+    * Run OpenSAF as non root (#1716)
+    * immsv: IMMA_SYNCR_TIMEOUT update of README (#1808)
+    * immsv: Support for IMMA_SYNCR_TIMEOUT env variable (#1808)
+    * immsv: review updates to imm_cfg.c (#1997)
+    * immsv: immcfg safe mode uses SA_IMM_CCB_ALLOW_NULL_OI (#1997)
+    * immsv: SA_IMM_CCB_ALLOW_NULL_OI update of README (#1997)
+    * immsv: Support for SA_IMM_CCB_ALLOW_NULL_OI (#1997)
+    * immsv: OI augmented CCB, corrected opensaf.spec.in (#1963)
+    * avsv/ava: NULL check in initialize_4 (#2006)
+    * avsv/ava: corrected saAmfFinalize (#2005)
+    * ava api: added enter/leave traces and error codes (#1647)
+    * ava api:saAmfInitialize_4 asserts in non-AMF component (#1647)
+    * immsv: OI augmented CCB, immnd server modifications (#1963)
+    * immsv: OI augmented CCB, imma client modifications (#1963)
+    * immsv: OI augmented CCB, pack/unpack of new event (#1963)
+    * immsv: OI augmented CCB, update of README (#1963)
+    * immsv: OI augmented CCB, interface changes (#1963)
+    * tools/safimm: fixed regression in immlist (#2009)
+    * log: overload protection, single mbox (#1758)
+    * leap: check if mbox is full before queuing msg (#1985)
+    * edsv: saEvtInitialize has same priority as saEvtFinalize (#2000)
+    * dtsv deprecated forever (#1757)
+    * AVSv:responding to SI admin operation when target node goes down#1945
+    * ntfsv: update lib version (#538)
+    * ntfsv: add and adjust reader API test (#538)
+    * ntfsv: make reader cache size configurable (#538)
+    * ntfsv: filter according to search criteria (#538)
+    * ntfsv: use shared pointer for notifications (#538)
+    * ntfsv: add use of filter in reader obj (#538)
+    * ntftest: add missing initializations and remove trace
+    * ntfsv: readInitialize enc/dec filter
+    * ntfsv: new enc/dec filter structure
+    * Thread priorities made configurable - (#1761)
+    * MQSV: trivial logs are changed from syslog to traces #1970
+    * immlist: display class definition (#915)
+    * avsv/avd: avd_sgNWay- central exit and trace #1974
+    * avsv/avnd: syslog presence state (#1979)
+    * GLSv: Fixed build issues in glnd #1756
+    * mqsv: Use SaUint32T for storing SaBoolT type instead of bool (#1995)
+    * tools/safimm: corrected adminOwnerSet for 'immcfg -f' (#1991)
+    * GLSv: Logtrace integration and detachment from dtsv #1756
+    * AMF B0401 API. Only changes in ava library. (#1647)
+    * ava_api refactor: remove macros and change memset (#1647)
+    * Patch 2: Change cpsv to use logtrace,with dta removal,added additional traces (#1754)
+    * pyosaf: Moving python bindings from osaf/tools/pyosaf to python directory
+    * MQSV: trivial logs are changed from syslog to traces #1970
+    * immsv/imma: clear control block when last client finalize (#1988)
+    * CLM JAVA: java CLM interface for B04,#1941
+    * MQSV: Logging using DTSv is deprecated and Log traces are added,#1970
+    * immsv: immdump checks retcode from saImmOmClassDescriptionGet (#1981)
+    * avsv/avnd: init IMM OM handle when needed (#1977)
+    * leap: safer impl and improved logging in ncs_os_process_execute_timed (#1978)
+    * test/logsv: increased app stream file size
+    * Implemented AMF hot standby feature
+    * avsv/avd: read config before sending fail-over msgs (#1949)
+    * avsv/avd: avd_siDep - added set function (#1974)
+    * avsv/avd: avd_siDep - central exit and trace (#1974)
+    * avsv/avd: avd_sg2Nfsm - central exit and trace (#1974)
+    * avsv/avd: avd_sgproc - central exit and trace (#1974)
+    * tools/safimm: immcfg, fixed compiler warning (#1972)
+    * build: package tools in a separate rpm (#1968)
+    * tools/safimm: immcfg, safe --ignore-duplicates introduced (#1972)
+    * tools/safimm: imm_import.cc some minor cleanups (#1972)
+    * tools/safimm: imm_import.cc indentation (#1972)
+    * Checkpointed the SURestart Count and CurrProxyCompName, fixes #1965
+    * ntfsv: build fix add header include
+    * ntfsv: fix rpm build error
+    * ntfsv: add filter options for ntfread  (#1938)
+    * ntfsv: use common code for ntfread, ntfsubscribe  (#1938)
+    * ntfsv: add ntfread tool (#1938)
+    * avsv/avd: fixed uninitialized warning (#1971)
+    * avsv/avd: corrected calculation of SI assignment state (#1971)
+    * tools: amf-state si state printout fixed (#1973)
+    * immsv: Restore API version to A.2.11 in immcfg and immadmp (#1901)
+    * tools/safimm: test features removed (#1901)
+    * tests/immsv: new test programs immpopulate and immapplier (1901)
+    * saflogger: removed count & interval features (#1758)
+    * tests/logsv: saflogtest added (#1758)
+    * immsv: isApplied flag is cleared when applier is cleared (#1967)
+    * immadm: added timeout argument (#1052)
+    * LEAP: remove unused sysf_str (#652)
+    * LEAP: removed unused sysf_file (#652)
+    * LEAP: remove unused ncs POSIX timer (#652)
+    * leap: assert removed from ncs_ipc_send (#1908)
+    * edsv: logtrace integ: common files, headers, build, lib version (#1755)
+    * edsv: logtrace integ eda_hdl.c, eda_init.c, eda_util.c (#1755)
+    * edsv: logtrace integ eda_saf_api.c, eda_mds.c (#1755)
+    * edsv: logtrace integ eds_ main, cb, amf, api, debug.c (#1755)
+    * edsv: logtrace integ eds_evt.c, eds_imm.c, eds_ckpt.c (#1755)
+    * edsv: logtrace integ eds_ll.c, eds_tmr.c, eds_mds.c (#1755)
+    * edsv: Return SA_AIS_ERR_BAD_HANDLE for uninitialized handles (#1966)
+    * leap: Always encode/decode bool as 4 bytes and fix assert in lock (#1952)
+    * Change cpsv to use logtrace (#1754)
+    * immsv: Fixed post processing in completed upcall (#1962)
+    * immsv: Corrected bug in saImmOmAdminOperationMemoryFree (#1961)
+    * immsv: Modified RTO delete logic (#1955)
+    * immsv: immadm on error probes for error string from oi (#1764)
+    * immsv: Minor corrections, test-code, README (#1764)
+    * immsv: Added support for AdminOp return params (#1764)
+    * immsv: Change message format to support return params (#1764)
+    * immsv: Minor changes to the A.2.11 interface (#1764)
+    * immsv: Early timeout of admop when node/impl dies (#1940)
+    * avsv/ava: allow pmStart/Stop by non components (#1950)
+    * avsv/ava: allow error report by non components (#1620)
+    * immcfg: fix of regression introduced in fix for #1814
+    * immcfg: initialize parentName in obj create (#1814)
+    * immsv: fixed some build errors introduced in 2554 (#1904)
+    * build: tag new IMM headers as include_HEADERS for dist archive (#1904)
+    * immsv: xmlwriter version of immdump is default (#1936)
+    * immsv: Prevent resurrect of applier OI handles (#1933)
+    * immsv: updated osaf/services/saf/immsv/README (#1904)
+    * immsv: Ccb error strings must require A.2.11 (#1904)
+    * immsv: Adjust imm tools for ccb-error strings (#1904)
+    * immsv: IMMND server support for ccb-error strings (#1904)
+    * immsv: IMMA lib support for ccb-error strings (#1904)
+    * immsv: Pack/unpack of ccb-error strings (#1904)
+    * immsv: Additions to saImmOm and saImmOi (#1904)
+    * ntfsv: improve  mem error handling in enc/dec (#807)
+    * build: tag missing internal headers as noinst_HEADERS for dist archive (#1937)
+    * pyosaf: Update README file to reflect current status of the feature.
+    * faulty memset, resulting in corrupted patricia tree root (#1931)
+    * AvSv:Corrected return value for SU's unsupported attr modifications #1934
+    * common: add nofork option to daemon lib
+    * AvSv:Added check for node->saAmfNodeAdminState when instantiating #1930
+    * pyosaf: add rpm subpackage opensaf-python for the bindings (#1444)
+    * pyosaf: enable the python bindings into the opensaf build (#1444)
+    * pyosaf: initial python binding to the saf api contribution (#1444)
+    * mbcsv: Fixed PRI format specifier related build errors
+    * mbcsv: removed unused mbcsv_inv.c #753
+    * mbcsv: removed dtsv interface2 #1753
+    * mbcsv: removed dtsv interface1 #1753
+    * mbcsv: logtrace integ mbcsv_util.c, tmr.c, queue.c, inv.c #1753
+    * mbcsv: logtrace integ mbcsv_peer.c, pr_evt.c mbx.c #1753
+    * mbcsv: logtrace integ mbcsv_mds.c mbcsv_pwe_anc.c #1753
+    * mbcsv: logtrace integ: mbcsv_act.c,mbcsv_api.c #1753
+    * Enable forwarding of all HPI events to NTF (#1806)
+    * build: still fail to build on Debian/Ubuntu with buildbot only (#1922)
+    * plmc: noinst libplmc from plmc is really internal to plms, move it (#1922)
+    * avsv/avd: support SIs added in same CCB as SI dep (#1902)
+    * log: initialization corrected (#1860)
+    * CLM: respond to NID when errors are detected (#1859)
+    * CLM: saClmClusterNodeGet supports timeout param in nanosecs #1921
+    * AvSv: fixed build issues on debian
+    * AvSv:In clm node lock processing,setting node->admin_state only if assgnment are there#1918
+    * build: requires at least autoconf 2.61 for latest AC macros
+    * scripts: exit status when program is not running should still be 0 (#1858)
+    * AMF, missing check-pointing of msg id in protection group tracking(#1913)
+    * Killed amfd,amfnd and fmd before reboot -f in opensaf_reboot script
+    * AvSv: Dont assign the comp csi when already assigned #1882
+    * MDS:TCP Unique names for library global variables #1891
+    * AvSv:In node join processing,check is added not to instantiate locked_instantiated SU#1910
+    * CLM: Update IMM during the SA_CLM_ADMIN_SHUTTING_DOWN state - #1920
+    * CLM: Respond to PLM with REJECTED errcode when AMF rejects admin op - #1919
+    * CPSV: thread safe timer handling (#1804)
+    * CPSV: Introduced broadcast message from active CPD to CPND's to start non-collocated retention timer up on CKPT_CLOSE_LAST #1838
+    * CPSV:Increased cpa CheckpointWrite() mds time out value than the cpnd ALL_REPL_RSP timer value #1839
+    * Fixed the loop in terminating dep-EEs,ignored HPI events in standby, #1924/25
+    * Added checks in PLMS to avoid crashes in IMM-obj-create and HE deactivate flows, #1923/26/27
+    * LOG: Fix attrib change of alarm/notif streams after switch/failover #1917
+    * AvSv:NWay preferrd stdby su is selected for SI failover in the quiesced assgnmt prcssing#1896
+    * AvSv:Check is added for SA_AMF_ADMIN_SHUTDOWN adm opr when responding back to IMM#1883
+    * AvSv:saAmfCtRelPathTerminateCmd attrbt is validated for NPI,non SA-awarecmp#1880
+    * build: ensure that call to AC_LANG_PROGRAM is quoted and not expanded
+    * AvSv:Sending failover messages to avnds after reading cfg info from imm #1885
+    * MDS: vdest id greater than 2000 are allowed(upto 32767), #1911
+    * DTS: Buffer size for component file name increased, #1889
+    * MDS:TCP Error logged into syslog(no node reboot), if invalid IP address is configured in dtmd.conf#1890
+    * build: remove useless libtool deps causing link failure in weird cases (#1922)
+    * plms_hpi: fix previously ignored warning (#1922)
+    * build: do not bypass AM_CFLAGS and use proper libtool libs (#1922)
+    * build: use proper m4_ifdef for AM_SILENT_RULES (#1916)
+    * scripts: consistent lockfile name (#1915)
+    * avsv: increase probation timeouts to reasonable values (#1867)
+    * build: plm disabled by default, fix build errors missed from C99 changes
+    * build: add missing AC_CHECK for types and headers used in OpenSAF
+    * leap: last pass at cleaning ncsgl_defs.h of any NCS_BOOL for C99 types (#655)
+    * leap: last pass at cleaning ncsgl_defs.h of any int64/uns64 for C99 types (#655)
+    * leap: last pass at cleaning ncsgl_defs.h of any int32/uns32 for C99 types (#655)
+    * leap: last pass at cleaning ncsgl_defs.h of any int16/uns16 for C99 types (#655)
+    * leap: last pass at cleaning ncsgl_defs.h of any int8/uns8 for C99 types (#655)
+    * leap: remove all NCS IP-related dead code (#652)
+    * build: remove the useless global -DNCS_MDS
+    * build: move the DTS compile define from global to DTSV components only
+    * leap: only keep the NCSCC_RC_* that are still used in ncsgl_defs.h (#652)
+    * leap: remove misc dead code, defines and types in ncsgl_defs.h (#652)
+    * leap: first pass at cleaning ncsgl_defs.h of any NCS_BOOL for stdbool.h (#655)
+    * leap: remove the useless NCS_VRID type and members (#652)
+    * leap: first pass at cleaning ncsgl_defs.h of any ncsfloat32 and DOUBLE (#655)
+    * leap: first pass at cleaning ncsgl_defs.h of any int8/uns8 for stdint.h (#655)
+    * leap: first pass at cleaning ncsgl_defs.h of any int16/uns16 for stdint.h (#655)
+    * leap: first pass at cleaning ncsgl_defs.h of any int32/uns32 for stdint.h (#655)
+    * leap: first pass at cleaning ncsgl_defs.h of any int64/uns64 for stdint.h (#655)
+    * leap: remove occurences of the EXTERN_C macro, replace only when needed (#652)
+    * AvSv:NWay equal distr screening mdfied not to transfr SIRankedSU assignmnts#1776
+    * AvSv:NWay auto adjust for active assignments for SIs with SIRankedSUs #1776
+    * AvSv:avd SIRankedSU list dtabase added in SI #1776
+    * immsv: Updated README (#1827 drop 3)
+    * immsv: Corrections & optimisations in implementer set/release (#1827 drop 3)
+    * immsv: Checks for callbacks added in imma_oi (#1827 drop3)
+    * immsv: Adjusted indentation in imma_.. (#1827 drop3)
+    * immsv: ObjectImplementerRelease for appliers (#1827 drop2)
+    * immsv: ObjectImplementerSet for appliers (#1827 drop2)
+    * immsv: ClassImplementerRelease for appliers (#1827 drop2)
+    * immsv: Corrections to imma-oi-ccb handling & classImplSet (#1827 drop2)
+    * rpm: add checks for install/upgrade/uninstall in rpm scriptlet (#1879)
+    * immsv: Updates to README and oi-test utility in immadm (#1827)
+    * immsv: Applier OI handling for abort (#1827)
+    * immsv: Applier OI handling for completed & apply (#1827)
+    * immsv: Applier OI handling for ccbOjectDelete (#1827)
+    * immsv: Applier OI handling for ccbOjectModify (#1827)
+    * immsv: Applier OI handling for ccbOjectCreate (#1827)
+    * immsv: Add recognition of version A.01.11 (#1827)
+    * avsv: support for SU admin op REPAIRED (#1194)
+    * immsv: imma library version updated 0:3:0 (#1689)
+    * immsv: Remove support for deprecated IMM-A.01.01 (#1689)
+    * fmd code changed to use SIGUSR1,poll calls #1899
+    * immsv: Class extent search checks for empty class name (#1895)
+    * immsv: Added functiontest immomtest 3 7 for #1895
+    * add validation checks (#1270)
+    * Eliminate additional thread creation #1892
+    * samples/avsv: revert changeset 1555 and some other cleanup (#1254)
+    * AvSv:NWay,If SI failvr for Active assgnment is not possible del all Stdby assgnmnt#1876
+    * AvSv:After failover nodeOperState is updated to the imm #1884
+    * logsv: no block on imm RTO updates #1886
+    * immsv: Fixed assertion in immd_proc.c (#1898)
+    * ntfsv: avoid null pointer access #1887
+    * avsv: do not handle avnd down for local node (#1873)
+    * avsv/avd: some unnecessary syslogs removed (#1869)
+    * logsv: become implementer in main thread (#1877)
+    * immsv: Loader&Sync-client:No timeout. Sync-server:5min (#1843)
+    * immsv: PBE&schema-upgrade detects non-persistent extent (#1828)
+    * immsv: imma library version updated 0:2:1 (#1809)
+    * immsv: PRTO deletes counted & verified (#1809)
+    * immsv: imma_oi_ccb_record.ccbId changed from SaUint32T to SaImmOiCcbIdT (#1809)
+    * Command amf-state prints correctly (#665)
+    * immsv: immdump namespace & schema generated (#1792)
+    * immsv: Added 3rd dump variant using xmlTextWriter (#1775)
+    * SMF create SaSmfImageNodes objects correctly in single step proc (#1864)
+    * immsv: PRTO create appends impl-name to PBE up-call (#1872)
+    * amf-adm: corrected immadm param (#1194)
+    * avsv/wdog: use forced reboot when AMF dies (#1874)
+    * avsv: app completed validation corrected (#1863)
+    * immsv:Added admin-op for forcing PBE disable (#1847)
+    * submit-review.sh is a bash script
+    * ntfsv: avoid retry loop if saflog fails #1698
+    * clmsv: fixed crash by adding strdup in clms_reboot*() #1852
+    * immsv: fix immcfg 'HAVE_TESTS' build broken in 2237:1a92baf456c3 (#1541)
+    * immsv: immcfg removed the '--ignore-duplicates' option (#1560)
+    * immsv: Verify class-name & attr-names unique case-insensitive (#1846)
+    * AvSv:cmp db is read from imm for NPI cmp in admin unlock of su#1857
+    * dtms: remove bashisms only = is defined by posix (#665)
+    * scripts: remove of 'local' keyword bashisms (#665)
+    * samples: make all samples scripts to use /bin/sh (#665)
+    * plmc: use posix compliant pre/pos increment/decrement (#665)
+    * plmc: cleanup whitespace crimes in the plmcd/plmcboot scripts
+    * smfsv: make all smf-* scripts to use /bin/sh (#665)
+    * fixes build errors
+    * fixes build errors
+    * All exits in DTS code now preceeds with logging, fixes #1850
+    * CLMS:removed trace in signal handler#1853
+    * MDS:DTM:Cleanup the mailbox related data in pid down#1822
+    * clmsv: use immutil to handle TRYAGAIN (#1851)
+    * SMF invoked callback at rollback from ExecSuspended and SuspendedByErrorDetected fixes #1848
+    * SMF log valid error code when proc object creation fails (#1748)
+    * SMF log to saflog (#1248)
+    * Saflog adapted to c++ (#1845)
+    * Variable log record size for system stream (#1770)
+    * AvSv:Removed the comp from the trace#1842
+    * AvSv:Check added to discard msgs of self node in state of ABSENT/SHUTTINGDOWN/GODOWN#1841
+    * AvSv:amfnd should not read data from imm while shutting down#1833
+    * DTSv:unlock the DTA lock when calling the core library API#1823
+    * AvSv:amfnd should delete pg track from its data base even if send fails#1688
+    * immsv: immcfg sets SA_IMM_CCB_REGISTERED_OI to true by default (#1541)
+    * immsv PBE: Quote table names and atribute names in generated SQL (#1834)
+    * immsv PBE: Detect pbe repository rep-version (#1834)
+    * AvSv:Added validation for saAmfSuFailoverMax  attribute#1824
+    * AvSv:comp stat is set as failed for comp which goes dwn after nodefailover escalatn#1779
+    * AvSv:In cold_sync node_cfg is retrieved based on node_name inst of nodeId#1831
+    * AvSv:In node fail case, unlink the node & CSI ptrs from the AvD PG#1817
+    * AvSv:Trace log is modified not to access csi fields when it is NULL #1832
+    * AvSv:Check is added not to exceed MaxActiveSIsperSU #1746
+    * doc: update the patch review documentation with latest guidelines
+    * update the GNU AUTHORS documentation with latest TLC changes
+    * SMF sample campaigns update related to #1813
+    * SMF recalc single step node list at camp restart (#1813)
+    * smfsv: include some more files for LSB build (#1825)
+    * opensaf_reboot: all TIPC bearers disabled before forced reboot, fmd script removed (#1826)
+    * rpm: removing annoying prinout when installing rpm (#1812)
+    * build: make installing the shell tools optional if desired (#1830)
+    * build: scripts/smf-* are osaf/tools/scripts
+    * build: scripts/amf-* are osaf/tools/scripts
+    * build: make installing the immxml tools optional if desired (#1829)
+    * logsv: gracefully handle temporary file system problems (#1751)
+    * Same node-id kind in expression & explicit remote-immd tracking (#1819)
+    * build: add nodeagent dependency to controller rpm (#1798)
+    * build: remove potential whitespace in timestamp release tag (#1816)
+    * immsv: Minimum window between sync 3 seconds (#1811)
+    * immsv: Disable-pbe ensures pbe termination before accepting enable (#1802)
+    * immsv: Force large admin-owner-handles to close at sync start (#1800)
+    * immsv: Remove implicit casting bug in m_IMMSV_PACK_HANDLE (#1780)
+    * immsv: remove locking bug in SaImmOmAdminOperationInvokeCallbackT (#1783)
+    * immsv: Fixed auto-release of admin-owner for object-modify when client detached (#1781)
+    * immsv: class/object implementer release clears implname attr (#1769)
+    * immsv: Fix for searchNext, OI detaches during fetch of pure RTA (#1777)
+    * logsv: improved tracing & logging (#1751)
+    * saflogger: handle TRYAGAIN in logWriteLogCallbackT (#1751)
+    * saflog: reduce log level and wait time in TRYAGAIN loop (#1751)
+    * avsv/avd: standby assignment loop for nway corrected (#1793)
+    * avsv/avd: set SU term_state unconditionally at node adm lock & unlock inst (#1803)
+    * avsv/avd: Improved node admin op related logging like including DN etc. (#1803)
+    * build: the configure --disable-rpath option is no longer ignored (#1805)
+
+
 Changes from OpenSAF 3.0.0 to OpenSAF 3.0.B4
 --------------------------------------------
 2009-03-09 Hans Feldt <hans.feldt@ericsson.com>
