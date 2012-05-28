@@ -481,13 +481,15 @@ static void admin_operation_cb(SaImmOiHandleT immoi_handle,
 {
 	AVSV_AMF_CLASS_ID type = object_name_to_class_type(object_name);
 
-	TRACE_ENTER2("%s, op %llu", object_name->value, op_id);
+ 	TRACE_ENTER2("'%s', invocation: %llu, op: %llu", object_name->value, invocation, op_id);
+	saflog(LOG_NOTICE, amfSvcUsrName, "Admin op \"%s\" initiated for '%s', invocation: %llu",
+		   admin_op_name(op_id), object_name->value, invocation);
 
 	if (admin_op_callback[type] != NULL) {
 		admin_op_callback[type](immoi_handle, invocation, object_name, op_id, params);
 	} else {
 		LOG_ER("Admin operation not supported for %s (%u)", object_name->value, type);
-		(void)immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_ERR_INVALID_PARAM);
+		avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_ERR_INVALID_PARAM);
 	}
 	TRACE_LEAVE();
 }
@@ -884,18 +886,20 @@ static void ccb_apply_cb(SaImmOiHandleT immoi_handle, SaImmOiCcbIdT ccb_id)
 			 */
 			ccb_insert_ordered_list(ccb_apply_callback[type], opdata, type);
 
-			switch (opdata->operationType) {
-			case CCBUTIL_CREATE:
-				saflog(LOG_NOTICE, amfSvcUsrName, "Created %s", opdata->objectName.value);
-				break;
-			case CCBUTIL_MODIFY:
-				saflog(LOG_NOTICE, amfSvcUsrName, "Modified %s", opdata->objectName.value);
-				break;
-			case CCBUTIL_DELETE:
-				saflog(LOG_NOTICE, amfSvcUsrName, "Deleted %s", opdata->objectName.value);
-				break;
-			default:
-				osafassert(0);
+			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+				switch (opdata->operationType) {
+				case CCBUTIL_CREATE:
+					saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Created %s", ccb_id, opdata->objectName.value);
+					break;
+				case CCBUTIL_MODIFY:
+					saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Modified %s", ccb_id, opdata->objectName.value);
+					break;
+				case CCBUTIL_DELETE:
+					saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Deleted %s", ccb_id, opdata->objectName.value);
+					break;
+				default:
+					osafassert(0);
+				}
 			}
 		}
 	}
@@ -1706,5 +1710,25 @@ void avd_imm_reinit_bg(void)
 	pthread_attr_destroy(&attr);
 
 	TRACE_LEAVE();
+}
+
+/**
+ * Log to SAF LOG and respond admin op to IMM
+ * @param immOiHandle
+ * @param invocation
+ * @param result
+ */
+void avd_saImmOiAdminOperationResult(SaImmOiHandleT immOiHandle,
+									 SaInvocationT invocation,
+									 SaAisErrorT result)
+{
+	SaAisErrorT error;
+
+	saflog(LOG_NOTICE, amfSvcUsrName, "Admin op done for invocation: %llu, result %u",
+		   invocation, result);
+
+	error = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, result);
+	if (error != SA_AIS_OK)
+		LOG_NO("saImmOiAdminOperationResult for %llu failed %u", invocation, error);
 }
 

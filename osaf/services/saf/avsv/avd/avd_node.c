@@ -782,7 +782,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 		} else {
 			node_admin_state_set(node, new_admin_state);
 		}
-		immutil_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_OK);
+		avd_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_OK);
 		goto end;
 	}
 
@@ -808,7 +808,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 				LOG_WA("invalid sg state %u for unlock", su->sg_of_su->sg_fsm_state);
 				
 				if (invocation != 0)
-					immutil_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN);
+					avd_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN);
 				goto end;
 			}
 
@@ -873,7 +873,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 			su = su->avnd_list_su_next;
 		}
 		if (node->su_cnt_admin_oper == 0 && invocation != 0)
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_OK);
 		else if (invocation != 0) {
 			node->admin_node_pend_cbk.invocation = invocation;
 			node->admin_node_pend_cbk.admin_oper = operationId;
@@ -900,7 +900,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 					    (su_sg->list_of_susi != AVD_SU_SI_REL_NULL)) {
 						LOG_WA("two SUs on same node");
 						if (invocation != 0)
-							immutil_saImmOiAdminOperationResult(cb->immOiHandle, invocation,SA_AIS_ERR_NOT_SUPPORTED);
+							avd_saImmOiAdminOperationResult(cb->immOiHandle, invocation,SA_AIS_ERR_NOT_SUPPORTED);
 						else {
 							saClmResponse_4(cb->clmHandle, node->clm_pend_inv, SA_CLM_CALLBACK_RESPONSE_ERROR);
 							node->clm_pend_inv = 0;
@@ -922,7 +922,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 						LOG_WA("invalid sg state %u for lock/shutdown",
 						       su->sg_of_su->sg_fsm_state);
 						if (invocation != 0)
-							immutil_saImmOiAdminOperationResult(cb->immOiHandle, invocation,SA_AIS_ERR_TRY_AGAIN);
+							avd_saImmOiAdminOperationResult(cb->immOiHandle, invocation,SA_AIS_ERR_TRY_AGAIN);
 						else {
 							saClmResponse_4(cb->clmHandle, node->clm_pend_inv, SA_CLM_CALLBACK_RESPONSE_ERROR);
 							node->clm_pend_inv = 0;
@@ -1009,7 +1009,7 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 		}
 
 		if (node->su_cnt_admin_oper == 0 && invocation != 0)
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_OK);
 		else if (invocation != 0){
 			node->admin_node_pend_cbk.invocation = invocation;
 			node->admin_node_pend_cbk.admin_oper = operationId;
@@ -1114,7 +1114,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 		if (node->node_info.member == false) {
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
 			LOG_NO("'%s' SHUTDOWN: CLM node is not member", node->name.value);
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1138,7 +1138,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 		if (node->node_info.member == false) {
 			LOG_NO("'%s' UNLOCK: CLM node is not member", node->name.value);
 			node_admin_state_set(node, SA_AMF_ADMIN_UNLOCKED);
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1162,7 +1162,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 		if (node->node_info.member == false) {
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
 			LOG_NO("%s' LOCK: CLM node is not member", node->name.value);
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1188,13 +1188,13 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 
 		if (node->node_info.member == false) {
 			LOG_NO("'%s' LOCK_INSTANTIATION: CLM node is not member", node->name.value);
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
 		if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
 			LOG_NO("'%s' LOCK_INSTANTIATION: AMF node oper state disabled", node->name.value);
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1208,7 +1208,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 				node->admin_node_pend_cbk.invocation = invocation;
 			}
 			else
-				immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+				avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 		} else {
 			rc = SA_AIS_ERR_REPAIR_PENDING;
 			LOG_WA("LOCK_INSTANTIATION FAILED");
@@ -1236,13 +1236,13 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 
 		if (node->node_info.member == false) {
 			LOG_NO("'%s' UNLOCK_INSTANTIATION: CLM node is not member", node->name.value);
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
 		if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
 			LOG_NO("'%s' UNLOCK_INSTANTIATION: AMF node oper state disabled", node->name.value);
-			immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1256,7 +1256,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 				node->admin_node_pend_cbk.invocation = invocation;
 			}
 			else
-				immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+				avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 		} else {
 			rc = SA_AIS_ERR_TIMEOUT;
 			LOG_WA("UNLOCK_INSTANTIATION FAILED");
@@ -1272,7 +1272,7 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 
  done:
 	if (rc != SA_AIS_OK)
-		immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+		avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 
 	TRACE_LEAVE2("%u", rc);
 }

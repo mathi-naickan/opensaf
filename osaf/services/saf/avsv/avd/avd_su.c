@@ -993,7 +993,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 				su->pend_cbk.invocation = invocation;
 				goto done;
 			} else {
-				immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+				avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 				goto done;
 			}
 		} else {
@@ -1015,7 +1015,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			avd_su_readiness_state_set(su, SA_AMF_READINESS_OUT_OF_SERVICE);
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
 			avd_sg_app_su_inst_func(cb, su->sg_of_su);
-			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1056,7 +1056,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 				su->pend_cbk.admin_oper = op_id;
 				su->pend_cbk.invocation = invocation;
 			} else {
-				immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+				avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			}
 		} else {
 			avd_su_readiness_state_set(su, back_red_state);
@@ -1073,7 +1073,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 		/* For non-preinstantiable SU lock-inst is same as lock */
 		if ( su->saAmfSUPreInstantiable == false ) {
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
-			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1088,7 +1088,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
 			/* No need to terminate the SUs in Unins/Inst Failed/Term Failed state */
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
-			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			m_AVD_SET_SU_TERM(cb, su, true);
 			LOG_NO("'%s' presence state is '%u'", su_name->value, su->saAmfSUPresenceState);
 			goto done;
@@ -1113,7 +1113,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			goto done;
 		} else {
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
-			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			m_AVD_SET_SU_TERM(cb, su, true);
 		}
 
@@ -1130,7 +1130,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 		/* For non-preinstantiable SU unlock-inst will not lead to its inst until unlock. */
 		if ( su->saAmfSUPreInstantiable == false ) {
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
-			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			goto done;
 		}
 
@@ -1161,7 +1161,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			LOG_ER("Internal error, could not send message to avnd");
 		} else {
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
-			immutil_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			m_AVD_SET_SU_TERM(cb, su, false);
 		}
 
@@ -1193,7 +1193,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 
 done:
 	if (rc != SA_AIS_OK)
-		immutil_saImmOiAdminOperationResult(immoi_handle, invocation, rc);
+		avd_saImmOiAdminOperationResult(immoi_handle, invocation, rc);
 
 	TRACE_LEAVE2("%u", rc);
 }

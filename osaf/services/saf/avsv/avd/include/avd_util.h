@@ -163,5 +163,6 @@ extern uint32_t amfd_switch_stdby_actv(AVD_CL_CB *cb);
 extern uint32_t amfd_switch_qsd_actv(AVD_CL_CB *cb);
 extern uint32_t amfd_switch_actv_qsd(AVD_CL_CB *cb);
 extern bool object_exist_in_imm(const SaNameT *dn);
+extern const char *admin_op_name(SaAmfAdminOperationIdT opid);
 
 #endif

@@ -28,6 +28,7 @@
 #include <avd.h>
 #include <avd_clm.h>
 #include <avd_si_dep.h>
+#include <avd_imm.h>
 
 /**
  * @brief         Determine fsm state of an SU.
@@ -2301,7 +2302,7 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 		/* find the SI on which SWAP admin operation is pending */
 		for (l_susi = su->list_of_susi; l_susi != NULL && l_susi->si->invocation == 0; l_susi = l_susi->su_next);
 		if (l_susi != NULL){
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, l_susi->si->invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, l_susi->si->invocation, SA_AIS_OK);
 			l_susi->si->invocation = 0;
 			LOG_NO("%s Swap done", l_susi->si->name.value);
 			saflog(LOG_NOTICE, amfSvcUsrName, "%s Swap done", l_susi->si->name.value);
@@ -3010,7 +3011,7 @@ uint32_t avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 			m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 			for (l_susi = su->list_of_susi; l_susi != NULL; l_susi = l_susi->su_next) {
 				if (l_susi->si->invocation != 0) {
-					immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+					avd_saImmOiAdminOperationResult(cb->immOiHandle,
 							l_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
 					l_susi->si->invocation = 0;
 				}
@@ -3047,7 +3048,7 @@ uint32_t avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 			/* respond failed operation to IMM */
 			for (l_susi = su->list_of_susi; l_susi != NULL; l_susi = l_susi->su_next) {
 				if (l_susi->si->invocation != 0) {
-					immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+					avd_saImmOiAdminOperationResult(cb->immOiHandle,
 							l_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
 					l_susi->si->invocation = 0;
 				}

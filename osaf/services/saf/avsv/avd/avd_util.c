@@ -45,6 +45,21 @@ const char *avd_adm_state_name[] = {
 	"SHUTTING_DOWN"
 };
 
+static const char *avd_adm_op_name[] = {
+	"INVALID",
+	"UNLOCK",
+	"LOCK",
+	"LOCK_INSTANTIATION",
+	"UNLOCK_INSTANTIATION",
+	"SHUTDOWN",
+	"RESTART",
+	"SI_SWAP",
+	"SG_ADJUST",
+	"REPAIRED",
+	"EAM_START",
+	"EAM_STOP"
+};
+
 const char *avd_pres_state_name[] = {
 	"INVALID",
 	"UNINSTANTIATED",
@@ -1897,3 +1912,10 @@ bool object_exist_in_imm(const SaNameT *dn)
 	return rc;
 }
 
+const char *admin_op_name(SaAmfAdminOperationIdT opid)
+{
+	if (opid <= SA_AMF_ADMIN_EAM_STOP) {
+		return avd_adm_op_name[opid];
+	} else
+		return avd_adm_op_name[0];
+}

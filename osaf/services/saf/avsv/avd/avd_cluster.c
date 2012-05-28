@@ -210,7 +210,7 @@ static void cluster_admin_op_cb(SaImmOiHandleT immOiHandle,
 		break;
 	}
 
-	(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+	avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 }
 
 /**

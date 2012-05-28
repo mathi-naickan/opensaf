@@ -756,7 +756,7 @@ static void comp_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 	}
 
 	if (rc != SA_AIS_OK)
-		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+		avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 
 	TRACE_LEAVE2("(%u)",rc);
 }

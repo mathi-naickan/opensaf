@@ -971,7 +971,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 
 done:
 	if ((operationId != SA_AMF_ADMIN_SI_SWAP) || (rc != SA_AIS_OK))
-		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+		avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 	TRACE_LEAVE();
 }
 

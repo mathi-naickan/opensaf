@@ -293,15 +293,15 @@ static void comp_admin_op_report_to_imm(AVD_COMP *comp, SaAmfPresenceStateT pres
 	if (comp->admin_pend_cbk.admin_oper == SA_AMF_ADMIN_RESTART) {
 		if ((comp->saAmfCompPresenceState == SA_AMF_PRESENCE_INSTANTIATED) &&
 		   (pres != SA_AMF_PRESENCE_RESTARTING)) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle,comp->admin_pend_cbk.invocation, SA_AIS_ERR_BAD_OPERATION);
+			avd_saImmOiAdminOperationResult(cb->immOiHandle,comp->admin_pend_cbk.invocation, SA_AIS_ERR_BAD_OPERATION);
 			comp->admin_pend_cbk.admin_oper = 0;
 			comp->admin_pend_cbk.invocation = 0;
 		}
 		else if (comp->saAmfCompPresenceState == SA_AMF_PRESENCE_RESTARTING) {
 			if (pres == SA_AMF_PRESENCE_INSTANTIATED)
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle,comp->admin_pend_cbk.invocation, SA_AIS_OK);
+				avd_saImmOiAdminOperationResult(cb->immOiHandle,comp->admin_pend_cbk.invocation, SA_AIS_OK);
 			else
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle,comp->admin_pend_cbk.invocation, SA_AIS_ERR_REPAIR_PENDING);
+				avd_saImmOiAdminOperationResult(cb->immOiHandle,comp->admin_pend_cbk.invocation, SA_AIS_ERR_REPAIR_PENDING);
 
 			comp->admin_pend_cbk.admin_oper = 0;
 			comp->admin_pend_cbk.invocation = 0;
@@ -325,11 +325,11 @@ static void su_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 	switch (su->pend_cbk.admin_oper) {
 	case SA_AMF_ADMIN_LOCK_INSTANTIATION:
 		if (pres == SA_AMF_PRESENCE_UNINSTANTIATED) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation, SA_AIS_OK);
 			su->pend_cbk.invocation = 0;
 			su->pend_cbk.admin_oper = 0;
 		} else if (pres == SA_AMF_PRESENCE_TERMINATION_FAILED) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
 							    SA_AIS_ERR_REPAIR_PENDING);
 			su->pend_cbk.invocation = 0;
 			su->pend_cbk.admin_oper = 0;
@@ -337,12 +337,12 @@ static void su_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 		break;
 	case SA_AMF_ADMIN_UNLOCK_INSTANTIATION:
 		if (pres == SA_AMF_PRESENCE_INSTANTIATED) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation, SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation, SA_AIS_OK);
 			su->pend_cbk.invocation = 0;
 			su->pend_cbk.admin_oper = 0;
 		} else if ((pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) ||
 			   (pres == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
 							    SA_AIS_ERR_REPAIR_PENDING);
 			su->pend_cbk.invocation = 0;
 			su->pend_cbk.admin_oper = 0;
@@ -350,14 +350,14 @@ static void su_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 		break;
 	case SA_AMF_ADMIN_REPAIRED:
 		if (pres == SA_AMF_PRESENCE_UNINSTANTIATED) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+			avd_saImmOiAdminOperationResult(cb->immOiHandle,
 				su->pend_cbk.invocation, SA_AIS_OK);
 			
 			/* Hand over to SG and let it do the rest */
 			(void) avd_sg_app_su_inst_func(cb, su->sg_of_su);
 		} else {
 			LOG_WA("Bad presence state %u after '%s' adm repaired", pres, su->name.value);
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+			avd_saImmOiAdminOperationResult(cb->immOiHandle,
 				su->pend_cbk.invocation, SA_AIS_ERR_BAD_OPERATION);
 		}
 		su->pend_cbk.invocation = 0;
@@ -389,14 +389,14 @@ static void node_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 			su->su_on_node->su_cnt_admin_oper--;
 			if (su->su_on_node->su_cnt_admin_oper == 0) {
 				/* if this is the last SU then send out the pending callback */
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+				avd_saImmOiAdminOperationResult(cb->immOiHandle,
 								    su->su_on_node->admin_node_pend_cbk.invocation,
 								    SA_AIS_OK);
 				su->su_on_node->admin_node_pend_cbk.invocation = 0;
 				su->su_on_node->admin_node_pend_cbk.admin_oper = 0;
 			}
 		} else if (pres == SA_AMF_PRESENCE_TERMINATION_FAILED) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+			avd_saImmOiAdminOperationResult(cb->immOiHandle,
 							    su->su_on_node->admin_node_pend_cbk.invocation,
 							    SA_AIS_ERR_REPAIR_PENDING);
 			su->su_on_node->admin_node_pend_cbk.invocation = 0;
@@ -410,7 +410,7 @@ static void node_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 			su->su_on_node->su_cnt_admin_oper--;
 			if (su->su_on_node->su_cnt_admin_oper == 0) {
 				/* if this is the last SU then send out the pending callback */
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+				avd_saImmOiAdminOperationResult(cb->immOiHandle,
 								    su->su_on_node->admin_node_pend_cbk.invocation,
 								    SA_AIS_OK);
 				su->su_on_node->admin_node_pend_cbk.invocation = 0;
@@ -418,7 +418,7 @@ static void node_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 			}
 		} else if ((pres == SA_AMF_PRESENCE_TERMINATION_FAILED) ||
 			   (pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED)) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+			avd_saImmOiAdminOperationResult(cb->immOiHandle,
 							    su->su_on_node->admin_node_pend_cbk.invocation,
 							    SA_AIS_ERR_REPAIR_PENDING);
 			su->su_on_node->admin_node_pend_cbk.invocation = 0;

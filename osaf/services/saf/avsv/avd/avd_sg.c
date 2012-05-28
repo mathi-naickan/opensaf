@@ -1104,7 +1104,7 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		break;
 	}
  done:
-	(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+	avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 }
 
 static SaAisErrorT sg_rt_attr_cb(SaImmOiHandleT immOiHandle,

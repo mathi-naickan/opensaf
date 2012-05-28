@@ -83,5 +83,8 @@ extern void avd_saImmOiRtObjectCreate(const SaImmClassNameT className,
 extern void avd_saImmOiRtObjectDelete(const SaNameT* objectName);
 
 extern void avd_imm_reinit_bg(void);
+extern void avd_saImmOiAdminOperationResult(SaImmOiHandleT immOiHandle,
+									 SaInvocationT invocation,
+									 SaAisErrorT result);
 
 #endif

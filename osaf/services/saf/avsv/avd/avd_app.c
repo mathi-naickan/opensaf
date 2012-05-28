@@ -414,7 +414,7 @@ static void app_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation
 		break;
 	}
  done:
-	(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
+	avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 }
 
 static SaAisErrorT app_rt_attr_cb(SaImmOiHandleT immOiHandle,

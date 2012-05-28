@@ -1382,13 +1382,13 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 					/* For lock and shutdown, response to IMM admin operation should be
 					   sent when response for DEL operation is received */
 					if (AVSV_SUSI_ACT_DEL == n2d_msg->msg_info.n2d_su_si_assign.msg_act) {
-						immutil_saImmOiAdminOperationResult(cb->immOiHandle, 
+						avd_saImmOiAdminOperationResult(cb->immOiHandle, 
 								su->pend_cbk.invocation, SA_AIS_OK);
 						su->pend_cbk.invocation = 0;
 						su->pend_cbk.admin_oper = 0;
 					}
 				} else if (n2d_msg->msg_info.n2d_su_si_assign.error != NCSCC_RC_SUCCESS) {
-					immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
+					avd_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
 									    SA_AIS_ERR_REPAIR_PENDING);
 					su->pend_cbk.invocation = 0;
 					su->pend_cbk.admin_oper = 0;
@@ -1399,14 +1399,14 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				/* Respond to IMM when SG is STABLE or if a fault occured */
 				if (n2d_msg->msg_info.n2d_su_si_assign.error == NCSCC_RC_SUCCESS) {
 					if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE) {
-						immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+						avd_saImmOiAdminOperationResult(cb->immOiHandle,
 							su->pend_cbk.invocation, SA_AIS_OK);
 						su->pend_cbk.invocation = 0;
 						su->pend_cbk.admin_oper = 0;
 					} else
 						; // wait for SG to become STABLE
 				} else {
-					immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
+					avd_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
 									    SA_AIS_ERR_TIMEOUT);
 					su->pend_cbk.invocation = 0;
 					su->pend_cbk.admin_oper = 0;
@@ -1433,13 +1433,13 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 
 			/* if this last su to undergo admin operation then report to IMM */
 			if (su->su_on_node->su_cnt_admin_oper == 0) {
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+				avd_saImmOiAdminOperationResult(cb->immOiHandle,
 								    su->su_on_node->admin_node_pend_cbk.invocation,
 								    SA_AIS_OK);
 				su->su_on_node->admin_node_pend_cbk.invocation = 0;
 				su->su_on_node->admin_node_pend_cbk.admin_oper = 0;
 			} else if (n2d_msg->msg_info.n2d_su_si_assign.error != NCSCC_RC_SUCCESS) {
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+				avd_saImmOiAdminOperationResult(cb->immOiHandle,
 					su->su_on_node->admin_node_pend_cbk.invocation,
 					SA_AIS_ERR_REPAIR_PENDING);
 				su->su_on_node->admin_node_pend_cbk.invocation = 0;
@@ -1937,7 +1937,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 
 		/* Check if there was any admin operations going on this SU. */
 		if (i_su->pend_cbk.invocation != 0) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, i_su->pend_cbk.invocation,
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, i_su->pend_cbk.invocation,
 							    SA_AIS_ERR_TIMEOUT);
 			i_su->pend_cbk.invocation = 0;
 			i_su->pend_cbk.admin_oper = 0;
@@ -1951,7 +1951,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 			avd_comp_pres_state_set(i_comp, SA_AMF_PRESENCE_UNINSTANTIATED);
 			i_comp->saAmfCompRestartCount = 0;
 			if (i_comp->admin_pend_cbk.invocation != 0) {
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle, i_comp->admin_pend_cbk.invocation, SA_AIS_ERR_TIMEOUT);
+				avd_saImmOiAdminOperationResult(cb->immOiHandle, i_comp->admin_pend_cbk.invocation, SA_AIS_ERR_TIMEOUT);
 				i_comp->admin_pend_cbk.invocation = 0;
 				i_comp->admin_pend_cbk.admin_oper = 0;
 			}
@@ -2024,7 +2024,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 	/* send pending callback for this node if any */
 	if (avnd->admin_node_pend_cbk.invocation != 0) {
 		LOG_WA("Response to admin callback due to node fail");
-		immutil_saImmOiAdminOperationResult(cb->immOiHandle, avnd->admin_node_pend_cbk.invocation,
+		avd_saImmOiAdminOperationResult(cb->immOiHandle, avnd->admin_node_pend_cbk.invocation,
 						    SA_AIS_ERR_REPAIR_PENDING);
 		avnd->admin_node_pend_cbk.invocation = 0;
 		avnd->admin_node_pend_cbk.admin_oper = 0;
@@ -2041,7 +2041,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 
 		/* Check if there was any admin operations going on this SU. */
 		if (i_su->pend_cbk.invocation != 0) {
-			immutil_saImmOiAdminOperationResult(cb->immOiHandle, i_su->pend_cbk.invocation,
+			avd_saImmOiAdminOperationResult(cb->immOiHandle, i_su->pend_cbk.invocation,
 							    SA_AIS_ERR_TIMEOUT);
 			i_su->pend_cbk.invocation = 0;
 			i_su->pend_cbk.admin_oper = 0;
@@ -2055,7 +2055,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 			avd_comp_pres_state_set(i_comp, SA_AMF_PRESENCE_UNINSTANTIATED);
 			i_comp->saAmfCompRestartCount = 0;
 			if (i_comp->admin_pend_cbk.invocation != 0) {
-				immutil_saImmOiAdminOperationResult(cb->immOiHandle, i_comp->admin_pend_cbk.invocation, SA_AIS_ERR_TIMEOUT);
+				avd_saImmOiAdminOperationResult(cb->immOiHandle, i_comp->admin_pend_cbk.invocation, SA_AIS_ERR_TIMEOUT);
 				i_comp->admin_pend_cbk.invocation = 0;
 				i_comp->admin_pend_cbk.admin_oper = 0;
 			}
