@@ -1395,12 +1395,16 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				}
 				/* else lock is still not complete so don't send result. */
 			} else if (su->pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK) {
-				if (((su->saAmfSUNumCurrActiveSIs != 0) || (su->saAmfSUNumCurrStandbySIs != 0)) &&
-				    (n2d_msg->msg_info.n2d_su_si_assign.error == NCSCC_RC_SUCCESS)) {
-					immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
-									    SA_AIS_OK);
-					su->pend_cbk.invocation = 0;
-					su->pend_cbk.admin_oper = 0;
+
+				/* Respond to IMM when SG is STABLE or if a fault occured */
+				if (n2d_msg->msg_info.n2d_su_si_assign.error == NCSCC_RC_SUCCESS) {
+					if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE) {
+						immutil_saImmOiAdminOperationResult(cb->immOiHandle,
+							su->pend_cbk.invocation, SA_AIS_OK);
+						su->pend_cbk.invocation = 0;
+						su->pend_cbk.admin_oper = 0;
+					} else
+						; // wait for SG to become STABLE
 				} else {
 					immutil_saImmOiAdminOperationResult(cb->immOiHandle, su->pend_cbk.invocation,
 									    SA_AIS_ERR_TIMEOUT);
@@ -1422,7 +1426,7 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK_INSTANTIATION) &&
 				 (su->saAmfSUNumCurrActiveSIs == 0) && (su->saAmfSUNumCurrStandbySIs == 0)) ||
 				((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK) &&
-				 ((su->saAmfSUNumCurrActiveSIs != 0) || (su->saAmfSUNumCurrStandbySIs != 0)))) {
+				 (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE))) {
 				su->su_on_node->su_cnt_admin_oper--;
 			}
 
