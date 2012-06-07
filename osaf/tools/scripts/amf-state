@@ -98,7 +98,9 @@ ha_state()
 	fi
 
 	echo -n "	$1="
-	if [ $ha_state_val -eq 1 ]; then
+	if [ "$ha_state_val" = "<Empty>" ]; then
+		echo $ha_state_val
+	elif [ $ha_state_val -eq 1 ]; then
 		echo "ACTIVE(1)"
 	elif [ $ha_state_val -eq 2 ]; then
 		echo "STANDBY(2)"
