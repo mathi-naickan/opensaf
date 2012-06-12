@@ -21,7 +21,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUBDIRS = scripts
 
-pkglib_PROGRAMS = osafsmfd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafsmfd
 
 noinst_HEADERS = \
 	smfd_cb.h \

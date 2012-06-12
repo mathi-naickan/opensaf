@@ -30,7 +30,8 @@ noinst_HEADERS = \
 	lgs.h \
 	lgs_stream.h
 
-pkglib_PROGRAMS = osaflogd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osaflogd
 
 osaflogd_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

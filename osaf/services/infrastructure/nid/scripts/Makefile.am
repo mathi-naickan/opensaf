@@ -18,7 +18,8 @@ include $(top_srcdir)/Makefile.common
 
 MAINTAINERCLEANFILES = Makefile.in
 
-nodist_pkglib_SCRIPTS = \
+osaf_execbindir = $(pkglibdir)
+nodist_osaf_execbin_SCRIPTS = \
 	$(top_builddir)/osaf/services/infrastructure/nid/scripts/nid_tipc
 
 dist_lsbinit_SCRIPTS = \

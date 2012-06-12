@@ -20,7 +20,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUBDIRS = hpi_intf scripts
 
-pkglib_PROGRAMS = osafplmd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafplmd
 
 osafplmd_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

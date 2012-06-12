@@ -20,7 +20,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUBDIRS = scripts
 
-pkglib_PROGRAMS = osaflckd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osaflckd
 
 # TODO: Fix the cpsv include dep
 osaflckd_CPPFLAGS = \

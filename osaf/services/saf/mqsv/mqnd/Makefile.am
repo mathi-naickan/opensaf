@@ -20,7 +20,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUBDIRS = scripts
 
-pkglib_PROGRAMS = osafmsgnd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafmsgnd
 
 osafmsgnd_CPPFLAGS = \
 	-DSA_CLM_B01=1 \

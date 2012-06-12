@@ -20,7 +20,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUBDIRS = scripts include config
 
-pkglib_PROGRAMS = osafrded
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafrded
 
 osafrded_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

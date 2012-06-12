@@ -20,7 +20,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUBDIRS = scripts
 
-pkglib_PROGRAMS = osaffmd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osaffmd
 
 noinst_HEADERS = \
 	fm_amf.h \

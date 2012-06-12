@@ -21,7 +21,8 @@ MAINTAINERCLEANFILES = Makefile.in
 noinst_HEADERS = \
 	imm_loader.hh
 
-pkglib_PROGRAMS = immload
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = immload
 
 immload_CXXFLAGS = $(AM_CXXFLAGS) @XML2_CFLAGS@ @SQLITE3_CFLAGS@
 

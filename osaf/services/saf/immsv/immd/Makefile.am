@@ -28,7 +28,8 @@ noinst_HEADERS = \
 	immd_red.h \
 	immd_sbedu.h
 
-pkglib_PROGRAMS = osafimmd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafimmd
 
 osafimmd_CPPFLAGS = \
 	-DSA_CLM_B01=1 \

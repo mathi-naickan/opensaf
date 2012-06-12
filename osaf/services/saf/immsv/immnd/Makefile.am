@@ -28,7 +28,8 @@ noinst_HEADERS = \
 	ImmModel.hh \
 	ImmSearchOp.hh
 
-pkglib_PROGRAMS = osafimmnd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafimmnd
 
 osafimmnd_CPPFLAGS = \
 	-DSA_CLM_B01 \

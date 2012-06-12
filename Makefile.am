@@ -178,7 +178,8 @@ endif
 nodist_pkgsysconf_DATA = \
 	$(top_builddir)/osafdir.conf
 
-dist_pkglib_SCRIPTS = \
+osaf_execbindir = $(pkglibdir)
+dist_osaf_execbin_SCRIPTS = \
 	$(top_srcdir)/scripts/opensaf_reboot 
 
 if ENABLE_RPM_TARGET

@@ -19,7 +19,8 @@ include $(top_srcdir)/Makefile.common
 
 MAINTAINERCLEANFILES = Makefile.in
 
-dist_pkglib_SCRIPTS = \
+osaf_execbindir = $(pkglibdir)
+dist_osaf_execbin_SCRIPTS = \
         smf-backup-create \
         smf-bundle-check \
         smf-cluster-reboot \

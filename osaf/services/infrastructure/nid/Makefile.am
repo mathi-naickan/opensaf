@@ -23,7 +23,8 @@ SUBDIRS = config scripts
 noinst_HEADERS = \
 	nodeinit.h
 
-pkglib_PROGRAMS = opensafd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = opensafd
 
 opensafd_CPPFLAGS = \
 	-DNCS_SAF=1 \

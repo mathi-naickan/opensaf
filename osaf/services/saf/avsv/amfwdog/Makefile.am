@@ -20,7 +20,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUBDIRS = scripts
 
-pkglib_PROGRAMS = osafamfwd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafamfwd
 
 osafamfwd_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

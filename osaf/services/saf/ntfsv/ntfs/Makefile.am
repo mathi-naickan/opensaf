@@ -34,7 +34,8 @@ noinst_HEADERS = \
 	NtfReader.hh \
 	NtfSubscription.hh
 
-pkglib_PROGRAMS = osafntfd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafntfd
 
 osafntfd_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

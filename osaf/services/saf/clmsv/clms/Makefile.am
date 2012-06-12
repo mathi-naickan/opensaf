@@ -28,7 +28,8 @@ noinst_HEADERS = \
 	clms_ntf.h \
 	clms.h
 
-pkglib_PROGRAMS = osafclmd
+osaf_execbindir = $(pkglibdir)
+osaf_execbin_PROGRAMS = osafclmd
 
 osafclmd_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
