@@ -74,7 +74,7 @@ fi
 tipcutilsver=${TIPCUTILSVER:-1.0.4}
 tipcutilsurl="http://prdownloads.sourceforge.net/tipc/tipcutils-$tipcutilsver.tar.gz"
 
-bbver=${BBVER:-1.15.2}
+bbver=${BBVER:-1.19.4}
 bburl="http://busybox.net/downloads/busybox-$bbver.tar.bz2"
 umlutilsver=20070815
 umlutilsurl="http://user-mode-linux.sourceforge.net/uml_utilities_$umlutilsver.tar.bz2"
