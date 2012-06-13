@@ -1089,7 +1089,7 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		}
 
 		if (sg->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
-			LOG_ER("%s is locked instantiation", object_name->value);
+			LOG_ER("%s is not in locked instantiation state", object_name->value);
 			rc = SA_AIS_ERR_BAD_OPERATION;
 			goto done;
 		}
