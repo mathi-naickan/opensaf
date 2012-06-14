@@ -2353,6 +2353,9 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 				((s_susi != AVD_SU_SI_REL_NULL) && (s_susi->su == su) && 
 				 (avd_su_state_determine(s_susi->su) == SA_AMF_HA_QUIESCED))) {
 			/*the SI relationships to the SU is quiesced or  quiescing */
+
+			avd_sg_su_oper_list_del(cb, su, false);
+
 			if ((s_susi != AVD_SU_SI_REL_NULL) &&
 			    (avd_su_state_determine(s_susi->su) == SA_AMF_HA_STANDBY) &&
 			    (s_susi->su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE)) {
@@ -2409,9 +2412,6 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 				/* this SU switch state is true change to false. */
 				m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
 			}
-
-			/* Remove the SU from operation list */
-			avd_sg_su_oper_list_del(cb, su, false);
 
 		}		/* if (((a_susi->su == su) && 
 				   ((quiesced_susi_in_su(a_susi->su) == SA_AMF_HA_QUIESCED) ||
