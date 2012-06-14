@@ -89,6 +89,19 @@ For each UML instance started, the PID of the main thread is saved in a PID
 file in the user's home directory, i.e. ~/.uml/<xxx>/pid.
 
 
+HOW TO CONFIGURE A CUSTOM KERNEL VERSION
+
+To generate the kernel configuration file for a different kernel version,
+first generate the default configuration file using the following command:
+
+   make ARCH=um defconfig
+
+Then add initramfs and TIPC to the configuration, e.g. using the menuconfig
+command:
+
+   make ARCH=um menuconfig
+
+
 PERFORMANCE
 
 

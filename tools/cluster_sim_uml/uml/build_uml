@@ -62,16 +62,22 @@ cd $dir
 archive=${ARCHIVE:-$dir/archive}
 configd=${CONFIGD:-$dir/config}
 
-kver=${KVER:-2.6.31}
-kurlbase=${KURLBASE:-"http://www.kernel.org/pub/linux/kernel/v2.6"}
-if echo $kver | grep -q -e '^2\.6\.[0-9]\+\.[0-9]\+$'; then
-    kbase=$(echo $kver | grep -o '2.6.[0-9]\+')
-    kurl="http://www.kernel.org/pub/linux/kernel/v2.6/linux-$kbase.tar.bz2"
-    purl="http://www.kernel.org/pub/linux/kernel/v2.6/patch-$kver.bz2"
+kver=${KVER:-3.4.2}
+if [ `echo $kver | cut -d. -f1` -ge 3 ]
+then
+    kbasedir=`echo $kver | cut -d. -f1`.x
 else
-    kurl="http://www.kernel.org/pub/linux/kernel/v2.6/linux-$kver.tar.bz2"
+    kbasedir=`echo $kver | cut -d. -f1-2`
 fi
-tipcutilsver=${TIPCUTILSVER:-1.0.4}
+kurlbase=${KURLBASE:-"http://www.kernel.org/pub/linux/kernel/v$kbasedir"}
+if echo $kver | grep -q -e '^[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+$'; then
+    kbase=`echo $kver | cut -d. -f1-3`
+    kurl="http://www.kernel.org/pub/linux/kernel/v$kbasedir/linux-$kbase.tar.bz2"
+    purl="http://www.kernel.org/pub/linux/kernel/v$kbasedir/longterm/v$kbase/patch-$kver.bz2"
+else
+    kurl="http://www.kernel.org/pub/linux/kernel/v$kbasedir/linux-$kver.tar.bz2"
+fi
+tipcutilsver=${TIPCUTILSVER:-2.0.2}
 tipcutilsurl="http://prdownloads.sourceforge.net/tipc/tipcutils-$tipcutilsver.tar.gz"
 
 bbver=${BBVER:-1.19.4}
@@ -130,11 +136,12 @@ cmd_download() {
     mkdir -p $archive
     for a in $kurl $purl $bburl $umlutilsurl $tipcutilsurl; do
 	f=$(basename $a)
-	if test -r $archive/$f; then
+	if test -s $archive/$f; then
 	    echo "Already downloaded [$f]"
 	    continue
 	fi
-	wget -O $archive/$f $a || die "Download failed [$a]"
+	wget -O "$archive/$f.part" "$a" || die "Download failed [$a]"
+	mv -f "$archive/$f.part" "$archive/$f"
     done
 }
 
@@ -149,7 +156,11 @@ cmd_extract_kernel() {
     fi
     f=$archive/$(basename $kurl)
     test -r $f || die "Not readable [$f]"
-    tar xjf $f
+    echo "Extracting [linux-$kver]..."
+    rm -rf linux-extract-dir linux-$kbase linux-$kver
+    mkdir linux-extract-dir
+    tar -C linux-extract-dir -xjf "$f" && mv linux-extract-dir/* .
+    rm -rf linux-extract-dir
     if ! test -d "linux-$kver"; then
 	mv linux-$kbase linux-$kver
 	f=$archive/$(basename $purl)
@@ -311,14 +322,18 @@ cmd_build_tipcutils()
     tar xzf $f
 
     # Different build for older/newer kernels;
-    if ! make KERNELDIR=$dir/linux-$kver -C tipcutils-$tipcutilsver \
+    if [ `echo $tipcutilsver | cut -d. -f1` -ge 2 ]
+    then
+        make -C tipcutils-$tipcutilsver INCLUDE_PATH="$dir/linux-$kver/include" EXTRAS="-I$dir/linux-$kver/arch/x86/include"
+        cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin
+    elif ! make KERNELDIR=$dir/linux-$kver -C tipcutils-$tipcutilsver \
 	>/dev/null 2>&1; then
 	archd=$dir/linux-$kver/arch/x86
 	test "$(arch)" = "x86_64" && archd=$dir/linux-$kver/arch/ia64
 	make KERNELDIR="$dir/linux-$kver/include -I$archd" \
 	    -C tipcutils-$tipcutilsver || die "Build failed"
+        cp tipcutils-$tipcutilsver/tipc-config bin
     fi
-    cp tipcutils-$tipcutilsver/tipc-config bin
 }
 
 ##   clean
@@ -326,7 +341,7 @@ cmd_build_tipcutils()
 ##
 cmd_clean() {
     rm -rf linux-$kver busybox-$bbver root tipcutils-$tipcutilsver\
-        tools-$umlutilsver
+        tools-$umlutilsver linux-extract-dir
     for n in busybox tipc-config uml_mconsole uml_switch\
         linux port-helper tunctl; do
 	rm -f bin/$n
