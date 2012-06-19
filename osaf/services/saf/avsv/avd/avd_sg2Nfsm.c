@@ -113,6 +113,24 @@ static bool all_quiesced(const AVD_SU *su)
 	return true;
 }
 /**
+ * @brief	  checks whether all assignments are unassigned 
+ *
+ * @param [in]	  su
+ *
+ * @returns	  true/false  
+ */
+static bool all_unassigned(const AVD_SU *su)
+{
+	AVD_SU_SI_REL *susi;
+
+	for (susi = su->list_of_susi; susi ; susi = susi->su_next) {
+		if (susi->fsm != AVD_SU_SI_STATE_UNASGN)
+			return false;
+	}
+
+	return true;
+}
+/**
  * @brief        checks whether all assignments are done on this su 
  *
  * @param [in]   su
@@ -2218,7 +2236,7 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 		/* If shutdown admin operation is going on, change the state to Lock once all the assignments
 		 * are quiesced
 		 */
-		if ((su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) && (all_quiesced(su))) {
+		if ((su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) && ((all_quiesced(su) || all_unassigned(su)))) {
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
 		} else if (su_node_ptr->saAmfNodeAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
 			m_AVD_IS_NODE_LOCK((su_node_ptr), flag);
