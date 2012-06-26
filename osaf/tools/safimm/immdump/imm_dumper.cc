@@ -661,12 +661,7 @@ static void classToXML(std::string classNameString,
                                        NULL);
         }
         else
-        {
-            attrNode = xmlNewTextChild(classNode,
-                                       NULL,
-                                       (xmlChar*)"attr",
-                                       NULL);
-        }
+	    continue;
 
         xmlNewTextChild(attrNode,
                         NULL,
@@ -686,6 +681,39 @@ static void classToXML(std::string classNameString,
 
         flagsToXML(*p, attrNode);
     }
+
+    for (SaImmAttrDefinitionT_2** p = attrDefinitions; *p != NULL; p++)
+    {
+        xmlNodePtr attrNode;
+        if ((*p)->attrFlags & SA_IMM_ATTR_RDN)
+		continue;
+        else
+        {
+            attrNode = xmlNewTextChild(classNode,
+                                       NULL,
+                                       (xmlChar*)"attr",
+                                       NULL);
+        }
+    
+        xmlNewTextChild(attrNode,
+                        NULL,
+                        (xmlChar*)"name", 
+                        (xmlChar*)(*p)->attrName);
+    
+        if ((*p)->attrDefaultValue != NULL)
+        {
+            xmlNewTextChild(attrNode,
+                            NULL,
+                            (xmlChar*)"default-value",
+                            (xmlChar*)valueToString((*p)->attrDefaultValue,
+                                                    (*p)->attrValueType).c_str());
+        }
+
+        typeToXML(*p, attrNode);
+
+        flagsToXML(*p, attrNode); 
+    }
+
 
     errorCode = 
         saImmOmClassDescriptionMemoryFree_2(immHandle, attrDefinitions);
@@ -843,6 +871,22 @@ static void flagsToXML(SaImmAttrDefinitionT_2* p, xmlNodePtr parent)
 
     flags = p->attrFlags;
 
+    if (flags & SA_IMM_ATTR_CONFIG)
+    {
+        xmlNewTextChild(parent,
+                        NULL,
+                        (xmlChar*)"category",
+                        (xmlChar*)"SA_CONFIG");
+    }
+
+    if (flags & SA_IMM_ATTR_RUNTIME)
+    {
+        xmlNewTextChild(parent,
+                        NULL,
+                        (xmlChar*)"category",
+                        (xmlChar*)"SA_RUNTIME");
+    }
+
     if (flags & SA_IMM_ATTR_MULTI_VALUE)
     {
         xmlNewTextChild(parent,
@@ -851,13 +895,6 @@ static void flagsToXML(SaImmAttrDefinitionT_2* p, xmlNodePtr parent)
                         (xmlChar*)"SA_MULTI_VALUE");
     }
 
-    if (flags & SA_IMM_ATTR_CONFIG)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"category",
-                        (xmlChar*)"SA_CONFIG");
-    }
 
     if (flags & SA_IMM_ATTR_WRITABLE)
     {
@@ -873,14 +910,6 @@ static void flagsToXML(SaImmAttrDefinitionT_2* p, xmlNodePtr parent)
                         NULL,
                         (xmlChar*)"flag",
                         (xmlChar*)"SA_INITIALIZED");
-    }
-
-    if (flags & SA_IMM_ATTR_RUNTIME)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"category",
-                        (xmlChar*)"SA_RUNTIME");
     }
 
     if (flags & SA_IMM_ATTR_PERSISTENT)

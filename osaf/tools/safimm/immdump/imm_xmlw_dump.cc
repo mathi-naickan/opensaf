@@ -192,6 +192,42 @@ void classToXMLw(std::string classNameString,
             }
         }
         else
+	    continue;
+
+        if(xmlTextWriterWriteElement(writer,
+                                     (xmlChar*) "name",
+                                     (xmlChar*)(*p)->attrName) < 0) {
+            std::cout << "Error at xmlTextWriterWriteElement (name)" << std::endl;
+            exit(1);
+        }
+        if ((*p)->attrDefaultValue != NULL)
+        {
+            if(xmlTextWriterWriteElement(writer, (xmlChar*) "default-value",
+               (xmlChar*)valueToString((*p)->attrDefaultValue,
+               (*p)->attrValueType).c_str()) < 0 ) {
+                std::cout << "Error at xmlTextWriterWriteElement (default-value)" << std::endl;
+                exit(1);
+            }
+        }
+
+        typeToXMLw(*p, writer);
+
+        flagsToXMLw(*p, writer);
+
+        /* Close element named rdn */
+        if(xmlTextWriterEndElement(writer) < 0 ) {
+            std::cout << "Error at xmlTextWriterWriteEndElement (rdn)" << std::endl;
+            exit(1);
+        }
+
+        xmlTextWriterFlush(writer);   // Maybe unnecssary
+    }
+
+    for (SaImmAttrDefinitionT_2** p = attrDefinitions; *p != NULL; p++)
+    {
+        if ((*p)->attrFlags & SA_IMM_ATTR_RDN)
+		continue;
+        else
         {
             if(xmlTextWriterStartElement(writer, (xmlChar*) "attr") < 0) {
                 std::cout << "Error at xmlTextWriterStartElement" << std::endl;
@@ -219,20 +255,22 @@ void classToXMLw(std::string classNameString,
 
         flagsToXMLw(*p, writer);
 
-        /* Close element named rdn or attr */
+        /* Close element named attr */
         if(xmlTextWriterEndElement(writer) < 0 ) {
-        std::cout << "Error at xmlTextWriterWriteEndElement (rdn attr)" << std::endl;
+	    std::cout << "Error at xmlTextWriterWriteEndElement (attr)" << std::endl;
             exit(1);
         }
-
-        xmlTextWriterFlush(writer);   // Maybe unnecssary
+	xmlTextWriterFlush(writer);   // Maybe unnecssary
     }
+
+
     /* Close element named class */
     if(xmlTextWriterEndElement(writer) < 0 ) {
       std::cout << "Error at xmlTextWriterWriteEndElement (class)" << std::endl;
       exit(1);
     }
     
+
     errorCode = 
         saImmOmClassDescriptionMemoryFree_2(immHandle, attrDefinitions);
     if (SA_AIS_OK != errorCode)
@@ -345,11 +383,12 @@ void flagsToXMLw(SaImmAttrDefinitionT_2* p, xmlTextWriterPtr writer)
 
     flags = p->attrFlags;
 
-    if (flags & SA_IMM_ATTR_MULTI_VALUE)
+    if (flags & SA_IMM_ATTR_RUNTIME)
     {
-        if(xmlTextWriterWriteElement(writer, (xmlChar*) "flag",
-           (xmlChar*) "SA_MULTI_VALUE") < 0) {
-            std::cout << "Error at xmlTextWriterWriteElement (flag)" << std::endl;
+        if(xmlTextWriterWriteElement(writer,
+           (xmlChar*) "category",    ///// OBS  category -> flag ??//////
+           (xmlChar*) "SA_RUNTIME") < 0 ) {
+            std::cout << "Error at xmlTextWriterWriteElement (category)" << std::endl;
             exit(1);
         }
     }
@@ -364,6 +403,15 @@ void flagsToXMLw(SaImmAttrDefinitionT_2* p, xmlTextWriterPtr writer)
         }
     }
     
+    if (flags & SA_IMM_ATTR_MULTI_VALUE)
+    {
+        if(xmlTextWriterWriteElement(writer, (xmlChar*) "flag",
+           (xmlChar*) "SA_MULTI_VALUE") < 0) {
+            std::cout << "Error at xmlTextWriterWriteElement (flag)" << std::endl;
+            exit(1);
+        }
+    }
+
     if (flags & SA_IMM_ATTR_WRITABLE)
     {
         if(xmlTextWriterWriteElement(writer, (xmlChar*) "flag",
@@ -382,16 +430,6 @@ void flagsToXMLw(SaImmAttrDefinitionT_2* p, xmlTextWriterPtr writer)
         }
     }
     
-    if (flags & SA_IMM_ATTR_RUNTIME)
-    {
-        if(xmlTextWriterWriteElement(writer,
-           (xmlChar*) "category",    ///// OBS  category -> flag ??//////
-           (xmlChar*) "SA_RUNTIME") < 0 ) {
-            std::cout << "Error at xmlTextWriterWriteElement (category)" << std::endl;
-            exit(1);
-        }
-    }
-
     if (flags & SA_IMM_ATTR_PERSISTENT)
     {
         if(xmlTextWriterWriteElement(writer, (xmlChar*) "flag",
