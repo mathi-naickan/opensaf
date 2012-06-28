@@ -659,15 +659,6 @@ void SmfCampaignThread::main(void)
 		if(m_semaphore != NULL) {
 			sem_post(m_semaphore);
 		}
-
-		/* Start campaign execution */
-		if (m_campaign->initExecution() != SA_AIS_OK) {
-			LOG_ER("Initialization of campaign FAILED");
-		}
-
-		if (initNtf() != 0) {
-			LOG_ER("initNtf failed");
-		}
 	
                 LOG_NO("CAMP: Wait for RDA role to be Active");
 
@@ -686,6 +677,15 @@ void SmfCampaignThread::main(void)
 		}
 		if ( (numOfTries == 0) && (smfd_rda_role != SA_AMF_HA_ACTIVE)) {
 			LOG_ER("Failed to get Active RDA role");
+		}
+
+		/* Start campaign execution */
+		if (m_campaign->initExecution() != SA_AIS_OK) {
+			LOG_ER("Initialization of campaign FAILED");
+		}
+
+		if (initNtf() != 0) {
+			LOG_ER("initNtf failed");
 		}
 
 	} else {
