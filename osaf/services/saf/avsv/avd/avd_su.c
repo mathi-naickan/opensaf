@@ -463,6 +463,8 @@ static AVD_SU *su_create(const SaNameT *dn, const SaImmAttrValuesT_2 **attribute
 		TRACE("'%s' saAmfSURank auto-changed to lowest", su->name.value);
 	}
 
+	(void) immutil_getAttr("saAmfSUHostedByNode", attributes, 0, &su->saAmfSUHostedByNode);
+
 	(void) immutil_getAttr("saAmfSUHostNodeOrNodeGroup", attributes, 0, &su->saAmfSUHostNodeOrNodeGroup);
 
 	if ((sut = avd_sutype_get(&su->saAmfSUType)) == NULL) {
@@ -676,6 +678,7 @@ SaAisErrorT avd_su_config_get(const SaNameT *sg_name, AVD_SG *sg)
 	SaImmAttrNameT configAttributes[] = {
 		"saAmfSUType",
 		"saAmfSURank",
+		"saAmfSUHostedByNode",
 		"saAmfSUHostNodeOrNodeGroup",
 		"saAmfSUFailover",
 		"saAmfSUMaintenanceCampaign",
