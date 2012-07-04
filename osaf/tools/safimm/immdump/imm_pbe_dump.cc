@@ -1006,7 +1006,6 @@ void objectModifyDiscardAllValuesOfAttrToPBE(void* db_handle, std::string objNam
 	}
 
 	if(attr_flags & SA_IMM_ATTR_MULTI_VALUE) {
-		TRACE_3("COMPONENT TEST BRANCH 1");
 		/* Remove all values. */
 		std::string sql211("delete from objects_");
 		switch(attr_type) {
@@ -1237,15 +1236,16 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 		sql212.append(attrValue->attrName);
 		sql212.append(val_attr);
 		for(ix=0; ix < attrValue->attrValuesNumber; ++ix) {
-			append_quoted_string('\'', sql212, valueToString(attrValue->attrValues[ix], attr_type));
+			std::string sql212_iter(sql212);
+			append_quoted_string('\'', sql212_iter, valueToString(attrValue->attrValues[ix], attr_type));
 			if(text_val) {
-				sql212.append("'");
+				sql212_iter.append("'");
 			}
-			TRACE("GENERATED 212:%s", sql212.c_str());
-			rc = sqlite3_exec(dbHandle, sql212.c_str(), NULL, NULL, &zErr);
+			TRACE("GENERATED 212_iter:%s", sql212_iter.c_str());
+			rc = sqlite3_exec(dbHandle, sql212_iter.c_str(), NULL, NULL, &zErr);
 			if(rc) {
 				LOG_ER("SQL statement ('%s') failed because:\n %s", 
-					sql212.c_str(), zErr);
+					sql212_iter.c_str(), zErr);
 				sqlite3_free(zErr);
 				goto bailout;
 			}
@@ -1262,7 +1262,6 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 		bool text_val = ((attr_type == SA_IMM_ATTR_SANAMET) ||
 			(attr_type == SA_IMM_ATTR_SASTRINGT) ||
 			(attr_type == SA_IMM_ATTR_SAANYT));
-		TRACE_3("COMPONENT TEST BRANCH 5");
 
 		/* Get the class-name for the object */
 		sql3.append(class_id);
@@ -1280,11 +1279,10 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 			LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
 			goto bailout;
 		}
-		TRACE_2("Successfully accessed classes class_id:%s class_name:'%s'. cols:%u", 
-			class_id, class_name, ncols);
-
 		class_name = result2[ncols];
 
+		TRACE_2("Successfully accessed classes class_id:%s class_name:'%s'. cols:%u", 
+			class_id, class_name, ncols);
 
 		/* Update the relevant attribute in the class_name table IFF value matches. */
 		sql23.append(class_name);
@@ -1298,14 +1296,14 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 		if(text_val) {sql23.append("'");}
 		sqlite3_free_table(result2);
 		for(ix=0; ix < attrValue->attrValuesNumber; ++ix) {
-		TRACE_3("COMPONENT TEST BRANCH 6");
-			append_quoted_string('\'', sql23, valueToString(attrValue->attrValues[ix], attr_type));
-			if(text_val) {sql23.append("'");}
-			TRACE("GENERATED 23:%s", sql23.c_str());
-			rc = sqlite3_exec(dbHandle, sql23.c_str(), NULL, NULL, &zErr);
+			std::string sql23_iter(sql23);
+			append_quoted_string('\'', sql23_iter, valueToString(attrValue->attrValues[ix], attr_type));
+			if(text_val) {sql23_iter.append("'");}
+			TRACE("GENERATED 23:%s", sql23_iter.c_str());
+			rc = sqlite3_exec(dbHandle, sql23_iter.c_str(), NULL, NULL, &zErr);
 			if(rc) {
 				LOG_ER("SQL statement ('%s') failed because:\n %s",
-					sql23.c_str(), zErr);
+					sql23_iter.c_str(), zErr);
 				sqlite3_free(zErr);
 				goto bailout;
 			}

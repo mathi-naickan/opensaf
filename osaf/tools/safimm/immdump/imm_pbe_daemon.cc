@@ -666,11 +666,14 @@ static void saImmOiCcbAbortCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 
 	TRACE_ENTER2("ABORT callback. Cleanup CCB %llu", ccbId);
 
-	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) != NULL)
+	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) != NULL) {
 		/* Verify nok outcome with ccbUtilCcbData->userData */
 		ccbutil_deleteCcbData(ccbUtilCcbData);
-	else
-		LOG_ER("Failed to find CCB object for %llu", ccbId);
+	} else {
+		/* changed from ER to WA. We can get here when PBE was restarted
+		   after PBE crash, in the recovery processing. */
+		LOG_WA("Failed to find CCB object for %llu", ccbId);
+	}
 
 	TRACE_LEAVE();
 }
