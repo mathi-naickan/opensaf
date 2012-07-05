@@ -1088,8 +1088,28 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 			break;
 		}
 
+		if (fds[FD_IMM_PBE_TERM].revents & POLLIN) {
+			ncs_sel_obj_rmv_ind(term_sel_obj, true, true);
+			if (sDbHandle != NULL) {
+				LOG_NO("PBE received SIG_TERM, closing db handle");
+				pbeRepositoryClose(sDbHandle);
+				sDbHandle = NULL;
+			}
+			break;
+		}
+
+		if (immHandle && fds[FD_IMM_PBE_OM].revents & POLLIN) {
+			error = saImmOmDispatch(immHandle, SA_DISPATCH_ONE);
+			if (error != SA_AIS_OK) {
+				LOG_WA("saImmOmDispatch returned %u PBE lost contact with IMMND - exiting", error);
+				pbeOiHandle = 0;
+				immHandle = 0;
+				break;
+			}
+		}
+
 		if (pbeOiHandle && fds[FD_IMM_PBE_OI].revents & POLLIN) {
-			error = saImmOiDispatch(pbeOiHandle, SA_DISPATCH_ALL);
+			error = saImmOiDispatch(pbeOiHandle, SA_DISPATCH_ONE);
 
 			if (error == SA_AIS_ERR_BAD_HANDLE) {
 				TRACE("saImmOiDispatch returned BAD_HANDLE");
@@ -1102,25 +1122,7 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, ClassMap* classIdMap,
 		   ?? OpensafImm: opensafImm=opensafImm,safApp=safImmService ??
 		*/
 
-		if (immHandle && fds[FD_IMM_PBE_OM].revents & POLLIN) {
-			error = saImmOmDispatch(immHandle, SA_DISPATCH_ALL);
-			if (error != SA_AIS_OK) {
-				LOG_WA("saImmOmDispatch returned %u PBE lost contact with IMMND - exiting", error);
-				pbeOiHandle = 0;
-				immHandle = 0;
-				break;
-			}
-		}
 
-		if (fds[FD_IMM_PBE_TERM].revents & POLLIN) {
-			ncs_sel_obj_rmv_ind(term_sel_obj, true, true);
-			if (sDbHandle != NULL) {
-				LOG_NO("PBE received SIG_TERM, closing db handle");
-				pbeRepositoryClose(sDbHandle);
-				sDbHandle = NULL;
-			}
-			break;
-		}
 	}
 
 	LOG_IN("IMM PBE process EXITING...");
