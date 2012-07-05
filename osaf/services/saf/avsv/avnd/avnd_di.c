@@ -436,6 +436,9 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
+
+	LOG_ER("AMF director unexpectedly crashed");
+
 	/* Don't issue reboot if it has been already issued.*/
 	if (false == cb->reboot_in_progress) {
 		cb->reboot_in_progress = true;
