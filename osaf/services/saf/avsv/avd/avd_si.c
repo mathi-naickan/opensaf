@@ -739,31 +739,6 @@ static SaAisErrorT si_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 				break;
 			}
 
-			/* Only allow decrementation of saAmfSIPrefActiveAssignments in steps of one.
-			 * Assignment logic cannot handle larger steps. Incrementation is OK.
-			 */
-			if (attribute->attrValuesNumber > 0) {
-				SaUint32T prefActiveAssignments = *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
-				if ((prefActiveAssignments < si->saAmfSIPrefActiveAssignments) &&
-					(si->saAmfSIPrefActiveAssignments - prefActiveAssignments) > 1) {
-					LOG_ER("Invalid modification of '%s' - saAmfSIPrefActiveAssignments can only be"
-						   " decremented in steps of one (1)", si->name.value);
-					rc = SA_AIS_ERR_BAD_OPERATION;
-					break;
-				}
-			}
-
-			/* Only allow deletion of value when current value is one or two because in apply
-			 * the default of one will be set when value is removed.
-			 */
-			if (((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (attr_mod->modAttr.attrValues == NULL)) &&
-				(si->saAmfSIPrefActiveAssignments > 2)) {
-				LOG_ER("Invalid modification of '%s' - saAmfSIPrefActiveAssignments can only be"
-					   " decremented in steps of one (1)", si->name.value);
-				rc = SA_AIS_ERR_BAD_OPERATION;
-				break;
-			}
-
 		} else if (!strcmp(attribute->attrName, "saAmfSIPrefStandbyAssignments")) {
 			if (si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) {
 				LOG_ER("SG'%s' is not stable (%u)", si->sg_of_si->name.value, 
@@ -1044,7 +1019,7 @@ done:
  * 
  * @return void 
  */
-static void avd_si_adjust_si_assignments(AVD_SI *si)
+static void avd_si_adjust_si_assignments(AVD_SI *si, uint32_t mod_pref_assignments)
 {
 	AVD_SU_SI_REL *sisu, *tmp_sisu;
 	uint32_t no_of_sisus_to_delete;
@@ -1053,7 +1028,7 @@ static void avd_si_adjust_si_assignments(AVD_SI *si)
 	TRACE_ENTER2("for SI:%s ", si->name.value);
 	
 	if( si->sg_of_si->sg_redundancy_model == SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL ) {
-		if( si->saAmfSIPrefActiveAssignments > si->saAmfSINumCurrActiveAssignments ) {
+		if( mod_pref_assignments > si->saAmfSINumCurrActiveAssignments ) {
 			/* SI assignment is not yet complete, choose and assign to appropriate SUs */
 			if ( avd_sg_nacvred_su_chose_asgn(avd_cb, si->sg_of_si ) != NULL ) {
 				/* New assignments are been done in the SG.
@@ -1063,11 +1038,12 @@ static void avd_si_adjust_si_assignments(AVD_SI *si)
 				/* No New assignments are been done in the SG
 				   reason might be no more inservice SUs to take new assignments or
 				   SUs are already assigned to saAmfSGMaxActiveSIsperSU capacity */
+				si_update_ass_state(si);
 				TRACE("No New assignments are been done SI:%s",si->name.value);
 			}
 		} else {
 			no_of_sisus_to_delete = si->saAmfSINumCurrActiveAssignments -
-						si->saAmfSIPrefActiveAssignments;
+						mod_pref_assignments;
 
 			/* Get the sisu pointer from the  si->list_of_sisu list from which 
 			no of sisus need to be deleted based on SI ranked SU */
@@ -1093,7 +1069,7 @@ static void avd_si_adjust_si_assignments(AVD_SI *si)
 		}
 	} 
 	if( si->sg_of_si->sg_redundancy_model == SA_AMF_N_WAY_REDUNDANCY_MODEL ) {
-		if( si->saAmfSIPrefStandbyAssignments > si->saAmfSINumCurrStandbyAssignments ) {
+		if( mod_pref_assignments > si->saAmfSINumCurrStandbyAssignments ) {
 			/* SI assignment is not yet complete, choose and assign to appropriate SUs */
 			if( avd_sg_nway_si_assign(avd_cb, si->sg_of_si ) == NCSCC_RC_FAILURE ) {
 				LOG_ER("SI new assignmemts failed  SI:%s",si->name.value);
@@ -1101,7 +1077,7 @@ static void avd_si_adjust_si_assignments(AVD_SI *si)
 		} else {
 			no_of_sisus_to_delete = 0;
 			no_of_sisus_to_delete = si->saAmfSINumCurrStandbyAssignments -
-						si->saAmfSIPrefStandbyAssignments; 
+						mod_pref_assignments; 
 
 			/* Get the sisu pointer from the  si->list_of_sisu list from which 
 			no of sisus need to be deleted based on SI ranked SU */
@@ -1135,6 +1111,7 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 	const SaImmAttrModificationT_2 *attr_mod;
 	int i = 0;
 	bool value_is_deleted;
+	uint32_t mod_pref_assignments;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
@@ -1151,28 +1128,34 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 			value_is_deleted = false;
 
 		if (!strcmp(attribute->attrName, "saAmfSIPrefActiveAssignments")) {
+
 			if (value_is_deleted)
-				si->saAmfSIPrefActiveAssignments = 1;
+				mod_pref_assignments = si->saAmfSIPrefActiveAssignments = 1;
 			else
-				si->saAmfSIPrefActiveAssignments =
-					*((SaUint32T *)attr_mod->modAttr.attrValues[0]);
+				mod_pref_assignments = *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
+			
 
 			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)  
 				continue;
 
 			/* Check if we need to readjust the SI assignments as PrefActiveAssignments
 				got changed */
-			if ( si->saAmfSIPrefActiveAssignments == si->saAmfSINumCurrActiveAssignments ) {
+			if ( mod_pref_assignments == si->saAmfSINumCurrActiveAssignments ) {
 				TRACE("Assignments are equal updating the SI status ");
-				si_update_ass_state(si);
-			} else {
-				avd_si_adjust_si_assignments(si);
+				si->saAmfSIPrefActiveAssignments = mod_pref_assignments;
+			} else if (mod_pref_assignments > si->saAmfSINumCurrActiveAssignments) {
+				si->saAmfSIPrefActiveAssignments = mod_pref_assignments;
+				avd_si_adjust_si_assignments(si, mod_pref_assignments);
+			} else if (mod_pref_assignments < si->saAmfSINumCurrActiveAssignments) {
+				avd_si_adjust_si_assignments(si, mod_pref_assignments);
+				si->saAmfSIPrefActiveAssignments = mod_pref_assignments;
 			}
+			si_update_ass_state(si);
 		} else if (!strcmp(attribute->attrName, "saAmfSIPrefStandbyAssignments")) {
 			if (value_is_deleted)
-				si->saAmfSIPrefStandbyAssignments = 1;
+				mod_pref_assignments = si->saAmfSIPrefStandbyAssignments = 1;
 			else
-				si->saAmfSIPrefStandbyAssignments =
+				mod_pref_assignments =
 					*((SaUint32T *)attr_mod->modAttr.attrValues[0]);
 
 			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)  
@@ -1180,12 +1163,17 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 
 			/* Check if we need to readjust the SI assignments as PrefStandbyAssignments
 			   got changed */
-			if ( si->saAmfSIPrefStandbyAssignments == si->saAmfSINumCurrStandbyAssignments ) {
+			if ( mod_pref_assignments == si->saAmfSINumCurrStandbyAssignments ) {
 				TRACE("Assignments are equal updating the SI status ");
-				si_update_ass_state(si);
-			} else {
-				avd_si_adjust_si_assignments(si);
+				si->saAmfSIPrefStandbyAssignments = mod_pref_assignments;
+			} else if (mod_pref_assignments > si->saAmfSINumCurrStandbyAssignments) {
+				si->saAmfSIPrefStandbyAssignments = mod_pref_assignments;
+				avd_si_adjust_si_assignments(si, mod_pref_assignments);
+			} else if (mod_pref_assignments < si->saAmfSINumCurrStandbyAssignments) {
+				avd_si_adjust_si_assignments(si, mod_pref_assignments);
+				si->saAmfSIPrefStandbyAssignments = mod_pref_assignments;
 			}
+			si_update_ass_state(si);
 		} else {
 			osafassert(0);
 		}
