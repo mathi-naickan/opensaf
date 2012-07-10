@@ -6745,6 +6745,11 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 				LOG_NO("This IMMND re-elected coord redundantly, failover ?");
 			} else {
 				LOG_NO("This IMMND is now the NEW Coord");
+				if(cb->mPbeVeteran && !immModel_pbeIsInSync(cb, true)) {
+					LOG_NO("PBE writing when new coord elected => force PBE to regenerate db file");
+					cb->mPbeVeteran = SA_FALSE;
+				}
+				
 			}
 		}
 		cb->mIsCoord = evt->info.ctrl.isCoord;

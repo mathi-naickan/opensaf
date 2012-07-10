@@ -321,7 +321,7 @@ extern "C" {
 
 	SaBoolT immModel_immNotWritable(IMMND_CB *cb);
 
-	SaBoolT immModel_pbeIsInSync(IMMND_CB *cb);
+	SaBoolT immModel_pbeIsInSync(IMMND_CB *cb, bool checkCriticalCcbs);
 
 	SaImmRepositoryInitModeT immModel_getRepositoryInitMode(IMMND_CB *cb);
 

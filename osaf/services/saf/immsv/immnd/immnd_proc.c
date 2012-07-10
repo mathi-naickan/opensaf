@@ -895,7 +895,7 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 	/*TRACE_ENTER(); */
 
 	if((cb->mRim == SA_IMM_KEEP_REPOSITORY) && !(cb->mPbeVeteran)) {
-		cb->mPbeVeteran = immModel_pbeOiExists(cb) && immModel_pbeIsInSync(cb);
+		cb->mPbeVeteran = immModel_pbeOiExists(cb) && immModel_pbeIsInSync(cb, false);
 		if(cb->mPbeVeteran && cb->mCanBeCoord) {		       
 			LOG_NO("PBE-OI established on %s SC. Dumping incrementally to file %s", 
 				(cb->mIsCoord)?"this":"other", 	cb->mPbeFile);
@@ -1165,7 +1165,7 @@ static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration)
 	}
 
 	SaBoolT ccbsTerminated = immModel_ccbsTerminated(cb);
-	SaBoolT pbeIsInSync = immModel_pbeIsInSync(cb);
+	SaBoolT pbeIsInSync = immModel_pbeIsInSync(cb, false);
 	SaUint32T largeAdmoId = immModel_getIdForLargeAdmo(cb);
 
 	if (ccbsTerminated && pbeIsInSync && (!largeAdmoId)) {
@@ -1364,7 +1364,7 @@ static int immnd_forkPbe(IMMND_CB *cb)
 
 	TRACE("pbe-file-path:%s", pbePath);
 
-	if(cb->mPbeVeteran && !immModel_pbeIsInSync(cb)) {
+	if(cb->mPbeVeteran && !immModel_pbeIsInSync(cb, false)) {
 		/* Currently we can not recover results for PRTO create/delete/updates
 		   from restarted PBE. 
 		   If we have non completed PRTO ops toward PBE when it needs to
@@ -1714,7 +1714,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 				if (waitpid(cb->pbePid, &status, WNOHANG) > 0) {
 					LOG_WA("Persistent back-end process has apparently died.");
 					cb->pbePid = 0;
-					if(!immModel_pbeIsInSync(cb)) {
+					if(!immModel_pbeIsInSync(cb, false)) {
 						TRACE_5("Sync-server/coord invoking "
 							"immnd_pbePrtoPurgeMutations");
 						immnd_pbePrtoPurgeMutations(cb);
@@ -1792,7 +1792,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 			if (waitpid(cb->pbePid, &status, WNOHANG) > 0) {
 				LOG_WA("Persistent back-end process has apparently died.");
 				cb->pbePid = 0;
-				if(!immModel_pbeIsInSync(cb)) {
+				if(!immModel_pbeIsInSync(cb, false)) {
 					TRACE_5("Server-ready/coord invoking "
 						"immnd_pbePrtoPurgeMutations");
 					immnd_pbePrtoPurgeMutations(cb);
@@ -1838,7 +1838,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 				if (cb->pbePid <= 0) { /* Pbe is NOT running */
 					cb->mBlockPbeEnable = 0x0;
 					if (cb->mRim == SA_IMM_KEEP_REPOSITORY) {/* Pbe SHOULD run. */
-						if(immModel_pbeIsInSync(cb)) {
+						if(immModel_pbeIsInSync(cb, false)) {
 							LOG_NO("STARTING persistent back end process.");
 							cb->pbePid = immnd_forkPbe(cb);
 						} else {
