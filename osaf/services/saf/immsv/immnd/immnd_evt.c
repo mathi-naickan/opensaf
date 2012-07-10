@@ -6322,6 +6322,11 @@ static uns32 immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_I
 				LOG_NO("This IMMND re-elected coord redundantly, failover ?");
 			} else {
 				LOG_NO("This IMMND is now the NEW Coord");
+				if(cb->mPbeVeteran && !immModel_pbeIsInSync(cb, SA_TRUE)) {
+					LOG_NO("PBE writing when new coord elected => force PBE to regenerate db file");
+					cb->mPbeVeteran = SA_FALSE;
+				}
+				
 			}
 		}
 		cb->mIsCoord = evt->info.ctrl.isCoord;

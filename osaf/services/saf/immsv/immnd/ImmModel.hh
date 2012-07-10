@@ -403,7 +403,7 @@ public:
     void              pbePrtoPurgeMutations(unsigned int nodeId, ConnVector& connVector);
     SaAisErrorT       ccbResult(SaUint32T ccbId);
     bool              ccbsTerminated();
-    bool              pbeIsInSync();
+    bool              pbeIsInSync(bool checkCriticalCcbs);
     SaUint32T         getIdForLargeAdmo();
     void              getNonCriticalCcbs(IdVector& cv);
     void              getOldCriticalCcbs(
