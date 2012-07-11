@@ -1987,6 +1987,29 @@ done:
 	TRACE_LEAVE2("return value: %d",flag);
 	return flag;
 }
+
+/**
+ * @brief       Checks whether SI has valid standby assignments which can take Active role 
+ *
+ * @param[in]	susi
+ *
+ * @return	true/false    
+ **/
+bool valid_standby_susi(AVD_SU_SI_REL *sisu)
+{
+	AVD_SU_SI_REL *tmp_sisu;
+
+	for (tmp_sisu = sisu->si->list_of_sisu;tmp_sisu != NULL;tmp_sisu = tmp_sisu->si_next) {
+		if (tmp_sisu->su != sisu->su) {
+			if (((tmp_sisu->state == SA_AMF_HA_STANDBY) || (tmp_sisu->state == SA_AMF_HA_QUIESCED)) &&
+					(tmp_sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
+					(tmp_sisu->su->saAmfSuReadinessState != SA_AMF_READINESS_OUT_OF_SERVICE)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
 /**
  * @brief	Updates dependents si_dep_state during SI role failover.	
  *		a) If the dependent SI has Active assignment on the the same node then
@@ -2069,13 +2092,10 @@ void avd_update_depstate_si_failover(AVD_SI *si, AVD_SU *su)
 				if ((su->saAmfSuReadinessState == SA_AMF_READINESS_OUT_OF_SERVICE) &&
 						(su->su_on_node->saAmfNodeOperState != SA_AMF_OPERATIONAL_DISABLED)) {
 
-					if ((((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCED))
-						&& (sisu->fsm == AVD_SU_SI_STATE_UNASGN)) &&
-						((sisu->si_next != AVD_SU_SI_REL_NULL) &&
-						(sisu->si_next->state == SA_AMF_HA_STANDBY) &&
-						(sisu->si_next->fsm == AVD_SU_SI_STATE_ASGND))) {
+					if ((((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCED)) &&
+						(sisu->fsm == AVD_SU_SI_STATE_UNASGN)) && (valid_standby_susi(sisu))) {
 
-						/* Check sponsors state */
+						/* Before updating the si_dep_state, check the assignment state of all sponsors */
 						bool sponsor_assignments_state = true;
 						for (spons_si_node = dep_si->spons_si_list;spons_si_node && sponsor_assignments_state == true;
 							spons_si_node = spons_si_node->next) {
@@ -2083,7 +2103,8 @@ void avd_update_depstate_si_failover(AVD_SI *si, AVD_SU *su)
 								continue;
 							for (sisu = spons_si_node->si->list_of_sisu;sisu;sisu = sisu->si_next) {
 								TRACE("sisu->si:%s state:%u fsm:%u",sisu->si->name.value,sisu->state,sisu->fsm);
-								if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
+								if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING) ||
+										(sisu->state == SA_AMF_HA_QUIESCED)) &&
 										(sisu->fsm != AVD_SU_SI_STATE_UNASGN)){
 									break;
 								}
