@@ -467,7 +467,6 @@ void SaImmOiAdminOperation_07(void)
     struct pollfd fds[1];
     int ret;
     pthread_t thread;
-    SaAisErrorT rc;
     SaImmHandleT handle;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmCcbHandleT ccbHandle;

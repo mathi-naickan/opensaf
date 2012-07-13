@@ -142,12 +142,12 @@ void newNotification(
     const SaNtfNotificationsT *notification)
 {
     SaInt32T i;
-    SaNtfNotificationHandleT notificationHandle;
+    /*SaNtfNotificationHandleT notificationHandle;*/
     switch (notification->notificationType) {
     case SA_NTF_TYPE_ALARM:
         (void)printf("\n===  notificationType: alarm notification ===\n");
-	notificationHandle =
-	    notification->notification.alarmNotification.notificationHandle;
+	/*	notificationHandle =
+		notification->notification.alarmNotification.notificationHandle;*/
 
         print_header(
             (SaNtfNotificationHeaderT*)&notification->notification.\
@@ -168,9 +168,9 @@ void newNotification(
 
     case SA_NTF_TYPE_STATE_CHANGE:
 	(void)printf("===  notificationType:  state change notification ===\n");
-	notificationHandle =
+	/*notificationHandle =
 	    notification->notification.\
-	    stateChangeNotification.notificationHandle;
+	    stateChangeNotification.notificationHandle;*/
 
 	print_header(
 	     (SaNtfNotificationHeaderT*)&notification->notification.\
@@ -198,9 +198,9 @@ void newNotification(
 
     case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
 	(void)printf("===  notificationType: object create/delete notification ===\n");
-	notificationHandle =
+	/*notificationHandle =
 	     notification->notification.\
-	     objectCreateDeleteNotification.notificationHandle;
+	     objectCreateDeleteNotification.notificationHandle;*/
 	print_header(
 	     (SaNtfNotificationHeaderT*)&notification->notification.\
 	     objectCreateDeleteNotification.notificationHeader,
@@ -226,9 +226,9 @@ void newNotification(
 
     case SA_NTF_TYPE_ATTRIBUTE_CHANGE:
 	(void)printf("===  notificationType: attribute change notification ===\n");
-	notificationHandle =
+	/*notificationHandle =
 	      notification->notification.\
-	      attributeChangeNotification.notificationHandle;
+	      attributeChangeNotification.notificationHandle;*/
 	print_header(
 	     (SaNtfNotificationHeaderT*)&notification->notification.\
 	     attributeChangeNotification.notificationHeader, subscriptionId,\
@@ -253,9 +253,9 @@ void newNotification(
 
     case SA_NTF_TYPE_SECURITY_ALARM:
 	(void)printf("===  notificationType:  security alarm notification ===\n");
-	notificationHandle =
+	/*notificationHandle =
 	     notification->notification.\
-	     securityAlarmNotification.notificationHandle;
+	     securityAlarmNotification.notificationHandle;*/
 	print_header(
 	     (SaNtfNotificationHeaderT*)&notification->notification.\
 	     securityAlarmNotification.notificationHeader, subscriptionId,\

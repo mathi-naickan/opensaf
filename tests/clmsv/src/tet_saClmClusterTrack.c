@@ -522,6 +522,7 @@ void saClmClusterTrack_21(void)
 
 	while(1){
 	        ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
 		if (fds[0].revents & POLLIN)
                         break;
 	}
@@ -554,6 +555,7 @@ void saClmClusterTrack_22(void)
 
         while(1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN)
                         break;
         }
@@ -588,6 +590,7 @@ void saClmClusterTrack_23(void)
 
 	while (1){
         	ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
 		if (fds[0].revents & POLLIN)
 			break;
 	}	
@@ -626,6 +629,7 @@ void saClmClusterTrack_25(void)
 	}
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
 		}
@@ -637,6 +641,7 @@ void saClmClusterTrack_25(void)
         fds[0].events = POLLIN;
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -676,6 +681,7 @@ void saClmClusterTrack_27(void)
 	
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -687,6 +693,7 @@ void saClmClusterTrack_27(void)
         fds[0].events = POLLIN;
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -726,6 +733,7 @@ void saClmClusterTrack_30(void)
 
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -737,6 +745,7 @@ void saClmClusterTrack_30(void)
         fds[0].events = POLLIN;
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -774,6 +783,7 @@ void saClmClusterTrack_32(void)
 
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -785,6 +795,7 @@ void saClmClusterTrack_32(void)
         fds[0].events = POLLIN;
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -824,6 +835,7 @@ void saClmClusterTrack_36(void)
         }
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -835,6 +847,7 @@ void saClmClusterTrack_36(void)
         fds[0].events = POLLIN;
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
@@ -847,6 +860,7 @@ void saClmClusterTrack_36(void)
         fds[0].events = POLLIN;
         while (1){
                 ret = poll(fds, 1, 1000);
+		assert(ret!=(-1));
                 if (fds[0].revents & POLLIN){
                         break;
                 }
