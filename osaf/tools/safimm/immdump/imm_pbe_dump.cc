@@ -34,7 +34,7 @@
 #include <sqlite3.h> 
 #define STRINT_BSZ 32
 
-
+static std::string sPbeFileName;
 
 /**
  * @brief Append a string, escaping any quote characters in it
@@ -193,7 +193,7 @@ void pbeAtomicSwitchFile(const char* filePath, std::string localTmpFilename)
 	globalTmpFilename.append(".tmp"); 
 	globalJournalFilename.append(filePath);
 	globalJournalFilename.append("-journal"); 
-	int fd=(-1);
+	//	int fd=(-1);
 	std::string oldFilename;
 	oldFilename.append(filePath);
 	oldFilename.append(".prev"); 
@@ -251,19 +251,18 @@ void pbeAtomicSwitchFile(const char* filePath, std::string localTmpFilename)
 
 	LOG_NO("Moved %s to %s", globalTmpFilename.c_str(), filePath);
 
-	fd = open(globalJournalFilename.c_str(), O_RDONLY);
-	if(fd != (-1)) {
-		close(fd);
+	if(access(globalJournalFilename.c_str(), F_OK) != (-1)) {
 		/* Remove -journal file */
 		if(unlink(globalJournalFilename.c_str()) != 0) {
-			LOG_WA("Failed to remove %s ", globalJournalFilename.c_str());
+			LOG_ER("Failed to remove EXISTING obsolete journal file: %s ",
+				globalJournalFilename.c_str());
 		} else {
-			LOG_NO("Removed %s ", globalJournalFilename.c_str());
+			LOG_NO("Removed obsolete journal file: %s ", globalJournalFilename.c_str());
 			/* and remove corresponding imm.db.prev since it depends on the journal file */
 			if(unlink(oldFilename.c_str()) != 0) {
 				LOG_WA("Failed to remove %s ", oldFilename.c_str());
 			} else {
-				LOG_NO("Removed %s ", oldFilename.c_str());
+				LOG_NO("Removed obsolete db file: %s ", oldFilename.c_str());
 			}
 		}
 	}
@@ -285,6 +284,7 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 	int nrows=0;
 	int ncols=0;
 	const char * sql = "select saImmRepositoryInit from SaImmMngt";
+	bool badfile = false;
 
 	const char * sql_tr[] = 
 		{"BEGIN EXCLUSIVE TRANSACTION",
@@ -404,6 +404,7 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 		TRACE("Successfully executed %s", sql_tr[ix]);
 	}
 
+	sPbeFileName = std::string(filePath); 
 	TRACE_LEAVE();
 	return (void *) dbHandle;
 
@@ -415,20 +416,25 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 	   succeeding with open and creating an empty db, when there is no db
 	   file.
 	*/
-	fd = open(filePath, O_RDWR);
-	if(fd == (-1)) {
+
+	if(access(filePath, R_OK | W_OK) == (-1)) {
 		LOG_ER("File '%s' is not accessible for read/write, cause:%s - exiting", 
 			filePath, strerror(errno));
 		goto bailout;
+	} else {
+		std::string journalFile(filePath);
+		journalFile.append("-journal");
+		if(access(journalFile.c_str(), F_OK) != (-1)) {
+			LOG_WA("Journal file %s exists at open for PBE/immdump => sqlite recovery",
+				journalFile.c_str());
+		}
 	}
-
-	close(fd);
-	fd=(-1);
 
 	rc = sqlite3_open(filePath, &dbHandle);
 	if(rc) {
 		LOG_ER("Can't open sqlite pbe file '%s', cause:%s", 
 			filePath, sqlite3_errmsg(dbHandle));
+		badfile = true;
 		goto bailout;
 	} 
 	LOG_NO("Successfully opened pre-existing sqlite pbe file %s", filePath);
@@ -438,6 +444,7 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 	if(rc) {
 		LOG_IN("Could not access table SaImmMngt, error:%s", zErr);
 		sqlite3_free(zErr);
+		badfile = true;
 		goto bailout;
 	}
 	TRACE_2("Successfully accessed SaImmMngt table rows:%u cols:%u", 
@@ -445,12 +452,15 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 
 	if(nrows == 0) {
 		LOG_ER("SaImmMngt exists but is empty");
+		badfile = true;
 		goto bailout;
 	} else if(nrows > 1) {
 		LOG_WA("SaImmMngt has %u tuples, should only be one - using first tuple", nrows);
 	}
 
 	rpi = (SaImmRepositoryInitModeT) strtoul(result[1], NULL, 0);
+
+	sqlite3_free_table(result);
 
 	if( rpi == SA_IMM_KEEP_REPOSITORY) {
 		LOG_IN("saImmRepositoryInit: SA_IMM_KEEP_REPOSITORY - attaching to repository");
@@ -459,17 +469,21 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 		goto bailout;
 	} else {
 		LOG_ER("saImmRepositoryInit: Not a valid value (%u) - can not attach", rpi);
+		badfile = true;
 		goto bailout;
 	}
+	
+	sPbeFileName = std::string(filePath); /* Avoid apend to presumed empty string */
 
-	sqlite3_free_table(result);
 	TRACE_LEAVE();
 	return dbHandle;
 
  bailout:
-	/* TODO: remove imm.db file */
 	if(dbHandle) {
 		sqlite3_close(dbHandle);
+	}
+	if(badfile) {
+		discardPbeFile(std::string(filePath));
 	}
 	TRACE_LEAVE();
 	return NULL;
@@ -689,7 +703,7 @@ ClassInfo* classToPBE(std::string classNameString,
  bailout:
 	sqlite3_close((sqlite3 *) dbHandle);
 	delete classInfo;
-	/* TODO remove imm.db file */
+	/* Dont remove imm.db file here, this could be a failed schema upgrade. */
 	LOG_ER("Exiting (line:%u)", __LINE__);
 	exit(1);
 }
@@ -939,6 +953,7 @@ void objectModifyDiscardAllValuesOfAttrToPBE(void* db_handle, std::string objNam
 	SaImmValueTypeT attr_type;
 	SaImmAttrFlagsT attr_flags;
 	unsigned int rowsModified=0;
+	bool badfile = false;
 	TRACE_ENTER();
 	assert(dbHandle);
 
@@ -955,11 +970,13 @@ void objectModifyDiscardAllValuesOfAttrToPBE(void* db_handle, std::string objNam
 		LOG_ER("Could not access object '%s' for delete, error:%s",
 			objName.c_str(), zErr);
 		sqlite3_free(zErr);
+		badfile = true;
 		goto bailout;
 	}
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile = true;
 		goto bailout;
 	}
 	TRACE_2("Successfully accessed object '%s'. cols:%u", 
@@ -984,6 +1001,7 @@ void objectModifyDiscardAllValuesOfAttrToPBE(void* db_handle, std::string objNam
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile = true;
 		goto bailout;
 	}
 
@@ -1067,6 +1085,7 @@ void objectModifyDiscardAllValuesOfAttrToPBE(void* db_handle, std::string objNam
 
 		if(nrows != 1) {
 			LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+			badfile = true;
 			goto bailout;
 		}
 
@@ -1104,6 +1123,10 @@ void objectModifyDiscardAllValuesOfAttrToPBE(void* db_handle, std::string objNam
  bailout:
 	TRACE_LEAVE();
 	sqlite3_close((sqlite3 *) dbHandle);
+	if(badfile) {
+		discardPbeFile(sPbeFileName);
+	}
+ 
 	LOG_ER("Exiting (line:%u)", __LINE__);
 	exit(1);
 }
@@ -1130,6 +1153,7 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 	SaImmAttrFlagsT attr_flags;
 	bool text_val = false;
 	unsigned int rowsModified=0;
+	bool badfile=false;
 
 	TRACE_ENTER();
 	assert(dbHandle);
@@ -1147,11 +1171,13 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 		LOG_ER("Could not access object '%s' for delete, error:%s",
 			objName.c_str(), zErr);
 		sqlite3_free(zErr);
+		badfile=true;
 		goto bailout;
 	}
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile=true;
 		goto bailout;
 	}
 	TRACE_2("Successfully accessed object '%s'. cols:%u", 
@@ -1175,6 +1201,7 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile=true;
 		goto bailout;
 	}
 
@@ -1278,6 +1305,7 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 
 		if(nrows != 1) {
 			LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+			badfile=true;
 			goto bailout;
 		}
 		class_name = result2[ncols];
@@ -1322,6 +1350,9 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
  bailout:
 	TRACE_LEAVE();
 	sqlite3_close((sqlite3 *) dbHandle);
+	if(badfile) {
+		discardPbeFile(sPbeFileName);
+	}
 	LOG_ER("Exiting (line:%u)", __LINE__);
 	exit(1);
 }
@@ -1345,6 +1376,7 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 	SaImmValueTypeT attr_type;
 	SaImmAttrFlagsT attr_flags;
 	unsigned int rowsModified=0;
+	bool badfile = false;
 	TRACE_ENTER();
 	assert(dbHandle);
 
@@ -1360,12 +1392,14 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 	if(rc) {
 		LOG_ER("Could not access object '%s' for delete, error:%s",
 			objName.c_str(), zErr);
+		badfile = true;
 		sqlite3_free(zErr);
 		goto bailout;
 	}
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile = true;
 		goto bailout;
 	}
 	TRACE_2("Successfully accessed object '%s'. cols:%u", 
@@ -1390,6 +1424,7 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile = true;
 		goto bailout;
 	}
 
@@ -1435,6 +1470,7 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 
 		if(nrows != 1) {
 			LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+			badfile = true;
 			goto bailout;
 		}
 
@@ -1474,6 +1510,9 @@ void objectModifyAddValuesOfAttrToPBE(void* db_handle, std::string objName,
 
  bailout:
 	sqlite3_close((sqlite3 *) dbHandle);
+	if(badfile) {
+		discardPbeFile(sPbeFileName);
+	}
 	LOG_ER("Exiting (line:%u)", __LINE__);
 	exit(1);
 }
@@ -1550,7 +1589,7 @@ unsigned int purgeInstancesOfClassToPBE(SaImmHandleT immHandle, std::string clas
 	return nrofDeletes;
  bailout:
 	sqlite3_close(dbHandle);
-	/* TODO remove imm.db file */
+	/* Nothing wrong with imm.db file */
 	LOG_ER("Exiting (line:%u)", __LINE__);
 	exit(1);	
 }
@@ -1656,6 +1695,7 @@ void objectDeleteToPBE(std::string objectNameString, void* db_handle)
 	const char* object_id=NULL;
 	const char* class_id=NULL;
 	const char* class_name=NULL;
+	bool badfile=false;
 	TRACE_ENTER();
 	assert(dbHandle);
 
@@ -1672,11 +1712,13 @@ void objectDeleteToPBE(std::string objectNameString, void* db_handle)
 		LOG_ER("Could not access object '%s' for delete, error:%s",
 			objectNameString.c_str(), zErr);
 		sqlite3_free(zErr);
+		badfile = true;
 		goto bailout;
 	}
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile = true;
 		goto bailout;
 	}
 	TRACE_2("Successfully accessed object '%s'. cols:%u", 
@@ -1717,6 +1759,7 @@ void objectDeleteToPBE(std::string objectNameString, void* db_handle)
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile = true;
 		goto bailout;
 	}
 	class_name = result2[ncols];
@@ -1788,6 +1831,9 @@ void objectDeleteToPBE(std::string objectNameString, void* db_handle)
 
  bailout:
 	sqlite3_close((sqlite3 *) dbHandle);
+	if(badfile) {
+		discardPbeFile(sPbeFileName);
+	}
 	LOG_ER("Exiting (line:%u)", __LINE__);
 	exit(1);
 }
@@ -1929,7 +1975,6 @@ void objectToPBE(std::string objectNameString,
  bailout:
 	sqlite3_close(dbHandle);
 	LOG_ER("Exiting (line:%u)", __LINE__);
-	/* TODO remove imm.db file */
 	exit(1);
 }
 
@@ -1975,7 +2020,6 @@ void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 
  bailout:
 	sqlite3_close(dbHandle);
-	/* TODO remove imm.db file */
 	LOG_ER("Exiting (line:%u)", __LINE__);
 	exit(1);	
 }
@@ -1994,6 +2038,7 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 	char *qErr=NULL;
 	int nrows=0;
 	int ncols=0;
+	bool badfile=false;
 	TRACE_ENTER();
 
 	classNameList = getClassNames(immHandle);
@@ -2014,6 +2059,7 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 			(*classIdMap)[(*it)] = cl_info;
 			it++;
 		} else {
+			badfile=true;
 			goto bailout;
 		}
 	}
@@ -2023,11 +2069,13 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 	if(rc) {
 		LOG_ER("SQL statement ('%s') failed because:\n %s", sqlQ.c_str(), qErr);
 		sqlite3_free(qErr);
+		badfile=true;
 		goto bailout;
 	}
 
 	if(nrows != 1) {
 		LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+		badfile = true;
 		goto bailout;
 	}
 
@@ -2047,6 +2095,9 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 
  bailout:
 	sqlite3_close(dbHandle);
+	if(badfile) {
+		discardPbeFile(sPbeFileName);
+	}
 	LOG_WA("verifyPbeState failed!");
 	return 0;
 }
@@ -2260,12 +2311,10 @@ void pbeAbortTrans(void* db_handle)
 		LOG_ER("SQL statement ('ROLLBACK') failed because:\n %s",
 			execErr);
 		sqlite3_free(execErr);
-		goto bailout;
+		sqlite3_close(dbHandle);
+		LOG_ER("Exiting (line:%u)", __LINE__);
+		exit(1);
 	}
- bailout:
-	sqlite3_close(dbHandle);
-	LOG_ER("Exiting (line:%u)", __LINE__);
-	exit(1);
 }
 
 SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T currentEpoch)
@@ -2279,6 +2328,7 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T cur
 	SaAisErrorT err = SA_AIS_ERR_BAD_OPERATION;
 	char ccbIdStr[STRINT_BSZ];
 	std::string sqlY("SELECT  epoch, commit_time FROM ccb_commits WHERE ccb_id = ");
+	bool badfile=false;
 
 	TRACE_ENTER2("get Outcome for ccb:%llu", ccbId);
 	snprintf(ccbIdStr, STRINT_BSZ, "%llu", ccbId);
@@ -2295,6 +2345,7 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T cur
 	if(nrows != 1) {
 		if(nrows > 1) {
 			LOG_ER("Expected 1 row got %u rows (line: %u)", nrows, __LINE__);
+			badfile = true;
 			goto bailout;
 		}
 		LOG_NO("getCcbOutcomeFromPbe: Could not find ccb %llu presume ABORT", ccbId);
@@ -2309,6 +2360,7 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T cur
 		if(ccbEpoch > currentEpoch) {
 			LOG_ER("Recovered CCB has higher epoch (%u) than current epoch (%u) not allowed.",
 				ccbEpoch, currentEpoch);
+			badfile = true;
 			goto bailout;
 		}
 		err = SA_AIS_OK;
@@ -2319,6 +2371,9 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T cur
 	return err;
  bailout:
 	sqlite3_close(dbHandle);
+	if(badfile) {
+		discardPbeFile(sPbeFileName);
+	}
 	LOG_ER("Exiting (line:%u)", __LINE__);
 	exit(1);
 }
@@ -2448,3 +2503,36 @@ void purgeCcbCommitsFromPbe(void* sDbHandle, SaUint32T currentEpoch)
 }
 
 #endif
+
+/* Note: a version of this function exists as 'escalatePbe()' in 
+   imm_pbe_load.cc */
+void discardPbeFile(std::string filename)
+{
+	if(filename.empty()) {return;}
+	std::string newFilename(filename);
+	newFilename.append(".failed_immdump");
+	std::string globalJournalFilename(filename);
+	globalJournalFilename.append("-journal");
+	
+
+	if(rename(filename.c_str(), newFilename.c_str())!=0) {
+		LOG_ER("Failed to rename %s to %s error:%s", 
+			filename.c_str(), newFilename.c_str(),
+			strerror(errno));
+		return;
+	} else {
+		LOG_NO("Renamed %s to %s because it has been detected to be corrupt.", 
+			filename.c_str(), newFilename.c_str());
+	}
+
+	if(access(globalJournalFilename.c_str(), F_OK) != (-1)) {
+		/* Remove -journal file */
+		if(unlink(globalJournalFilename.c_str()) != 0) {
+			LOG_ER("Failed to remove EXISTING obsolete journal file: %s ",
+				globalJournalFilename.c_str());
+		} else {
+			LOG_NO("Removed obsolete journal file: %s ", globalJournalFilename.c_str());
+		}
+	}
+
+}

@@ -39,7 +39,6 @@ void* checkPbeRepositoryInit(std::string dir, std::string file)
 {
 	SaImmRepositoryInitModeT rpi = (SaImmRepositoryInitModeT) 0;
 	std::string filename;
-	int fd=(-1);
 	void* dbHandle=NULL;
 	int rc=0;
 	char **result=NULL;
@@ -59,15 +58,20 @@ void* checkPbeRepositoryInit(std::string dir, std::string file)
 	   succeeding with open and creating an empty db, when there is no db
 	   file.
 	*/
-	fd = open(filename.c_str(), O_RDWR);
-	if(fd == (-1)) {
+
+	if(access(filename.c_str(), R_OK | W_OK) == (-1)) {
 		LOG_IN("File '%s' is not accessible for read/write, cause:%s", 
 			filename.c_str(), strerror(errno));
 		goto load_from_xml_file;
-	}
+	} else {
+		std::string journalFile(filename);
+		journalFile.append("-journal");
+		if(access(journalFile.c_str(), F_OK) != (-1)) {
+			LOG_WA("Journal file %s exists at open for loading => sqlite recovery",
+				journalFile.c_str());
+		}
 
-	close(fd);
-	fd=(-1);
+	}
 
 	rc = sqlite3_open(filename.c_str(), ((sqlite3 **) &dbHandle));
 	if(rc) {
@@ -773,6 +777,8 @@ int loadImmFromPbe(void* pbeHandle)
 
 #endif
 
+/* Note: a version of this function exists as 'discardPbeFile()' in 
+   imm_pbe_dump.cc */
 void escalatePbe(std::string dir, std::string file)
 {
 	std::string filename;
@@ -789,7 +795,14 @@ void escalatePbe(std::string dir, std::string file)
 			filename.c_str(), newFilename.c_str(),
 			strerror(errno));
 	} else {
-		LOG_NO("Renamed %s to %s to to prevent cyclic reload.", 
+		LOG_NO("Renamed %s to %s to prevent cyclic reload.", 
 			filename.c_str(), newFilename.c_str());
 	}
+
+	/* No need to remove any journal file here. 
+	 This is the loader. It must have resolved any old journal
+	 file recovery at sqlite_open. The loader does not write
+	 new transactions to the sqlite file and thus can not 
+	 itself generate any new journal file. 
+	*/
 }
