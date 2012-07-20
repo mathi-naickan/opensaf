@@ -412,7 +412,7 @@ public:
                                          unsigned int* pbeNodeId,
                                          SaUint32T* pbeId);
     bool              immNotWritable();
-    bool              immNotPbeWritable();
+    bool              immNotPbeWritable(bool isPrtoClient = true);
     void*             getPbeOi(SaUint32T* pbeConn, unsigned int* pbeNode, bool fevsSafe=true);
     SaUint32T         findConnForImplementerOfObject(std::string objectDn);
     ImplementerInfo*  findImplementer(SaUint32T);

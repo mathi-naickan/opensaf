@@ -2996,6 +2996,13 @@ SaAisErrorT saImmOmCcbApply(SaImmCcbHandleT ccbHandle)
 
 	} /*if(rc == SA_AIS_ERR_TIMEOUT)*/
 
+	if(rc == SA_AIS_ERR_NO_RESOURCES) {
+		/* NO_RESOUCES from server is in the ccbApply case to be interpreted
+		   as the PBE having too much backlog. */
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		goto done;
+	}
+
 	if (ccb_node) {
 		ccb_node->mAborted = TRUE;
 	}

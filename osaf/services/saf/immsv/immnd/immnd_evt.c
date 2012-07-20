@@ -5435,6 +5435,18 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 	}
 #endif
 	if(cb->mPbeFile && (cb->mRim == SA_IMM_KEEP_REPOSITORY)) {
+		if(immModel_pbeNotWritable(cb)) {
+			/* NO_RESOURCES is here imm internal proxy for TRY_AGAIN.
+			   The library code for saImmOmCcbApply will translate NO_RESOURCES
+			   to TRY_AGAIN towards the user. That library code (for ccbApply)
+			   treats TRY_AGAIN from IMMND as an indication of handle resurrect.
+			   So we need to take this detour to really communicate TRY_AGAIN 
+			   towards that particular library code. 
+			 */
+			err = SA_AIS_ERR_NO_RESOURCES;
+			goto immediate_reply; /* Intentionally jumps *into* code block below */
+		}
+
 		pbeNodeIdPtr = &pbeNodeId;
 		TRACE("We expect there to be a PBE");
 		/* If pbeNodeIdPtr is NULL then ccbWaitForCompletedAck
@@ -5595,6 +5607,7 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 		TRACE_2("CCB APPLY TERMINATING CCB: %u", evt->info.ccbId);
 		immModel_ccbFinalize(cb, evt->info.ccbId);
 
+ immediate_reply:
 		if (originatedAtThisNd) {
 			immnd_client_node_get(cb, clnt_hdl, &cl_node);
 			if (cl_node == NULL || cl_node->mIsStale) {

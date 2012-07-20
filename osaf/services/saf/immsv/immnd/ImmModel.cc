@@ -30,6 +30,9 @@
 
 // Local types
 #define DEFAULT_TIMEOUT_SEC 6 /* Should be saImmOiTimeout in SaImmMngt */
+#define PRT_LOW_THRESHOLD 1 /* See ImmModel::immNotPbeWritable */
+#define PRT_HIGH_THRESHOLD 4 /* See ImmModel::immNotPbeWritable */
+
 
 struct ContinuationInfo2
 {
@@ -1386,6 +1389,14 @@ immModel_deferRtUpdate(IMMND_CB *cb,
 }
 
 SaBoolT
+immModel_pbeNotWritable(IMMND_CB *cb) {
+    // Assumption: this call arrives only from ccb related code in immnd_evt.c
+    // Not from PRTO related code.
+    // Hence the argument 'isPrtoClient' is set to false here---vvv
+	return (SaBoolT) ImmModel::instance(&cb->immModel)->immNotPbeWritable(false);
+}
+
+SaBoolT
 immModel_fetchRtUpdate(IMMND_CB *cb, 
     struct ImmsvOmObjectSync *syncReq,
     struct ImmsvOmCcbObjectModify *rtModReq,
@@ -1428,12 +1439,14 @@ ImmModel::immNotWritable()
    (1) immNotWriteable is true OR... 
    (2) immNotWritable is false (imm service is writable), but according to
    configuration there should be a persistent back-end (Pbe) and the Pbe is
-   currently not operational.
+   currently not operational. OR..
+   (3) PBE is operational, but backlog on PRTOs or Ccbs is large enough to
+   warant back-presure (TRY_AGAIN) towards the application. 
 
    Pbe is dynamically disabled by setting immInitMode to SA_IMM_INIT_FROM_FILE.
 */
 bool
-ImmModel::immNotPbeWritable()
+ImmModel::immNotPbeWritable(bool isPrtoClient)
 {
     SaUint32T dummyCon;
     unsigned int dummyNode;
@@ -1450,15 +1463,49 @@ ImmModel::immNotPbeWritable()
     }
 
     /* immInitMode == SA_IMM_KEEP_REPOSITORY */
-    /* Check if PBE OI is available. */
+    /* Check if PBE OI is available and making progress. */
 
-    
-    if(getPbeOi(&dummyCon, &dummyNode)) {
-        return false; /* Pbe IS present => writable. */
+    if(!getPbeOi(&dummyCon, &dummyNode)) { 
+        /* Pbe SHOULD be present but is NOT */
+        return true; 
     }
 
-    /* Pbe SHOULD be present but is NOT */
-    return true; 
+    /* Pbe is present but Check also for backlog. */
+
+    time_t now = time(NULL);
+    bool ccbStuck = false;
+    CcbVector::iterator i3 = sCcbVector.begin();
+    for(; i3!=sCcbVector.end(); ++i3) {
+        if((*i3)->mState == IMM_CCB_CRITICAL &&
+           (((*i3)->mWaitStartTime && 
+             now - (*i3)->mWaitStartTime >= DEFAULT_TIMEOUT_SEC)||/* Should be saImmOiTimeout*/
+           (*i3)->mPbeRestartId))
+        {
+            ccbStuck=true;
+            break;
+        }
+    }
+
+    /* If one ore more ccbs are stuck, reject any new persistifications. */
+    if(ccbStuck) {return true;} 
+
+    /* Finally, be extra stringent PRTO/PRTA changes: 
+       PrtCreate, PrtUpdate, PrtDelete
+       (will also cover classCreate and classDelete).
+    */
+    if(isPrtoClient) {
+        SaUint32T prtoBacklog = (SaUint32T) sPbeRtMutations.size();
+
+        static bool prtoHighReached=false; /* Note *static*, for hysteresis */
+
+        if(prtoHighReached && (prtoBacklog > PRT_LOW_THRESHOLD)) {return true;}
+
+        prtoHighReached = false;
+
+        if(prtoBacklog > PRT_HIGH_THRESHOLD) {prtoHighReached=true; return true;} 
+    }
+
+    return false; /* Pbe IS present & backlog is contained */
 }
 
 

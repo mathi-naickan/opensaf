@@ -352,6 +352,8 @@ extern "C" {
 		SaUint64T syncFevsBase);
 
 
+	SaBoolT immModel_pbeNotWritable(IMMND_CB *cb);
+
 #ifdef __cplusplus
 }
 #endif
