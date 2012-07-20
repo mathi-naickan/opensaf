@@ -372,6 +372,8 @@ extern "C" {
 		SaUint32T adminOwnerId,
 		SaUint32T ccbId);
 
+	bool immModel_pbeNotWritable(IMMND_CB *cb);
+
 #ifdef __cplusplus
 }
 #endif
