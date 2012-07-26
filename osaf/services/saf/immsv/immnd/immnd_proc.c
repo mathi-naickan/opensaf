@@ -607,6 +607,7 @@ void immnd_adjustEpoch(IMMND_CB *cb, SaBoolT increment)
 	NCS_NODE_ID pbeNodeId = 0;
 	NCS_NODE_ID *pbeNodeIdPtr = NULL;
 	SaUint32T continuationId = 0;
+	uint16_t retryCount = 0;
 	TRACE_ENTER2("Epoch on entry:%u", cb->mMyEpoch);
 
 	/*Correct epoch for counter loaded from backup/sync.
@@ -635,8 +636,12 @@ void immnd_adjustEpoch(IMMND_CB *cb, SaBoolT increment)
 		}
 
 	}
-	osafassert(immnd_introduceMe(cb) == NCSCC_RC_SUCCESS);
-	/* Convert to a test and postpone intro if we can note & do it later. */
+
+	while((immnd_introduceMe(cb) != NCSCC_RC_SUCCESS) && (retryCount++ < 20)) {
+		LOG_WA("Coord blocked in globalizing epoch change when IMMD is DOWN %u", retryCount);
+		sleep(1);
+	}
+	osafassert(retryCount < 20);
 
 	if(pbeNodeId && pbeConn) {
 		IMMND_IMM_CLIENT_NODE *pbe_cl_node = NULL;
