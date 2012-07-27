@@ -31,25 +31,51 @@
 */
 
 #include "gla.h"
+#include <pthread.h>
+#include "ncsgl_defs.h"
 #include "glnd.h"
 
 /* global cb handle */
 uint32_t gl_gla_hdl = 0;
 static uint32_t gla_use_count = 0;
 
-/* GLA Agent creation specific LOCK */
-static uint32_t gla_agent_lock_create = 0;
-NCS_LOCK gla_agent_lock;
+/* mutex for synchronising agent startup and shutdown */
+static pthread_mutex_t s_agent_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define m_GLA_AGENT_LOCK                        \
-   if (!gla_agent_lock_create++)                \
-   {                                            \
-      m_NCS_LOCK_INIT(&gla_agent_lock);         \
-   }                                            \
-   gla_agent_lock_create = 1;                   \
-   m_NCS_LOCK(&gla_agent_lock, NCS_LOCK_WRITE);
+/**
+ * @brief Lock the mutex protecting agent startup and shutdown.
+ *
+ * This function locks the agent startup mutex. The mutex is static and requires
+ * neither initialisation nor finalisation. After a thread has called
+ * gla_agent_startup_mutex_lock(), that same thread must call
+ * gla_agent_startup_mutex_unlock() to release the lock. The thread is not
+ * allowed to call gla_agent_startup_mutex_lock() again without first calling
+ * gla_agent_startup_mutex_unlock() to unlock it.
+ */
+static void gla_agent_startup_mutex_lock(void)
+{
+	int result = pthread_mutex_lock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption. */
+	osafassert(result == 0);
+}
 
-#define m_GLA_AGENT_UNLOCK m_NCS_UNLOCK(&gla_agent_lock, NCS_LOCK_WRITE)
+/**
+ * @brief Unlock the mutex protecting agent startup and shutdown.
+ *
+ * This function unlocks the agent startup mutex so that other threads can take
+ * it and call the agent startup and shutdown functions. Only the thread that
+ * locked the mutex is allowed to unlock it, and it is illegal to unlock a mutex
+ * that is not locked.
+ */
+static void gla_agent_startup_mutex_unlock(void)
+{
+	int result = pthread_mutex_unlock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption or trying to unlock the mutex when it
+	   wasn't locked by the calling thread. */
+	osafassert(result == 0);
+}
 
 static void gla_sync_with_glnd(GLA_CB *cb);
 static uint32_t gla_resource_info_send(GLA_CB *gla_cb, SaLckHandleT hdl_id);
@@ -1148,11 +1174,11 @@ unsigned int ncs_gla_startup(void)
 	NCS_LIB_REQ_INFO lib_create;
 	char *value = NULL;
 
-	m_GLA_AGENT_LOCK;
+	gla_agent_startup_mutex_lock();
 	if (gla_use_count > 0) {
 		/* Already created, so just increment the use_count */
 		gla_use_count++;
-		m_GLA_AGENT_UNLOCK;
+		gla_agent_startup_mutex_unlock();
 		return NCSCC_RC_SUCCESS;
 	}
 
@@ -1160,7 +1186,7 @@ unsigned int ncs_gla_startup(void)
 	memset(&lib_create, 0, sizeof(lib_create));
 	lib_create.i_op = NCS_LIB_REQ_CREATE;
 	if (gla_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
-		m_GLA_AGENT_UNLOCK;
+		gla_agent_startup_mutex_unlock();
 		return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 	} else {
 		TRACE("GLSV:GLA:ON");
@@ -1172,7 +1198,7 @@ unsigned int ncs_gla_startup(void)
                logtrace_init("gla", value, CATEGORY_ALL);
 	}
 
-	m_GLA_AGENT_UNLOCK;
+	gla_agent_startup_mutex_unlock();
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -1193,7 +1219,7 @@ unsigned int ncs_gla_shutdown(void)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
-	m_GLA_AGENT_LOCK;
+	gla_agent_startup_mutex_lock();
 	if (gla_use_count > 1) {
 		/* Still users extis, so just decrement the use_count */
 		gla_use_count--;
@@ -1208,6 +1234,6 @@ unsigned int ncs_gla_shutdown(void)
 		gla_use_count = 0;
 	}
 
-	m_GLA_AGENT_UNLOCK;
+	gla_agent_startup_mutex_unlock();
 	return rc;
 }
