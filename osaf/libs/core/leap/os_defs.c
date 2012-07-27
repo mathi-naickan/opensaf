@@ -61,7 +61,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
-//#include <pthread.h>
+#include <pthread.h>
 
 #include <sysf_exc_scr.h>
 #include <ncssysf_tsk.h>
@@ -69,24 +69,45 @@
 #include "ncssysf_lck.h"
 #include "ncssysf_def.h"
 
-/*FIXME: osprims does not have private header file, hence the declaration here */
-
-extern int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int kind);
 NCS_OS_LOCK gl_ncs_atomic_mtx;
 #ifndef NDEBUG
 bool gl_ncs_atomic_mtx_initialise = false;
 #endif
 
-NCS_OS_LOCK ncs_fd_cloexec_lock;
+/* mutex used for mimicking the SOCK_CLOEXEC flag. */
+static pthread_mutex_t s_cloexec_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-NCS_OS_LOCK *get_cloexec_lock()
+/**
+ * @brief Lock the SOCK_CLOEXEC emulation mutex.
+ *
+ * This function locks the mutex used for mimicking the SOCK_CLOEXEC flag,
+ * which was not supported by Linux kernels prior to version 2.6.27. See
+ * socketpair(2) and socket(2) for a description of SOCK_CLOEXEC.
+ *
+ */
+static void leap_cloexec_mutex_lock(void)
 {
-	static int lock_inited = false;
-	if (!lock_inited) {
-		m_NCS_OS_LOCK(&ncs_fd_cloexec_lock, NCS_OS_LOCK_CREATE, 0);
-		lock_inited = true;
-	}
-	return &ncs_fd_cloexec_lock;
+	int result = pthread_mutex_lock(&s_cloexec_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption. */
+	osafassert(result == 0);
+}
+
+/**
+ * @brief Unlock the SOCK_CLOEXEC emulation mutex.
+ *
+ * This function unlocks the mutex used for mimicking the SOCK_CLOEXEC flag,
+ * which was not supported by Linux kernels prior to version 2.6.27. See
+ * socketpair(2) and socket(2) for a description of SOCK_CLOEXEC.
+ *
+ */
+static void leap_cloexec_mutex_unlock(void)
+{
+	int result = pthread_mutex_unlock(&s_cloexec_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption or trying to unlock the mutex when it
+	   wasn't locked by the calling thread. */
+	osafassert(result == 0);
 }
 
 void get_msec_time(uint32_t *seconds, uint32_t *millisec)
@@ -2074,7 +2095,7 @@ unsigned int ncs_os_process_execute(char *exec_mod, char *argv[], NCS_OS_ENVIRON
 		node = set_env_args->env_arg;
 	}
 
-	m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_LOCK, 0);
+	leap_cloexec_mutex_lock();
 	status = fork();
 	if (status == 0) {
 		/*
@@ -2101,11 +2122,11 @@ unsigned int ncs_os_process_execute(char *exec_mod, char *argv[], NCS_OS_ENVIRON
 	} else if (status == -1) {
 		/* Fork Failed */
 		/* Unlock and return */
-		m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
+		leap_cloexec_mutex_unlock();
 		return NCSCC_RC_FAILURE;
 	} else {
 		/* parent */
-		m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
+		leap_cloexec_mutex_unlock();
 	}
 	return NCSCC_RC_SUCCESS;
 }
@@ -2154,7 +2175,7 @@ uint32_t ncs_os_process_execute_timed(NCS_OS_PROC_EXECUTE_TIMED_INFO *req)
 		}
 	}
 
-	m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_LOCK, 0);
+	leap_cloexec_mutex_lock();
 
 	if ((pid = fork()) == 0) {
 		/*
@@ -2222,7 +2243,7 @@ uint32_t ncs_os_process_execute_timed(NCS_OS_PROC_EXECUTE_TIMED_INFO *req)
 		 * Parent - Add new pid in the tree,
 		 * start a timer, Wait for a signal from child. 
 		 */
-		m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
+		leap_cloexec_mutex_unlock();
 
 		if (NCSCC_RC_SUCCESS != add_new_req_pid_in_list(req, pid)) {
 			m_NCS_UNLOCK(&module_cb.tree_lock, NCS_LOCK_WRITE);
@@ -2232,7 +2253,7 @@ uint32_t ncs_os_process_execute_timed(NCS_OS_PROC_EXECUTE_TIMED_INFO *req)
 	} else {
 		/* fork ERROR */
 		syslog(LOG_ERR, "%s: fork failed - %s", __FUNCTION__, strerror(errno));
-		m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
+		leap_cloexec_mutex_unlock();
 		m_NCS_UNLOCK(&module_cb.tree_lock, NCS_LOCK_WRITE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -2340,10 +2361,10 @@ uint32_t ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj)
 	int s_pair[2];
 	int flags = 0;
 
-	m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_LOCK, 0);
+	leap_cloexec_mutex_lock();
 	if (0 != socketpair(AF_UNIX, SOCK_STREAM, 0, s_pair)) {
 		syslog(LOG_ERR, "%s: socketpair failed - %s", __FUNCTION__, strerror(errno));
-		m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
+		leap_cloexec_mutex_unlock();
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -2353,7 +2374,7 @@ uint32_t ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj)
 	flags = fcntl(s_pair[1], F_GETFD, 0);
 	fcntl(s_pair[1], F_SETFD, (flags | FD_CLOEXEC));
 
-	m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
+	leap_cloexec_mutex_unlock();
 
 	if (s_pair[0] > s_pair[1]) {
 		/* Ensure s_pair[1] is equal or greater */
@@ -2697,17 +2718,17 @@ FILE *ncs_os_fopen(const char *fpath, const char *fmode)
 {
 	FILE *fp = NULL;
 	int flags = 0;
-	m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_LOCK, 0);
+	leap_cloexec_mutex_lock();
 	fp = fopen(fpath, fmode);
 	if (fp == NULL) {
-		m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
+		leap_cloexec_mutex_unlock();
 		return NULL;
 	}
 
 	flags = fcntl(fileno(fp), F_GETFD, 0);
 	fcntl(fileno(fp), F_SETFD, (flags | FD_CLOEXEC));
 
-	m_NCS_OS_LOCK(get_cloexec_lock(), NCS_OS_LOCK_UNLOCK, 0);
+	leap_cloexec_mutex_unlock();
 
 	return fp;
 }

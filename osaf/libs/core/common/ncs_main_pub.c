@@ -41,6 +41,7 @@
 
 #include <configmake.h>
 
+#include <pthread.h>
 #include <dlfcn.h>
 
 #include "ncsgl_defs.h"
@@ -159,16 +160,46 @@ static NCS_MAIN_PUB_CB gl_ncs_main_pub_cb;
 char *gl_pargv[NCS_MAIN_MAX_INPUT];
 uint32_t gl_pargc = 0;
 
-/* Agent specific LOCKs */
-#define m_NCS_AGENT_LOCK                                 \
-   if (!gl_ncs_main_pub_cb.lock_create++)                \
-   {                                                     \
-      m_NCS_LOCK_INIT(&gl_ncs_main_pub_cb.lock);         \
-   }                                                     \
-   gl_ncs_main_pub_cb.lock_create = 1;                   \
-   m_NCS_LOCK(&gl_ncs_main_pub_cb.lock, NCS_LOCK_WRITE);
+/* mutex for synchronising LEAP startup and shutdown */
+static pthread_mutex_t s_leap_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define m_NCS_AGENT_UNLOCK m_NCS_UNLOCK(&gl_ncs_main_pub_cb.lock, NCS_LOCK_WRITE)
+/* mutex protecting gl_ncs_main_pub_cb.core_started and
+ * gl_ncs_main_pub_cb.core_use_count  */
+static pthread_mutex_t s_leap_core_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/**
+ * @brief Generic function to lock a pthreads mutex.
+ * @param[in] i_mutex Pointer to a pthreads mutex to be locked.
+ *
+ * This function locks the specified mutex. After a thread has called
+ * leap_mutex_lock(), that same thread must call leap_mutex_unlock() to release
+ * the lock. The thread is not allowed to call leap_mutex_lock() again on the
+ * same lock without first calling leap_mutex_unlock() to unlock it.
+ */
+static void leap_mutex_lock(pthread_mutex_t* i_mutex)
+{
+	int result = pthread_mutex_lock(i_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption. */
+	osafassert(result == 0);
+}
+
+/**
+ * @brief Generic function to unlock a pthreads mutex.
+ * @param[in] i_mutex Pointer to a pthreads mutex to be unlocked.
+ *
+ * This function unlocks the specified mutex. Only the thread that locked the
+ * mutex is allowed to unlock it, and it is illegal to unlock a mutex that is
+ * not locked.
+ */
+static void leap_mutex_unlock(pthread_mutex_t* i_mutex)
+{
+	int result = pthread_mutex_unlock(i_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption or trying to unlock the mutex when it
+	   wasn't locked by the calling thread. */
+	osafassert(result == 0);
+}
 
 /***************************************************************************\
 
@@ -212,11 +243,11 @@ unsigned int ncs_leap_startup(void)
 {
 	NCS_LIB_REQ_INFO lib_create;
 
-	m_NCS_AGENT_LOCK;
+	leap_mutex_lock(&s_leap_startup_mutex);
 
 	if (gl_ncs_main_pub_cb.leap_use_count > 0) {
 		gl_ncs_main_pub_cb.leap_use_count++;
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return NCSCC_RC_SUCCESS;
 	}
 
@@ -232,25 +263,25 @@ unsigned int ncs_leap_startup(void)
 	/* Initalize basic services */
 	if (leap_env_init() != NCSCC_RC_SUCCESS) {
 		TRACE_4("\nERROR: Couldn't initialised LEAP basic services \n");
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return NCSCC_RC_FAILURE;
 	}
 
 	if (sprr_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
 		TRACE_4("\nERROR: SPRR lib_req failed \n");
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return NCSCC_RC_FAILURE;
 	}
 
 	/* Get & Update system specific arguments */
 	if (ncs_update_sys_param_args() != NCSCC_RC_SUCCESS) {
 		TRACE_4("ERROR: Update System Param args \n");
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return NCSCC_RC_FAILURE;
 	}
 	gl_ncs_main_pub_cb.leap_use_count = 1;
 
-	m_NCS_AGENT_UNLOCK;
+	leap_mutex_unlock(&s_leap_startup_mutex);
 
 	/* start initializing all the required agents */
 	gl_ncs_main_pub_cb.lib_hdl = dlopen(NULL, RTLD_LAZY|RTLD_GLOBAL);
@@ -267,17 +298,17 @@ unsigned int ncs_mds_startup(void)
 {
 	NCS_LIB_REQ_INFO lib_create;
 
-	m_NCS_AGENT_LOCK;
+	leap_mutex_lock(&s_leap_startup_mutex);
 
 	if (!gl_ncs_main_pub_cb.leap_use_count) {
 		TRACE_4("\nLEAP core not yet started.... \n");
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return NCSCC_RC_FAILURE;
 	}
 
 	if (gl_ncs_main_pub_cb.mds_use_count > 0) {
 		gl_ncs_main_pub_cb.mds_use_count++;
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return NCSCC_RC_SUCCESS;
 	}
 
@@ -289,20 +320,20 @@ unsigned int ncs_mds_startup(void)
 	/* STEP : Initialize the MDS layer */
 	if (mds_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
 		TRACE_4("ERROR: MDS lib_req failed \n");
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return NCSCC_RC_FAILURE;
 	}
 
 	/* STEP : Initialize the ADA/VDA layer */
 	if (mda_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
 		TRACE_4("ERROR: MDA lib_req failed \n");
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return NCSCC_RC_FAILURE;
 	}
 
 	gl_ncs_main_pub_cb.mds_use_count = 1;
 
-	m_NCS_AGENT_UNLOCK;
+	leap_mutex_unlock(&s_leap_startup_mutex);
 
 	return NCSCC_RC_SUCCESS;
 }
@@ -328,24 +359,30 @@ uint32_t ncs_non_core_agents_startup(void)
 \***************************************************************************/
 unsigned int ncs_core_agents_startup(void)
 {
+	leap_mutex_lock(&s_leap_core_mutex);
+
 	if (gl_ncs_main_pub_cb.core_use_count) {
 		gl_ncs_main_pub_cb.core_use_count++;
+		leap_mutex_unlock(&s_leap_core_mutex);
 		return NCSCC_RC_SUCCESS;
 	}
 
 	if (ncs_leap_startup() != NCSCC_RC_SUCCESS) {
 		TRACE_4("ERROR: LEAP svcs startup failed \n");
+		leap_mutex_unlock(&s_leap_core_mutex);
 		return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 	}
 
 	if (ncs_mds_startup() != NCSCC_RC_SUCCESS) {
 		TRACE_4("ERROR: MDS startup failed \n");
+		leap_mutex_unlock(&s_leap_core_mutex);
 		return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 	}
 
 	gl_ncs_main_pub_cb.core_started = true;
 	gl_ncs_main_pub_cb.core_use_count = 1;
 
+	leap_mutex_unlock(&s_leap_core_mutex);
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -371,7 +408,7 @@ unsigned int ncs_mbca_startup(void)
 	if (gl_ncs_main_pub_cb.lib_hdl == NULL)
 		return NCSCC_RC_SUCCESS;	/* No agents to load */
 
-	m_NCS_AGENT_LOCK;
+	leap_mutex_lock(&s_leap_startup_mutex);
 
 	if (gl_ncs_main_pub_cb.mbca.use_count > 0) {
 		/* Already created, so just increment the use_count */
@@ -383,7 +420,7 @@ unsigned int ncs_mbca_startup(void)
 			TRACE_4("\nMBCSV:MBCA:OFF");
 		} else {
 			if ((*gl_ncs_main_pub_cb.mbca.lib_req) (&lib_create) != NCSCC_RC_SUCCESS) {
-				m_NCS_AGENT_UNLOCK;
+				leap_mutex_unlock(&s_leap_startup_mutex);
 				return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 			} else {
 				TRACE("\nMBCSV:MBCA:ON");
@@ -392,7 +429,7 @@ unsigned int ncs_mbca_startup(void)
 		}
 	}
 
-	m_NCS_AGENT_UNLOCK;
+	leap_mutex_unlock(&s_leap_startup_mutex);
 
 	return NCSCC_RC_SUCCESS;
 }
@@ -407,11 +444,11 @@ unsigned int ncs_mbca_shutdown(void)
 	NCS_LIB_REQ_INFO lib_destroy;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
-	m_NCS_AGENT_LOCK;
+	leap_mutex_lock(&s_leap_startup_mutex);
 	if (gl_ncs_main_pub_cb.mbca.use_count > 1) {
 		/* Still users extis, so just decrement the use_count */
 		gl_ncs_main_pub_cb.mbca.use_count--;
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return rc;
 	}
 
@@ -425,7 +462,7 @@ unsigned int ncs_mbca_shutdown(void)
 	gl_ncs_main_pub_cb.mbca.use_count = 0;
 	gl_ncs_main_pub_cb.mbca.lib_req = NULL;
 
-	m_NCS_AGENT_UNLOCK;
+	leap_mutex_unlock(&s_leap_startup_mutex);
 
 	return rc;
 }
@@ -439,12 +476,12 @@ void ncs_leap_shutdown()
 {
 	NCS_LIB_REQ_INFO lib_destroy;
 
-	m_NCS_AGENT_LOCK;
+	leap_mutex_lock(&s_leap_startup_mutex);
 
 	if (gl_ncs_main_pub_cb.leap_use_count > 1) {
 		/* Still users extis, so just decrement the use_count */
 		gl_ncs_main_pub_cb.leap_use_count--;
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return;
 	}
 
@@ -462,7 +499,7 @@ void ncs_leap_shutdown()
 	gl_ncs_main_pub_cb.leap_use_count = 0;
 	gl_ncs_main_pub_cb.core_started = false;
 
-	m_NCS_AGENT_UNLOCK;
+	leap_mutex_unlock(&s_leap_startup_mutex);
 
 	return;
 }
@@ -477,12 +514,12 @@ void ncs_mds_shutdown()
 	NCS_LIB_REQ_INFO lib_destroy;
 	uint32_t tmp_ctr;
 
-	m_NCS_AGENT_LOCK;
+	leap_mutex_lock(&s_leap_startup_mutex);
 
 	if (gl_ncs_main_pub_cb.mds_use_count > 1) {
 		/* Still users extis, so just decrement the use_count */
 		gl_ncs_main_pub_cb.mds_use_count--;
-		m_NCS_AGENT_UNLOCK;
+		leap_mutex_unlock(&s_leap_startup_mutex);
 		return;
 	}
 
@@ -500,7 +537,7 @@ void ncs_mds_shutdown()
 		free(gl_pargv[tmp_ctr]);
 	gl_pargc = 0;
 
-	m_NCS_AGENT_UNLOCK;
+	leap_mutex_unlock(&s_leap_startup_mutex);
 
 	return;
 }
@@ -512,14 +549,18 @@ void ncs_mds_shutdown()
 \***************************************************************************/
 unsigned int ncs_core_agents_shutdown()
 {
+	leap_mutex_lock(&s_leap_core_mutex);
+
 	if (!gl_ncs_main_pub_cb.core_use_count) {
 		TRACE_4("\nNCS core not yet started.... \n");
+		leap_mutex_unlock(&s_leap_core_mutex);
 		return NCSCC_RC_FAILURE;
 	}
 
 	if (gl_ncs_main_pub_cb.core_use_count > 1) {
 		/* Decrement the use count */
 		gl_ncs_main_pub_cb.core_use_count--;
+		leap_mutex_unlock(&s_leap_core_mutex);
 		return NCSCC_RC_SUCCESS;
 	}
 
@@ -528,6 +569,7 @@ unsigned int ncs_core_agents_shutdown()
 	ncs_leap_shutdown();
 	gl_ncs_main_pub_cb.core_use_count = 0;
 
+	leap_mutex_unlock(&s_leap_core_mutex);
 	return (NCSCC_RC_SUCCESS);
 }
 
