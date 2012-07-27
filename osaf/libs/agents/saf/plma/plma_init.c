@@ -26,26 +26,52 @@
 #include "ncssysf_def.h"
 
 #include <plma.h>
+#include <pthread.h>
+#include "ncsgl_defs.h"
 
 static PLMA_CB _plma_cb;
 PLMA_CB   *plma_ctrlblk;
 
 uint32_t plma_use_count = 0;
 void plma_sync_with_plms(void);
-/** PLMA Agent creation specific LOCK */
-static uint32_t plm_agent_lock_create = 0;
-NCS_LOCK plm_agent_lock;
 
-#define m_PLM_AGENT_LOCK                       	     \
-	if (!plm_agent_lock_create++)                \
-	{                                            \
-		m_NCS_LOCK_INIT(&plm_agent_lock);    \
-	}                                            \
-	plm_agent_lock_create = 1;                   \
-	m_NCS_LOCK(&plm_agent_lock, NCS_LOCK_WRITE);
+/* mutex for synchronising agent startup and shutdown */
+static pthread_mutex_t s_agent_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define m_PLM_AGENT_UNLOCK m_NCS_UNLOCK(&plm_agent_lock, NCS_LOCK_WRITE)
+/**
+ * @brief Lock the mutex protecting agent startup and shutdown.
+ *
+ * This function locks the agent startup mutex. The mutex is static and requires
+ * neither initialisation nor finalisation. After a thread has called
+ * plma_agent_startup_mutex_lock(), that same thread must call
+ * plma_agent_startup_mutex_unlock() to release the lock. The thread is not
+ * allowed to call plma_agent_startup_mutex_lock() again without first calling
+ * plma_agent_startup_mutex_unlock() to unlock it.
+ */
+static void plma_agent_startup_mutex_lock(void)
+{
+	int result = pthread_mutex_lock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption. */
+	osafassert(result == 0);
+}
 
+/**
+ * @brief Unlock the mutex protecting agent startup and shutdown.
+ *
+ * This function unlocks the agent startup mutex so that other threads can take
+ * it and call the agent startup and shutdown functions. Only the thread that
+ * locked the mutex is allowed to unlock it, and it is illegal to unlock a mutex
+ * that is not locked.
+ */
+static void plma_agent_startup_mutex_unlock(void)
+{
+	int result = pthread_mutex_unlock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption or trying to unlock the mutex when it
+	   wasn't locked by the calling thread. */
+	osafassert(result == 0);
+}
 
 /***********************************************************************//**
 * @brief	This routine is used to initialize the client tree.
@@ -349,25 +375,25 @@ uint32_t ncs_plma_startup()
 	NCS_LIB_REQ_INFO lib_create;
 		
 	TRACE_ENTER();
-	m_PLM_AGENT_LOCK;
+	plma_agent_startup_mutex_lock();
 	if (plma_use_count > 0) {
 		/** Already created, so just increment the use_count */
 		plma_use_count++;
-		m_PLM_AGENT_UNLOCK;
+		plma_agent_startup_mutex_unlock();
 		return NCSCC_RC_SUCCESS;
 	}
 	/** Initialize PLMA library */
 	memset(&lib_create, 0, sizeof(lib_create));
 	lib_create.i_op = NCS_LIB_REQ_CREATE;
 	if (plma_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
-		m_PLM_AGENT_UNLOCK;
+		plma_agent_startup_mutex_unlock();
 		return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 	}else{
 		/** Initialize the library for the first time */
 		m_NCS_DBG_PRINTF("\nPLMSV:PLMA:ON");
 		plma_use_count = 1;
 	}
-	m_PLM_AGENT_UNLOCK;
+	plma_agent_startup_mutex_unlock();
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
@@ -386,7 +412,7 @@ uint32_t ncs_plma_shutdown()
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 	
-	m_PLM_AGENT_LOCK;
+	plma_agent_startup_mutex_lock();
 
 
 	if (plma_use_count > 1) {
@@ -400,7 +426,7 @@ uint32_t ncs_plma_shutdown()
 		plma_use_count = 0;
 	}
 
-	m_PLM_AGENT_UNLOCK;
+	plma_agent_startup_mutex_unlock();
 
 	TRACE_LEAVE();
 	return rc;
