@@ -29,24 +29,51 @@
 */
 
 #include "mqa.h"
+#include <pthread.h>
+#include "ncsgl_defs.h"
 
 /* global cb handle */
 uint32_t gl_mqa_hdl = 0;
 MQA_CB mqa_cb;
 static uint32_t mqa_use_count = 0;
-/* MQA Agent creation specific LOCK */
-static uint32_t mqa_agent_lock_create = 0;
-NCS_LOCK mqa_agent_lock;
 
-#define m_MQA_AGENT_LOCK                        \
-   if (!mqa_agent_lock_create++)                \
-   {                                            \
-      m_NCS_LOCK_INIT(&mqa_agent_lock);         \
-   }                                            \
-   mqa_agent_lock_create = 1;                   \
-   m_NCS_LOCK(&mqa_agent_lock, NCS_LOCK_WRITE);
+/* mutex for synchronising agent startup and shutdown */
+static pthread_mutex_t s_agent_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define m_MQA_AGENT_UNLOCK m_NCS_UNLOCK(&mqa_agent_lock, NCS_LOCK_WRITE)
+/**
+ * @brief Lock the mutex protecting agent startup and shutdown.
+ *
+ * This function locks the agent startup mutex. The mutex is static and requires
+ * neither initialisation nor finalisation. After a thread has called
+ * mqa_agent_startup_mutex_lock(), that same thread must call
+ * mqa_agent_startup_mutex_unlock() to release the lock. The thread is not
+ * allowed to call mqa_agent_startup_mutex_lock() again without first calling
+ * mqa_agent_startup_mutex_unlock() to unlock it.
+ */
+static void mqa_agent_startup_mutex_lock(void)
+{
+	int result = pthread_mutex_lock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption. */
+	osafassert(result == 0);
+}
+
+/**
+ * @brief Unlock the mutex protecting agent startup and shutdown.
+ *
+ * This function unlocks the agent startup mutex so that other threads can take
+ * it and call the agent startup and shutdown functions. Only the thread that
+ * locked the mutex is allowed to unlock it, and it is illegal to unlock a mutex
+ * that is not locked.
+ */
+static void mqa_agent_startup_mutex_unlock(void)
+{
+	int result = pthread_mutex_unlock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption or trying to unlock the mutex when it
+	   wasn't locked by the calling thread. */
+	osafassert(result == 0);
+}
 
 static void mqa_sync_with_mqnd(MQA_CB *cb);
 static void mqa_sync_with_mqd(MQA_CB *cb);
@@ -988,11 +1015,11 @@ unsigned int ncs_mqa_startup(void)
 	NCS_LIB_REQ_INFO lib_create;
 	char *value = NULL;
 
-	m_MQA_AGENT_LOCK;
+	mqa_agent_startup_mutex_lock();
 	if (mqa_use_count > 0) {
 		/* Already created, so just increment the use_count */
 		mqa_use_count++;
-		m_MQA_AGENT_UNLOCK;
+		mqa_agent_startup_mutex_unlock();
 		return NCSCC_RC_SUCCESS;
 	}
 
@@ -1000,7 +1027,7 @@ unsigned int ncs_mqa_startup(void)
 	memset(&lib_create, 0, sizeof(lib_create));
 	lib_create.i_op = NCS_LIB_REQ_CREATE;
 	if (mqa_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
-		m_MQA_AGENT_UNLOCK;
+		mqa_agent_startup_mutex_unlock();
 		return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
 	} else {
 		m_NCS_DBG_PRINTF("\nMQSV:MQA:ON");
@@ -1012,7 +1039,7 @@ unsigned int ncs_mqa_startup(void)
 		logtrace_init("mqa", value, CATEGORY_ALL);
 	}
 
-	m_MQA_AGENT_UNLOCK;
+	mqa_agent_startup_mutex_unlock();
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -1034,7 +1061,7 @@ unsigned int ncs_mqa_shutdown(void)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
-	m_MQA_AGENT_LOCK;
+	mqa_agent_startup_mutex_lock();
 	if (mqa_use_count > 1) {
 		/* Still users extis, so just decrement the use_count */
 		mqa_use_count--;
@@ -1049,7 +1076,7 @@ unsigned int ncs_mqa_shutdown(void)
 		mqa_use_count = 0;
 	}
 
-	m_MQA_AGENT_UNLOCK;
+	mqa_agent_startup_mutex_unlock();
 	TRACE_LEAVE();
 	return rc;
 }
