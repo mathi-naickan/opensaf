@@ -29,25 +29,51 @@
 */
 
 #include "eda.h"
+#include <pthread.h>
+#include "ncsgl_defs.h"
 #include "ncssysf_mem.h"
 
 /* global cb handle */
 uint32_t gl_eda_hdl = 0;
 static uint32_t eda_use_count = 0;
 
-/* EDA Agent creation specific LOCK */
-static uint32_t eda_agent_lock_create = 0;
-NCS_LOCK eda_agent_lock;
+/* mutex for synchronising agent startup and shutdown */
+static pthread_mutex_t s_agent_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define m_EDA_AGENT_LOCK                        \
-   if (!eda_agent_lock_create++)                \
-   {                                            \
-      m_NCS_LOCK_INIT(&eda_agent_lock);         \
-   }                                            \
-   eda_agent_lock_create = 1;                   \
-   m_NCS_LOCK(&eda_agent_lock, NCS_LOCK_WRITE);
+/**
+ * @brief Lock the mutex protecting agent startup and shutdown.
+ *
+ * This function locks the agent startup mutex. The mutex is static and requires
+ * neither initialisation nor finalisation. After a thread has called
+ * eda_agent_startup_mutex_lock(), that same thread must call
+ * eda_agent_startup_mutex_unlock() to release the lock. The thread is not
+ * allowed to call eda_agent_startup_mutex_lock() again without first calling
+ * eda_agent_startup_mutex_unlock() to unlock it.
+ */
+static void eda_agent_startup_mutex_lock(void)
+{
+	int result = pthread_mutex_lock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption. */
+	osafassert(result == 0);
+}
 
-#define m_EDA_AGENT_UNLOCK m_NCS_UNLOCK(&eda_agent_lock, NCS_LOCK_WRITE)
+/**
+ * @brief Unlock the mutex protecting agent startup and shutdown.
+ *
+ * This function unlocks the agent startup mutex so that other threads can take
+ * it and call the agent startup and shutdown functions. Only the thread that
+ * locked the mutex is allowed to unlock it, and it is illegal to unlock a mutex
+ * that is not locked.
+ */
+static void eda_agent_startup_mutex_unlock(void)
+{
+	int result = pthread_mutex_unlock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption or trying to unlock the mutex when it
+	   wasn't locked by the calling thread. */
+	osafassert(result == 0);
+}
 
 /*
  * Enable tracing early - GCC constructor
@@ -248,11 +274,11 @@ unsigned int ncs_eda_startup(void)
 	NCS_LIB_REQ_INFO lib_create;
 	TRACE_ENTER();
 
-	m_EDA_AGENT_LOCK;
+	eda_agent_startup_mutex_lock();
 	if (eda_use_count > 0) {
 		/* Already created, so just increment the use_count */
 		eda_use_count++;
-		m_EDA_AGENT_UNLOCK;
+		eda_agent_startup_mutex_unlock();
 		TRACE_LEAVE2("Library use count: %u", eda_use_count);
 		return NCSCC_RC_SUCCESS;
 	}
@@ -261,14 +287,14 @@ unsigned int ncs_eda_startup(void)
 	memset(&lib_create, 0, sizeof(lib_create));
 	lib_create.i_op = NCS_LIB_REQ_CREATE;
 	if (ncs_eda_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
-		m_EDA_AGENT_UNLOCK;
+		eda_agent_startup_mutex_unlock();
 		return NCSCC_RC_FAILURE;
 	} else {
 		eda_use_count = 1;
 		TRACE("EDA agent library initialized");
 	}
 
-	m_EDA_AGENT_UNLOCK;
+	eda_agent_startup_mutex_unlock();
 	TRACE_LEAVE2("Library use count: %u", eda_use_count);
 	return NCSCC_RC_SUCCESS;
 }
@@ -291,7 +317,7 @@ unsigned int ncs_eda_shutdown(void)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
-	m_EDA_AGENT_LOCK;
+	eda_agent_startup_mutex_lock();
 	if (eda_use_count > 1) {
 		/* Still users extis, so just decrement the use_count */
 		eda_use_count--;
@@ -306,7 +332,7 @@ unsigned int ncs_eda_shutdown(void)
 		eda_use_count = 0;
 	}
 
-	m_EDA_AGENT_UNLOCK;
+	eda_agent_startup_mutex_unlock();
 	TRACE_LEAVE2("Library use count: %u", eda_use_count);
 	return rc;
 }
