@@ -32,24 +32,50 @@
 */
 
 #include "ava.h"
+#include <pthread.h>
+#include "ncsgl_defs.h"
 
 /* global cb handle */
 uint32_t gl_ava_hdl = 0;
 static uint32_t ava_use_count = 0;
 
-/* AVA Agent creation specific LOCK */
-static uint32_t ava_agent_lock_create = 0;
-NCS_LOCK ava_agent_lock;
+/* mutex for synchronising agent startup and shutdown */
+static pthread_mutex_t s_agent_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define m_AVA_AGENT_LOCK                        \
-   if (!ava_agent_lock_create++)                \
-   {                                            \
-      m_NCS_LOCK_INIT(&ava_agent_lock);         \
-   }                                            \
-   ava_agent_lock_create = 1;                   \
-   m_NCS_LOCK(&ava_agent_lock, NCS_LOCK_WRITE);
+/**
+ * @brief Lock the mutex protecting agent startup and shutdown.
+ *
+ * This function locks the agent startup mutex. The mutex is static and requires
+ * neither initialisation nor finalisation. After a thread has called
+ * ava_agent_startup_mutex_lock(), that same thread must call
+ * ava_agent_startup_mutex_unlock() to release the lock. The thread is not
+ * allowed to call ava_agent_startup_mutex_lock() again without first calling
+ * ava_agent_startup_mutex_unlock() to unlock it.
+ */
+static void ava_agent_startup_mutex_lock(void)
+{
+	int result = pthread_mutex_lock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption. */
+	osafassert(result == 0);
+}
 
-#define m_AVA_AGENT_UNLOCK m_NCS_UNLOCK(&ava_agent_lock, NCS_LOCK_WRITE)
+/**
+ * @brief Unlock the mutex protecting agent startup and shutdown.
+ *
+ * This function unlocks the agent startup mutex so that other threads can take
+ * it and call the agent startup and shutdown functions. Only the thread that
+ * locked the mutex is allowed to unlock it, and it is illegal to unlock a mutex
+ * that is not locked.
+ */
+static void ava_agent_startup_mutex_unlock(void)
+{
+	int result = pthread_mutex_unlock(&s_agent_startup_mutex);
+	/* Should never fail. If it does, it indicates a serious fault,
+	   e.g. memory corruption or trying to unlock the mutex when it
+	   wasn't locked by the calling thread. */
+	osafassert(result == 0);
+}
 
 /*
  * To enable tracing early in saAmfInitialize, use a GCC constructor
@@ -321,12 +347,12 @@ unsigned int ncs_ava_startup(void)
 	NCS_LIB_REQ_INFO lib_create;
 	TRACE_ENTER();
 
-	m_AVA_AGENT_LOCK;
+	ava_agent_startup_mutex_lock();
 
 	if (ava_use_count > 0) {
 		/* Already created, so just increment the use_count */
 		ava_use_count++;
-		m_AVA_AGENT_UNLOCK;
+		ava_agent_startup_mutex_unlock();
 		TRACE_LEAVE2("AVA use count = %d",ava_use_count);
 		return NCSCC_RC_SUCCESS;
 	}
@@ -335,14 +361,14 @@ unsigned int ncs_ava_startup(void)
 	memset(&lib_create, 0, sizeof(lib_create));
 	lib_create.i_op = NCS_LIB_REQ_CREATE;
 	if (ava_lib_req(&lib_create) != NCSCC_RC_SUCCESS) {
-		m_AVA_AGENT_UNLOCK;
+		ava_agent_startup_mutex_unlock();
 		TRACE_LEAVE2("AVA lib create failed");
 		return NCSCC_RC_FAILURE;
 	} else {
 		ava_use_count = 1;
 	}
 
-	m_AVA_AGENT_UNLOCK;
+	ava_agent_startup_mutex_unlock();
 
 	TRACE_LEAVE2("AVA Use count = %u",ava_use_count);
 	return NCSCC_RC_SUCCESS;
@@ -366,7 +392,7 @@ unsigned int ncs_ava_shutdown(void)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
-	m_AVA_AGENT_LOCK;
+	ava_agent_startup_mutex_lock();
 
 	if (ava_use_count > 1) {
 		/* Still users exists, so just decrement the use_count */
@@ -381,7 +407,7 @@ unsigned int ncs_ava_shutdown(void)
 		ava_use_count = 0;
 	}
 
-	m_AVA_AGENT_UNLOCK;
+	ava_agent_startup_mutex_unlock();
 	TRACE_LEAVE2("AVA use count = %d", ava_use_count);
 	return rc;
 }
