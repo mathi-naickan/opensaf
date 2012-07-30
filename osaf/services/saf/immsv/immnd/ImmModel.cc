@@ -5998,7 +5998,8 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
     std::string objAdminOwnerName;
     SaUint32T ccbIdOfObj = 0;
     CcbVector::iterator i1;
-    
+    bool nonPersistentRto=false; /* Dont increment opcount for nonPersistent RTOs */
+
     oi->second->getAdminOwnerName(&objAdminOwnerName);
     if(objAdminOwnerName != adminOwner->mAdminOwnerName) {
         LOG_NO("ERR_BAD_OPERATION: Mismatch on administrative owner %s != %s", 
@@ -6031,6 +6032,14 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
                 if(i4 != oi->second->mClassInfo->mAttrMap.end()) {
                     TRACE_7("Setting PRTO flag for %s", oi->first.c_str());
                     oi->second->mObjFlags |= IMM_PRTO_FLAG;
+                } else {
+                    /* Dont increment opcount for nonPersistent RTOs
+                       The opcount is only used by the PBE to verify
+                       that it has not missed receiving any operation.
+                       Non-persistent RTO deletes dont go to the PBE 
+                       so the opcount should not be incremented. 
+                     */
+                    nonPersistentRto=true;
                 }
             }
         }
@@ -6114,7 +6123,13 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
             new ObjectMutation(IMM_DELETE);
         ccb->mMutations[oi->first] = oMut;
         //oMut->mBeforeImage = oi->second;
-        ccb->mOpCount++;
+
+        if(nonPersistentRto) {
+            TRACE_7("Not incrementing op-count for ccb delete of non-persistent RTO");
+        } else {
+            ccb->mOpCount++;
+        }
+
 
         bool hasImpl = oi->second->mImplementer && oi->second->mImplementer->mNodeId &&
                            configObj;
