@@ -854,7 +854,7 @@ uint32_t mdtm_process_recv_events_tcp(void)
 		pollres = poll(pfd, 2, MDTM_TCP_POLL_TIMEOUT);
 
 		if (pollres > 0) {	/* Check for EINTR and discard */
-			m_MDS_LOCK(mds_lock(), NCS_LOCK_WRITE);
+			mds_mutex_lock();
 
 			/* Check for Socket Read operation */
 			if (pfd[0].revents & POLLIN) {
@@ -876,14 +876,14 @@ uint32_t mdtm_process_recv_events_tcp(void)
 					/* Quit ASAP. We have acknowledge that MDS thread can be destroyed.
 					   Note that the destroying thread is waiting for the MDS_UNLOCK, before
 					   proceeding with pthread-cancel and pthread-join */
-					m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+					mds_mutex_unlock();
 
 					/* N O T E : No further system calls etc. This is to ensure that the
 					   pthread-cancel & pthread-join, do not get blocked. */
 					return NCSCC_RC_SUCCESS;	/* Thread quit */
 				}
 			}
-			m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+			mds_mutex_unlock();
 		}
 	}
 }

@@ -37,9 +37,6 @@
 /* Declarations private to MDS Core module - Vishal */
 typedef uint32_t MDS_SYNC_TXN_ID;
 
-extern NCS_LOCK gl_lock;
-extern NCS_LOCK *mds_lock(void);
-
 /**************************************\
     MDS general internal structures
 \**************************************/

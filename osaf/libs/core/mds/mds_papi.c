@@ -57,10 +57,10 @@ uint32_t ncsmds_api(NCSMDS_INFO *svc_to_mds_info)
 		return NCSCC_RC_FAILURE;
 	}
 
-	m_MDS_LOCK(mds_lock(), NCS_LOCK_WRITE);
+	mds_mutex_lock();
 	if (gl_mds_mcm_cb == NULL) {
 		m_MDS_LOG_ERR("MDS_PAPI : ncsmds_api() : MDS is not initialized gl_mds_mcm_cb = NULL ");
-		m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+		mds_mutex_unlock();
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -71,7 +71,7 @@ uint32_t ncsmds_api(NCSMDS_INFO *svc_to_mds_info)
 		status = mds_validate_pwe_hdl((MDS_PWE_HDL)svc_to_mds_info->i_mds_hdl);
 		if (status == NCSCC_RC_FAILURE) {
 			m_MDS_LOG_ERR("MDS_PAPI : Invalid pwe hdl in ncsmds_api()");
-			m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+			mds_mutex_unlock();
 			return NCSCC_RC_FAILURE;
 		}
 	}
@@ -129,7 +129,7 @@ uint32_t ncsmds_api(NCSMDS_INFO *svc_to_mds_info)
 		break;
 	}
 
-	m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+	mds_mutex_unlock();
 	return status;
 }
 
@@ -153,10 +153,10 @@ uint32_t ncsmds_adm_api(NCSMDS_ADMOP_INFO *mds_adm)
 		m_MDS_LOG_ERR("MDS_PAPI : Invalid Input mds_adm = NULL in ncsmds_adm_api()");
 		return NCSCC_RC_FAILURE;
 	}
-	m_MDS_LOCK(mds_lock(), NCS_LOCK_WRITE);
+	mds_mutex_lock();
 	if (gl_mds_mcm_cb == NULL) {
 		m_MDS_LOG_ERR("MDS_PAPI : ncsmds_adm_api() : MDS is not initialized gl_mds_mcm_cb = NULL ");
-		m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+		mds_mutex_unlock();
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -195,7 +195,7 @@ uint32_t ncsmds_adm_api(NCSMDS_ADMOP_INFO *mds_adm)
 		break;
 	}
 
-	m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+	mds_mutex_unlock();
 	return status;
 }
 

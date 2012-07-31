@@ -566,11 +566,11 @@ static uint32_t mdtm_process_recv_events(void)
 
 		if (pollres > 0) {	/* Check for EINTR and discard */
 			memset(&event, 0, sizeof(event));
-			m_MDS_LOCK(mds_lock(), NCS_LOCK_WRITE);
+			mds_mutex_lock();
 			if (pfd[0].revents == POLLIN) {
 				if (recv(tipc_cb.Dsock, &event, sizeof(event), 0) != sizeof(event)) {
 					m_MDS_LOG_ERR("Unable to capture the recd event .. Continuing\n");
-					m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+					mds_mutex_unlock();
 					continue;
 				} else {
 					if (NTOHL(event.event) == TIPC_PUBLISHED) {
@@ -672,7 +672,7 @@ static uint32_t mdtm_process_recv_events(void)
 							     client_addr.addr.id.ref);
 							mds_buff_dump(inbuf, recd_bytes, 100);
 							abort();
-							m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+							mds_mutex_unlock();
 							continue;
 						}
 						mdtm_process_recv_data(&inbuf[5], recd_bytes - 5, tipc_id, &buff_dump);
@@ -712,14 +712,14 @@ static uint32_t mdtm_process_recv_events(void)
 					/* Quit ASAP. We have acknowledge that MDS thread can be destroyed. 
 					   Note that the destroying thread is waiting for the MDS_UNLOCK, before
 					   proceeding with pthread-cancel and pthread-join */
-					m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+					mds_mutex_unlock();
 
 					/* N O T E : No further system calls etc. This is to ensure that the
 					   pthread-cancel & pthread-join, do not get blocked. */
 					return NCSCC_RC_SUCCESS;	/* Thread quit */
 				}
 			}
-			m_MDS_UNLOCK(mds_lock(), NCS_LOCK_WRITE);
+			mds_mutex_unlock();
 		}		/* if pollres */
 	}			/* while */
 	return NCSCC_RC_SUCCESS;

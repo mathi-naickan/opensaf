@@ -40,10 +40,6 @@
 extern uint32_t MDTM_REASSEMBLE_TMR_VAL;
 extern uint32_t MDTM_CACHED_EVENTS_TMR_VAL;
 
-/* Locks */
-extern NCS_LOCK gl_lock;
-extern NCS_LOCK *mds_lock(void);
-
 typedef struct mdtm_reassembly_key {
 
 	uint32_t frag_sequence_num;	/* Frag Sequence number of this message */

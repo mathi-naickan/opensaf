@@ -50,7 +50,6 @@ typedef struct vda_pvt_info {
 	   to communicate with a VDS. */
 	bool vds_primary_up;
 	MDS_DEST vds_vdest;
-	NCS_LOCK vds_sync_lock;
 	bool vds_sync_awaited;
 	NCS_SEL_OBJ vds_sync_sel;
 
@@ -246,7 +245,6 @@ static uint32_t vda_create(NCS_LIB_REQ_INFO *req)
 	NCS_SPIR_REQ_INFO spir_req;
 	memset(&splr_req, 0, sizeof(splr_req));
 
-	m_NCS_LOCK_INIT(&gl_vda_info.vds_sync_lock);
 	/* STEP : Register VDA as a service provider */
 	splr_req.i_sp_abstract_name = m_VDA_SP_ABST_NAME;
 	splr_req.type = NCS_SPLR_REQ_REG;
@@ -280,8 +278,6 @@ static uint32_t vda_destroy(NCS_LIB_REQ_INFO *req)
 	NCS_SPIR_REQ_INFO spir_req;
 
 	NCSMDS_INFO svc_info;
-
-	m_NCS_LOCK_DESTROY(&gl_vda_info.vds_sync_lock);
 
 	if (vda_vdest_create == true) {
 		/* STEP : Uninstall from ADEST with MDS as service NCSMDS_SVC_ID_VDA. */
