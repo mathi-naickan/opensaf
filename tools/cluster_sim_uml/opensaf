@@ -21,8 +21,8 @@
 # UML System startup script
 
 die() {
-    echo "ERROR: $*"
-    exit 1
+	echo "ERROR: $*"
+	exit 1
 }
 
 test -f "$PWD/$0" || die 'Must execute $0 from directory where it is located'
@@ -40,90 +40,90 @@ PIDFILEDIR=/tmp/${USER}_opensaf
 uid=`id -u`
 
 cluster_start() {
-    numnodes=$1
-    x=5
-    y=5
-    dy=340
+	numnodes=$1
+	x=5
+	y=5
+	dy=340
 
-    echo "Starting opensaf services"
+	echo "Starting opensaf services"
 
-    # Clean-up
-    rm -rf $PIDFILEDIR
-    mkdir $PIDFILEDIR
+	# Clean-up
+	rm -rf $PIDFILEDIR
+	mkdir $PIDFILEDIR
 
-    if ! test -d $CLUSTER_SIM_UML_DIR/$REPL_DIR; then
-        mkdir -p $CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store
-        cp  rootfs/etc/opensaf/imm.xml \
-            $CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store/imm.xml
-    fi
+	if ! test -d $CLUSTER_SIM_UML_DIR/$REPL_DIR; then
+		mkdir -p $CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store
+		cp  rootfs/etc/opensaf/imm.xml \
+			$CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store/imm.xml
+	fi
 
-    # Create /etc/hosts file
-    echo "127.0.0.1       localhost" > rootfs/etc/hosts
+	# Create /etc/hosts file
+	echo "127.0.0.1       localhost" > rootfs/etc/hosts
 
-    # Start network if necessary
-    if ! pgrep -U $uid uml_switch > /dev/null; then
-        xterm -iconic -geometry 60x8-0+110 \
-            -T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
-        echo $! >> $PIDFILEDIR/uml_pids
-    fi
+	# Start network if necessary
+	if ! pgrep -U $uid uml_switch > /dev/null; then
+		xterm -iconic -geometry 60x8-0+110 \
+			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
+		echo $! >> $PIDFILEDIR/uml_pids
+	fi
 
-    # Start the processors
-    node_name_prefix=SC-
-    rootdir=rootfs
-    for ((p=1; p <= $numnodes; p++)); do
-        # First two nodes are system controllers, the rest are payloads
-        if ((p == 3)); then
-            x=660
-            y=5
-            node_name_prefix=PL-
-        fi
-        hostname=$node_name_prefix$p
-        xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
-            $UML_DIR/bin/uml_start $p umid=$hostname mem=128M hostname=$hostname shadowroot=$rootdir $$ &
-        echo $! >> $PIDFILEDIR/uml_pids
-        y=$((y+dy))
+	# Start the processors
+	node_name_prefix=SC-
+	rootdir=rootfs
+	for ((p=1; p <= $numnodes; p++)); do
+		# First two nodes are system controllers, the rest are payloads
+		if ((p == 3)); then
+			x=660
+			y=5
+			node_name_prefix=PL-
+		fi
+		hostname=$node_name_prefix$p
+		xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
+			$UML_DIR/bin/uml_start $p umid=$hostname mem=128M hostname=$hostname shadowroot=$rootdir $$ &
+		echo $! >> $PIDFILEDIR/uml_pids
+		y=$((y+dy))
 
-        # Append host to /etc/hosts file
-        echo "$IPADDRBASE.$p       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
-    done
+		# Append host to /etc/hosts file
+		echo "$IPADDRBASE.$p       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
+	done
 }
 
 cluster_stop() {
-    echo "Stopping opensaf services"
-    nodes=`ls $HOME/.uml`
-    for node in $nodes; do
-        $UML_DIR/bin/uml_mconsole $node halt > /dev/null 2>&1
-        sleep 1
-        rm -rf $HOME/.uml/$node
-    done
-    if [ -f $PIDFILEDIR/uml_pids ]; then
-        for i in $(cat $PIDFILEDIR/uml_pids); do
-            kill -9 $i > /dev/null 2>&1
-        done
-        rm -f $PIDFILEDIR/uml_pids
-    fi
+	echo "Stopping opensaf services"
+	nodes=`ls $HOME/.uml`
+	for node in $nodes; do
+		$UML_DIR/bin/uml_mconsole $node halt > /dev/null 2>&1
+		sleep 1
+		rm -rf $HOME/.uml/$node
+	done
+	if [ -f $PIDFILEDIR/uml_pids ]; then
+		for i in $(cat $PIDFILEDIR/uml_pids); do
+			kill -9 $i > /dev/null 2>&1
+		done
+		rm -f $PIDFILEDIR/uml_pids
+	fi
 }
 
 delete_persistent_store() {
-    echo "Deleting persistent store contents"
-    rm -rf $CLUSTER_SIM_UML_DIR/rootfs/var/*
-    rm -rf $CLUSTER_SIM_UML_DIR/$REPL_DIR
+	echo "Deleting persistent store contents"
+	rm -rf $CLUSTER_SIM_UML_DIR/rootfs/var/*
+	rm -rf $CLUSTER_SIM_UML_DIR/$REPL_DIR
 }
 
 case "$1" in
-    start)
-        cluster_stop
-        cluster_start $NUMNODES
-        ;;
-    stop)
-        cluster_stop
-        ;;
-    clean)
-        delete_persistent_store
-        ;;
-    *)
-        echo "Usage: $0 {start|stop|clean}"
-        exit 1
+	start)
+		cluster_stop
+		cluster_start $NUMNODES
+		;;
+	stop)
+		cluster_stop
+		;;
+	clean)
+		delete_persistent_store
+		;;
+	*)
+		echo "Usage: $0 {start|stop|clean}"
+		exit 1
 	
 esac
 exit 0
