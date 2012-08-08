@@ -1,21 +1,19 @@
 #! /bin/bash
-
+#
 #      -*- OpenSAF  -*-
 #
-#  Copyright (c) 2007, Ericsson AB
+# (C) Copyright 2008-2012 The OpenSAF Foundation
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  This
-# file and program are licensed under High-Availability Operating 
-# Environment Software License Version 1.4.
-# Complete License can be accesseble from below location.
-# http://www.opensaf.org/license 
-# See the Copying file included with the OpenSAF distribution for
-# full licensing terms.
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
 #
-# Author(s):
-#   
+# Author(s): Ericsson AB
 #
 
 # UML System startup script
@@ -64,7 +62,7 @@ cluster_start() {
 	if ! pgrep -U $uid uml_switch > /dev/null; then
 		xterm -iconic -geometry 60x8-0+110 \
 			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
-		echo $! >> $PIDFILEDIR/uml_pids
+		echo $! > $PIDFILEDIR/uml_switch
 	fi
 
 	# Start the processors
@@ -80,7 +78,7 @@ cluster_start() {
 		hostname=$node_name_prefix$p
 		xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
 			$UML_DIR/bin/uml_start $p umid=$hostname mem=128M hostname=$hostname shadowroot=$rootdir $$ &
-		echo $! >> $PIDFILEDIR/uml_pids
+		echo $! > $PIDFILEDIR/$hostname
 		y=$((y+dy))
 
 		# Append host to /etc/hosts file
@@ -96,11 +94,12 @@ cluster_stop() {
 		sleep 1
 		rm -rf $HOME/.uml/$node
 	done
-	if [ -f $PIDFILEDIR/uml_pids ]; then
-		for i in $(cat $PIDFILEDIR/uml_pids); do
-			kill -9 $i > /dev/null 2>&1
+	if [ -d $PIDFILEDIR ]; then
+		pidfiles=$(ls $PIDFILEDIR)
+		for pidfile in $pidfiles; do
+			kill -9 $(cat $PIDFILEDIR/$pidfile) > /dev/null 2>&1
 		done
-		rm -f $PIDFILEDIR/uml_pids
+		rm -rf $PIDFILEDIR
 	fi
 }
 
@@ -108,6 +107,69 @@ delete_persistent_store() {
 	echo "Deleting persistent store contents"
 	rm -rf $CLUSTER_SIM_UML_DIR/rootfs/var/*
 	rm -rf $CLUSTER_SIM_UML_DIR/$REPL_DIR
+}
+
+# Start a single node, referenced by number
+node_start() {
+	node=$1
+
+	test -d $PIDFILEDIR || mkdir -p $PIDFILEDIR
+
+	# Start network if necessary
+	if ! pgrep -U $uid uml_switch > /dev/null; then
+		xterm -iconic -geometry 60x8-0+110 \
+			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
+		echo $! > $PIDFILEDIR/uml_switch
+	fi
+
+	if ! stat "rootfs/etc/hosts" &> /dev/null; then
+		echo "127.0.0.1       localhost" > rootfs/etc/hosts
+	fi
+
+	echo "Starting node $node"
+
+	rootdir=rootfs
+	p=$node
+
+	if ((p < 3)); then
+		node_name_prefix=SC-
+	else
+		node_name_prefix=PL-
+	fi
+
+	hostname=$node_name_prefix$p
+
+	# start the uml vm in its own xterm
+	xterm -hold -geometry 140x20 -T $hostname -e \
+		$UML_DIR/bin/uml_start $p umid=$hostname mem=128M hostname=$hostname shadowroot=$rootdir $$ &
+	echo $! > $PIDFILEDIR/$hostname
+
+	# Append host to /etc/hosts file
+	echo "$IPADDRBASE.$p       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
+}
+
+# Stop a single node, referenced by number
+node_stop() {
+	if [ $1 -lt 3 ]; then
+		node="SC-$1"
+	else
+		node="PL-$1"
+	fi
+
+	if ls $HOME/.uml/$node/pid &> /dev/null; then
+		echo "Stopping node $node"
+	else
+		die "Node $1 is not started"
+	fi
+
+	# halt the uml vm
+	$UML_DIR/bin/uml_mconsole $node halt > /dev/null 2>&1
+	sleep 1
+	rm -rf $HOME/.uml/$node
+
+	# kill the xterm
+	kill -9 $(cat $PIDFILEDIR/$node) > /dev/null 2>&1
+	rm $PIDFILEDIR/$node
 }
 
 case "$1" in
@@ -118,11 +180,19 @@ case "$1" in
 	stop)
 		cluster_stop
 		;;
+	nodestart)
+		test $# -eq 2 || die "wrong number of arguments"
+		node_start $2
+		;;
+	nodestop)
+		test $# -eq 2 || die "wrong number of arguments"
+		node_stop $2
+		;;
 	clean)
 		delete_persistent_store
 		;;
 	*)
-		echo "Usage: $0 {start|stop|clean}"
+		echo "Usage: $0 {start [numnodes] | stop | nodestart <number> | nodestop <number> | clean}"
 		exit 1
 	
 esac
