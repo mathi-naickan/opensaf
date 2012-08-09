@@ -1133,10 +1133,11 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 				mod_pref_assignments = si->saAmfSIPrefActiveAssignments = 1;
 			else
 				mod_pref_assignments = *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
-			
 
-			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)  
+			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+				si->saAmfSIPrefActiveAssignments = mod_pref_assignments;
 				continue;
+			}
 
 			/* Check if we need to readjust the SI assignments as PrefActiveAssignments
 				got changed */
@@ -1158,8 +1159,10 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 				mod_pref_assignments =
 					*((SaUint32T *)attr_mod->modAttr.attrValues[0]);
 
-			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)  
+			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+				si->saAmfSIPrefStandbyAssignments = mod_pref_assignments;
 				continue;
+			}
 
 			/* Check if we need to readjust the SI assignments as PrefStandbyAssignments
 			   got changed */
