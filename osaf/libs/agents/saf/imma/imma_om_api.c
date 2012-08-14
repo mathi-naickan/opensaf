@@ -4323,7 +4323,7 @@ SaAisErrorT saImmOmClassCreate_2(SaImmHandleT immHandle,
 		evt.info.immnd.info.classDescr.attrDefinitions = sysattr;
 	}
 
-	rc = imma_evt_fake_evs(cb, &evt, &out_evt, timeout, cl_node->handle, &locked, false);
+	rc = imma_evt_fake_evs(cb, &evt, &out_evt, timeout, cl_node->handle, &locked, true);
 	cl_node = NULL;
 
 	if (rc != SA_AIS_OK) {

@@ -2479,14 +2479,20 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 
 			immModel_setAdmReqContinuation(cb, saInv, conn);
 
-		} else if((evt->info.fevsReq.sender_count == 0x1) && 
+		} else if((evt->info.fevsReq.sender_count == 0x1) && !(cl_node->mIsSync) &&
 			(immModel_immNotWritable(cb) ||  (cb->mSyncFinalizing && cb->fevs_out_count))) {
 			/* sender_count set to 1 if we are to check locally for writability
 			  before sending to IMMD. This to avoid broadcasting requests that 
-			  are doomed anyway. Immnd coord opens for writability when 
-			  finalizeSync message is generated. But finalizeSync is asyncronous
-			  since 4.1 and may get enqueued into the out queue, instead of being
-			  sent immediately. While finalizeSync is in the out queue,
+			  are doomed anyway. The clause '!(cl_node->mIsSync)' is there to 
+			  allow the immsync process to use saImmOmClassCreate. The local
+			  check is skipped for immsync resulting in the class-creaet message
+			  to be broadcast over fevs. The class create will be rejected at
+			  all normal nodes with TRY_AGAIN, but accepted at sync clients.
+			  See #2754.
+
+			  Immnd coord opens for writability when finalizeSync message is generated.
+			  But finalizeSync is asyncronous since 4.1 and may get enqueued into the out queue,
+			  instead of being sent immediately. While finalizeSync is in the out queue,
                           syncronous fevs messages that require writability, could bypass finalizeSync.
 			  This is BAD because such messages can arrive back here at coord and be
 			  accepted, but will be rejected at other nodes until they receive finalizeSync
