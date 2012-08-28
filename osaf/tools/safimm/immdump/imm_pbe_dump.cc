@@ -902,6 +902,7 @@ static ClassInfo* verifyClassPBE(std::string classNameString,
 
  bailout:
 	/*sqlite3_close((sqlite3 *) dbHandle);*/
+	sqlite3_free_table(result);
 	delete classInfo;
 	LOG_WA("Verify class %s failed!", classNameString.c_str());
 	return NULL;
@@ -2089,11 +2090,13 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 		sqlite3_free(execErr);
 		goto bailout;
 	}
+	sqlite3_free_table(result);
 
 	TRACE_LEAVE();
 	return obj_count;
 
  bailout:
+	sqlite3_free_table(result);
 	sqlite3_close(dbHandle);
 	if(badfile) {
 		discardPbeFile(sPbeFileName);
