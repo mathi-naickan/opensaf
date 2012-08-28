@@ -51,6 +51,8 @@ uint32_t avd_compile_ckpt_edp(AVD_CL_CB *cb)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	EDU_ERR err = EDU_NORMAL;
 
+	m_NCS_EDU_HDL_INIT(&cb->edu_hdl);
+
 	rc = m_NCS_EDU_COMPILE_EDP(&cb->edu_hdl, avsv_edp_ckpt_msg_cb, &err);
 	if (rc != NCSCC_RC_SUCCESS)
 		goto error;

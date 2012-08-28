@@ -101,12 +101,12 @@ uint32_t avd_mds_init(AVD_CL_CB *cb)
 	TRACE_ENTER();
 
 	/* Initialise the EDU to be used with MDS */
-	m_NCS_EDU_HDL_INIT(&cb->edu_hdl);
+	m_NCS_EDU_HDL_INIT(&cb->mds_edu_hdl);
 
-	rc = m_NCS_EDU_COMPILE_EDP(&cb->edu_hdl, avsv_edp_dnd_msg, &err);
+	rc = m_NCS_EDU_COMPILE_EDP(&cb->mds_edu_hdl, avsv_edp_dnd_msg, &err);
 	if (rc != NCSCC_RC_SUCCESS) {
 		LOG_ER("m_NCS_EDU_COMPILE_EDP failed");
-		m_NCS_EDU_HDL_FLUSH(&cb->edu_hdl);
+		m_NCS_EDU_HDL_FLUSH(&cb->mds_edu_hdl);
 		return rc;
 	}
 

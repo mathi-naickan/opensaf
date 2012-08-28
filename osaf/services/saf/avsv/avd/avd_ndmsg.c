@@ -64,7 +64,7 @@ uint32_t avd_mds_enc(MDS_CALLBACK_ENC_INFO *enc_info)
 	EDU_ERR ederror = 0;
 	uint32_t rc;
 
-	rc = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, avsv_edp_dnd_msg, enc_info->io_uba,
+	rc = m_NCS_EDU_VER_EXEC(&cb->mds_edu_hdl, avsv_edp_dnd_msg, enc_info->io_uba,
 				EDP_OP_TYPE_ENC, enc_info->i_msg, &ederror, enc_info->o_msg_fmt_ver);
 
 	if (rc != NCSCC_RC_SUCCESS) {
@@ -149,7 +149,7 @@ uint32_t avd_mds_dec(MDS_CALLBACK_DEC_INFO *dec_info)
 	EDU_ERR ederror = 0;
 	uint32_t rc;
 
-	rc = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, avsv_edp_dnd_msg, dec_info->io_uba,
+	rc = m_NCS_EDU_VER_EXEC(&cb->mds_edu_hdl, avsv_edp_dnd_msg, dec_info->io_uba,
 				EDP_OP_TYPE_DEC, &dec_info->o_msg, &ederror, dec_info->i_msg_fmt_ver);
 
 	if (rc != NCSCC_RC_SUCCESS) {

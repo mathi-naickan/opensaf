@@ -184,7 +184,8 @@ typedef struct cl_cb_tag {
 	/* Queue for keeping async update messages  on Standby */
 	AVSV_ASYNC_UPDT_MSG_QUEUE_LIST async_updt_msgs;
 
-	EDU_HDL edu_hdl;	/* EDU handle */
+	EDU_HDL edu_hdl;     /* EDU handle used for check pointing */
+	EDU_HDL mds_edu_hdl; /* EDU handle used in MDS callbacks */
 	SaTimeT cluster_init_time;	/* The time when the firstnode joined the cluster.
 					 * Checkpointing - Sent as a one time update.
 					 */
