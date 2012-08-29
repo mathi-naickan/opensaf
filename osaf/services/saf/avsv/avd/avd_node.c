@@ -732,7 +732,6 @@ uint32_t node_admin_unlock_instantiation(AVD_AVND *node)
 				}
 			} else {
 				avd_su_oper_state_set(su, SA_AMF_OPERATIONAL_ENABLED);
-				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 			}
 		}
 		su = su->avnd_list_su_next;

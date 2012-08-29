@@ -935,7 +935,6 @@ static void sg_app_sg_admin_unlock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 
 			} else {
 				avd_su_oper_state_set(su, SA_AMF_OPERATIONAL_ENABLED);
-				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 			}
 		}
 	}
