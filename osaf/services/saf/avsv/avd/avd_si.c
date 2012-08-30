@@ -415,6 +415,7 @@ AVD_SI *avd_si_get(const SaNameT *dn)
 	SaNameT tmp = {0};
 
 	tmp.length = dn->length;
+	assert(tmp.length <= SA_MAX_NAME_LENGTH); // TODO: add a global safe sanametcpy
 	memcpy(tmp.value, dn->value, tmp.length);
 
 	return (AVD_SI *)ncs_patricia_tree_get(&si_db, (uint8_t *)&tmp);

@@ -33,9 +33,14 @@
 #ifndef AVD_CKP_H
 #define AVD_CKP_H
 
+// current version
+#define AVD_MBCSV_SUB_PART_VERSION      5
+
+// supported versions
+#define AVD_MBCSV_SUB_PART_VERSION_5    5
 #define AVD_MBCSV_SUB_PART_VERSION_4    4
 #define AVD_MBCSV_SUB_PART_VERSION_3    3
-#define AVD_MBCSV_SUB_PART_VERSION      2
+#define AVD_MBCSV_SUB_PART_VERSION_2    2
 #define AVD_MBCSV_SUB_PART_VERSION_MIN  1
 
 struct avd_evt_tag;

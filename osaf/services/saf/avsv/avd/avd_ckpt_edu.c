@@ -377,9 +377,7 @@ uint32_t avsv_edp_ckpt_msg_su(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVD_SU *struct_ptr = NULL, **d_ptr = NULL;
-	uint16_t ver_compare = 0;
-
-	ver_compare = AVSV_AVD_AVND_MSG_FMT_VER_2;
+	uint16_t ver_compare = AVD_MBCSV_SUB_PART_VERSION_2;
 
 	EDU_INST_SET avsv_ckpt_msg_su_rules[] = {
 		{EDU_START, avsv_edp_ckpt_msg_su, 0, 0, 0, sizeof(AVD_SU), 0, NULL},
@@ -443,11 +441,10 @@ uint32_t avsv_edp_ckpt_msg_si(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVD_SI *struct_ptr = NULL, **d_ptr = NULL;
-	uint16_t ver_compare = 0;
+	uint16_t ver_compare = AVD_MBCSV_SUB_PART_VERSION_5;
 
-	TRACE_ENTER();
+	TRACE_ENTER2("my_version: %u, to_version: %u", ver_compare, hdl->to_version);
 
-	ver_compare = AVD_AVD_MSG_FMT_VER_4;
 	EDU_INST_SET avsv_ckpt_msg_si_rules[] = {
 		{EDU_START, avsv_edp_ckpt_msg_si, 0, 0, 0, sizeof(AVD_SI), 0, NULL},
 		{EDU_EXEC, ncs_edp_sanamet, 0, 0, 0, (long)&((AVD_SI *)0)->name, 0, NULL},
@@ -548,8 +545,7 @@ uint32_t avsv_edp_ckpt_msg_siass(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVSV_SU_SI_REL_CKPT_MSG *struct_ptr = NULL, **d_ptr = NULL;
-        uint16_t base_ver = 0;
-        base_ver = AVSV_AVD_AVND_MSG_FMT_VER_3;
+	uint16_t base_ver = AVD_MBCSV_SUB_PART_VERSION_3;
 
 	EDU_INST_SET avsv_ckpt_msg_su_si_rel_rules[] = {
 		{EDU_START, avsv_edp_ckpt_msg_siass, 0, 0, 0,

@@ -410,8 +410,9 @@ uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_
 	osafassert(su_ptr);
 	si_ptr_up = avd_si_get(&su_si_ckpt->si_name);
 	osafassert(si_ptr_up);
+
 	/* Since csi_add_rem flag is not memset in older versions, make sure it is set here. */
-	if(dec->i_peer_version <= AVD_AVD_MSG_FMT_VER_3)
+	if (dec->i_peer_version <= AVD_MBCSV_SUB_PART_VERSION_4)
 		su_si_ckpt->csi_add_rem = 0;
 
 	switch (action) {

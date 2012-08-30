@@ -636,7 +636,7 @@ static uint32_t avsv_mbcsv_initialize(AVD_CL_CB *cb)
 	mbcsv_arg.i_op = NCS_MBCSV_OP_INITIALIZE;
 	mbcsv_arg.info.initialize.i_service = NCS_SERVICE_ID_AVD;
 	mbcsv_arg.info.initialize.i_mbcsv_cb = avsv_mbcsv_cb;
-	mbcsv_arg.info.initialize.i_version = AVD_MBCSV_SUB_PART_VERSION_4;
+	mbcsv_arg.info.initialize.i_version = AVD_MBCSV_SUB_PART_VERSION;
 
 	if (NCSCC_RC_SUCCESS != ncs_mbcsv_svc(&mbcsv_arg)) {
 		LOG_ER("%s: ncs_mbcsv_svc NCS_MBCSV_OP_INITIALIZE failed", __FUNCTION__);
@@ -956,7 +956,7 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action, MBCSV_REO_HDL reo_h
 		break;
 
 	case AVSV_CKPT_SI_DEP_STATE:
-		if (avd_cb->avd_peer_ver < AVD_MBCSV_SUB_PART_VERSION_4) {
+		if (avd_cb->avd_peer_ver < AVD_MBCSV_SUB_PART_VERSION_5) {
 			/* No need to send the message to old std as this async is newly added. */
 			return NCSCC_RC_SUCCESS;
 		}
