@@ -1778,7 +1778,7 @@ static uint32_t mqnd_proc_deferred_mqa_rsp(MQND_CB *cb)
 	TRACE_ENTER();
 
 	if (mqa_rsp_cntx == NULL) {
-		LOG_ER("Deferred mqa event list head NULL");
+		TRACE_1("Deferred mqa event list is empty");
 		return NCSCC_RC_FAILURE;
 	}
 
