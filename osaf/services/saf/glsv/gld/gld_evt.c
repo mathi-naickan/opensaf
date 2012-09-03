@@ -620,7 +620,7 @@ static uint32_t gld_mds_glnd_down(GLSV_GLD_EVT *evt)
 
 	if ((node_details = (GLSV_GLD_GLND_DETAILS *)ncs_patricia_tree_get(&gld_cb->glnd_details,
 									   (uint8_t *)&node_id)) == NULL) {
-		LOG_ER("Event from unknown glnd: node_id %u ", node_id);
+		TRACE_1("Resource details is empty for glnd on node_id %u ", node_id);
 		rc = NCSCC_RC_SUCCESS;
 		goto end;
 	}
