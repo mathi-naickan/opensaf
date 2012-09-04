@@ -49,8 +49,6 @@
 
 extern uint32_t mds_socket_domain;
 void mds_init_transport(void);
-static void mds_library_mutex_constructor(void) __attribute__ ((constructor));
-static void mds_library_mutex_destructor(void) __attribute__ ((destructor));
 
 /* MDS Control Block */
 MDS_MCM_CB *gl_mds_mcm_cb = NULL;
@@ -58,13 +56,16 @@ MDS_MCM_CB *gl_mds_mcm_cb = NULL;
 /* mutex protecting MDS library shared data */
 static pthread_mutex_t s_mds_library_mutex;
 
+/* pthreads once control used for initialising s_mds_library_mutex */
+static pthread_once_t s_mds_mutex_init_once_control = PTHREAD_ONCE_INIT;
+
 /**
- * @brief Constructor function that initialises the MDS library mutex.
+ * @brief Helper function to be used only by mds_mutex_init_once()
  *
- * This function initialises the MDS library mutex when the library is loaded.
- * The function is not intended to be called explicitly.
+ * This is a helper function used by the function mds_mutex_init_once(). It
+ * should only be used in that function.
  */
-static void mds_library_mutex_constructor(void)
+static void mds_mutex_init_once_routine(void)
 {
 	pthread_mutexattr_t attr;
 	int result;
@@ -79,14 +80,17 @@ static void mds_library_mutex_constructor(void)
 }
 
 /**
- * @brief Destructor function that destroys the MDS library mutex.
+ * @brief Initialise the MDS library mutex exactly once in a thread safe way
  *
- * This function destroys the MDS library mutex when the library is unloaded.
- * The function is not intended to be called explicitly.
+ * This function initialises the MDS library mutex. It is thread safe and
+ * guarantees that the mutex is initialised only once even if this function is
+ * called from multiple threads concurrently. It is also safe to call this
+ * function again when the MDS library mutex already has been initialised.
  */
-static void mds_library_mutex_destructor(void)
+static void mds_mutex_init_once(void)
 {
-	int result = pthread_mutex_destroy(&s_mds_library_mutex);
+	int result = pthread_once(&s_mds_mutex_init_once_control,
+		mds_mutex_init_once_routine);
 	osafassert(result == 0);
 }
 
@@ -140,7 +144,7 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 	switch (req->i_op) {
 	case NCS_LIB_REQ_CREATE:
 
-		/* Take lock : no need for initialization of the lock */
+		mds_mutex_init_once();
 		mds_mutex_lock();
 
 		if (gl_mds_mcm_cb != NULL) {
