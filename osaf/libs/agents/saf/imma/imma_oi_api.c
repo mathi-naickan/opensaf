@@ -1885,7 +1885,11 @@ SaAisErrorT saImmOiObjectImplementerSet(SaImmOiHandleT immOiHandle, const SaName
 	}
 
 	TRACE_1("value:'%s' len:%u", objectName->value, objectName->length);
-	nameLen = objectName->length + 1;
+	nameLen = strlen((char *) objectName->value);
+	if(objectName->length < nameLen) {
+		nameLen = objectName->length;
+	}
+	++nameLen;  /* Add 1 for the null */
 
 	switch (scope) {
 		case SA_IMM_ONE:

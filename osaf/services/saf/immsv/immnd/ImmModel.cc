@@ -3148,6 +3148,13 @@ ImmModel::adminOwnerCreate(const ImmsvOmAdminOwnerInitialize* req,
     
     info->mAdminOwnerName.append((const char*)req->adminOwnerName.value,
         (size_t)req->adminOwnerName.length);
+    if(info->mAdminOwnerName.empty() || !nameCheck(info->mAdminOwnerName)) {
+        LOG_NO("ERR_INVALID_PARAM: Not a valid Admin Owner Name");
+        delete info;
+        info=NULL;
+        TRACE_LEAVE();
+        return SA_AIS_ERR_INVALID_PARAM; 
+    }
     info->mReleaseOnFinalize = req->releaseOwnershipOnFinalize;
     info->mConn = conn;
     info->mNodeId = nodeId;
@@ -4485,7 +4492,7 @@ void ImmModel::getLocalAppliersForObj(const SaNameT* objName, SaUint32T ccbId,
 
     std::string objectName((const char *)objName->value);
     if(externalRep && !(nameCheck(objectName)||nameToInternal(objectName))) {
-        LOG_NO("Not a proper object name");
+        LOG_ER("Not a proper object name");
         abort();
     }
 
@@ -6851,19 +6858,17 @@ ImmModel::accessorGet(const ImmsvOmSearchInit* req, ImmSearchOp& op)
         goto accessorExit;
     }
     
-    if (objectName.length() > 0) {
-        i = sObjectMap.find(objectName);
-        if (i == sObjectMap.end()) {
-            TRACE_7("ERR_NOT_EXIST: Object '%s' does not exist", objectName.c_str());
-            err = SA_AIS_ERR_NOT_EXIST;
-            goto accessorExit;
-        } else if(i->second->mObjFlags & IMM_CREATE_LOCK) {
-            TRACE_7("ERR_NOT_EXIST: Object '%s' is being created, but ccb "
-                    "or PRTO PBE, not yet applied", objectName.c_str());  
-            err = SA_AIS_ERR_NOT_EXIST;
-            goto accessorExit;
-        } 
-    }
+    i = sObjectMap.find(objectName);
+    if (i == sObjectMap.end()) {
+        TRACE_7("ERR_NOT_EXIST: Object '%s' does not exist", objectName.c_str());
+        err = SA_AIS_ERR_NOT_EXIST;
+        goto accessorExit;
+    } else if(i->second->mObjFlags & IMM_CREATE_LOCK) {
+        TRACE_7("ERR_NOT_EXIST: Object '%s' is being created, but ccb "
+                "or PRTO PBE, not yet applied", objectName.c_str());  
+        err = SA_AIS_ERR_NOT_EXIST;
+        goto accessorExit;
+    } 
     
     // Validate scope
     if (scope != SA_IMM_ONE) {
@@ -7803,6 +7808,10 @@ ImmModel::schemaNameCheck(const std::string& name) const
     unsigned char chr;
     size_t pos;
     size_t len = name.length();
+
+    if(name.empty()) {
+        return false;
+    }
 
     if(!nameCheck(name)) {
         return false;
@@ -8855,7 +8864,7 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
         (size_t)implementerName->size);
     std::string implName((const char*)implementerName->buf, sz);
     
-    if(!nameCheck(implName)) {
+    if(implName.empty() || !nameCheck(implName)) {
         LOG_NO("ERR_INVALID_PARAM: Not a proper implementer name");
         err = SA_AIS_ERR_INVALID_PARAM; 
         return err;
@@ -9374,7 +9383,7 @@ SaAisErrorT ImmModel::objectImplementerSet(const struct ImmsvOiImplSetReq* req,
     size_t sz = strnlen((const char *)req->impl_name.buf, req->impl_name.size);
     std::string objectName((const char *)req->impl_name.buf, sz);
     
-    if(! (nameCheck(objectName)||nameToInternal(objectName)) ) {
+    if(objectName.empty() || !(nameCheck(objectName)||nameToInternal(objectName))) {
         LOG_NO("ERR_INVALID_PARAM: Not a proper object DN");
         err = SA_AIS_ERR_INVALID_PARAM;
         goto done;
