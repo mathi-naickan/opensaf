@@ -228,3 +228,18 @@ void saImmOiObjectImplementerSet_06(void)
     test_validate(rc, SA_AIS_ERR_EXIST);
 }
 
+void saImmOiObjectImplementerSet_07(void)
+{
+    const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
+    SaNameT rdn1 = {
+        .value = "",
+        .length = 3,
+    };
+
+    safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
+    safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
+    rc = saImmOiObjectImplementerSet(immOiHandle, &rdn1, SA_IMM_ONE);
+    safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
+ 
+    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}

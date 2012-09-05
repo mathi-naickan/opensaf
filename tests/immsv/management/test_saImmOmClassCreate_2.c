@@ -242,6 +242,7 @@ extern void saImmOmClassDescriptionMemoryFree_2_02(void);
 extern void saImmOmClassDelete_2_01(void);
 extern void saImmOmClassDelete_2_02(void);
 extern void saImmOmClassDelete_2_03(void);
+extern void saImmOmClassDelete_2_04(void);
 
 __attribute__ ((constructor)) static void saImmOmInitialize_constructor(void)
 {
@@ -274,5 +275,6 @@ __attribute__ ((constructor)) static void saImmOmInitialize_constructor(void)
     test_case_add(2, saImmOmClassDelete_2_02, "saImmOmClassDelete_2 - SA_AIS_ERR_BAD_HANDLE");
     test_case_add(2, saImmOmClassDelete_2_03, "saImmOmClassDelete_2 - SA_AIS_ERR_NOT_EXIST, className does not exist");
     test_case_add(2, saImmOmClassCreate_2_13, "saImmOmClassCreate_2 UPGRADE - SA_AIS_OK/SA_AIS_ERR_EXIST, Added attribute to class");
+    test_case_add(2, saImmOmClassDelete_2_04, "saImmOmClassDelete_2  - SA_AIS_ERR_INVALID_PARAM, Empty classname");
 }
 

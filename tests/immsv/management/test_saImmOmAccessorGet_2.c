@@ -119,3 +119,18 @@ void saImmOmAccessorGet_2_03(void)
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+void saImmOmAccessorGet_2_X(void) /* Corresponds to saImmOmAccessorGet_2_09() in Opensaf4.3 */
+{
+    SaNameT objectName1 = {
+        .value = "",
+        .length = 1,
+    };
+
+
+    safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAccessorInitialize(immOmHandle, &accessorHandle), SA_AIS_OK);
+    rc = saImmOmAccessorGet_2(accessorHandle, &objectName1, NULL, &attributes);
+    test_validate(rc, SA_AIS_ERR_NOT_EXIST);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+

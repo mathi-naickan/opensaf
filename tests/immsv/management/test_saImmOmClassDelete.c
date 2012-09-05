@@ -56,3 +56,13 @@ void saImmOmClassDelete_2_03(void)
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+void saImmOmClassDelete_2_04(void)
+{
+    const SaImmClassNameT className = (SaImmClassNameT) ""; /* The empty classname */
+
+    safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    rc = saImmOmClassDelete(immOmHandle, className);
+    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+

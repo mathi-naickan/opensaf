@@ -79,6 +79,18 @@ void saImmOmAdminOwnerInitialize_04(void)
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+void saImmOmAdminOwnerInitialize_05(void)
+{
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) "\001\002\003";
+    SaImmAdminOwnerHandleT adminOwnerHandle;
+
+    safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    rc = saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &adminOwnerHandle);
+    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
+
 extern void saImmOmAdminOwnerSet_01(void);
 extern void saImmOmAdminOwnerSet_02(void);
 extern void saImmOmAdminOwnerSet_03(void);
@@ -127,5 +139,6 @@ __attribute__ ((constructor)) static void saImmOmAdminOwnerInitialize_constructo
 
     test_case_add(5, saImmOmAdminOwnerInitialize_04,
         "saImmOmAdminOperationInvoke_o2 - SA_AIS_ERR_VERSION, invalid invocation of A.2.11 API using A.2.1 version");
+    test_case_add(5, saImmOmAdminOwnerInitialize_05, "saImmOmAdminOwnerInitialize - SA_AIS_ERR_INVALID_PARAM, empty admin-owner-name");
 }
 

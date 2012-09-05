@@ -38,6 +38,7 @@ void saImmOmAccessorInitialize_02(void)
 extern void saImmOmAccessorGet_2_01(void);
 extern void saImmOmAccessorGet_2_02(void);
 extern void saImmOmAccessorGet_2_03(void);
+extern void saImmOmAccessorGet_2_X(void);
 extern void saImmOmAccessorFinalize_01(void);
 extern void saImmOmAccessorFinalize_02(void);
 extern void saImmOmAccessorFinalize_03(void);
@@ -51,6 +52,7 @@ __attribute__ ((constructor)) static void saImmOmAccessorInitialize_constructor(
     test_case_add(4, saImmOmAccessorGet_2_01, "saImmOmAccessorGet_2 - SA_AIS_OK");
     test_case_add(4, saImmOmAccessorGet_2_02, "saImmOmAccessorGet_2 - SA_AIS_ERR_BAD_HANDLE - invalid handle");
     test_case_add(4, saImmOmAccessorGet_2_03, "saImmOmAccessorGet_2 - SA_AIS_ERR_NOT_EXIST - objectName does not exist");
+    test_case_add(4, saImmOmAccessorGet_2_X, "saImmOmAccessorGet_2 - SA_AIS_ERR_INVALID_PARAM - empty dn");
 
     test_case_add(4, saImmOmAccessorFinalize_01, "saImmOmAccessorFinalize - SA_AIS_OK");
     test_case_add(4, saImmOmAccessorFinalize_02, "saImmOmAccessorFinalize - SA_AIS_ERR_BAD_HANDLE - invalid handle");

@@ -61,6 +61,15 @@ void saImmOiImplementerSet_04(void)
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 }
 
+void saImmOiImplementerSet_05(void)
+{
+    SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) "\001";/* Bad implementer name */
+
+    safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
+    test_validate(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_ERR_INVALID_PARAM);
+    safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
+}
+
 extern void saImmOiImplementerClear_01(void);
 extern void saImmOiImplementerClear_02(void);
 extern void saImmOiClassImplementerSet_01(void);
@@ -78,6 +87,7 @@ extern void saImmOiObjectImplementerSet_03(void);
 extern void saImmOiObjectImplementerSet_04(void);
 extern void saImmOiObjectImplementerSet_05(void);
 extern void saImmOiObjectImplementerSet_06(void);
+extern void saImmOiObjectImplementerSet_07(void);
 extern void saImmOiObjectImplementerRelease_01(void);
 extern void saImmOiObjectImplementerRelease_02(void);
 extern void saImmOiObjectImplementerRelease_03(void);
@@ -116,6 +126,9 @@ __attribute__ ((constructor)) static void saImmOiImplementerSet_constructor(void
     test_case_add(2, saImmOiObjectImplementerRelease_02, "saImmOiObjectImplementerRelease - SA_AIS_ERR_BAD_HANDLE");
     test_case_add(2, saImmOiObjectImplementerRelease_03, "saImmOiObjectImplementerRelease - SA_AIS_ERR_NOT_EXIST - objectName non existing");
     test_case_add(2, saImmOiObjectImplementerRelease_04, "saImmOiObjectImplementerRelease - SA_AIS_ERR_INVALID_PARAM - invalid scope");
+
+    test_case_add(2, saImmOiImplementerSet_05, "saImmOiImplementerSet - SA_AIS_ERR_INVALID_PARAM - Bad implementer name");
+    test_case_add(2, saImmOiObjectImplementerSet_07, "saImmOiObjectImplementerSet - SA_AIS_ERR_INVALID_PARAM - empty object name with wrong size");
 }
 
 
