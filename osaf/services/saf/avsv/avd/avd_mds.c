@@ -42,9 +42,14 @@
 #include <avd_msg.h>
 #include "avd.h"
 
-const MDS_CLIENT_MSG_FORMAT_VER avd_avnd_msg_fmt_map_table[AVD_AVND_SUBPART_VER_MAX] =
-    { AVSV_AVD_AVND_MSG_FMT_VER_1, AVSV_AVD_AVND_MSG_FMT_VER_2, AVSV_AVD_AVND_MSG_FMT_VER_3, AVSV_AVD_AVND_MSG_FMT_VER_4};
-const MDS_CLIENT_MSG_FORMAT_VER avd_avd_msg_fmt_map_table[AVD_AVD_SUBPART_VER_MAX] = { AVD_AVD_MSG_FMT_VER_1, AVD_AVD_MSG_FMT_VER_2, AVD_AVD_MSG_FMT_VER_3, AVD_AVD_MSG_FMT_VER_4};
+const MDS_CLIENT_MSG_FORMAT_VER avd_avnd_msg_fmt_map_table[AVD_AVND_SUBPART_VER_MAX] = {
+	AVSV_AVD_AVND_MSG_FMT_VER_1, AVSV_AVD_AVND_MSG_FMT_VER_2,
+	AVSV_AVD_AVND_MSG_FMT_VER_3, AVSV_AVD_AVND_MSG_FMT_VER_4};
+
+const MDS_CLIENT_MSG_FORMAT_VER avd_avd_msg_fmt_map_table[AVD_AVD_SUBPART_VER_MAX] = {
+	AVD_AVD_MSG_FMT_VER_1, AVD_AVD_MSG_FMT_VER_2,
+	AVD_AVD_MSG_FMT_VER_3, AVD_AVD_MSG_FMT_VER_4,
+	AVD_AVD_MSG_FMT_VER_5};
 
 /* fwd decl */
 
@@ -297,6 +302,13 @@ uint32_t avd_mds_cbk(struct ncsmds_callback_info *info)
 										     AVD_AVD_SUBPART_VER_MIN,
 										     AVD_AVD_SUBPART_VER_MAX,
 										     avd_avd_msg_fmt_map_table);
+				if (info->info.enc.i_rem_svc_pvt_ver == AVD_MDS_SUB_PART_VERSION_4) {
+					/* If the peer version is AVD_MDS_SUB_PART_VERSION_4, then set the
+					 * msg_fmt_ver to AVD_AVD_MSG_FMT_VER_3. This is to fix switch over
+					 * issue btw 4.2 GA & 4.2.1 release
+					 */
+					info->info.enc.o_msg_fmt_ver  = AVD_AVD_MSG_FMT_VER_3;
+				}
 
 				if (info->info.enc.o_msg_fmt_ver < AVD_AVD_MSG_FMT_VER_1) {
 					LOG_ER("%s: wrong msg fmt ver %u, %u.", __FUNCTION__, info->info.enc.o_msg_fmt_ver,info->info.enc.i_rem_svc_pvt_ver);
