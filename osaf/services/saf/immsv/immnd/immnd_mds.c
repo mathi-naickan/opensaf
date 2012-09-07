@@ -591,7 +591,7 @@ static uint32_t immnd_mds_svc_evt(IMMND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc
 		case NCSMDS_NEW_ACTIVE:
 			cb->is_immd_up = true;
 			cb->immd_mdest_id = svc_evt->i_dest;
-			LOG_NO("Director Service Is NEWACTIVE state");
+			TRACE("Director Service Is NEWACTIVE state");
 			break;
 
 		case NCSMDS_RED_UP:

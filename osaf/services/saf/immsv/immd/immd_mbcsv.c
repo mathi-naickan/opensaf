@@ -788,7 +788,7 @@ uint32_t immd_mbcsv_encode_proc(NCS_MBCSV_CB_ARG *arg)
 
 		case NCS_MBCSV_MSG_WARM_SYNC_RESP:
 			if (++immd_silence_count < 10) {
-				LOG_WA("MBCSV_MSG_WARM_SYNC_RESP - problem with MBCSV - ignoring");
+				TRACE_5("MBCSV_MSG_WARM_SYNC_RESP - problem with MBCSV - ignoring");
 			}
 			/*rc = mbcsv_enc_warm_sync_resp(cb,arg); */
 			break;
@@ -1134,14 +1134,14 @@ static uint32_t immd_mbcsv_decode_proc(NCS_MBCSV_CB_ARG *arg)
 
 		case NCS_MBCSV_MSG_WARM_SYNC_REQ:
 			if (++immd_silence_count < 10) {
-				LOG_WA("MBCSV_MSG_WARM_SYNC_REQ - should be turned off");
+				TRACE_5("MBCSV_MSG_WARM_SYNC_REQ - should be turned off");
 			}
 			break;
 
 		case NCS_MBCSV_MSG_WARM_SYNC_RESP:
 		case NCS_MBCSV_MSG_WARM_SYNC_RESP_COMPLETE:
 			if (++immd_silence_count < 10) {
-				LOG_WA("MBCSV_MSG_WARM_SYNC_RESP/COMPLETE - should be off");
+				TRACE_5("MBCSV_MSG_WARM_SYNC_RESP/COMPLETE - should be off");
 			}
 			break;
 

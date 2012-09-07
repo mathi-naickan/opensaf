@@ -1072,6 +1072,7 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 		IMMSV_OM_RSP_SEARCH_REMOTE reply;
 		memset(&reply, 0, sizeof(IMMSV_OM_RSP_SEARCH_REMOTE));
 		reply.requestNodeId = cb->node_id;
+		TRACE_5("Timeout on search op waiting on %d implementer(s)", searchReqArrSize);
 		for (ix = 0; ix < searchReqArrSize; ++ix) {
 			inv = searchReqArr[ix];
 			reqConn = 0;
@@ -1082,7 +1083,6 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 			reply.searchId = m_IMMSV_UNPACK_HANDLE_LOW(inv);
 
 			reply.result = SA_AIS_ERR_TIMEOUT;
-			LOG_WA("Timeout on search op waiting on implementer");
 			search_req_continue(cb, &reply, reqConn);
 		}
 		free(searchReqArr);

@@ -2043,7 +2043,7 @@ static uint32_t immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 	if (mds_info->svc_id == NCSMDS_SVC_ID_IMMND)
 		TRACE_5("Received IMMND service event");
 	else if (mds_info->svc_id == NCSMDS_SVC_ID_IMMD)
-		LOG_NO("Received IMMD service event");
+		TRACE_5("Received IMMD service event");
 	else {
 		LOG_WA("Received a service event for an unknown service %u", mds_info->svc_id);
 		return NCSCC_RC_SUCCESS;
