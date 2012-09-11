@@ -28,5 +28,5 @@ noinst_HEADERS = \
 	saf_mem.h \
 	sprr_dl_api.h \
 	nid_start_util.h \
-	daemon.h
-
+	daemon.h \
+	osaf_unicode.h
