@@ -20,6 +20,9 @@
 #include <iostream>
 #include <libxml/encoding.h>
 #include <unistd.h>
+#include <osaf_unicode.h>
+
+
 
 /* Functions */
 
@@ -243,10 +246,31 @@ void classToXMLw(std::string classNameString,
         }
         if ((*p)->attrDefaultValue != NULL)
         {
-            if(xmlTextWriterWriteElement(writer, (xmlChar*) "default-value",
-               (xmlChar*)valueToString((*p)->attrDefaultValue,
-               (*p)->attrValueType).c_str()) < 0 ) {
-                std::cout << "Error at xmlTextWriterWriteElement (default-value)" << std::endl;
+            std::string str = valueToString((*p)->attrDefaultValue, (*p)->attrValueType);
+            if(xmlTextWriterStartElement(writer, (xmlChar*) "default-value") < 0) {
+                std::cout << "Error at xmlTextWriterStartElement (default-value)" << std::endl;
+                exit(1);
+            }
+
+            if(osaf_is_valid_xml_utf8(str.c_str())) {
+                if(xmlTextWriterWriteString(writer, (xmlChar *) str.c_str()) < 0) {
+            		std::cout << "Error at xmlTextWriterWriteString (default-value)" << std::endl;
+                    exit(1);
+                }
+            } else {
+                if(xmlTextWriterWriteAttribute(writer, (xmlChar*)"encoding", (xmlChar*)"base64") < 0) {
+                	std::cout << "Error at xmlTextWriterWriteAttribute (default-value)" << std::endl;
+                    exit(1);
+                }
+
+                if(xmlTextWriterWriteBase64(writer, str.c_str(), 0, str.size()) < 0) {
+                    std::cout << "Error at xmlTextWriterWriteBase64 (default-value)" << std::endl;
+                    exit(1);
+                }
+            }
+
+            if(xmlTextWriterEndElement(writer) < 0) {
+                std::cout << "Error at xmlTextWriterWriteEndElement (default-value)" << std::endl;
                 exit(1);
             }
         }
@@ -368,10 +392,31 @@ void valuesToXMLw(SaImmAttrValuesT_2* p, xmlTextWriterPtr writer)
 
     for (unsigned int i = 0; i < p->attrValuesNumber; i++)
     {
-        if(xmlTextWriterWriteElement(writer,(xmlChar*) "value",
-           (xmlChar*)valueToString(p->attrValues[i], 
-           p->attrValueType).c_str()) < 0 ) {
-            std::cout << "Error at xmlTextWriterWriteElement (value)" << std::endl;
+        std::string str = valueToString(p->attrValues[i], p->attrValueType);
+        if(xmlTextWriterStartElement(writer, (xmlChar*) "value") < 0) {
+            std::cout << "Error at xmlTextWriterStartElement (value)" << std::endl;
+            exit(1);
+        }
+
+        if(osaf_is_valid_xml_utf8(str.c_str())) {
+            if(xmlTextWriterWriteString(writer, (xmlChar *) str.c_str()) < 0) {
+        		std::cout << "Error at xmlTextWriterWriteString (value)" << std::endl;
+                exit(1);
+            }
+        } else {
+            if(xmlTextWriterWriteAttribute(writer, (xmlChar*)"encoding", (xmlChar*)"base64") < 0) {
+            	std::cout << "Error at xmlTextWriterWriteAttribute (value)" << std::endl;
+                exit(1);
+            }
+
+            if(xmlTextWriterWriteBase64(writer, str.c_str(), 0, str.size()) < 0) {
+                std::cout << "Error at xmlTextWriterWriteBase64 (value)" << std::endl;
+                exit(1);
+            }
+        }
+
+        if(xmlTextWriterEndElement(writer) < 0) {
+            std::cout << "Error at xmlTextWriterWriteEndElement (value)" << std::endl;
             exit(1);
         }
     }
@@ -541,4 +586,3 @@ void typeToXMLw(SaImmAttrDefinitionT_2* p, xmlTextWriterPtr writer)
     }
 
 }
-

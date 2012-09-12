@@ -36,6 +36,17 @@
 #define MAX_DEPTH 10
 #define MAX_CHAR_BUFFER_SIZE 8192  //8k
 
+static char base64_dec_table[] = {
+		62,																										/* + 			*/
+		-1, -1, -1,																								/* 0x2c-0x2e 	*/
+		63,																										/* / 			*/
+		52, 53, 54, 55, 56, 57, 58, 59, 60, 61,																	/* 0-9 			*/
+		-1, -1, -1, -1, -1, -1, -1,																				/* 0x3a-0x40	*/
+		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,			/* A-Z 			*/
+		-1, -1, -1, -1, -1, -1,																					/* 0x5b-0x60 	*/
+		26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,	/* a-z 			*/
+};
+
 // redefine logtrace macros local for this file (instead of logtrace.h) because this is a command line tool
 #define LOG_ER(format, args...) log_stderr(LOG_ERR, format, ##args)
 #define LOG_WA(format, args...) log_stderr(LOG_WARNING, format, ##args)
@@ -111,6 +122,7 @@ typedef struct ParserStateStruct {
 	std::list<SaImmAttrValuesT_2> attrValues;
 	std::list<char*>            attrValueBuffers;
 	int                         valueContinue;
+	int                         isBase64Encoded;
 
 	std::map<std::string, SaImmAttrValuesT_2>    classRDNMap;
 
@@ -200,6 +212,78 @@ xmlSAXHandler my_handler = {
 
 
 /* Function bodies */
+
+static int base64_decode(char *in, char *out) {
+	char ch1, ch2, ch3, ch4;
+	int len = 0;
+
+	/* skip spaces */
+	while(*in == 10 || *in == 13 || *in == 32)
+		in++;
+
+	while(*in && in[3] != '=') {
+		if(*in < '+' || *in > 'z' || in[1] < '+' || in[1] > 'z'
+				|| in[2] < '+' || in[2] > 'z' || in[3] < '+' || in[3] > 'z')
+			return -1;
+
+		ch1 = base64_dec_table[*in - '+'];
+		ch2 = base64_dec_table[in[1] - '+'];
+		ch3 = base64_dec_table[in[2] - '+'];
+		ch4 = base64_dec_table[in[3] - '+'];
+
+		if(((ch1 | ch2 | ch3 | ch4) & 0xc0) > 0)
+			return -1;
+
+		*out = (ch1 << 2) | (ch2 >> 4);
+		out[1] = (ch2 << 4) | (ch3 >> 2);
+		out[2] = (ch3 << 6) | ch4;
+
+		in += 4;
+		out += 3;
+		len += 3;
+
+		while(*in == 10 || *in == 13 || *in == 32)
+			in++;
+	}
+
+	if(*in && in[3] == '=') {
+		if(*in < '+' || *in > 'z' || in[1] < '+' || in[1] > 'z')
+			return -1;
+
+		ch1 = base64_dec_table[*in - '+'];
+		ch2 = base64_dec_table[in[1] - '+'];
+
+		if(in[2] == '=') {
+			if(((ch1 | ch2) & 0xc0) > 0)
+				return -1;
+
+			*out = (ch1 << 2) | (ch2 >> 4);
+
+			len++;
+		} else {
+			if(in[2] < '+' || in[2] > 'z')
+				return -1;
+
+			ch3 = base64_dec_table[in[2] - '+'];
+
+			if(((ch1 | ch2 | ch3) & 0xc0) > 0)
+				return -1;
+
+			*out = (ch1 << 2) | (ch2 >> 4);
+			out[1] = (ch2 << 4) | (ch3 >> 2);
+
+			len += 2;
+		}
+
+		in += 4;
+
+		/* Skip spaces from the end of the string */
+		while(*in == 10 || *in == 13 || *in == 32)
+			in++;
+	}
+
+	return (*in) ? -1 : len;
+}
 
 static void log_stderr_int(int priority, const char *format, va_list args)
 {
@@ -880,6 +964,27 @@ static void warningHandler(void* userData,
 	LOG_WA("Warning occured during parsing: %s", msg);
 }
 
+static const xmlChar *getAttributeValue(const xmlChar **attrs, const xmlChar *attr) {
+	if(!attrs)
+		return NULL;
+
+	while(*attrs) {
+		if(!strcmp((char *)*attrs, (char *)attr))
+			return (xmlChar *)*(++attrs);
+
+		attrs++;
+		attrs++;
+	}
+
+	return NULL;
+}
+
+static inline bool isBase64Encoded(const xmlChar **attrs) {
+	char *encoding;
+
+	return (encoding = (char *)getAttributeValue(attrs, (xmlChar *)"encoding")) ? !strcmp(encoding, "base64") : false;
+}
+
 /**
  * This is the handler for start tags
  */
@@ -973,6 +1078,7 @@ static void startElementHandler(void* userData,
 	} else if (strcmp((const char*)name, "value") == 0) {
 		state->state[state->depth] = VALUE;
 		state->valueContinue = 0;
+		state->isBase64Encoded = isBase64Encoded(attrs);
 		/* <category> */
 	} else if (strcmp((const char*)name, "category") == 0) {
 		state->state[state->depth] = CATEGORY;
@@ -990,6 +1096,7 @@ static void startElementHandler(void* userData,
 		/* <default-value> */
 	} else if (strcmp((const char*)name, "default-value") == 0) {
 		state->state[state->depth] = DEFAULT_VALUE;
+		state->isBase64Encoded = isBase64Encoded(attrs);
 		/* <type> */
 	} else if (strcmp((const char*)name, "type") == 0) {
 		state->state[state->depth] = TYPE;
@@ -1027,9 +1134,30 @@ static void endElementHandler(void* userData,
 
 			str[0] = '\0';
 			state->attrValueBuffers.push_front(str);
+		} else if(state->isBase64Encoded) {
+        	char *value = state->attrValueBuffers.front();
+        	int len = strlen(value);
+
+        	/* count the length of the decoded string */
+        	int newlen = (len / 4) * 3
+        			- (value[len - 1] == '=' ? 1 : 0)
+        			- (value[len - 2] == '=' ? 1 : 0);
+        	char *newvalue = (char *)malloc(newlen + 1);
+
+        	newlen = base64_decode(value, newvalue);
+        	if(newlen == -1) {
+        		LOG_ER("Failed to decode base64 value in attribute %s (value)", state->attrName);
+        		exit(1);
+        	}
+        	newvalue[newlen] = 0;
+
+        	state->attrValueBuffers.pop_front();
+        	state->attrValueBuffers.push_front(newvalue);
+        	free(value);
 		}
 
 		state->valueContinue = 0; /* Actually redundant. */
+		state->isBase64Encoded = 0;
 
 		/* </default-value> */
 	} else if (strcmp((const char*)name, "default-value") == 0) {
@@ -1041,6 +1169,24 @@ static void endElementHandler(void* userData,
 			state->attrDefaultValueSet = 1;
 			TRACE_8("EMPTY DEFAULT-VALUE TAG");
 			TRACE_8("Attribute: %s", state->attrName);
+		} else if(state->isBase64Encoded) {
+        	char *value = state->attrDefaultValueBuffer;
+        	int len = strlen(value);
+
+        	int newlen = (len / 4) * 3
+        			- (value[len - 1] == '=' ? 1 : 0)
+        			- (value[len - 2] == '=' ? 1 : 0);
+        	char *newvalue = (char *)malloc(newlen + 1);
+
+        	newlen = base64_decode(value, newvalue);
+        	if(newlen == -1) {
+        		LOG_ER("Failed to decode base64 default value in attribute %s (default-value)", state->attrName);
+        		exit(1);
+        	}
+        	newvalue[newlen] = 0;
+
+        	free(state->attrDefaultValueBuffer);
+        	state->attrDefaultValueBuffer = newvalue;
 		}
 		/* </class> */
 	} else if (strcmp((const char*)name, "class") == 0) {
