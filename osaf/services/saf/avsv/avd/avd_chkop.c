@@ -955,13 +955,21 @@ uint32_t avsv_send_ckpt_data(AVD_CL_CB *cb, uint32_t action, MBCSV_REO_HDL reo_h
 		cb->async_updt_cnt.su_updt++;
 		break;
 
-	case AVSV_CKPT_SI_DEP_STATE:
-		if (avd_cb->avd_peer_ver < AVD_MBCSV_SUB_PART_VERSION_5) {
-			/* No need to send the message to old std as this async is newly added. */
+	case AVSV_CKPT_SI_DEP_STATE: {
+#ifdef UPGRADE_FROM_4_2_1
+		// special case for 4.2.1, si_dep_state should be check pointed using ver 4
+		uint16_t ver_compare = AVD_MBCSV_SUB_PART_VERSION_4;
+#else
+		// default case, si_dep_state should not be check pointed for peers in ver 4 (or less)
+	 	uint16_t ver_compare = AVD_MBCSV_SUB_PART_VERSION_5;
+#endif
+	 	if (avd_cb->avd_peer_ver < ver_compare) {
+	 		/* No need to send the message to old std as this async is newly added. */
 			return NCSCC_RC_SUCCESS;
 		}
 		cb->async_updt_cnt.si_updt++;
 		break;
+	}
 	case AVSV_CKPT_AVD_SI_CONFIG:
 		if ((avd_cb->avd_peer_ver >= AVD_MBCSV_SUB_PART_VERSION_4) && 
 		   ((action == NCS_MBCSV_ACT_ADD) || 

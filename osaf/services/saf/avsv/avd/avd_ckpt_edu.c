@@ -441,7 +441,13 @@ uint32_t avsv_edp_ckpt_msg_si(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVD_SI *struct_ptr = NULL, **d_ptr = NULL;
-	uint16_t ver_compare = AVD_MBCSV_SUB_PART_VERSION_5;
+#ifdef UPGRADE_FROM_4_2_1
+		// special case for 4.2.1, si_dep_state should be check pointed using ver 4
+		uint16_t ver_compare = AVD_MBCSV_SUB_PART_VERSION_4;
+#else
+		// default case, si_dep_state should not be check pointed for peers in ver 4 (or less)
+	 	uint16_t ver_compare = AVD_MBCSV_SUB_PART_VERSION_5;
+#endif
 
 	TRACE_ENTER2("my_version: %u, to_version: %u", ver_compare, hdl->to_version);
 

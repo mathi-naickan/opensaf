@@ -2857,7 +2857,6 @@ static uint32_t avsv_decode_cold_sync_rsp_avd_si_config(AVD_CL_CB *cb, NCS_MBCSV
 
 		osafassert(status == NCSCC_RC_SUCCESS);
 		status = avd_ckpt_si(cb, si_ptr_dec, dec->i_action);
-		osafassert(status == NCSCC_RC_SUCCESS);
 	}
 
 	return status;

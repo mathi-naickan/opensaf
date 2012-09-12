@@ -232,7 +232,7 @@ uint32_t avd_ckpt_si(AVD_CL_CB *cb, AVD_SI *ckpt_si, NCS_MBCSV_ACT_TYPE action)
 	osafassert (action == NCS_MBCSV_ACT_UPDATE);
 
 	if (NULL == (si = avd_si_get(&ckpt_si->name))) {
-		LOG_ER("avd_si_get FAILED for '%s'", ckpt_si->name.value);
+		LOG_WA("%s: avd_si_get FAILED", __FUNCTION__);
 		goto done;
 	}
 	/* Update all runtime attributes */	
