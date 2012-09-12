@@ -350,9 +350,10 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 			clms_node_join_ntf(clms_cb, node);
 			clms_node_update_rattr(node);
 			clms_cluster_update_rattr(osaf_cluster);
+			node->change = SA_CLM_NODE_NO_CHANGE;
+			/* Update Standby */
 			ckpt_node_rec(node);
 			ckpt_cluster_rec();
-			node->change = SA_CLM_NODE_NO_CHANGE;	
 		}
 	}
 
