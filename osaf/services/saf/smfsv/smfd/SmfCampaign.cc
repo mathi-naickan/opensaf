@@ -547,7 +547,7 @@ SmfCampaign::initExecution(void)
 			std::string error = "Error when parsing the campaign file " + m_cmpgFileUri;
 			LOG_ER("%s", error.c_str());
 			setError(error);
-			/* Don't change state to allow reexecution */
+			/* Don't change campaign state to allow reexecution */
 			return SA_AIS_OK;
 		}
 
@@ -555,8 +555,6 @@ SmfCampaign::initExecution(void)
 		//The SmfUpgradeCampaign needs to be set to the right SmfCampState
 		//to execute properly in case of a switchower
 		p_uc->setCampState(getState());
-
-		setUpgradeCampaign(p_uc);
 
                 if (p_uc->getCampaignPeriod().size() > 0) {
                         setExpectedTime((SaTimeT)strtoll(p_uc->getCampaignPeriod().c_str(), NULL, 0));
@@ -575,13 +573,27 @@ SmfCampaign::initExecution(void)
 
                         /* Start procedure thread */
                         SmfProcedureThread *procThread = new SmfProcedureThread(*iter);
-        		(*iter)->setProcThread(procThread);
+                        /* The procThread will set itself when started correctly */
+        		(*iter)->setProcThread(NULL);
         
         		TRACE("SmfCampaign::initExecution, Starting procedure thread %s", (*iter)->getProcName().c_str());
         		procThread->start();
+
+                        /* Check if procedure thread started correctly */
+                        if ((*iter)->getProcThread() == NULL) {
+                                std::string error = "Start of procedure thread failed for " + dn;
+                                LOG_ER("%s", error.c_str());
+                                setError(error);
+                                delete p_uc; // To terminate and remove any previously started procedure threads
+                                /* Don't change campaign state to allow reexecution */
+                                return SA_AIS_OK;
+                        }
         
         		iter++;
         	}
+
+                /* Indicate that campaign execution is possible */
+		setUpgradeCampaign(p_uc);
 	}
 
 	return SA_AIS_OK;

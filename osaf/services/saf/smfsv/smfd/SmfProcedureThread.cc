@@ -590,7 +590,8 @@ SmfProcedureThread::main(void)
 {
 	TRACE_ENTER();
 	if (this->init() == 0) {
-		/* Mark the thread started */
+		/* Mark the thread correctly started */
+                m_procedure->setProcThread(this);
 		if(m_semaphore != NULL) {
 			sem_post(m_semaphore);
 		}
@@ -603,6 +604,9 @@ SmfProcedureThread::main(void)
 		}
 	} else {
 		LOG_ER("SmfProcedureThread: init failed");
+                if(m_semaphore != NULL) {
+			sem_post(m_semaphore);
+		}
 	}
 	TRACE_LEAVE();
 }

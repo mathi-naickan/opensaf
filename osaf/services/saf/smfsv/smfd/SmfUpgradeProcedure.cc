@@ -77,7 +77,7 @@
  SmfUpgradeProcedure::SmfUpgradeProcedure():
     m_state(SmfProcStateInitial::instance()),
     m_procState(SA_SMF_PROC_INITIAL), 
-    m_procedureThread(0), 
+    m_procedureThread(NULL), 
     m_name(""),
     m_time(0),
     m_execLevel(0), 

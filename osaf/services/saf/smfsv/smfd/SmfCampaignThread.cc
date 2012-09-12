@@ -519,7 +519,7 @@ void SmfCampaignThread::processEvt(void)
 		TRACE("Campaign thread received event type %d", evt->type);
 
                 if (m_campaign->getUpgradeCampaign() == NULL) {
-                        LOG_ER("The parsing of campaign was not successful, terminating campaign thread");
+                        LOG_ER("Earlier initialization of campaign failed, terminating campaign thread");
                         m_running = false;
                         delete(evt);
                         m_campaign->adminOpBusy(false);
