@@ -26,6 +26,7 @@
 
 #include "immnd.h"
 #include "immsv_api.h"
+#include "osaf_unicode.h"
 
 // Local types
 #define DEFAULT_TIMEOUT_SEC 6 /* Should be saImmOiTimeout in SaImmMngt */
@@ -2365,6 +2366,32 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
                 LOG_NO("ERR_INVALID_PARAM: Attribute %s declared as SA_IMM_ATTR_INITIALIZED "
                     "inconsistent with having default", attNm);
                 illegal = 1;
+            }
+
+            if(attr->attrValueType == SA_IMM_ATTR_SANAMET) {
+                immsv_edu_attr_val* v = attr->attrDefaultValue;
+                if(v->val.x.size >= SA_MAX_NAME_LENGTH) {
+                    LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
+                        attNm, v->val.x.size);
+                    err = SA_AIS_ERR_LIBRARY;
+                    illegal = 1;
+                }
+                else {
+                    std::string tmpName(v->val.x.buf, v->val.x.size);
+                    if(!(nameCheck(tmpName) || nameToInternal(tmpName))) {
+                        LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaNameT contains non "
+                            "printable characters", attNm);
+                        err = SA_AIS_ERR_INVALID_PARAM;
+                        illegal = 1;
+                    }
+                }
+            } else if(attr->attrValueType == SA_IMM_ATTR_SASTRINGT) {
+                immsv_edu_attr_val* v = attr->attrDefaultValue;
+                if(v->val.x.size && !(osaf_is_valid_utf8(v->val.x.buf))) {
+                    LOG_NO("ERR_INVALID_PARAM: Attribute '%s' defined on type SaStringT "
+                        "has a default value that is not valid UTF-8", attrName.c_str());
+                    illegal = 1;
+                }
             }
         }
         err = attrCreate(classInfo, attr, attrName);
@@ -4950,6 +4977,31 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                 err = SA_AIS_ERR_INVALID_PARAM;
                 break; //out of for-loop
             }
+
+            if(attr->mValueType == SA_IMM_ATTR_SANAMET) {
+                if(p->n.attrValue.val.x.size >= SA_MAX_NAME_LENGTH) {
+                    LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
+                        attrName.c_str(), p->n.attrValue.val.x.size);
+                    err = SA_AIS_ERR_LIBRARY;
+                    break; //out of for-loop
+                }
+
+                std::string tmpName(p->n.attrValue.val.x.buf, p->n.attrValue.val.x.size);
+                if(!(nameCheck(tmpName) || nameToInternal(tmpName))) {
+                    LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaNameT contains non "
+                        "printable characters", attrName.c_str());
+                    err = SA_AIS_ERR_INVALID_PARAM;
+                    break; //out of for-loop
+                }
+            } else if(attr->mValueType == SA_IMM_ATTR_SASTRINGT) {
+                /* Check that the string at least conforms to UTF-8 */
+                if(p->n.attrValue.val.x.size && !(osaf_is_valid_utf8(p->n.attrValue.val.x.buf))) {
+                    LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaStringT has a value "
+                        "that is not valid UTF-8", attrName.c_str());
+                    err = SA_AIS_ERR_INVALID_PARAM;
+                    break; //out of for-loop
+                }
+            }
             
             ImmAttrValue* attrValue = i6->second;
             IMMSV_OCTET_STRING tmpos; //temporary octet string
@@ -5536,6 +5588,31 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                 attrName.c_str());
             err = SA_AIS_ERR_INVALID_PARAM;
             break; //out of for-loop
+        }
+
+        if(attr->mValueType == SA_IMM_ATTR_SANAMET) {
+            if(p->attrValue.attrValue.val.x.size >= SA_MAX_NAME_LENGTH) {
+                LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
+                    attrName.c_str(), p->attrValue.attrValue.val.x.size);
+                err = SA_AIS_ERR_LIBRARY;
+                break; //out of for-loop
+            }
+
+            std::string tmpName(p->attrValue.attrValue.val.x.buf, p->attrValue.attrValue.val.x.size);
+            if(!(nameCheck(tmpName) || nameToInternal(tmpName))) {
+                 LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaNameT contains non "
+                     "printable characters", attrName.c_str());
+                 err = SA_AIS_ERR_INVALID_PARAM;
+                 break; //out of for-loop
+            }
+        } else if(attr->mValueType == SA_IMM_ATTR_SASTRINGT) {
+            /* Check that the string at least conforms to UTF-8 */
+            if(p->attrValue.attrValue.val.x.size && !(osaf_is_valid_utf8(p->attrValue.attrValue.val.x.buf))) {
+                LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaStringT has a value "
+                    "that is not valid UTF-8", attrName.c_str());
+                 err = SA_AIS_ERR_INVALID_PARAM;
+                    break; //out of for-loop
+            }
         }
         
         ImmAttrValueMap::iterator i5 = 
@@ -9472,7 +9549,7 @@ SaAisErrorT ImmModel::objectImplementerRelease(
     size_t sz = strnlen((const char *)req->impl_name.buf, req->impl_name.size);
     std::string objectName((const char *)req->impl_name.buf, sz);
     
-    if(! (nameCheck(objectName)||nameToInternal(objectName)) ) {
+    if(objectName.empty() || !(nameCheck(objectName)||nameToInternal(objectName))) {
         LOG_NO("ERR_INVALID_PARAM: Not a proper object DN");
         err = SA_AIS_ERR_INVALID_PARAM;
         goto done;
@@ -10277,6 +10354,30 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
                 err = SA_AIS_ERR_INVALID_PARAM;
                 break; //out of for-loop
             }
+            if(attr->mValueType == SA_IMM_ATTR_SANAMET) {
+                if(p->n.attrValue.val.x.size >= SA_MAX_NAME_LENGTH) {
+                    LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
+                        attrName.c_str(), p->n.attrValue.val.x.size);
+                    err = SA_AIS_ERR_LIBRARY;
+                    break; //out of for-loop
+                }
+
+                std::string tmpName(p->n.attrValue.val.x.buf, p->n.attrValue.val.x.size);
+                if(!(nameCheck(tmpName) || nameToInternal(tmpName))) {
+                    LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaNameT contains non "
+                        "printable characters", attrName.c_str());
+                    err = SA_AIS_ERR_INVALID_PARAM;
+                    break; //out of for-loop
+                }
+            } else if(attr->mValueType == SA_IMM_ATTR_SASTRINGT) {
+                /* Check that the string at least conforms to UTF-8 */
+                if(p->n.attrValue.val.x.size && !(osaf_is_valid_utf8(p->n.attrValue.val.x.buf))) {
+                    LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaStringT has a value "
+                        "that is not valid UTF-8", attrName.c_str());
+                    err = SA_AIS_ERR_INVALID_PARAM;
+                    break; //out of for-loop
+                }
+            }
             
             ImmAttrValue* attrValue = i6->second;
             IMMSV_OCTET_STRING tmpos; //temporary octet string
@@ -10859,15 +10960,15 @@ ImmModel::rtObjectUpdate(const ImmsvOmCcbObjectModify* req,
     bool isSyncClient = (sImmNodeState == IMM_NODE_W_AVAILABLE);
     if(wasLocal) {osafassert(conn);} 
     
-    if(! (nameCheck(objectName)||nameToInternal(objectName)) ) {
-        LOG_NO("ERR_INVALID_PARAM: Not a proper object name");
-        err = SA_AIS_ERR_INVALID_PARAM;
-        goto rtObjectUpdateExit;
-    }
-    
     if (objectName.empty()) {
         LOG_NO("ERR_INVALID_PARAM: Empty DN value");
         err = SA_AIS_ERR_INVALID_PARAM;     
+        goto rtObjectUpdateExit;
+    }
+    
+    if(! (nameCheck(objectName)||nameToInternal(objectName)) ) {
+        LOG_NO("ERR_INVALID_PARAM: Not a proper object name");
+        err = SA_AIS_ERR_INVALID_PARAM;
         goto rtObjectUpdateExit;
     }
     
@@ -11087,6 +11188,31 @@ ImmModel::rtObjectUpdate(const ImmsvOmCcbObjectModify* req,
                 err = SA_AIS_ERR_INVALID_PARAM;
                 osafassert(!doIt);
                 break; //out of while-loop
+            }
+
+            if(attr->mValueType == SA_IMM_ATTR_SANAMET) {
+                if(p->attrValue.attrValue.val.x.size >= SA_MAX_NAME_LENGTH) {
+                    LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
+                        attrName.c_str(), p->attrValue.attrValue.val.x.size);
+                    err = SA_AIS_ERR_LIBRARY;
+                    break; //out of for-loop
+                }
+
+                std::string tmpName(p->attrValue.attrValue.val.x.buf, p->attrValue.attrValue.val.x.size);
+                if(!(nameCheck(tmpName) || nameToInternal(tmpName))) {
+                     LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaNameT contains non "
+                         "printable characters", attrName.c_str());
+                     err = SA_AIS_ERR_INVALID_PARAM;
+                     break; //out of for-loop
+                }
+            } else if(attr->mValueType == SA_IMM_ATTR_SASTRINGT) {
+                /* Check that the string at least conforms to UTF-8 */
+                if(p->attrValue.attrValue.val.x.size && !(osaf_is_valid_utf8(p->attrValue.attrValue.val.x.buf))) {
+                    LOG_NO("ERR_INVALID_PARAM: attr '%s' of type SaStringT has a value "
+                        "that is not valid UTF-8", attrName.c_str());
+                    err = SA_AIS_ERR_INVALID_PARAM;
+                    break; //out of for-loop
+                }
             }
             
             if(attr->mFlags & SA_IMM_ATTR_CACHED || 
