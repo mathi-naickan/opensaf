@@ -78,7 +78,7 @@ void immd_proc_immd_reset(IMMD_CB *cb, bool active)
 		send_evt.info.immnd.type = IMMND_EVT_D2ND_RESET;
 		proc_rc = immd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_IMMND);
 		if (proc_rc != NCSCC_RC_SUCCESS) {
-			LOG_ER("Failed to broadcast RESET message to IMMNDs.");
+			LOG_ER("Failed to broadcast RESET message to IMMNDs, exiting");
 			exit(1);
 		}
 	} else {
@@ -101,11 +101,11 @@ void immd_proc_immd_reset(IMMD_CB *cb, bool active)
 		//if(active) {
 		//	sleep(3);
 		//}
-		LOG_ER("IMM RELOAD with NO persistent back end => ensure cluster restart by IMMD exit at both SCs.");
+		LOG_ER("IMM RELOAD with NO persistent back end => ensure cluster restart by IMMD exit at both SCs, exiting");
 		exit(1);
 	} else {
 		/*LOG_WA("IMM RELOAD with persistent back end => No need to restart cluster");*/
-		LOG_ER("IMM RELOAD  => ensure cluster restart by IMMD exit at both SCs.");
+		LOG_ER("IMM RELOAD  => ensure cluster restart by IMMD exit at both SCs, exiting");
 		/* In theory we should be able to reload from PBE without cluster restart.
 		   But implementer info is lost and non persistent runtime objects/attributes
 		   are lost, so we can not hope to achieve transparent resurrect. 
@@ -314,7 +314,7 @@ int immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		   Syncronous call=>wait for ack */
 		if (immd_mbcsv_sync_update(cb, &mbcp_msg) != NCSCC_RC_SUCCESS) {
 			LOG_ER("Mbcp message designating new IMMD coord failed => "
-			       "standby IMMD could not be notified. Failover to STBY.");
+			       "standby IMMD could not be notified. Failover to STBY, exiting");
 			exit(1);
 		}
 
@@ -322,7 +322,7 @@ int immd_proc_elect_coord(IMMD_CB *cb, bool new_active)
 		   IMMND coordinator. */
 		if (immd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMND,
 				      immnd_info_node->immnd_dest, &send_evt) != NCSCC_RC_SUCCESS) {
-			LOG_ER("Failed to send MDS message designating new IMMND coord.");
+			LOG_ER("Failed to send MDS message designating new IMMND coord, exiting");
 			exit(1);
 		}
 	}

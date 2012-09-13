@@ -398,7 +398,7 @@ static int32_t immnd_iAmCoordinator(IMMND_CB *cb)
 
 	if (cb->mIsCoord) {
 		if (cb->mRulingEpoch > cb->mMyEpoch) {
-			LOG_ER("%u > %u", cb->mRulingEpoch, cb->mMyEpoch);
+			LOG_ER("%u > %u, exiting", cb->mRulingEpoch, cb->mMyEpoch);
 			exit(1);
 		}
 		return 1;
@@ -724,7 +724,7 @@ SaBoolT immnd_syncComplete(IMMND_CB *cb, SaBoolT coordinator, SaUint32T jobDurat
 #if 0   /* Enable this code only to test logic for handling coord crash in
 	   sync */
 	if (coordinator && cb->mMyEpoch == 4) {
-		LOG_NO("FAULT INJECTION crash during sync");
+		LOG_NO("FAULT INJECTION crash during sync, exiting");
 		exit(1);
 	}
 #endif
@@ -1282,7 +1282,7 @@ static int immnd_forkLoader(IMMND_CB *cb)
 
 		TRACE_5("EXEC %s %s %s", ldrArgs[0], ldrArgs[1], ldrArgs[2]);
 		execvp(loaderName, ldrArgs);
-		LOG_ER("%s failed to exec, error %u", base, errno);
+		LOG_ER("%s failed to exec, error %u, exiting", base, errno);
 		exit(1);
 	}
 	TRACE_5("Parent %s, successfully forked loader, pid:%d", base, pid);
@@ -1337,7 +1337,7 @@ static int immnd_forkSync(IMMND_CB *cb)
 		/* TODO: Should close file-descriptors ... */
 		char *ldrArgs[6] = { loaderName, "", "", "sync", arg4, 0 };
 		execvp(loaderName, ldrArgs);
-		LOG_ER("%s failed to exec sync, error %u", base, errno);
+		LOG_ER("%s failed to exec sync, error %u, exiting", base, errno);
 		exit(1);
 	}
 	TRACE_5("Parent %s, successfully forked sync-agent, pid:%d", base, pid);
@@ -1405,7 +1405,7 @@ static int immnd_forkPbe(IMMND_CB *cb)
 		}
 
 		execvp(pbeBase, pbeArgs);
-		LOG_ER("%s failed to exec '%s -pbe', error %u", base, pbeBase, errno);
+		LOG_ER("%s failed to exec '%s -pbe', error %u, exiting", base, pbeBase, errno);
 		exit(1);
 	}
 	TRACE_5("Parent %s, successfully forked %s, pid:%d", base, pbePath, pid);

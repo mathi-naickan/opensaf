@@ -166,7 +166,7 @@ static void* amf_init_start(void *__cb)
 		if (healthy.keyLen < sizeof(healthy.key)) {
 			strncpy((char *)healthy.key, health_key, sizeof(healthy.key));
 		} else {
-			LOG_ER("Health check key too long:%u", healthy.keyLen);
+			LOG_ER("Health check key too long:%u, exiting", healthy.keyLen);
 			exit(1);
 		}
 	}

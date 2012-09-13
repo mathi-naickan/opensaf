@@ -6640,7 +6640,7 @@ static uint32_t immnd_evt_proc_reset(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_IN
 {
 	TRACE_ENTER();
 	if (cb->mIntroduced) {
-		LOG_ER("IMMND forced to restart on order from IMMD");
+		LOG_ER("IMMND forced to restart on order from IMMD, exiting");
 		exit(1);
 	} else {
 		LOG_NO("IMMD received reset order from IMMD, but has just restarted - ignoring");
@@ -6694,7 +6694,7 @@ static uint32_t immnd_evt_proc_loading_ok(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SE
 		   This must force down IMMND on all payloads, since these can
 		   not act as IMM coordinator. */
 		if (cb->mState > IMM_SERVER_SYNC_PENDING) {
-			LOG_ER("This IMMND can not accept start loading in state %s %u",
+			LOG_ER("This IMMND can not accept start loading in state %s %u, exiting",
 			       (cb->mState == IMM_SERVER_SYNC_CLIENT) ? "IMM_SERVER_SYNC_CLIENT" :
 			       (cb->mState == IMM_SERVER_SYNC_SERVER) ? "IMM_SERVER_SYNC_SERVER" :
 			       (cb->mState == IMM_SERVER_READY) ? "IMM_SERVER_READY" : "UNKNOWN", cb->mState);
@@ -6871,7 +6871,7 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 		SaUint64T next_expected = 0;
 		SaUint32T andHowManyMore = 0;	/*What are these used for ? */
 		if (cb->mAccepted) {
-			LOG_WA("MESSAGE:%llu OUT OF ORDER my highest processed:%llu", msgNo, cb->highestProcessed);
+			LOG_WA("MESSAGE:%llu OUT OF ORDER my highest processed:%llu, exiting", msgNo, cb->highestProcessed);
 			exit(1);
 			immnd_enqueue_incoming_fevs_msg(cb, msgNo, clnt_hdl, reply_dest, msg, &next_expected, &andHowManyMore);
 		}else if(cb->mSync){ /* If we receive out of sync message at the time of syncing */
