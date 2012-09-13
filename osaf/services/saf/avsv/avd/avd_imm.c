@@ -904,14 +904,34 @@ static void ccb_apply_cb(SaImmOiHandleT immoi_handle, SaImmOiCcbIdT ccb_id)
 		}
 	}
 
-	/* Now apply all the CCBs in the sorted order */
+	/* First pass: apply all the CCBs in the sorted order */
 	next = ccb_apply_list;
 	while (next != NULL) {
 		next->ccb_apply_cb(next->opdata);
 		temp = next;
 		next = next->next_ccb_to_apply;
+	}
+
+	/* Second pass: adjust configuration after all model changes has been applied */
+	next = ccb_apply_list;
+	while (next != NULL) {
+		// TODO: would be more elegant with yet another function pointer
+		type = object_name_to_class_type(&next->opdata->objectName);
+		if ((type == AVSV_SA_AMF_SG) && (next->opdata->operationType == CCBUTIL_CREATE)) {
+			AVD_SG *sg = avd_sg_get(&next->opdata->objectName);
+			avd_sg_adjust_config(sg);
+		}
+		next = next->next_ccb_to_apply;
+	}
+
+	/* Third pass: free allocated memory */
+	next = ccb_apply_list;
+	while (next != NULL) {
+		temp = next;
+		next = next->next_ccb_to_apply;
 		free(temp);
 	}
+
 	ccb_apply_list = NULL;
 
 	/* Return CCB container memory */
@@ -1234,6 +1254,17 @@ unsigned int avd_imm_config_get(void)
 
 	if (avd_sidep_config_get() != SA_AIS_OK)
 		goto done;
+
+	// SGs needs to adjust configuration once all instances have been added
+	{
+		AVD_SG *sg;
+		SaNameT dn = {.length = 0};
+
+		for (sg = avd_sg_getnext(&dn); sg; sg = avd_sg_getnext(&dn)) {
+			avd_sg_adjust_config(sg);
+			dn = sg->name;
+		}
+	}
 
 	rc = NCSCC_RC_SUCCESS;
 

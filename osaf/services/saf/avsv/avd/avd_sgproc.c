@@ -871,9 +871,24 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	}
 
 	if (n2d_msg->msg_info.n2d_su_si_assign.error != NCSCC_RC_SUCCESS) {
-		LOG_NO("%s: assignment failed for SU '%s'. Error '%u'", __FUNCTION__,
-				n2d_msg->msg_info.n2d_su_si_assign.su_name.value, 
-				n2d_msg->msg_info.n2d_su_si_assign.error);
+		switch (n2d_msg->msg_info.n2d_su_si_assign.msg_act) {
+		case AVSV_SUSI_ACT_ASGN:
+			LOG_NO("Failed to assign SI to '%s'",
+					n2d_msg->msg_info.n2d_su_si_assign.su_name.value);
+			break;
+		case AVSV_SUSI_ACT_MOD:
+			LOG_NO("Failed to modify assignment for '%s'",
+					n2d_msg->msg_info.n2d_su_si_assign.su_name.value);
+			break;
+		case AVSV_SUSI_ACT_DEL:
+			LOG_NO("Failed to delete assignment from '%s'",
+					n2d_msg->msg_info.n2d_su_si_assign.su_name.value);
+			break;
+		default:
+			LOG_WA("%s: unknown action %u", __FUNCTION__,
+					n2d_msg->msg_info.n2d_su_si_assign.msg_act);
+			break;
+		}
 	}
 
 	if (n2d_msg->msg_info.n2d_su_si_assign.si_name.length == 0) {

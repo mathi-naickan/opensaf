@@ -648,7 +648,8 @@ static AVD_SU *avd_sg_2n_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
 		    (i_si->max_num_csi == i_si->num_csi) && (i_si->list_of_csi != NULL) &&
 		    (i_si->si_dep_state != AVD_SI_SPONSOR_UNASSIGNED) &&
 		    (i_si->si_dep_state != AVD_SI_UNASSIGNING_DUE_TO_DEP) && sponsor_assigned  &&
-		    (i_si->list_of_sisu == AVD_SU_SI_REL_NULL)) {
+		    (i_si->list_of_sisu == AVD_SU_SI_REL_NULL) &&
+		    (a_su->saAmfSUNumCurrActiveSIs < sg->saAmfSGMaxActiveSIsperSU)) {
 			/* found a SI that needs active assignment. */
 			if (avd_new_assgn_susi(cb, a_su, i_si, SA_AMF_HA_ACTIVE, false, &tmp_susi) ==
 			    NCSCC_RC_SUCCESS) {

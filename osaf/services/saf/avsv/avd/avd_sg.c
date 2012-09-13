@@ -1450,3 +1450,29 @@ done:
 
 	return;
 }
+
+/**
+ * Adjust configuration parameters after configuration change is complete
+ * For example saAmfSGMaxActiveSIsperSU and saAmfSGMaxStandbySIsperSU
+ * This function should only be called at the end of a configuration change.
+ * That is when all instances has been added to the model.
+ * @param sg
+ */
+void avd_sg_adjust_config(AVD_SG *sg)
+{
+	// SUs in an SG are equal, only need to look at the first one
+	if ((sg->list_of_su != NULL) && !sg->list_of_su->saAmfSUPreInstantiable) {
+		// NPI SUs can only be assigned one SI, see 3.2.1.1
+		if ((sg->saAmfSGMaxActiveSIsperSU != -1) && (sg->saAmfSGMaxActiveSIsperSU > 1)) {
+			LOG_WA("invalid saAmfSGMaxActiveSIsperSU (%u) for NPI SU '%s', adjusting...",
+					sg->saAmfSGMaxActiveSIsperSU, sg->name.value);
+		}
+		sg->saAmfSGMaxActiveSIsperSU = 1;
+
+		if ((sg->saAmfSGMaxStandbySIsperSU != -1) && (sg->saAmfSGMaxStandbySIsperSU > 1)) {
+			LOG_WA("invalid saAmfSGMaxStandbySIsperSU (%u) for NPI SU '%s', adjusting...",
+					sg->saAmfSGMaxStandbySIsperSU, sg->name.value);
+		}
+		sg->saAmfSGMaxStandbySIsperSU = 1;
+	}
+}
