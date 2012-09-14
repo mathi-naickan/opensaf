@@ -757,6 +757,13 @@ void avd_process_si_dep_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 			if (role_failover_pending == true) {	
 				avd_dependentsi_role_failover(si);
 			} else {
+				if ((si->si_dep_state == AVD_SI_ASSIGNED) && (si->list_of_sisu == NULL)) {
+					/* Dependent SI does not have assignment but still si->si_dep_state is set to AVD_SI_ASSIGNED.
+					   So reset the si_dep_state to AVD_SI_NO_DEPENDENCY, so that the SI will be considered for assignment
+					 */ 
+					si_dep_state_set(si, AVD_SI_NO_DEPENDENCY);
+				}
+
 				avd_screen_sponsor_si_state(cb, si, true);
 			}
 		}
