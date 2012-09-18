@@ -130,7 +130,7 @@ void saImmOmAccessorGet_2_X(void) /* Corresponds to saImmOmAccessorGet_2_09() in
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAccessorInitialize(immOmHandle, &accessorHandle), SA_AIS_OK);
     rc = saImmOmAccessorGet_2(accessorHandle, &objectName1, NULL, &attributes);
-    test_validate(rc, SA_AIS_ERR_NOT_EXIST);
+    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
