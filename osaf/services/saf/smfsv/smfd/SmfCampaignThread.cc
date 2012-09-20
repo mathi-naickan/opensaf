@@ -143,6 +143,12 @@ SmfCampaignThread::~SmfCampaignThread()
 	//Delete the IMM handler
 	deleteImmHandle();
 
+	/* IPC cleanup */
+	m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+	m_NCS_IPC_RELEASE(&m_mbx, NULL);
+	m_NCS_IPC_DETACH(&m_cbkMbx, NULL, NULL);
+	m_NCS_IPC_RELEASE(&m_cbkMbx, NULL);
+
 	TRACE_LEAVE();
 }
 
@@ -249,24 +255,34 @@ int SmfCampaignThread::init(void)
 	/* Attach mailbox to this thread */
 	if ((rc = m_NCS_IPC_ATTACH(&m_mbx) != NCSCC_RC_SUCCESS)) {
 		LOG_ER("m_NCS_IPC_ATTACH FAILED %d", rc);
+		m_NCS_IPC_RELEASE(&m_mbx, NULL);
 		return -1;
 	}
 
 	/* Create the mailbox used for callback communication */
 	if ((rc = m_NCS_IPC_CREATE(&m_cbkMbx)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("m_NCS_IPC_CREATE FAILED %d", rc);
+		m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+		m_NCS_IPC_RELEASE(&m_mbx, NULL);
 		return -1;
 	}
 
 	/* Attach mailbox to this thread */
 	if ((rc = m_NCS_IPC_ATTACH(&m_cbkMbx) != NCSCC_RC_SUCCESS)) {
 		LOG_ER("m_NCS_IPC_ATTACH FAILED %d", rc);
+		m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+		m_NCS_IPC_RELEASE(&m_mbx, NULL);
+		m_NCS_IPC_RELEASE(&m_cbkMbx, NULL);
 		return -1;
 	}
 
 	/* Create Imm handle for our runtime objects */
 	if ((rc = createImmHandle(m_campaign)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("createImmHandle FAILED %d", rc);
+		m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+		m_NCS_IPC_RELEASE(&m_mbx, NULL);
+		m_NCS_IPC_DETACH(&m_cbkMbx, NULL, NULL);
+		m_NCS_IPC_RELEASE(&m_cbkMbx, NULL);
 		return -1;
 	}
 

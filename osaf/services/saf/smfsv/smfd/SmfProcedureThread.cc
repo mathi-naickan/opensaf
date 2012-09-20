@@ -79,6 +79,15 @@ SmfProcedureThread::SmfProcedureThread(SmfUpgradeProcedure * procedure):
  */
 SmfProcedureThread::~SmfProcedureThread()
 {
+	TRACE_ENTER();
+
+	/* IPC cleanup */
+	m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+	m_NCS_IPC_RELEASE(&m_mbx, NULL);
+	m_NCS_IPC_DETACH(&m_cbk_mbx, NULL, NULL);
+	m_NCS_IPC_RELEASE(&m_cbk_mbx, NULL);
+
+	TRACE_LEAVE();
 }
 
 /**
@@ -183,18 +192,24 @@ SmfProcedureThread::init(void)
 	/* Attach mailbox to this thread */
 	if ((rc = m_NCS_IPC_ATTACH(&m_mbx) != NCSCC_RC_SUCCESS)) {
 		LOG_ER("m_NCS_IPC_ATTACH FAILED %d", rc);
+		m_NCS_IPC_RELEASE(&m_mbx, NULL);
 		return -1;
 	}
 
 	/* Create the mailbox used for callback communication */
 	if ((rc = m_NCS_IPC_CREATE(&m_cbk_mbx)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("m_NCS_IPC_CREATE FAILED %d", rc);
+		m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+		m_NCS_IPC_RELEASE(&m_mbx, NULL);
 		return -1;
 	}
 
 	/* Attach mailbox to this thread */
 	if ((rc = m_NCS_IPC_ATTACH(&m_cbk_mbx) != NCSCC_RC_SUCCESS)) {
 		LOG_ER("m_NCS_IPC_ATTACH FAILED %d", rc);
+		m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+		m_NCS_IPC_RELEASE(&m_mbx, NULL);
+		m_NCS_IPC_RELEASE(&m_cbk_mbx, NULL);
 		return -1;
 	}
 
@@ -204,6 +219,10 @@ SmfProcedureThread::init(void)
 		/* Create our Imm runtime object */
 		if ((result = createImmProcedure(m_procedure)) != SA_AIS_OK) {
 			LOG_ER("createImmProcedure FAILED %d", result);
+			m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+			m_NCS_IPC_RELEASE(&m_mbx, NULL);
+			m_NCS_IPC_DETACH(&m_cbk_mbx, NULL, NULL);
+			m_NCS_IPC_RELEASE(&m_cbk_mbx, NULL);
 			return -1;
 		}
 	} else if (result == SA_AIS_OK) {
@@ -212,11 +231,19 @@ SmfProcedureThread::init(void)
         		result = m_procedure->getImmSteps();
         		if (result != SA_AIS_OK) {
         			LOG_ER("getImmSteps FAILED %d", result);
+				m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+				m_NCS_IPC_RELEASE(&m_mbx, NULL);
+				m_NCS_IPC_DETACH(&m_cbk_mbx, NULL, NULL);
+				m_NCS_IPC_RELEASE(&m_cbk_mbx, NULL);
         			return -1;
         		}
                 }
 	} else {
 		LOG_ER("getImmProcedure FAILED %d", result);
+		m_NCS_IPC_DETACH(&m_mbx, NULL, NULL);
+		m_NCS_IPC_RELEASE(&m_mbx, NULL);
+		m_NCS_IPC_DETACH(&m_cbk_mbx, NULL, NULL);
+		m_NCS_IPC_RELEASE(&m_cbk_mbx, NULL);
 		return -1;
 	}
 
