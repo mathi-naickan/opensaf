@@ -18,19 +18,17 @@
 
 . /etc/opensaf/osafdir.conf
 
-# NOTE: This script will be customized/replaced accordingly when there's no CLM node to EE mapping in the imm.xml 
-# In such cases rebooting would be done through proprietary mechanisms, i.e. not through PLM.
-# Node_id is (the only entity) at the disposal of any proprietary mechanism.
-#
-# All TIPC bearers are disabled before forced reboot in order to improve controller
-# fail over times.
+# NOTE: This script is a customization point between OpenSAF and a target
+# system and should be changed according to the needs of such system.
+
+# Node fencing: OpenSAF cannot reboot a node when there's no CLM node to
+# PLM EE mapping in the information model. In such cases rebooting would be done
+# through proprietary mechanisms, i.e. not through PLM. Node_id is (the only 
+# entity) at the disposal of such a mechanism.
 
 NODE_ID_FILE=$pkglocalstatedir/node_id
 node_id=$1
 ee_name=$2
-
-tipc_config=`which tipc-config 2> /dev/null`
-test $? -ne 0 && tipc_config="/bin/true"
 
 # Run commands through sudo when not superuser
 test $(id -u) -ne 0 && icmd=$(which sudo 2> /dev/null)
@@ -43,7 +41,6 @@ opensaf_reboot_with_plm()
 	retval=$?
 	if [ $retval != 0 ]; then
 		if [ "$self_node_id" = "$node_id" ];then
-			sudo $tipc_config "-bd=?"
 			sudo /sbin/reboot -f
 		else
 			logger -t "opensaf_reboot" "Rebooting remote node failed"
@@ -70,18 +67,15 @@ if [ "$self_node_id" = "$node_id" ] || [ $node_id = 0 ]; then
 	# uncomment the following line if debugging errors that keep restarting the node
 	# exit 0
 
-        logger -t "opensaf_reboot" "Rebooting local node"
+	logger -t "opensaf_reboot" "Rebooting local node"
 
-# On systems with faster processor (16 core), even with "reboot -f" in place in opensaf_reboot script,
-# FMD process on the same node gets enough time to kill the other controller due to getting TIPC link down
-# resulted due to tipc bearer disable. Hence killing the processes amfnd, amfd and fmd before invoking
-# TIPC bearer disable and reboot -f. FMD is killed so that it will not act on TIPC link down and AMFD/AMFND
-# are killed so that FMD will not be respawned.
-	$icmd pkill osafamfd
-	$icmd pkill osafamfnd
-	$icmd pkill osaffmd
+	# Stop some important opensaf processes to prevent bad things from happening
+	$icmd pkill -STOP osafamfwd
+	$icmd pkill -STOP osafamfnd
+	$icmd pkill -STOP osafamfd
+	$icmd pkill -STOP osaffmd
 
-	$icmd $tipc_config "-bd=?"
+	# Reboot (not shutdown) system WITH file system sync
 	$icmd /sbin/reboot -f
 else
 	if [ ":$ee_name" != ":" ]; then
