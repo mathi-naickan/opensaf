@@ -278,11 +278,19 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 
 	node = clms_node_get_by_name(&node_name);
 	if (node == NULL) {
-		LOG_ER("CLM NodeName %s doesn't match entry in imm.xml. Specify a correct DN name in node_name file ",
+		clm_msg.info.api_resp_info.rc = SA_AIS_ERR_NOT_EXIST;
+		LOG_ER("CLM NodeName: '%s' doesn't match entry in imm.xml. Specify a correct node name in" PKGSYSCONFDIR "/node_name",
 		       nodeup_info->node_name.value);
+	} else if ((cb->node_id != nodeup_info->node_id) && (node->nodeup == SA_TRUE)){
+		clm_msg.info.api_resp_info.rc = SA_AIS_ERR_EXIST;
+		LOG_ER("Duplicate node join request for CLM node: '%s'. Specify a unique node name in" PKGSYSCONFDIR "/node_name",
+		       nodeup_info->node_name.value);
+	} else
+		clm_msg.info.api_resp_info.rc = SA_AIS_OK;
+		
+	if (clm_msg.info.api_resp_info.rc != SA_AIS_OK) {
 		clm_msg.evt_type = CLMSV_CLMS_TO_CLMA_API_RESP_MSG;
 		clm_msg.info.api_resp_info.type = CLMSV_CLUSTER_JOIN_RESP;
-		clm_msg.info.api_resp_info.rc = SA_AIS_ERR_NOT_EXIST;
 		clm_msg.info.api_resp_info.param.node_name = node_name;
 		rc = clms_mds_msg_send(cb, &clm_msg, &evt->fr_dest, &evt->mds_ctxt, MDS_SEND_PRIORITY_HIGH,
 				       NCSMDS_SVC_ID_CLMNA);
@@ -294,7 +302,6 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 	/*we got node, lets send node_agent responce */
 	clm_msg.evt_type = CLMSV_CLMS_TO_CLMA_API_RESP_MSG;
 	clm_msg.info.api_resp_info.type = CLMSV_CLUSTER_JOIN_RESP;
-	clm_msg.info.api_resp_info.rc = SA_AIS_OK;
 	clm_msg.info.api_resp_info.param.node_name = node_name;
 	/*rc will be updated down in the positive flow */
 	rc = clms_mds_msg_send(cb, &clm_msg, &evt->fr_dest, &evt->mds_ctxt, MDS_SEND_PRIORITY_HIGH,

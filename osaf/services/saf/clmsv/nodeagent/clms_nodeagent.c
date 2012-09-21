@@ -480,6 +480,11 @@ int main(int argc, char *argv[])
 				       o_msg->info.api_resp_info.param.node_name.value);
 				free(o_msg);
 				goto done;
+			} else if (rc == SA_AIS_ERR_EXIST) {
+				LOG_ER("%s is already up. Specify a unique name in" PKGSYSCONFDIR "/node_name",
+				       o_msg->info.api_resp_info.param.node_name.value);
+				free(o_msg);
+				goto done;
 			}
 
 			if (rc == SA_AIS_OK)
