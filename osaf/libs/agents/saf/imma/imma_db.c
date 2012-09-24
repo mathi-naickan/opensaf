@@ -593,6 +593,11 @@ void imma_mark_clients_stale(IMMA_CB *cb, bool mark_exposed)
 		temp_hdl = clnode->handle;
 		temp_ptr = &temp_hdl;
 
+		if(clnode->isPbe) {
+			LOG_WA("PBE lost contact with parent IMMND - Exiting");
+			exit(1);
+		}
+
 		/* Process OM side CCBs */
 		while ((ccb_node = (IMMA_CCB_NODE *)
 				   ncs_patricia_tree_getnext(&cb->ccb_tree, (uint8_t *)ccb_temp_ptr))) {

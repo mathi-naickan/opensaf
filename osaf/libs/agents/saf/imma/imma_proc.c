@@ -1871,6 +1871,7 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 		case IMMA_CALLBACK_STALE_HANDLE:
 			TRACE("Stale OM handle upcall completed");
 			/* Do nothing. */
+			osafassert(!cl_node->isPbe); /* Should have exited in imma_mark_clients_stale() */
 			break;
 
 		default:
