@@ -287,7 +287,8 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 	bool badfile = false;
 
 	const char * sql_tr[] = 
-		{"BEGIN EXCLUSIVE TRANSACTION",
+		{"PRAGMA journal_mode=TRUNCATE", /* sql_tr[0] also invoked by re_attach below. */
+		 "BEGIN EXCLUSIVE TRANSACTION",
 		 "CREATE TABLE pbe_rep_version (major integer, minor integer)",
 		 "INSERT INTO pbe_rep_version (major, minor) values('1', '1')",
 		 "CREATE TABLE classes (class_id integer primary key, class_category integer, class_name text)",
@@ -425,8 +426,21 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 		std::string journalFile(filePath);
 		journalFile.append("-journal");
 		if(access(journalFile.c_str(), F_OK) != (-1)) {
-			LOG_WA("Journal file %s exists at open for PBE/immdump => sqlite recovery",
-				journalFile.c_str());
+			struct stat stat_buf;
+			memset(&stat_buf, 0, sizeof(struct stat));
+			if(stat(journalFile.c_str(), &stat_buf)==0) {
+				if(stat_buf.st_size) {
+					LOG_WA("Journal file %s size:%zu exists at "
+						"start of PBE/immdump => sqlite recovery",
+						journalFile.c_str(), stat_buf.st_size);
+				} else {
+					TRACE_2("Journal file %s exists and is empty at "
+						"start of PBE/immdump", journalFile.c_str());
+				}
+			} else {
+				LOG_WA("Journal file %s exists but could not stat() at "
+					"start of PBE/immdump",	journalFile.c_str());
+			}
 		}
 	}
 
@@ -473,6 +487,15 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 		goto bailout;
 	}
 	
+	rc = sqlite3_exec(dbHandle, sql_tr[0], NULL, NULL, &zErr);
+	if (rc != SQLITE_OK) {
+		LOG_ER("SQL statement ('%s') failed because:\n %s", sql_tr[0], zErr);
+		sqlite3_free(zErr);
+		goto bailout;
+	}
+	TRACE("Successfully executed %s", sql_tr[0]);
+
+
 	sPbeFileName = std::string(filePath); /* Avoid apend to presumed empty string */
 
 	TRACE_LEAVE();
@@ -2016,6 +2039,8 @@ void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 		goto bailout;
 	}
 
+	fsyncPbeJournalFile();
+
 	TRACE_LEAVE();
 	return;
 
@@ -2198,6 +2223,8 @@ unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 		goto bailout;
 	}
 
+	fsyncPbeJournalFile();
+
 	/* End the search */
 	saImmOmSearchFinalize(searchHandle);
 	TRACE_LEAVE();
@@ -2270,6 +2297,9 @@ SaAisErrorT pbeCommitTrans(void* db_handle, SaUint64T ccbId, SaUint32T currentEp
 		sqlite3_free(execErr);
 		return SA_AIS_ERR_FAILED_OPERATION;
 	}
+
+	fsyncPbeJournalFile();
+
 	return SA_AIS_OK;
 }
 
@@ -2538,4 +2568,19 @@ void discardPbeFile(std::string filename)
 		}
 	}
 
+}
+
+void fsyncPbeJournalFile()
+{
+	int fd=(-1);
+	std::string globalJournalFilename(sPbeFileName);
+	globalJournalFilename.append("-journal");
+	fd = open(globalJournalFilename.c_str(), O_RDWR);
+	if(fd != (-1)) {
+		/* Sync the -journal file */
+		if(fdatasync(fd)==(-1)) {
+			LOG_WA("Failed to fdatasync %s ", globalJournalFilename.c_str());
+		}
+		close(fd);
+	}
 }

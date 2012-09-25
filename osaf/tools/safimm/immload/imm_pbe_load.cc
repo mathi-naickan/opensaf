@@ -67,10 +67,22 @@ void* checkPbeRepositoryInit(std::string dir, std::string file)
 		std::string journalFile(filename);
 		journalFile.append("-journal");
 		if(access(journalFile.c_str(), F_OK) != (-1)) {
-			LOG_WA("Journal file %s exists at open for loading => sqlite recovery",
-				journalFile.c_str());
+			struct stat stat_buf;
+			memset(&stat_buf, 0, sizeof(struct stat));
+			if(stat(journalFile.c_str(), &stat_buf)==0) {
+				if(stat_buf.st_size) {
+					LOG_WA("Journal file %s size %zu exists at "
+						"open for loading => sqlite recovery",
+						journalFile.c_str(), stat_buf.st_size);
+				} else {
+					TRACE_2("Journal file %s exists and is empty at "
+						"open for loading", journalFile.c_str());
+				}
+			} else {
+				LOG_WA("Journal file %s exists but could not stat() at "
+					"open for loading", journalFile.c_str());
+			}
 		}
-
 	}
 
 	rc = sqlite3_open(filename.c_str(), ((sqlite3 **) &dbHandle));
