@@ -119,6 +119,7 @@ typedef struct immnd_cb_tag {
 	uint8_t mIsCoord;
 	uint8_t mLostNodes;       //Detached & not syncreq => delay sync start
 	uint8_t mBlockPbeEnable;  //Current PBE has not completed shutdown yet.
+	uint8_t mPbeKills;        //If != 0 then immnd has tried to kill Pbe.
 
 	/* Information about the IMMD */
 	MDS_DEST immd_mdest_id;

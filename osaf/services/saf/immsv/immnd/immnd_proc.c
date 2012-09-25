@@ -1133,9 +1133,15 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 
 	if(pbePrtoStuck) {
 		if(cb->pbePid > 0) {
-			LOG_ER("PBE process %u appears stuck on runtime data handling "
-				"- sending SIGTERM", cb->pbePid);
-			kill(cb->pbePid, SIGTERM);
+			if((cb->mPbeKills++)==0) {
+				LOG_WA("PBE process %u appears stuck on runtime data handling "
+					"- sending SIGTERM", cb->pbePid);
+				kill(cb->pbePid, SIGTERM);
+			} else if(cb->mPbeKills > 20) {
+				LOG_WA("PBE process %u appears stuck on runtime data handling "
+					"- sending SIGKILL", cb->pbePid);
+				kill(cb->pbePid, SIGKILL);
+			}
 		}
 	}
 
@@ -1179,9 +1185,16 @@ static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration)
 
 	if(!(duration % 2) && !pbeIsInSync) { /* Every two seconds check on pbe */
 		if(cb->pbePid > 0) {
-			LOG_WA("Persistent back end process appears hung, restarting it.");
-			kill(cb->pbePid, SIGTERM);
-			/* Forces PBE to restart which forces syncronization. */
+			/* Force PBE to restart which forces immnd/imm.db syncronization. 
+			   See also immnd_cleanTheHouse() above.
+			 */
+			if((cb->mPbeKills++)==0) {
+				LOG_WA("Persistent back end process appears hung, restarting it.");
+				kill(cb->pbePid, SIGTERM);
+			} else if(cb->mPbeKills > 10) {
+				LOG_WA("Persistent back end process appears hung, sending SIGKILL");
+				kill(cb->pbePid, SIGKILL);
+			}
 		} else {
 			/* Purge old Prto mutations before restarting PBE */
 			TRACE_5("immnd_ccbsTerminated coord/sync invoking "
@@ -1719,6 +1732,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 				if (waitpid(cb->pbePid, &status, WNOHANG) > 0) {
 					LOG_WA("Persistent back-end process has apparently died.");
 					cb->pbePid = 0;
+					cb->mPbeKills = 0;
 					if(!immModel_pbeIsInSync(cb, false)) {
 						TRACE_5("Sync-server/coord invoking "
 							"immnd_pbePrtoPurgeMutations");
@@ -1797,6 +1811,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 			if (waitpid(cb->pbePid, &status, WNOHANG) > 0) {
 				LOG_WA("Persistent back-end process has apparently died.");
 				cb->pbePid = 0;
+				cb->mPbeKills = 0;
 				if(!immModel_pbeIsInSync(cb, false)) {
 					TRACE_5("Server-ready/coord invoking "
 						"immnd_pbePrtoPurgeMutations");
@@ -1858,8 +1873,14 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 					osafassert(cb->pbePid > 0); 
 					if (cb->mRim == SA_IMM_INIT_FROM_FILE || cb->mBlockPbeEnable) {
 						/* Pbe should NOT run.*/
-						LOG_NO("STOPPING persistent back end process.");
-						kill(cb->pbePid, SIGTERM);
+						if((cb->mPbeKills++)==0) {
+							LOG_NO("STOPPING persistent back end process.");
+							kill(cb->pbePid, SIGTERM);
+						} else if(cb->mPbeKills > 20) {
+							LOG_WA("Persistent back end process appears hung, "
+								"sending SIGKILL");
+							kill(cb->pbePid, SIGKILL);
+						}
 					}
 				}
 			}
