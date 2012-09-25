@@ -31,19 +31,6 @@
 #define XML_VERSION "1.0"
 
 /* Prototypes */
-static void dumpClasses(SaImmHandleT, xmlNodePtr);
-static void classToXML(std::string, SaImmHandleT, xmlNodePtr);
-static void objectToXML(std::string, 
-                        SaImmAttrValuesT_2**, 
-                        SaImmHandleT, 
-                        std::map<std::string, std::string>,
-                     	xmlNodePtr);
-static void valuesToXML(SaImmAttrValuesT_2* p, xmlNodePtr parent);
-static void dumpObjects(SaImmHandleT, 
-                        std::map<std::string, std::string>,
-                        xmlNodePtr);
-static void flagsToXML(SaImmAttrDefinitionT_2*, xmlNodePtr);
-static void typeToXML(SaImmAttrDefinitionT_2*, xmlNodePtr);
 static std::map<std::string, std::string> cacheRDNs(SaImmHandleT);
 
 static void usage(const char *progname)
@@ -61,9 +48,7 @@ static void usage(const char *progname)
     printf("\t-h, --help\n");
     printf("\t\tthis help\n\n");
     printf("\t-x, --xmlwriter   {<file name>}\n");
-    printf("\t\tGenerate xml file using xmlWriter instead of xmlDoc (saves memory)\n\n");
-    printf("\t-y, --yyy   {<file name>}\n");
-    printf("\t\tGenerate xml file using the old xmlDoc instead of xmlWriter\n\n");
+    printf("\t\tOption kept only for backward compatibility\n\n");
 
     printf("\t-p, --pbe   {<file name>}\n");
     printf("\t\tInstead of xml file, generate/populate persistent back-end database/file\n");
@@ -109,7 +94,6 @@ int main(int argc, char* argv[])
         {"pbe", required_argument, 0, 'p'},
         {"recover", no_argument, 0, 'r'},
         {"xmlwriter", no_argument, 0, 'x'},
-        {"yyy", no_argument, 0, 'y'},
         {0, 0, 0, 0}
     };
     SaImmHandleT           immHandle;
@@ -138,7 +122,6 @@ int main(int argc, char* argv[])
     bool pbeDumpCase = false;
     bool pbeDaemonCase = false;
     bool pbeRecoverFile = false;
-    bool xmlwDumpCase = true;
     void* dbHandle=NULL;
     const char* dump_trace_label = "immdump";
     const char* pbe_daemon_trace_label = "immpbe";
@@ -200,12 +183,6 @@ int main(int argc, char* argv[])
                     break;
 
                 case 'x':
-                    xmlwDumpCase = true;
-                    filename.append(optarg);
-                    break;
-
-                case 'y':
-                    xmlwDumpCase = false;
                     filename.append(optarg);
                     break;
 
@@ -359,190 +336,69 @@ int main(int argc, char* argv[])
     assert(!pbeDumpCase && !pbeDaemonCase);
 
 
+    /* xmlWriter dump case */
+	std::cout << "Dumping current IMM state to XML file " << filename <<
+		" using XMLWriter" << std::endl;
 
-    if(xmlwDumpCase) {
-        std::cout << "Dumping current IMM state to XML file " << filename << 
-            " using XMLWriter" << std::endl;
+	xmlTextWriterPtr writer=xmlNewTextWriterFilename(filename.c_str(),0);
 
-        xmlTextWriterPtr writer=xmlNewTextWriterFilename(filename.c_str(),0);
+	if(writer == NULL)  {
+		std::cout << "Error at xmlNewTextWriterFilename" << std::endl;
+		exit(1);
+	}
 
-        if(writer == NULL)  {
-            std::cout << "Error at xmlNewTextWriterFilename" << std::endl;
-            exit(1);
-        }
+	if(xmlTextWriterSetIndent(writer,1) < 0)  {
+		std::cout << "Error at xmlTextWriterSetIndent" << std::endl;
+		exit(1);
+	}
 
-        if(xmlTextWriterSetIndent(writer,1) < 0)  {
-            std::cout << "Error at xmlTextWriterSetIndent" << std::endl;
-            exit(1);
-        }
- 
-        if(xmlTextWriterSetIndentString(writer,(xmlChar *)"  ") < 0)  {
-            std::cout << "Error at xmlTextWriterSetIndentString" << std::endl;
-            exit(1);
-        }
+	if(xmlTextWriterSetIndentString(writer,(xmlChar *)"  ") < 0)  {
+		std::cout << "Error at xmlTextWriterSetIndentString" << std::endl;
+		exit(1);
+	}
 
-        /* Create a new xml document */
-        if(xmlTextWriterStartDocument(writer,NULL,NULL,NULL) < 0) {
-            std::cout << "Error at xmlTextWriterStartDocument" << std::endl;
-            exit(1);
-        }
+	/* Create a new xml document */
+	if(xmlTextWriterStartDocument(writer,NULL,NULL,NULL) < 0) {
+		std::cout << "Error at xmlTextWriterStartDocument" << std::endl;
+		exit(1);
+	}
 
-        if(xmlTextWriterStartElementNS(writer, (xmlChar*) "imm",(xmlChar *)"IMM-contents"
-           ,(xmlChar *)"http://www.saforum.org/IMMSchema") < 0) {
-            std::cout <<"Error at xmlTextWriterStartElementNS (IMM-contents)" << std::endl;
-            exit(1);
-        }
+	if(xmlTextWriterStartElementNS(writer, (xmlChar*) "imm",(xmlChar *)"IMM-contents"
+	   ,(xmlChar *)"http://www.saforum.org/IMMSchema") < 0) {
+		std::cout <<"Error at xmlTextWriterStartElementNS (IMM-contents)" << std::endl;
+		exit(1);
+	}
 
-        if(xmlTextWriterWriteAttributeNS(writer, (xmlChar*) "xmlns",(xmlChar *)"xsi", NULL,
-           (xmlChar *)"http://www.w3.org/2001/XMLSchema-instance") < 0) {
-            std::cout <<"Error at xmlTextWriterWriteAttribute (attribute 1)" << std::endl;
-            exit(1);
-        }
+	if(xmlTextWriterWriteAttributeNS(writer, (xmlChar*) "xmlns",(xmlChar *)"xsi", NULL,
+	   (xmlChar *)"http://www.w3.org/2001/XMLSchema-instance") < 0) {
+		std::cout <<"Error at xmlTextWriterWriteAttribute (attribute 1)" << std::endl;
+		exit(1);
+	}
 
-        if(xmlTextWriterWriteAttributeNS(writer,
-           (xmlChar*)"xsi",(xmlChar *)"noNamespaceSchemaLocation", NULL,
-           (xmlChar*)"SAI-AIS-IMM-XSD-A.01.01.xsd") < 0) {
-            std::cout <<"Error at xmlTextWriterWriteAttribute (attribute 2)" << std::endl;
-            exit(1);
-        }
+	if(xmlTextWriterWriteAttributeNS(writer,
+	   (xmlChar*)"xsi",(xmlChar *)"noNamespaceSchemaLocation", NULL,
+	   (xmlChar*)"SAI-AIS-IMM-XSD-A.01.01.xsd") < 0) {
+		std::cout <<"Error at xmlTextWriterWriteAttribute (attribute 2)" << std::endl;
+		exit(1);
+	}
 
-        classRDNMap = cacheRDNs(immHandle);
+	classRDNMap = cacheRDNs(immHandle);
 
-        dumpClassesXMLw(immHandle, writer);
+	dumpClassesXMLw(immHandle, writer);
 
-        dumpObjectsXMLw(immHandle, classRDNMap, writer);
+	dumpObjectsXMLw(immHandle, classRDNMap, writer);
 
-        /* Close element named imm:IMM-contents */
-        if( xmlTextWriterEndElement(writer) < 0) {
-          std::cout << "Error at xmlTextWriterEndElement" << std::endl;
-          exit(1);
-        }
+	/* Close element named imm:IMM-contents */
+	if( xmlTextWriterEndElement(writer) < 0) {
+	  std::cout << "Error at xmlTextWriterEndElement" << std::endl;
+	  exit(1);
+	}
 
-        xmlFreeTextWriter(writer);
-        xmlCleanupParser();
-        xmlMemoryDump();
-
-        exit(0);
-    }
-
-    /* Normal dump/export case to XML file. */
-    xmlDocPtr xmlDoc;
-    xmlNodePtr xmlImmRoot;
-
-    filename.append(argv[1]);
-    std::cout << "Dumping the current IMM state to XML" << std::endl;
-
-    /* Create a new xml document */
-    xmlDoc = xmlNewDoc((xmlChar*)XML_VERSION);
-    xmlImmRoot = xmlNewNode(NULL, (const xmlChar*)"imm:IMM-contents");
-
-    xmlDocSetRootElement(xmlDoc, xmlImmRoot);
-
-    classRDNMap = cacheRDNs(immHandle);
-
-    dumpClasses(immHandle, xmlImmRoot);
-
-    dumpObjects(immHandle, classRDNMap, xmlImmRoot);
-
-    std::cout << "Wrote " 
-        << xmlSaveFormatFile (filename.c_str(), xmlDoc, 1) 
-            << std::endl;
+	xmlFreeTextWriter(writer);
+	xmlCleanupParser();
+	xmlMemoryDump();
 
     return 0;
-}
-
-static void dumpObjects(SaImmHandleT immHandle, 
-                        std::map<std::string, std::string> classRDNMap,
-                        xmlNodePtr parent)
-{
-    SaNameT                root;
-    SaImmSearchHandleT     searchHandle;
-    SaAisErrorT            errorCode;
-    SaNameT                objectName;
-    SaImmAttrValuesT_2**   attrs;
-    unsigned int           retryInterval = 1000000; /* 1 sec */
-    unsigned int           maxTries = 70;          /* 70 times == max 70 secs */
-    unsigned int           tryCount=0;
-    TRACE_ENTER();
-
-    root.length = 0;
-    strncpy((char*)root.value, "", 3);
-
-    /* Initialize immOmSearch */
-
-    TRACE_1("Before searchInitialize");
-    do {
-        if(tryCount) {
-            usleep(retryInterval);
-        }
-        ++tryCount;
-
-        errorCode = saImmOmSearchInitialize_2(immHandle, 
-            &root, 
-            SA_IMM_SUBTREE,
-            (SaImmSearchOptionsT)
-            (SA_IMM_SEARCH_ONE_ATTR | 
-                SA_IMM_SEARCH_GET_ALL_ATTR |
-                SA_IMM_SEARCH_PERSISTENT_ATTRS),/*only persistent rtattrs*/
-            NULL/*&params*/, 
-            NULL, 
-            &searchHandle);
-
-    } while ((errorCode == SA_AIS_ERR_TRY_AGAIN) &&
-              (tryCount < maxTries)); /* Can happen if imm is syncing. */
-
-    TRACE_1("After searchInitialize rc:%u", errorCode);
-    if (SA_AIS_OK != errorCode)
-    {
-        std::cerr << "Failed on saImmOmSearchInitialize - exiting " 
-            << errorCode 
-            << std::endl;
-
-        exit(1);
-    }
-
-    /* Iterate through the object space */
-    do
-    {
-        errorCode = saImmOmSearchNext_2(searchHandle, 
-                                        &objectName, 
-                                        &attrs);
-
-        if (SA_AIS_OK != errorCode)
-        {
-            break;
-        }
-
-        if (attrs[0] == NULL)
-        {
-            continue;
-        }
-
-        objectToXML(std::string((char*)objectName.value, objectName.length),
-                    attrs,
-                    immHandle,
-                    classRDNMap,
-                    parent);
-    } while (SA_AIS_OK == errorCode);
-
-    if (SA_AIS_ERR_NOT_EXIST != errorCode)
-    {
-        std::cerr << "Failed in saImmOmSearchNext_2 - exiting"
-            << errorCode
-            << std::endl;
-        exit(1);
-    }
-
-    /* End the search */
-    errorCode = saImmOmSearchFinalize(searchHandle);
-    if (SA_AIS_OK != errorCode)
-    {
-        std::cerr << "Failed to finalize the search connection - exiting"
-            << errorCode
-            << std::endl;
-        exit(1);
-    }
-    TRACE_LEAVE();
 }
 
 std::string getClassName(const SaImmAttrValuesT_2** attrs)
@@ -585,219 +441,6 @@ std::string getClassName(const SaImmAttrValuesT_2** attrs)
         << std::endl;    
     exit(1);
 }
-
-static void dumpClasses(SaImmHandleT immHandle, xmlNodePtr parent)
-{
-    std::list<std::string> classNameList;
-    std::list<std::string>::iterator it;
-    TRACE_ENTER();
-
-    classNameList = getClassNames(immHandle);
-
-    it = classNameList.begin();
-
-    while (it != classNameList.end())
-    {
-        classToXML(*it, immHandle, parent);
-
-        it++;
-    }
-    TRACE_LEAVE();
-}
-
-static void classToXML(std::string classNameString,
-                       SaImmHandleT immHandle,
-                       xmlNodePtr parent)
-{
-    SaImmClassCategoryT classCategory;
-    SaImmAttrDefinitionT_2 **attrDefinitions;
-    SaAisErrorT errorCode;
-    xmlNodePtr  classNode;
-    TRACE_ENTER();
-    /* Get the class description */
-    errorCode = saImmOmClassDescriptionGet_2(immHandle,
-                                             (char*)classNameString.c_str(),
-                                             &classCategory,
-                                             &attrDefinitions);
-    if (SA_AIS_OK != errorCode)
-    {
-        std::cerr << "Failed to get the description for the " 
-            << classNameString
-            << " class - exiting, "
-            << errorCode
-            << std::endl;
-        exit(1);
-    }
-
-    classNode = xmlNewTextChild(parent, 
-                                NULL,
-                                (xmlChar*)"class",
-                                NULL);
-
-    xmlNewTextChild(classNode,
-                    NULL,
-                    (xmlChar*)"category",
-                    (xmlChar*)((classCategory == SA_IMM_CLASS_CONFIG)?
-                               "SA_CONFIG":"SA_RUNTIME"));
-
-    xmlSetNsProp(classNode,
-                 NULL,
-                 (xmlChar*)"name",
-                 (xmlChar*)classNameString.c_str());
-
-    /* List the attributes*/
-    for (SaImmAttrDefinitionT_2** p = attrDefinitions; *p != NULL; p++)
-    {
-        xmlNodePtr attrNode;
-        if ((*p)->attrFlags & SA_IMM_ATTR_RDN)
-        {
-            attrNode = xmlNewTextChild(classNode,
-                                       NULL,
-                                       (xmlChar*)"rdn",
-                                       NULL);
-        }
-        else
-	    continue;
-
-        xmlNewTextChild(attrNode,
-                        NULL,
-                        (xmlChar*)"name",
-                        (xmlChar*)(*p)->attrName);
-
-        if ((*p)->attrDefaultValue != NULL)
-        {
-            xmlNewTextChild(attrNode,
-                            NULL,
-                            (xmlChar*)"default-value",
-                            (xmlChar*)valueToString((*p)->attrDefaultValue,
-                                                    (*p)->attrValueType).c_str());
-        }
-
-        typeToXML(*p, attrNode);
-
-        flagsToXML(*p, attrNode);
-    }
-
-    for (SaImmAttrDefinitionT_2** p = attrDefinitions; *p != NULL; p++)
-    {
-        xmlNodePtr attrNode;
-        if ((*p)->attrFlags & SA_IMM_ATTR_RDN)
-		continue;
-        else
-        {
-            attrNode = xmlNewTextChild(classNode,
-                                       NULL,
-                                       (xmlChar*)"attr",
-                                       NULL);
-        }
-    
-        xmlNewTextChild(attrNode,
-                        NULL,
-                        (xmlChar*)"name", 
-                        (xmlChar*)(*p)->attrName);
-    
-        if ((*p)->attrDefaultValue != NULL)
-        {
-            xmlNewTextChild(attrNode,
-                            NULL,
-                            (xmlChar*)"default-value",
-                            (xmlChar*)valueToString((*p)->attrDefaultValue,
-                                                    (*p)->attrValueType).c_str());
-        }
-
-        typeToXML(*p, attrNode);
-
-        flagsToXML(*p, attrNode); 
-    }
-
-
-    errorCode = 
-        saImmOmClassDescriptionMemoryFree_2(immHandle, attrDefinitions);
-    if (SA_AIS_OK != errorCode)
-    {
-        std::cerr << "Failed to free the description of class "
-            << classNameString
-            << std::endl;
-        exit(1);
-    }
-    TRACE_LEAVE();
-}
-
-static void objectToXML(std::string objectNameString,
-                        SaImmAttrValuesT_2** attrs,
-                        SaImmHandleT immHandle,
-                        std::map<std::string, std::string> classRDNMap,
-                       	xmlNodePtr parent)
-{
-    std::string valueString;
-    std::string classNameString;
-    xmlNodePtr objectNode;
-    TRACE_ENTER();
-
-    //std::cout << "Dumping object " << objectNameString << std::endl;
-    classNameString = getClassName((const SaImmAttrValuesT_2**) attrs);
-    /* Create the object tag */
-    objectNode = xmlNewTextChild(parent, 
-                                 NULL, 
-                                 (xmlChar*)"object", 
-                                 NULL);
-    xmlSetNsProp(objectNode, 
-                 NULL, 
-                 (xmlChar*)"class", 
-                 (xmlChar*)classNameString.c_str());
-    xmlNewTextChild(objectNode,
-                    NULL,
-                    (xmlChar*)"dn",
-                    (xmlChar*)objectNameString.c_str());
-    for (SaImmAttrValuesT_2** p = attrs; *p != NULL; p++)
-    {
-        /* Skip attributes with attrValues = NULL */
-        if ((*p)->attrValues == NULL)
-        {
-            continue;
-        }
-
-        xmlNodePtr attrNode;
-        if (classRDNMap.find(classNameString) != classRDNMap.end() &&
-            classRDNMap[classNameString] == std::string((*p)->attrName))
-        {
-            continue;
-        }
-        else
-        {
-            attrNode = xmlNewTextChild(objectNode,
-                                       NULL,
-                                       (xmlChar*)"attr",
-                                       NULL);
-        }
-        xmlNewTextChild(attrNode,
-                        NULL,
-                        (xmlChar*)"name",
-                        (xmlChar*)(*p)->attrName);
-
-        valuesToXML(*p, attrNode);
-    }
-    TRACE_LEAVE();
-}
-
-static void valuesToXML(SaImmAttrValuesT_2* p, xmlNodePtr parent)
-{
-    if (!p->attrValues)
-    {
-       //std::cout << "No values!" << std::endl;
-        return;
-    }
-
-    for (unsigned int i = 0; i < p->attrValuesNumber; i++)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"value",
-                        (xmlChar*)valueToString(p->attrValues[i], 
-                                                p->attrValueType).c_str());
-    }
-}
-
 
 std::string valueToString(SaImmAttrValueT value, SaImmValueTypeT type)
 {
@@ -859,141 +502,6 @@ std::string valueToString(SaImmAttrValueT value, SaImmValueTypeT type)
     }
 
     return ost.str().c_str();
-}
-
-static void flagsToXML(SaImmAttrDefinitionT_2* p, xmlNodePtr parent)
-{
-    SaImmAttrFlagsT flags;
-
-    flags = p->attrFlags;
-
-    if (flags & SA_IMM_ATTR_CONFIG)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"category",
-                        (xmlChar*)"SA_CONFIG");
-    }
-
-    if (flags & SA_IMM_ATTR_RUNTIME)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"category",
-                        (xmlChar*)"SA_RUNTIME");
-    }
-
-    if (flags & SA_IMM_ATTR_MULTI_VALUE)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"flag",
-                        (xmlChar*)"SA_MULTI_VALUE");
-    }
-
-
-    if (flags & SA_IMM_ATTR_WRITABLE)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"flag",
-                        (xmlChar*)"SA_WRITABLE");
-    }
-
-    if (flags & SA_IMM_ATTR_INITIALIZED)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"flag",
-                        (xmlChar*)"SA_INITIALIZED");
-    }
-
-    if (flags & SA_IMM_ATTR_PERSISTENT)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"flag",
-                        (xmlChar*)"SA_PERSISTENT");
-    }
-
-    if (flags & SA_IMM_ATTR_CACHED)
-    {
-        xmlNewTextChild(parent,
-                        NULL,
-                        (xmlChar*)"flag",
-                        (xmlChar*)"SA_CACHED");
-    }
-}
-
-static void typeToXML(SaImmAttrDefinitionT_2* p, xmlNodePtr parent)
-{
-
-    switch (p->attrValueType)
-    {
-        case SA_IMM_ATTR_SAINT32T: 
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_INT32_T");
-            break;
-        case SA_IMM_ATTR_SAUINT32T: 
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_UINT32_T");
-            break;
-        case SA_IMM_ATTR_SAINT64T:  
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_INT64_T");
-            break;
-        case SA_IMM_ATTR_SAUINT64T: 
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_UINT64_T");
-            break;
-        case SA_IMM_ATTR_SATIMET:   
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_TIME_T");
-            break;
-        case SA_IMM_ATTR_SAFLOATT:  
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_FLOAT_T");
-            break;
-        case SA_IMM_ATTR_SADOUBLET: 
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_DOUBLE_T");
-            break;
-        case SA_IMM_ATTR_SANAMET:
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_NAME_T");
-            break;
-        case SA_IMM_ATTR_SASTRINGT:
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_STRING_T");
-            break;
-        case SA_IMM_ATTR_SAANYT:
-            xmlNewTextChild(parent,
-                            NULL,
-                            (xmlChar*)"type",
-                            (xmlChar*)"SA_ANY_T");
-            break;
-        default:
-            std::cerr << "Unknown value type" << std::endl;
-            exit(1);
-    }
 }
 
 std::list<std::string> getClassNames(SaImmHandleT immHandle)
