@@ -1807,8 +1807,9 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 
 		coord = immnd_iAmCoordinator(cb);
 
-		if(((*timeout) >= 1000) || (((*timeout) < 1000) && (((cb->mStep+1) % 30)==0))) {
+		if((cb->mStep == 0) || (cb->mCleanedHouseAt != jobDuration)) {
 			immnd_cleanTheHouse(cb, coord == 1);
+			cb->mCleanedHouseAt = jobDuration;
 		}
 
 		if ((coord == 1) && (cb->mStep > 1)) {

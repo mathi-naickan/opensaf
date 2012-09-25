@@ -142,6 +142,7 @@ typedef struct immnd_cb_tag {
 	const char *mFile;	//The imm.xml file to start from
 	const char *mPbeFile;   //Pbe feature is configured (IMMSV_PBE_FILE).
 	SaImmRepositoryInitModeT mRim; 
+	uint32_t mCleanedHouseAt; //When cleanTheHouse was executed (immnd_proc.c)
 
 	uint8_t mExpectedNodes;
 	uint8_t mWaitSecs;
