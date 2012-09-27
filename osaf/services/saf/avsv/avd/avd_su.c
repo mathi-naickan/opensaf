@@ -531,14 +531,14 @@ static AVD_AVND *map_su_to_node(AVD_SU *su)
 		osafassert(node);
 
 		if (su->sg_of_su->sg_ncs_spec == SA_TRUE) {
-			for (su_temp = node->list_of_ncs_su; su_temp != NULL; su_temp = su_temp->sg_list_su_next) {
+			for (su_temp = node->list_of_ncs_su; su_temp != NULL; su_temp = su_temp->avnd_list_su_next) {
 				if (su_temp->sg_of_su == su->sg_of_su)
 					break;
 			}
 		}
 
 		if (su->sg_of_su->sg_ncs_spec == SA_FALSE) {
-			for (su_temp = node->list_of_su; su_temp != NULL; su_temp = su_temp->sg_list_su_next) {
+			for (su_temp = node->list_of_su; su_temp != NULL; su_temp = su_temp->avnd_list_su_next) {
 				if (su_temp->sg_of_su == su->sg_of_su)
 					break;
 			}
