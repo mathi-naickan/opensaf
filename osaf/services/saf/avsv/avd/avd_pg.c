@@ -162,6 +162,7 @@ uint32_t avd_pg_compcsi_chg_prc(AVD_CL_CB *cb, AVD_COMP_CSI_REL *comp_csi, bool 
 {
 	AVD_PG_CSI_NODE *csi_node = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	TRACE_ENTER();
 
 	/* generate pg upd for each track req */
 	for (csi_node =
@@ -171,7 +172,7 @@ uint32_t avd_pg_compcsi_chg_prc(AVD_CL_CB *cb, AVD_COMP_CSI_REL *comp_csi, bool 
 					(true == is_rmv) ? SA_AMF_PROTECTION_GROUP_REMOVED :
 					SA_AMF_PROTECTION_GROUP_ADDED, 0);
 	}			/* for */
-
+	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 

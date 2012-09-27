@@ -155,7 +155,7 @@ extern void avd_cstype_constructor(void);
 
 extern SaAisErrorT avd_csiattr_config_get(const SaNameT *csi_name, AVD_CSI *csi);
 extern void avd_csiattr_constructor(void);
-extern uint32_t avd_compcsi_from_csi_and_susi_delete(struct avd_su_si_rel_tag *susi, struct avd_comp_csi_rel_tag *comp_csi, bool ckpt);
+extern void avd_compcsi_from_csi_and_susi_delete(struct avd_su_si_rel_tag *susi, struct avd_comp_csi_rel_tag *comp_csi, bool ckpt);
 extern void avd_csi_delete(struct avd_csi_tag *csi);
 extern void csi_cmplt_delete(struct avd_csi_tag *csi, SaBoolT ckpt);
 extern AVD_CSI *csi_create(const SaNameT *csi_name);

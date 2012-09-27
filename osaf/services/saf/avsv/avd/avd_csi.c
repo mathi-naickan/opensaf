@@ -30,6 +30,7 @@ void avd_csi_delete(AVD_CSI *csi)
 {
 	AVD_CSI_ATTR *temp;
 	unsigned int rc;
+	TRACE_ENTER2("%s", csi->name.value);
 
 	/* Delete CSI attributes */
 	temp = csi->list_attributes;
@@ -44,11 +45,13 @@ void avd_csi_delete(AVD_CSI *csi)
 	rc = ncs_patricia_tree_del(&csi_db, &csi->tree_node);
 	osafassert(rc == NCSCC_RC_SUCCESS);
 	free(csi);
+	TRACE_LEAVE2();
 }
 
 void csi_cmplt_delete(AVD_CSI *csi, SaBoolT ckpt)
 {
-        AVD_PG_CSI_NODE *curr;
+	AVD_PG_CSI_NODE *curr;
+	TRACE_ENTER2("%s", csi->name.value);
 	if (!ckpt) {
 		/* inform the avnds that track this csi */
 		for (curr = (AVD_PG_CSI_NODE *)m_NCS_DBLIST_FIND_FIRST(&csi->pg_node_list);
@@ -62,6 +65,7 @@ void csi_cmplt_delete(AVD_CSI *csi, SaBoolT ckpt)
 
         /* free memory and remove from DB */
         avd_csi_delete(csi);
+	TRACE_LEAVE2();
 }
 
 AVD_CSI *avd_csi_get(const SaNameT *dn)
@@ -423,6 +427,19 @@ static SaAisErrorT csi_ccb_completed_create_hdlr(CcbUtilOperationData_t *opdata)
 		if (NULL != avd_si->list_of_sisu) {
 			t_sisu = avd_si->list_of_sisu;
 			while(t_sisu) {
+				if (t_sisu->csi_add_rem == true) {
+					LOG_WA("CSI create of '%s' rejected: pending assignment for '%s'", 
+							opdata->objectName.value, t_sisu->su->name.value);
+					if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+						rc = SA_AIS_ERR_BAD_OPERATION;
+						goto done;
+					}
+				}
+				t_sisu = t_sisu->si_next;
+			}/*  while(t_sisu) */
+
+			t_sisu = avd_si->list_of_sisu;
+			while(t_sisu) {
 				/* We need to assign this csi if an extra component exists, which is unassigned.*/
 				/* reset the assign flag */
 				t_comp = t_sisu->su->list_of_comp;
@@ -559,10 +576,21 @@ static SaAisErrorT csi_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
 	AVD_CSI *csi;
+	AVD_SU_SI_REL *t_sisu;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
 	csi = avd_csi_get(&opdata->objectName);
+
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+		if (csi == NULL) {
+			/* This means that csi has been deleted during checkpointing at STDBY and completed callback
+			   has arrived delayed.*/
+			LOG_WA("CSI delete completed (STDBY): '%s' does not exist", opdata->objectName.value);
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		}
+	}
 
 	if(AVD_SG_FSM_STABLE != csi->si->sg_of_si->sg_fsm_state) {
 		LOG_ER("SG('%s') fsm state('%u') is not in AVD_SG_FSM_STABLE(0)",
@@ -582,6 +610,18 @@ static SaAisErrorT csi_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 				rc = SA_AIS_ERR_BAD_OPERATION;
 				goto done;
 			}
+			t_sisu = csi->si->list_of_sisu;
+			while(t_sisu) {
+				if (t_sisu->csi_add_rem == true) {
+					LOG_WA("CSI remove of '%s' rejected: pending assignment for '%s'", 
+							csi->name.value, t_sisu->su->name.value);
+					if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+						rc = SA_AIS_ERR_BAD_OPERATION;
+						goto done; 
+					}
+				}
+				t_sisu = t_sisu->si_next;
+			}/*  while(t_sisu) */
 		}
 	} else {
 		if (csi->list_compcsi != NULL) {
@@ -629,8 +669,14 @@ static void ccb_apply_delete_hdlr(AVD_CSI *csi)
 	AVD_COMP_CSI_REL *t_csicomp;
 	SaBoolT first_sisu = true;
 
-        TRACE_ENTER2("'%s'", csi->name.value);
+        TRACE_ENTER2("'%s'", csi ? csi->name.value : NULL);
 	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) { 
+		if (csi == NULL) {
+			/* This means that csi has been deleted during checkpointing at STDBY and delete callback
+			   has arrived delayed.*/
+			LOG_WA("CSI delete apply (STDBY): csi does not exist");
+			goto done;
+		}
 		if (csi->list_compcsi == NULL ) {
 			/* delete the pg-node list */
 			avd_pg_csi_node_del_all(avd_cb, csi);
@@ -644,6 +690,7 @@ static void ccb_apply_delete_hdlr(AVD_CSI *csi)
 	/* Check whether si has been assigned to any SU. */
 	if ((NULL != csi->si->list_of_sisu) && 
 			(csi->compcsi_cnt != 0)) {
+		TRACE("compcsi_cnt'%u'", csi->compcsi_cnt);
 		/* csi->compcsi_cnt == 0 ==> This means that there is no comp_csi related to this csi in the SI. It may
 		   happen this csi is not assigned to any CSI because of no compcstype match, but its si may
 		   have SUSI. This will happen in case of deleting one comp from SU in upgrade case 
@@ -1077,7 +1124,7 @@ uint32_t avd_compcsi_delete(AVD_CL_CB *cb, AVD_SU_SI_REL *susi, bool ckpt)
 }
 
 /*****************************************************************************
- * Function: avd_compcsi_from_susi_delete
+ * Function: avd_compcsi_from_csi_and_susi_delete
  *
  * Purpose:  This function will delete and free AVD_COMP_CSI_REL
  * structure from the list_of_csicomp and SUSI.
@@ -1085,17 +1132,17 @@ uint32_t avd_compcsi_delete(AVD_CL_CB *cb, AVD_SU_SI_REL *susi, bool ckpt)
  * Input: susi - SUSI from where comp-csi need to be deleted.
  *        compcsi - To be deleted.
  *        ckpt - whether this function has been called form checkpoint context.
- * Returns: NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE .
+ * Returns: None.
  *
  * NOTES:
  *
  * 
  **************************************************************************/
-uint32_t avd_compcsi_from_csi_and_susi_delete(AVD_SU_SI_REL *susi, AVD_COMP_CSI_REL *comp_csi, bool ckpt)
+void avd_compcsi_from_csi_and_susi_delete(AVD_SU_SI_REL *susi, AVD_COMP_CSI_REL *comp_csi, bool ckpt)
 {
 	AVD_COMP_CSI_REL *t_compcsi, *t_compcsi_susi, *prev_compcsi = NULL;
 
-	TRACE_ENTER();
+	TRACE_ENTER2("Csi'%s', compcsi_cnt'%u'", comp_csi->csi->name.value, comp_csi->csi->compcsi_cnt);
 
 	/* Find the comp-csi in susi. */
 	t_compcsi_susi = susi->list_of_csicomp;
@@ -1111,7 +1158,7 @@ uint32_t avd_compcsi_from_csi_and_susi_delete(AVD_SU_SI_REL *susi, AVD_COMP_CSI_
 		susi->list_of_csicomp = t_compcsi_susi->susi_csicomp_next;
 	else {
 		prev_compcsi->susi_csicomp_next = t_compcsi_susi->susi_csicomp_next;
-		prev_compcsi->susi_csicomp_next = NULL;
+		t_compcsi_susi->susi_csicomp_next = NULL;
 	}
 
 	prev_compcsi =  NULL;
@@ -1129,10 +1176,11 @@ uint32_t avd_compcsi_from_csi_and_susi_delete(AVD_SU_SI_REL *susi, AVD_COMP_CSI_
 		comp_csi->csi->list_compcsi = t_compcsi->csi_csicomp_next;
 	else {
 		prev_compcsi->csi_csicomp_next = t_compcsi->csi_csicomp_next;
-		prev_compcsi->csi_csicomp_next = NULL;
+		t_compcsi->csi_csicomp_next = NULL;
 	}
 
 	osafassert(t_compcsi == t_compcsi_susi);
+	comp_csi->csi->compcsi_cnt--;
 
 	if (!ckpt)
 		avd_snd_pg_upd_msg(avd_cb, comp_csi->comp->su->su_on_node, comp_csi, SA_AMF_PROTECTION_GROUP_REMOVED, 0);
@@ -1140,7 +1188,6 @@ uint32_t avd_compcsi_from_csi_and_susi_delete(AVD_SU_SI_REL *susi, AVD_COMP_CSI_
 	free(comp_csi);
 
 	TRACE_LEAVE();
-	return NCSCC_RC_SUCCESS;
 }
 
 void avd_csi_remove_csiattr(AVD_CSI *csi, AVD_CSI_ATTR *attr)

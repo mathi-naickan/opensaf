@@ -236,6 +236,7 @@ uint32_t avnd_pgdb_rec_del(AVND_CB *cb, SaNameT *csi_name)
 AVND_PG_TRK *avnd_pgdb_trk_rec_add(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_INFO *trk_info)
 {
 	AVND_PG_TRK *pg_trk = 0;
+	TRACE_ENTER();
 
 	/* get the trk rec */
 	pg_trk = m_AVND_PGDB_TRK_REC_GET(*pg, trk_info->key);
@@ -273,13 +274,14 @@ AVND_PG_TRK *avnd_pgdb_trk_rec_add(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_INFO *t
 	}
 	pg_trk->info.mds_ctxt = trk_info->mds_ctxt;
 	pg_trk->info.is_syn = trk_info->is_syn;
-
+	TRACE_LEAVE();
 	return pg_trk;
 
  err:
 	if (pg_trk)
 		free(pg_trk);
 
+	TRACE_LEAVE();
 	return 0;
 }
 
@@ -299,6 +301,7 @@ AVND_PG_TRK *avnd_pgdb_trk_rec_add(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_INFO *t
 void avnd_pgdb_trk_rec_del(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_KEY *key)
 {
 	AVND_PG_TRK *pg_trk = 0;
+	TRACE_ENTER();
 
 	/* get the pg track record */
 	pg_trk = m_AVND_PGDB_TRK_REC_GET(*pg, *key);
@@ -311,6 +314,7 @@ void avnd_pgdb_trk_rec_del(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_KEY *key)
 	/* free the memory */
 	free(pg_trk);
 
+	TRACE_LEAVE();
 	return;
 }
 
@@ -330,10 +334,12 @@ void avnd_pgdb_trk_rec_del(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_KEY *key)
 void avnd_pgdb_trk_rec_del_all(AVND_CB *cb, AVND_PG *pg)
 {
 	AVND_PG_TRK *curr = 0;
+	TRACE_ENTER();
 
 	while (0 != (curr = (AVND_PG_TRK *)m_NCS_DBLIST_FIND_FIRST(&pg->trk_list)))
 		avnd_pgdb_trk_rec_del(cb, pg, &curr->info.key);
 
+	TRACE_LEAVE();
 	return;
 }
 
@@ -444,6 +450,7 @@ AVND_PG_MEM *avnd_pgdb_mem_rec_rmv(AVND_CB *cb, AVND_PG *pg, SaNameT *comp_name)
 void avnd_pgdb_mem_rec_del(AVND_CB *cb, AVND_PG *pg, SaNameT *comp_name)
 {
 	AVND_PG_MEM *pg_mem = 0;
+	TRACE_LEAVE();
 
 	/* remove the pg mem record */
 	pg_mem = avnd_pgdb_mem_rec_rmv(cb, pg, comp_name);
@@ -453,6 +460,7 @@ void avnd_pgdb_mem_rec_del(AVND_CB *cb, AVND_PG *pg, SaNameT *comp_name)
 	/* free the memory */
 	free(pg_mem);
 
+	TRACE_LEAVE();
 	return;
 }
 
@@ -472,10 +480,12 @@ void avnd_pgdb_mem_rec_del(AVND_CB *cb, AVND_PG *pg, SaNameT *comp_name)
 void avnd_pgdb_mem_rec_del_all(AVND_CB *cb, AVND_PG *pg)
 {
 	AVND_PG_MEM *curr = 0;
+	TRACE_LEAVE();
 
 	while (0 != (curr = (AVND_PG_MEM *)m_NCS_DBLIST_FIND_FIRST(&pg->mem_list)))
 		avnd_pgdb_mem_rec_del(cb, pg, &curr->info.member.compName);
 
+	TRACE_LEAVE();
 	return;
 }
 

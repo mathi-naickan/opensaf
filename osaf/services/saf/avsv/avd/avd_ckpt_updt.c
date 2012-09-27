@@ -490,7 +490,7 @@ uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_
 				}
 
 				/* Delete comp-csi. */
-				avd_compcsi_from_csi_and_susi_delete(su_si_rel_ptr, t_csicomp, false);
+				avd_compcsi_from_csi_and_susi_delete(su_si_rel_ptr, t_csicomp, true);
 
 				if (csi_ptr->list_compcsi == NULL ) {
 					/* delete the pg-node list */

@@ -64,6 +64,7 @@ static uint32_t avnd_pg_start_rsp_prc(AVND_CB *cb, AVND_PG *pg, AVSV_D2N_PG_TRAC
 {
 	AVND_PG_TRK *curr = 0, *prv = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS, i = 0;
+	TRACE_ENTER();
 
 	if (true == info->is_csi_exist) {	/* => +ve resp */
 		/* set the exist flag to true */
@@ -113,7 +114,7 @@ static uint32_t avnd_pg_start_rsp_prc(AVND_CB *cb, AVND_PG *pg, AVSV_D2N_PG_TRAC
 		/* delete the pg rec */
 		rc = avnd_pgdb_rec_del(cb, &pg->csi_name);
 	}
-
+	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 
@@ -202,7 +203,7 @@ uint32_t avnd_evt_ava_pg_start_evh(AVND_CB *cb, AVND_EVT *evt)
 		}
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 
@@ -258,7 +259,7 @@ uint32_t avnd_evt_ava_pg_stop_evh(AVND_CB *cb, AVND_EVT *evt)
 			rc = avnd_pg_track_stop(cb, pg);
 	}
 
-	TRACE_LEAVE();
+	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 
@@ -282,6 +283,7 @@ static uint32_t avnd_process_pg_track_start_rsp_on_fover(AVND_CB *cb, AVND_PG *p
 	uint32_t rc = NCSCC_RC_SUCCESS, i = 0;
 	AVND_PG_MEM *pg_mem = 0, *mem_curr = 0, *mem_prv = 0;
 	SaAmfProtectionGroupNotificationT *mem_info;
+	TRACE_ENTER2("%u", info->is_csi_exist);
 
 	if (true == info->is_csi_exist) {	/* => +ve resp */
 		/* Walk through the list */
@@ -355,6 +357,7 @@ static uint32_t avnd_process_pg_track_start_rsp_on_fover(AVND_CB *cb, AVND_PG *p
 		/* delete pg rec */
 		rc = avnd_pgdb_rec_del(cb, &pg->csi_name);
 	}
+	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 
@@ -379,7 +382,7 @@ uint32_t avnd_evt_avd_pg_track_act_rsp_evh(AVND_CB *cb, AVND_EVT *evt)
 	AVND_PG *pg = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
-	TRACE_ENTER();
+	TRACE_ENTER2("Actn'%u'", info->actn);
 
 	/* dont process unless AvD is up */
 	if (!m_AVND_CB_IS_AVD_UP(cb))
@@ -542,6 +545,7 @@ void avnd_pg_finalize(AVND_CB *cb, SaAmfHandleT hdl, MDS_DEST *dest)
 {
 	AVND_PG_TRK_KEY key;
 	AVND_PG *curr = 0, *prv = 0;
+	TRACE_ENTER();
 
 	/* populate the key */
 	key.mds_dest = *dest;
@@ -565,6 +569,7 @@ void avnd_pg_finalize(AVND_CB *cb, SaAmfHandleT hdl, MDS_DEST *dest)
 		}
 	}			/* while */
 
+	TRACE_LEAVE();
 	return;
 }
 
@@ -590,6 +595,7 @@ void avnd_pg_finalize(AVND_CB *cb, SaAmfHandleT hdl, MDS_DEST *dest)
 void avnd_pg_trk_rmv(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_KEY *key)
 {
 	AVND_PG_TRK *curr = 0, *prv = 0;
+	TRACE_ENTER();
 
 	if (key->req_hdl)
 		/* => both mds-dest & hdl are specified.. delete the exact entry */
@@ -609,6 +615,7 @@ void avnd_pg_trk_rmv(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_KEY *key)
 		}		/* while */
 	}
 
+	TRACE_LEAVE();
 	return;
 }
 
@@ -630,6 +637,7 @@ void avnd_pg_trk_rmv(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK_KEY *key)
 uint32_t avnd_pg_track_start(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *pg_trk)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	TRACE_ENTER();
 
 	/* send the response to the application */
 	if (false == pg_trk->info.is_syn) {
@@ -647,6 +655,7 @@ uint32_t avnd_pg_track_start(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *pg_trk)
 		m_AVND_PG_TRK_CURRENT_RESET(pg_trk);
 	}
 
+	TRACE_LEAVE();
 	return rc;
 }
 
@@ -708,6 +717,7 @@ uint32_t avnd_pg_cbk_send(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *trk, AVND_PG_ME
 	AVSV_AMF_PG_TRACK_PARAM *pg_param = 0;
 	uint32_t i = 0, rc = NCSCC_RC_SUCCESS;
 	uint32_t number_of_items = 0;
+	TRACE_ENTER();
 
 	/* allocate cbk-info */
 	if ((0 == (cbk_info = calloc(1, sizeof(AVSV_AMF_CBK_INFO))))) {
@@ -791,6 +801,7 @@ uint32_t avnd_pg_cbk_send(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *trk, AVND_PG_ME
 	if ((NCSCC_RC_SUCCESS != rc) && cbk_info)
 		avsv_amf_cbk_free(cbk_info);
 
+	TRACE_LEAVE2("rc '%u'", rc);
 	return rc;
 }
 
@@ -812,6 +823,7 @@ uint32_t avnd_pg_cbk_msg_send(AVND_CB *cb, AVND_PG_TRK *trk, AVSV_AMF_CBK_INFO *
 {
 	AVND_MSG msg;
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	TRACE_ENTER();
 
 	memset(&msg, 0, sizeof(AVND_MSG));
 
@@ -835,5 +847,6 @@ uint32_t avnd_pg_cbk_msg_send(AVND_CB *cb, AVND_PG_TRK *trk, AVSV_AMF_CBK_INFO *
  done:
 	/* free the contents of avnd message */
 	avnd_msg_content_free(cb, &msg);
+	TRACE_LEAVE2("rc '%u'", rc);
 	return rc;
 }
