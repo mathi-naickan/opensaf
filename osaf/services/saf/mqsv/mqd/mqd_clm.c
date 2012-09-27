@@ -63,6 +63,19 @@ void mqd_clm_cluster_track_callback(const SaClmClusterNotificationBufferT *notif
 					} else {
 						pNdNode->info.is_node_down = true;
 					}
+				} else {
+					TRACE_2("%s:%u: CLM Event is coming first for Node down", __FILE__, __LINE__);
+					pNdNode = m_MMGR_ALLOC_MQD_ND_DB_NODE;
+					if (pNdNode == NULL) {
+						LOG_CR("%s:%u: Failed To Allocate Memory", __FILE__, __LINE__);
+						return;
+					}
+					memset(pNdNode, 0, sizeof(MQD_ND_DB_NODE));
+					pNdNode->info.nodeid = node_id;
+					pNdNode->info.is_clm_down = true;
+					mqd_red_db_node_add(pMqd, pNdNode);
+					if (pMqd->ha_state == SA_AMF_HA_ACTIVE)
+						mqd_del_node_down_info(pMqd, node_id);
 				}
 			}
 		}

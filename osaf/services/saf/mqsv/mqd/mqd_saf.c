@@ -222,6 +222,10 @@ void mqd_saf_csi_set_cb(SaInvocationT invocation,
 					mqd_del_node_down_info(pMqd, nodeid);
 					mqd_red_db_node_del(pMqd, pNdNode);
 				}
+				if (pNdNode->info.is_clm_down == true) {
+					mqd_red_db_node_del(pMqd, pNdNode);
+					mqd_del_node_down_info(pMqd, nodeid);
+				}
 			}
 		}
 

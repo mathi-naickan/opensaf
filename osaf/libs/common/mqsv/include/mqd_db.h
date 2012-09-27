@@ -107,6 +107,7 @@ typedef struct mqd_node_info {
 	NODE_ID nodeid;		/* key for the node database */
 	bool is_node_down;      /* true when node left the cluster and false when MQND is down */
 	bool is_restarted;	/* true when MQND is up and false when MQND is down */
+	bool is_clm_down;       /* true When clm event is coming fisrt */
 	SaNameT queue_name;
 	MQD_TMR timer;		/* Retention timer for MQND down */
 	/*   bool       is_clm_down_processed; */	/*Flag to process the CLM event */

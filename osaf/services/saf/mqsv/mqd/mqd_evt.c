@@ -35,6 +35,7 @@
  * Module Inclusion Control...
  */
 #include "mqd.h"
+#include "mqd_imm.h"
 
 extern MQDLIB_INFO gl_mqdinfo;
 
@@ -231,6 +232,10 @@ uint32_t mqd_timer_expiry_evt_process(MQD_CB *pMqd, NODE_ID *nodeid)
 	MQD_ND_DB_NODE *pNdNode = 0;
 	MQD_OBJ_NODE *pNode = 0;
 	MQD_A2S_MSG msg;
+	SaImmOiHandleT immOiHandle;
+	SaImmOiImplementerNameT implementer_name;
+	char i_name[256] = {0};
+	SaVersionT imm_version = {'A',0x02,0x01};
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("The Timer expired with node id %u", *nodeid);
 
@@ -246,6 +251,17 @@ uint32_t mqd_timer_expiry_evt_process(MQD_CB *pMqd, NODE_ID *nodeid)
 		return rc;
 	}
 	if (pMqd->ha_state == SA_AMF_HA_ACTIVE) {
+		rc = immutil_saImmOiInitialize_2(&immOiHandle, NULL, &imm_version);
+		if (rc != SA_AIS_OK)
+			LOG_ER("saImmOiInitialize_2 failed with return value=%d",rc);
+
+		snprintf(i_name, SA_MAX_NAME_LENGTH, "%s%u", "MsgQueueService", *nodeid);
+		implementer_name = i_name;
+
+		rc = immutil_saImmOiImplementerSet(immOiHandle, implementer_name);
+		if (rc != SA_AIS_OK)
+			LOG_ER("saImmOiImplementerSet failed with return value=%d",rc);
+
 		if (pNdNode->info.timer.tmr_id != TMR_T_NULL) {
 			m_NCS_TMR_DESTROY(pNdNode->info.timer.tmr_id);
 			pNdNode->info.timer.tmr_id = TMR_T_NULL;
@@ -263,11 +279,17 @@ uint32_t mqd_timer_expiry_evt_process(MQD_CB *pMqd, NODE_ID *nodeid)
 			if (m_NCS_NODE_ID_FROM_MDS_DEST(pNode->oinfo.info.q.dest) == pNdNode->info.nodeid) {
 				dereg.objtype = ASAPi_OBJ_QUEUE;
 				dereg.queue = pNode->oinfo.name;
+				rc = immutil_saImmOiRtObjectDelete(immOiHandle, &dereg.queue);
+				if (rc != NCSCC_RC_SUCCESS)
+					LOG_ER("Deleting MsgQGrp object %s FAILED with error %u", dereg.queue.value,rc);
 				rc = mqd_asapi_dereg_hdlr(pMqd, &dereg, NULL);
 			}
 
 			pNode = (MQD_OBJ_NODE *)ncs_patricia_tree_getnext(&pMqd->qdb, (uint8_t *)&name);
 		}
+		rc = immutil_saImmOiFinalize(immOiHandle);
+		if (rc != NCSCC_RC_SUCCESS)
+			LOG_ER("saImmOiFinalize failed with return value=%d",rc);	
 		/* Send an async Update to the standby */
 		memset(&msg, 0, sizeof(MQD_A2S_MSG));
 		msg.type = MQD_A2S_MSG_TYPE_MQND_TIMER_EXPEVT;
@@ -307,23 +329,30 @@ static uint32_t mqd_nd_status_evt_process(MQD_CB *pMqd, MQD_ND_STATUS_INFO *nd_i
 
 	/* Process MQND Related events */
 	if (nd_info->is_up == false) {
-		pNdNode = m_MMGR_ALLOC_MQD_ND_DB_NODE;
-		if (pNdNode == NULL) {
-			LOG_CR("%s:%u: Failed To Allocate Memory", __FILE__, __LINE__);
-			rc = NCSCC_RC_FAILURE;
-			return rc;
-		}
-		memset(pNdNode, 0, sizeof(MQD_ND_DB_NODE));
-		pNdNode->info.nodeid = m_NCS_NODE_ID_FROM_MDS_DEST(nd_info->dest);
-		pNdNode->info.is_restarted = false;
-		pNdNode->info.timer.type = MQD_ND_TMR_TYPE_EXPIRY;
-		pNdNode->info.timer.tmr_id = 0;
-		pNdNode->info.timer.nodeid = pNdNode->info.nodeid;
-		pNdNode->info.timer.uarg = pMqd->hdl;
-		pNdNode->info.timer.is_active = false;
-		mqd_red_db_node_add(pMqd, pNdNode);
+		node_id = m_NCS_NODE_ID_FROM_MDS_DEST(nd_info->dest);
+		pNdNode = (MQD_ND_DB_NODE *)ncs_patricia_tree_get(&pMqd->node_db, (uint8_t *)&node_id);
+		if (!pNdNode) {
+			pNdNode = m_MMGR_ALLOC_MQD_ND_DB_NODE;
+			if (pNdNode == NULL) {
+				LOG_CR("%s:%u: Failed To Allocate Memory", __FILE__, __LINE__);
+				rc = NCSCC_RC_FAILURE;
+				return rc;
+			}
+			memset(pNdNode, 0, sizeof(MQD_ND_DB_NODE));
+			pNdNode->info.nodeid = m_NCS_NODE_ID_FROM_MDS_DEST(nd_info->dest);
+			pNdNode->info.is_restarted = false;
+			pNdNode->info.timer.type = MQD_ND_TMR_TYPE_EXPIRY;
+			pNdNode->info.timer.tmr_id = 0;
+			pNdNode->info.timer.nodeid = pNdNode->info.nodeid;
+			pNdNode->info.timer.uarg = pMqd->hdl;
+			pNdNode->info.timer.is_active = false;
+			mqd_red_db_node_add(pMqd, pNdNode);
 
-		mqd_tmr_start(&pNdNode->info.timer, timeout);
+			mqd_tmr_start(&pNdNode->info.timer, timeout);
+		} else {
+			TRACE_2("Deleting the nd node from MQD");
+			mqd_red_db_node_del(pMqd, pNdNode);
+		}
 
 		if (pMqd->ha_state == SA_AMF_HA_ACTIVE)
 			mqd_nd_down_update_info(pMqd, nd_info->dest);
