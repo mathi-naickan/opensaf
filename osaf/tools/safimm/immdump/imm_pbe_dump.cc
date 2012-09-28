@@ -2411,6 +2411,20 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T cur
 	exit(1);
 }
 
+void fsyncPbeJournalFile()
+{
+	int fd=(-1);
+	std::string globalJournalFilename(sPbeFileName);
+	globalJournalFilename.append("-journal");
+	fd = open(globalJournalFilename.c_str(), O_RDWR);
+	if(fd != (-1)) {
+		/* Sync the -journal file */
+		if(fdatasync(fd)==(-1)) {
+			LOG_WA("Failed to fdatasync %s ", globalJournalFilename.c_str());
+		}
+		close(fd);
+	}
+}
 
 #else
 void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmpFilename)
@@ -2535,6 +2549,11 @@ void purgeCcbCommitsFromPbe(void* sDbHandle, SaUint32T currentEpoch)
 	abort();
 }
 
+void fsyncPbeJournalFile()
+{
+	abort();
+}
+
 #endif
 
 /* Note: a version of this function exists as 'escalatePbe()' in 
@@ -2570,17 +2589,3 @@ void discardPbeFile(std::string filename)
 
 }
 
-void fsyncPbeJournalFile()
-{
-	int fd=(-1);
-	std::string globalJournalFilename(sPbeFileName);
-	globalJournalFilename.append("-journal");
-	fd = open(globalJournalFilename.c_str(), O_RDWR);
-	if(fd != (-1)) {
-		/* Sync the -journal file */
-		if(fdatasync(fd)==(-1)) {
-			LOG_WA("Failed to fdatasync %s ", globalJournalFilename.c_str());
-		}
-		close(fd);
-	}
-}
