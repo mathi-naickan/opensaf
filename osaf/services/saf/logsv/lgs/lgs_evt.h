@@ -41,6 +41,7 @@ typedef struct {
 
 typedef struct lgsv_lgs_evt {
 	struct lgsv_lgs_evt *next;
+	struct timespec entered_at;
 	uint32_t cb_hdl;
 	MDS_SYNC_SND_CTXT mds_ctxt;	/* Relevant when this event has to be responded to
 					 * in a synchronous fashion.

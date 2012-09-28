@@ -1091,19 +1091,48 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
  *****************************************************************************/
 static uint32_t process_api_evt(lgsv_lgs_evt_t *evt)
 {
-	if (evt->evt_type == LGSV_LGS_LGSV_MSG) {
-		/* ignore one level... */
-		if (evt->info.msg.type < LGSV_MSG_MAX) {
-			if (evt->info.msg.info.api_info.type < LGSV_API_MAX) {
-				if (lgs_lga_api_msg_dispatcher[evt->info.msg.info.api_info.type] (lgs_cb, evt) !=
-				    NCSCC_RC_SUCCESS) {
-					LOG_ER("lgs_lga_api_msg_dispatcher FAILED type: %d", evt->info.msg.type);
-				}
-			} else
-				LOG_ER("Invalid msg type %d", evt->info.msg.info.api_info.type);
-		} else
-			LOG_ER("Invalid event type %d", evt->info.msg.type);
+	lgsv_api_msg_type_t api_type;
+
+	if (evt->evt_type != LGSV_LGS_LGSV_MSG)
+		goto done;
+
+	if (evt->info.msg.type >= LGSV_MSG_MAX) {
+		LOG_ER("Invalid event type %d", evt->info.msg.type);
+		goto done;
+
 	}
+
+	api_type = evt->info.msg.info.api_info.type;
+
+	if (api_type >= LGSV_API_MAX) {
+		LOG_ER("Invalid msg type %d", api_type);
+		goto done;
+	}
+
+	// Discard too old messages. Don't discard writes as they are async,
+	// no one is waiting on a response
+	if (api_type < LGSV_WRITE_LOG_ASYNC_REQ) {
+		struct timespec ts;
+		osafassert(clock_gettime(CLOCK_MONOTONIC, &ts) == 0);
+
+		// convert to milliseconds
+		uint64_t entered = (evt->entered_at.tv_sec * 1000) +
+			 (evt->entered_at.tv_nsec / 1000000);
+		uint64_t removed = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
+
+		// compare with sync send time used in library
+		if ((removed - entered) > (LGS_WAIT_TIME * 10)) {
+			LOG_IN("discarded message from %" PRIx64 " type %u",
+				evt->fr_dest, api_type);
+			goto done;
+		}
+	}
+
+	if (lgs_lga_api_msg_dispatcher[api_type] (lgs_cb, evt) != NCSCC_RC_SUCCESS) {
+		LOG_ER("lgs_lga_api_msg_dispatcher FAILED type: %d", evt->info.msg.type);
+	}
+
+done:
 	return NCSCC_RC_SUCCESS;
 }
 

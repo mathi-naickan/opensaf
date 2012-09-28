@@ -888,7 +888,9 @@ static uint32_t mds_rcv(struct ncsmds_callback_info *mds_info)
 	evt->rcvd_prio = mds_info->info.receive.i_priority;
 	evt->mds_ctxt = mds_info->info.receive.i_msg_ctxt;
 
+	// for all msg types but WRITEs, sample curr time and store in msg
 	if ((type == LGSV_INITIALIZE_REQ) || (type == LGSV_STREAM_OPEN_REQ)) {
+		osafassert(clock_gettime(CLOCK_MONOTONIC, &evt->entered_at) == 0);
 		rc = m_NCS_IPC_SEND(&lgs_mbx, evt, LGS_IPC_PRIO_CTRL_MSGS);
 		osafassert(rc == NCSCC_RC_SUCCESS);
 		return NCSCC_RC_SUCCESS;
@@ -897,6 +899,7 @@ static uint32_t mds_rcv(struct ncsmds_callback_info *mds_info)
 	prio = getmboxprio(api_info);
 
 	if ((type == LGSV_FINALIZE_REQ) || (type == LGSV_STREAM_CLOSE_REQ)) {
+		osafassert(clock_gettime(CLOCK_MONOTONIC, &evt->entered_at) == 0);
 		rc = m_NCS_IPC_SEND(&lgs_mbx, evt, prio);
 		if (rc != NCSCC_RC_SUCCESS) {
 			/* Bump prio and try again, should succeed! */
@@ -1363,7 +1366,7 @@ uint32_t lgs_mds_msg_send(lgs_cb_t *cb,
 	/* send the message */
 	rc = ncsmds_api(&mds_info);
 	if (rc != NCSCC_RC_SUCCESS) {
-		LOG_ER("lgs_mds_msg_send FAILED: %u", rc);
+		LOG_WA("FAILED to send msg to %" PRIx64, *dest);
 	}
 	return rc;
 }

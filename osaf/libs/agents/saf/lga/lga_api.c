@@ -19,7 +19,6 @@
 #include "lga.h"
 
 #define NCS_SAF_MIN_ACCEPT_TIME 10
-#define LGS_WAIT_TIME 1000
 
 /* Macro to validate the dispatch flags */
 #define m_DISPATCH_FLAG_IS_VALID(flag) \

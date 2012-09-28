@@ -22,4 +22,7 @@
 #define LOG_MAJOR_VERSION 2
 #define LOG_MINOR_VERSION 1
 
+// Waiting time in library for sync send, unit 10ms
+#define LGS_WAIT_TIME 1000
+
 #endif   /* LGSV_DEFS_H */
