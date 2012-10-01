@@ -175,6 +175,11 @@ uint32_t avnd_evt_ava_err_rep_evh(AVND_CB *cb, AVND_EVT *evt)
 			amf_rc = SA_AIS_ERR_INVALID_PARAM;
 	}
 
+	if(comp && ((err_rep->rec_rcvr.saf_amf == SA_AMF_CLUSTER_RESET) || 
+			(err_rep->rec_rcvr.saf_amf == SA_AMF_APPLICATION_RESTART)|| 
+			(err_rep->rec_rcvr.saf_amf == SA_AMF_CONTAINER_RESTART)))
+		amf_rc = SA_AIS_ERR_NOT_SUPPORTED;
+
 	/* send the response back to AvA */
 	rc = avnd_amf_resp_send(cb, AVSV_AMF_ERR_REP, amf_rc, 0, &api_info->dest, &evt->mds_ctxt, comp, msg_from_avnd);
 

@@ -1668,12 +1668,6 @@ SaAisErrorT saAmfComponentErrorReport(SaAmfHandleT hdl,
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
-	/* validate the recommended recovery */
-	if (rec_rcvr < SA_AMF_NO_RECOMMENDATION || rec_rcvr > SA_AMF_CLUSTER_RESET) {
-		TRACE_LEAVE2("Incorrect argument specified for SaAmfRecommendedRecoveryT");
-		return SA_AIS_ERR_INVALID_PARAM;
-	}
-
 	/* Verifying the input Handle & global handle */
 	if(!gl_ava_hdl || hdl > AVSV_UNS32_HDL_MAX) {
 		TRACE_2("Invalid SaAmfHandle passed by component: %llx",hdl);
@@ -1686,9 +1680,19 @@ SaAisErrorT saAmfComponentErrorReport(SaAmfHandleT hdl,
 		rc = SA_AIS_ERR_LIBRARY;
 		goto done;
 	}
+
+	/* validate the recommended recovery */
+	if((cb->version.releaseCode == 'B') && (cb->version.majorVersion == 0x01)){
+		if(rec_rcvr < SA_AMF_NO_RECOMMENDATION || rec_rcvr > SA_AMF_CLUSTER_RESET) {
+			TRACE_LEAVE2("Incorrect argument specified for SaAmfRecommendedRecoveryT");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+	}
+
 	/* acquire cb read lock */
 	m_NCS_LOCK(&cb->lock, NCS_LOCK_READ);
-    /* retrieve hdl rec */
+
+	/* retrieve hdl rec */
 	if ( !(hdl_rec = (AVA_HDL_REC *)ncshm_take_hdl(NCS_SERVICE_ID_AVA, hdl)) ) {
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		goto done;
