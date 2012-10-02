@@ -24,6 +24,7 @@
 #include <time.h>
 #include <wait.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -430,9 +431,9 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 			memset(&stat_buf, 0, sizeof(struct stat));
 			if(stat(journalFile.c_str(), &stat_buf)==0) {
 				if(stat_buf.st_size) {
-					LOG_WA("Journal file %s size:%zu exists at "
+					LOG_WA("Journal file %s off non-zero size exists at "
 						"start of PBE/immdump => sqlite recovery",
-						journalFile.c_str(), stat_buf.st_size);
+						journalFile.c_str());
 				} else {
 					TRACE_2("Journal file %s exists and is empty at "
 						"start of PBE/immdump", journalFile.c_str());
