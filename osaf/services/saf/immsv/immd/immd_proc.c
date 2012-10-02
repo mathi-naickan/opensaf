@@ -84,15 +84,15 @@ void immd_proc_immd_reset(IMMD_CB *cb, bool active)
 	} else {
 		LOG_ER("Standby IMMD recieved reset message. All IMMNDs will restart.");
 	}
-
-	/* Reset relevant parts of of IMMD CB so we get a cluster wide restart
-	   of IMMNDs. 
-	 */
-
-	cb->mRulingEpoch = 0;
-	cb->immnd_coord = 0;
-	cb->fevsSendCount = 0LL;
 	
+	if(cb->mRulingEpoch <= 1) {
+		/* The cluster has not yet successfully come up once => dont exit the IMMD
+		   because the IMMD is not restart monitored in gap between NID and AMF.
+		*/
+		LOG_NO("Cluster failed to load => IMMDs will not exit.");
+		goto dont_exit;
+	} 
+
 	/*immd_immnd_info_tree_cleanup(cb); */
 	/*Let the immnd tree keep track of what is hapening. IMMNDs that have
 	   just restarted may not need to restart and re-attach again. */
@@ -118,6 +118,16 @@ void immd_proc_immd_reset(IMMD_CB *cb, bool active)
 		exit(1);
 	}
 
+ dont_exit:
+
+	/* Reset relevant parts of of IMMD CB so we get a cluster wide restart
+	   of IMMNDs. 
+	 */
+
+	cb->mRulingEpoch = 0;
+	cb->immnd_coord = 0;
+	cb->fevsSendCount = 0LL;
+	
 	cb->mRim = SA_IMM_INIT_FROM_FILE; /* Reset to default since we are reloading. */
 
 	TRACE_LEAVE();

@@ -6641,6 +6641,9 @@ static uint32_t immnd_evt_proc_reset(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_IN
 	TRACE_ENTER();
 	if (cb->mIntroduced) {
 		LOG_ER("IMMND forced to restart on order from IMMD, exiting");
+		if(cb->mState < IMM_SERVER_READY) {
+			immnd_ackToNid(NCSCC_RC_FAILURE);
+		}
 		exit(1);
 	} else {
 		LOG_NO("IMMD received reset order from IMMD, but has just restarted - ignoring");
