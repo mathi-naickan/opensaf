@@ -654,18 +654,38 @@ static void getRDNForClass(const char *objectName,
 
 
 static void errorHandler(void* userData,
-                         const char* msg,
+                         const char* format,
                          ...)
 {
-    LOG_ER("Error occured during parsing: %s", msg);
+    va_list ap;
+    char *errMsg=NULL;
+    TRACE("Libxml2 error format: %s", format);
+    va_start(ap, format);
+    if(*(++format) == 's') {
+        errMsg=va_arg(ap, char *);
+        LOG_ER("Error occured during XML parsing libxml2: %s", errMsg);
+    } else {
+        LOG_ER("Error (unknown) occured during XML parsing");
+    }
+    va_end(ap);
     exit(1);
 }
 
 static void warningHandler(void* userData,
-                           const char* msg,
+                           const char* format,
                            ...)
 {
-    LOG_WA("Warning occured during parsing: %s", msg);
+    va_list ap;
+    char *errMsg=NULL;
+    TRACE("Libxml2 warning format: %s", format);
+    va_start(ap, format);
+    if(*(++format) == 's') {
+        errMsg=va_arg(ap, char *);
+        LOG_WA("Warning occured during XML parsing libxml2: %s", errMsg);
+    } else {
+        LOG_WA("Warning (unknonw) occured during XML parsing");
+    }
+    va_end(ap);
 }
 
 static const xmlChar *getAttributeValue(const xmlChar **attrs, const xmlChar *attr) {
