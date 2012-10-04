@@ -394,8 +394,9 @@ void avd_si_assignments_delete(AVD_CL_CB *cb, AVD_SI *si)
 	TRACE_ENTER2(" '%s'", si->name.value);
 
 	for (; sisu != NULL; sisu = sisu->si_next) {
-		if (avd_susi_del_send(sisu) == NCSCC_RC_SUCCESS)
-			avd_sg_su_oper_list_add(cb, sisu->su, false);
+		if(sisu->fsm != AVD_SU_SI_STATE_UNASGN)
+			if (avd_susi_del_send(sisu) == NCSCC_RC_SUCCESS)
+				avd_sg_su_oper_list_add(cb, sisu->su, false);
 	}
 	TRACE_LEAVE();
 }
