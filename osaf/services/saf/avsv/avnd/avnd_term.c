@@ -165,7 +165,8 @@ uint32_t avnd_evt_last_step_term_evh(AVND_CB *cb, AVND_EVT *evt)
 	LOG_NO("Removing assignments from AMF components");
 
 	/* Remove all assignments of equal rank */
-	for (; (si != NULL) && (si->rank == sirank); si = avnd_silist_getprev(si)) {
+	for (; (si != NULL) && (si->rank == sirank); ) {
+		AVND_SU_SI_REC *tmp;
 
 		/* Remove assignments only for local application SUs */
 		if (si->su->is_ncs || si->su->su_is_external)
@@ -175,8 +176,10 @@ uint32_t avnd_evt_last_step_term_evh(AVND_CB *cb, AVND_EVT *evt)
 			continue;
 
 		si_removed = true;
+		tmp = avnd_silist_getprev(si);
 		uint32_t rc = avnd_su_si_remove(cb, si->su, si);
 		osafassert(rc == NCSCC_RC_SUCCESS);
+		si = tmp;
 	}
 
 cleanup_components:

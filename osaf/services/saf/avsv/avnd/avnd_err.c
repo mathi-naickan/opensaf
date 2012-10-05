@@ -926,6 +926,9 @@ uint32_t avnd_err_su_repair(AVND_CB *cb, AVND_SU *su)
 
 	osafassert(m_AVND_SU_IS_FAILED(su));
 
+	if (m_AVND_IS_SHUTTING_DOWN(cb))
+		goto done;
+
 	/* If the SU is in inst-failed state, do nothing */
 	if (su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED)
 		return rc;
