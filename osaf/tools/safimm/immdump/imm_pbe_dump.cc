@@ -25,6 +25,7 @@
 #include <wait.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <sys/stat.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
