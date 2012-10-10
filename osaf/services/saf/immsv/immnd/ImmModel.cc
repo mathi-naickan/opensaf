@@ -4828,7 +4828,8 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                 goto ccbObjectCreateExit;
             }
             
-            if(((size_t)attrValues->n.attrValue.val.x.size > 64) &&
+            /* size includes null termination byte. */
+            if(((size_t)attrValues->n.attrValue.val.x.size > 65) &&  
                 (i4->second->mValueType == SA_IMM_ATTR_SASTRINGT))
             {
                 LOG_NO("ERR_INVALID_PARAM: RDN attribute is too large: %u. Max length is 64 "
@@ -10197,7 +10198,8 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
                 goto rtObjectCreateExit;
             }
             
-            if(((size_t)attrValues->n.attrValue.val.x.size > 64) &&
+            /* size includes null termination byte. */
+            if(((size_t)attrValues->n.attrValue.val.x.size > 65) &&
                 (attrValues->n.attrValueType == SA_IMM_ATTR_SASTRINGT))
             {
                 LOG_NO("ERR_INVALID_PARAM: RDN attribute is too large: %u. Max length is 64 "
