@@ -437,7 +437,10 @@ void imma_copyAttrValue(IMMSV_EDU_ATTR_VAL *p, const SaImmValueTypeT attrValueTy
 
 		case SA_IMM_ATTR_SAANYT:
 			saAnyTp = (SaAnyT *)attrValue;
-			valueSize = (saAnyTp) ? saAnyTp->bufferSize : 0;
+			if(saAnyTp)
+				valueSize = (saAnyTp->bufferAddr) ? (saAnyTp->bufferSize + 1) : 0;
+			else
+				valueSize = 0;
 			break;
 
 		default:
@@ -454,19 +457,18 @@ void imma_copyAttrValue(IMMSV_EDU_ATTR_VAL *p, const SaImmValueTypeT attrValueTy
 		switch (attrValueType) {
 			case SA_IMM_ATTR_SASTRINGT:
 				(void)memcpy(p->val.x.buf, *saStringTp, valueSize);
-				p->val.x.buf[valueSize - 1] = '\0';
 				break;
 			case SA_IMM_ATTR_SANAMET:
 				(void)memcpy(p->val.x.buf, saNameTp->value, valueSize);
-				p->val.x.buf[valueSize - 1] = '\0';
 				break;
 			case SA_IMM_ATTR_SAANYT:
-				(void)memcpy(p->val.x.buf, saAnyTp->bufferAddr, valueSize);
+				(void)memcpy(p->val.x.buf, saAnyTp->bufferAddr, valueSize - 1);
 				break;
 			default:
 				abort();/*If I get here then I have introduced a bug 
 					  somewhere above. */
 		}
+		p->val.x.buf[valueSize - 1] = '\0';
 	} else {
 		abort();
 	}
@@ -574,10 +576,12 @@ SaImmAttrValueT imma_copyAttrValue3(const SaImmValueTypeT attrValueType, IMMSV_E
 			saAnyTp->bufferSize = attrValue->val.x.size;
 			if (attrValue->val.x.size) {
 				/*Steal the buffer. */
+				saAnyTp->bufferSize = attrValue->val.x.size - 1;
 				saAnyTp->bufferAddr = (SaUint8T *)attrValue->val.x.buf;
 				attrValue->val.x.buf = NULL;
 				attrValue->val.x.size = 0;
 			} else {
+				saAnyTp->bufferSize = 0;
 				saAnyTp->bufferAddr = NULL;
 			}
 			break;
