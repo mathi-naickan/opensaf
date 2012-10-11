@@ -12569,6 +12569,10 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 newCcb->mState = (ImmCcbState) ol->ccbState;
                 newCcb->mWaitStartTime = time(NULL);
                 osafassert(newCcb->mWaitStartTime > ((time_t) 0));
+                newCcb->mOpCount=0;
+                newCcb->mPbeRestartId=0;
+                newCcb->mErrorStrings=NULL;
+                newCcb->mAugCcbParent = NULL;
                 sCcbVector.push_back(newCcb);
     
                 TRACE_5("CCB %u state %s", newCcb->mId, 
