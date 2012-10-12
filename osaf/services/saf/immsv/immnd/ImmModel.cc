@@ -69,6 +69,7 @@ typedef std::map<SaInvocationT, ContinuationInfo3> ContinuationMap3;
 
 struct AttrInfo
 {
+    AttrInfo():mValueType(0), mFlags(0), mNtfId(0){}
     SaUint32T       mValueType;
     SaUint32T       mFlags;
     SaUint32T       mNtfId;
@@ -78,6 +79,8 @@ struct AttrInfo
 
 struct ImplementerInfo
 {
+    ImplementerInfo():mId(0), mConn(0), mNodeId(0), mMds_dest(0LL),
+                      mAdminOpBusy(0), mDying(false), mApplier(false){}
     SaUint32T       mId;
     SaUint32T       mConn; //Current implementer, only valid on one node.
     //NULL otherwise.
@@ -263,6 +266,9 @@ typedef enum {
 
 struct AugCcbParent
 {
+    AugCcbParent(): mOriginatingConn(0), mOriginatingNode(0), mState(IMM_CCB_ILLEGAL),
+                    mWaitStartTime((time_t) 0), mErrorStrings(NULL), mContinuationId(0),
+                    mImplId(0), mAugmentAdmo(0) {}
     SaUint32T         mOriginatingConn; //Deferred Originating conn
     unsigned int      mOriginatingNode; //Deferred originating node
     ImmCcbState       mState;           //Deferred state
@@ -275,6 +281,10 @@ struct AugCcbParent
 
 struct CcbInfo
 {
+    CcbInfo(): mId(0), mAdminOwnerId(0), mCcbFlags(0), mOriginatingConn(0),
+               mOriginatingNode(0), mState(IMM_CCB_ILLEGAL), mVeto(SA_AIS_OK),
+               mWaitStartTime((time_t) 0), mOpCount(0), mPbeRestartId(0),
+               mErrorStrings(NULL), mAugCcbParent(NULL) {}
     bool isOk() {return mVeto == SA_AIS_OK;}
     bool isActive() {return (mState < IMM_CCB_COMMITTED);}
     SaUint32T         mId;
@@ -299,6 +309,8 @@ typedef std::vector<CcbInfo*> CcbVector;
 
 struct AdminOwnerInfo
 {
+    AdminOwnerInfo(): mId(0), mConn(0), mNodeId(0), mReleaseOnFinalize(false),
+                      mDying(false) {}
     SaUint32T       mId;
     std::string     mAdminOwnerName;
     SaUint32T       mConn;
