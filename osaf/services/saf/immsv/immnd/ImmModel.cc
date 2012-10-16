@@ -2045,19 +2045,32 @@ ImmModel::adjustEpoch(int suggestedEpoch,
         LOG_NO("Epoch set to %u in ImmModel", suggestedEpoch);
     }
 
-    if(pbeNodeIdPtr && getPbeOi(pbeConnPtr, pbeNodeIdPtr)) {
+    if(pbeNodeIdPtr) {
+
+        /* Generate global continuation if PBE is enabled, regardless if
+           PBE is currently present or not. This is necessary since
+           ImmModel::adjustEpoch is not always invoked in the context of
+           a fevs message. Thus even though getPbeOi below is fevs safe 
+           in that it is based on current fevs context, that fevs context
+           may be a different fevs context on other nodes by the time they 
+           get the message that triggers adjustEpoch, for example in
+           immnd_abortSync().
+        */
+
         *continuationIdPtr = ++sLastContinuationId;
         if(sLastContinuationId >= 0xfffffffe)
         {sLastContinuationId = 1;}
         TRACE("continuation generated: %u", *continuationIdPtr);
 
-        if(sPbeRtMutations.find(immObjectDn) == sPbeRtMutations.end()) {
-           ObjectMutation* oMut = new ObjectMutation(IMM_UPDATE_EPOCH);
-           oMut->mContinuationId = (*continuationIdPtr);
-           oMut->mAfterImage = NULL;
-           sPbeRtMutations[immObjectDn] = oMut;
-        } else {
-            LOG_WA("Continuation for Pbe mutation on %s already exists", immObjectDn.c_str());
+        if(getPbeOi(pbeConnPtr, pbeNodeIdPtr)) {
+            if(sPbeRtMutations.find(immObjectDn) == sPbeRtMutations.end()) {
+                ObjectMutation* oMut = new ObjectMutation(IMM_UPDATE_EPOCH);
+                oMut->mContinuationId = (*continuationIdPtr);
+                oMut->mAfterImage = NULL;
+                sPbeRtMutations[immObjectDn] = oMut;
+            } else {
+                LOG_WA("Continuation for Pbe mutation on %s already exists", immObjectDn.c_str());
+            }
         }
     }
     
