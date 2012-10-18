@@ -873,6 +873,10 @@ SmfUpgradeStep::setMaintenanceState(SmfActivationUnit& i_units)
         const std::string campDn = SmfCampaignThread::instance()->campaign()->getDn();
         std::list < SmfImmOperation * > operations;
 
+	//Make unique to avoid duplicate SUs.
+	suList.sort();
+	suList.unique();
+
 	//AMF will only accept the saAmfSUMaintenanceCampaign attribute to be set once
 	//for an SU. Since the same SU could be addressed multiple times a check must
 	//be made if the attribute is already set.
