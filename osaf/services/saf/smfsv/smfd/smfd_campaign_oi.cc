@@ -211,11 +211,20 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 				}
 
 				if (campaign->executing() == true) {
+					LOG_ER("Campaign %s in state %u, can't be deleted",
+					       ccbUtilOperationData->param.deleteOp.objectName->value,
+                                               campaign->getState());
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				}
+                                else if ((SmfCampaignThread::instance() != NULL) &&
+                                         (SmfCampaignThread::instance()->campaign() == campaign)) {
+                                        /* Campaign is executing prereq tests (in state INITIAL) */ 
 					LOG_ER("Campaign %s is executing, can't be deleted",
 					       ccbUtilOperationData->param.deleteOp.objectName->value);
 					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
-				}
+                                }
 			//Handle the OpenSAFSmfConfig object
 			}else if (strncmp((char*)ccbUtilOperationData->param.modify.objectName->value, "smfConfig=", 10) == 0) {
 				LOG_ER("Deletion of SMF configuration object %s, not allowed",
@@ -248,9 +257,25 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 						goto done;
 					}
 
+                                        if (campaign->executing() == true) {
+                                                LOG_ER("Campaign %s in state %u, can't be modified",
+                                                       ccbUtilOperationData->param.deleteOp.objectName->value,
+                                                       campaign->getState());
+                                                rc = SA_AIS_ERR_BAD_OPERATION;
+                                                goto done;
+                                        }
+                                        else if ((SmfCampaignThread::instance() != NULL) &&
+                                                 (SmfCampaignThread::instance()->campaign() == campaign)) {
+                                                /* Campaign is executing prereq tests (in state INITIAL) */ 
+                                                LOG_ER("Campaign %s is executing, can't be modified",
+                                                       ccbUtilOperationData->param.deleteOp.objectName->value);
+                                                rc = SA_AIS_ERR_BAD_OPERATION;
+                                                goto done;
+                                        }
+
 					rc = campaign->verify(ccbUtilOperationData->param.modify.attrMods);
 					if (rc != SA_AIS_OK) {
-						LOG_ER("Campaign %s attribute modification fail, wrong state or parameter content",
+						LOG_ER("Campaign %s attribute modification fail, wrong parameter content",
 						       ccbUtilOperationData->param.modify.objectName->value);
 						goto done;
 					}

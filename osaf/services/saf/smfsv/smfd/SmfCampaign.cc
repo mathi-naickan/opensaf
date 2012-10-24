@@ -138,18 +138,6 @@ SmfCampaign::verify(const SaImmAttrModificationT_2 ** attrMods)
 	int i = 0;
 	const SaImmAttrModificationT_2 *attrMod;
 
-	/* We don't allow attribute modifications if wrong state */
-	switch (m_cmpgState) {
-	case SA_SMF_CMPG_INITIAL:
-	case SA_SMF_CMPG_CAMPAIGN_COMMITTED:
-	case SA_SMF_CMPG_ROLLBACK_COMMITTED:
-		break;
-
-	default:
-		LOG_ER("Attribute modification not allowed in state %u", m_cmpgState);
-		return SA_AIS_ERR_BAD_OPERATION;
-	}
-
 	attrMod = attrMods[i++];
 	while (attrMod != NULL) {
 		void *value;
