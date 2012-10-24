@@ -329,7 +329,7 @@ SmfCampaignXmlParser::parseUpgradeProcedure(SmfUpgradeProcedure * io_up, xmlNode
                 if (procLen > OSAF_MAX_RDN_LENGTH) {
                         LOG_ER("Procedure name too long %d (max %d), %s", procLen, OSAF_MAX_RDN_LENGTH, s);
                         TRACE_LEAVE();
-                        return false;
+                        return;
                 }
 
 		io_up->setProcName(s);
