@@ -614,7 +614,7 @@ SmfImmDeleteOperation::execute(SmfRollbackData* o_rollbackData)
 
 	result = immutil_saImmOmCcbObjectDelete(m_ccbHandle, &objectName);
 	if (result != SA_AIS_OK) {
-		LOG_ER("SmfImmDeleteOperation::execute:immutil_saImmOmCcbObjectDelete failed %u", result);
+		LOG_ER("SmfImmDeleteOperation::execute:immutil_saImmOmCcbObjectDelete failed %u (child objects maybe exists)", result);
                 TRACE_LEAVE();
 		return result;
 	}
