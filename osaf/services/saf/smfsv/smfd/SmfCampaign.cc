@@ -34,6 +34,10 @@
 #include <logtrace.h>
 #include <immutil.h>
 
+/* We need some DN space for the step (~15),activation/deactivation (~30)
+   and image node (~15) objects */
+#define OSAF_STEP_ACT_LENGTH 60
+
 /*====================================================================*/
 /*  Class SmfCampaign                                                 */
 /*====================================================================*/
@@ -569,6 +573,15 @@ SmfCampaign::initExecution(void)
         	while (iter != procedures.end()) {
         		//Set the DN of the procedure
         		std::string dn = (*iter)->getProcName() + "," + SmfCampaignThread::instance()->campaign()->getDn();
+                        if (dn.length() > (SA_MAX_NAME_LENGTH - OSAF_STEP_ACT_LENGTH)) {
+                                std::string error = "Procedure dn too long " + dn;
+                                LOG_ER("Procedure dn too long (max %d) %s", 
+                                       SA_MAX_NAME_LENGTH - OSAF_STEP_ACT_LENGTH, dn.c_str());
+                                setError(error);
+                                delete p_uc; // To terminate and remove any previously started procedure threads
+                                /* Don't change campaign state to allow reexecution */
+                                return SA_AIS_OK;
+                        }
         		(*iter)->setDn(dn);
 
                         /* Start procedure thread */

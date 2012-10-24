@@ -262,6 +262,11 @@ SmfImmUtils::getObject(const std::string & i_dn, SaImmAttrValuesT_2 *** o_attrib
 	SaAisErrorT rc = SA_AIS_OK;
 	SaNameT objectName;
 
+        if (i_dn.length() > SA_MAX_NAME_LENGTH) {
+		LOG_ER("getObject error, dn too long (%zu), max %d", i_dn.length(), SA_MAX_NAME_LENGTH);
+		return false;
+        }
+
 	objectName.length = i_dn.length();
 	strncpy((char *)objectName.value, i_dn.c_str(), objectName.length);
 	objectName.value[objectName.length] = 0;
@@ -284,6 +289,11 @@ SmfImmUtils::getObjectAisRC(const std::string & i_dn, SaImmAttrValuesT_2 *** o_a
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	SaNameT objectName;
+
+        if (i_dn.length() > SA_MAX_NAME_LENGTH) {
+		LOG_ER("getObjectAisRC error, dn too long (%zu), max %d", i_dn.length(), SA_MAX_NAME_LENGTH);
+		return SA_AIS_ERR_NAME_TOO_LONG;
+        }
 
 	objectName.length = i_dn.length();
 	strncpy((char *)objectName.value, i_dn.c_str(), objectName.length);
@@ -323,6 +333,11 @@ SmfImmUtils::getChildren(const std::string & i_dn, std::list < std::string > &o_
 	TRACE_ENTER();
 
 	if (i_dn.size() > 0) {
+                if (i_dn.length() > SA_MAX_NAME_LENGTH) {
+                        LOG_ER("getChildren error, dn too long (%zu), max %d", i_dn.length(), SA_MAX_NAME_LENGTH);
+                        return false;
+                }
+                
 		objectName.length = i_dn.length();
 		strncpy((char *)objectName.value, i_dn.c_str(), objectName.length);
 		objectName.value[objectName.length] = 0;
@@ -390,6 +405,11 @@ SmfImmUtils::callAdminOperation(const std::string & i_dn, unsigned int i_operati
 	SaAisErrorT returnValue;
 	SaNameT objectName;
 	int retry          = 100;
+
+        if (i_dn.length() > SA_MAX_NAME_LENGTH) {
+                LOG_ER("callAdminOperation error, dn too long (%zu), max %d", i_dn.length(), SA_MAX_NAME_LENGTH);
+                return SA_AIS_ERR_NAME_TOO_LONG;
+        }
 
 	/* First set admin owner on the object */
 	objectName.length = i_dn.length();
@@ -663,6 +683,12 @@ smf_stringToValue(SaImmValueTypeT i_type, SaImmAttrValueT *i_value, const char* 
                 break;
         case SA_IMM_ATTR_SANAMET:
                 len = strlen(i_str);
+
+                if (len > SA_MAX_NAME_LENGTH) {
+                        LOG_ER("smf_stringToValue error, SaNameT value too long (%zu), max %d", len, SA_MAX_NAME_LENGTH);
+                        return false;
+                }
+
                 *i_value = malloc(sizeof(SaNameT));
                 ((SaNameT *) * i_value)->length = (SaUint16T) len;
                 strncpy((char *)((SaNameT *) * i_value)->value, i_str, len);

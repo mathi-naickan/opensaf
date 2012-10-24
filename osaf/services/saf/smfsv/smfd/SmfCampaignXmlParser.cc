@@ -52,6 +52,8 @@
 //#include "node.h"
 //#include "upgradecomp.h"
 
+#define OSAF_MAX_RDN_LENGTH 64
+
 #if defined(LIBXML_XPATH_ENABLED) && defined(LIBXML_SAX1_ENABLED)
 
 #endif
@@ -323,6 +325,13 @@ SmfCampaignXmlParser::parseUpgradeProcedure(SmfUpgradeProcedure * io_up, xmlNode
 	xmlNode *cur = i_node->xmlChildrenNode;
 
 	if ((s = (char *)xmlGetProp(i_node, (const xmlChar *)"safSmfProcedure"))) {
+                int procLen = strlen (s);
+                if (procLen > OSAF_MAX_RDN_LENGTH) {
+                        LOG_ER("Procedure name too long %d (max %d), %s", procLen, OSAF_MAX_RDN_LENGTH, s);
+                        TRACE_LEAVE();
+                        return false;
+                }
+
 		io_up->setProcName(s);
 		xmlFree(s);
 	}
