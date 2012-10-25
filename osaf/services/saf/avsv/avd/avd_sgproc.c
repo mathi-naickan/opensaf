@@ -873,12 +873,14 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	if (n2d_msg->msg_info.n2d_su_si_assign.error != NCSCC_RC_SUCCESS) {
 		switch (n2d_msg->msg_info.n2d_su_si_assign.msg_act) {
 		case AVSV_SUSI_ACT_ASGN:
-			LOG_NO("Failed to assign SI to '%s'",
+			LOG_NO("Failed to assign '%s' HA state to '%s'",
+					avd_ha_state[n2d_msg->msg_info.n2d_su_si_assign.ha_state],
 					n2d_msg->msg_info.n2d_su_si_assign.su_name.value);
 			break;
 		case AVSV_SUSI_ACT_MOD:
-			LOG_NO("Failed to modify assignment for '%s'",
-					n2d_msg->msg_info.n2d_su_si_assign.su_name.value);
+			LOG_NO("Failed to modify '%s' assignment to '%s'", 
+					n2d_msg->msg_info.n2d_su_si_assign.su_name.value,
+					avd_ha_state[n2d_msg->msg_info.n2d_su_si_assign.ha_state]);
 			break;
 		case AVSV_SUSI_ACT_DEL:
 			LOG_NO("Failed to delete assignment from '%s'",
