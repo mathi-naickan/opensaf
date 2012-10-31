@@ -10570,7 +10570,7 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
                     "by Impl %s pending PBE ack", objectName.c_str(),
                          info->mImplementerName.c_str());
             } else { /* No pbe and no pbe expected. */
-                       LOG_NO("Create of PERSISTENT runtime object '%s' by Impl %s",
+                       TRACE("Create of PERSISTENT runtime object '%s' by Impl %s",
                            objectName.c_str(), info->mImplementerName.c_str());
             }
         } else {/* !isPersistent i.e. normal RTO */
@@ -11787,7 +11787,7 @@ ImmModel::deleteRtObject(ObjectMap::iterator& oi, bool doIt,
 
         if(isPersistent) {
             if(info) {
-                LOG_NO("Delete of PERSISTENT runtime object '%s' by Impl: %s", 
+                TRACE("Delete of PERSISTENT runtime object '%s' by Impl: %s", 
                 oi->first.c_str(), info->mImplementerName.c_str());
             } else {
                 TRACE_7("REVERT of create OR ack from PBE on delete of PERSISTENT "
