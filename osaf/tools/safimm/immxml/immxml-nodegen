@@ -70,9 +70,9 @@ create_node()
 
    cat $TEMPLATE | sed "
 s/$NORED_TOKEN/NoRed$NORED_INDEX/g
-s/Rank_TOKEN/$INDEX/g
+s/$PATTERN/$ID/g 
 s/CLM_TOKEN/$CLMID/g 
-s/$PATTERN/$ID/g"  > $RESULT_DIR/imm_$ID.xml
+s/Rank_TOKEN/$INDEX/g" > $RESULT_DIR/imm_$ID.xml
 
 }
 
