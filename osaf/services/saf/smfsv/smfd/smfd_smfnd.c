@@ -146,8 +146,6 @@ uint32_t smfnd_up(SaClmNodeIdT i_node_id, MDS_DEST i_smfnd_dest)
 	rc = saClmFinalize(clmHandle);
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saClmFinalize failed %d", rc);
-		free(smfnd);
-		return NCSCC_RC_FAILURE;
 	}
 
 	/* Make shure the name string is null terminated */
