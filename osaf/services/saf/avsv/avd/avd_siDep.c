@@ -2294,7 +2294,7 @@ bool avd_si_dependency_exists_within_su(const AVD_SU *su)
 	TRACE_ENTER();
 
 	for (susi = su->list_of_susi; susi != NULL; susi = susi->su_next) {
-		if (!susi->si->num_dependents) {
+		if (susi->si->num_dependents) {
 			spons_exist = true;
 		}
 		if (susi->si->spons_si_list) {
