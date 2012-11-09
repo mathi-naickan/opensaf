@@ -538,13 +538,6 @@ ClassInfo* classToPBE(std::string classNameString,
 
 	std::string sqlA("INSERT INTO classes (class_id, class_name, class_category) values('");
 	std::string sqlB;
-	unsigned int sqlBsize = 2048;  /* There appears to be a bug in the version of 
-					  std:string I am using that is provoked (segv)
-					  when the string expands beyond aproximately
-					  1K in size.
-					  Preallocating large space to avoid this. 
-					  This is also more efficient.
-				       */
 	std::string sqlC("INSERT INTO attr_def (class_id, attr_name, attr_type, attr_flags) values('");
 
 	std::string sqlD("INSERT INTO attr_dflt (class_id, attr_name, ");
@@ -589,7 +582,6 @@ ClassInfo* classToPBE(std::string classNameString,
 		goto bailout;
 	}
 	sqlA.resize(0); /* sqlA not used any more. */
-	sqlB.reserve(sqlBsize);
 	sqlB.append("CREATE TABLE \"");
 	sqlB.append(classNameString);
 	sqlB.append("\" (obj_id integer primary key");
@@ -691,12 +683,6 @@ ClassInfo* classToPBE(std::string classNameString,
 				sqlite3_free(execErr);
 				goto bailout;
 			}
-		}
-
-		if (sqlB.size() > sqlBsize) {
-			LOG_ER("SQL statement too long:%zu max length:%u", 
-				sqlB.size(), sqlBsize);
-			goto bailout;
 		}
 	}
 
