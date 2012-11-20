@@ -189,6 +189,7 @@ static SaAisErrorT lga_hdl_cbk_dispatch_one(lga_cb_t *cb, lga_client_hdl_rec_t *
 		} else {
 			TRACE("Unsupported callback type = %d", cbk_msg->info.cbk_info.type);
 			rc = SA_AIS_ERR_LIBRARY;
+			lga_msg_destroy(cbk_msg);
 		}
 	}
 
@@ -258,6 +259,7 @@ static uint32_t lga_hdl_cbk_dispatch_block(lga_cb_t *cb, lga_client_hdl_rec_t *h
 			} else {
 				TRACE("unsupported callback type %d", cbk_msg->info.cbk_info.type);
 			}
+			lga_msg_destroy(cbk_msg);
 		} else
 			return rc;	/* FIX to handle finalize clean up of mbx */
 	}

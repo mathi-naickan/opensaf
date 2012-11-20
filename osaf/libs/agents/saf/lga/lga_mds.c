@@ -436,6 +436,7 @@ static uint32_t lga_lgs_msg_proc(lga_cb_t *cb, lgsv_msg_t *lgsv_msg, MDS_SEND_PR
 			/** enqueue this message  **/
 				if (NCSCC_RC_SUCCESS != m_NCS_IPC_SEND(&lga_hdl_rec->mbx, lgsv_msg, prio)) {
 					TRACE("IPC SEND FAILED");
+					lga_msg_destroy(lgsv_msg);
 					TRACE_LEAVE();
 					return NCSCC_RC_FAILURE;
 				}
@@ -444,6 +445,7 @@ static uint32_t lga_lgs_msg_proc(lga_cb_t *cb, lgsv_msg_t *lgsv_msg, MDS_SEND_PR
 
 		default:
 			TRACE("unknown type %d", lgsv_msg->info.cbk_info.type);
+			lga_msg_destroy(lgsv_msg);
 			TRACE_LEAVE();
 			return NCSCC_RC_FAILURE;
 			break;
@@ -452,6 +454,7 @@ static uint32_t lga_lgs_msg_proc(lga_cb_t *cb, lgsv_msg_t *lgsv_msg, MDS_SEND_PR
 	default:
 	    /** Unexpected message **/
 		TRACE_2("Unexpected message type: %d", lgsv_msg->type);
+		lga_msg_destroy(lgsv_msg);
 		TRACE_LEAVE();
 		return NCSCC_RC_FAILURE;
 		break;
