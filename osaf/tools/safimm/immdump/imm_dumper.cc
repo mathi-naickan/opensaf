@@ -23,6 +23,7 @@
 #include <fstream>
 #include <limits.h>
 #include <libxml/parser.h>
+#include <libxml/xmlmemory.h>
 #include <getopt.h>
 #include <assert.h>
 #include <libgen.h>
