@@ -175,6 +175,13 @@ def saLogInitialize(logHandle, callbacks, version):
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogInitialize.argtypes = [POINTER(SaLogHandleT),
+                                       POINTER(SaLogCallbacksT),
+                                       POINTER(SaVersionT)]
+
+	logdll.saLogInitialize.restype = SaAisErrorT
+
 	return logdll.saLogInitialize(BYREF(logHandle),
 			BYREF(callbacks),
 			BYREF(version))
@@ -191,6 +198,12 @@ def saLogSelectionObjectGet(logHandle, selectionObject):
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogSelectionObjectGet.argtypes = [SaLogHandleT,
+                                               POINTER(SaSelectionObjectT)]
+
+	logdll.saLogSelectionObjectGet.restype = SaAisErrorT
+
 	return logdll.saLogSelectionObjectGet(logHandle,
 			BYREF(selectionObject))
 
@@ -205,6 +218,12 @@ def saLogDispatch(logHandle, dispatchFlags):
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogDispatch.argtypes = [SaLogHandleT,
+                                     SaDispatchFlagsT]
+
+	logdll.saLogDispatch.restype = SaAisErrorT
+
 	return logdll.saLogDispatch(logHandle, dispatchFlags)
 
 def saLogFinalize(logHandle):
@@ -217,6 +236,11 @@ def saLogFinalize(logHandle):
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogFinalize.argtypes = [SaLogHandleT]
+
+	logdll.saLogFinalize.restype = SaAisErrorT
+
 	return logdll.saLogFinalize(logHandle)
 
 def saLogStreamOpen_2(logHandle, logStreamName, logFileCreateAttributes,
@@ -235,6 +259,16 @@ def saLogStreamOpen_2(logHandle, logStreamName, logFileCreateAttributes,
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogStreamOpen_2.argtypes = [SaLogHandleT,
+                                         POINTER(SaNameT),
+                                         POINTER(SaLogFileCreateAttributesT_2),
+                                         SaLogStreamOpenFlagsT,
+                                         SaTimeT,
+                                         POINTER(SaLogStreamHandleT)]
+
+	logdll.saLogStreamOpen_2.restype = SaAisErrorT
+
 	return logdll.saLogStreamOpen_2(logHandle,
 			BYREF(logStreamName),
 			BYREF(logFileCreateAttributes),
@@ -257,6 +291,15 @@ def saLogStreamOpenAsync_2(logHandle, logStreamName,
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogStreamOpenAsync_2.argtypes = [SaLogHandleT,
+                                              POINTER(SaNameT),
+                                              POINTER(SaLogFileCreateAttributesT_2),
+                                              SaLogStreamOpenFlagsT,
+                                              SaInvocationT]
+
+	logdll.saLogStreamOpenAsync_2.restype = SaAisErrorT
+
 	return logdll.saLogStreamOpenAsync_2(logHandle,
 			BYREF(logStreamName),
 			BYREF(logFileCreateAttributes),
@@ -275,6 +318,13 @@ def saLogWriteLog(logStreamHandle, timeout, logRecord):
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogWriteLog.argtypes = [SaLogHandleT,
+                                     SaTimeT,
+                                     POINTER(SaLogRecordT)]
+
+	logdll.saLogWriteLog.restype = SaAisErrorT
+
 	return logdll.saLogWriteLog(logStreamHandle, timeout, BYREF(logRecord))
 
 def saLogWriteLogAsync(logStreamHandle, invocation, ackFlags, logRecord):
@@ -290,6 +340,14 @@ def saLogWriteLogAsync(logStreamHandle, invocation, ackFlags, logRecord):
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogWriteLogAsync.argtypes = [SaLogStreamHandleT,
+                                       SaInvocationT,
+                                       SaLogAckFlagsT,
+                                       POINTER(SaLogRecordT)]
+
+	logdll.saLogWriteLogAsync.restype = SaAisErrorT
+
 	return logdll.saLogWriteLogAsync(logStreamHandle,
 			invocation,
 			ackFlags,
@@ -305,6 +363,11 @@ def saLogStreamClose(logStreamHandle):
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogStreamClose.argtypes = [SaLogStreamHandleT]
+
+	logdll.saLogStreamClose.restype = SaAisErrorT
+
 	return logdll.saLogStreamClose(logStreamHandle)
 
 def saLogLimitGet(logHandle, limitId, limitValue):
@@ -319,4 +382,11 @@ def saLogLimitGet(logHandle, limitId, limitValue):
 		SaAisErrorT
 
 	"""
+	
+	logdll.saLogLimitGet.argtypes = [SaLogStreamHandleT,
+                                     SaLogLimitIdT,
+                                     POINTER(SaLimitValueT)]
+
+	logdll.saLogLimitGet.restype = SaAisErrorT
+
 	return logdll.saLogLimitGet(logHandle, limitId, BYREF(limitValue))

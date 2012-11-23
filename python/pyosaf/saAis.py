@@ -139,6 +139,11 @@ eSaServicesT = Enumeration((
 	('SA_SVC_PLM', 15),
 ))
 
+SaLogLimitIdT = SaEnumT
+eSaLogLimitIdT = Enumeration((
+	('SA_LOG_MAX_NUM_CLUSTER_APP_LOG_STREAMS_ID', 1),
+))
+
 class SaAnyT(Structure):
 	"""Contain arbitrary set of octets.
 

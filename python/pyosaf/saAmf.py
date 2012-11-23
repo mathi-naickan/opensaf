@@ -16,7 +16,7 @@
 ############################################################################
 
 from saAis import *
-import saNtf
+from saNtf import *
 
 # Only mirrors API calls implemented in osaf/libs/agents/saf/ava/ava_api.c
 # If it ain't implemented here (or is commented out here),
@@ -415,6 +415,13 @@ def saAmfInitialize(amfHandle, amfCallbacks, version):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfInitialize.argtypes = [POINTER(SaAmfHandleT),
+                                       POINTER(SaAmfCallbacksT),
+                                       POINTER(SaVersionT)]
+
+	amfdll.saAmfInitialize.restype = SaAisErrorT
+
 	return amfdll.saAmfInitialize(BYREF(amfHandle),
 			BYREF(amfCallbacks),
 			BYREF(version))
@@ -435,6 +442,16 @@ def saAmfPmStart(amfHandle, compName, processId,
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfPmStart.argtypes = [SaAmfHandleT,
+                                    POINTER(SaNameT),
+                                    SaUint64T,
+                                    SaInt32T,
+                                    SaAmfPmErrorsT,
+                                    SaAmfRecommendedRecoveryT]
+
+	amfdll.saAmfPmStart.restype = SaAisErrorT
+
 	return amfdll.saAmfPmStart(amfHandle, BYREF(compName), processId,
 			descendentsTreeDepth, pmErrors, recommendedRecovery)
 #endif /* SA_AMF_B01 || SA_AMF_B02 */
@@ -474,6 +491,13 @@ def saAmfInitialize_3(amfHandle, amfCallbacks, version):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfInitialize_3.argtypes = [POINTER(SaAmfHandleT),
+                                         POINTER(SaAmfCallbacksT_3),
+                                         POINTER(SaVersionT)]
+
+	amfdll.saAmfInitialize_3.restype = SaAisErrorT
+
 	return amfdll.saAmfInitialize_3(BYREF(amfHandle),
 			BYREF(amfCallbacks),
 			BYREF(version))
@@ -492,6 +516,13 @@ def saAmfComponentUnregister(amfHandle, compName, proxyCompName):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfComponentUnregister.argtypes = [SaAmfHandleT,
+                                                POINTER(SaNameT),
+                                                POINTER(SaNameT)]
+
+	amfdll.saAmfComponentUnregister.restype = SaAisErrorT
+
 	return amfdll.saAmfComponentUnregister(amfHandle,
 			BYREF(compName),
 			BYREF(proxyCompName))
@@ -510,6 +541,14 @@ def saAmfProtectionGroupTrack(amfHandle,
 		SaAisErrorT
 
 	"""
+
+	amfdll.saAmfProtectionGroupTrack.argtypes = [SaAmfHandleT,
+                                                 POINTER(SaNameT),
+                                                 SaUint8T,
+                                                 POINTER(SaAmfProtectionGroupNotificationBufferT)]
+
+	amfdll.saAmfProtectionGroupTrack.restype = SaAisErrorT
+
 	return amfdll.saAmfProtectionGroupTrack(amfHandle,
 			BYREF(csiName), trackFlags,
 			BYREF(notificationBuffer))
@@ -526,6 +565,12 @@ def saAmfProtectionGroupNotificationFree(amfHandle, notification):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfProtectionGroupNotificationFree.argtypes = [SaAmfHandleT,
+                                                            POINTER(SaAmfProtectionGroupNotificationT)]
+
+	amfdll.saAmfProtectionGroupNotificationFree.restype = SaAisErrorT
+
 	return amfdll.saAmfProtectionGroupNotificationFree(amfHandle,
 			BYREF(notification))
 
@@ -545,6 +590,15 @@ def saAmfComponentErrorReport(amfHandle,
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfComponentErrorReport.argtypes = [SaAmfHandleT,
+												POINTER(SaNameT),
+												SaTimeT,
+												SaAmfRecommendedRecoveryT,
+												SaNtfIdentifierT]
+
+	amfdll.saAmfComponentErrorReport.restype = SaAisErrorT
+
 	return amfdll.saAmfComponentErrorReport(amfHandle, BYREF(compName),
 			errorDetectionTime, recommendedRecovery, ntfIdentifier)
 
@@ -575,6 +629,13 @@ def saAmfResponse(amfHandle, invocation, error):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfResponse.argtypes = [SaAmfHandleT,
+                                     SaInvocationT,
+                                     SaAisErrorT]
+
+	amfdll.saAmfResponse.restype = SaAisErrorT
+
 	return amfdll.saAmfResponse(amfHandle, invocation, error)
 #endif /* SA_AMF_B01 || SA_AMF_B02 || SA_AMF_B03 */
 
@@ -612,6 +673,13 @@ def saAmfInitialize_4(amfHandle, amfCallbacks, version):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfInitialize_4.argtypes = [POINTER(SaNameT),
+                                         POINTER(SaNameT),
+                                         POINTER(SaVersionT)]
+
+	amfdll.saAmfInitialize_4.restype = SaAisErrorT
+
 	return amfdll.saAmfInitialize_4(BYREF(amfHandle),
 			BYREF(amfCallbacks), BYREF(version))
 
@@ -627,6 +695,12 @@ def saAmfSelectionObjectGet(amfHandle, selectionObject):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfSelectionObjectGet.argtypes = [SaAmfHandleT,
+                                               POINTER(SaSelectionObjectT)]
+
+	amfdll.saAmfSelectionObjectGet.restype = SaAisErrorT
+
 	return amfdll.saAmfSelectionObjectGet(amfHandle,
 			BYREF(selectionObject))
 
@@ -641,6 +715,12 @@ def saAmfDispatch(amfHandle, dispatchFlags):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfDispatch.argtypes = [SaAmfHandleT,
+                                     SaDispatchFlagsT]
+
+	amfdll.saAmfDispatch.restype = SaAisErrorT
+
 	return amfdll.saAmfDispatch(amfHandle, dispatchFlags)
 
 def saAmfFinalize(amfHandle):
@@ -653,6 +733,11 @@ def saAmfFinalize(amfHandle):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfFinalize.argtypes = [SaAmfHandleT]
+
+	amfdll.saAmfFinalize.restype = SaAisErrorT
+
 	return amfdll.saAmfFinalize(amfHandle)
 
 def saAmfComponentRegister(amfHandle, compName, proxyCompName):
@@ -667,6 +752,13 @@ def saAmfComponentRegister(amfHandle, compName, proxyCompName):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfComponentRegister.argtypes = [SaAmfHandleT,
+                                              POINTER(SaNameT),
+                                              POINTER(SaNameT)]
+
+	amfdll.saAmfComponentRegister.restype = SaAisErrorT
+
 	return amfdll.saAmfComponentRegister(amfHandle,
 			BYREF(compName),
 			BYREF(proxyCompName))
@@ -682,6 +774,12 @@ def saAmfComponentNameGet(amfHandle, compName):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfComponentNameGet.argtypes = [SaAmfHandleT,
+                                             POINTER(SaNameT)]
+
+	amfdll.saAmfComponentNameGet.restype = SaAisErrorT
+
 	return amfdll.saAmfComponentNameGet(amfHandle, BYREF(compName))
 
 def saAmfPmStart_3(amfHandle,
@@ -701,6 +799,16 @@ def saAmfPmStart_3(amfHandle,
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfPmStart_3.argtypes = [SaAmfHandleT,
+                                      POINTER(SaNameT),
+                                      SaInt64T,
+                                      SaInt32T,
+                                      SaAmfPmErrorsT,
+                                      SaAmfRecommendedRecoveryT]
+
+	amfdll.saAmfPmStart_3.restype = SaAisErrorT
+
 	return amfdll.saAmfPmStart_3(amfHandle,
 			BYREF(compName), processId, descendentsTreeDepth,
 			pmErrors, recommendedRecovery)
@@ -719,6 +827,15 @@ def saAmfPmStop(amfHandle, compName, stopQualifier, processId, pmErrors):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfPmStop.argtypes = [SaAmfHandleT,
+                                   POINTER(SaNameT),
+                                   SaAmfPmStopQualifierT,
+                                   SaInt64T,
+                                   SaAmfPmErrorsT]
+
+	amfdll.saAmfPmStop.restype = SaAisErrorT
+
 	return amfdll.saAmfPmStop(amfHandle,
 			BYREF(compName), stopQualifier, processId, pmErrors)
 
@@ -738,6 +855,15 @@ def saAmfHealthcheckStart(amfHandle,
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfHealthcheckStart.argtypes = [SaAmfHandleT,
+                                             POINTER(SaNameT),
+                                             POINTER(SaAmfHealthcheckKeyT),
+                                             SaAmfHealthcheckInvocationT,
+                                             SaAmfRecommendedRecoveryT]
+
+	amfdll.saAmfHealthcheckStart.restype = SaAisErrorT
+
 	return amfdll.saAmfHealthcheckStart(amfHandle,
 			BYREF(compName), BYREF(healthcheckKey),
 			invocationType, recommendedRecovery)
@@ -756,6 +882,14 @@ def saAmfHealthcheckConfirm(amfHandle,
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfHealthcheckConfirm.argtypes = [SaAmfHandleT,
+                                               POINTER(SaNameT),
+                                               POINTER(SaAmfHealthcheckKeyT),
+                                               SaAisErrorT]
+
+	amfdll.saAmfHealthcheckConfirm.restype = SaAisErrorT
+
 	return amfdll.saAmfHealthcheckConfirm(amfHandle,
 			BYREF(compName), BYREF(healthcheckKey),
 			healthcheckResult)
@@ -772,6 +906,13 @@ def saAmfHealthcheckStop(amfHandle, compName, healthcheckKey):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfHealthcheckStop.argtypes = [SaAmfHandleT,
+                                            POINTER(SaNameT),
+                                            POINTER(SaAmfHealthcheckKeyT)]
+
+	amfdll.saAmfHealthcheckStop.restype = SaAisErrorT
+
 	return amfdll.saAmfHealthcheckStop(amfHandle,
 			BYREF(compName), BYREF(healthcheckKey))
 
@@ -788,6 +929,13 @@ def saAmfCSIQuiescingComplete(amfHandle, invocation, error):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfCSIQuiescingComplete.argtypes = [SaAmfHandleT,
+                                                 SaInvocationT,
+                                                 SaAisErrorT]
+
+	amfdll.saAmfCSIQuiescingComplete.restype = SaAisErrorT
+
 	return amfdll.saAmfCSIQuiescingComplete(amfHandle, invocation, error)
 
 def saAmfHAReadinessStateSet(amfHandle,
@@ -805,6 +953,15 @@ def saAmfHAReadinessStateSet(amfHandle,
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfHAReadinessStateSet.argtypes = [SaAmfHandleT,
+											    POINTER(SaNameT),
+											    POINTER(SaNameT),
+											    SaAmfHAReadinessStateT,
+											    POINTER(SaNtfCorrelationIdsT)]
+
+	amfdll.saAmfHAReadinessStateSet.restype = SaAisErrorT
+	
 	return amfdll.saAmfHAReadinessStateSet(amfHandle,
 			BYREF(compName), BYREF(csiName), haReadinessState,
 			BYREF(correlationIds))
@@ -822,6 +979,14 @@ def saAmfHAStateGet(amfHandle, compName, csiName, haState):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfHAStateGet.argtypes = [SaAmfHandleT,
+                                       POINTER(SaNameT),
+                                       POINTER(SaNameT),
+                                       POINTER(SaAmfHAStateT)]
+
+	amfdll.saAmfHAStateGet.restype = SaAisErrorT
+
 	return amfdll.saAmfHAStateGet(amfHandle,
 			BYREF(compName), BYREF(csiName), BYREF(haState))
 
@@ -839,6 +1004,14 @@ def saAmfProtectionGroupTrack_4(amfHandle,
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfProtectionGroupTrack_4.argtypes = [SaAmfHandleT,
+                                                   POINTER(SaNameT),
+                                                   SaUint8T,
+                                                   POINTER(SaAmfProtectionGroupNotificationBufferT_4)]
+
+	amfdll.saAmfProtectionGroupTrack_4.restype = SaAisErrorT
+
 	return amfdll.saAmfProtectionGroupTrack_4(amfHandle, BYREF(csiName),
 			trackFlags, BYREF(notificationBuffer))
 
@@ -853,6 +1026,12 @@ def saAmfProtectionGroupTrackStop(amfHandle, csiName):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfProtectionGroupTrackStop.argtypes = [SaAmfHandleT,
+                                                     POINTER(SaNameT)]
+
+	amfdll.saAmfProtectionGroupTrackStop.restype = SaAisErrorT
+
 	return amfdll.saAmfProtectionGroupTrackStop(amfHandle, BYREF(csiName))
 
 def saAmfProtectionGroupNotificationFree_4(amfHandle, notification):
@@ -867,6 +1046,12 @@ def saAmfProtectionGroupNotificationFree_4(amfHandle, notification):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfProtectionGroupNotificationFree_4.argtypes = [SaAmfHandleT,
+                                                              POINTER(SaAmfProtectionGroupNotificationT_4)]
+
+	amfdll.saAmfProtectionGroupNotificationFree_4.restype = SaAisErrorT
+
 	return amfdll.saAmfProtectionGroupNotificationFree_4(amfHandle,
 			BYREF(notification))
 
@@ -886,6 +1071,15 @@ def saAmfComponentErrorReport_4(amfHandle,
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfComponentErrorReport_4.argtypes = [SaAmfHandleT,
+                                                   POINTER(SaNameT),
+                                                   SaTimeT,
+                                                   SaAmfRecommendedRecoveryT,
+                                                   POINTER(SaNtfCorrelationIdsT)]
+
+	amfdll.saAmfComponentErrorReport_4.restype = SaAisErrorT
+
 	return amfdll.saAmfComponentErrorReport_4(amfHandle,
 			BYREF(compName),
 			errorDetectionTime,
@@ -905,6 +1099,13 @@ def saAmfCorrelationIdsGet(amfHandle, invocation, correlationIds):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfCorrelationIdsGet.argtypes = [SaAmfHandleT,
+                                              SaInvocationT,
+                                              POINTER(SaNtfCorrelationIdsT)]
+
+	amfdll.saAmfCorrelationIdsGet.restype = SaAisErrorT
+
 	return amfdll.saAmfCorrelationIdsGet(amfHandle,
 			invocation, BYREF(correlationIds))
 
@@ -920,6 +1121,13 @@ def saAmfComponentErrorClear_4(amfHandle, compName, correlationIds):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfComponentErrorClear_4.argtypes = [SaAmfHandleT,
+                                                  POINTER(SaNtfCorrelationIdsT),
+                                                  POINTER(SaNtfCorrelationIdsT)]
+
+	amfdll.saAmfComponentErrorClear_4.restype = SaAisErrorT
+
 	return amfdll.saAmfComponentErrorClear_4(amfHandle,
 			BYREF(compName), BYREF(correlationIds))
 
@@ -936,5 +1144,13 @@ def saAmfResponse_4(amfHandle, invocation, correlationIds, error):
 		SaAisErrorT
 
 	"""
+	
+	amfdll.saAmfResponse_4.argtypes = [SaAmfHandleT,
+                                       SaInvocationT,
+                                       POINTER(SaNtfCorrelationIdsT),
+                                       SaAisErrorT]
+
+	amfdll.saAmfResponse_4.restype = SaAisErrorT
+
 	return amfdll.saAmfResponse_4(amfHandle, invocation,
 			BYREF(correlationIds), error)
