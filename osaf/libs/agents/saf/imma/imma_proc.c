@@ -1969,6 +1969,10 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 						localEr = SA_AIS_ERR_FAILED_OPERATION;
 					}
 
+					if(isPbeOp) {
+						cl_node->o.iCallbk.saImmOiCcbApplyCallback(callback->lcl_imm_hdl, ccbid);
+					}
+
 				} else {
 					/* No callback function registered for completed upcall.
 					   The standard is not clear on how this case should be handled.
