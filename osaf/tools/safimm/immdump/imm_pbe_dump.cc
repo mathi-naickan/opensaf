@@ -876,7 +876,6 @@ static ClassInfo* verifyClassPBE(std::string classNameString,
 	
         class_id = strtoul(result[ncols], NULL, 0);
 	classInfo = new ClassInfo(class_id);
-	sqlite3_free_table(result);
 	TRACE("ClassId:%u", class_id);
 
 	/* Get the class description */
@@ -908,6 +907,7 @@ static ClassInfo* verifyClassPBE(std::string classNameString,
 		goto bailout;
 	}
 
+	sqlite3_free_table(result);
 	TRACE_LEAVE();
 	return classInfo;
 
