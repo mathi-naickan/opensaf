@@ -1452,11 +1452,11 @@ done:
 }
 
 /**
- * Adjust configuration parameters after configuration change is complete
- * For example saAmfSGMaxActiveSIsperSU and saAmfSGMaxStandbySIsperSU
- * This function should only be called at the end of a configuration change.
- * That is when all instances has been added to the model.
- * @param sg
+ * Adjust @a sg configuration attributes after it has been added to the model
+ *
+ * This function should only be called at the end of a configuration change
+ * when all instances has been added to the model.
+ * For more info see sai-im-xmi-a.04.02.xml
  */
 void avd_sg_adjust_config(AVD_SG *sg)
 {
@@ -1474,5 +1474,26 @@ void avd_sg_adjust_config(AVD_SG *sg)
 					sg->saAmfSGMaxStandbySIsperSU, sg->name.value);
 		}
 		sg->saAmfSGMaxStandbySIsperSU = 1;
+	}
+
+	/* adjust saAmfSGNumPrefInserviceSUs if not configured */
+	if (sg->saAmfSGNumPrefInserviceSUs == 0) {
+		sg->saAmfSGNumPrefInserviceSUs = sg_su_cnt(sg);
+		if ((sg->sg_type->saAmfSgtRedundancyModel == SA_AMF_2N_REDUNDANCY_MODEL) &&
+				(sg->saAmfSGNumPrefInserviceSUs < 2)) {
+			sg->saAmfSGNumPrefInserviceSUs = 2;
+			LOG_NO("'%s' saAmfSGNumPrefInserviceSUs adjusted to 2", sg->name.value);
+		}
+	}
+
+	/* adjust saAmfSGNumPrefAssignedSUs if not configured, only applicable for
+	 * the N-way and N-way active redundancy models
+	 */
+	if ((sg->saAmfSGNumPrefAssignedSUs == 0) &&
+			((sg->sg_type->saAmfSgtRedundancyModel == SA_AMF_N_WAY_REDUNDANCY_MODEL) ||
+				(sg->sg_type->saAmfSgtRedundancyModel == SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL))) {
+		sg->saAmfSGNumPrefAssignedSUs = sg->saAmfSGNumPrefInserviceSUs;
+		LOG_NO("'%s' saAmfSGNumPrefAssignedSUs adjusted to %u",
+				sg->name.value, sg->saAmfSGNumPrefAssignedSUs);
 	}
 }
