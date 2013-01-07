@@ -446,8 +446,6 @@ unsigned int ncs_os_task(NCS_OS_TASK *task, NCS_OS_TASK_REQUEST request)
 	case NCS_OS_TASK_CREATE:
 		{
 			int rc;
-
-#if (CHECK_FOR_ROOT_PRIVLEGES == 1)
 			int policy;
 			char *thread_prio;
 			char *thread_policy;
@@ -533,12 +531,8 @@ unsigned int ncs_os_task(NCS_OS_TASK *task, NCS_OS_TASK_REQUEST request)
 			assert(NULL != task->info.create.o_handle);
 
 			rc = pthread_create(task->info.create.o_handle, &attr,
-#if 1
 					    (void *(*)(void *))task->info.create.i_entry_point,
 					    task->info.create.i_ep_arg);
-#else
-					    os_task_entry, task);
-#endif
 			if (rc != 0) {
 				syslog(LOG_ERR, "thread creation failed for %s with rc = %d errno = %s",
 							 task->info.create.i_name, rc, strerror(errno));
@@ -553,20 +547,6 @@ unsigned int ncs_os_task(NCS_OS_TASK *task, NCS_OS_TASK_REQUEST request)
 				free(task->info.create.o_handle);
 				return NCSCC_RC_INVALID_INPUT;
 			}
-#else				/* (CHECK_FOR_ROOT_PRIVLEGES == 0) */
-
-			/* create the new thread object */
-
-			task->info.create.o_handle = malloc(sizeof(pthread_t));
-			assert(NULL != task->info.create.o_handle);
-
-			rc = pthread_create(task->info.create.o_handle,
-					    NULL,
-					    (void *(*)(void *))task->info.create.i_entry_point,
-					    task->info.create.i_ep_arg);
-
-			assert(0 == rc);
-#endif   /* CHECK_FOR_ROOT_PRIVLEGES */
 		}
 		break;
 
