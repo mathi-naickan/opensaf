@@ -1134,6 +1134,9 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 
 		/* For non-preinstantiable SU unlock-inst will not lead to its inst until unlock. */
 		if ( su->saAmfSUPreInstantiable == false ) {
+			/* Adjusting saAmfSGMaxActiveSIsperSU and saAmfSGMaxStandbySIsperSU
+			   is required when SG and SUs/Comps are created in different CCBs. */
+			avd_sg_adjust_config(su->sg_of_su);
 			avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
 			avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_OK);
 			goto done;
