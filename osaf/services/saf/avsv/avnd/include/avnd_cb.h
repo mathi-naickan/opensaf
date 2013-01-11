@@ -104,7 +104,7 @@ typedef struct avnd_cb_tag {
 	AVND_TERM_STATE term_state;
 	AVND_LED_STATE led_state;
 
-	NCS_DB_LINK_LIST si_list; /* all SIs sorted by their rank */
+	NCS_DB_LINK_LIST si_list; /* all application SIs sorted by their rank */
 
 	MDS_HDL avnd_mbcsv_vaddr_pwe_hdl;	/* The pwe handle returned when
 						 * vdest address is created.

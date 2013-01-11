@@ -89,7 +89,7 @@ void avnd_last_step_clean(AVND_CB *cb)
 
 			/* Don't call cleanup script for PI/NPI components in UNINSTANTIATED state.*/
 			if (comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) {
-				avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+				avnd_comp_cleanup_launch(comp);
 				cleanup_call_cnt++;
 			}
 
@@ -110,28 +110,13 @@ void avnd_last_step_clean(AVND_CB *cb)
 	TRACE_LEAVE();
 }
 
-/****************************************************************************
-  Name          : avnd_evt_last_step_term
- 
-  Description   : 1. Send a message to AVD about the signal.
-                  2. Do the cleanup of the nodes
-                  3. Call the NID API informing the completion of cleanup.
-  
-                  This routine processes clean up of all SUs (NCS/APP if exist).
-                  Even if the clean up of all components is not successful, We still
-                  go ahead and free the DB records coz this is last step 
-                  anyway.
- 
-  Arguments     : cb  - ptr to the AvND control block
-                  evt - ptr to the AvND event
- 
-  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- 
-  Notes         : All the errors are ignored and brute force deletes are
-                  employed. There might be an issue with ASSERT in SU_REC_DEL
-                  However, it doesnt matter coz this is during the last step
-                  and NID script will timeout and kill anyway.
-******************************************************************************/
+/**
+ * Start shutdown of all AMF components. First Applications SIs are
+ * removed according to rank, then CLEANUP is executed for all components.
+ * @param cb
+ * @param evt
+ * @return
+ */
 uint32_t avnd_evt_last_step_term_evh(AVND_CB *cb, AVND_EVT *evt)
 {
 	AVND_SU_SI_REC *si;
@@ -140,46 +125,70 @@ uint32_t avnd_evt_last_step_term_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
-	cb->term_state = AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED;
+	// this func can be called again in the INITIATED state, only log once
+	if (cb->term_state == AVND_TERM_STATE_UP) {
+		LOG_NO("Shutdown initiated");
+		cb->term_state = AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED;
+	}
 
-	/* Ensure all assignments are in stable state */
+	/*
+	 * If any change in SI assignments is pending, delay the shutdown until
+	 * the change is completed. Shutdown will be re-triggered again from
+	 * avnd_su_si_oper_done()
+	 */
 	for (si = avnd_silist_getfirst(); si; si = avnd_silist_getnext(si)) {
-		if (si->su->is_ncs || si->su->su_is_external)
+		if (si->su->su_is_external)
 			continue;
 
+		// prv=assigned & curr=unassigned means the SI is in modifying state
 		if ((si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_ASSIGNING) ||
-		    (si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_REMOVING)) {
+				(si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_REMOVING) ||
+				((si->prv_assign_state == AVND_SU_SI_ASSIGN_STATE_ASSIGNED) &&
+						(si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_UNASSIGNED))) {
 			LOG_NO("Waiting for '%s' (state %u)", si->name.value, si->curr_assign_state);
 			goto done;
 		}
 	}
 
-	/* The SI list sorted by SI rank. Rank correspond to SI dependencies */
+	cb->term_state = AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED;
+
+	/*
+	 * The SI list contains only application SIs and is sorted by rank. Rank
+	 * corresponds to SI dependencies. By starting with the last SI in the
+	 * list, SI dependencies are respected.
+	 */
 	si = avnd_silist_getlast();
-	if (si)
-		sirank = si->rank;
-	else
+	if (!si)
 		goto cleanup_components;
 
-	cb->term_state = AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED;
 	LOG_NO("Removing assignments from AMF components");
+
+	/* Advance to the first not removed SI */
+	for (; si; si = avnd_silist_getprev(si)) {
+		if (si->curr_assign_state != AVND_SU_SI_ASSIGN_STATE_REMOVED)
+			break;
+	}
+
+	if (!si)
+		goto cleanup_components;
+
+	sirank = si->rank;
 
 	/* Remove all assignments of equal rank */
 	for (; (si != NULL) && (si->rank == sirank); ) {
-		AVND_SU_SI_REC *tmp;
+		AVND_SU_SI_REC *currsi = si;
+		si = avnd_silist_getprev(currsi);
 
 		/* Remove assignments only for local application SUs */
-		if (si->su->is_ncs || si->su->su_is_external)
+		if (currsi->su->su_is_external)
 			continue;
 
-		if (si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_REMOVED)
+		if (currsi->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_REMOVED)
 			continue;
 
-		si_removed = true;
-		tmp = avnd_silist_getprev(si);
-		uint32_t rc = avnd_su_si_remove(cb, si->su, si);
+		uint32_t rc = avnd_su_si_remove(cb, currsi->su, currsi);
 		osafassert(rc == NCSCC_RC_SUCCESS);
-		si = tmp;
+		si_removed = true;
 	}
 
 cleanup_components:

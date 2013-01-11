@@ -782,27 +782,13 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("Comp '%s', Ev '%u'", comp->name.value, ev);
 
-	if (m_AVND_IS_SHUTTING_DOWN(cb)) {
-		TRACE("Term state is SHUTDOWN, event is'%s'",pres_state_evt[ev]);
-		switch (ev) {
-		
-		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL:
-			LOG_ER("'%s'termination failed", comp->name.value);
-			opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
-					"Stopping OpenSAF failed");
-			LOG_ER("Amfnd is exiting (due to comp term failed) to aid fast reboot");
-			exit(0);
-			break;
-		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC:
-			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
-			if (all_comps_terminated()) {
-				LOG_NO("All AMF components terminated successfully, exiting");
-				exit(0);
-			}
-			break;
-		default:
-			break;
-		}
+	if (m_AVND_IS_SHUTTING_DOWN(cb) && (ev == AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL)) {
+		LOG_ER("Failed to cleanup '%s'", comp->name.value);
+		opensaf_reboot(avnd_cb->node_info.nodeId,
+				(char *)avnd_cb->node_info.executionEnvironment.value,
+				"Stopping OpenSAF failed");
+		LOG_ER("exiting to aid fast reboot");
+		exit(1);
 	}
 
 	if (cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATING) {
@@ -1047,11 +1033,14 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			 * the failed flag.
 			 */
 			if (m_AVND_COMP_IS_FAILED(comp) && !comp->csi_list.n_nodes &&
-			    !m_AVND_SU_IS_ADMN_TERM(comp->su) && (cb->oper_state == SA_AMF_OPERATIONAL_ENABLED))
-				rc = avnd_comp_clc_fsm_trigger(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_INST);
-			else if (m_AVND_COMP_IS_FAILED(comp) && !comp->csi_list.n_nodes) {
+			    !m_AVND_SU_IS_ADMN_TERM(comp->su) &&
+			    (cb->oper_state == SA_AMF_OPERATIONAL_ENABLED)) {
+				/* No need to restart component during shutdown */
+				if (!m_AVND_IS_SHUTTING_DOWN(cb))
+					rc = avnd_comp_clc_fsm_trigger(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_INST);
+			} else if (m_AVND_COMP_IS_FAILED(comp) && !comp->csi_list.n_nodes) {
 				m_AVND_COMP_FAILED_RESET(comp);	/*if we moved from restart -> term
-								   due to admn operation */
+												due to admn operation */
 				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
 			}
 		}
@@ -2001,6 +1990,30 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 
 	/* just transition to 'uninstantiated' state */
 	avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+
+	if (AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED == cb->term_state) {
+		/*
+		 * If for example a CSI remove callback times out during system shutdown
+		 * we end up here. comp is terminated, indicate that all its CSIs are
+		 * removed so we can proceed with the next step in the shutdown sequence.
+		 */
+		if (!comp->su->is_ncs && comp->csi_list.n_nodes > 0) {
+			AVND_COMP_CSI_REC *csi;
+			int csis_removed = 0; // for sanity checking number of loops
+
+			while ((csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list))) != NULL) {
+				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVED);
+				rc = avnd_comp_csi_remove_done(cb, comp, csi);
+				osafassert(++csis_removed < 1000);
+			}
+		}
+
+		if (all_comps_terminated()) {
+			LOG_NO("Terminated all AMF components successfully");
+			LOG_NO("Shutdown completed, exiting");
+			exit(0);
+		}
+	}
 
 	/* reset the comp-reg & instantiate params */
 	if (!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {

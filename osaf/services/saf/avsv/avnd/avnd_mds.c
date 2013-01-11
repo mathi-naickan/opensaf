@@ -634,13 +634,6 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 			break;
 
 		case NCSMDS_SVC_ID_AVA:
-			if (m_AVND_IS_SHUTTING_DOWN(cb)) {
-				// needs improvements, shutdown phases...
-				// phase1: CSI remove, phase2: cleanup
-				// Only in phase2 should AVA down be ignored
-				goto done;
-			}
-			/* create the mds event */
 			evt = avnd_evt_create(cb, AVND_EVT_MDS_AVA_DN, 0, &evt_info->i_dest, 0, 0, 0);
 			break;
 
@@ -677,7 +670,7 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 	/* if failure, free the event */
 	if (NCSCC_RC_SUCCESS != rc && evt)
 		avnd_evt_destroy(evt);
-done:
+
 	return rc;
 }
 

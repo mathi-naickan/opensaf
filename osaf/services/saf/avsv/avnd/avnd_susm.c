@@ -962,7 +962,7 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 					osafassert(rc == NCSCC_RC_SUCCESS);
 				}
 			} else {
-				/* no more assignments left, cleanup all components */
+				LOG_NO("Removed assignments from AMF components");
 				avnd_last_step_clean(cb);
 			}
 		}
@@ -1030,7 +1030,7 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 				osafassert(rc == NCSCC_RC_SUCCESS);
 			}
 		} else {
-			/* no more assignments left, cleanup all components */
+			LOG_NO("Removed assignments from AMF components");
 			avnd_last_step_clean(cb);
 		}
 	}

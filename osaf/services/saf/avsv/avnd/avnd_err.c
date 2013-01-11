@@ -302,6 +302,13 @@ uint32_t avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("Comp:'%s' esc_rcvr:'%u'", comp->name.value, esc_rcvr);
 
+	// Handle errors differently when shutdown has started
+	if (AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED == cb->term_state) {
+		LOG_NO("'%s' faulted due to '%s'", comp->name.value, g_comp_err[err_info->src]);
+		avnd_comp_cleanup_launch(comp);
+		goto done;
+	}
+
 	/* when undergoing admin oper do not process any component errors */
 	if (comp->admin_oper == SA_TRUE)
 		goto done;

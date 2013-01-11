@@ -474,14 +474,6 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 
 		/* perform err prc if resp fails */
 		if (SA_AIS_OK != resp->err) {
-			if (m_AVND_IS_SHUTTING_DOWN(cb)) {
-				LOG_ER("CSI Remove failed for '%s', err %u", comp->name.value, resp->err);
-				opensaf_reboot(avnd_cb->node_info.nodeId,
-					(char *)avnd_cb->node_info.executionEnvironment.value,
-					"Stopping OpenSAF failed");
-				exit(1);
-			}
-
 			err_info.src = AVND_ERR_SRC_CBK_CSI_REM_FAILED;
 			err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
 			rc = avnd_err_process(cb, comp, &err_info);
@@ -565,13 +557,6 @@ uint32_t avnd_evt_tmr_cbk_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 		csi = m_AVND_COMPDB_REC_CSI_GET(*(rec->comp), rec->cbk_info->param.csi_set.csi_desc.csiName);
 
 		LOG_ER("%s got qsd cbk timeout", rec->comp->name.value);
-		if (m_AVND_IS_SHUTTING_DOWN(cb)) {
-			opensaf_reboot(avnd_cb->node_info.nodeId,
-				(char *)avnd_cb->node_info.executionEnvironment.value,
-				"Stopping OpenSAF failed");
-			exit(1);
-		}
-
 		rc = avnd_comp_csi_qscd_assign_fail_prc(cb, rec->comp, csi, &err_info);
 	} else if (AVSV_AMF_PXIED_COMP_INST == rec->cbk_info->type) {
 		rc = avnd_comp_clc_fsm_run(cb, rec->comp, AVND_COMP_CLC_PRES_FSM_EV_INST_FAIL);
@@ -582,15 +567,6 @@ uint32_t avnd_evt_tmr_cbk_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, rec->comp, AVND_CKPT_COMP_FLAG_CHANGE);
 		rc = avnd_comp_clc_fsm_run(cb, rec->comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
 	} else {
-		if (m_AVND_IS_SHUTTING_DOWN(cb)) {
-			LOG_ER("Callback (%u) time out during shutdown for '%s'",
-				rec->cbk_info->type, rec->comp->name.value);
-			opensaf_reboot(avnd_cb->node_info.nodeId,
-				(char *)avnd_cb->node_info.executionEnvironment.value,
-				"Stopping OpenSAF failed");
-			exit(1);
-		}
-
 		switch (rec->cbk_info->type) {
 		case AVSV_AMF_HC:
 			err_info.src = AVND_ERR_SRC_CBK_HC_TIMEOUT;

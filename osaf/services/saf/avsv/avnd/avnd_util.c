@@ -181,3 +181,24 @@ void avnd_msgid_assert(uint32_t rcv_msg_id)
 	}
 }
 
+/**
+ * Execute CLEANUP CLC-CLI command for component @a comp, failfast local node
+ * at failure. The function is asynchronous, it does not wait for the cleanup
+ * operation to completely finish. The CLEANUP script is just started/launched.
+ * @param comp
+ */
+void avnd_comp_cleanup_launch(AVND_COMP *comp)
+{
+	char str[128];
+	uint32_t rc;
+
+	rc = avnd_comp_clc_fsm_run(avnd_cb, comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
+	if (rc != NCSCC_RC_SUCCESS) {
+		LOG_ER("Failed to launch cleanup of '%s'", comp->name.value);
+		snprintf(str, sizeof(str), "Stopping OpenSAF failed due to '%s'", comp->name.value);
+		opensaf_reboot(avnd_cb->node_info.nodeId,
+				(char *)avnd_cb->node_info.executionEnvironment.value, str);
+		LOG_ER("exiting to aid fast reboot");
+		exit(1);
+	}
+}

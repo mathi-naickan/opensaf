@@ -41,5 +41,6 @@ void avnd_msg_content_free(struct avnd_cb_tag *, AVND_MSG *);
 
 uint32_t avnd_msg_copy(struct avnd_cb_tag *, AVND_MSG *, AVND_MSG *);
 extern void avnd_msgid_assert(uint32_t msg_id);
+void avnd_comp_cleanup_launch(AVND_COMP *comp);
 
 #endif   /* !AVND_UTIL_H */
