@@ -1819,7 +1819,9 @@ static void addClassAttributeDefinition(ParserState* state)
 	}
 
 	/* Set the flags */
-	attrDefinition.attrFlags = state->attrFlags;
+	attrDefinition.attrFlags = (state->attrFlags & SA_IMM_ATTR_PERSISTENT) ?
+					(state->attrFlags | SA_IMM_ATTR_CACHED) :
+					state->attrFlags;
 
 	/* Set the NtfId */
 	if (state->attrNtfIdSet) {
