@@ -11934,9 +11934,16 @@ ImmModel::objectSync(const ImmsvOmObjectSync* req)
         case IMM_NODE_LOADING:
         case IMM_NODE_FULLY_AVAILABLE:
         case IMM_NODE_R_AVAILABLE:
-            LOG_ER("Node is in a state %u that cannot accept"
+            LOG_ER("Node is in a state %u that cannot accept "
                 "sync message, will terminate", sImmNodeState);
             abort();
+            /* ImmModel::objectSync() is only invoked at sync clients currently.
+               See immnd_evt_proc_object_sync in immnd_evt.c.
+               ImmModel::objectSync could in the future be used by veteran
+               nodes to verify state of config data. If/when that is done then
+               the logic here needs to deal with such messages straggling in
+               after an aborted sync.
+            */
         default:
             LOG_ER("Impossible node state, will terminate");
             abort();
@@ -12259,10 +12266,13 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
         case IMM_NODE_ISOLATED: 
         case IMM_NODE_LOADING:
         case IMM_NODE_FULLY_AVAILABLE:
-            LOG_ER("Node is in a state %u that cannot accept"
+            LOG_ER("Node is in a state %u that cannot accept "
                 "finalize of sync, will terminate %u %u", sImmNodeState, 
-                isCoord,
-                isSyncClient);
+            isCoord,
+            isSyncClient);
+            if(isCoord) {
+                return SA_AIS_ERR_FAILED_OPERATION;
+            }
             abort();
         default:
             LOG_ER("Impossible node state, will terminate");

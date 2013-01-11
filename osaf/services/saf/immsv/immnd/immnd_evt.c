@@ -4969,6 +4969,10 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 				(cb->mState == IMM_SERVER_SYNC_SERVER)) {
 				LOG_WA("Failed RtObject update has to abort sync");
 				immnd_abortSync(cb);
+				if(cb->syncPid > 0) {
+					LOG_WA("STOPPING sync process pid %u", cb->syncPid);
+					kill(cb->syncPid, SIGTERM);
+				}
 			}
 		}
 	} else {
