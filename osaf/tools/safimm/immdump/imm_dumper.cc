@@ -378,8 +378,14 @@ int main(int argc, char* argv[])
 
 	if(xmlTextWriterWriteAttributeNS(writer,
 	   (xmlChar*)"xsi",(xmlChar *)"noNamespaceSchemaLocation", NULL,
-	   (xmlChar*)"SAI-AIS-IMM-XSD-A.01.01.xsd") < 0) {
+	   (xmlChar*)"SAI-AIS-IMM-XSD-A.01.02.xsd") < 0) {
 		std::cout <<"Error at xmlTextWriterWriteAttribute (attribute 2)" << std::endl;
+		exit(1);
+	}
+
+	if(xmlTextWriterWriteAttributeNS(writer, (xmlChar*) "xmlns",(xmlChar *)"xs", NULL,
+	   (xmlChar *)"http://www.w3.org/2001/XMLSchema") < 0) {
+		std::cout <<"Error at xmlTextWriterWriteAttribute (attribute 3)" << std::endl;
 		exit(1);
 	}
 

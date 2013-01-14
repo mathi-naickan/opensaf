@@ -197,20 +197,17 @@ void classToXMLw(std::string classNameString,
         else
 	    continue;
 
+        if ((*p)->attrDefaultValue != NULL)
+        {
+        	std::cout << "RDN cannot contain default-value element" << std::endl;
+        	exit(1);
+        }
+
         if(xmlTextWriterWriteElement(writer,
                                      (xmlChar*) "name",
                                      (xmlChar*)(*p)->attrName) < 0) {
             std::cout << "Error at xmlTextWriterWriteElement (name)" << std::endl;
             exit(1);
-        }
-        if ((*p)->attrDefaultValue != NULL)
-        {
-            if(xmlTextWriterWriteElement(writer, (xmlChar*) "default-value",
-               (xmlChar*)valueToString((*p)->attrDefaultValue,
-               (*p)->attrValueType).c_str()) < 0 ) {
-                std::cout << "Error at xmlTextWriterWriteElement (default-value)" << std::endl;
-                exit(1);
-            }
         }
 
         typeToXMLw(*p, writer);
@@ -244,6 +241,11 @@ void classToXMLw(std::string classNameString,
             std::cout << "Error at xmlTextWriterWriteElement (name)" << std::endl;
             exit(1);
         }
+
+        typeToXMLw(*p, writer);
+
+        flagsToXMLw(*p, writer);
+
         if ((*p)->attrDefaultValue != NULL)
         {
             std::string str = valueToString((*p)->attrDefaultValue, (*p)->attrValueType);
@@ -258,7 +260,7 @@ void classToXMLw(std::string classNameString,
                     exit(1);
                 }
             } else {
-                if(xmlTextWriterWriteAttribute(writer, (xmlChar*)"encoding", (xmlChar*)"base64") < 0) {
+                if(xmlTextWriterWriteAttribute(writer, (xmlChar*)"xsi:type", (xmlChar*)"xs:base64Binary") < 0) {
                 	std::cout << "Error at xmlTextWriterWriteAttribute (default-value)" << std::endl;
                     exit(1);
                 }
@@ -274,10 +276,6 @@ void classToXMLw(std::string classNameString,
                 exit(1);
             }
         }
-
-        typeToXMLw(*p, writer);
-
-        flagsToXMLw(*p, writer);
 
         /* Close element named attr */
         if(xmlTextWriterEndElement(writer) < 0 ) {
@@ -404,7 +402,7 @@ void valuesToXMLw(SaImmAttrValuesT_2* p, xmlTextWriterPtr writer)
                 exit(1);
             }
         } else {
-            if(xmlTextWriterWriteAttribute(writer, (xmlChar*)"encoding", (xmlChar*)"base64") < 0) {
+            if(xmlTextWriterWriteAttribute(writer, (xmlChar*)"xsi:type", (xmlChar*)"xs:base64Binary") < 0) {
             	std::cout << "Error at xmlTextWriterWriteAttribute (value)" << std::endl;
                 exit(1);
             }

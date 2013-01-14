@@ -42,6 +42,16 @@
 #include <immutil.h>
 #include <saf_error.h>
 
+
+#ifndef SA_IMM_ATTR_NO_DUPLICATES
+#define SA_IMM_ATTR_NO_DUPLICATES 0x0000000001000000	/* See: http://devel.opensaf.org/ticket/1545 */
+#endif
+
+#ifndef SA_IMM_ATTR_NOTIFY
+#define SA_IMM_ATTR_NOTIFY        0x0000000002000000	/* See: http://devel.opensaf.org/ticket/2883 */
+#endif
+
+
 static SaVersionT immVersion = { 'A', 2, 11 };
 extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
@@ -311,6 +321,12 @@ static void display_class_definition(const SaImmClassNameT className,
 			if (attrDefinition->attrFlags & SA_IMM_ATTR_WRITABLE)
 				printf(", WRITEABLE");
 
+			if (attrDefinition->attrFlags & SA_IMM_ATTR_NOTIFY)
+				printf(", NOTIFY");
+
+			if (attrDefinition->attrFlags & SA_IMM_ATTR_NO_DUPLICATES)
+				printf(", NO_DUPLICATES");
+
 		} else if (attrDefinition->attrFlags & SA_IMM_ATTR_RUNTIME) {
 			if (attrDefinition->attrDefaultValue != NULL) {
 				printf(" = ");
@@ -329,6 +345,12 @@ static void display_class_definition(const SaImmClassNameT className,
 
 			if (attrDefinition->attrFlags & SA_IMM_ATTR_PERSISTENT)
 				printf(", PERSISTENT");
+
+			if (attrDefinition->attrFlags & SA_IMM_ATTR_NOTIFY)
+				printf(", NOTIFY");
+
+			if (attrDefinition->attrFlags & SA_IMM_ATTR_NO_DUPLICATES)
+				printf(", NO_DUPLICATES");
 		}
 
 		printf("}\n");

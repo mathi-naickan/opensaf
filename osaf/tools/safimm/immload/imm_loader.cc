@@ -27,6 +27,16 @@
 #include <logtrace.h>
 #include <sys/stat.h>
 
+
+#ifndef SA_IMM_ATTR_NO_DUPLICATES
+#define SA_IMM_ATTR_NO_DUPLICATES 0x0000000001000000	/* See: http://devel.opensaf.org/ticket/1545 */
+#endif
+
+#ifndef	SA_IMM_ATTR_NOTIFY
+#define SA_IMM_ATTR_NOTIFY        0x0000000002000000	/* See: http://devel.opensaf.org/ticket/2883 */
+#endif
+
+
 #define MAX_DEPTH 10
 #define MAX_CHAR_BUFFER_SIZE 8192  //8k
 
@@ -705,8 +715,16 @@ static const xmlChar *getAttributeValue(const xmlChar **attrs, const xmlChar *at
 
 static inline bool isBase64Encoded(const xmlChar **attrs) {
 	char *encoding;
+	bool isB64 = false;
 
-	return (encoding = (char *)getAttributeValue(attrs, (xmlChar *)"encoding")) ? !strcmp(encoding, "base64") : false;
+	if((encoding = (char *)getAttributeValue(attrs, (xmlChar *)"xsi:type")))
+		isB64 = !strcmp(encoding, "xs:base64Binary");
+
+	/* This verification has been left for backward compatibility */
+	if(!isB64 && (encoding = (char *)getAttributeValue(attrs, (xmlChar *)"encoding")))
+		isB64 = !strcmp(encoding, "base64");
+
+	return isB64;
 }
 
 /**
@@ -1438,6 +1456,14 @@ static SaImmAttrFlagsT charsToFlagsHelper(const xmlChar* str, size_t len)
     else if (strncmp((const char*)str, "SA_CACHED", len) == 0)
     {
         return SA_IMM_ATTR_CACHED;
+    }
+    else if (strncmp((const char*)str, "SA_NO_DUPLICATES", len) == 0)
+    {
+        return SA_IMM_ATTR_NO_DUPLICATES;
+    }
+    else if (strncmp((const char*)str, "SA_NOTIFY", len) == 0)
+    {
+        return SA_IMM_ATTR_NOTIFY;
     }
 
     LOG_ER("UNKNOWN FLAGS, %s", str);
