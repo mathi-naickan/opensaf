@@ -17,19 +17,6 @@
    REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
    OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
 
-   Note: This is a modified schema by the OpenSAF project.
-   =======================================================
-   The following modifications are made:   
-
-   1) Validating the default-values of attributes is changed from name="attr-def" to name="attr-elements"
-  
-   2) Cardinality of default-value  is changed
-
-      from
-	<xs:element name="default-value" type="xs:string" minOccurs="0"/>
-      to
-	<xs:element name="default-value" type="xs:string" minOccurs="0" maxOccurs="1"/>	
-
   -->
 	<!-- PART I - DEFINITION OF AN IMM OBJECT CLASS -->
 	<!--
@@ -79,6 +66,15 @@
 			<xs:enumeration value="SA_CACHED"/>
 		</xs:restriction>
 	</xs:simpleType>
+	<!--
+       Union of types for "value" and "default-value" elements
+    -->
+	<xs:simpleType name="value-type">
+		<xs:annotation>
+			<xs:documentation>Value type</xs:documentation>
+		</xs:annotation>
+		<xs:union memberTypes="xs:string xs:base64Binary"/>
+	</xs:simpleType>
 	<!-- 
       Group of XML elements common to RDN and other object attributes
     -->
@@ -88,7 +84,6 @@
 		</xs:annotation>
 		<xs:sequence>
 			<xs:element name="name" type="xs:string"/>
-			<xs:element name="default-value" type="xs:string" minOccurs="0" maxOccurs="1"/>
 			<xs:element name="type" type="imm:attr-value-type"/>
 			<xs:element name="category" type="imm:category"/>
 			<xs:element name="flag" type="imm:attr-flags" minOccurs="0" maxOccurs="3"/>
@@ -116,6 +111,7 @@
 		</xs:annotation>
 		<xs:sequence>
 			<xs:group ref="imm:attr-elements"/>
+			<xs:element name="default-value" type="imm:value-type" minOccurs="0"/>
 		</xs:sequence>
 	</xs:complexType>
 	<!-- 
@@ -156,7 +152,7 @@
 				<xs:complexType>
 					<xs:sequence>
 						<xs:element name="name" type="xs:string"/>
-						<xs:element name="value" type="xs:string" maxOccurs="unbounded"/>
+						<xs:element name="value" type="imm:value-type" maxOccurs="unbounded"/>
 					</xs:sequence>
 				</xs:complexType>
 			</xs:element>
