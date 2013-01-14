@@ -1772,10 +1772,9 @@ SmfUpgradeStep::callBundleScript(SmfInstallRemoveT i_order,
 		cmd = immutil_getStringAttr((const SaImmAttrValuesT_2 **)
 					    attributes, cmdAttr.c_str(), 0);
 		if ((cmd == NULL) || (strlen(cmd) == 0)) {
-			LOG_NO("STEP: Attribute %s is NULL or empty in bundle %s",
-			       cmdAttr.c_str(), curBundleDN.c_str());
-			/* cmd is not a must so don't set result = false */
-			goto done;
+			TRACE("STEP: Attribute %s is NULL or empty in bundle %s",
+                              cmdAttr.c_str(), curBundleDN.c_str());
+			continue;
 		}
 		command = cmd;
 

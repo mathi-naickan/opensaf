@@ -431,7 +431,7 @@ SmfProcStateExecuting::executeStep(SmfUpgradeProcedure * i_proc)
 									       "saSmfBundleRemoveOfflineScope",
 									       0);
 				/* Include only bundles not need reboot */
-				if ((scope != NULL) && (*scope != SA_SMF_CMD_SCOPE_PLM_EE)) {
+				if ((scope == NULL) || (*scope != SA_SMF_CMD_SCOPE_PLM_EE)) {
 					TRACE("SmfProcStateExecuting::executeStep:Include the SW bundle %s to remove list", 
 					      (*bundleIter).getBundleDn().c_str());
 
@@ -918,7 +918,7 @@ SmfProcStateRollingBack::rollbackStep(SmfUpgradeProcedure * i_proc)
 									       "saSmfBundleRemoveOfflineScope",
 									       0);
 				/* Include only bundles not need reboot */
-				if ((scope != NULL) && (*scope != SA_SMF_CMD_SCOPE_PLM_EE)) {
+				if ((scope == NULL) || (*scope != SA_SMF_CMD_SCOPE_PLM_EE)) {
 					TRACE("SmfProcStateRollingBack::rollbackStep:Include the SW bundle %s to remove list", 
 					      (*bundleIter).getBundleDn().c_str());
 
