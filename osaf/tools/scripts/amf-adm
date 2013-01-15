@@ -16,13 +16,29 @@
 
 usage()
 {
-	echo "usage: `basename $0` <lock|unlock|lock-in|unlock-in|shutdown|restart|si-swap|sg-adjust|repaired|eam-start|eam-stop> <DN>"
+	echo "usage: `basename $0` [-t  timeout] <lock|unlock|lock-in|unlock-in|shutdown|restart|si-swap|sg-adjust|repaired|eam-start|eam-stop> <object DN>"
+	echo "        -t:   command timeout in seconds (default=60)"
+	echo "        Note: Specify option before command and operand"
 }
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 2 -a  $# -ne 4 ]; then
 	usage
 	exit 1
 fi
+
+if [ $# -eq 4 ]; then
+	if [ "$1" == "-t"  ]; then
+		command=$3
+		args=$(echo "$1 $2 $4")
+	else
+		echo "Incorrect option specified or option not specified before operand"
+		usage 
+		exit 1
+	fi
+elif [ $# -eq 2 ]; then
+	command=$1
+	args=$2
+fi 
 
 ADMIN_UNLOCK=1
 ADMIN_LOCK=2
@@ -36,42 +52,42 @@ ADMIN_REPAIRED=9
 EAM_START=10
 EAM_STOP=11
 
-case $1 in
+case $command in
 	"unlock")
-		immadm -o $ADMIN_UNLOCK $2
+		immadm -o $ADMIN_UNLOCK $args
 		;;
 	"lock")
-		immadm -o $ADMIN_LOCK $2
+		immadm -o $ADMIN_LOCK $args
 		;;
 	"lock-in")
-		immadm -o $ADMIN_LOCK_INSTANTIATION $2
+		immadm -o $ADMIN_LOCK_INSTANTIATION $args
 		;;
 	"unlock-in")
-		immadm -o $ADMIN_UNLOCK_INSTANTIATION $2
+		immadm -o $ADMIN_UNLOCK_INSTANTIATION $args
 		;;
 	"shutdown")
-		immadm -o $ADMIN_SHUTDOWN $2
+		immadm -o $ADMIN_SHUTDOWN $args
 		;;
 	"restart")
-		immadm -o $ADMIN_RESTART $2
+		immadm -o $ADMIN_RESTART $args
 		;;
 	"si-swap")
-		immadm -o $ADMIN_SI_SWAP $2
+		immadm -o $ADMIN_SI_SWAP $args
 		;;
 	"sg-adjust")
-		immadm -o $ADMIN_SG_ADJUST $2
+		immadm -o $ADMIN_SG_ADJUST $args
 		;;
 	"repaired")
-		immadm -o $ADMIN_REPAIRED $2
+		immadm -o $ADMIN_REPAIRED $args
 		;;
 	"eam-start")
-		immadm -o $EAM_START $2
+		immadm -o $EAM_START $args
 		;;
 	"eam-stop")
-		immadm -o $EAM_STOP $2
+		immadm -o $EAM_STOP $args
 		;;
 	*)
-		echo "illegal admin operation: $1"
+		echo "illegal admin operation: $command"
 		usage
 		exit 1
 esac
