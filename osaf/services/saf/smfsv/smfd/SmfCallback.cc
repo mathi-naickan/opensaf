@@ -239,8 +239,8 @@ SaAisErrorT SmfCallback::send_callback_msg(SaSmfPhaseT phase, std::string & step
 				continue;
 			}
 
-			LOG_ER ("poll failed, error = %s", strerror(errno));
-			ais_err = SA_AIS_ERR_TIMEOUT;
+			LOG_NO ("poll failed, error = %s", strerror(errno));
+			ais_err = SA_AIS_ERR_FAILED_OPERATION;
 			goto rem_invid;
 		}
 
