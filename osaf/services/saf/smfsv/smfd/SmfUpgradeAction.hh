@@ -76,7 +76,7 @@ class SmfUpgradeAction {
 /// @param   None
 /// @return  0 on success, otherwise failure.
 ///
-	virtual SaAisErrorT execute(const std::string* i_rollbackDn = NULL);
+	virtual SaAisErrorT execute(SaImmOiHandleT i_oiHandle, const std::string* i_rollbackDn = NULL);
 
 ///
 /// Purpose: Rollback the upgrade action (to be specialized).
@@ -135,7 +135,7 @@ class SmfCliCommandAction:public SmfUpgradeAction {
 /// @return  0 on success, otherwise failure.
 ///
 
-	SaAisErrorT execute(const std::string* i_rollbackDn = NULL);
+	SaAisErrorT execute(SaImmOiHandleT i_oiHandle, const std::string* i_rollbackDn = NULL);
 
 ///
 /// Purpose: Rollback the CLI command action.
@@ -225,7 +225,7 @@ class SmfAdminOperationAction:public SmfUpgradeAction {
 /// @param   None.
 /// @return  0 on success, otherwise failure.
 ///
-	SaAisErrorT execute(const std::string* i_rollbackDn = NULL);
+	SaAisErrorT execute(SaImmOiHandleT i_oiHandle, const std::string* i_rollbackDn = NULL);
 
 ///
 /// Purpose: Rollback the admin operation action.
@@ -341,7 +341,7 @@ class SmfImmCcbAction:public SmfUpgradeAction {
 /// @param   None.
 /// @return  0 on success, otherwise failure.
 ///
-	SaAisErrorT execute(const std::string* i_rollbackDn = NULL);
+	SaAisErrorT execute(SaImmOiHandleT i_oiHandle, const std::string* i_rollbackDn = NULL);
 
 ///
 /// Purpose: Rollback the IMM CCB action.
@@ -401,7 +401,7 @@ class SmfCallbackAction:public SmfUpgradeAction {
 /// @param   None.
 /// @return  0 on success, otherwise failure.
 ///
-	SaAisErrorT execute(const std::string* i_rollbackDn = NULL);
+	SaAisErrorT execute(SaImmOiHandleT i_oiHandle, const std::string* i_rollbackDn = NULL);
 
 ///
 /// Purpose: Rollback the callback action.

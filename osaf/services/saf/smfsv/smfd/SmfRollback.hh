@@ -47,7 +47,7 @@ class SmfImmOperation;
  *   DATA DECLARATIONS
  * ========================================================================
  */
-SaAisErrorT smfCreateRollbackElement(const std::string & i_dn);
+SaAisErrorT smfCreateRollbackElement(const std::string & i_dn, SaImmOiHandleT i_oiHandle);
 
 ///
 /// Purpose: Holds information about rollback data.
@@ -107,7 +107,7 @@ public:
 /// @param   None.
 /// @return  None.
 ///
-	SaAisErrorT execute();
+	SaAisErrorT execute(SaImmOiHandleT i_oiHandle);
 
 ///
 /// Purpose: Rollback this rollback data. (Read it from the IMM and execute it)
@@ -170,7 +170,7 @@ public:
 /// @param   i_dn An IMM dn to where this rollback CCB should be stored/read
 /// @return  None
 ///
-	SmfRollbackCcb(const std::string& i_dn);
+	SmfRollbackCcb(const std::string& i_dn, SaImmOiHandleT i_oiHandle);
 
 ///
 /// Purpose: Destructor.
@@ -211,6 +211,7 @@ protected:
         std::string                    m_dn;             /* dn to where this rollback CCB should be stored/read */
 	std::list < SmfRollbackData* > m_rollbackData;	 /* Rollback data for this CCB */
         unsigned int                   m_dataId;         /* sequence id for containing data objects */
+        SaImmOiHandleT                 m_oiHandle;
 };
 
 #endif

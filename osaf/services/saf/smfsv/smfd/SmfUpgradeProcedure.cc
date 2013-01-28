@@ -3106,7 +3106,7 @@ SmfSwapThread::main(void)
 	int max_swap_retry = smfd_cb->smfSiSwapMaxRetry;
 	int retryCnt = 0;
 	int rc;
-	while((rc = admOp.execute()) != SA_AIS_OK) {
+	while((rc = admOp.execute(0)) != SA_AIS_OK) {
 		retryCnt++;
 		if(retryCnt > max_swap_retry) {
 			SmfProcStateExecFailed::instance()->changeState(m_proc, SmfProcStateExecFailed::instance());

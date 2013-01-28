@@ -160,7 +160,7 @@ SmfCampaignWrapup::executeCampWrapup()
 	LOG_NO("CAMP: Campaign wrapup, start wrapup actions (%zu)", m_campWrapupAction.size());
 	std::list < SmfUpgradeAction * >::iterator iter;
 	for (iter = m_campWrapupAction.begin(); iter != m_campWrapupAction.end(); ++iter) {
-		if ((*iter)->execute() != SA_AIS_OK) {
+		if ((*iter)->execute(0) != SA_AIS_OK) {
 			LOG_ER("SmfCampaignWrapup campWrapupActions %d failed", (*iter)->getId());
 		}
 	}
@@ -195,7 +195,8 @@ SmfCampaignWrapup::executeCampComplete()
         completeRollbackDn = "smfRollbackElement=CampComplete,";
         completeRollbackDn += SmfCampaignThread::instance()->campaign()->getDn();
 
-        if ((result = smfCreateRollbackElement(completeRollbackDn)) != SA_AIS_OK) {
+        if ((result = smfCreateRollbackElement(completeRollbackDn,
+                                               SmfCampaignThread::instance()->getImmHandle())) != SA_AIS_OK) {
                 LOG_ER("SmfCampaignWrapup failed to create campaign complete rollback element %s, rc = %d", 
                        completeRollbackDn.c_str(), result);
                 return false;
@@ -204,7 +205,8 @@ SmfCampaignWrapup::executeCampComplete()
 	std::list < SmfUpgradeAction * >::iterator iter;
 	iter = m_campCompleteAction.begin();
 	while (iter != m_campCompleteAction.end()) {
-		if ((result = (*iter)->execute(&completeRollbackDn)) != SA_AIS_OK) {
+		if ((result = (*iter)->execute(SmfCampaignThread::instance()->getImmHandle(),
+                                               &completeRollbackDn)) != SA_AIS_OK) {
 			LOG_ER("SmfCampaignWrapup campCompleteAction %d failed %d", (*iter)->getId(), result);
 			return false;
 		}

@@ -744,13 +744,14 @@ SmfUpgradeStep::modifyInformationModel()
 	objectName.value[objectName.length] = 0;
 
         /* In case of a undoing the rollback could already exists, delete it and recreate a new one */
-	rc = immutil_saImmOiRtObjectDelete(SmfCampaignThread::instance()->getImmHandle(), &objectName);
+	rc = immutil_saImmOiRtObjectDelete(getProcedure()->getProcThread()->getImmHandle(), &objectName);
 
 	if (rc != SA_AIS_OK) {
 		TRACE("immutil_saImmOiRtObjectDelete returned %u for %s, continuing", rc, modifyRollbackCcbDn.c_str());
 	}
 
-        if ((rc = smfCreateRollbackElement(modifyRollbackCcbDn)) != SA_AIS_OK) {
+        if ((rc = smfCreateRollbackElement(modifyRollbackCcbDn,
+                                           getProcedure()->getProcThread()->getImmHandle())) != SA_AIS_OK) {
                 LOG_ER("SmfUpgradeStep failed to create modify rollback element %s, rc = %d", 
                        modifyRollbackCcbDn.c_str(), rc);
                 return rc;
@@ -759,7 +760,8 @@ SmfUpgradeStep::modifyInformationModel()
 	if (m_modificationList.size() > 0) {
 		TRACE("Modifying information model");
 		SmfImmUtils immUtil;
-                SmfRollbackCcb rollbackCcb(modifyRollbackCcbDn);
+                SmfRollbackCcb rollbackCcb(modifyRollbackCcbDn,
+                                           getProcedure()->getProcThread()->getImmHandle());
 
 		if ((rc = immUtil.doImmOperations(m_modificationList, &rollbackCcb)) != SA_AIS_OK) {
 			LOG_ER("SmfUpgradeStep modify IMM failed %d", rc);
@@ -788,7 +790,8 @@ SmfUpgradeStep::reverseInformationModel()
         modifyRollbackCcbDn = "smfRollbackElement=ModifyCcb,";
         modifyRollbackCcbDn += this->getDn();
 
-        SmfRollbackCcb rollbackCcb(modifyRollbackCcbDn);
+        SmfRollbackCcb rollbackCcb(modifyRollbackCcbDn,
+                                   getProcedure()->getProcThread()->getImmHandle());
 
         if ((rc = rollbackCcb.rollback()) != SA_AIS_OK) {
                 LOG_ER("SmfUpgradeStep failed to rollback Modify CCB %d", rc);
@@ -1465,7 +1468,7 @@ SmfUpgradeStep::setSingleStepRebootInfo(int i_rebootInfo)
 	} else { //Update the object
 		SmfImmRTUpdateOperation imoSingleStepInfo;
 		imoSingleStepInfo.setDn(obj);
-		imoSingleStepInfo.setImmHandle(SmfCampaignThread::instance()->getImmHandle());
+		imoSingleStepInfo.setImmHandle(getProcedure()->getProcThread()->getImmHandle());
 		imoSingleStepInfo.setOp("SA_IMM_ATTR_VALUES_REPLACE");
 
 		SmfImmAttribute attrsmfRebootType;

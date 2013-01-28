@@ -124,14 +124,18 @@ class SmfProcedureThread {
 
 	SaAisErrorT getImmProcedure(SmfUpgradeProcedure * procedure);
 	SaAisErrorT createImmProcedure(SmfUpgradeProcedure * procedure);
+	SaAisErrorT createImmHandle(void);
+	SaAisErrorT deleteImmHandle(void);
 
-	static void main(NCSCONTEXT info);
+        static void main(NCSCONTEXT info);
 
 	NCSCONTEXT m_task_hdl;
 	SYSF_MBX m_mbx;		/* mailbox */
 	SYSF_MBX m_cbk_mbx;	/* mailbox to send/receive callback/response */
 	bool m_running;
 	SmfUpgradeProcedure *m_procedure;
+	SaImmOiHandleT m_procOiHandle;	/* IMM OI handle */
+	bool m_useCampaignOiHandle;
 	sem_t* m_semaphore;
 };
 

@@ -174,7 +174,8 @@ SmfCampaignInit::execute()
         addToImmRollbackCcbDn = "smfRollbackElement=AddToImmCcb,";
         addToImmRollbackCcbDn += SmfCampaignThread::instance()->campaign()->getDn();
 
-        if ((result = smfCreateRollbackElement(addToImmRollbackCcbDn)) != SA_AIS_OK) {
+        if ((result = smfCreateRollbackElement(addToImmRollbackCcbDn,
+                                               SmfCampaignThread::instance()->getImmHandle())) != SA_AIS_OK) {
                 LOG_ER("SmfCampaignInit failed to create addToImm rollback element %s, rc = %d", 
                        addToImmRollbackCcbDn.c_str(), result);
                 return false;
@@ -182,7 +183,8 @@ SmfCampaignInit::execute()
 
 	if (m_addToImm.size() > 0) {
 		SmfImmUtils immUtil;
-                SmfRollbackCcb rollbackCcb(addToImmRollbackCcbDn);
+                SmfRollbackCcb rollbackCcb(addToImmRollbackCcbDn,
+                                           SmfCampaignThread::instance()->getImmHandle());
 
 		if (immUtil.doImmOperations(m_addToImm, &rollbackCcb) != SA_AIS_OK) {
 			LOG_ER("SmfCampaignInit add to IMM failed");
@@ -204,7 +206,8 @@ SmfCampaignInit::execute()
         initRollbackDn = "smfRollbackElement=CampInit,";
         initRollbackDn += SmfCampaignThread::instance()->campaign()->getDn();
 
-        if ((result = smfCreateRollbackElement(initRollbackDn)) != SA_AIS_OK) {
+        if ((result = smfCreateRollbackElement(initRollbackDn,
+                                               SmfCampaignThread::instance()->getImmHandle())) != SA_AIS_OK) {
                 LOG_ER("SmfCampaignInit failed to create campaign init rollback element %s, rc = %d", 
                        initRollbackDn.c_str(), result);
                 return false;
@@ -213,7 +216,8 @@ SmfCampaignInit::execute()
 	std::list < SmfUpgradeAction * >::iterator upActiter;
 	upActiter = m_campInitAction.begin();
 	while (upActiter != m_campInitAction.end()) {
-		SaAisErrorT rc = (*upActiter)->execute(&initRollbackDn);
+		SaAisErrorT rc = (*upActiter)->execute(SmfCampaignThread::instance()->getImmHandle(),
+                                                       &initRollbackDn);
 		if (rc != SA_AIS_OK) {
 			LOG_ER("SmfCampaignInit init action %d failed, rc = %d", (*upActiter)->getId(), rc);
 			return false;
@@ -308,7 +312,8 @@ SmfCampaignInit::rollback()
         addToImmRollbackCcbDn = "smfRollbackElement=AddToImmCcb,";
         addToImmRollbackCcbDn += SmfCampaignThread::instance()->campaign()->getDn();
 
-        SmfRollbackCcb rollbackCcb(addToImmRollbackCcbDn);
+        SmfRollbackCcb rollbackCcb(addToImmRollbackCcbDn,
+                                   SmfCampaignThread::instance()->getImmHandle());
 
         if ((rc = rollbackCcb.rollback()) != SA_AIS_OK) {
                 LOG_ER("SmfCampaignInit failed to rollback add to IMM CCB %d", rc);
