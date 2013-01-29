@@ -4632,7 +4632,7 @@ SaAisErrorT saImmOmClassDescriptionGet_2(SaImmHandleT immHandle,
 						case SA_IMM_ATTR_SAANYT:
 							anyp = (SaAnyT *)copyv;
 							memset(anyp, 0, sizeof(SaAnyT));
-							anyp->bufferSize = q->attrDefaultValue->val.x.size;
+							anyp->bufferSize = q->attrDefaultValue->val.x.size - 1;
 							anyp->bufferAddr = (SaUint8T *)
 								malloc(anyp->bufferSize);	/*alloc-5 */
 							memcpy(anyp->bufferAddr, q->attrDefaultValue->val.x.buf,
