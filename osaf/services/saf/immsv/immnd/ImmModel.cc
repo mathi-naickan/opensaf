@@ -4287,6 +4287,7 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
         (size_t)rsp->name.length);
     /*Note: objectName is parent-name for the create case! */
     std::string objectName((const char*)rsp->name.value, sz);
+    osafassert(nameCheck(objectName)||nameToInternal(objectName));
 
     i = std::find_if(sCcbVector.begin(), sCcbVector.end(), CcbIdIs(ccbId));
     if (i == sCcbVector.end()) {
