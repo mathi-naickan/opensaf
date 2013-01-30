@@ -379,7 +379,8 @@ SaAisErrorT saAmfFinalize(SaAmfHandleT hdl)
 		ncs_agents_shutdown();
 	}
 
-	TRACE_LEAVE2("rc:%u, pending:%u", rc, cb->pend_fin);
+	TRACE_LEAVE2("rc:%u", rc);
+
 	return rc;
 }
 
