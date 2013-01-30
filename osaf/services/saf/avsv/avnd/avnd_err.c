@@ -80,35 +80,35 @@ static uint32_t avnd_err_restart_esc_level_2(AVND_CB *, AVND_SU *, AVND_ERR_ESC_
 /* LSB Changes. Strings to represent source of component Error */
 
 static const char *g_comp_err[] = {
-	"noError(0)",
-	"errorReport(1)",
-	"healthCheckFailed(2)",
-	"passiveMonitorFailed(3)",
-	"activeMonitorFailed(4)",
-	"cLCCommandFailed(5)",
-	"healthCheckcallbackTimeout(6)",
-	"healthCheckcallbackFailed(7)",
-	"avaDown(8)",
-	"prxRegTimeout(9)",
-	"csiSetcallbackTimeout(10)",
-	"csiRemovecallbackTimeout(11)",
-	"csiSetcallbackFailed(12)",
-	"csiRemovecallbackFailed(13)",
-	"qscingCompleteTimeout(14)"
+	"noError",
+	"errorReport",
+	"healthCheckFailed",
+	"passiveMonitorFailed",
+	"activeMonitorFailed",
+	"cLCCommandFailed",
+	"healthCheckcallbackTimeout",
+	"healthCheckcallbackFailed",
+	"avaDown",
+	"prxRegTimeout",
+	"csiSetcallbackTimeout",
+	"csiRemovecallbackTimeout",
+	"csiSetcallbackFailed",
+	"csiRemovecallbackFailed",
+	"qscingCompleteTimeout"
 };
 
 static const char *g_comp_rcvr[] = {
-	"noRecommendation(1)",
-	"componentRestart(2)",
-	"componentFailover(3)",
-	"nodeSwitchover(4)",
-	"nodeFailover(5)",
-	"nodeFailfast(6)",
-	"clusterReset(7)",
-	"applicationRestart(8)",
-	"containerRestart(9)",
-	"suRestart(10)",
-	"suFailover(11)"
+	"noRecommendation",
+	"componentRestart",
+	"componentFailover",
+	"nodeSwitchover",
+	"nodeFailover",
+	"nodeFailfast",
+	"clusterReset",
+	"applicationRestart",
+	"containerRestart",
+	"suRestart",
+	"suFailover"
 };
 
 /****************************************************************************
