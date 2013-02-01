@@ -899,6 +899,8 @@ uint32_t amfd_switch_qsd_stdby(AVD_CL_CB *cb)
 		return NCSCC_RC_FAILURE;
 	}
 
+	/*Stop sending ckpt updates by changing avd role to standby.*/
+	cb->avail_state_avd = SA_AMF_HA_STANDBY;
 	/* Now Dispatch all the messages from the MBCSv mail-box */
 	if (NCSCC_RC_SUCCESS != (status = avsv_mbcsv_dispatch(cb, SA_DISPATCH_ALL))) {
 		LOG_ER("Switch Quiesced --> StandBy, MBCSv dispatch failed");
@@ -917,7 +919,6 @@ uint32_t amfd_switch_qsd_stdby(AVD_CL_CB *cb)
 		avd_pg_node_csi_del_all(cb, avnd);
 	}
 
-	cb->avail_state_avd = SA_AMF_HA_STANDBY;
 	LOG_NO("Controller switch over done");
 	saflog(LOG_NOTICE, amfSvcUsrName, "Controller switch over done at %x", cb->node_id_avd);
 

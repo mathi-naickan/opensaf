@@ -3160,6 +3160,7 @@ uint32_t avsv_decode_warm_sync_rsp(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 
 		cb->stby_sync_state = AVD_STBY_OUT_OF_SYNC;
                 /* We need to figure out when there is out of sync, later on we have to remove it. */
+		LOG_ER("Out of sync detected in warm sync response, exiting");
 		osafassert(0);
 
 		/*
