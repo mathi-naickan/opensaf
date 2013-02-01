@@ -429,7 +429,7 @@ int object_modify(const SaNameT **objectNames, SaImmAdminOwnerHandleT ownerHandl
 
 	for (i = 0; i < optargs_len; i++) {
 		attrMods = realloc(attrMods, (attr_len + 1) * sizeof(SaImmAttrModificationT_2 *));
-		if ((attrMod = new_attr_mod(objectNames[i], optargs[i])) == NULL)
+		if ((attrMod = new_attr_mod(objectNames[0], optargs[i])) == NULL)
 			exit(EXIT_FAILURE);
 
 		attrMods[attr_len - 1] = attrMod;
