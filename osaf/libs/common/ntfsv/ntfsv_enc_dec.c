@@ -19,6 +19,12 @@
 #include "ntfsv_enc_dec.h"
 #include "ntfsv_mem.h"
 
+typedef union {
+	uint32_t uint32_val;
+	float float_val;
+	uint64_t uint64_val;
+	double double_val;
+} binfl_t;
 
 static void print_object_attribute(SaNtfAttributeT *input)
 {
@@ -41,6 +47,7 @@ static uint32_t encodeSaNtfValueT(NCS_UBAID *uba, uint8_t *p8, SaNtfValueTypeT a
 			       SaNtfValueT *ntfAttr)
 {
 	uint32_t rv = NCSCC_RC_SUCCESS;
+	binfl_t bf_val;
 	
 	switch (attributeType) {
 	case SA_NTF_VALUE_UINT8:
@@ -103,7 +110,8 @@ static uint32_t encodeSaNtfValueT(NCS_UBAID *uba, uint8_t *p8, SaNtfValueTypeT a
 			TRACE("ncs_enc_reserve_space failed");
 			return NCSCC_RC_OUT_OF_MEM;
 		}
-		ncs_encode_32bit(&p8, (uint32_t)ntfAttr->floatVal);
+		bf_val.float_val = ntfAttr->floatVal;
+		ncs_encode_32bit(&p8, bf_val.uint32_val);
 		ncs_enc_claim_space(uba, 4);
 		break;
 	case SA_NTF_VALUE_UINT64:
@@ -130,7 +138,8 @@ static uint32_t encodeSaNtfValueT(NCS_UBAID *uba, uint8_t *p8, SaNtfValueTypeT a
 			TRACE("ncs_enc_reserve_space failed");
 			return NCSCC_RC_OUT_OF_MEM;
 		}
-		ncs_encode_64bit(&p8, (SaDoubleT)ntfAttr->doubleVal);
+		bf_val.double_val = ntfAttr->doubleVal;
+		ncs_encode_64bit(&p8, bf_val.uint64_val);
 		ncs_enc_claim_space(uba, 8);
 		break;
 	case SA_NTF_VALUE_LDAP_NAME:
@@ -211,6 +220,7 @@ static uint32_t decodeNtfValueT(NCS_UBAID *uba, SaNtfValueTypeT attributeType, S
 {
 	uint8_t *p8;
 	uint8_t local_data[8];
+	binfl_t bf_val;
 
 	switch (attributeType) {
 	case SA_NTF_VALUE_UINT8:
@@ -245,7 +255,8 @@ static uint32_t decodeNtfValueT(NCS_UBAID *uba, SaNtfValueTypeT attributeType, S
 		break;
 	case SA_NTF_VALUE_FLOAT:
 		p8 = ncs_dec_flatten_space(uba, local_data, 4);
-		ntfAttr->floatVal = (SaFloatT)ncs_decode_32bit(&p8);
+		bf_val.uint32_val = ncs_decode_32bit(&p8);
+		ntfAttr->floatVal = bf_val.float_val;
 		ncs_dec_skip_space(uba, 4);
 		break;
 	case SA_NTF_VALUE_UINT64:
@@ -260,7 +271,8 @@ static uint32_t decodeNtfValueT(NCS_UBAID *uba, SaNtfValueTypeT attributeType, S
 		break;
 	case SA_NTF_VALUE_DOUBLE:
 		p8 = ncs_dec_flatten_space(uba, local_data, 8);
-		ntfAttr->doubleVal = (SaDoubleT)ncs_decode_64bit(&p8);
+		bf_val.uint64_val = ncs_decode_64bit(&p8);
+		ntfAttr->doubleVal = bf_val.double_val;
 		ncs_dec_skip_space(uba, 8);
 		break;
 	case SA_NTF_VALUE_LDAP_NAME:
