@@ -57,8 +57,10 @@ SmfCampaign::SmfCampaign(const SaNameT * parent, const SaImmAttrValuesT_2 ** att
 {
 	init(attrValues);
 	m_dn = m_cmpg;
-	m_dn += ",";
-	m_dn.append((char *)parent->value, parent->length);
+	if(parent->length > 0) {
+		m_dn += ",";
+		m_dn.append((char *)parent->value, parent->length);
+	}
 }
 
 /** 
