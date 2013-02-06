@@ -57,7 +57,8 @@ immomtest_SOURCES = \
 	test_saImmOmAdminOperationContinue.c
 
 immomtest_LDADD = \
-	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la \
+	$(top_builddir)/osaf/libs/core/libopensaf_core.la
 
 
 immpopulate_CPPFLAGS = \
@@ -72,6 +73,7 @@ immpopulate_SOURCES = \
 
 immpopulate_LDADD = \
 	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOi.la \
-	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la \
+	$(top_builddir)/osaf/libs/core/libopensaf_core.la
 
 

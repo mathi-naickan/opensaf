@@ -38,8 +38,9 @@ void clm_init(void)
                 assert(0);
         }
 
-        fscanf(fp,"%s",node_name.value);
-        node_name.length = strlen((char *)node_name.value);
+        int cnt = fscanf(fp,"%s",node_name.value);
+        if (cnt == 1)
+            node_name.length = strlen((char *)node_name.value);
         fclose(fp);
 }
 
