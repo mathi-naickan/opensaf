@@ -478,11 +478,14 @@ uint32_t avnd_err_recover(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, uint32_t rc
 		return rc;
 	}
 
-	/* We need not service any error other than node failover, when SU is 
-	 * already terminating. We will just clean the component.
-	 */
+	/* When SU is in TERMINATING state, higher level recovery (SA_AMF_NODE_FAILOVER,
+	   SA_AMF_NODE_FAILFAST and SA_AMF_NODE_SWITCHOVER) should be processed because higher
+	   level recovery will terminate the component. If the faulted component has recovery
+	   other than these, then clean the component and don't process any recovery for that
+	   component. */
+
 	if ((su->pres == SA_AMF_PRESENCE_TERMINATING) && (rcvr != SA_AMF_NODE_FAILOVER)
-	    && (rcvr != SA_AMF_NODE_FAILFAST)) {
+	    && (rcvr != SA_AMF_NODE_FAILFAST) && (rcvr != SA_AMF_NODE_SWITCHOVER)) {
 		/* mark the comp failed */
 		m_AVND_COMP_FAILED_SET(comp);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);

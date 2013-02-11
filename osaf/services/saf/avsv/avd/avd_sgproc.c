@@ -340,97 +340,105 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				 */
 				avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_DISABLED);
 				node->recvr_fail_sw = true;
-				i_su = node->list_of_su;
-				while (i_su != NULL) {
-					avd_su_readiness_state_set(i_su, SA_AMF_READINESS_OUT_OF_SERVICE);
-					if (i_su->list_of_susi != AVD_SU_SI_REL_NULL) {
-						node_reboot_req = false;
-						/* Since assignments exists call the SG FSM.
-						 */
-						switch (i_su->sg_of_su->sg_redundancy_model) {
-						case SA_AMF_2N_REDUNDANCY_MODEL:
-							if (avd_sg_2n_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
-								/* Bad situation. Free the message and return since
-								 * receive id was not processed the event will again
-								 * comeback which we can then process.
-								 */
-								LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
-								goto done;
-							}
-							break;
+				switch (n2d_msg->msg_info.n2d_opr_state.rec_rcvr.saf_amf) {
+				case SA_AMF_NODE_FAILOVER:
+					avd_pg_node_csi_del_all(avd_cb, node);
+					avd_node_susi_fail_func(avd_cb, node);
+					break;
+				case SA_AMF_NODE_SWITCHOVER:
+					i_su = node->list_of_su;
+					while (i_su != NULL) {
+						avd_su_readiness_state_set(i_su, SA_AMF_READINESS_OUT_OF_SERVICE);
+						if (i_su->list_of_susi != AVD_SU_SI_REL_NULL) {
+							node_reboot_req = false;
+							/* Since assignments exists call the SG FSM. */
+							switch (i_su->sg_of_su->sg_redundancy_model) {
+							case SA_AMF_2N_REDUNDANCY_MODEL:
+								if (avd_sg_2n_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
+									/* Bad situation. Free the message and return since
+									 * receive id was not processed the event will again
+									 * comeback which we can then process.
+									 */
+									LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
+									goto done;
+								}
+								break;
 
-						case SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL:
-							if (avd_sg_nacvred_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
-								/* Bad situation. Free the message and return since
-								 * receive id was not processed the event will again
-								 * comeback which we can then process.
-								 */
-								LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
-								goto done;
-							}
-							break;
+							case SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL:
+								if (avd_sg_nacvred_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
+									/* Bad situation. Free the message and return since
+									 * receive id was not processed the event will again
+									 * comeback which we can then process.
+									 */
+									LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
+									goto done;
+								}
+								break;
 
-						case SA_AMF_N_WAY_REDUNDANCY_MODEL:
-							if (avd_sg_nway_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
-								/* Bad situation. Free the message and return since
-								 * receive id was not processed the event will again
-								 * comeback which we can then process.
-								 */
-								LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
-								goto done;
-							}
-							break;
+							case SA_AMF_N_WAY_REDUNDANCY_MODEL:
+								if (avd_sg_nway_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
+									/* Bad situation. Free the message and return since
+									 * receive id was not processed the event will again
+									 * comeback which we can then process.
+									 */
+									LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
+									goto done;
+								}
+								break;
 
-						case SA_AMF_NPM_REDUNDANCY_MODEL:
-							if (avd_sg_npm_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
-								/* Bad situation. Free the message and return since
-								 * receive id was not processed the event will again
-								 * comeback which we can then process.
-								 */
-								LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
-								goto done;
-							}
-							break;
+							case SA_AMF_NPM_REDUNDANCY_MODEL:
+								if (avd_sg_npm_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
+									/* Bad situation. Free the message and return since
+									 * receive id was not processed the event will again
+									 * comeback which we can then process.
+									 */
+									LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
+									goto done;
+								}
+								break;
 
-						case SA_AMF_NO_REDUNDANCY_MODEL:
-						default:
-							if (avd_sg_nored_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
-								/* Bad situation. Free the message and return since
-								 * receive id was not processed the event will again
-								 * comeback which we can then process.
-								 */
-								LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
-								goto done;
+							case SA_AMF_NO_REDUNDANCY_MODEL:
+							default:
+								if (avd_sg_nored_su_fault_func(cb, i_su) == NCSCC_RC_FAILURE) {
+									/* Bad situation. Free the message and return since
+									 * receive id was not processed the event will again
+									 * comeback which we can then process.
+									 */
+									LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
+									goto done;
+								}
+								break;
 							}
-							break;
 						}
-					}
 
-					/* Verify the SG to check if any instantiations need
-					 * to be done for the SG on which this SU exists.
-					 */
-					if (avd_sg_app_su_inst_func(cb, i_su->sg_of_su) == NCSCC_RC_FAILURE) {
-						/* Bad situation. Free the message and return since
-						 * receive id was not processed the event will again
-						 * comeback which we can then process.
+						/* Verify the SG to check if any instantiations need
+						 * to be done for the SG on which this SU exists.
 						 */
-						LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
-						goto done;
-					}
+						if (avd_sg_app_su_inst_func(cb, i_su->sg_of_su) == NCSCC_RC_FAILURE) {
+							/* Bad situation. Free the message and return since
+							 * receive id was not processed the event will again
+							 * comeback which we can then process.
+							 */
+							LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
+							goto done;
+						}
 
-					i_su = i_su->avnd_list_su_next;
-				}	/* while(i_su != AVD_SU_NULL) */
+						i_su = i_su->avnd_list_su_next;
+					}	/* while(i_su != AVD_SU_NULL) */
 
+					break;
+				default :
+					break;
+				}
 				if (node_reboot_req) {
 					if (node->saAmfNodeAutoRepair) {
-						saflog(LOG_NOTICE, amfSvcUsrName,
-							"Ordering reboot of '%s' as node fail/switch-over repair action",
-							node->name.value);
+						saflog(LOG_NOTICE, amfSvcUsrName, 
+								"Ordering reboot of '%s' as node fail/switch-over repair action"
+								, node->name.value);
 						avd_d2n_reboot_snd(node);
 					} else {
 						saflog(LOG_NOTICE, amfSvcUsrName,
-							"Autorepair disabled for '%s', NO reboot ordered",
-							node->name.value);
+								"Autorepair disabled for '%s', NO reboot ordered", node->name.value);
 					}
 				}
 

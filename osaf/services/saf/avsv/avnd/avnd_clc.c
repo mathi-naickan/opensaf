@@ -797,11 +797,20 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC:
 			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
 			if (all_app_comps_terminated()) {
+				AVND_SU *tmp_su;
 				cb->term_state = AVND_TERM_STATE_NODE_FAILOVER_TERMINATED;
 				LOG_NO("Terminated all application components");
 				LOG_NO("Informing director of node fail-over");
 				rc = avnd_di_oper_send(cb, cb->failed_su, SA_AMF_NODE_FAILOVER);
 				osafassert(NCSCC_RC_SUCCESS == rc);
+				/* delete all SUSI record in amfnd database */
+				tmp_su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
+				while (tmp_su != NULL) {
+					avnd_su_si_del(cb, &tmp_su->name);
+					tmp_su = (AVND_SU *) ncs_patricia_tree_getnext(&cb->sudb,
+							(uint8_t *)&tmp_su->name);
+
+				}
 			}
 			break;
 		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL:
