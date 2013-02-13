@@ -1495,6 +1495,11 @@ Limit number of coexisting search-handles per om-handle (4.3)
 ==============================================================
 http://devel.opensaf.org/ticket/2977
 
+A maximum of 50 concurrently open search handles per om-handle are allowed.
+That is, at most 50 open handles of type SaImmSearchHandleT or SaImmAccessorHandleT
+created using the same SaImmHandleT are allowed.
+
+
 IMM server must protect itself from invalid data received from imm clients (4.3)
 ================================================================================
 http://devel.opensaf.org/ticket/2747
