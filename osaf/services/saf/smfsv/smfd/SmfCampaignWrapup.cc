@@ -133,11 +133,6 @@ SmfCampaignWrapup::executeCampWrapup()
 	TRACE_ENTER();
         bool rc = true;
 
-	//Callback at commit
-#if 0
-	std::list < SmfCallbackOptions * >m_callbackAtCommit;
-#endif
-
 	///////////////////////
 	//Callback at commit
 	///////////////////////
@@ -147,9 +142,7 @@ SmfCampaignWrapup::executeCampWrapup()
 	while (cbkiter != m_callbackAtCommit.end()) {
 		SaAisErrorT rc = (*cbkiter)->execute(dn);
 		if (rc == SA_AIS_ERR_FAILED_OPERATION) {
-			LOG_ER("SmfCampaignCommit callback %s failed, rc=%s", (*cbkiter)->getCallbackLabel().c_str(), saf_error(rc));
-			TRACE_LEAVE();
-			return false;
+			LOG_NO("SmfCampaignCommit callback %s failed, rc=%s", (*cbkiter)->getCallbackLabel().c_str(), saf_error(rc));
 		}
 		cbkiter++;
 	}
@@ -162,7 +155,7 @@ SmfCampaignWrapup::executeCampWrapup()
 	std::list < SmfUpgradeAction * >::iterator iter;
 	for (iter = m_campWrapupAction.begin(); iter != m_campWrapupAction.end(); ++iter) {
 		if ((*iter)->execute(0) != SA_AIS_OK) {
-			LOG_ER("SmfCampaignWrapup campWrapupActions %d failed", (*iter)->getId());
+			LOG_NO("SmfCampaignWrapup campWrapupActions %d failed", (*iter)->getId());
 		}
 	}
 
@@ -170,11 +163,69 @@ SmfCampaignWrapup::executeCampWrapup()
 	if (m_removeFromImm.size() > 0) {
 		SmfImmUtils immUtil;
 		if (immUtil.doImmOperations(m_removeFromImm) != SA_AIS_OK) {
-			LOG_ER("SmfCampaignWrapup remove from IMM failed");
+			LOG_NO("SmfCampaignWrapup remove from IMM failed");
 		}
 	}
 
 	LOG_NO("CAMP: Campaign wrapup actions completed");
+
+	TRACE_LEAVE();
+
+	return rc;
+}
+
+//------------------------------------------------------------------------------
+// rollback()
+//------------------------------------------------------------------------------
+bool 
+SmfCampaignWrapup::rollbackCampWrapup()
+{
+	TRACE_ENTER();
+        bool rc = true;
+
+	///////////////////////
+	//Callback at commit
+	///////////////////////
+        
+	LOG_NO("CAMP: Campaign wrapup, rollback campaign commit callbacks");
+	std::list < SmfCallback * >:: iterator cbkiter;
+	std::string dn;
+	cbkiter = m_callbackAtCommit.begin();
+	while (cbkiter != m_callbackAtCommit.end()) {
+		SaAisErrorT rc = (*cbkiter)->rollback(dn);
+		if (rc == SA_AIS_ERR_FAILED_OPERATION) {
+			LOG_NO("SmfCampaignCommit rollback of callback %s failed (rc=%s), ignoring", 
+                               (*cbkiter)->getCallbackLabel().c_str(), saf_error(rc));
+		}
+		cbkiter++;
+	}
+
+	// The actions below are trigged by a campaign commit operation after rollback.
+	// The campaign will enter state "rollback_commited" even if some actions fails.
+	// Just log errors and try to execute as many operations as possible.
+        // 
+
+	LOG_NO("CAMP: Campaign wrapup, rollback wrapup actions (%zu)", m_campWrapupAction.size());
+	std::list < SmfUpgradeAction * >::iterator iter;
+	for (iter = m_campWrapupAction.begin(); iter != m_campWrapupAction.end(); ++iter) {
+                SmfImmCcbAction* immCcb = NULL;
+                if ((immCcb = dynamic_cast<SmfImmCcbAction*>(*iter)) != NULL) {
+                        /* Since noone of these IMM CCB has been executed it's no point
+                           in trying to roll them back */
+			TRACE("SmfCampaignWrapup skipping immCcb rollback %d", 
+                               (*iter)->getId()); 
+                        continue;
+                }
+		if ((*iter)->rollback(dn) != SA_AIS_OK) {
+			LOG_NO("SmfCampaignWrapup rollback campWrapupAction %d failed, ignoring", 
+                               (*iter)->getId());
+		}
+	}
+
+        /* Since the removeFromImm is made for the upgrade case there is 
+           no point in trying them at rollback */
+
+	LOG_NO("CAMP: Campaign wrapup rollback actions completed");
 
 	TRACE_LEAVE();
 
@@ -249,10 +300,6 @@ SmfCampaignWrapup::rollbackCampComplete()
 		}
 		
 	}
-
-#if 0
-	std::list < SmfCallbackOptions * >m_callbackAtRollback;
-#endif
 
 	LOG_NO("CAMP: Rollback of campaign complete actions completed");
 	return true;

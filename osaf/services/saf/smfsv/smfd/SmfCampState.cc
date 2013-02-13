@@ -2193,7 +2193,7 @@ SmfCampRollbackCompleted::commit(SmfUpgradeCampaign * i_camp)
 
         LOG_NO("CAMP: Start rollback commit campaign %s", i_camp->getCampaignName().c_str());
 
-	i_camp->m_campWrapup.executeCampWrapup(); // No action if wrapup is faulty
+	i_camp->m_campWrapup.rollbackCampWrapup(); // No action if wrapup is faulty
 
         i_camp->resetMaintenanceState(); // No action if it fails
 

@@ -105,6 +105,13 @@ class SmfCampaignWrapup {
 	bool executeCampWrapup();
 
 ///
+/// Purpose: Rollback campaing wrapup actions.
+/// @param   None.
+/// @return  True if sucessful otherwise false.
+///
+	bool rollbackCampWrapup();
+
+///
 /// Purpose: Execute wrapup complete actions.
 /// @param   None.
 /// @return  True if sucessful otherwise false.
