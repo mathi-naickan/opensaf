@@ -374,6 +374,7 @@ SmfImmUtils::getChildren(const std::string & i_dn, std::list < std::string > &o_
 	}
 
 done:
+        (void) immutil_saImmOmSearchFinalize(immSearchHandle);
 	TRACE_LEAVE();
 	return rc;
 }
