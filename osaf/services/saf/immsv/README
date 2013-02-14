@@ -1279,7 +1279,7 @@ atributes as part of an imm class definition.
 
 The meaning of this new flag is that, if it is on, then any change to the value
 of that attribute in any instance (imm object) of that class, will generate a 
-callback for any attached special appliers. Because the flag is asociated with 
+callback for any attached special appliers. Because the flag is associated with 
 class definitions, it is persistent. Toggling the flag on an attribute definition
 is in principle an imm schema change (see SCHEMA CHANGE section above). It is an
 update of a class definition. Since class definitions are persistent, the special
@@ -1312,6 +1312,12 @@ oi-handle in the cluster, at any given time. Thus the standby special applier
 needs to receive the same callback stream as the active, using a distinct 
 special applier name, but will discard the data based on information it
 receives from the active (e.g. via message based checkpoint).
+
+Having both special applier names attached at the same time on the same node
+should be avoided. The imm service will only generate the special applier 
+callbacks towards one special applier at one node at any point in time. Thus
+only one of them will receive the special applier callbacks if both are 
+attachhed on the same node. It is implementation dependent which one.
 
 The SA_IMM_ATTR_NOTIFY flag may be toggled using immcfg (#2892), or as part
 of a regular schema change in an SMF campaign. Export/import of the new flag
@@ -1354,12 +1360,15 @@ receiver to interpret who is modifying the object.
 SaImmOiCcbObjectDeleteCallbackT can obviosly not contain any attribute values.
 Only the DN of the object to be deleted is provided, since that is how the
 callback is defined. However, the imm service guarantees that a CCB that 
-contains delete callbacks, will also contain at least one modify callback 
-containing at least the SaImmAdminOwnerName system attribute. For any ccb 
-(where ccb != 0), the first special applier callback is guaranteed to hold the
-admin-owner-name. This means that if the first operation generated in the real
-ccb is a delete-operation, then the immsv will first send a fake modify on the
-same object/dn to be deleted, containing the admin-owner-name.
+contains delete callbacks, will also contain at least one modify or create
+callback containing at least the SaImmAdminOwnerName system attribute.
+For any ccb (where ccb != 0), the first special applier callback is guaranteed
+to hold the admin-owner-name. If the first operation is a real create or modify
+then that will hold the admin-owner-name. But if the first operation in the real
+ccb is a delete-operation, then the immsv will first generate a fake modify to
+the special applier, using the same object/dn to be deleted, containing the 
+admin-owner-name. After the fake modify, the real delete will be generated
+towards the special applier. 
 
 This allows the receiver to interpret who is deleting the objects. The class-name
 for the object should not be needed since if the receiver is already aware of the
