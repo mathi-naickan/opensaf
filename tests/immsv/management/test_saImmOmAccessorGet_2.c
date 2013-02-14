@@ -195,3 +195,17 @@ void saImmOmAccessorGet_2_09(void)
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+void saImmOmAccessorGet_2_10(void)
+{
+    int count;
+    rc = SA_AIS_OK;
+
+    safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAccessorInitialize(immOmHandle, &accessorHandle), SA_AIS_OK);
+    for(count=0; count< 100 && rc == SA_AIS_OK; ++count) {
+	rc = saImmOmAccessorGet_2(accessorHandle, &objectName, NULL, &attributes);
+    }
+    test_validate(rc, SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
