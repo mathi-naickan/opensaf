@@ -1438,6 +1438,12 @@ static uint32_t immnd_evt_proc_search_next(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_S
 		immsv_evt_free_attrNames(rtAttrsToFetch);
 	}
 
+	if(error == SA_AIS_ERR_NOT_EXIST) {
+		if(immnd_evt_proc_search_finalize(cb, evt, NULL) != NCSCC_RC_SUCCESS) {
+			LOG_WA("Failed in finalizing consumed iterator/accessor");
+		}
+	}
+
 	TRACE_LEAVE();
 	return rc;
 }
@@ -1492,8 +1498,8 @@ static uint32_t immnd_evt_proc_search_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMM
 	}
 
 	if (!sn) {
-		LOG_ER("Could not find search node for search-ID:%u", evt->info.searchOp.searchId);
-		send_evt.info.imma.info.errRsp.error = SA_AIS_ERR_BAD_HANDLE;
+		TRACE("Search node for search-ID:%u already finalized", evt->info.searchOp.searchId);
+		send_evt.info.imma.info.errRsp.error = SA_AIS_OK;
 		goto agent_rsp;
 	}
 
@@ -1510,7 +1516,9 @@ static uint32_t immnd_evt_proc_search_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMM
 	send_evt.info.imma.info.errRsp.error = SA_AIS_OK;
  agent_rsp:
 
-	rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+	if(sinfo) {
+		rc = immnd_mds_send_rsp(cb, sinfo, &send_evt);
+	}
 	TRACE_LEAVE();
 	return rc;
 }
