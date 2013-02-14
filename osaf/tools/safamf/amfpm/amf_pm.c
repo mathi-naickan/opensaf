@@ -268,6 +268,7 @@ int main(int argc, char **argv)
 							pmErr, recrec);
 		if (SA_AIS_OK != rc) {
 			logerr("saAmfPmStart FAILED %u\n", rc);
+			exit(EXIT_FAILURE);
 		}
 	} else {
 		rc = saAmfPmStop(amf_hdl, &compName, SA_AMF_PM_PROC, processId, pmErr);
