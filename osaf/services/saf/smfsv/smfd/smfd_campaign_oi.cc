@@ -896,7 +896,7 @@ uint32_t read_config_and_set_control_block(smfd_cb_t * cb)
 
 	const SaTimeT *verifyTimeout = immutil_getTimeAttr((const SaImmAttrValuesT_2 **)attributes,
 							    SMF_VERIFY_TIMEOUT_ATTR, 0);
-	SaTimeT tmp_verify_timeout = 100000000000;
+	SaTimeT tmp_verify_timeout = 100000000000LL;
 	if (verifyTimeout == NULL) {
 		//Not found, set default value		
 		verifyTimeout = &tmp_verify_timeout;
