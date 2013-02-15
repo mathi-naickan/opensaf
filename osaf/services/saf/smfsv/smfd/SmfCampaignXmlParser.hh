@@ -207,9 +207,9 @@ class SmfCampaignXmlParser {
 /// Purpose: Parse the byTemplate part of the campaign   
 /// @param   a_templ  A pointer to the SmfByTemplate object.
 /// @param   a_node The xml node where the byTemplate tag was found.
-/// @return  None
+/// @return  Bool true if successful, otherwise false
 ///
-	void parseByTemplate(SmfByTemplate * a_templ, xmlNode * a_node);
+	bool parseByTemplate(SmfByTemplate * a_templ, xmlNode * a_node);
 
 ///
 /// Purpose: Parse the targetNodeTemplate part of the campaign   
