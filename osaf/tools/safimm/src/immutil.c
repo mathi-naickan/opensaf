@@ -156,6 +156,21 @@ CcbUtilOperationData_t *ccbutil_ccbAddCreateOperation(struct CcbUtilCcbData *ccb
 	return operation;
 }
 
+CcbUtilOperationData_t *ccbutil_ccbAddCreateOperation_2(struct CcbUtilCcbData *ccb,
+	const SaNameT *objectName,
+	const SaImmClassNameT className,
+	const SaNameT *parentName,
+	const SaImmAttrValuesT_2 **attrValues)
+{
+	struct Chunk *clist = (struct Chunk *)ccb->memref;
+	struct CcbUtilOperationData *operation = newOperationData(ccb, CCBUTIL_CREATE);
+	operation->param.create.className = dupSaImmClassNameT(clist, className);
+	operation->param.create.parentName = dupSaNameT(clist, parentName);
+	operation->param.create.attrValues = dupSaImmAttrValuesT_array(clist, attrValues);
+	operation->objectName = *objectName;
+	return operation;
+}
+
 void ccbutil_ccbAddDeleteOperation(struct CcbUtilCcbData *ccb, const SaNameT *objectName)
 {
 	struct Chunk *clist = (struct Chunk *)ccb->memref;

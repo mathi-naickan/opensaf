@@ -138,6 +138,15 @@ extern "C" {
 					   const SaNameT *parentName, const SaImmAttrValuesT_2 **attrValues);
 
 /**
+ * Add a Create operation to a CCB data object including objectName.
+ */
+	CcbUtilOperationData_t *ccbutil_ccbAddCreateOperation_2(struct CcbUtilCcbData *ccb,
+		const SaNameT *objectName,
+		const SaImmClassNameT className,
+		const SaNameT *parentName,
+		const SaImmAttrValuesT_2 **attrValues);
+
+/**
  * Add a Delete operation to a CCB data object.
  */
 	void ccbutil_ccbAddDeleteOperation(struct CcbUtilCcbData *ccb, const SaNameT *objectName);

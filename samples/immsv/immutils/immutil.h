@@ -138,6 +138,15 @@ extern "C" {
 					   const SaNameT *parentName, const SaImmAttrValuesT_2 **attrValues);
 
 /**
+ * Add a Create operation to a CCB data object including objectName.
+ */
+	CcbUtilOperationData_t *ccbutil_ccbAddCreateOperation_2(struct CcbUtilCcbData *ccb,
+		const SaNameT *objectName,
+		const SaImmClassNameT className,
+		const SaNameT *parentName,
+		const SaImmAttrValuesT_2 **attrValues);
+
+/**
  * Add a Delete operation to a CCB data object.
  */
 	void ccbutil_ccbAddDeleteOperation(struct CcbUtilCcbData *ccb, const SaNameT *objectName);
@@ -449,6 +458,9 @@ extern SaAisErrorT immutil_getAttrValuesNumber(const SaImmAttrNameT attrName,
 	                                             const SaImmClassNameT className,
 	                                             const SaImmClassCategoryT classCategory,
 	                                             const SaImmAttrDefinitionT_2** attrDefinitions);
+
+	extern SaAisErrorT immutil_saImmOmClassDelete(SaImmCcbHandleT immCcbHandle,
+                                                     const SaImmClassNameT className);
 
 	extern SaAisErrorT immutil_saImmOmCcbObjectCreate_2(SaImmCcbHandleT immCcbHandle,
 	                                             const SaImmClassNameT className,
