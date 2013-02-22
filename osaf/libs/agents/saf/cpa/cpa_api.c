@@ -3256,6 +3256,11 @@ SaAisErrorT saCkptCheckpointWrite(SaCkptCheckpointHandleT checkpointHandle,
          rc=out_evt->info.cpa.info.sec_data_rsp.error;
          TRACE_4("Cpa CkptWrite Api failed with return value:%d,ckptHandle:%llx", rc, checkpointHandle);
       }
+      else {
+	      if (out_evt->info.cpa.info.sec_data_rsp.info.write_err_index != NULL)
+		      m_MMGR_FREE_CPSV_SaUint32T(out_evt->info.cpa.info.sec_data_rsp.info.write_err_index,NCS_SERVICE_ID_CPA);
+      }
+
       m_MMGR_FREE_CPSV_EVT(out_evt,NCS_SERVICE_ID_CPA);
       TRACE_1("Cpa CkptWrite Api Success with return value:%d,ckptHandle:%llx", SA_AIS_OK, checkpointHandle);
    }
