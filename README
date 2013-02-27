@@ -771,6 +771,20 @@ immsv persistent store (see IMMSV_PBE_FILE in the $pkgsysconfdir/immnd.conf.
 e.g. /etc/opensaf/immnd.conf file) and/or the permissions of any previous trace files 
 present under the $pkglogdir (e.g. /var/log/opensaf) directory, accordingly, if applicable.
 
+In OpenSAF 4.3, some new configuration attributes have been added to the SMF 
+configuration class. To make it possible to use these new attributes the new 
+class description needs to be added using the IMM schema change support. 
+This can be done after the 4.3 OpenSAF release have been activated.
+ 
+1) Enable the schema change support in the IMM: 
+immadm -o 1 -p opensafImmNostdFlags:SA_UINT32_T:1 opensafImm=opensafImm,safApp=safImmService
+
+2) Read in the new class descriptions : 
+immcfg --ignore-duplicates -f /usr/share/opensaf/immxml/services/smfsv_classes.xml
+ 
+3) Disable the schema change support in the IMM:  
+immadm -o 2 -p opensafImmNostdFlags:SA_UINT32_T:1 opensafImm=opensafImm,safApp=safImmService
+
 
 Linux Distro-Specific Notes
 ===========================
