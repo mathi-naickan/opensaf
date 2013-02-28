@@ -8605,8 +8605,13 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt)
 		TRACE_2("IMMA DOWN EVENT");
 		immnd_proc_imma_down(cb, evt->info.mds_info.dest, evt->info.mds_info.svc_id);
 	} else if ((evt->info.mds_info.change == NCSMDS_DOWN) && evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMD) {
-		TRACE_2("IMMD DOWN EVENT - We never get here do we?");
-		/*immnd_proc_immd_down(cb); */
+		/* Cluster is going down. */
+		LOG_NO("No IMMD service => cluster restart");
+		if(cb->mState < IMM_SERVER_SYNC_SERVER) {
+			immnd_ackToNid(NCSCC_RC_FAILURE);
+		}
+		exit(1);
+
 	} else if ((evt->info.mds_info.change == NCSMDS_UP) &&
 		   (evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OM ||
 		    evt->info.mds_info.svc_id == NCSMDS_SVC_ID_IMMA_OM)) {
