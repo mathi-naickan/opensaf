@@ -57,6 +57,9 @@
 #ifndef NCS_OSPRM_H
 #define NCS_OSPRM_H
 
+#include <stdlib.h>
+#include <sys/select.h>
+#include "logtrace.h"
 #include "ncsgl_defs.h"
 
 #ifdef  __cplusplus
@@ -1376,10 +1379,46 @@ extern "C" {
    The following macros are currently based on the macros defined for use with
    POSIX 'select()' and have identical semantics.
 \****************************************************************************/
-#define m_NCS_SEL_OBJ_ZERO(x)           FD_ZERO(x)
-#define m_NCS_SEL_OBJ_SET(x,y)          FD_SET((x).rmv_obj, y)
-#define m_NCS_SEL_OBJ_ISSET(x,y)        FD_ISSET((x).rmv_obj, y)
-#define m_NCS_SEL_OBJ_CLR(x,y)          FD_CLR((x).rmv_obj, y)
+static inline void m_NCS_SEL_OBJ_ZERO(NCS_SEL_OBJ_SET* o_sel_obj_set)
+{
+	FD_ZERO(o_sel_obj_set);
+}
+
+static inline void m_NCS_SEL_OBJ_SET(NCS_SEL_OBJ i_sel_obj,
+	NCS_SEL_OBJ_SET* io_sel_obj_set)
+{
+	if (i_sel_obj.rmv_obj >= 0 && i_sel_obj.rmv_obj < FD_SETSIZE) {
+		FD_SET(i_sel_obj.rmv_obj, io_sel_obj_set);
+	} else {
+		LOG_ER("Process terminated due to file descriptor %d outside "
+			"supported range [0, 1024)", i_sel_obj.rmv_obj);
+		abort();
+	}
+}
+
+static inline int m_NCS_SEL_OBJ_ISSET(NCS_SEL_OBJ i_sel_obj,
+	const NCS_SEL_OBJ_SET* i_sel_obj_set)
+{
+	if (i_sel_obj.rmv_obj >= 0 && i_sel_obj.rmv_obj < FD_SETSIZE) {
+		return FD_ISSET(i_sel_obj.rmv_obj, i_sel_obj_set);
+	} else {
+		LOG_ER("Process terminated due to file descriptor %d outside "
+			"supported range [0, 1024)", i_sel_obj.rmv_obj);
+		abort();
+	}
+}
+
+static inline void m_NCS_SEL_OBJ_CLR(NCS_SEL_OBJ i_sel_obj,
+	NCS_SEL_OBJ_SET* io_sel_obj_set)
+{
+	if (i_sel_obj.rmv_obj >= 0 && i_sel_obj.rmv_obj < FD_SETSIZE) {
+		FD_CLR(i_sel_obj.rmv_obj, io_sel_obj_set);
+	} else {
+		LOG_ER("Process terminated due to file descriptor %d outside "
+			"supported range [0, 1024)", i_sel_obj.rmv_obj);
+		abort();
+	}
+}
 
 /****************************************************************************\
  * E N D      :  S E L E C T I O N - O B J E C T    P R I M I T I V E S     *
