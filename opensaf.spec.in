@@ -6,6 +6,7 @@
 %define is_am4j %(test "@AM4J_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_tests %(test "@TESTS_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_immxml %(test "@IMMXML_ENABLED@" = "yes" && echo 1 || echo 0)
+%define is_ntfimcn %(test "@NTFIMCN_ENABLED@" = "yes" && echo 1 || echo 0)
 
 %define is_ais_plm %(test "@AIS_PLM_ENABLED@" = "yes" && echo 1 || echo 0)
 %define is_ais_ckpt %(test "@AIS_CKPT_ENABLED@" = "yes" && echo 1 || echo 0)
@@ -1268,6 +1269,9 @@ fi
 %endif
 %config(noreplace) %{_pkgsysconfdir}/ntfd.conf
 %{_pkglibdir}/osafntfd
+%if %is_ntfimcn
+%{_pkglibdir}/osafntfimcnd
+%endif
 %{_pkgclcclidir}/osaf-ntfd
 %if %is_immxml
 %{_pkgimmxml_svcdir}/ntfsv_objects.xml

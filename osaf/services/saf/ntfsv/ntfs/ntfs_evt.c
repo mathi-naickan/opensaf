@@ -20,6 +20,7 @@
 #include <limits.h>
 #include "ntfs.h"
 #include "ntfsv_enc_dec.h"
+#include "ntfs_imcnutil.h"
 
 
 #define m_NTFSV_FILL_ASYNC_UPDATE_FINALIZE(ckpt,client_id){ \
@@ -174,6 +175,8 @@ static uint32_t proc_rda_cb_msg(ntfsv_ntfs_evt_t *evt)
 			LOG_ER("ntfs_mbcsv_change_HA_state FAILED %u", rc);
 			goto done;
 		}
+
+		restart_ntfimcn(ntfs_cb->ha_state);
 
 		if (old_ha_state == SA_AMF_HA_STANDBY) {
 			/* check for unsent notifictions and if notifiction is not logged */

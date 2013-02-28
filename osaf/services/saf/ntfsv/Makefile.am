@@ -21,3 +21,9 @@ MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = README
 
 SUBDIRS = config ntfs
+
+if ENABLE_NTFIMCN
+
+SUBDIRS += ntfimcnd
+
+endif

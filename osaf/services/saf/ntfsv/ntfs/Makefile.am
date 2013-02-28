@@ -26,13 +26,14 @@ noinst_HEADERS = \
 	ntfs_evt.h \
 	ntfs.h \
 	ntfs_mbcsv.h \
+	ntfs_imcnutil.h \
 	NtfAdmin.hh \
 	NtfClient.hh \
 	NtfFilter.hh \
 	NtfLogger.hh \
 	NtfNotification.hh \
 	NtfReader.hh \
-	NtfSubscription.hh
+	NtfSubscription.hh 
 
 osaf_execbindir = $(pkglibdir)
 osaf_execbin_PROGRAMS = osafntfd
@@ -55,6 +56,12 @@ osafntfd_SOURCES = \
 	NtfReader.cc \
 	NtfClient.cc \
 	NtfAdmin.cc
+
+if ENABLE_NTFIMCN
+
+osafntfd_SOURCES += ntfs_imcnutil.c
+
+endif
 
 osafntfd_LDADD = \
 	$(top_builddir)/osaf/libs/core/libopensaf_core.la \

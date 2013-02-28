@@ -22,6 +22,7 @@
  */
 
 #define _GNU_SOURCE
+#include <libgen.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,17 +37,22 @@
 #include <ncs_main_papi.h>
 
 #include "ntfs.h"
+#include "ntfs_imcnutil.h"
 
 /* ========================================================================
  *   DEFINITIONS
  * ========================================================================
  */
 
-#define FD_USR1 0
-#define FD_AMF 0
-#define FD_MBCSV 1
-#define FD_MBX 2
-#define FD_LOG 3
+enum {
+	FD_USR1 = 0,
+	FD_AMF = 0,
+	FD_MBCSV,
+	FD_MBX,
+	FD_LOG,
+	FD_TERM,
+	SIZE_FDS
+} NTFS_FDS;
 
 /* ========================================================================
  *   TYPE DEFINITIONS
@@ -60,6 +66,7 @@
 static ntfs_cb_t _ntfs_cb;
 ntfs_cb_t *ntfs_cb = &_ntfs_cb;
 static NCS_SEL_OBJ usr1_sel_obj;
+static NCS_SEL_OBJ term_sel_obj; /* Selection object for TERM signal events */
 
 /* ========================================================================
  *   FUNCTION PROTOTYPES
@@ -78,7 +85,7 @@ extern void logEvent();
 static void rda_cb(uint32_t cb_hdl, PCS_RDA_CB_INFO *cb_info, PCSRDA_RETURN_CODE error_code)
 {
 	uint32_t rc;
-	ntfsv_ntfs_evt_t *evt;
+	ntfsv_ntfs_evt_t *evt=NULL;
 
 	TRACE_ENTER();
 
@@ -92,8 +99,12 @@ static void rda_cb(uint32_t cb_hdl, PCS_RDA_CB_INFO *cb_info, PCSRDA_RETURN_CODE
 	evt->info.rda_info.io_role = cb_info->info.io_role;
 
 	rc = ncs_ipc_send(&ntfs_cb->mbx, (NCS_IPC_MSG *)evt, MDS_SEND_PRIORITY_VERY_HIGH);
-	if (rc != NCSCC_RC_SUCCESS)
+	if (rc != NCSCC_RC_SUCCESS) {
 		LOG_ER("IPC send failed %d", rc);
+		if (evt != NULL) {
+			free(evt);
+		}
+	}
 
 done:
 	TRACE_LEAVE();
@@ -112,6 +123,27 @@ static void sigusr1_handler(int sig)
 	signal(SIGUSR1, SIG_IGN);
 	ncs_sel_obj_ind(usr1_sel_obj);
 	TRACE("Got USR1 signal");
+}
+
+/**
+ * TERM signal handler
+ *
+ * @param sig
+ */
+static void sigterm_handler(int sig)
+{
+	ncs_sel_obj_ind(term_sel_obj);
+	signal(SIGTERM, SIG_IGN);
+}
+
+/**
+ * TERM event handler
+ */
+static void handle_sigterm_event(void)
+{
+	LOG_NO("exiting on signal %d", SIGTERM);
+	(void) stop_ntfimcn();
+	_Exit(EXIT_SUCCESS);
 }
 
 #if 0
@@ -231,7 +263,7 @@ int main(int argc, char *argv[])
 	NCS_SEL_OBJ mbx_fd;
 	SaAisErrorT error;
 	uint32_t rc;
-	struct pollfd fds[4];
+	struct pollfd fds[SIZE_FDS];
 
 	TRACE_ENTER();
 
@@ -240,6 +272,19 @@ int main(int argc, char *argv[])
 	if (initialize() != NCSCC_RC_SUCCESS) {
 		LOG_ER("initialize in ntfs  FAILED, exiting...");
 		goto done;
+	}
+
+	/* Start the secondary configuration notifier process */
+	init_ntfimcn(ntfs_cb->ha_state);
+
+	if (ncs_sel_obj_create(&term_sel_obj) != NCSCC_RC_SUCCESS) {
+		LOG_ER("ncs_sel_obj_create failed");
+		exit(EXIT_FAILURE);
+	}
+
+	if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
+		LOG_ER("signal TERM failed: %s", strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 
 	mbx_fd = ncs_ipc_get_sel_obj(&ntfs_cb->mbx);
@@ -253,10 +298,12 @@ int main(int argc, char *argv[])
 	fds[FD_MBX].events = POLLIN;
 	fds[FD_LOG].fd = ntfs_cb->logSelectionObject;
 	fds[FD_LOG].events = POLLIN;
+	fds[FD_TERM].fd = term_sel_obj.rmv_obj;
+	fds[FD_TERM].events = POLLIN;
 
 	/* NTFS main processing loop. */
 	while (1) {
-		int ret = poll(fds, 4, -1);
+		int ret = poll(fds, SIZE_FDS, -1);
 
 		if (ret == -1) {
 			if (errno == EINTR)
@@ -288,6 +335,10 @@ int main(int argc, char *argv[])
 
 		}
 
+		if (fds[FD_TERM].revents & POLLIN) {
+			handle_sigterm_event();
+		}
+
 		if (fds[FD_MBCSV].revents & POLLIN) {
 			rc = ntfs_mbcsv_dispatch(ntfs_cb->mbcsv_hdl);
 			if (rc != NCSCC_RC_SUCCESS)
@@ -306,6 +357,5 @@ int main(int argc, char *argv[])
 done:
 	LOG_ER("Failed, exiting...");
 	TRACE_LEAVE();
-	exit(1);
-
+	exit(EXIT_FAILURE);
 }

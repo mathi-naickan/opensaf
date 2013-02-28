@@ -1,0 +1,92 @@
+#
+#      -*- OpenSAF  -*-
+#
+# (C) Copyright 2013 The OpenSAF Foundation
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
+#
+# Author(s): Ericsson AB
+#
+
+The "Information Model Change Notifier" IMCN implements sending of notifications
+based on callbacks from the IMM special applier support.
+
+The implementation has to consider the following details:
+
+Special applier
+---------------
+Is implemented in the same way as a normal applier. This means handling
+of all IMM callbacks.
+Callbacks can be invoked by changes of Runtime data or changes of Config data.
+The difference can be seen by reading the CCB-ID. CCB-ID = 0 means Runtime data.
+If Runtime data the notification(s) are sent when the first callback is
+invoked. No more callbacks will be invoked.
+If Config data the CCB data is saved and notification(s) are sent when the
+Apply callback is invoked.
+
+Code
+----
+General:
+*	The special implementer and notification handling is running in it's own
+	process. The code is contained in a separate directory .../ntfsv/ntfimcnd
+	The process is started and supervised by the ntf service. This is done in
+	a separate thread. The ntfs_imcnutil.c and ntfs_imcnutil.h in the
+	.../ntfsv/ntfs directory contains functions used by the ntf service for
+	doing this.
+
+*	In the ntfs main process a thred is created. in this thread the 
+	osafntfimcnd process is started and surveilled. If something goes wrong,
+	e.g. the process exits, it will be restarted.
+
+Configuration:
+	This function is by default not activated. To activate a configuration flag
+	is used.
+	#./configure --enable-ntf-imcn
+
+Secondary (child) process (osafntfimcnd):
+*	A new applier OI (special applier) is implemented including:
+	- Initialization (have it's own IMM OI handle etc.)
+	- Call back functions
+	- Event polling, dispatch
+
+Debug:
+
+ntfimcn process traces are by default disabled.
+
+Traces are written to the file:
+
+	$pklogdir/osafntfimcn
+
+To enable traces from the very start of the ntf server, uncomment the line:
+
+        #args="--tracemask=0xffffffff"
+
+in ntfd.conf (see CONFIGURATION above) and restart the cluster.
+
+For fatal errors syslog is used.
+
+To enable traces for ntfimcn, export the variable NTFIMCN_TRACE_PATHNAME
+with a valid pathname before starting the application.
+This can be done by uncommenting a line in the ntfd.conf file
+
+Tracing can also be toggled on/off by sending SIGUSR2 signal:
+
+$ pkill -SIGUSR2 osafntfimcnd
+
+If NTFIMCN_TRACE_PATHNAME is not exported traces will be written to a default
+file which is the same as in the example below.
+
+Example:
+# Uncomment the next line to enable trace for the osafntfimcn (configuration
+# notifier).
+# When forked by the osafntfd it attach as NTF client (producer).
+# The process will also route trace to the NTF trace-file as define here.
+export NTFIMCN_TRACE_PATHNAME=$pkglogdir/osafntfimcn
+

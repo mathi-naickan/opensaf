@@ -271,7 +271,7 @@ AC_SUBST([TESTS_ENABLED], ["$enable_tests"])
 AC_MSG_CHECKING([whether to use the IMM persistent backend])
 AC_ARG_ENABLE([imm-pbe],
 	[AS_HELP_STRING([--enable-imm-pbe],
-		[enable the IMM Persistent Backend Interface [default=yes]])],
+		[enable the IMM Persistent Backend Interface [default=no]])],
 	[],
 	[enable_imm_pbe=no])
 AC_MSG_RESULT([$enable_imm_pbe])
@@ -282,6 +282,25 @@ fi
 
 AM_CONDITIONAL([ENABLE_IMM_PBE], [test "$enable_imm_pbe" = yes])
 AC_SUBST([IMM_PBE_ENABLED], ["$enable_imm_pbe"])
+
+
+#
+# Enable/disable NTF Information Model Change Notifier (ntf-imcn)
+#
+AC_MSG_CHECKING([whether to use the Information Model Change Notifier])
+AC_ARG_ENABLE([ntf-imcn],
+	[AS_HELP_STRING([--enable-ntf-imcn],
+		[enable the NTF Information Model Notification producer [default=no]])],
+	[],
+	[enable_ntf_imcn=no])
+AC_MSG_RESULT([$enable_ntf_imcn])
+
+if test "$enable_ntf_imcn" = yes; then
+	AC_DEFINE([HAVE_NTFIMCN], 1, [Define if we have NTFIMCN enabled])
+fi
+
+AM_CONDITIONAL([ENABLE_NTFIMCN], [test "$enable_ntf_imcn" = yes])
+AC_SUBST([NTFIMCN_ENABLED], ["$enable_ntf_imcn"])
 
 
 #
@@ -793,6 +812,7 @@ AC_CONFIG_FILES([
         osaf/services/saf/logsv/lgs/scripts/osaf-logd
         osaf/services/saf/ntfsv/Makefile
         osaf/services/saf/ntfsv/config/Makefile
+		osaf/services/saf/ntfsv/ntfimcnd/Makefile
         osaf/services/saf/ntfsv/ntfs/Makefile
         osaf/services/saf/ntfsv/ntfs/scripts/Makefile
         osaf/services/saf/ntfsv/ntfs/scripts/osaf-ntfd

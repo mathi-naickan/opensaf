@@ -21,6 +21,7 @@
 #include <nid_start_util.h>
 #include "ntfs.h"
 #include "ntfs_com.h"
+#include "ntfs_imcnutil.h"
 
 /****************************************************************************
  * Name          : amf_active_state_handler
@@ -213,6 +214,7 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 
 	/* Update control block */
 	ntfs_cb->ha_state = new_haState;
+	restart_ntfimcn(ntfs_cb->ha_state);
 
 	if (ntfs_cb->csi_assigned == false) {
 		ntfs_cb->csi_assigned = true;
@@ -276,9 +278,17 @@ static void amf_csi_set_callback(SaInvocationT invocation,
  *****************************************************************************/
 static void amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *compName)
 {
+	SaAisErrorT rc=SA_AIS_OK;
+
 	TRACE_ENTER();
 
-	saAmfResponse(ntfs_cb->amf_hdl, invocation, SA_AIS_OK);
+	/* Stop imcnp (configuration notifier) */
+	if (stop_ntfimcn() != 0) {
+		rc = SA_AIS_ERR_FAILED_OPERATION;
+		LOG_ER("stop_ntfimcn() Fail");
+	}
+
+	saAmfResponse(ntfs_cb->amf_hdl, invocation, rc);
 
 	/* Detach from IPC */
 	m_NCS_IPC_DETACH(&ntfs_cb->mbx, NULL, ntfs_cb);
