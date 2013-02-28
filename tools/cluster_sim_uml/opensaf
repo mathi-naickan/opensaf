@@ -60,9 +60,13 @@ cluster_start() {
 
 	# Start network if necessary
 	if ! pgrep -U $uid uml_switch > /dev/null; then
+		rm -f /tmp/uml-${uid}.ctl
 		xterm -iconic -geometry 60x8-0+110 \
 			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
 		echo $! > $PIDFILEDIR/uml_switch
+		while [ ! -S /tmp/uml-${uid}.ctl ]; do
+			sleep 1
+		done
 	fi
 
 	# Start the processors
@@ -101,6 +105,7 @@ cluster_stop() {
 		done
 		rm -rf $PIDFILEDIR
 	fi
+	rm -f /tmp/uml-${uid}.ctl
 }
 
 delete_persistent_store() {
@@ -117,9 +122,13 @@ node_start() {
 
 	# Start network if necessary
 	if ! pgrep -U $uid uml_switch > /dev/null; then
+		rm -f /tmp/uml-${uid}.ctl
 		xterm -iconic -geometry 60x8-0+110 \
 			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
 		echo $! > $PIDFILEDIR/uml_switch
+		while [ ! -S /tmp/uml-${uid}.ctl ]; do
+			sleep 1
+		done
 	fi
 
 	if ! stat "rootfs/etc/hosts" &> /dev/null; then
