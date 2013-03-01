@@ -19,7 +19,9 @@
 
    Note: This is a modified schema.
    ================================
-   The following modifications have been made:   
+   The following modifications have been made:
+   Wed Feb 27 10:26:17 2013,  Bertil Engelholm <bertil.engelholm@ericsson.com>
+       smfsv: updated ETF schema with healthcheck for non sa aware comp type (#3027)
    Wed Feb 29 07:13:00 2012, Hans Feldt <hans.feldt@ericsson.com>
       smfsv: schema changes related to AMF HC commands (#2481)
    Wed Jun 02 10:18:22 2010, Ingvar Bergstrom <ingvar.bergstrom@ericsson.com>
@@ -187,6 +189,11 @@
 												</xs:annotation>
 												<xs:complexType>
 													<xs:sequence>
+														<xs:element ref="healthCheck" minOccurs="0" maxOccurs="unbounded">
+															<xs:annotation>
+																<xs:documentation>If the non sa aware component support any healthcheck they need to be specified here. Key value is fixed (osafHealthCheck) but still needs to be specified here. </xs:documentation>
+															</xs:annotation>
+														</xs:element>
 														<xs:element ref="instantiateCmd">
 															<xs:annotation>
 																<xs:documentation>The instantiate CLC-CLI command </xs:documentation>
@@ -194,7 +201,7 @@
 														</xs:element>
 														<xs:element name="terminateCmd">
 															<xs:annotation>
-																<xs:documentation>The trminate CLC-CLI command </xs:documentation>
+																<xs:documentation>The terminate CLC-CLI command </xs:documentation>
 															</xs:annotation>
 															<xs:complexType>
 																<xs:group ref="CliParameters"/>
