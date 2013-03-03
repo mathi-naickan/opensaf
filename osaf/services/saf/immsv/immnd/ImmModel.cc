@@ -11937,7 +11937,8 @@ ImmModel::objectSync(const ImmsvOmObjectSync* req)
         case IMM_NODE_R_AVAILABLE:
             LOG_ER("Node is in a state %u that cannot accept "
                 "sync message, will terminate", sImmNodeState);
-            abort();
+            /* cant goto objectSyncExit from here */
+            return SA_AIS_ERR_FAILED_OPERATION;
             /* ImmModel::objectSync() is only invoked at sync clients currently.
                See immnd_evt_proc_object_sync in immnd_evt.c.
                ImmModel::objectSync could in the future be used by veteran
@@ -11947,7 +11948,8 @@ ImmModel::objectSync(const ImmsvOmObjectSync* req)
             */
         default:
             LOG_ER("Impossible node state, will terminate");
-            abort();
+            /* cant goto objectSyncExit from here */
+            return SA_AIS_ERR_FAILED_OPERATION;
     }
     
     size_t sz = strnlen((char *) req->className.buf, 
@@ -12272,12 +12274,12 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             isCoord,
             isSyncClient);
             if(isCoord) {
-                return SA_AIS_ERR_FAILED_OPERATION;
+                return SA_AIS_ERR_BAD_OPERATION;
             }
             abort();
         default:
             LOG_ER("Impossible node state, will terminate");
-            abort();
+            return SA_AIS_ERR_FAILED_OPERATION;
     }
     
     if(isCoord) {//Produce the checkpoint 
@@ -12476,8 +12478,9 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             AdminOwnerVector::iterator i;
 
             if(!sDeferredObjUpdatesMap.empty()) {
-                LOG_ER("syncFinalize found deferred RTA updates - aborting");
-                abort();
+                LOG_ER("syncFinalize client found deferred RTA updates - aborting");
+                err = SA_AIS_ERR_FAILED_OPERATION;
+                goto done;
             }
 
             if(!sMissingParents.empty()) {
@@ -12487,7 +12490,8 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 for(mpm=sMissingParents.begin(); mpm != sMissingParents.end(); ++mpm) {
                     LOG_ER("Missing Parent DN: %s", mpm->first.c_str());
                 }
-                abort();
+                err = SA_AIS_ERR_FAILED_OPERATION;
+                goto done;
             }
 
 
@@ -12505,8 +12509,10 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                     ai->adminOwnerName.buf, (size_t) ai->adminOwnerName.size);
                 info->mReleaseOnFinalize = ai->releaseOnFinalize;
                 info->mDying = ai->isDying;
-                if(info->mDying) {
-                    osafassert(info->mReleaseOnFinalize);
+                if((info->mDying) && (!(info->mReleaseOnFinalize))) {
+                    LOG_ER("finalizeSync client: Admo is dying yet releaseOnFinalize is false");
+                    err = SA_AIS_ERR_FAILED_OPERATION;
+                    goto done;
                 }
                 
                 ImmsvObjNameList* nl = ai->touchedObjects;
@@ -12520,7 +12526,8 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                     if(oi == sObjectMap.end()) {
                         LOG_ER("Sync client failed to locate object: "
                             "%s, will restart.", objectName.c_str());
-                        abort();
+                        err = SA_AIS_ERR_FAILED_OPERATION;
+                        goto done;
                     }
                     info->mTouchedObjects.insert(oi->second);
                     nl = nl->next;
@@ -12534,12 +12541,22 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
 
             for(i=sOwnerVector.begin(); i!=sOwnerVector.end();) {
                 if((*i)->mDying) {
-                    osafassert((*i)->mReleaseOnFinalize);
+                    if(!((*i)->mReleaseOnFinalize)) {
+                        LOG_ER("finalizeSync client: Admo %u is dying yet releaseOnFinalize is false",
+                            (*i)->mId);
+                        err = SA_AIS_ERR_FAILED_OPERATION;
+                        goto done;
+                    }
+
                     LOG_WA("Removing admin owner %u %s (ROF==TRUE) which is in demise, "
                            "AFTER receiving finalize sync message", (*i)->mId,
                         (*i)->mAdminOwnerName.c_str());
-                    osafassert(adminOwnerDelete((*i)->mId, true) == SA_AIS_OK);
-                    //Above does a lookup of admin owner again.
+                    //This does a lookup of admin owner again.
+                    if(adminOwnerDelete((*i)->mId, true) != SA_AIS_OK) {
+                        LOG_ER("finalizeSync client: Failed to remobe admin-owner %u", (*i)->mId);
+                        err = SA_AIS_ERR_FAILED_OPERATION;
+                        goto done;
+                    }
                     i=sOwnerVector.begin();//Restart of iteration.
                 } else {
                     ++i;
@@ -12592,7 +12609,12 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 ObjectInfo* obj = oi->second;
                 //ImmAttrValueMap::iterator j;
                 ImmAttrValue* att = obj->mAttrValueMap[implAttr];
-                osafassert(att);
+                if(!att) {
+                    LOG_ER("Attribute %s is MISSING from obj:%s",
+                      implAttr.c_str(), oi->first.c_str());
+                    err = SA_AIS_ERR_FAILED_OPERATION;
+                    goto done;
+                }
                 if(!(att->empty())) {
                     std::string implName(att->getValueC_str());
                    /*
@@ -12619,17 +12641,22 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 std::string className((char *) ioci->className.buf, sz);
                 
                 ClassMap::iterator i3 = sClassMap.find(className);
-                osafassert(i3 != sClassMap.end());
+                if(i3 == sClassMap.end()) {
+                    LOG_ER("Class %s is MISSING", className.c_str());
+                    err = SA_AIS_ERR_FAILED_OPERATION;
+                    goto done;
+                }
                 ClassInfo* ci = i3->second;
                 //Is the osafassert below really true if the class is a runtime 
                 //class ?
                 //Yes, because the existence of a rt object is noted at 
                 //all nodes.
                 if((int) ci->mExtent.size() != (int) ioci->nrofInstances) {
-                    LOG_NO("Synced class %s has %u instances should have %u",
+                    LOG_ER("Synced class %s has %u instances should have %u",
                        className.c_str(), (unsigned int) ci->mExtent.size(),
                        ioci->nrofInstances);
-                    abort();
+                        err = SA_AIS_ERR_FAILED_OPERATION;
+                        goto done;
                 }
                 ++classCount;
                 if(ioci->classImplName.size) {
@@ -12639,13 +12666,21 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                         sz);
                     
                     ImplementerInfo* impl = findImplementer(clImplName);
-                    osafassert(impl);
+                    if(!impl) {
+                        LOG_ER("Class-implementer %s is MISSING", clImplName.c_str());
+                        err = SA_AIS_ERR_FAILED_OPERATION;
+                        goto done;
+                    }
                     ci->mImplementer = impl;
                 }
                 ioci = ioci->next;
             }
             LOG_IN("Synced %u classes", classCount);
-            osafassert(sClassMap.size() == classCount);
+            if(sClassMap.size() != classCount) {
+                LOG_ER("sClassMap.size %zu != classCount %u", sClassMap.size(), classCount);
+                err = SA_AIS_ERR_FAILED_OPERATION;
+                goto done;
+            }
 
             ImmsvCcbOutcomeList* ol = req->ccbResults;
             while(ol) {
@@ -12658,7 +12693,11 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 newCcb->mVeto = SA_AIS_OK;
                 newCcb->mState = (ImmCcbState) ol->ccbState;
                 newCcb->mWaitStartTime = time(NULL);
-                osafassert(newCcb->mWaitStartTime > ((time_t) 0));
+                if(newCcb->mWaitStartTime <= ((time_t) 0)) {
+                    LOG_ER("newCcb->mWaitStartTime <= 0");
+                    err = SA_AIS_ERR_FAILED_OPERATION;
+                    goto done;
+                }
                 newCcb->mOpCount=0;
                 newCcb->mPbeRestartId=0;
                 newCcb->mErrorStrings=NULL;
@@ -12668,7 +12707,11 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 TRACE_5("CCB %u state %s", newCcb->mId, 
                     (newCcb->mState == IMM_CCB_COMMITTED)?"COMMITTED":
                     ((newCcb->mState == IMM_CCB_ABORTED)?"ABORTED":"OTHER"));
-                osafassert(!(newCcb->isActive()));
+                if((newCcb->isActive())) {
+                    LOG_ER("Can not sync Ccb that is active");
+                    err = SA_AIS_ERR_FAILED_OPERATION;
+                    goto done;
+                }
                 ol = ol->next;
             }
 
@@ -12684,7 +12727,11 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                     ConnVector cv;
                     LOG_NO("Sync client re-executing discardNode for node %x", (*ivi));
                     this->discardNode((*ivi), cv);
-                    osafassert(cv.empty());
+                    if(!(cv.empty())) {
+                        LOG_ER("Sync can not discard node with active ccbs");
+                        err = SA_AIS_ERR_FAILED_OPERATION;
+                        goto done;
+                    }
                 }
             }
         } else {
