@@ -4985,6 +4985,21 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 			if(cb->mIsCoord && immModel_immNotWritable(cb) && 
 				(cb->mState == IMM_SERVER_SYNC_SERVER)) {
 				LOG_WA("Failed RtObject update has to abort sync");
+				/* Clarification: We have to abort the sync here even for soft errors like
+				   TRY_AGAIN. This even though all nodes (except the sync clients) are in
+				   agreement. The problem is exactly the sync clients. The typical reason
+				   for getting TRY_AGAIN on an RtUpdate during sync is that the update is
+				   an update of a PERSISTENT RTA and the PBE happens to be currently not
+				   available. This has nothing to do with the sync per se, it is simply
+				   that when PRTAs are used a lot, then the PBE tends to become unavailable.
+
+				   The sync clients have not synced enough to detect PBE configurability
+				   and so can not detect that a PBE should be attached but is currently not,
+				   so the clients will accept the RTA update while all other veteran nodes
+				   reject it with TRY_AGAIN. Thus the clients have to be forced to restart.
+				   Hopefully this will not happen too often as people realize that PERSISTENT
+				   RTAs should never be used. 
+				 */
 				immnd_abortSync(cb);
 				if(cb->syncPid > 0) {
 					LOG_WA("STOPPING sync process pid %u", cb->syncPid);
@@ -6438,7 +6453,8 @@ uint32_t immnd_evt_proc_abort_sync(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO
 		osafassert(cb->mMyEpoch == cb->mRulingEpoch);
 		osafassert(!(cb->mSyncFinalizing));
 	} else {		/* Noncoord IMMNDs */
-		if (cb->mState == IMM_SERVER_SYNC_CLIENT) {	/* Sync client will have to restart the sync */
+		if (cb->mState == IMM_SERVER_SYNC_CLIENT ||
+			cb->mState == IMM_SERVER_SYNC_PENDING) {	/* Sync client will have to restart the sync */
 			cb->mState = IMM_SERVER_LOADING_PENDING;
 			LOG_WA("SERVER STATE: IMM_SERVER_SYNC_CLIENT --> IMM SERVER LOADING PENDING (sync aborted)");
 			cb->mStep = 0;
