@@ -4825,8 +4825,16 @@ static void immnd_evt_proc_object_sync(IMMND_CB *cb,
 		do {
 			err = immModel_objectSync(cb, obj_sync);
 			if (err != SA_AIS_OK) {
-				LOG_ER("Failed to apply IMMND sync message");
-				abort(); /*If we fail in sync then restart the IMMND sync client. */
+				/*If we fail in sync then restart the IMMND sync client. */
+				immnd_ackToNid(NCSCC_RC_FAILURE);
+				if(err == SA_AIS_ERR_FAILED_OPERATION) {
+					LOG_ER("Local error in objectSync for sync client - aborting");
+					abort();
+				} else {
+					LOG_ER("Non local error %u in objectSync for sync client - exiting",
+						err);
+					exit(1); /* Dont core dump as this was not a local error */
+				}
 			}
 
 			memset(&objModify, '\0', sizeof(IMMSV_OM_CCB_OBJECT_MODIFY));
@@ -4841,6 +4849,7 @@ static void immnd_evt_proc_object_sync(IMMND_CB *cb,
 				if(err != SA_AIS_OK) {
 					LOG_ER("Failed to apply RTA update on object '%s' at sync client - aborting",
 						objModify.objectName.buf);
+					immnd_ackToNid(NCSCC_RC_FAILURE);
 					abort();
 				}
 			}
@@ -7778,7 +7787,17 @@ static void immnd_evt_proc_finalize_sync(IMMND_CB *cb,
 		unsigned int count = 0;
 		IMMSV_EVT send_evt;
 		TRACE_2("FinalizeSync for sync client");
-		osafassert(immModel_finalizeSync(cb, &(evt->info.finSync), SA_FALSE, SA_TRUE) == SA_AIS_OK);
+		SaAisErrorT err = immModel_finalizeSync(cb, &(evt->info.finSync), SA_FALSE, SA_TRUE);
+		if(err != SA_AIS_OK) {
+			immnd_ackToNid(NCSCC_RC_FAILURE);
+			if(err == SA_AIS_ERR_BAD_OPERATION) {
+				exit(1); /* Dont core dump as this was not a local error */
+			} else {
+				LOG_ER("Unexpected local error %u in finalizeSync for sync client - aborting",
+					err);
+				abort();
+			}
+		}
 		cb->mAccepted = SA_TRUE;	/*Accept ALL fevs messages after this one! */
 		cb->syncFevsBase = 0LL;
 		cb->mMyEpoch++;
