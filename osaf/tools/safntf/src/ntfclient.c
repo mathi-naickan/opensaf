@@ -121,6 +121,24 @@ static const char *sa_severity_list[] = {
 	"SA_NTF_SEVERITY_CRITICAL",
 };
 
+static const char *sa_attribute_type_list[] = {
+    "SA_NTF_VALUE_UINT8",
+    "SA_NTF_VALUE_INT8",
+    "SA_NTF_VALUE_UINT16",
+    "SA_NTF_VALUE_INT16",
+    "SA_NTF_VALUE_UINT32",
+    "SA_NTF_VALUE_INT32",
+    "SA_NTF_VALUE_FLOAT",
+    "SA_NTF_VALUE_UINT64",
+    "SA_NTF_VALUE_INT64",
+    "SA_NTF_VALUE_DOUBLE",
+    "SA_NTF_VALUE_LDAP_NAME",
+    "SA_NTF_VALUE_STRING",
+    "SA_NTF_VALUE_IPADDRESS",
+    "SA_NTF_VALUE_BINARY",
+    "SA_NTF_VALUE_ARRAY"
+};
+
 static const char *sa_alarm_event_type_list[] = {
 	"SA_NTF_ALARM_NOTIFICATIONS_START",
 	"SA_NTF_ALARM_COMMUNICATION",
@@ -346,7 +364,7 @@ static void print_event_type(SaNtfEventTypeT input,
 
 	case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
 		if (input >= (int)SA_NTF_OBJECT_NOTIFICATIONS_START) {
-			listIndex = 
+			listIndex =
 			     (int)input - (int)SA_NTF_TYPE_OBJECT_CREATE_DELETE;
 
 			EXIT_IF_FALSE
@@ -482,26 +500,108 @@ static void print_change_states(SaNtfClassIdT * notificationClassId,
 	}
 }
 
-static void print_object_attributes(SaNtfAttributeT * input)
+static void print_attribute_value(SaNtfNotificationHandleT notificationHandle,
+		SaNtfValueTypeT attributeType,
+		SaNtfValueT *attributeValue)
 {
-	printf("- Attribute ID: %d -\n", (int)input->attributeId);
-	printf("Attribute Type: %d\n", (int)input->attributeType);
-	printf("Attribute Value: %d\n", (int)input->attributeValue.int32Val);
+	SaStringT str_ptr;
+	SaUint16T data_size;
+	const SaUint16T max_size = 20;
+	SaAisErrorT rc;
+	SaUint8T *bin_ptr;
+	char tmp_str[SA_MAX_NAME_LENGTH+1];
+	int i;
+
+	switch ((int)attributeType) {
+	case SA_NTF_VALUE_INT32:
+		printf(" Attribute Value: %d\n", attributeValue->int32Val);
+		break;
+	case SA_NTF_VALUE_UINT32:
+		printf(" Attribute Value: %u\n", attributeValue->uint32Val);
+		break;
+	case SA_NTF_VALUE_INT64:
+		printf(" Attribute Value: %llu\n",attributeValue->int64Val);
+		break;
+	case SA_NTF_VALUE_UINT64:
+		printf(" Attribute Value: %llu\n", attributeValue->uint64Val);
+		break;
+	case SA_NTF_VALUE_FLOAT:
+		printf(" Attribute Value: %g\n", attributeValue->floatVal);
+		break;
+	case SA_NTF_VALUE_DOUBLE:
+		printf(" Attribute Value: %g\n", attributeValue->doubleVal);
+		break;
+	case SA_NTF_VALUE_LDAP_NAME:
+	case SA_NTF_VALUE_STRING:
+		rc = saNtfPtrValGet(notificationHandle,
+					attributeValue,
+					(void **)&str_ptr,
+					&data_size);
+		if (rc == SA_AIS_OK) {
+			if (data_size > (SA_MAX_NAME_LENGTH+1)) {
+				data_size = SA_MAX_NAME_LENGTH;
+			}
+			snprintf(tmp_str,data_size+1,"%s",str_ptr);
+			printf(" Attribute Value: \"%s\"\n",
+					tmp_str);
+		} else
+			fprintf(stderr, "saNtfPtrValGet Error "
+				"%d\n", rc);
+		break;
+	case SA_NTF_VALUE_BINARY:
+		rc = saNtfPtrValGet(notificationHandle,
+					attributeValue,
+					(void **)&bin_ptr,
+					&data_size);
+		if (rc == SA_AIS_OK) {
+			printf(" Attribute Value:\n ");
+			for (i=0; i<data_size; i++) {
+				printf("0x%02x ",bin_ptr[i]);
+				if (((i+1) % max_size == 0) &&
+					(i < (data_size - 1)))
+					printf("\n ");
+			}
+			printf("\n");
+		} else
+			fprintf(stderr, "saNtfPtrValGet Error "
+				"%d\n", rc);
+		break;
+
+	default:
+		printf("Printing of attribute type %d not supported\n",
+				(int)attributeType);
+	}
 }
 
-static void print_changed_attributes(SaNtfAttributeChangeT * input)
+static void print_object_attributes(SaNtfNotificationHandleT notificationHandle,
+		SaNtfAttributeT * input)
+{
+	printf("- Attribute ID: %d -\n", (int)input->attributeId);
+	printf(" Attribute Type: (%d) %s\n",(int)input->attributeType,
+			sa_attribute_type_list[(int)input->attributeType]);
+
+	print_attribute_value(notificationHandle, input->attributeType,
+			&input->attributeValue);
+}
+
+static void print_changed_attributes(SaNtfNotificationHandleT notificationHandle,
+		SaNtfAttributeChangeT * input)
 {
 	printf("- Attribute ID: %d -\n", input->attributeId);
 
-	printf("Attribute Type: %d\n", input->attributeType);
+	printf(" Attribute Type: (%d) %s\n",(int)input->attributeType,
+			sa_attribute_type_list[(int)input->attributeType]);
 	if (input->oldAttributePresent == SA_TRUE) {
-		printf("Old Attribute Present: Yes\n");
-		printf("Old Attribute: %d\n",
-		       input->oldAttributeValue.int32Val);
+		printf(" Old Attribute Present: Yes\n");
+		printf(" Old Attribute: \n");
+		print_attribute_value(notificationHandle, input->attributeType,
+		&input->oldAttributeValue);
 	} else {
-		printf("Old Attribute Present: No\n");
+		printf(" Old Attribute Present: No\n");
 	}
-	printf("New Attribute Value: %d\n", input->newAttributeValue.int32Val);
+
+	print_attribute_value(notificationHandle, input->attributeType,
+		&input->newAttributeValue);
 }
 
 static void print_security_alarm_types(SaNtfSecurityAlarmNotificationT * input)
@@ -596,29 +696,50 @@ static void print_header(const SaNtfNotificationHeaderT * notificationHeader,
 void print_additional_info(SaNtfNotificationHandleT notificationHandle,
 			   const SaNtfNotificationHeaderT * notificationHeader)
 {
-	if (notificationHeader->additionalInfo != NULL) {
-		switch (notificationHeader->additionalInfo[0].infoType) {
-		case SA_NTF_VALUE_LDAP_NAME:{
-				SaNameT *dataPtr;
-				SaUint16T dataSize;
-				SaAisErrorT rc;
+	int i;
+	SaNameT *dataPtr;
+	SaStringT info_value_str;
+	SaUint16T dataSize;
+	SaAisErrorT rc;
 
+	if (notificationHeader->additionalInfo != NULL) {
+		for (i=0; i<notificationHeader->numAdditionalInfo; i++) {
+			printf("- additionalInfo: %d -\n",i);
+			printf(" infoId = %u\n",notificationHeader->additionalInfo[i].infoId);
+			printf(" infoType = %u\n",notificationHeader->additionalInfo[i].infoType);
+
+			switch (notificationHeader->additionalInfo[i].infoType) {
+			case SA_NTF_VALUE_LDAP_NAME:
 				rc = saNtfPtrValGet(notificationHandle,
-						    &notificationHeader->
-						    additionalInfo[0].infoValue,
-						    (void **)&dataPtr,
-						    &dataSize);
+							&notificationHeader->
+							additionalInfo[i].infoValue,
+							(void **)&dataPtr,
+							&dataSize);
 				if (rc == SA_AIS_OK) {
-					printf("additionalInfo = \"%s\"\n",
-					       dataPtr->value);
+					printf(" infoValue = \"%s\"\n",
+						   dataPtr->value);
 				} else
 					fprintf(stderr, "saNtfPtrValGet Error "
 						"%d\n", rc);
 				break;
+
+			case SA_NTF_VALUE_STRING:
+				rc = saNtfPtrValGet(notificationHandle,
+							&notificationHeader->
+							additionalInfo[i].infoValue,
+							(void **)&info_value_str,
+							&dataSize);
+				if (rc == SA_AIS_OK) {
+					printf(" infoValue = \"%s\"\n",info_value_str);
+				} else
+					fprintf(stderr, "saNtfPtrValGet Error "
+						"%d\n", rc);
+				break;
+
+			default:
+				printf("Unimplemented additionalInfo type\n");
+				break;
 			}
-		default:
-			printf("Unimplemented additionalInfo type\n");
-			break;
 		}
 	}
 }
@@ -641,6 +762,7 @@ void saNtfNotificationCallback(SaNtfSubscriptionIdT subscriptionId,
 	SaInt32T i;
 	SaNtfNotificationHandleT notificationHandle;
 	const SaNtfNotificationHeaderT *notificationHeader;
+	SaUint16T numAdditionalInfo;
 
 	switch (notification->notificationType) {
 	case SA_NTF_TYPE_ALARM:
@@ -712,16 +834,26 @@ void saNtfNotificationCallback(SaNtfSubscriptionIdT subscriptionId,
 				       (notification->notification.
 					objectCreateDeleteNotification.
 					sourceIndicator));
-		printf("numAttributes: %d\n",
-		       notification->notification.
-		       objectCreateDeleteNotification.numAttributes);
+
+		/* Additional info */
+		numAdditionalInfo = notification->notification.
+				objectCreateDeleteNotification.
+				notificationHeader.numAdditionalInfo;
+		if (numAdditionalInfo > 0) {
+			printf("\nnumAdditionalInfo: %d\n",numAdditionalInfo);
+			print_additional_info(notificationHandle, notificationHeader);
+		}
 
 		/* Object Attributes */
+		printf("\nnumAttributes: %d\n",
+		       notification->notification.
+		       objectCreateDeleteNotification.numAttributes);
 		for (i = 0;
 		     i <
 		     notification->notification.objectCreateDeleteNotification.
 		     numAttributes; i++) {
-			print_object_attributes(&notification->notification.
+			print_object_attributes(notificationHandle,
+					&notification->notification.
 						objectCreateDeleteNotification.
 						objectAttributes[i]);
 		}
@@ -742,7 +874,17 @@ void saNtfNotificationCallback(SaNtfSubscriptionIdT subscriptionId,
 				       (notification->notification.
 					attributeChangeNotification.
 					sourceIndicator));
-		printf("numAttributes: %d\n",
+
+		/* Additional info */
+		numAdditionalInfo = notification->notification.
+				objectCreateDeleteNotification.
+				notificationHeader.numAdditionalInfo;
+		if (numAdditionalInfo > 0) {
+			printf("\nnumAdditionalInfo: %d\n",numAdditionalInfo);
+			print_additional_info(notificationHandle, notificationHeader);
+		}
+
+		printf("\nnumAttributes: %d\n",
 		       notification->notification.attributeChangeNotification.
 		       numAttributes);
 
@@ -751,7 +893,8 @@ void saNtfNotificationCallback(SaNtfSubscriptionIdT subscriptionId,
 		     i <
 		     notification->notification.attributeChangeNotification.
 		     numAttributes; i++) {
-			print_changed_attributes(&notification->notification.
+			print_changed_attributes(notificationHandle,
+					&notification->notification.
 						 attributeChangeNotification.
 						 changedAttributes[i]);
 		}
