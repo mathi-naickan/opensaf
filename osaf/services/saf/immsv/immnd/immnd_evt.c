@@ -2850,14 +2850,25 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 	case IMMND_EVT_A2ND_OI_CL_IMPL_SET:
 
 		if(fevsReq->sender_count != 0x1) {
-			LOG_WA("ERR_LIBRARY: IMMND_EVT_A2ND_OI_OBJ_IMPL_SET fevsReq->sender_count != 0x1");
+			LOG_WA("ERR_LIBRARY: IMMND_EVT_A2ND_OI_CL_IMPL_SET fevsReq->sender_count != 0x1");
 			error = SA_AIS_ERR_LIBRARY;
 		} else if(immModel_immNotWritable(cb)) {// sync is on-going
-			error = immModel_classImplementerSet(cb, &(frwrd_evt.info.immnd.info.implSet),conn , nodeId);
+			SaUint32T ccbId=0;
+			error = immModel_classImplementerSet(cb, &(frwrd_evt.info.immnd.info.implSet), conn,
+				nodeId, &ccbId);
 			osafassert(error != SA_AIS_OK); /* OK is impossible since we are not writable */
 			if(error == SA_AIS_ERR_NO_BINDINGS) {
 				TRACE("idempotent classImplementerSet locally detected, impl_id:%u",
 				      frwrd_evt.info.immnd.info.implSet.impl_id);
+				osafassert(!ccbId);
+			} else if(error == SA_AIS_ERR_TRY_AGAIN && ccbId) {
+				/* Yes there can be an active non critical ccb even though imsmv 
+				   is not writable. A sync could be just starting and still waiting for
+				   ccbs to terminate (period of grace). Here we turn ungracefull on 
+				   this ccb to give class-implementer-set priority over the ccb doing
+				   un-protected (un-validated) changes to instances of the class.
+				*/
+				immnd_proc_global_abort_ccb(cb, ccbId);
 			}
 		} else if(cb->mSyncFinalizing) {
 			//Writable, but sync is finalizing at coord.
@@ -2874,11 +2885,22 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 			LOG_WA("ERR_LIBRARY: IMMND_EVT_A2ND_OI_OBJ_IMPL_SET fevsReq->sender_count != 0x1");
 			error = SA_AIS_ERR_LIBRARY;
 		} else	if(immModel_immNotWritable(cb)) {// sync is on-going
-			error = immModel_objectImplementerSet(cb, &(frwrd_evt.info.immnd.info.implSet),	conn, nodeId);
+			SaUint32T ccbId=0;
+			error = immModel_objectImplementerSet(cb, &(frwrd_evt.info.immnd.info.implSet),	conn,
+                                nodeId, &ccbId);
 			osafassert(error != SA_AIS_OK); /* OK is impossible since we are not writable */
 			if(error == SA_AIS_ERR_NO_BINDINGS) {
 				TRACE("idempotent objectImplementerSet locally detected, impl_id:%u",
 				      frwrd_evt.info.immnd.info.implSet.impl_id);
+				osafassert(!ccbId);
+			} else if(error == SA_AIS_ERR_TRY_AGAIN && ccbId) {
+				/* Yes there can be an active non critical ccb even though imsmv 
+				   is not writable. A sync could be just starting and still waiting for
+				   ccbs to terminate (period of grace). Here we turn ungracefull on 
+				   this ccb to give object-implementer-set priority over the ccb doing
+				   un-protected (un-validated) changes to this object.
+				*/
+				immnd_proc_global_abort_ccb(cb, ccbId);
 			}
 		} else if(cb->mSyncFinalizing) {
 			//Writable, but sync is finalizing at coord.
@@ -8293,20 +8315,28 @@ static void immnd_evt_proc_cl_impl_set(IMMND_CB *cb,
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
+	SaUint32T ccbId=0;
 
 	osafassert(evt);
 	conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
 
-	err = immModel_classImplementerSet(cb, &(evt->info.implSet), (originatedAtThisNd) ? conn : 0, nodeId);
+	err = immModel_classImplementerSet(cb, &(evt->info.implSet), 
+		(originatedAtThisNd) ? conn : 0, nodeId, &ccbId);
 	if(err == SA_AIS_ERR_NO_BINDINGS) {
 		/* Idempotency case. */
 		TRACE("Idempotent classImplementerSet for impl_id:%u detected in fevs received request.",
 		      evt->info.implSet.impl_id);
+		osafassert(!ccbId);
 		err = SA_AIS_OK;
 	} 
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
+		if(err == SA_AIS_ERR_TRY_AGAIN && ccbId) {
+			/* Global abort of ccb only from originating node. */
+			immnd_proc_global_abort_ccb(cb, ccbId);
+		}
+
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
@@ -8412,13 +8442,15 @@ static void immnd_evt_proc_obj_impl_set(IMMND_CB *cb,
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
+	SaUint32T ccbId=0;
 	TRACE_ENTER();
 
 	osafassert(evt);
 	conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
 
-	err = immModel_objectImplementerSet(cb, &(evt->info.implSet), (originatedAtThisNd) ? conn : 0, nodeId);
+	err = immModel_objectImplementerSet(cb, &(evt->info.implSet), 
+		(originatedAtThisNd) ? conn : 0, nodeId, &ccbId);
         if(err == SA_AIS_ERR_NO_BINDINGS) {
 		/* idempotency case. */
 		TRACE("Idempotent objectImplementerSet for impl_id:%u detected in fevs received request.",
@@ -8427,6 +8459,11 @@ static void immnd_evt_proc_obj_impl_set(IMMND_CB *cb,
 	}
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
+		if(err == SA_AIS_ERR_TRY_AGAIN && ccbId) {
+			/* Global abort of ccb only from originating node. */
+			immnd_proc_global_abort_ccb(cb, ccbId);
+		}
+
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");

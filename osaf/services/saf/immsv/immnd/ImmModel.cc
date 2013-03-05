@@ -1273,10 +1273,10 @@ immModel_implementerClear(IMMND_CB *cb, const struct ImmsvOiImplSetReq* req,
 
 SaAisErrorT
 immModel_classImplementerSet(IMMND_CB *cb, const struct ImmsvOiImplSetReq* req,
-    SaUint32T implConn, SaUint32T implNodeId)
+    SaUint32T implConn, SaUint32T implNodeId, SaUint32T* ccbId)
 {
     return ImmModel::instance(&cb->immModel)->classImplementerSet(req, implConn,
-        implNodeId);
+        implNodeId, ccbId);
 }
 
 SaAisErrorT
@@ -1292,10 +1292,10 @@ immModel_classImplementerRelease(IMMND_CB *cb,
 SaAisErrorT
 immModel_objectImplementerSet(IMMND_CB *cb, 
     const struct ImmsvOiImplSetReq* req,
-    SaUint32T implConn, SaUint32T implNodeId)
+    SaUint32T implConn, SaUint32T implNodeId, SaUint32T* ccbId)
 {
     return ImmModel::instance(&cb->immModel)->objectImplementerSet(req, implConn,
-        implNodeId);
+        implNodeId, ccbId);
 }
 
 SaAisErrorT
@@ -10128,12 +10128,14 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
 SaAisErrorT
 ImmModel::classImplementerSet(const struct ImmsvOiImplSetReq* req,
     SaUint32T conn,
-    unsigned int nodeId)
+    unsigned int nodeId, SaUint32T* ccbId)
 {
     SaAisErrorT err = SA_AIS_OK;
     ObjectSet::iterator os;
     TRACE_ENTER();
-    
+    osafassert(ccbId);
+    *ccbId = 0;
+
     ClassInfo* classInfo = NULL;
     ClassMap::iterator i1;
     ImplementerInfo* info = NULL;
@@ -10185,7 +10187,11 @@ ImmModel::classImplementerSet(const struct ImmsvOiImplSetReq* req,
 
     if(info->mApplier) {
         /* Prevent adding class applier to CCBs in progress. 
-           Iterate over ccb-vector instead of class extent. */
+           Iterate over ccb-vector instead of class extent.
+           The ccb interference check needs to be done before
+           the idempotency check, because we dont want an applier
+           seeing part of a ccb, even if class-impl is idempotent.
+        */
         CcbVector::iterator i1;
         for(i1 = sCcbVector.begin(); i1 != sCcbVector.end(); ++i1) {
             if((*i1)->isActive()) {
@@ -10196,10 +10202,17 @@ ImmModel::classImplementerSet(const struct ImmsvOiImplSetReq* req,
                     osafassert(oi != sObjectMap.end());
                     ObjectInfo* object = oi->second;
                     if(object->mClassInfo == classInfo) {
-                        LOG_NO("ERR_BUSY: ccb %u is active on object %s "
+                        LOG_NO("ERR_TRY_AGAIN: ccb %u is active on object %s "
                                "of class %s. Can not add class applier",
                             ccb->mId, omit->first.c_str(), className.c_str());
-                        err = SA_AIS_ERR_BUSY;
+                        /*err = SA_AIS_ERR_BUSY;  Not allowed according to spec. 
+                          Neither is SA_AIS_ERR_NO_RESOURCES!!
+                          Only alternative is TRY_AGAIN which is dangerous here
+                          because the wait may be unbounded. For appliers we
+                          dont want to abort (non critical) ccbs because appliers
+                          are listeners, not participants with veto rights on the ccb.
+                        */
+                        err = SA_AIS_ERR_TRY_AGAIN;
                         goto done;
                     }
                 }
@@ -10249,8 +10262,8 @@ ImmModel::classImplementerSet(const struct ImmsvOiImplSetReq* req,
 
     /* Regular OI */
 
-    /* Prevent mixing of ClassImplementerSet has to override 
-       any previous ObjectImplementerSet for same main-implementer
+    /* Prevent mixing of Class/Object ImplementerSet. This has to
+       override any previous ObjectImplementerSet for same main-implementer
        over the class and instances of class. But ClassImplementerSet
        can not override previous ObjectImplementerSet by *other* OI.
        At the same time check for CCB interference. We do class extent
@@ -10279,19 +10292,38 @@ ImmModel::classImplementerSet(const struct ImmsvOiImplSetReq* req,
             if(i1 != sCcbVector.end() && (*i1)->isActive()) {
                 std::string objDn;
                 getObjectName(obj, objDn); /* External name form */
-                LOG_NO("ERR_BUSY: ccb %u is active on object %s "
+                LOG_NO("ERR_TRY_AGAIN: ccb %u is active on object %s "
                        "of class %s. Can not add class implementer",
                     obj->mCcbId, objDn.c_str(), className.c_str());
-                err = SA_AIS_ERR_BUSY;
-                /* Note: ERR_BUSY is actually not allowed here according to the 
-                   IMM standard for saImmOiClassImplementerSet.
+                err = SA_AIS_ERR_TRY_AGAIN;
+                /*err = SA_AIS_ERR_BUSY; Not allowed according top spec.
                    But ERR_BUSY *is* allowed in the corresponding situation for
-                   saImmOiClassImplementerRelease !!
+                   saImmOiClassImplementerRelease. Possibly this is because
+                   ClassImplementerSet will add validation/protection and so
+                   should override the progress of CCBs that have bypassed
+                   validation.
+                   We can only attempt to abort the ccb and only non critical
+                   ccbs can be aborted. But critical ccbs are already comitting 
+                   and should hopefully complete the commit soon.
+                   We only abort one non critical ccb per try of this function.
                 */
-                goto done;
+                if(ccbId && ((*i1)->mState < IMM_CCB_CRITICAL)) {
+                    *ccbId = (*i1)->mId;
+                    LOG_NO("Trying to abort ccb %u to allow implementer %s to protect class %s",
+                        *ccbId, info->mImplementerName.c_str(), className.c_str());
+                    /* We have located a non critical ccb that blocks this operation.
+                       Skip checking the remaining ccbs for now. Return and abort this one. */
+                    goto done;
+                }
             }
         }
     }//for
+
+    if(err != SA_AIS_OK) {
+        LOG_NO("Implementer %s can not protect class %s due to active ccb in critical",
+            info->mImplementerName.c_str(), className.c_str());
+        goto done;
+    }
 
     if(classInfo->mImplementer) { /* Class implementer is already set. */
         if(classInfo->mImplementer == info) {
@@ -10531,13 +10563,15 @@ ImmModel::classImplementerRelease(const struct ImmsvOiImplSetReq* req,
  */
 SaAisErrorT ImmModel::objectImplementerSet(const struct ImmsvOiImplSetReq* req,
     SaUint32T conn,
-    unsigned int nodeId)
+    unsigned int nodeId, SaUint32T* ccbId)
 {
     SaAisErrorT err = SA_AIS_OK;
     bool idempotencyOk = true; /* Hypothesis to be falsified. */
     ImplementerInfo* info = NULL;
     ObjectMap::iterator i1;
     ObjectInfo* rootObj = NULL;
+    osafassert(ccbId);
+    *ccbId = 0;
     TRACE_ENTER();
     
     size_t sz = strnlen((const char *)req->impl_name.buf, req->impl_name.size);
@@ -10582,7 +10616,7 @@ SaAisErrorT ImmModel::objectImplementerSet(const struct ImmsvOiImplSetReq* req,
     rootObj = i1->second;
     for(int doIt=0; doIt<2 && err == SA_AIS_OK; ++doIt) {
         //ObjectInfo* objectInfo = i1->second;
-        err = setImplementer(objectName, rootObj, info, doIt);
+        err = setImplementer(objectName, rootObj, info, doIt, ccbId);
         if(err == SA_AIS_ERR_NO_BINDINGS) {
             err = SA_AIS_OK;
         } else {
@@ -10602,7 +10636,7 @@ SaAisErrorT ImmModel::objectImplementerSet(const struct ImmsvOiImplSetReq* req,
                         if(scope==SA_IMM_SUBTREE || checkSubLevel(subObjName, pos)) {
                             --childCount;
                             ObjectInfo* subObj = i1->second;
-                            err = setImplementer(subObjName, subObj, info, doIt);
+                            err = setImplementer(subObjName, subObj, info, doIt, ccbId);
                             if(err == SA_AIS_ERR_NO_BINDINGS) {
                                 err = SA_AIS_OK;
                             } else {
@@ -10730,7 +10764,7 @@ SaAisErrorT ImmModel::objectImplementerRelease(
 SaAisErrorT ImmModel::setImplementer(std::string objectName, 
     ObjectInfo* obj, 
     ImplementerInfo* info,
-    bool doIt)
+    bool doIt, SaUint32T* ccbId)
 {
     SaAisErrorT err = SA_AIS_OK;
     /*TRACE_ENTER();*/
@@ -10752,19 +10786,37 @@ SaAisErrorT ImmModel::setImplementer(std::string objectName,
         CcbVector::iterator i1 = std::find_if(sCcbVector.begin(),
             sCcbVector.end(), CcbIdIs(obj->mCcbId));
         if(i1 != sCcbVector.end() && (*i1)->isActive()) {
-            LOG_NO("ERR_BUSY: ccb %u is active on object %s Can not "
+            LOG_NO("ERR_TRY_AGAIN: ccb %u is active on object %s can not "
                     "add object %s", obj->mCcbId, objectName.c_str(),
                      (info->mApplier)?"applier":"implementer");
-            err = SA_AIS_ERR_BUSY;
-            /* Note: ERR_BUSY is actually not allowed here according to the 
-               IMM standard for saImmOiObjectImplementerSet.
+            /*err = SA_AIS_ERR_BUSY; Not allowed according to spec.
                But ERR_BUSY *is* allowed in the corresponding situation for
-               saImmOiObjectImplementerRelease !!
+               saImmOiObjectImplementerRelease !
+               We could use ERR_NO_RESOURCES becuase it *is* alowed
+               for saImmOiObjectImplementerSet. But NO_RESOURCES is
+               *not* allowed for saImmOiClassImplementerSet! To keep
+               things simple for the user, we will return TRY_AGAIN.
+               For appliers we dont want to abort (non critical) ccbs
+               because appliers are listeneers, not participants with veto
+               rights on the ccb.
              */
-
-            goto done;
+            err = SA_AIS_ERR_TRY_AGAIN;
+            if(!(info->mApplier) && ccbId && ((*i1)->mState < IMM_CCB_CRITICAL)) {
+                *ccbId = (*i1)->mId;
+                LOG_NO("Trying to abort ccb %u to allow implementer %s to protect object %s",
+                    *ccbId, info->mImplementerName.c_str(), objectName.c_str());
+                /* We have located a non critical ccb that blocks this operation.
+                   Skip checking the remaining ccbs for now. Return and abort this one. */
+                goto done;
+            }
         }
     }
+
+    if(err != SA_AIS_OK) {
+        LOG_NO("Implementer %s can not protect object %s due to active ccb in critical",
+            info->mImplementerName.c_str(), objectName.c_str());
+        goto done;
+    } 
 
     if(info->mApplier) {
         ImplementerSetMap::iterator ismIter = sObjAppliersMap.find(objectName);
