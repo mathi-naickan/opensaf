@@ -368,7 +368,7 @@ uint32_t avnd_su_si_all_modify(struct avnd_cb_tag *, AVND_SU *, AVND_SU_SI_PARAM
 AVND_SU_SI_REC *avnd_su_si_rec_add(struct avnd_cb_tag *cb, AVND_SU *su, AVND_SU_SI_PARAM *param, uint32_t *rc);
 uint32_t avnd_su_si_rec_del(struct avnd_cb_tag *, SaNameT *, SaNameT *);
 uint32_t avnd_su_si_del(struct avnd_cb_tag *, SaNameT *);
-AVND_SU_SI_REC *avnd_su_si_rec_get(struct avnd_cb_tag *, SaNameT *, SaNameT *);
+AVND_SU_SI_REC *avnd_su_si_rec_get(struct avnd_cb_tag *, const SaNameT *, const SaNameT *);
 uint32_t avnd_su_si_msg_prc(struct avnd_cb_tag *, AVND_SU *, AVND_SU_SI_PARAM *);
 
 AVND_SU_SIQ_REC *avnd_su_siq_rec_add(struct avnd_cb_tag *, AVND_SU *, AVND_SU_SI_PARAM *, uint32_t *);

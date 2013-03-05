@@ -196,6 +196,47 @@ static uint32_t avnd_avd_su_update_on_fover(AVND_CB *cb, AVSV_D2N_REG_SU_MSG_INF
 	return rc;
 }
 
+static void handle_su_si_assign_in_term_state(AVND_CB *cb,
+		const AVND_SU *su,
+		const AVSV_D2N_INFO_SU_SI_ASSIGN_MSG_INFO *info)
+{
+	AVND_MSG msg;
+
+	assert(cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATED);
+
+	if ((info->msg_act == AVSV_SUSI_ACT_DEL) ||
+			(info->msg_act == AVSV_SUSI_ACT_MOD)) {
+
+		if (info->si_name.length > 0) {
+			if (avnd_su_si_rec_get(cb, &info->su_name, &info->si_name) == NULL)
+				LOG_ER("susi_assign_evh: '%s' is not assigned to '%s'",
+						info->si_name.value, su->name.value);
+		} else {
+			if (m_NCS_DBLIST_FIND_FIRST(&su->si_list) == NULL)
+				LOG_ER("susi_assign_evh: '%s' has no assignments", su->name.value);
+		}
+	}
+
+	msg.info.avd = calloc(1, sizeof(AVSV_DND_MSG));
+	osafassert(msg.info.avd);
+
+	msg.type = AVND_MSG_AVD;
+	msg.info.avd->msg_type = AVSV_N2D_INFO_SU_SI_ASSIGN_MSG;
+	msg.info.avd->msg_info.n2d_su_si_assign.msg_id = ++(cb->snd_msg_id);
+	msg.info.avd->msg_info.n2d_su_si_assign.node_id = cb->node_info.nodeId;
+	msg.info.avd->msg_info.n2d_su_si_assign.msg_act = info->msg_act;
+	msg.info.avd->msg_info.n2d_su_si_assign.su_name = info->su_name;
+	msg.info.avd->msg_info.n2d_su_si_assign.si_name = info->si_name;
+	msg.info.avd->msg_info.n2d_su_si_assign.ha_state = info->ha_state;
+	/* Fake a SUCCESS response in fail-over state */
+	msg.info.avd->msg_info.n2d_su_si_assign.error = NCSCC_RC_SUCCESS;
+	msg.info.avd->msg_info.n2d_su_si_assign.single_csi = info->single_csi;
+
+	if (avnd_di_msg_send(cb, &msg) != NCSCC_RC_SUCCESS) {
+		LOG_NO("Failed to send SU_SI_ASSIGN response");
+	}
+}
+
 /****************************************************************************
   Name          : avnd_evt_avd_info_su_si_assign_msg
  
@@ -219,69 +260,31 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER2("'%s'", info->su_name.value);
 
-	/* get the su */
 	su = m_AVND_SUDB_REC_GET(cb->sudb, info->su_name);
 	if (!su) {
-		LOG_ER("'%s' record not found", info->su_name.value);
+		LOG_ER("susi_assign_evh: '%s' not found, action:%u",
+				info->su_name.value, info->msg_act);
 		goto done;
 	}
 
 	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
-	/* Fake a response in fail-over state, everything is terminated... */
 	if (cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATED) {
-		AVND_SU_SI_REC *si = NULL;
-		AVND_SU_SI_REC *curr_si;
-		AVND_MSG msg;
-
-		if (!m_AVSV_SA_NAME_IS_NULL(info->si_name))
-			si = avnd_su_si_rec_get(cb, &info->su_name, &info->si_name);
-		curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
-		osafassert(curr_si);
-
-		msg.info.avd = calloc(1, sizeof(AVSV_DND_MSG));
-		osafassert(msg.info.avd);
-
-		msg.type = AVND_MSG_AVD;
-		msg.info.avd->msg_type = AVSV_N2D_INFO_SU_SI_ASSIGN_MSG;
-		msg.info.avd->msg_info.n2d_su_si_assign.msg_id = ++(cb->snd_msg_id);
-		msg.info.avd->msg_info.n2d_su_si_assign.node_id = cb->node_info.nodeId;
-		msg.info.avd->msg_info.n2d_su_si_assign.msg_act = info->msg_act;
-		msg.info.avd->msg_info.n2d_su_si_assign.su_name = su->name;
-		msg.info.avd->msg_info.n2d_su_si_assign.ha_state = info->ha_state;
-		msg.info.avd->msg_info.n2d_su_si_assign.error = NCSCC_RC_SUCCESS;
-
-		if (si) {
-			msg.info.avd->msg_info.n2d_su_si_assign.single_csi =
-				((si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_BASE) ? false : true);
-
-			msg.info.avd->msg_info.n2d_su_si_assign.si_name = si->name;
-			if (AVSV_SUSI_ACT_ASGN == si->single_csi_add_rem_in_si) {
-				msg.info.avd->msg_info.n2d_su_si_assign.msg_act =
-					(m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_ASSIGNED(curr_si) ||
-					 m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr_si)) ?
-							AVSV_SUSI_ACT_ASGN : AVSV_SUSI_ACT_DEL;
+		handle_su_si_assign_in_term_state(cb, su, info);
+	} else {
+		/* buffer the msg (if no assignment / removal is on) */
+		siq = avnd_su_siq_rec_buf(cb, su, info);
+		if (siq) {
+			/* Send async update for SIQ Record for external SU only. */
+			if (su->su_is_external) {
+				m_AVND_SEND_CKPT_UPDT_ASYNC_ADD(cb, &(siq->info), AVND_CKPT_SIQ_REC);
 			}
+		} else {
+			/* the msg isn't buffered, process it */
+			rc = avnd_su_si_msg_prc(cb, su, info);
 		}
-
-		rc = avnd_di_msg_send(cb, &msg);
-		osafassert(rc == NCSCC_RC_SUCCESS);
-		goto done;
 	}
-
-	/* buffer the msg (if no assignment / removal is on) */
-	siq = avnd_su_siq_rec_buf(cb, su, info);
-	if (siq) {
-		/* Send async update for SIQ Record for external SU only. */
-		if (true == su->su_is_external) {
-			m_AVND_SEND_CKPT_UPDT_ASYNC_ADD(cb, &(siq->info), AVND_CKPT_SIQ_REC);
-		}
-		goto done;
-	}
-
-	/* the msg isn't buffered, process it */
-	rc = avnd_su_si_msg_prc(cb, su, info);
 
 done:
 	TRACE_LEAVE2("%u", rc);

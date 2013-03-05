@@ -887,7 +887,7 @@ uint32_t avnd_su_si_csi_rec_del(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si_rec
  
   Notes         : None
 ******************************************************************************/
-AVND_SU_SI_REC *avnd_su_si_rec_get(AVND_CB *cb, SaNameT *su_name, SaNameT *si_name)
+AVND_SU_SI_REC *avnd_su_si_rec_get(AVND_CB *cb, const SaNameT *su_name, const SaNameT *si_name)
 {
 	AVND_SU_SI_REC *si_rec = 0;
 	AVND_SU *su = 0;
