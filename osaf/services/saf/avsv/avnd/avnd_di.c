@@ -577,6 +577,7 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 
 		/* we have completed the SU SI msg processing */
 		m_AVND_SU_ASSIGN_PEND_RESET(su);
+		m_AVND_SU_ALL_SI_RESET(su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 	} else
 		rc = NCSCC_RC_FAILURE;

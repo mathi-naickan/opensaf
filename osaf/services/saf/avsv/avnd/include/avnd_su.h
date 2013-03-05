@@ -252,7 +252,12 @@ typedef struct avnd_su_tag {
 #define AVND_SU_FLAG_RESTART  0x00000100
 #define AVND_SU_FLAG_FAILOVER 0x00000200
 #define AVND_SU_FLAG_FAILED   0x00000400
+
+/** Set when a SUSI req targeting ALL SIs is received, reset when resp sent
+ * The purpose of this flag is to remember if the request targeted all SIs,
+ * this is needed when sending the response. */
 #define AVND_SU_FLAG_ALL_SI   0x00000800
+
 #define AVND_SU_ADMN_TERM     0x00001000	/* set; when a admn term req for an SU is received */
 #define AVND_SU_ASSIGN_PEND   0x00002000	/* set; when su si assign starts */
 #define AVND_SU_ALL_TERM      0x00004000	/* set; when all resp for term has come for all comps
