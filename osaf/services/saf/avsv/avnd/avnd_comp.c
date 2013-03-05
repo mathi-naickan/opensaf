@@ -1508,8 +1508,12 @@ uint32_t avnd_comp_csi_remove(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 		m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVING);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi, AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
 
-		/* termination is done in qsd/qsing state */
-		rc = avnd_comp_csi_remove_done(cb, comp, (csi) ? csi : 0);
+		if (comp->pres == SA_AMF_PRESENCE_INSTANTIATED) {
+			rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_TERM);
+		} else {
+			/* termination is done in qsd/qsing state */
+			rc = avnd_comp_csi_remove_done(cb, comp, (csi) ? csi : 0);
+		}
 	}
 
  done:
