@@ -1709,7 +1709,8 @@ uint32_t avnd_comp_csi_remove_done(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_R
 				rc = avnd_comp_csi_remove(cb, curr_csi->comp, curr_csi);
 			else
 				/* all csis belonging to the si are removed */
-				rc = avnd_su_si_oper_done(cb, comp->su, csi->si);
+				rc = avnd_su_si_oper_done(cb, comp->su,
+						m_AVND_SU_IS_ALL_SI(comp->su) ? NULL : csi->si);
 
 			if (NCSCC_RC_SUCCESS != rc)
 				goto done;
