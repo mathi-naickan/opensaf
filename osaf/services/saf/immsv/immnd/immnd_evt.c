@@ -7623,14 +7623,21 @@ static void immnd_evt_proc_cl_impl_set(IMMND_CB *cb,
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
+	SaUint32T ccbId=0;
 
 	osafassert(evt);
 	conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
 
-	err = immModel_classImplementerSet(cb, &(evt->info.implSet), (originatedAtThisNd) ? conn : 0, nodeId);
+	err = immModel_classImplementerSet(cb, &(evt->info.implSet),
+		(originatedAtThisNd) ? conn : 0, nodeId, &ccbId);
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
+		if(err == SA_AIS_ERR_TRY_AGAIN && ccbId) {
+			/* Global abort of ccb only from originating node. */
+			immnd_proc_global_abort_ccb(cb, ccbId);
+		}
+
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
@@ -7741,15 +7748,22 @@ static void immnd_evt_proc_obj_impl_set(IMMND_CB *cb,
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
+	SaUint32T ccbId=0;
 	TRACE_ENTER();
 
 	osafassert(evt);
 	conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
 
-	err = immModel_objectImplementerSet(cb, &(evt->info.implSet), (originatedAtThisNd) ? conn : 0, nodeId);
+	err = immModel_objectImplementerSet(cb, &(evt->info.implSet),
+		(originatedAtThisNd) ? conn : 0, nodeId, &ccbId);
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
+		if(err == SA_AIS_ERR_TRY_AGAIN && ccbId) {
+			/* Global abort of ccb only from originating node. */
+			immnd_proc_global_abort_ccb(cb, ccbId);
+		}
+
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");

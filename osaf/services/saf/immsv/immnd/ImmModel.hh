@@ -336,7 +336,8 @@ public:
     SaAisErrorT         classImplementerSet(
                                             const struct ImmsvOiImplSetReq* req,
                                             SaUint32T con,
-                                            unsigned int nodeId);
+                                            unsigned int nodeId,
+                                            SaUint32T* ccbId);
     
     SaAisErrorT         classImplementerRelease(
                                                 const struct ImmsvOiImplSetReq* req,
@@ -346,7 +347,8 @@ public:
     SaAisErrorT         objectImplementerSet(
                                              const struct ImmsvOiImplSetReq* req,
                                              SaUint32T con,
-                                             unsigned int nodeId);
+                                             unsigned int nodeId,
+                                             SaUint32T* ccbId);
     
     SaAisErrorT         objectImplementerRelease(
                                                  const struct ImmsvOiImplSetReq* req,
@@ -535,7 +537,7 @@ public:
                                        std::string objectName,
                                        ObjectInfo* obj, 
                                        ImplementerInfo* info,
-                                       bool doIt);
+                                       bool doIt, SaUint32T* ccbId);
     
     SaAisErrorT         releaseImplementer(
                                            std::string objectName,
