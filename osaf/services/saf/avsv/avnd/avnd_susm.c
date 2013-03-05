@@ -316,6 +316,10 @@ uint32_t avnd_su_si_msg_prc(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *info)
 	m_AVND_SU_ASSIGN_PEND_SET(su);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 
+	/* If the request targets all SIs, set flag once early for all cases */
+	if (avsv_sa_name_is_null(&info->si_name))
+		m_AVND_SU_ALL_SI_SET(su);
+
 	switch (info->msg_act) {
 	case AVSV_SUSI_ACT_ASGN:	/* new assign */
 		{
@@ -554,10 +558,6 @@ static uint32_t assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 
 		/* trigger the su fsm */
 		if (AVND_SU_PRES_FSM_EV_MAX != su_ev) {
-			if (!single_csi) {
-				m_AVND_SU_ALL_SI_SET(su);
-				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
-			}
 			rc = avnd_su_pres_fsm_run(avnd_cb, su, 0, su_ev);
 		} else
 			rc = avnd_su_si_oper_done(avnd_cb, su, ((single_csi) ? si:NULL));
@@ -688,8 +688,6 @@ uint32_t avnd_su_si_remove(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 			m_AVND_SU_SI_CURR_ASSIGN_STATE_SET(curr_si, AVND_SU_SI_ASSIGN_STATE_REMOVING);
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_si, AVND_CKPT_SU_SI_REC_CURR_ASSIGN_STATE);
 		}
-
-		m_AVND_SU_ALL_SI_SET(su);
 	}
 
 	/* if no si is specified, the action is aimed at all the sis... pick up any si */
@@ -941,7 +939,6 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 	/* inform AvD */
 	if (opr_done && !m_AVND_SU_IS_RESTART(su)) {
 		rc = avnd_di_susi_resp_send(cb, su, m_AVND_SU_IS_ALL_SI(su) ? NULL : si);
-		m_AVND_SU_ALL_SI_RESET(su);
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
 	}

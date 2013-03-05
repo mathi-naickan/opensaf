@@ -1544,13 +1544,8 @@ uint32_t avnd_comp_csi_reassign(AVND_CB *cb, AVND_COMP *comp)
 
 	osafassert(m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp));
 
-	/* check whether previous assign state was assignig and the operation was target_all
-	 * if it was target all, we will reassign csi with target_all flag  
-	 */
-	if (m_AVND_COMP_IS_ALL_CSI(comp)){
-		m_AVND_COMP_ALL_CSI_RESET(comp);
-		m_AVND_SU_ALL_SI_SET(comp->su);
-	}
+	/* reassign needs to be done with ADD_ONE flag */
+	m_AVND_COMP_ALL_CSI_RESET(comp);
 
 	/* scan the comp-csi list & reassign the csis */
 	curr = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
