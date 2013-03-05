@@ -528,6 +528,9 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 
 	memset(&msg, 0, sizeof(AVND_MSG));
 
+	// should be in assignment pending state to be here
+	osafassert(m_AVND_SU_ASSIGN_PEND_SET(su));
+
 	/* get the curr-si */
 	curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
 	osafassert(curr_si);
