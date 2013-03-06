@@ -188,6 +188,7 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	bool locked = true;
 	char *timeout_env_value = NULL;
+	char *value;
 	TRACE_ENTER();
 	osafassert(immHandle && cl_node);
 
@@ -295,6 +296,17 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 
 		cl_node->handle = out_evt->info.imma.info.initRsp.immHandle;
 		cl_node->isOm = true;
+
+		cl_node->maxSearchHandles = 100;
+		if((value = getenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE"))) {
+			char *endptr;
+			uint32_t n = (uint32_t)strtol(value, &endptr, 10);
+			if(*value && !*endptr)
+				cl_node->maxSearchHandles = n;
+			else
+				LOG_WA("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE contains non-valid number value. Set default value (100)");
+		}
+		cl_node->searchHandleSize = 0;
 
 		TRACE_1("Trying to add OM client id:%u node:%x",
 			m_IMMSV_UNPACK_HANDLE_HIGH(cl_node->handle),
@@ -5042,6 +5054,12 @@ SaAisErrorT saImmOmAccessorInitialize(SaImmHandleT immHandle, SaImmAccessorHandl
 		TRACE_1("Reactive resurrect of handle %llx succeeded", immHandle);
 	}
 
+	if(cl_node->searchHandleSize >= cl_node->maxSearchHandles) {
+		TRACE_4("ERR_NO_RESOURCES: Too many search handles (%u) on OM handle - probable resource leak", cl_node->searchHandleSize);
+		rc = SA_AIS_ERR_NO_RESOURCES;
+		goto release_lock;
+	}
+
 	/*Create search-node & handle */
 	search_node = (IMMA_SEARCH_NODE *)calloc(1, sizeof(IMMA_SEARCH_NODE));
 	if (!search_node) {
@@ -5072,6 +5090,7 @@ SaAisErrorT saImmOmAccessorInitialize(SaImmHandleT immHandle, SaImmAccessorHandl
 	}  while (proc_rc != NCSCC_RC_SUCCESS);
 
 	*accessorHandle = search_node->search_hdl;
+	cl_node->searchHandleSize++;
 
  release_lock:
 	if (locked) {
@@ -5089,6 +5108,7 @@ SaAisErrorT saImmOmAccessorFinalize(SaImmAccessorHandleT accessorHandle)
 	bool locked = true;
 	IMMA_CB *cb = &imma_cb;
 	IMMA_SEARCH_NODE *search_node = NULL;
+	IMMA_CLIENT_NODE *cl_node = NULL;
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
@@ -5122,12 +5142,23 @@ SaAisErrorT saImmOmAccessorFinalize(SaImmAccessorHandleT accessorHandle)
 		return saImmOmSearchFinalize((SaImmSearchHandleT)accessorHandle);
 
 	} else {
+		SaImmHandleT immHandle = search_node->mImmHandle;
 		/*Search handle was apparently never used, just remove the node. */
 		proc_rc = imma_search_node_delete(cb, search_node);
 		search_node = NULL;
 		if (proc_rc != NCSCC_RC_SUCCESS) {
 			TRACE_4("ERR_LIBRARY: Could not delete search node");
 			rc = SA_AIS_ERR_LIBRARY;
+		} else {
+			/* Decrease number of search handles per IMM handle */
+			imma_client_node_get(&cb->client_tree, &immHandle, &cl_node);
+			if (cl_node && cl_node->isOm) {	/* TODO: Is osafassert(cl_node && cl_node->isOm) better solution */
+				osafassert(cl_node->searchHandleSize);
+				cl_node->searchHandleSize--;
+			} else {
+				TRACE_2("ERR_LIBRARY: Invalid SaImmHandleT related to search handle");
+				rc = SA_AIS_ERR_LIBRARY;
+			}
 		}
 	}
 
@@ -5794,6 +5825,12 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 		TRACE_1("Reactive resurrect of handle %llx succeeded", immHandle);
 	}
 
+	if(cl_node->searchHandleSize >= cl_node->maxSearchHandles) {
+		TRACE_4("ERR_NO_RESOURCES: Too many search handles (%u) on OM handle - probable resource leak", cl_node->searchHandleSize);
+		rc = SA_AIS_ERR_NO_RESOURCES;
+		goto release_lock;
+	}
+
 	if ((scope == SA_IMM_ONE) && (*searchHandle) && !searchParam && !searchOptions) {
 		TRACE("Special accessor case:%llx\n", *searchHandle);
 		isAccessor = true;
@@ -5883,6 +5920,8 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 					search_node_tmp->search_hdl, search_node->search_hdl);
 			}
 		} while (proc_rc != NCSCC_RC_SUCCESS);
+
+		cl_node->searchHandleSize++;
 	}
 
 	if((rc = imma_proc_increment_pending_reply(cl_node, true)) != SA_AIS_OK) {
@@ -6073,6 +6112,16 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 			if (proc_rc != NCSCC_RC_SUCCESS) {
 				TRACE_4("ERR_LIBRARY: Could not delete search node");
 				rc = SA_AIS_ERR_LIBRARY;
+			} else {
+				if(!cl_node)
+					imma_client_node_get(&cb->client_tree, &immHandle, &cl_node);
+				if (cl_node && cl_node->isOm) {
+					osafassert(cl_node->searchHandleSize);
+					cl_node->searchHandleSize--;
+				} else {
+					TRACE_2("ERR_LIBRARY: Invalid SaImmHandleT related to search handle");
+					rc = SA_AIS_ERR_LIBRARY;
+				}
 			}
 		}
 	}
@@ -6456,7 +6505,10 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 	if (cl_node->stale) {
 		TRACE_1("IMM Handle %llx is stale", immHandle);
 		error = SA_AIS_OK;	/*Dont punish the client for closing stale handle */
-		imma_search_node_delete(cb, search_node);
+		if(imma_search_node_delete(cb, search_node) == NCSCC_RC_SUCCESS) {
+			osafassert(cl_node->searchHandleSize);
+			cl_node->searchHandleSize--;
+		}
 		search_node = NULL;
 		goto release_lock;
 	}
@@ -6529,7 +6581,16 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 			}
 			imma_search_node_get(&cb->search_tree, &searchHandle, &search_node);
 			if(search_node) {
-				imma_search_node_delete(cb, search_node);
+				if(imma_search_node_delete(cb, search_node) == NCSCC_RC_SUCCESS) {
+					imma_client_node_get(&cb->client_tree, &immHandle, &cl_node);
+					if (cl_node && cl_node->isOm) {
+						osafassert(cl_node->searchHandleSize);
+						cl_node->searchHandleSize--;
+					} else {
+						TRACE_2("ERR_LIBRARY: Invalid SaImmHandleT related to search handle");
+						error = SA_AIS_ERR_LIBRARY;
+					}
+				}
 				search_node = NULL;
 			}
 		}

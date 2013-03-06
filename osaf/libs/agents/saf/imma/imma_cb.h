@@ -64,6 +64,11 @@ typedef struct imma_client_node {
 	bool isBusy;	/* True => handle is locked by a thread until a function execution is done */
 	struct imma_oi_ccb_record *activeOiCcbs; /* For ccb termination on IMMND down.*/
 	SYSF_MBX callbk_mbx;	/*Mailbox Queue for clnt messages */
+
+    /* Maximum number of open search handles pre IMM handle, managed by
+     * enviroment variable IMMA_MAX_OPEN_SEARCHES_PER_HANDLE */
+    uint32_t maxSearchHandles;
+	uint32_t searchHandleSize;	/* Number of open search handles */
 } IMMA_CLIENT_NODE;
 
 /* Node to store adminOwner info */
@@ -151,7 +156,6 @@ typedef struct imma_cb {
     NCS_LOCK             immnd_sync_lock;
     bool                 immnd_sync_awaited;
     NCS_SEL_OBJ          immnd_sync_sel; 
-
 } IMMA_CB;
 
 #define m_IMMSV_SET_SANAMET(name) \

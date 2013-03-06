@@ -193,7 +193,8 @@ uint32_t imma_finalize_client(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node)
 			if(imma_search_node_delete(cb, search_node)!= NCSCC_RC_SUCCESS) {
 				TRACE_4("ERROR imma_finalize_client could not delete search_node");
 				break;
-			}
+			} else
+				cl_node->searchHandleSize--;
 			search_tmp_ptr = NULL;	/*Redo iteration from start after delete. */
 		}
 	}
