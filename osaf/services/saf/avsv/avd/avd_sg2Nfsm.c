@@ -1709,27 +1709,9 @@ static uint32_t avd_sg_2n_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 			/* if (su->readiness_state == NCS_OUT_OF_SERVICE) */
 		} /* if ((act == AVSV_SUSI_ACT_MOD) && (state == SA_AMF_HA_QUIESCED)) */
 		else if (act == AVSV_SUSI_ACT_DEL) {
-			o_su = NULL;
-
-			/* SU in the operation list and remove all */
-			if (su->sg_of_su->su_oper_list.su != su) {
-				o_su = su->sg_of_su->su_oper_list.su;
-			} else if (su->sg_of_su->su_oper_list.next != NULL) {
-				o_su = su->sg_of_su->su_oper_list.next->su;
-			}
-
+			o_su = get_other_su_from_oper_list(su);
 			if (o_su != NULL) {
-				as_flag = false;
-				i_susi = o_su->list_of_susi;
-				while (i_susi != AVD_SU_SI_REL_NULL) {
-					if (i_susi->fsm != AVD_SU_SI_STATE_ASGND) {
-						as_flag = true;
-						break;
-					}
-					i_susi = i_susi->su_next;
-				}
-
-				if (as_flag == true) {
+				if (!all_assignments_done(o_su)) {
 					/* another SU in the operation list with atleast one
 					 * SI assignment not in assigned state. Free all the 
 					 * SI assignments for the SU. Remove the SU from the
@@ -1879,16 +1861,31 @@ static uint32_t avd_sg_2n_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 				avd_gen_su_ha_state_changed_ntf(cb, i_susi);
 			}
 
+			o_su = get_other_su_from_oper_list(su);
 			/* active all or standby all. Remove the SU from the operation list. */
 			avd_sg_su_oper_list_del(cb, su, false);
 
-			if ((l_su = avd_sg_2n_su_chose_asgn(cb, su->sg_of_su)) == NULL) {
-				/* all the assignments have already been done in the SG. */
-				m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
-				avd_sidep_sg_take_action(su->sg_of_su); 
+			if (o_su != NULL) {
+				/*Try new assignments if no assignments are going on for other SU.*/
+				if (all_assignments_done(o_su)) {
+					if ((l_su = avd_sg_2n_su_chose_asgn(cb, su->sg_of_su)) == NULL) {
+						/* all the assignments have already been done in the SG. */
+						m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
+						avd_sidep_sg_take_action(su->sg_of_su);
+					} else {
+						avd_sg_su_oper_list_add(cb, l_su, true);
+					}
+				}
 			} else {
-				/* Add the SU to the list  */
-				avd_sg_su_oper_list_add(cb, l_su, false);
+
+				if ((l_su = avd_sg_2n_su_chose_asgn(cb, su->sg_of_su)) == NULL) {
+					/* all the assignments have already been done in the SG. */
+					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
+					avd_sidep_sg_take_action(su->sg_of_su);
+					avd_sg_app_su_inst_func(cb, su->sg_of_su);
+				} else {
+					avd_sg_su_oper_list_add(cb, l_su, false);
+				}
 			}
 
 			if ((state == SA_AMF_HA_ACTIVE) && (su->su_on_node->type == AVSV_AVND_CARD_SYS_CON) &&
@@ -1916,17 +1913,7 @@ static uint32_t avd_sg_2n_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 			/* Unassign the SUSI */
 			m_AVD_SU_SI_TRG_DEL(cb, susi);
 
-			as_flag = false;
-			i_susi = su->list_of_susi;
-			while (i_susi != AVD_SU_SI_REL_NULL) {
-				if (i_susi->fsm != AVD_SU_SI_STATE_ASGND) {
-					as_flag = true;
-					break;
-				}
-				i_susi = i_susi->su_next;
-			}
-
-			if (as_flag == false) {
+			if (all_assignments_done(su)) {
 				/* All are assigned. Remove the SU from the operation list. */
 				avd_sg_su_oper_list_del(cb, su, false);
 
@@ -4596,6 +4583,30 @@ SaAmfHAStateT avd_su_state_determine(AVD_SU *su) {
 	TRACE_LEAVE2("state '%u'", ha_state);
 	return ha_state;
 }
+
+/**
+ * @brief       This function returns SU from the list of SUs on which
+ *              operations are going on. Function takes care to return
+ *              SU other than the one passed as arg otherwise it returns NULL.  
+                 
+ *
+ * @param[in]   su
+ *
+ * @return      Returns SU ptr or NULL 
+ **/
+AVD_SU *get_other_su_from_oper_list(AVD_SU *su)
+{
+	AVD_SU *o_su = NULL;
+
+	if (su->sg_of_su->su_oper_list.su != su) {
+		o_su = su->sg_of_su->su_oper_list.su;
+	} else if (su->sg_of_su->su_oper_list.next != NULL) {
+		o_su = su->sg_of_su->su_oper_list.next->su;
+	}
+
+	return o_su;
+}
+
 
 /**
  * Initialize redundancy model specific handlers
