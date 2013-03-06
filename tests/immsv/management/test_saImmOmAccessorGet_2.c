@@ -209,3 +209,24 @@ void saImmOmAccessorGet_2_10(void)
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+void saImmOmAccessorGet_2_11(void)
+{
+	int maxSearchHandles = 100;	/* By default it is 100 */
+	char *value;
+	int i;
+
+	if((value = getenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE"))) {
+		char *endptr;
+		int n = (int)strtol(value, &endptr, 10);
+		if(*value && !*endptr)
+			maxSearchHandles = n;
+	}
+
+    safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    for(i=0; i<maxSearchHandles; i++)
+    	safassert(saImmOmAccessorInitialize(immOmHandle, &accessorHandle), SA_AIS_OK);
+
+    rc = saImmOmAccessorGet_2(accessorHandle, &objectName, NULL, &attributes);
+	test_validate(rc, SA_AIS_ERR_NO_RESOURCES);
+	safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}

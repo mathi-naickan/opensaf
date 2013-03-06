@@ -123,6 +123,59 @@ void saImmOmSearchInitialize_2_08(void)
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+void saImmOmSearchInitialize_2_09(void)
+{
+	SaImmSearchHandleT searchHandle;
+	int maxSearchHandles = 100;	/* By default it is 100 */
+	char *value;
+	int i;
+
+	if((value = getenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE"))) {
+		char *endptr;
+		int n = (int)strtol(value, &endptr, 10);
+		if(*value && !*endptr)
+			maxSearchHandles = n;
+	}
+
+	safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+	for(i=0; i<maxSearchHandles; i++)
+		safassert(saImmOmSearchInitialize_2(immOmHandle, NULL, SA_IMM_SUBTREE,
+				SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR, NULL, NULL, &searchHandle), SA_AIS_OK);
+	rc = saImmOmSearchInitialize_2(immOmHandle, NULL, SA_IMM_SUBTREE,		/* Test maxSearchHandle + 1 */
+			SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR, NULL, NULL, &searchHandle);
+	test_validate(rc, SA_AIS_ERR_NO_RESOURCES);
+	safassert(saImmOmSearchFinalize(searchHandle), SA_AIS_OK);
+	safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
+void saImmOmSearchInitialize_2_10(void)
+{
+	SaImmSearchHandleT searchHandle;
+	char *value;
+	char *env;
+	int i;
+
+	env = value = getenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE");
+	if(!value)
+		value = "100";
+
+	setenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE", "200", 1);	/* Increase number of open search handles to 200 */
+	safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+	setenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE", value, 1);	/* Reset to default value */
+
+	if(!env)
+		unsetenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE");
+
+	for(i=0; i<200; i++)
+		safassert(saImmOmSearchInitialize_2(immOmHandle, NULL, SA_IMM_SUBTREE,
+				SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR, NULL, NULL, &searchHandle), SA_AIS_OK);
+	rc = saImmOmSearchInitialize_2(immOmHandle, NULL, SA_IMM_SUBTREE,		/* Test maxSearchHandle + 1 */
+			SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR, NULL, NULL, &searchHandle);
+	test_validate(rc, SA_AIS_ERR_NO_RESOURCES);
+	safassert(saImmOmSearchFinalize(searchHandle), SA_AIS_OK);
+	safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
 
 extern void saImmOmSearchNext_2_01(void);
 extern void saImmOmSearchNext_2_02(void);
@@ -144,6 +197,10 @@ __attribute__ ((constructor)) static void saImmOmInitialize_constructor(void)
         "saImmOmSearchInitialize_2 - SA_AIS_OK, Match on existence of attribute SA_IMM_ATTR_CLASS_NAME See: #1895");
     test_case_add(3, saImmOmSearchInitialize_2_08,
         "saImmOmSearchInitialize_2 - SA_AIS_NO_RESOURCES, Allocate too many search handles for one om-handle");
+    test_case_add(3, saImmOmSearchInitialize_2_09,
+        "saImmOmSearchInitialize_2 - SA_AIS_NO_RESOURCES, Test the limit of search handles for one om-handle");
+    test_case_add(3, saImmOmSearchInitialize_2_10,
+        "saImmOmSearchInitialize_2 - SA_AIS_NO_RESOURCES, Test the limit of search handles for one om-handle (200 handles)");
 
     test_case_add(3, saImmOmSearchNext_2_01, "saImmOmSearchNext_2 - SA_AIS_OK/SA_AIS_ERR_NOT_EXIST (tree walk)");
     test_case_add(3, saImmOmSearchNext_2_02, "saImmOmSearchNext_2 - SA_AIS_ERR_BAD_HANDLE");

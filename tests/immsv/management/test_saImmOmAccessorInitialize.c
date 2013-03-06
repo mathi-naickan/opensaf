@@ -35,6 +35,28 @@ void saImmOmAccessorInitialize_02(void)
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
+void saImmOmAccessorInitialize_03(void)
+{
+	int maxSearchHandles = 100;	/* By default it is 100 */
+	char *value;
+	int i;
+
+	if((value = getenv("IMMA_MAX_OPEN_SEARCHES_PER_HANDLE"))) {
+		char *endptr;
+		int n = (int)strtol(value, &endptr, 10);
+		if(*value && !*endptr)
+			maxSearchHandles = n;
+	}
+
+    safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    for(i=0; i<maxSearchHandles; i++)
+    	safassert(saImmOmAccessorInitialize(immOmHandle, &accessorHandle), SA_AIS_OK);
+
+	rc = saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+	test_validate(rc, SA_AIS_ERR_NO_RESOURCES);
+	safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
+
 extern void saImmOmAccessorGet_2_01(void);
 extern void saImmOmAccessorGet_2_02(void);
 extern void saImmOmAccessorGet_2_03(void);
@@ -45,6 +67,7 @@ extern void saImmOmAccessorGet_2_07(void);
 extern void saImmOmAccessorGet_2_08(void);
 extern void saImmOmAccessorGet_2_09(void);
 extern void saImmOmAccessorGet_2_10(void);
+extern void saImmOmAccessorGet_2_11(void);
 extern void saImmOmAccessorFinalize_01(void);
 extern void saImmOmAccessorFinalize_02(void);
 extern void saImmOmAccessorFinalize_03(void);
@@ -54,6 +77,7 @@ __attribute__ ((constructor)) static void saImmOmAccessorInitialize_constructor(
     test_suite_add(4, "Object Access");
     test_case_add(4, saImmOmAccessorInitialize_01, "saImmOmAccessorInitialize - SA_AIS_OK");
     test_case_add(4, saImmOmAccessorInitialize_02, "saImmOmAccessorInitialize - SA_AIS_ERR_BAD_HANDLE - invalid handle");
+    test_case_add(4, saImmOmAccessorInitialize_03, "saImmOmAccessorInitialize - SA_AIS_ERR_NO_RESOURCES - search handles limitation");
 
     test_case_add(4, saImmOmAccessorGet_2_01, "saImmOmAccessorGet_2 - SA_AIS_OK");
     test_case_add(4, saImmOmAccessorGet_2_02, "saImmOmAccessorGet_2 - SA_AIS_ERR_BAD_HANDLE - invalid handle");
@@ -66,6 +90,7 @@ __attribute__ ((constructor)) static void saImmOmAccessorInitialize_constructor(
     test_case_add(4, saImmOmAccessorGet_2_09, "saImmOmAccessorGet_2 - SA_AIS_ERR_INVALID_PARAM - empty dn");
 
     test_case_add(4, saImmOmAccessorGet_2_10, "saImmOmAccessorGet_2 - SA_AIS_OK - repeated use of accesor get 100 times");
+    test_case_add(4, saImmOmAccessorGet_2_11, "saImmOmAccessorGet_2 - SA_AIS_ERR_NO_RESOURCES - search handles limitation");
 
     test_case_add(4, saImmOmAccessorFinalize_01, "saImmOmAccessorFinalize - SA_AIS_OK");
     test_case_add(4, saImmOmAccessorFinalize_02, "saImmOmAccessorFinalize - SA_AIS_ERR_BAD_HANDLE - invalid handle");
