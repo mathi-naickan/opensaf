@@ -67,28 +67,10 @@ void avnd_last_step_clean(AVND_CB *cb)
 	comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)0);
 	while (comp != NULL) {
 		if (false == comp->su->su_is_external) {
-			/*
-			** If there is a single comp in failed termination or instantiation state
-			** stopping OpenSAF has failed.
-			*/
-			if (comp->pres == SA_AMF_PRESENCE_TERMINATION_FAILED) {
-				LOG_ER("%s in termination failed state", comp->name.value);
-				opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
-						"Stopping OpenSAF failed");
-				LOG_ER("Amfnd is exiting (due to comp term failed) to aid fast reboot");
-				exit(0);
-			}
-
-			if (comp->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) {
-				LOG_ER("%s in instantiation failed state", comp->name.value);
-				opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
-						"Stopping OpenSAF failed");
-				LOG_ER("Amfnd is exiting (due to comp int failed) to aid fast reboot");
-				exit(0);
-			}
-
 			/* Don't call cleanup script for PI/NPI components in UNINSTANTIATED state.*/
-			if (comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) {
+			if ((comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) &&
+			    (comp->pres != SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
+			    (comp->pres != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
 				avnd_comp_cleanup_launch(comp);
 				cleanup_call_cnt++;
 			}

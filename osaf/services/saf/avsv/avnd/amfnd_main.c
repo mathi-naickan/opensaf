@@ -34,6 +34,14 @@ int main(int argc, char *argv[])
 {
 	uint32_t error;
 
+	if (avnd_failed_state_file_exist()) {
+		syslog(LOG_ERR, "system is in repair pending state, reboot or "
+				"manual cleanup needed");
+		syslog(LOG_ERR, "cleanup components manually and delete %s",
+				avnd_failed_state_file_location());
+		goto done;
+	}
+
 	daemonize_as_user("root", argc, argv);
 
 	if (__init_avnd() != NCSCC_RC_SUCCESS) {
@@ -51,6 +59,6 @@ int main(int argc, char *argv[])
 
 done:
 	(void) nid_notify("AMFND", NCSCC_RC_FAILURE, &error);
-	fprintf(stderr, "failed, exiting\n");
+	syslog(LOG_ERR, "main() failed, exiting");
 	exit(1);
 }

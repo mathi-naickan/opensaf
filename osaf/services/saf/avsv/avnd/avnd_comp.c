@@ -2969,6 +2969,10 @@ void avnd_comp_pres_state_set(AVND_COMP *comp, SaAmfPresenceStateT newstate)
 		avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompPresenceState_ID, &comp->name, comp->pres);
 	}
 
+	/* create failed state file meaning system restart/cleanup needed */
+	if (comp->pres == SA_AMF_PRESENCE_TERMINATION_FAILED)
+		avnd_failed_state_file_create();
+
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_PRES_STATE);
 }
 
