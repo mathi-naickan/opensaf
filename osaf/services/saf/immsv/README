@@ -1469,6 +1469,57 @@ eliminate duplicates before the schema change attempt, possibly as a prior
 application step in the campaign.
 
 
+IMMA_MAX_OPEN_SEARCHES_PER_HANDLE (4.3)
+==============================================================
+http://devel.opensaf.org/ticket/2977
+http://devel.opensaf.org/ticket/3036
+
+A relatively common error in imm applications is to omitt closing of
+search handles or accesor handles. This results in a "resource leak"
+which will be removed only if/when the application closes the om-handle
+under which the search/accessor handles where created, or when the
+application terminates. 
+
+Such resource leaks will manifest themselves as increasing use of memory
+in the local IMMND server. How large such leaks will be depends on the
+applicaiton behavior. But if a search is initialized for iteration over
+a large part of the imm database and is dropped before it is consumed,
+then very large ammounts of memory could remain allocated. 
+
+To make early detection of such resource leaks possible, a limit on
+the maximum number concurrently allocated search handles per om handle
+has been introduced in OpenSAF 4.3.
+
+A default maximum of 100 concurrently open search handles per om-handle
+are allowed. That is, at most 100 open handles of type SaImmSearchHandleT 
+or SaImmAccessorHandleT created using the same SaImmHandleT are allowed.
+This limit, associated with each om-handle, is checked by the imma library
+each time a search/accessor handle is created. 
+
+Applications that have special and legitimate needs to provide many
+concurrent imm searches, can change the limit from the default value.
+The application does this by setting a higher value on the environment
+variable IMMA_MAX_OPEN_SEARCHES_PER_HANDLE. 
+
+Applications can also avoid the limit by using more than one om-handle
+as the root resource for allocating search handles. For applications
+that legitimately need several hundred concurrent search handles,
+we recommend this solution rather than raising the limit per om-handle,
+as it is more efficient in server processing. It also allows the searches
+to be controlled by more than one client thread.
+
+It may also be usefull for applications to *lower* the value in early
+testing. This increases the chances that application resource leaks are
+detected early in development. 
+
+The IMMA library samples the IMMA_MAX_OPEN_SEARCHES_PER_HANDLE environment
+variable at OM handle initialize. The om-handle is stamped with the value
+of this variable, if it exists, at the time of handle create. 
+
+There is also a much higher sanity limit defined on the server side.
+Currently defined as 5000 open searches per om-handle. That limit is
+not configurable. 
+
 
 Optimize subtree search           (4.3)
 ==============================================================================
@@ -1499,14 +1550,6 @@ http://devel.opensaf.org/ticket/2766
 AdminOp gets TRY_AGAIN if OI is transiently detached (4.3)
 ==========================================================
 http://devel.opensaf.org/ticket/2593
-
-Limit number of coexisting search-handles per om-handle (4.3)
-==============================================================
-http://devel.opensaf.org/ticket/2977
-
-A maximum of 50 concurrently open search handles per om-handle are allowed.
-That is, at most 50 open handles of type SaImmSearchHandleT or SaImmAccessorHandleT
-created using the same SaImmHandleT are allowed.
 
 
 IMM server must protect itself from invalid data received from imm clients (4.3)

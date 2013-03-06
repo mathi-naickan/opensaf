@@ -847,7 +847,7 @@ static uint32_t immnd_evt_proc_search_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_S
 		++searchOpCount;
 		sn = sn->next;
 	}
-	if(searchOpCount >= 50) {
+	if(searchOpCount >= 5000) {
 		LOG_WA("ERR_NO_RESOURCES: Too many search operations (%u) on OM handle -"
 			" probable resource leak.", searchOpCount);
 		error = SA_AIS_ERR_NO_RESOURCES;
