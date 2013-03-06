@@ -31,6 +31,11 @@
 ******************************************************************************
 */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <configmake.h>
 #include "avnd.h"
 
 const char *presence_state[] =
@@ -53,6 +58,9 @@ const char *ha_state[] = {
 	"QUIESCED",
 	"QUIESCING"
 };
+
+/* name of file created when a comp is found in term-failed presence state */
+static const char *failed_state_file_name = PKGPIDDIR "/amf_failed_state";
 
 /****************************************************************************
   Name          : avnd_msg_content_free
@@ -201,4 +209,51 @@ void avnd_comp_cleanup_launch(AVND_COMP *comp)
 		LOG_ER("exiting to aid fast reboot");
 		exit(1);
 	}
+}
+
+/**
+ * Return true if the the failed state file exist.
+ * The existence of this file means that AMF has lost control over some
+ * component. A reboot or manual cleanup is needed in order to restart opensaf.
+ */
+bool avnd_failed_state_file_exist(void)
+{
+	struct stat statbuf;
+
+	if (stat(failed_state_file_name, &statbuf) == 0) {
+		return true;
+	} else
+		return false;
+}
+
+/**
+ * Create the failed state file
+ */
+void avnd_failed_state_file_create(void)
+{
+	int fd = open(failed_state_file_name, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+
+	if (fd >= 0)
+		(void)close(fd);
+	else
+		LOG_ER("cannot create failed state file %s: %s",
+				failed_state_file_name, strerror(errno));
+}
+
+/**
+ * Delete the failed state file
+ */
+void avnd_failed_state_file_delete(void)
+{
+	if (unlink(failed_state_file_name) == -1)
+		LOG_ER("cannot unlink failed state file %s: %s",
+				failed_state_file_name, strerror(errno));
+}
+
+/**
+ * Return name of failed state file
+ */
+const char *avnd_failed_state_file_location(void)
+{
+	return failed_state_file_name;
 }

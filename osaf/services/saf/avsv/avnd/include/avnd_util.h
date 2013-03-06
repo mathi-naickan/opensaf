@@ -43,4 +43,9 @@ uint32_t avnd_msg_copy(struct avnd_cb_tag *, AVND_MSG *, AVND_MSG *);
 extern void avnd_msgid_assert(uint32_t msg_id);
 void avnd_comp_cleanup_launch(AVND_COMP *comp);
 
+bool avnd_failed_state_file_exist(void);
+void avnd_failed_state_file_create(void);
+void avnd_failed_state_file_delete(void);
+const char *avnd_failed_state_file_location(void);
+
 #endif   /* !AVND_UTIL_H */
