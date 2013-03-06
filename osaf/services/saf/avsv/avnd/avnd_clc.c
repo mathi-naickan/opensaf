@@ -734,7 +734,8 @@ static int all_comps_terminated(void)
 	comp = (AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
 	while (comp != 0) {
 		if ((comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) &&
-		    (comp->pres != SA_AMF_PRESENCE_INSTANTIATION_FAILED)) {
+		    (comp->pres != SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
+		    (comp->pres != SA_AMF_PRESENCE_TERMINATION_FAILED)) {
 			all_comps_terminated = 0;
 			TRACE("'%s' not terminated, pres.st=%u", comp->name.value, comp->pres);
 			break;
@@ -795,15 +796,6 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 	SaAmfPresenceStateT prv_st, final_st;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("Comp '%s', Ev '%u'", comp->name.value, ev);
-
-	if (m_AVND_IS_SHUTTING_DOWN(cb) && (ev == AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL)) {
-		LOG_ER("Failed to cleanup '%s'", comp->name.value);
-		opensaf_reboot(avnd_cb->node_info.nodeId,
-				(char *)avnd_cb->node_info.executionEnvironment.value,
-				"Stopping OpenSAF failed");
-		LOG_ER("exiting to aid fast reboot");
-		exit(1);
-	}
 
 	if (cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATING) {
 		TRACE("Term state is NODE_FAILOVER, event '%s'", pres_state_evt[ev]);
@@ -1689,8 +1681,8 @@ uint32_t avnd_comp_clc_insting_cleanfail_hdler(AVND_CB *cb, AVND_COMP *comp)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("'%s': Cleanup Fail event in the instantiating state", comp->name.value);
 
-	/* nothing can be done now.. just transition to inst-failed state */
-	avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_INSTANTIATION_FAILED);
+	/* nothing can be done now.. just transition to term-failed state */
+	avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_TERMINATION_FAILED);
 
 	TRACE_LEAVE();
 	return rc;
@@ -2050,7 +2042,7 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		}
 
 		if (all_comps_terminated()) {
-			LOG_NO("Terminated all AMF components successfully");
+			LOG_NO("Terminated all AMF components");
 			LOG_NO("Shutdown completed, exiting");
 			exit(0);
 		}

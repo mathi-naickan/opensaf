@@ -435,6 +435,22 @@ uint32_t avnd_su_curr_info_del(AVND_CB *cb, AVND_SU *su)
 	return rc;
 }
 
+static bool comp_in_term_failed_state(void)
+{
+	AVND_COMP *comp =
+		(AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
+
+	while (comp != NULL) {
+		if (comp->pres == SA_AMF_PRESENCE_TERMINATION_FAILED)
+			return true;
+
+		comp = (AVND_COMP *)
+		    ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)&comp->name);
+	}
+
+	return false;
+}
+
 /**
  * Process SU admin operation request from director
  *
@@ -478,6 +494,10 @@ uint32_t avnd_evt_su_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 		m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_ENABLED);
 		avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSUOperState_ID, &su->name, su->oper);
 		avnd_su_pres_state_set(su, SA_AMF_PRESENCE_UNINSTANTIATED);
+
+		if (!comp_in_term_failed_state())
+			avnd_failed_state_file_delete();
+
 		break;
 	}
 	default:
