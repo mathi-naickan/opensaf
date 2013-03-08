@@ -66,17 +66,9 @@ void saflog(int priority, const SaNameT *logSvcUsrName, const char *format, ...)
 	logBuffer.logBuf = (SaUint8T *)str;
 
 	error = saLogWriteLogAsync(logStreamHandle, 0, 0, &logRecord);
-	if (error == SA_AIS_ERR_TRY_AGAIN) {
-		unsigned int nTries = 1;
-		while (error == SA_AIS_ERR_TRY_AGAIN && nTries < 10) {
-			usleep(10 * 1000); /* 10 ms */
-			error = saLogWriteLogAsync(logStreamHandle, 0, 0, &logRecord);
-			nTries++;
-		}
-	}
 
 done:
-	/* fallback to syslog at any error, syslog prio same as saflog severity */
+	/* fallback to syslog at ANY error, syslog prio same as saflog severity */
 	if (error != SA_AIS_OK)
 		syslog(priority, "%s", str);
 }
