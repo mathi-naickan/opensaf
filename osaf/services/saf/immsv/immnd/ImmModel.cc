@@ -11889,8 +11889,9 @@ void ImmModel::pbePrtObjCreateContinuation(SaUint32T invocation,
             do {
                 if(strncmp((char *) current->n.attrName.buf, SA_IMM_ATTR_CLASS_NAME, 
                    current->n.attrName.size)==0) {
-                    req->className.size = current->n.attrName.size;
-                    req->className.buf = strdup(current->n.attrName.buf);
+                    osafassert(current->n.attrValueType == SA_IMM_ATTR_SASTRINGT);
+                    req->className.size = current->n.attrValue.val.x.size;
+                    req->className.buf = strdup(current->n.attrValue.val.x.buf);
                     current = NULL;
                 } else {
                     current = current->next;
