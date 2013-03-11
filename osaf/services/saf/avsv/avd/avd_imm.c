@@ -1592,6 +1592,10 @@ AvdJobDequeueResultT avd_job_fifo_execute(SaImmOiHandleT immOiHandle)
 	union job *ajob;
 	int ret = -1;
 
+	// Keep in queue during controller switch-over
+	if (!avd_cb->active_services_exist)
+		return JOB_ETRYAGAIN;
+
 	if (!avd_cb->is_implementer)
 		return JOB_EINVH;
 

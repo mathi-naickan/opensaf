@@ -872,6 +872,7 @@ SaAisErrorT avd_sg_2n_siswap_func(AVD_SI *si, SaInvocationT invocation)
 		LOG_NO("Controller switch over initiated");
 		saflog(LOG_NOTICE, amfSvcUsrName, "Controller switch over initiated");
 		avd_cb->swap_switch = SA_TRUE;
+		avd_cb->active_services_exist = false;
 	}
 
 done:
@@ -2173,6 +2174,8 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 			 * notification now that we have a new active.
 			 */
 			if (su->sg_of_su->sg_ncs_spec) {
+				avd_cb->active_services_exist = true;
+
 				for (l_susi = su->sg_of_su->su_oper_list.su->list_of_susi;
 				      l_susi != NULL; l_susi = l_susi->su_next) {
 					avd_gen_su_ha_state_changed_ntf(cb, l_susi);

@@ -164,6 +164,7 @@ uint32_t avd_initialize(void)
 
 	cb->init_state = AVD_INIT_BGN;
 	cb->swap_switch = SA_FALSE;
+	cb->active_services_exist = false;
 	cb->stby_sync_state = AVD_STBY_IN_SYNC;
 	cb->sync_required = true;
 	

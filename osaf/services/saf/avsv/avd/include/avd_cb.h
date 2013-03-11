@@ -33,6 +33,8 @@
 #ifndef AVD_CB_H
 #define AVD_CB_H
 
+#include <stdbool.h>
+
 #include <saImmOi.h>
 #include <saClm.h>
 
@@ -226,7 +228,15 @@ typedef struct cl_cb_tag {
 	SaClmHandleT clmHandle;
 	SaSelectionObjectT clm_sel_obj;
 
+	// TODO swap_switch: use bool as type and change to a better name!
 	SaBoolT swap_switch; /* true - In middle of role switch. */
+
+	/** true when active services (IMM, LOG, NTF, etc.) exist
+	 * Set to true when leaving the no-active state
+	 * Set to false at switch-over entering the no-active state
+	 * Used to skip usage of dependent services in the no-active state
+	 */
+	bool active_services_exist;
 
 } AVD_CL_CB;
 
