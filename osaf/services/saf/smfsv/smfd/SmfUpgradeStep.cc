@@ -1168,21 +1168,32 @@ bool SmfUpgradeStep::calculateSingleStepNodes(
 	std::list<SmfPlmExecEnv> const& i_plmExecEnvList,
 	std::list<std::string>& o_nodelist)
 {
-	o_nodelist = m_swNodeList;
-	std::list<SmfPlmExecEnv>::const_iterator ee;
-	for (ee = i_plmExecEnvList.begin(); ee != i_plmExecEnvList.end(); ee++) {
-		std::string const& amfnode = ee->getAmfNode();
-		if (amfnode.length() == 0) {
-			LOG_ER("Only AmfNodes can be handled in plmExecEnv");
-			return false;
+	TRACE_ENTER();
+	//If the i_plmExecEnvList is empty, the calculated list in  m_swNodeList shall be used.
+	//If at least one <plmExecEnv> is specified i.e. the i_plmExecEnvList is not empty, this 
+	//list shall override the calculated node list.
+
+	if (i_plmExecEnvList.empty()) {
+		TRACE("No <plmExecEnv> was specified, use  m_swNodeList");
+		o_nodelist = m_swNodeList;
+	} else {
+		TRACE("<plmExecEnv> was specified, get the AMF nodes from the provided plmExecEnvList");
+		std::list<SmfPlmExecEnv>::const_iterator ee;
+		for (ee = i_plmExecEnvList.begin(); ee != i_plmExecEnvList.end(); ee++) {
+			std::string const& amfnode = ee->getAmfNode();
+			if (amfnode.length() == 0) {
+				LOG_ER("Only AmfNodes can be handled in plmExecEnv");
+				TRACE_LEAVE();
+				return false;
+			}
+			o_nodelist.push_back(amfnode);
 		}
-		o_nodelist.push_back(amfnode);
 	}
 
-	/* The m_swNodeList itself may contain duplicates and combined with the PlmExecEnv list
-	   duplicates are almost certain. */
+	//The node list may contain duplicates
 	o_nodelist.sort();
 	o_nodelist.unique();
+	TRACE_LEAVE();
 	return true;
 }
 
