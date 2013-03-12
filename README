@@ -475,7 +475,6 @@ the `/etc/opensaf/nid.conf` file and update the variable DTM_NODE_IP to self nod
 IP address  in the `/etc/opensaf/dtmd.conf`.
 For the applications of the opensaf, user needs to export the variables as said 
 below in there respective start up scripts as shown below,
-export MDS_TRANSPORT=TCP
 export MDS_INTRANODE_TRANSPORT=UNIX
 
 

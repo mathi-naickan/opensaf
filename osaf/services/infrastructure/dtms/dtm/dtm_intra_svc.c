@@ -129,7 +129,6 @@ uint32_t dtm_intranode_process_pid_msg(uint8_t *buffer, int fd)
 uint32_t dtm_intranode_process_pid_down(int fd)
 {
 	DTM_INTRANODE_PID_INFO *pid_node = NULL;
-	uint16_t local_pid = 0;
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	TRACE_ENTER();
 	if (NULL == pid_node) {
@@ -139,8 +138,6 @@ uint32_t dtm_intranode_process_pid_down(int fd)
 		DTM_INTRANODE_PID_INFO *pid_node1 = NULL;
 		DTM_PID_SVC_SUSBCR_INFO *subscr_data = pid_node->subscr_list;
 		DTM_NODE_SUBSCR_INFO *node_subscr = NULL;
-
-		local_pid = pid_node->pid;
 
 		while (NULL != subscr_data) {
 			DTM_SVC_SUBSCR_INFO *subscr_tmp = NULL;
