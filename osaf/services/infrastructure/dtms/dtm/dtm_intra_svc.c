@@ -242,20 +242,6 @@ uint32_t dtm_intranode_process_pid_down(int fd)
 
 		close(pid_node->mbx_fd);
 		free(pid_node);
-		if (AF_UNIX == dtm_intranode_cb->sock_domain) {
-			/* Now unlink the bind client process */
-			
-			struct sockaddr_un serv_addr;	/* For Unix Sock address */
-			char server_ux_name[255], rm_cmd[255];
-#define UX_SOCK_NAME_PREFIX "/tmp/osaf_mdtm_process"
-			bzero((char *)&serv_addr, sizeof(serv_addr));
-			sprintf(server_ux_name, "%s_%d", UX_SOCK_NAME_PREFIX, local_pid);
-			serv_addr.sun_family = AF_UNIX;
-			strcpy(serv_addr.sun_path, server_ux_name);
-
-			unlink(serv_addr.sun_path);
-			sprintf(rm_cmd, "rm -f %s", server_ux_name);
-		}
 	}
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;

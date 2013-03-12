@@ -25,6 +25,7 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <configmake.h>
 
 #include "ncs_main_papi.h"
 #include "ncssysf_def.h"
@@ -164,7 +165,7 @@ uint32_t dtm_intra_processing_init(void)
 	bzero((char *)&serv_addr, sizeof(serv_addr));
 
 	if (dtm_socket_domain == AF_UNIX) {
-#define UX_SOCK_NAME_PREFIX "/tmp/osaf_dtm_intra_server"
+#define UX_SOCK_NAME_PREFIX PKGLOCALSTATEDIR "/osaf_dtm_intra_server"
 
 		sprintf(server_ux_name, "%s", UX_SOCK_NAME_PREFIX);
 		serv_addr.sun_family = AF_UNIX;

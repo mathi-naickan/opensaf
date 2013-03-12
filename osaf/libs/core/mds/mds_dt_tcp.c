@@ -35,11 +35,11 @@
 #include <linux/un.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <configmake.h>
 
-#define MDS_MDTM_SOCKET_LOC "/tmp/osaf_mdtm_process"
 #define MDS_MDTM_SUN_PATH 255
 #define MDS_SND_RCV_SIZE 64000
-#define MDS_MDTM_CONNECT_PATH "/tmp/osaf_dtm_intra_server"
+#define MDS_MDTM_CONNECT_PATH PKGLOCALSTATEDIR "/osaf_dtm_intra_server"
 
 #ifndef MDS_PORT_NUMBER
 #define MDTM_INTRA_SERVER_PORT 7000 /* Fixed port number for intranode communications */
@@ -80,12 +80,10 @@ uint32_t mds_mdtm_init_tcp(NODE_ID nodeid, uint32_t *mds_tcp_ref)
 {
 	uint32_t flags;
 	uint32_t size = MDS_SND_RCV_SIZE;
-	struct sockaddr_un client_addr_un, dhserver_addr_un;
+	struct sockaddr_un server_addr_un, dhserver_addr_un;
 	struct sockaddr_in server_addr_in;
 	struct sockaddr_in6 server_addr_in6;
 	uint8_t buffer[MDS_MDTM_DTM_PID_BUFFER_SIZE];
-	char sun_path[MDS_MDTM_SUN_PATH];
-	char sun_path_connect[MDS_MDTM_SUN_PATH];
 
 	mdtm_pid = getpid();
 
@@ -97,14 +95,12 @@ uint32_t mds_mdtm_init_tcp(NODE_ID nodeid, uint32_t *mds_tcp_ref)
 	mdtm_handle = 0;
 	mdtm_global_frag_num_tcp = 0;
 
-	memset(&client_addr_un, 0, sizeof(struct sockaddr_un));
+	memset(&server_addr_un, 0, sizeof(struct sockaddr_un));
 	memset(&dhserver_addr_un, 0, sizeof(struct sockaddr_un));
 	memset(&server_addr_in, 0, sizeof(struct sockaddr_in));
 	memset(&server_addr_in6, 0, sizeof(struct sockaddr_in6));
 	memset(&send_evt, 0, sizeof(MDS_MDTM_DTM_MSG));
 	memset(&buffer, 0, MDS_MDTM_DTM_PID_BUFFER_SIZE);
-	memset(&sun_path, 0, MDS_MDTM_SUN_PATH);
-	memset(&sun_path_connect, 0, MDS_MDTM_SUN_PATH);
 
 	tcp_cb = (MDTM_TCP_CB *) malloc(sizeof(MDTM_TCP_CB));
 	if (tcp_cb == NULL) {
@@ -163,30 +159,12 @@ uint32_t mds_mdtm_init_tcp(NODE_ID nodeid, uint32_t *mds_tcp_ref)
 
 	if (mds_socket_domain == AF_UNIX) {
 		int servlen = 0;
+		server_addr_un.sun_family = AF_UNIX;
+		strcpy(server_addr_un.sun_path, MDS_MDTM_CONNECT_PATH );
 
-		sprintf(sun_path, "%s_%d", MDS_MDTM_SOCKET_LOC, mdtm_pid);
-		sprintf(sun_path_connect, "%s", MDS_MDTM_CONNECT_PATH);
-
-		dhserver_addr_un.sun_family = AF_UNIX;
-		strcpy(dhserver_addr_un.sun_path, sun_path);
-
-		servlen = strlen(dhserver_addr_un.sun_path) + sizeof(dhserver_addr_un.sun_family);
-
-		/* Unlink as it may link to other process */
-		unlink(sun_path);
-
-		if (bind(tcp_cb->DBSRsock, (struct sockaddr *)&dhserver_addr_un, servlen) == -1) {
-			syslog(LOG_ERR, "MDS:MDTM: Unable to bind on DBSRsock");
-			close(tcp_cb->DBSRsock);
-			return NCSCC_RC_FAILURE;
-		}
-
-		client_addr_un.sun_family = AF_UNIX;
-		strcpy(client_addr_un.sun_path, sun_path_connect);
-
-		servlen = strlen(client_addr_un.sun_path) + sizeof(client_addr_un.sun_family);
+		servlen = strlen(server_addr_un.sun_path) + sizeof(server_addr_un.sun_family);
 		/* Blocking Connect */
-		if (connect(tcp_cb->DBSRsock, (struct sockaddr *)&client_addr_un, servlen) == -1) {
+		if (connect(tcp_cb->DBSRsock, (struct sockaddr *)&server_addr_un, servlen) == -1) {
 			syslog(LOG_ERR, "MDS:MDTM: DBSRsock unable to connect");
 			close(tcp_cb->DBSRsock);
 			return NCSCC_RC_FAILURE;
