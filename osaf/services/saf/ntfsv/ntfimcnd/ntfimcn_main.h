@@ -49,6 +49,8 @@ typedef struct {
 
 #define NTFIMCN_PROC_NAME "osafntfimcnd"
 
+void imcn_exit(int status);
+
 #ifdef	__cplusplus
 }
 #endif

@@ -48,7 +48,7 @@ typedef struct {
 static init_params_t ipar;
 pthread_mutex_t ntfimcn_mutex;
 
-static int fork_cnprocess(SaAmfHAStateT ha_state)
+static pid_t create_imcnprocess(SaAmfHAStateT ha_state)
 {
 	char *start_args[3];
 	pid_t i_pid = (pid_t) -1;
@@ -91,7 +91,7 @@ static int fork_cnprocess(SaAmfHAStateT ha_state)
 void *cnsurvail_thread(void *_init_params)
 {
 	init_params_t *ipar = (init_params_t *) _init_params;
-	int pid = (-1);
+	pid_t pid = (pid_t) -1;
 	int status = 0;
 	pid_t rc;
 
@@ -99,19 +99,22 @@ void *cnsurvail_thread(void *_init_params)
 
 	while(1) {
 		osaf_mutex_lock_ordie(&ntfimcn_mutex);
-		pid = fork_cnprocess(ipar->ha_state);
+		pid = create_imcnprocess(ipar->ha_state);
 		ipar->pid = pid;
 		osaf_mutex_unlock_ordie(&ntfimcn_mutex);
 		
 		/* Wait for child process to exit */
-		rc = waitpid(-1, &status, 0);
-		if( rc == -1) {
+		do {
+			rc = waitpid(ipar->pid, &status, 0);
+		} while ((rc == -1) && (errno == EINTR));
+		if ((rc == -1) && (errno == EINVAL)) {
 			LOG_ER("waitpid returned an error %s",strerror(errno));
 			abort();
 		}
 
 		int exit_rc = WIFEXITED(status);
-		LOG_NO("cnprocess terminated reason %s (%d)",exit_rc?"exit":"other",exit_rc);
+		int exit_stat = WEXITSTATUS(status);
+		TRACE("osafntfimcnd process terminated reason %s (%d)",exit_rc?"exit":"other",exit_stat);
 	}
 }
 
@@ -143,34 +146,50 @@ static void start_cnprocess(SaAmfHAStateT ha_state)
  *
  * @param ha_state[in]
  */
-void init_ntfimcn_(SaAmfHAStateT ha_state)
+void init_ntfimcn(SaAmfHAStateT ha_state)
 {
 	start_cnprocess(ha_state);
 }
 
-/* NOTE:
- * The following functions shall not be called directly. Use macros defined in
- * ntfs_imcnutil.h
- */
-
 /**
- * Kill the cn process. Use the pid saved when the process was started
- * This will cause the cn process to be restarted.
+ * Kill the imcn process. Use the pid saved when the process was started
+ * This will cause the imcn process to be restarted in the given state.
+ * This is done only if the current state is Active or Standby and if
+ * the state has changed
  *
  * @param ha_state[in]
  */
-void restart_ntfimcn_(SaAmfHAStateT ha_state)
+void handle_state_ntfimcn(SaAmfHAStateT ha_state)
 {
+	int status = 0;
+	pid_t rc = (pid_t) -1;
+
 	if ((ha_state == SA_AMF_HA_ACTIVE) ||
 		(ha_state == SA_AMF_HA_STANDBY)) {
 		osaf_mutex_lock_ordie(&ntfimcn_mutex);
 		if (ha_state != ipar.ha_state) {
 			ipar.ha_state = ha_state;
+			TRACE("%s: Terminating osafntfimcnd process",__FUNCTION__);
 			if (kill(ipar.pid,SIGTERM)) {
 				LOG_ER("%s kill failed %s",__FUNCTION__,strerror(errno));
 			}
+			
+			/* Wait for child process to terminate */
+			do {
+				rc = waitpid(ipar.pid, &status, 0);
+			} while ((rc == -1) && (errno == EINTR));
+			
+			if ((rc == -1) && (errno == EINVAL)) {
+				LOG_ER("%s: Waiting for termination of osafntfimcnd process fail: %s",
+						__FUNCTION__, strerror(errno));
+				abort();
+			} else {
+				LOG_NO("%s: osafntfimcnd process terminated. State change",
+						__FUNCTION__);
+			}
 		} else {
-			TRACE("osafntfimcnd process not restarted. Already in correct state");
+			TRACE("%s: osafntfimcnd process not restarted. Already in correct state",
+					__FUNCTION__);
 		}
 		osaf_mutex_unlock_ordie(&ntfimcn_mutex);
 	}
@@ -183,10 +202,12 @@ void restart_ntfimcn_(SaAmfHAStateT ha_state)
  *
  * @return -1 if error
  */
-int stop_ntfimcn_(void)
+int stop_ntfimcn(void)
 {
 	void *join_ret;
 	int rc = 0;
+	int status = 0;
+	pid_t pid = (pid_t) -1;
 
 	rc = pthread_cancel(ipar.thread);
 	if (rc != 0) osaf_abort(rc);
@@ -198,5 +219,19 @@ int stop_ntfimcn_(void)
 	if (rc != 0) {
 		LOG_ER("%s kill osafntfimcnd failed %s",__FUNCTION__,strerror(errno));
 	}
+	
+	/* Wait for child process to terminate */
+	do {
+		pid = waitpid(ipar.pid, &status, 0);
+	} while ((pid == -1) && (errno == EINTR));
+
+	if ((pid == -1) && (errno == EINVAL)) {
+		LOG_ER("%s Waiting for termination of osafntfimcnd process fail: %s",
+				__FUNCTION__, strerror(errno));
+		rc = -1;
+	} else {
+		LOG_NO("%s osafntfimcnd process terminated",__FUNCTION__);
+	}
+	
 	return rc;
 }

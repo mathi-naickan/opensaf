@@ -76,6 +76,24 @@ extern void initAdmin(void);
 extern void printAdminInfo();
 extern void logEvent();
 
+
+const char *ha_state_str(SaAmfHAStateT state)
+{
+	switch (state) {
+		case SA_AMF_HA_ACTIVE:
+			return "SA_AMF_HA_ACTIVE";
+		case SA_AMF_HA_STANDBY:
+			return "SA_AMF_HA_STANDBY";
+		case SA_AMF_HA_QUIESCED:
+			return "SA_AMF_HA_QUIESCED";
+		case SA_AMF_HA_QUIESCING:
+			return "SA_AMF_HA_QUIESCING";
+		default:
+			return "Unknown";
+	}
+	return "dummy";
+}
+
 /**
  * Callback from RDA. Post a message/event to the ntfs mailbox.
  * @param cb_hdl
@@ -300,6 +318,8 @@ int main(int argc, char *argv[])
 	fds[FD_LOG].events = POLLIN;
 	fds[FD_TERM].fd = term_sel_obj.rmv_obj;
 	fds[FD_TERM].events = POLLIN;
+	
+	TRACE("Started. HA state is %s",ha_state_str(ntfs_cb->ha_state));
 
 	/* NTFS main processing loop. */
 	while (1) {

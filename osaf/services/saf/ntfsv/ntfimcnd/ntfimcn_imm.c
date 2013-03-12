@@ -44,8 +44,9 @@
 /* Release code, major version, minor version */
 static SaVersionT imm_version = { 'A', 2, 12 };
 static const unsigned int sleep_delay_ms = 500;
-static const unsigned int max_waiting_time_ms = (7 * 1000);	/* 7 sec */
-static const unsigned int max_init_waiting_time_ms = (60 * 1000);	/* 60 sec */
+static const unsigned int max_waiting_time_3s = (3 * 1000);	/* 60 sec */
+static const unsigned int max_waiting_time_7s = (7 * 1000);	/* 7 sec */
+static const unsigned int max_waiting_time_60s = (60 * 1000);	/* 60 sec */
 static const SaImmOiImplementerNameT applier_nameA =
 	(SaImmOiImplementerNameT)"@OpenSafImmReplicatorA";
 static const SaImmOiImplementerNameT applier_nameB =
@@ -113,7 +114,7 @@ static char *get_rdn_attr_name(const SaImmClassNameT className)
 			className,
 			&classCategory,
 			&attrDescr);
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_ms)) {
+	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_7s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
 		rc = saImmOmClassDescriptionGet_2(ntfimcn_cb.immOmHandle,
@@ -139,7 +140,7 @@ static char *get_rdn_attr_name(const SaImmClassNameT className)
 	/* Free memory allocated for attribute descriptions */
 	msecs_waited = 0;
 	rc = saImmOmClassDescriptionMemoryFree_2(ntfimcn_cb.immOmHandle,attrDescr);
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_ms)) {
+	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_7s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
 		rc = saImmOmClassDescriptionMemoryFree_2(ntfimcn_cb.immOmHandle,attrDescr);
@@ -385,7 +386,7 @@ done:
 		 */
 		LOG_ER("saImmOiCcbObjectCreateCallback Fail, internal_rc=%d",
 				internal_rc);
-		_Exit(EXIT_FAILURE);
+		imcn_exit(EXIT_FAILURE);
 	}
 
 	TRACE_LEAVE();
@@ -465,7 +466,7 @@ done:
 		 */
 		LOG_ER("saImmOiCcbObjectCreateCallback Fail, internal_rc=%d",
 				internal_rc);
-		_Exit(EXIT_FAILURE);
+		imcn_exit(EXIT_FAILURE);
 	}
 
 	TRACE_LEAVE();
@@ -532,7 +533,7 @@ done:
 		 */
 		LOG_ER("saImmOiCcbObjectCreateCallback Fail, internal_rc=%d",
 				internal_rc);
-		_Exit(EXIT_FAILURE);
+		imcn_exit(EXIT_FAILURE);
 	}
 
 	TRACE_LEAVE();
@@ -665,7 +666,7 @@ done:
 		/* If we fail to send a notification we exit. This will signal that
 		 * a notification is missing.
 		 */
-		_Exit(EXIT_FAILURE);
+		imcn_exit(EXIT_FAILURE);
 	}
 }
 
@@ -698,9 +699,13 @@ int ntfimcn_imm_init(ntfimcn_cb_t *cb)
 	SaAisErrorT rc;
 	int internal_rc = 0;
 	int msecs_waited;
-	SaImmOiImplementerNameT applier_name;
 
 	TRACE_ENTER();
+	
+	/*
+	 * Set IMM environment variable for synchronous timeout to 1 sec
+	 */
+	setenv("IMMA_SYNCR_TIMEOUT","100",1);
 
 	/*
 	 * Initialize the IMM OI API
@@ -708,7 +713,7 @@ int ntfimcn_imm_init(ntfimcn_cb_t *cb)
 	 */
 	msecs_waited = 0;
 	rc = saImmOiInitialize_2(&cb->immOiHandle, &callbacks, &imm_version);
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_init_waiting_time_ms)) {
+	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_60s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
 		rc = saImmOiInitialize_2(&cb->immOiHandle, &callbacks, &imm_version);
@@ -725,7 +730,7 @@ int ntfimcn_imm_init(ntfimcn_cb_t *cb)
 	 */
 	msecs_waited = 0;
 	rc = saImmOiSelectionObjectGet(cb->immOiHandle, &cb->immSelectionObject);
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_init_waiting_time_ms)) {
+	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_60s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
 		rc = saImmOiSelectionObjectGet(cb->immOiHandle, &cb->immSelectionObject);
@@ -740,20 +745,26 @@ int ntfimcn_imm_init(ntfimcn_cb_t *cb)
 	 * Become the "configuration change" applier
 	 * -----------------------------------------
 	 */
-	applier_name = applier_nameA;
-
-become_applier:
+	SaImmOiImplementerNameT applier_name = applier_nameA;
 	msecs_waited = 0;
 	rc = saImmOiImplementerSet(cb->immOiHandle, applier_name);
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_init_waiting_time_ms)) {
+	while (((rc == SA_AIS_ERR_TRY_AGAIN) ||
+			(rc == SA_AIS_ERR_EXIST)) &&
+			(msecs_waited < max_waiting_time_60s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
+		
+		if (rc == SA_AIS_ERR_EXIST) {
+			if (strcmp( applier_name, applier_nameA) == 0) {
+				applier_name = applier_nameB;
+			} else {
+				applier_name = applier_nameA;
+			}
+		}
 		rc = saImmOiImplementerSet(cb->immOiHandle, applier_name);
 	}
-	if ((rc == SA_AIS_ERR_EXIST) && (strcmp(applier_name, applier_nameB) != 0)) {
-		applier_name = applier_nameB;
-		goto become_applier;
-	} else if (rc != SA_AIS_OK) {
+		
+	if (rc != SA_AIS_OK) {
 		LOG_ER("%s Becoming an applier failed %s",__FUNCTION__,saf_error(rc));
 		internal_rc = NTFIMCN_INTERNAL_ERROR;
 		goto done;
@@ -765,7 +776,7 @@ become_applier:
 	 */
 	msecs_waited = 0;
 	rc = saImmOmInitialize(&cb->immOmHandle, &omCallbacks, &imm_version);
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_init_waiting_time_ms)) {
+	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_60s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
 		rc = saImmOmInitialize(&cb->immOmHandle, &omCallbacks, &imm_version);
@@ -779,4 +790,29 @@ become_applier:
 done:
 	TRACE_LEAVE();
 	return internal_rc;
+}
+
+/**
+ * Clears the special applier name
+ * 
+ */
+void ntfimcn_special_applier_clear(void)
+{
+	SaAisErrorT rc;
+	int msecs_waited;
+
+	msecs_waited = 0;
+	rc = saImmOiImplementerClear(ntfimcn_cb.immOiHandle);
+	while (((rc == SA_AIS_ERR_TRY_AGAIN) ||
+			(rc == SA_AIS_ERR_TIMEOUT))	&& 
+			(msecs_waited < max_waiting_time_3s)) {
+		usleep(sleep_delay_ms * 1000);
+		msecs_waited += sleep_delay_ms;
+		rc = saImmOiImplementerClear(ntfimcn_cb.immOiHandle);
+	}
+	if (rc != SA_AIS_OK) {
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			TRACE("%s saImmOiImplementerClear failed %s",__FUNCTION__,saf_error(rc));
+		}
+	}
 }

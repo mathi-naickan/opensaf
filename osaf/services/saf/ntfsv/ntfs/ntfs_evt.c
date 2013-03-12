@@ -176,8 +176,6 @@ static uint32_t proc_rda_cb_msg(ntfsv_ntfs_evt_t *evt)
 			goto done;
 		}
 
-		restart_ntfimcn(ntfs_cb->ha_state);
-
 		if (old_ha_state == SA_AMF_HA_STANDBY) {
 			/* check for unsent notifictions and if notifiction is not logged */
 			checkNotificationList();

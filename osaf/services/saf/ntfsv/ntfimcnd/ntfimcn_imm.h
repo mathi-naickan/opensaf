@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 int ntfimcn_imm_init(ntfimcn_cb_t *cb);
+void ntfimcn_special_applier_clear(void);
 
 #ifdef	__cplusplus
 }

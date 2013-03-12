@@ -214,8 +214,7 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 
 	/* Update control block */
 	ntfs_cb->ha_state = new_haState;
-	restart_ntfimcn(ntfs_cb->ha_state);
-
+	
 	if (ntfs_cb->csi_assigned == false) {
 		ntfs_cb->csi_assigned = true;
 		/* We shall open checkpoint only once in our life time. currently doing at lib init  */
@@ -243,6 +242,11 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 		/* Inform MBCSV of HA state change */
 		if (NCSCC_RC_SUCCESS != (error = ntfs_mbcsv_change_HA_state(ntfs_cb)))
 			error = SA_AIS_ERR_FAILED_OPERATION;
+		
+		TRACE("%s NTFS changing HA role from %s to %s",
+				__FUNCTION__,
+				ha_state_str(prev_haState),
+				ha_state_str(new_haState));
 	}
 
  response:
@@ -252,6 +256,14 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 		checkNotificationList();
 	}
  done:
+	/* Kills the osafntfimcnd process if current state is Active or Standby and
+	 * the process is not already running in this state.
+	 * The process will be restarted by the process surveillance
+	 * thread.
+	 * This function will not return until the process is terminated.
+	 */
+	handle_state_ntfimcn(ntfs_cb->ha_state);
+
 	TRACE_LEAVE();
 }
 

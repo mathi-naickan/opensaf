@@ -68,4 +68,6 @@ extern uint32_t ntfs_mds_msg_send(ntfs_cb_t *cb,
 			       MDS_DEST *dest, MDS_SYNC_SND_CTXT *mds_ctxt, MDS_SEND_PRIORITY_TYPE prio);
 extern void ntfs_evt_destroy(ntfsv_ntfs_evt_t *evt);
 
+const char *ha_state_str(SaAmfHAStateT state);
+
 #endif   /* ifndef __NTFS_H */

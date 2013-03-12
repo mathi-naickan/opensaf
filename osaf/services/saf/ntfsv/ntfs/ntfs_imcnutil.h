@@ -29,16 +29,13 @@ extern "C" {
 #ifdef HAVE_NTFIMCN
 #define NTFIMCN_PROC_NAME "osafntfimcnd"
 
-void init_ntfimcn_(SaAmfHAStateT ha_state);
-void restart_ntfimcn_(SaAmfHAStateT ha_state);
-int stop_ntfimcn_(void);
-#define init_ntfimcn(a) init_ntfimcn_(a)
-#define restart_ntfimcn(a) restart_ntfimcn_(a)
-#define stop_ntfimcn() stop_ntfimcn_()
+void init_ntfimcn(SaAmfHAStateT ha_state);
+void handle_state_ntfimcn(SaAmfHAStateT ha_state);
+int stop_ntfimcn(void);
 
 #else /* HAVE_NTFIMCN */
 #define init_ntfimcn(a)
-#define restart_ntfimcn(a)
+#define handle_state_ntfimcn(a)
 #define stop_ntfimcn() 0
 #endif /* HAVE_NTFIMCN */
 

@@ -55,17 +55,15 @@ static struct pollfd fds[SIZE_FDS];
 static nfds_t nfds = SIZE_FDS;
 static unsigned int category_mask=0;
 
-static void imcn_exit(void)
+/**
+ * Clear special applier name and exit
+ * 
+ * @param status
+ */
+void imcn_exit(int status)
 {
-#if 0
-	/* For test only */
-	TRACE("Execution halted!");
-	while(1) {
-		sleep(10000);
-	}
-#else
-	_Exit(EXIT_FAILURE);
-#endif
+	ntfimcn_special_applier_clear();
+	_Exit(status);
 }
 
 /**
@@ -106,7 +104,7 @@ static void sigterm_handler(int sig)
 static void handle_sigterm_event(void)
 {
 	LOG_NO("exiting on signal %d", SIGTERM);
-	exit(EXIT_SUCCESS);
+	imcn_exit(EXIT_SUCCESS);
 }
 
 /*
@@ -121,6 +119,7 @@ int main(int argc, char** argv)
 	/*
 	 * Activate Log Trace
 	 */
+	openlog(basename(argv[0]), LOG_PID, LOG_LOCAL0);
 	if ((logPath = getenv("NTFSCN_TRACE_PATHNAME"))) {
 		category_mask = 0xffffffff;
 	} else {
@@ -148,17 +147,17 @@ int main(int argc, char** argv)
 	 */
 	if (ntfimcn_ntf_init(&ntfimcn_cb) == NTFIMCN_INTERNAL_ERROR) {
 		LOG_ER("ntfimcn_ntf_init() Fail");
-		imcn_exit();
+		_Exit(EXIT_FAILURE);
 	}
 
 	if (ntfimcn_send_lost_cm_notification()) {
 		LOG_ER("send_lost_cm_notification() Fail");
-		imcn_exit();
+		imcn_exit(EXIT_FAILURE);
 	}
 
 	if (ntfimcn_imm_init(&ntfimcn_cb) == NTFIMCN_INTERNAL_ERROR) {
 		LOG_ER("ntfimcn_imm_init() Fail");
-		imcn_exit();
+		imcn_exit(EXIT_FAILURE);
 	}
 
 	/* Signal for TRACE on/off */
@@ -195,7 +194,7 @@ int main(int argc, char** argv)
 			}
 
 			LOG_ER("poll Fail - %s", strerror(errno));
-			imcn_exit();
+			imcn_exit(EXIT_FAILURE);
 		}
 
 		if (fds[FD_TERM].revents & POLLIN) {
@@ -206,7 +205,7 @@ int main(int argc, char** argv)
 			ais_error = saImmOiDispatch(ntfimcn_cb.immOiHandle, SA_DISPATCH_ALL);
 			if (ais_error != SA_AIS_OK) {
 				LOG_ER("saImmOiDispatch() Fail %s",saf_error(ais_error));
-				imcn_exit();
+				imcn_exit(EXIT_FAILURE);
 			}
 		}
 	}
