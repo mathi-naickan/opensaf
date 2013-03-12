@@ -46,6 +46,8 @@
 #ifdef ENABLE_TIPC_TRANSPORT
 #include "mds_dt_tipc.h"
 #endif
+#include <configmake.h>
+#define MDS_MDTM_CONNECT_PATH PKGLOCALSTATEDIR "/osaf_dtm_intra_server"
 
 extern uint32_t mds_socket_domain;
 void mds_init_transport(void);
@@ -380,18 +382,14 @@ void mds_init_transport(void)
 	char *inet_or_unix = NULL;
 	char *tipc_or_tcp = NULL;
 	struct addrinfo *addr_list;
-	int rc;
+	int rc,rc1;
+	struct stat sockStat;
 
-
-	tipc_or_tcp = getenv("MDS_TRANSPORT");
-
-	if (NULL == tipc_or_tcp) {
-#ifdef ENABLE_TIPC_TRANSPORT
-		tipc_or_tcp = "TIPC";
-#else
+	rc1 = stat(MDS_MDTM_CONNECT_PATH, &sockStat);
+	if (rc1 == 0)  /* dtm intra server exists */
 		tipc_or_tcp = "TCP";
-#endif
-	}
+	else
+		tipc_or_tcp = "TIPC";
 
 	if (strcmp(tipc_or_tcp, "TCP") == 0) {
 		mds_mdtm_init = mds_mdtm_init_tcp;
