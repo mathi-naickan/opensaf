@@ -150,11 +150,6 @@ int main(int argc, char** argv)
 		_Exit(EXIT_FAILURE);
 	}
 
-	if (ntfimcn_send_lost_cm_notification()) {
-		LOG_ER("send_lost_cm_notification() Fail");
-		imcn_exit(EXIT_FAILURE);
-	}
-
 	if (ntfimcn_imm_init(&ntfimcn_cb) == NTFIMCN_INTERNAL_ERROR) {
 		LOG_ER("ntfimcn_imm_init() Fail");
 		imcn_exit(EXIT_FAILURE);
@@ -164,6 +159,11 @@ int main(int argc, char** argv)
 	if (signal(SIGUSR2, sigusr2_handler) == SIG_ERR) {
 		LOG_ER("signal USR2 failed: %s", strerror(errno));
 		/* We allow to execute anyway. */
+	}
+
+	if (ntfimcn_send_lost_cm_notification() == NTFIMCN_INTERNAL_ERROR) {
+		LOG_ER("send_lost_cm_notification() Fail");
+		imcn_exit(EXIT_FAILURE);
 	}
 
 	/* Termination signal with handler */
