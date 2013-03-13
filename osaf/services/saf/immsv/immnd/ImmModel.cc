@@ -2873,6 +2873,28 @@ ImmModel::migrateObj(ObjectInfo* object,
 }
 
 bool
+ImmModel::protocol43Allowed()
+{
+    //TRACE_ENTER();
+    ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
+    if(oi == sObjectMap.end()) {
+        TRACE_LEAVE();
+        return false;
+    }
+
+    ObjectInfo* immObject =  oi->second;
+    ImmAttrValueMap::iterator avi = 
+        immObject->mAttrValueMap.find(immAttrNostFlags);
+    osafassert(avi != immObject->mAttrValueMap.end());
+    osafassert(!(avi->second->isMultiValued()));
+    ImmAttrValue* valuep = avi->second;
+    unsigned int noStdFlags = valuep->getValue_int();
+
+    //TRACE_LEAVE();
+    return noStdFlags & OPENSAF_IMM_FLAG_PRT43_ALLOW;
+}
+
+bool
 ImmModel::protocol41Allowed()
 {
     //TRACE_ENTER();
@@ -2891,7 +2913,7 @@ ImmModel::protocol41Allowed()
     unsigned int noStdFlags = valuep->getValue_int();
 
     //TRACE_LEAVE();
-    return noStdFlags & 0x00000002;
+    return noStdFlags & OPENSAF_IMM_FLAG_PRT41_ALLOW;
 }
 
 bool
@@ -3615,7 +3637,8 @@ ImmModel::adminOwnerDelete(SaUint32T ownerId, bool hard)
                     osafassert(!(avi->second->isMultiValued()));
                     ImmAttrValue* valuep = (ImmAttrValue *) avi->second;
                     unsigned int noStdFlags = valuep->getValue_int();
-                    noStdFlags |= 0x2;
+                    noStdFlags |= OPENSAF_IMM_FLAG_PRT41_ALLOW;
+                    noStdFlags |= OPENSAF_IMM_FLAG_PRT43_ALLOW;
                     valuep->setValue_int(noStdFlags);
                     LOG_NO("%s changed to: 0x%x", immAttrNostFlags.c_str(), noStdFlags);
                     /* END Temporary code. */
@@ -9943,6 +9966,11 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
     SaAisErrorT err = SA_AIS_OK;
     CcbVector::iterator i;
     TRACE_ENTER();
+
+    if(immNotWritable() && !protocol43Allowed()) {
+        TRACE_LEAVE();
+        return SA_AIS_ERR_TRY_AGAIN;
+    }    
     
     //Check first if implementer name already exists.
     //If so check if occupied, if not re-use.
@@ -10139,6 +10167,11 @@ ImmModel::classImplementerSet(const struct ImmsvOiImplSetReq* req,
     ClassInfo* classInfo = NULL;
     ClassMap::iterator i1;
     ImplementerInfo* info = NULL;
+
+    if(immNotWritable() && !protocol43Allowed()) {
+        TRACE_LEAVE();
+        return SA_AIS_ERR_TRY_AGAIN;
+    }
 
     size_t sz = strnlen((const char *)req->impl_name.buf, req->impl_name.size);
     std::string className((const char *)req->impl_name.buf, sz);
@@ -10573,6 +10606,11 @@ SaAisErrorT ImmModel::objectImplementerSet(const struct ImmsvOiImplSetReq* req,
     osafassert(ccbId);
     *ccbId = 0;
     TRACE_ENTER();
+
+    if(immNotWritable() && !protocol43Allowed()) {
+        TRACE_LEAVE();
+        return SA_AIS_ERR_TRY_AGAIN;
+    }
     
     size_t sz = strnlen((const char *)req->impl_name.buf, req->impl_name.size);
     std::string objectName((const char *)req->impl_name.buf, sz);
