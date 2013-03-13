@@ -367,6 +367,13 @@ uint32_t avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
+
+	if (m_AVND_IS_SHUTTING_DOWN(cb)) {
+		/* AVA down should be ignored during SHUTTING DOWN and components should be cleaned up in order when 
+		   SUSI removal is done.*/
+		goto done;
+	}
+
 	memset(&name, 0, sizeof(SaNameT));
 
 	/* get the matching registered comp (if any) */
@@ -390,7 +397,7 @@ uint32_t avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	/* pg tracking may be started by this ava... delete those traces */
 	avnd_pg_finalize(cb, 0, &mds_evt->mds_dest);
-
+done:
 	TRACE_LEAVE();
 	return rc;
 }
@@ -1283,10 +1290,20 @@ uint32_t avnd_comp_csi_remove(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 			    (m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(csi))) {
 				/* remove this csi */
 				rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CSI_REM, 0, csi);
-				if (NCSCC_RC_SUCCESS != rc)
-					goto done;
 				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVING);
 				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, csi, AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+				if (NCSCC_RC_SUCCESS != rc) {
+					if (m_AVND_IS_SHUTTING_DOWN(cb)) {
+						/* Csi remove failure may be because of component crash during 
+						   shutting down. */
+						rc = avnd_comp_csi_remove_done(cb, comp, csi);
+						if (NCSCC_RC_SUCCESS != rc)
+							goto done;
+					}
+					else
+						goto done;
+				}
+
 			} else {
 				/* generate csi-removed indication */
 				rc = avnd_comp_csi_remove_done(cb, comp, csi);
