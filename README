@@ -470,12 +470,8 @@ before starting the opensaf.
 If opensaf is built with default option,  MDS is built to support both TIPC and TCP,
 with TIPC selected as default transport.
 If user wants to use TCP as the transport with default built image, user needs 
-to change the variables MDS_TRANSPORT to TCP and  MDS_INTRANODE_TRANSPORT to UNIX in
-the `/etc/opensaf/nid.conf` file and update the variable DTM_NODE_IP to self node 
-IP address  in the `/etc/opensaf/dtmd.conf`.
-For the applications of the opensaf, user needs to export the variables as said 
-below in there respective start up scripts as shown below,
-export MDS_INTRANODE_TRANSPORT=UNIX
+to change the variables MDS_TRANSPORT to TCP  in the `/etc/opensaf/nid.conf` file
+and update the variable DTM_NODE_IP to self node IP address  in the `/etc/opensaf/dtmd.conf`.
 
 
 Building `OpenSAF' RPMs
