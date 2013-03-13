@@ -1228,8 +1228,19 @@ SaAisErrorT saImmOiImplementerSet(SaImmOiHandleT immOiHandle, const SaImmOiImple
 				"=> Can not register as applier!");
 			goto bad_handle;
 		}
+		/* Optimistically turn on cl_node->isApplier since callbacks may arrive to
+		   the mds thread before reply on the implementerSet request arrives back here. 
+		   If error is returned by implementerSet then isApplier is reset to 0 below.
+		 */
+		cl_node->isApplier = 0x1;
+	} else if(strncmp(implementerName, OPENSAF_IMM_PBE_IMPL_NAME, nameLen) == 0) {
+		/* Optimistically turn on cl-node->isPbe since callbacks may arrive to the mds
+		   thread before reply on the implementerSet request arrives back here. 
+		   If error is returned by implementerSet then isPbe is reset to 0 below.
+		 */
+		TRACE("Special implementer %s detected and noted.", OPENSAF_IMM_PBE_IMPL_NAME);
+		cl_node->isPbe = 0x1;
 	}
-	/*cl_node->isApplier  is set only after successfull reply from server.*/
 
 	if((rc = imma_proc_increment_pending_reply(cl_node, true)) != SA_AIS_OK) {
 		TRACE_4("ERR_LIBRARY: Overlapping use of IMM OI handle by multiple threads");
@@ -1318,18 +1329,16 @@ SaAisErrorT saImmOiImplementerSet(SaImmOiHandleT immOiHandle, const SaImmOiImple
 				cl_node->mImplementerId = out_evt->info.imma.info.implSetRsp.implId;
 				cl_node->mImplementerName = calloc(1, nameLen);
 				strncpy(cl_node->mImplementerName, implementerName, nameLen);
-				if(implementerName[0] == '@') {
-					TRACE("Applier implementer %s detected and noted.", implementerName);
-					cl_node->isApplier = 0x1;
-				} else if(strncmp(implementerName, OPENSAF_IMM_PBE_IMPL_NAME, nameLen) == 0) {
-					TRACE("Special implementer %s detected and noted.", OPENSAF_IMM_PBE_IMPL_NAME);
-					cl_node->isPbe = 0x1;
-				}
 			}
 		}
 	}
 
  bad_handle:
+	if(rc != SA_AIS_OK && cl_node) { /* Revert any flags set optimistically. */
+		cl_node->isApplier = 0x0;
+		cl_node->isPbe = 0x0;
+	}
+
 	if (locked)
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
