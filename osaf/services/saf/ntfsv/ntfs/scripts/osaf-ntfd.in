@@ -77,6 +77,7 @@ stop() {
 	echo -n "Stopping $prog: "
 	killproc -p $pidfile $binary
 	RETVAL=$?
+	killall osafntfimcnd
 	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
 		rm -f $lockfile
 		rm -f $COMPNAMEFILE
