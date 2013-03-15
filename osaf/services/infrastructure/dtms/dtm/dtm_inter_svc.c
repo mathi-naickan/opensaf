@@ -118,6 +118,7 @@ uint32_t dtm_node_up(NODE_ID node_id, char *node_name, SYSF_MBX mbx)
 	DTM_RCV_MSG_ELEM *dtm_msg_elem = NULL;
 	uint32_t status = NCSCC_RC_FAILURE;
 	TRACE_ENTER();
+	LOG_NO("Established contact with '%s'", node_name);
 	if (NULL == (dtm_msg_elem = calloc(1, sizeof(DTM_RCV_MSG_ELEM)))) {
 		TRACE("DTM :Calloc failed for DTM_RCV_MSG_ELEM, dtm_node_up");
 		return status;
@@ -160,6 +161,7 @@ uint32_t dtm_node_down(NODE_ID node_id, char *node_name, SYSF_MBX mbx)
 	/* Do a mailbox post */
 	DTM_RCV_MSG_ELEM *dtm_msg_elem = NULL;
 	TRACE_ENTER();
+	LOG_NO("Lost contact with '%s'", node_name);
 	if (NULL == (dtm_msg_elem = calloc(1, sizeof(DTM_RCV_MSG_ELEM)))) {
 		return NCSCC_RC_FAILURE;
 	}
