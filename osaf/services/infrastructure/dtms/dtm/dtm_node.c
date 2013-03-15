@@ -357,7 +357,6 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 
 			recd_bytes = recv(fd, node->len_buff, 2, 0);
 			if (0 == recd_bytes) {
-				LOG_ER("DTM:dtm_comm_socket_recv() failed rc : %d", fd);
 				*close_conn = true;
 				return;
 			} else if (2 == recd_bytes) {
