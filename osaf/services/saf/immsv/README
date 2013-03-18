@@ -491,7 +491,7 @@ operation must be executed:
         immadm -o 1 -p opensafImmNostdFlags:SA_UINT32_T:1 \
            opensafImm=opensafImm,safApp=safImmService
 
-The will set the lowest order bit of the 'opensafImmNostdFlags' runtime
+This will set the lowest order bit of the 'opensafImmNostdFlags' runtime
 attribute inside the immsv. Operation-id '1' invoked on the object
 'opensafImm=opensafImm,safApp=safImmService' has the meaning of 'flags-ON'.
 The lowest order flag is the allow-schema-change flag which controls the
@@ -1569,6 +1569,34 @@ immdump should be split into a tool and a daemon (4.3)
 http://devel.opensaf.org/ticket/2835
 
 
+Notes on upgrading from OpenSAF 4.1/4.2 to OpenSAF 4.3
+======================================================
+Enhancement #1871 opens up for allowing saImmOiImplementerSet during imm-sync.
+This more liberal behavior does not work well during upgrade from earlier 
+OpenSAF releases to the OpenSAF 4.3 release. See ticket #3071.
+
+Because of this upgrade problem, the older more restrictive behavior is still
+enforced in OpenSAF 4.3 unless a flag is turned on in the opensafImmNostdFlags
+runtime attribute in the object: opensafImm=opensafImm,safApp=safImmService.
+The following is the shell command:
+
+        immadm -o 1 -p opensafImmNostdFlags:SA_UINT32_T:4 \
+           opensafImm=opensafImm,safApp=safImmService
+
+This will set the third bit of the 'opensafImmNostdFlags' runtime attribute
+inside the immsv. Operation-id '1' invoked on the object:
+
+ 'opensafImm=opensafImm,safApp=safImmService' 
+
+has the meaning of 'flags-ON'. Operation-id '2' has the meaning of 'flags-OFF'.
+This flag needs to be turned ON when the upgrade to OpenSAF 4.3 has been
+successfully completed. Thus in the final steps of the upgrade. A cluster 
+start/restart of an OpenSAF4.3 system will always automatically turn on
+this flag. In summary:
+
+Bit 1 controls schema (imm class) changes allowed or not.
+Bit 2 controls OpenSAF4.1 protocols allowed or not.
+Bit 3 controls OpenSAF4.3 protocols allowed or not.
 
 
 ----------------------------------------

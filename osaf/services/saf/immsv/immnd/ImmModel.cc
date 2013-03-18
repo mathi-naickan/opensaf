@@ -784,6 +784,13 @@ immModel_protocol41Allowed(IMMND_CB *cb)
 }
 
 SaBoolT
+immModel_protocol43Allowed(IMMND_CB *cb)
+{
+    return (ImmModel::instance(&cb->immModel)->protocol43Allowed()) ?
+        SA_TRUE : SA_FALSE;
+}
+
+SaBoolT
 immModel_purgeSyncRequest(IMMND_CB *cb, SaUint32T clientId)
 {
     return (ImmModel::instance(&cb->immModel)->purgeSyncRequest(clientId)) ?

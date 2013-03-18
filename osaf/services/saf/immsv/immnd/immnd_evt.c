@@ -2042,6 +2042,13 @@ static uint32_t immnd_evt_proc_impl_set(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 		goto agent_rsp;
 	}
 
+	if(!immModel_protocol43Allowed(cb) && 
+		(immModel_immNotWritable(cb) || (cb->mSyncFinalizing && cb->fevs_out_count))) {
+		/*Avoid broadcasting doomed requests. */
+		send_evt.info.imma.info.implSetRsp.error = SA_AIS_ERR_TRY_AGAIN;
+		goto agent_rsp;
+	}
+
 	if (cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) {
 		TRACE_2("ERR_TRY_AGAIN: Too many pending incoming fevs messages (> %u) rejecting impl_set request",
 			IMMSV_DEFAULT_FEVS_MAX_PENDING);
