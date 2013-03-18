@@ -17,6 +17,7 @@
 
 The "Information Model Change Notifier" IMCN implements sending of notifications
 based on callbacks from the IMM special applier support.
+For more information see the OpenSAF Extensions, Programmers Reference
 
 The implementation has to consider the following details:
 
@@ -30,6 +31,7 @@ If Runtime data the notification(s) are sent when the first callback is
 invoked. No more callbacks will be invoked.
 If Config data the CCB data is saved and notification(s) are sent when the
 Apply callback is invoked.
+For more information about the special applier see README files in immsv.
 
 Code
 ----
@@ -48,7 +50,7 @@ General:
 Configuration:
 	This function is by default not activated. To activate a configuration flag
 	is used.
-	#./configure --enable-ntf-imcn
+	#./configure --enable-ntf-imcn <other configurations>
 
 Secondary (child) process (osafntfimcnd):
 *	A new applier OI (special applier) is implemented including:
@@ -57,7 +59,7 @@ Secondary (child) process (osafntfimcnd):
 	- Event polling, dispatch
 
 Debug:
-
+-----
 ntfimcn process traces are by default disabled.
 
 Traces are written to the file:

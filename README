@@ -360,6 +360,8 @@ are available w.r.t enabling/disabling the build for a particular OpenSAF servic
                           [default=no]
   --enable-imm-pbe        enable the IMM Persistent Backend Interface
                           [default=yes]
+  --enable-ntf-imcn       enable the NTF Information Model Notification
+                          producer [default=no]
   --disable-tipc          disable building the TIPC as the transport for MDS 
                           [default=no]
   --disable-ais-ckpt      disable building the SAI-AIS-CKPT service

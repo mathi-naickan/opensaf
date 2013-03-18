@@ -43,6 +43,11 @@ Parts of the library implementations and the base for the 'ntfsend' and
 Only a limited version of the Reader API is implemented which reads from a 
 cache of configurable size, default is 10000 notification.
 
+An extra feature called imcn (Information Model Change Notification) is also
+implemented. This is a feature for sending special notifications when objects
+are created or deleted and when attributes are changed.
+This is an OpenSAF feature that is not a part of the AIS standard.
+For more information see README file in the ntfimcnd directory.
 
 DEPENDENCIES
 ntfsv depends of the following other OpenSAF services:
@@ -55,13 +60,14 @@ DIRECTORY STRUCTURE
 
 osaf/libs/common/ntfsv/include/	Common header files used by both ntfa and ntfs,
                                 implementation used by both server and library.
-osaf/libs/agents/saf/ntfa	ntf library implementation
-osaf/services/saf/ntfsv/ntfs	ntf server
-osaf/tools/safntf/ntfsend	ntfsend ntfsubscribe command
-osaf/tools/safntf/ntfsubscribe	ntfsubscribe command
-osaf/tools/safntf/ntfread	ntfread command
-osaf/libs/saf/libSaNtf 		NTF library staging
-tests/ntfsv			Test suite
+osaf/libs/agents/saf/ntfa	    ntf library implementation
+osaf/services/saf/ntfsv/ntfs	    ntf server
+osaf/services/saf/ntfsv/ntfimcnd    ntfimcn deamon
+osaf/tools/safntf/ntfsend	    ntfsend ntfsubscribe command
+osaf/tools/safntf/ntfsubscribe	    ntfsubscribe command
+osaf/tools/safntf/ntfread	    ntfread command
+osaf/libs/saf/libSaNtf		    NTF library staging
+tests/ntfsv			    Test suite
 
 MAIN FILES
 ntfs:

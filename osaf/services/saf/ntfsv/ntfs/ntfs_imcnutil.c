@@ -56,7 +56,7 @@ static pid_t create_imcnprocess(SaAmfHAStateT ha_state)
 	TRACE_ENTER();
 
 	/*
-	 * Start the configuration notifier process. Make the process aware of
+	 * Start the imcn process. Make the process aware of
 	 * current HA state.
 	 */
 	i_pid = fork();
@@ -82,13 +82,13 @@ static pid_t create_imcnprocess(SaAmfHAStateT ha_state)
 
 /**
  * Thread:
- * Start the cn process and wait for process to exit.
+ * Start the imcn process and wait for process to exit.
  * If the process exit then restart it.
  * 
  * @param _init_params[in]
  * @return
  */
-void *cnsurvail_thread(void *_init_params)
+static void *cnsurvail_thread(void *_init_params)
 {
 	init_params_t *ipar = (init_params_t *) _init_params;
 	pid_t pid = (pid_t) -1;
@@ -107,8 +107,14 @@ void *cnsurvail_thread(void *_init_params)
 		do {
 			rc = waitpid(ipar->pid, &status, 0);
 		} while ((rc == -1) && (errno == EINTR));
-		if ((rc == -1) && (errno == EINVAL)) {
-			LOG_ER("waitpid returned an error %s",strerror(errno));
+		if (rc == -1) {
+			/* This should never happend.
+			 * To get here either:
+			 * an inparameter to waitpid is invalid (EINVAL)
+			 * or
+			 * the process that was just started does not exist (ECHILD)
+			 */
+			LOG_ER("waitpid returned with error %s",strerror(errno));
 			abort();
 		}
 
@@ -119,7 +125,7 @@ void *cnsurvail_thread(void *_init_params)
 }
 
 /**
- * Start cn process surveillance thread
+ * Start the imcn process surveillance thread
  * 
  * @param ha_state[in]
  */
@@ -196,7 +202,7 @@ void handle_state_ntfimcn(SaAmfHAStateT ha_state)
 }
 
 /**
- * Cancel the surveillance trhead and kill the cn process.
+ * Cancel the surveillance trhead and kill the imcn process.
  * Use the pid and thread id saved when the process was started
  * This will terminate the process permanently.
  *

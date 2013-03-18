@@ -292,7 +292,7 @@ int main(int argc, char *argv[])
 		goto done;
 	}
 
-	/* Start the secondary configuration notifier process */
+	/* Start the imcn subprocess */
 	init_ntfimcn(ntfs_cb->ha_state);
 
 	if (ncs_sel_obj_create(&term_sel_obj) != NCSCC_RC_SUCCESS) {
