@@ -1495,10 +1495,15 @@ static void charactersHandler(void* userData,
 	case CATEGORY:
 		if (state->state[state->depth - 1] == CLASS) {
 			SaImmClassCategoryT category;
-			if (strncmp((const char*)chars, "SA_CONFIG", (size_t)len) == 0) {
+
+			/* strlen("SA_CONFIG") == 9, strlen("SA_RUNTIME") == 10 */
+			if (len == 9 && strncmp((const char*)chars, "SA_CONFIG", (size_t)len) == 0) {
 				category = SA_IMM_CLASS_CONFIG;
-			} else {
+			} else if (len == 10 && strncmp((const char*)chars, "SA_RUNTIME", (size_t)len) == 0) {
 				category = SA_IMM_CLASS_RUNTIME;
+			} else {
+				LOG_ER("Unknown class category");
+				exit(1);
 			}
 
 			state->classCategorySet = 1;
@@ -1506,11 +1511,17 @@ static void charactersHandler(void* userData,
 		} else if (state->state[state->depth - 1] == ATTRIBUTE ||
 				   state->state[state->depth - 1] == RDN) {
 			SaImmAttrFlagsT category;
-			if (strncmp((const char*)chars, "SA_CONFIG", (size_t)len) == 0) {
+
+			/* strlen("SA_CONFIG") == 9, strlen("SA_RUNTIME") == 10 */
+			if (len == 9 && strncmp((const char*)chars, "SA_CONFIG", (size_t)len) == 0) {
 				category = SA_IMM_ATTR_CONFIG;
-			} else {
+			} else if (len == 10 && strncmp((const char*)chars, "SA_RUNTIME", (size_t)len) == 0) {
 				category = SA_IMM_ATTR_RUNTIME;
+			} else {
+				LOG_ER("Unknown attribute category");
+				exit(1);
 			}
+
 			state->attrFlags = state->attrFlags | category;
 		}
 
@@ -1581,25 +1592,25 @@ getEntityHandler(void *user_data, const xmlChar *name)
  */
 static SaImmAttrFlagsT charsToFlagsHelper(const xmlChar* str, size_t len)
 {
-	if (strncmp((const char*)str, "SA_MULTI_VALUE", len) == 0) {
+	if (len == strlen("SA_MULTI_VALUE") && strncmp((const char*)str, "SA_MULTI_VALUE", len) == 0) {
 		return SA_IMM_ATTR_MULTI_VALUE;
-	} else if (strncmp((const char*)str, "SA_RDN", len) == 0) {
+	} else if (len == strlen("SA_RDN") && strncmp((const char*)str, "SA_RDN", len) == 0) {
 		return SA_IMM_ATTR_RDN;
-	} else if (strncmp((const char*)str, "SA_CONFIG", len) == 0) {
+	} else if (len == strlen("SA_CONFIG") && strncmp((const char*)str, "SA_CONFIG", len) == 0) {
 		return SA_IMM_ATTR_CONFIG;
-	} else if (strncmp((const char*)str, "SA_WRITABLE", len ) == 0) {
+	} else if (len == strlen("SA_WRITABLE") && strncmp((const char*)str, "SA_WRITABLE", len ) == 0) {
 		return SA_IMM_ATTR_WRITABLE;
-	} else if (strncmp((const char*)str, "SA_INITIALIZED", len) == 0) {
+	} else if (len == strlen("SA_INITIALIZED") && strncmp((const char*)str, "SA_INITIALIZED", len) == 0) {
 		return SA_IMM_ATTR_INITIALIZED;
-	} else if (strncmp((const char*)str, "SA_RUNTIME", len ) == 0) {
+	} else if (len == strlen("SA_RUNTIME") && strncmp((const char*)str, "SA_RUNTIME", len ) == 0) {
 		return SA_IMM_ATTR_RUNTIME;
-	} else if (strncmp((const char*)str, "SA_PERSISTENT", len ) == 0) {
+	} else if (len == strlen("SA_PERSISTENT") && strncmp((const char*)str, "SA_PERSISTENT", len ) == 0) {
 		return SA_IMM_ATTR_PERSISTENT;
-	} else if (strncmp((const char*)str, "SA_CACHED", len) == 0) {
+	} else if (len == strlen("SA_CACHED") && strncmp((const char*)str, "SA_CACHED", len) == 0) {
 		return SA_IMM_ATTR_CACHED;
-	} else if (strncmp((const char*)str, "SA_NOTIFY", len) == 0) {
+	} else if (len == strlen("SA_NOTIFY") && strncmp((const char*)str, "SA_NOTIFY", len) == 0) {
 		return SA_IMM_ATTR_NOTIFY;
-	} else if (strncmp((const char*)str, "SA_NO_DUPLICATES", len) == 0) {
+	} else if (len == strlen("SA_NO_DUPLICATES") && strncmp((const char*)str, "SA_NO_DUPLICATES", len) == 0) {
 		return SA_IMM_ATTR_NO_DUPLICATES;
 	}
 
@@ -1613,27 +1624,25 @@ static SaImmAttrFlagsT charsToFlagsHelper(const xmlChar* str, size_t len)
  */
 static SaImmValueTypeT charsToTypeHelper(const xmlChar* str, size_t len)
 {
-	if (strncmp((const char*)str, "SA_NAME_T", len) == 0) {
+	if (len == strlen("SA_NAME_T") && strncmp((const char*)str, "SA_NAME_T", len) == 0) {
 		return SA_IMM_ATTR_SANAMET;
-	} else if (strncmp((const char*)str, "SA_INT32_T", len ) == 0) {
+	} else if (len == strlen("SA_INT32_T") && strncmp((const char*)str, "SA_INT32_T", len ) == 0) {
 		return SA_IMM_ATTR_SAINT32T;
-	} else if (strncmp((const char*)str, "SA_UINT32_T", len) == 0) {
+	} else if (len == strlen("SA_UINT32_T") && strncmp((const char*)str, "SA_UINT32_T", len) == 0) {
 		return SA_IMM_ATTR_SAUINT32T;
-	} else if (strncmp((const char*)str, "SA_INT64_T", len ) == 0) {
+	} else if (len == strlen("SA_INT64_T") && strncmp((const char*)str, "SA_INT64_T", len ) == 0) {
 		return SA_IMM_ATTR_SAINT64T;
-	} else if (strncmp((const char*)str, "SA_UINT64_T", len) == 0) {
+	} else if (len == strlen("SA_UINT64_T") && strncmp((const char*)str, "SA_UINT64_T", len) == 0) {
 		return SA_IMM_ATTR_SAUINT64T;
-	} else if (strncmp((const char*)str, "SA_TIME_T", len  ) == 0) {
+	} else if (len == strlen("SA_TIME_T") && strncmp((const char*)str, "SA_TIME_T", len  ) == 0) {
 		return SA_IMM_ATTR_SATIMET;
-	} else if (strncmp((const char*)str, "SA_NAME_T", len  ) == 0) {
-		return SA_IMM_ATTR_SANAMET;
-	} else if (strncmp((const char*)str, "SA_FLOAT_T", len ) == 0) {
+	} else if (len == strlen("SA_FLOAT_T") && strncmp((const char*)str, "SA_FLOAT_T", len ) == 0) {
 		return SA_IMM_ATTR_SAFLOATT;
-	} else if (strncmp((const char*)str, "SA_DOUBLE_T", len) == 0) {
+	} else if (len == strlen("SA_DOUBLE_T") && strncmp((const char*)str, "SA_DOUBLE_T", len) == 0) {
 		return SA_IMM_ATTR_SADOUBLET;
-	} else if (strncmp((const char*)str, "SA_STRING_T", len) == 0) {
+	} else if (len == strlen("SA_STRING_T") && strncmp((const char*)str, "SA_STRING_T", len) == 0) {
 		return SA_IMM_ATTR_SASTRINGT;
-	} else if (strncmp((const char*)str, "SA_ANY_T", len   ) == 0) {
+	} else if (len == strlen("SA_ANY_T") && strncmp((const char*)str, "SA_ANY_T", len   ) == 0) {
 		return SA_IMM_ATTR_SAANYT;
 	}
 
