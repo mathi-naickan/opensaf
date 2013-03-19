@@ -1300,6 +1300,9 @@ AVSV_ERR_RCVR avnd_err_esc_su_failover(AVND_CB *cb, AVND_SU *su, AVSV_ERR_RCVR *
 	}
 
 	if (cb->su_failover_cnt == 0) {
+		/* This could be because of component reporting error SA_AMF_COMPONENT_FAILOVER OR because of 
+		   component failing, whose SU has SUFailover attr set to true. */
+		su->su_err_esc_level = AVND_ERR_ESC_LEVEL_2;
 		/* start timer */
 		m_AVND_TMR_NODE_ERR_ESC_START(cb, rc);
 		if (NCSCC_RC_SUCCESS != rc)
@@ -1310,6 +1313,8 @@ AVSV_ERR_RCVR avnd_err_esc_su_failover(AVND_CB *cb, AVND_SU *su, AVSV_ERR_RCVR *
 	}
 
 	if (cb->su_failover_cnt < cb->su_failover_max) {
+		/* This means NODE_ERR_ESC may be already running because of other SUs escalations.*/
+		su->su_err_esc_level = AVND_ERR_ESC_LEVEL_2;
 		cb->su_failover_cnt++;
 		goto done;
 	}
@@ -1344,8 +1349,20 @@ AVSV_ERR_RCVR avnd_err_esc_su_failover(AVND_CB *cb, AVND_SU *su, AVSV_ERR_RCVR *
 uint32_t avnd_evt_tmr_node_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	AVND_SU *su;
 
 	TRACE_ENTER();
+
+	su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
+	while (su != 0) {
+		/* Only reset to those Sus, which have affected the node err esc.*/
+		if (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_2) {
+			su->comp_restart_cnt = 0;
+			su->su_restart_cnt = 0;
+			su->su_err_esc_level = AVND_ERR_ESC_LEVEL_0;
+		}
+		su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)&su->name);
+	}
 
 	/* reset all parameters */
 	cb->su_failover_cnt = 0;
