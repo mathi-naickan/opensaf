@@ -764,6 +764,14 @@ void avd_process_si_dep_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 					si_dep_state_set(si, AVD_SI_NO_DEPENDENCY);
 				}
 
+				/* If dependent is already assigned and its failover is not pending then 
+				  update its dep state to ASSIGNED.*/
+				if ((si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS) && 
+						(all_sponsors_assigned_active(si)) && 
+						(si_assignment_state_check(si))) {
+					si_dep_state_set(si, AVD_SI_ASSIGNED);
+				}
+
 				avd_screen_sponsor_si_state(cb, si, true);
 			}
 		}
