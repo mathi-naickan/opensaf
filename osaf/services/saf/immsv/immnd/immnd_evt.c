@@ -3864,8 +3864,8 @@ static void immnd_evt_pbe_rt_obj_deletes_rsp(IMMND_CB *cb,
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
 			TRACE_LEAVE();
-			return;	/*Note, this means that regardles of ccb outcome, 
-				   we can not reply to the process that started the ccb. */
+			goto noreply;	/*Note, this means that regardles of ccb outcome, 
+					  we can not reply to the process that started the ccb. */
 		}
 
 		TRACE_2("SENDRSP %u", evt->info.ccbUpcallRsp.result);
@@ -3881,6 +3881,7 @@ static void immnd_evt_pbe_rt_obj_deletes_rsp(IMMND_CB *cb,
 		}
 	}
 
+ noreply:
 	if(spApplConn) {
 		int ix = 0;
 		SaImmHandleT tmp_hdl = m_IMMSV_PACK_HANDLE(spApplConn, cb->node_id);
