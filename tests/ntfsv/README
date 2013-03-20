@@ -1,0 +1,41 @@
+#      -*- OpenSAF  -*-
+#
+# (C) Copyright 2008 The OpenSAF Foundation
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  This
+# file and program are licensed under High-Availability Operating
+# Environment Software License Version 1.4.
+# Complete License can be accesseble from below location.
+# http://www.opensaf.org/license
+# See the Copying file included with the OpenSAF distribution for
+# full licensing terms.
+#
+# Author(s): Ericsson AB
+#
+
+In order to run test suite 32-33, three test classes, OsafNtfCmTestRT,
+OsafNtfCmTestRT1 and OsafNtfCmTestCFG must be loaded in IMM. In the UML
+environment these classes are loaded by the test suite provided that the
+ntfsv_test_classes.xml has been put in the
+tools/cluster_sim_uml/repl-opensaf directory. If the test suite doesn't load
+the classes, then update IMM manually with 'immcfg -f ntfsv_test_classes.xml'.
+
+Classes OsafNtfCmTestRT and OsafNtfCmTestCFG are used in test suite 32.
+Test suite 33 and class OsafNtfCmTestRT1 is used for runtime persistency
+testing (PBE).
+
+
+A few things must be done in order to activate PBE:
+
+(1) configure the build with --enable-imm-pbe flag (configure --enable-imm-pbe)
+
+(2) edit the osaf/services/saf/immsv/config/immnd.conf file.
+uncomment the three environment variables IMMSV_ROOT_DIRECTORY, IMMSV_LOAD_FILE
+and IMMSV_PBE_FILE.
+
+Test suite 33 then activates pbe (immcfg -a saImmRepositoryInit=1 safRdn=
+immManagement,safApp=safImmService) itself, which can be verified by looking for
+daemon 'immpbed' on one of the controller nodes.
+

@@ -71,5 +71,15 @@ ntftest_SOURCES = \
 	test.c \
 	util.c
 
+if ENABLE_NTFIMCN
+
+ntftest_SOURCES += test_ntf_imcn.c
+ntftest_SOURCES += $(top_srcdir)/osaf/tools/safimm/src/immutil.c
+ntftest_CPPFLAGS += -I$(top_srcdir)/osaf/libs/common/immsv/include
+
+endif
+
 ntftest_LDADD = \
-	$(top_builddir)/osaf/libs/saf/libSaNtf/libSaNtf.la
+	$(top_builddir)/osaf/libs/saf/libSaNtf/libSaNtf.la \
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOi.la \
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la
