@@ -2523,8 +2523,6 @@ void sidep_si_take_action(AVD_SI *si)
 {
 	TRACE_ENTER2("si:'%s', si_dep_state:'%s'",si->name.value, depstatename[si->si_dep_state]);
 	
-	LOG_NO("Taking sidep action si:'%s', si_dep_state:'%s'",
-			si->name.value, depstatename[si->si_dep_state]);
 	switch (si->si_dep_state) {
 		case AVD_SI_ASSIGNED:
 			/* SI is assigned. Assign all the unassigned dependents*/
