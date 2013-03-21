@@ -38,7 +38,9 @@ public:
 	SmfCallback(): 
 		m_stepCount(onEveryStep),
 		m_atAction(beforeLock),
-		m_time(0)
+		m_callbackLabel(),
+		m_time(0),
+		m_stringToPass()
 		{};
 
 	~SmfCallback(){};

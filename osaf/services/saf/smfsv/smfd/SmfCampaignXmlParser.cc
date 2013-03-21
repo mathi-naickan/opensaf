@@ -361,7 +361,8 @@ SmfCampaignXmlParser::parseUpgradeProcedure(SmfUpgradeProcedure * io_up, xmlNode
                 int procLen = strlen (s);
                 if (procLen > OSAF_MAX_RDN_LENGTH) {
                         LOG_NO("SmfCampaignXmlParser::parseUpgradeProcedure: Procedure name too long %d (max %d), %s", procLen, OSAF_MAX_RDN_LENGTH, s);
-                        TRACE_LEAVE();
+			xmlFree(s);
+			TRACE_LEAVE();
                         return false;
                 }
 
@@ -505,6 +506,7 @@ SmfCampaignXmlParser::parseProcInitAction(SmfUpgradeProcedure * i_proc, xmlNode 
 			if ((s = (char *)xmlGetProp(cur, (const xmlChar *)"ccbFlags"))) {
 				TRACE("ccbFlagss = %s\n", s);
 				iccb->setCcbFlag(s);
+				xmlFree(s);
 			}
 
 			parseImmCcb(iccb, cur);
@@ -564,6 +566,7 @@ SmfCampaignXmlParser::parseProcWrapupAction(SmfUpgradeProcedure * i_proc, xmlNod
 			if ((s = (char *)xmlGetProp(cur, (const xmlChar *)"ccbFlags"))) {
 				TRACE("ccbFlagss = %s\n", s);
 				iccb->setCcbFlag(s);
+				xmlFree(s);
 			}
 
 			parseImmCcb(iccb, cur);
@@ -1082,12 +1085,14 @@ SmfCampaignXmlParser::parseCallback(SmfUpgradeMethod* upgrade, xmlNode* node)
 					if (strcmp((char *)n->name, "onStep") == 0 && n->ns == ns) {
 						TRACE("xmlTag onStep found");
 						if (parseStepCount(n, cb->m_stepCount) == false){
+							delete cb;
 							LOG_NO("SmfCampaignXmlParser::parseCallback: Parse of customizationTime/onStep step counter fails");
 							return false;
 						}
 					} else if (strcmp((char *)n->name, "atAction") == 0 && n->ns == ns) {
 						TRACE("xmlTag atAction found");
 						if (parseAtAction(n, cb->m_atAction) == false){
+							delete cb;
 							LOG_NO("SmfCampaignXmlParser::parseCallback: Parse of customizationTime/atAction fails");
 							return false;
 						}
@@ -1097,6 +1102,7 @@ SmfCampaignXmlParser::parseCallback(SmfUpgradeMethod* upgrade, xmlNode* node)
 			} else if (strcmp((char *)node->name, "atAction") == 0 && node->ns == ns) {
 				TRACE("xmlTag atAction found");
 				if (parseAtAction(node, cb->m_atAction) == false){
+					delete cb;
 					LOG_NO("SmfCampaignXmlParser::parseCallback: Parse of atAction fails");
 					return false;
 				}
@@ -1105,7 +1111,10 @@ SmfCampaignXmlParser::parseCallback(SmfUpgradeMethod* upgrade, xmlNode* node)
 			node = node->next;
 		}
 
-		if (node == NULL) break; // END OF LIST
+		if (node == NULL) {
+			delete(cb);
+			break; // END OF LIST
+		}
 
 		// We have found a customizationTime/atAction tag, now scan for callback
 		while (node != NULL) {
@@ -1118,6 +1127,7 @@ SmfCampaignXmlParser::parseCallback(SmfUpgradeMethod* upgrade, xmlNode* node)
 		}
 
 		if (node == NULL){ // A callback tag must have been found
+			delete cb;
 			LOG_NO("SmfCampaignXmlParser::parseCallback: No callback found for customizationTime/atAction tag");
 			return false;
 		}
@@ -2470,6 +2480,7 @@ SmfCampaignXmlParser::parseCampInitAction(SmfUpgradeCampaign * i_campaign, xmlNo
 			if ((s = (char *)xmlGetProp(cur, (const xmlChar *)"ccbFlags"))) {
 				TRACE("ccbFlagss = %s\n", s);
 				iccb->setCcbFlag(s);
+				xmlFree(s);
 			}
 
 			parseImmCcb(iccb, cur);
@@ -2529,6 +2540,7 @@ SmfCampaignXmlParser::parseCampCompleteAction(SmfUpgradeCampaign * i_campaign, x
 			if ((s = (char *)xmlGetProp(cur, (const xmlChar *)"ccbFlags"))) {
 				TRACE("ccbFlagss = %s\n", s);
 				iccb->setCcbFlag(s);
+				xmlFree(s);
 			}
 
 			parseImmCcb(iccb, cur);
@@ -2586,6 +2598,7 @@ SmfCampaignXmlParser::parseCampWrapupAction(SmfUpgradeCampaign * i_campaign, xml
 			if ((s = (char *)xmlGetProp(cur, (const xmlChar *)"ccbFlags"))) {
 				TRACE("ccbFlagss = %s\n", s);
 				iccb->setCcbFlag(s);
+				xmlFree(s);
 			}
 
 			parseImmCcb(iccb, cur);

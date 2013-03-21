@@ -278,6 +278,7 @@ SaAisErrorT SmfCallback::send_callback_msg(SaSmfPhaseT phase, std::string & step
 				free(evt);
 				goto rem_invid;
 			}
+			free(evt);
 		}
 	}
 rem_invid:

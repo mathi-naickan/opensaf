@@ -51,15 +51,22 @@
 SmfUpgradeMethod::SmfUpgradeMethod()
 	: m_scope(NULL),
 	  m_stepRestartOption(0),
-	  m_stepMaxRetryCount(0)
+	  m_stepMaxRetryCount(0),
+	  callback_list(0)
 {
 }
 
 // ------------------------------------------------------------------------------
-// ~SmfParentType()
+// ~SmfUpgradeMethod()
 // ------------------------------------------------------------------------------
 SmfUpgradeMethod::~SmfUpgradeMethod()
 {
+	delete m_scope;
+
+	std::list < SmfCallback * >::iterator cbkit;
+	for (cbkit = callback_list.begin(); cbkit != callback_list.end(); ++cbkit) {
+		delete(*cbkit);
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -143,7 +150,6 @@ SmfRollingUpgrade::SmfRollingUpgrade():
 // ------------------------------------------------------------------------------
 SmfRollingUpgrade::~SmfRollingUpgrade()
 {
-	delete m_scope;
 }
 
 //------------------------------------------------------------------------------
@@ -171,7 +177,6 @@ SmfSinglestepUpgrade::SmfSinglestepUpgrade():
 // ------------------------------------------------------------------------------
 SmfSinglestepUpgrade::~SmfSinglestepUpgrade()
 {
-	delete m_scope;
 }
 
 //------------------------------------------------------------------------------

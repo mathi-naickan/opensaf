@@ -145,14 +145,17 @@ void smfa_scope_info_free(SMFA_SCOPE_INFO *scope_info)
 {
 	uint32_t no_of_filters;
 	for (no_of_filters=0; no_of_filters < scope_info->scope_of_interest.filtersNumber; no_of_filters++){
-		if (!scope_info->scope_of_interest.filters[no_of_filters].filter.label){
+		if (scope_info->scope_of_interest.filters[no_of_filters].filter.label){
 			free(scope_info->scope_of_interest.filters[no_of_filters].filter.label);
 			scope_info->scope_of_interest.filters[no_of_filters].filter.label = NULL;
 		}
 	}
 
+	free(scope_info->scope_of_interest.filters);
 	free(scope_info);
 	return;
+
+
 }
 /*************************************************************************** 
 @brief		: Delete the scope info node coresponding to the scope_id 
@@ -729,13 +732,12 @@ uint32_t smfa_cbk_list_cleanup(SaSmfHandleT hdl)
 ***************************************************************************/ 
 void smfa_evt_free(SMF_EVT *evt)
 {
-	if (!evt){
-		if (evt->evt.cbk_evt.params)
-			free(evt->evt.cbk_evt.params);
-		if(evt->evt.cbk_evt.cbk_label.label)
-			free(evt->evt.cbk_evt.cbk_label.label);
+	if (evt){
+		free(evt->evt.cbk_evt.params);
+		free(evt->evt.cbk_evt.cbk_label.label);
 		free(evt);
 	}
+
 	return;
 }
 

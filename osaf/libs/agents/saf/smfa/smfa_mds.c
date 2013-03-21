@@ -264,9 +264,11 @@ uint32_t smfa_mds_rcv_cbk(MDS_CALLBACK_RECEIVE_INFO *rcv_evt)
 			/* TODO: What should I do?? ND is waiting for my response.*/
 		}
 	}
+
 	/* This is not the same evt we are putting in client MBX, so free it.*/
-	if (!evt)
-		/*Free the evt.*/
-		smfa_evt_free(evt);
+	free(evt->evt.cbk_evt.params);
+	free(evt->evt.cbk_evt.cbk_label.label);
+	free(smfsv_evt);
+
 	return NCSCC_RC_SUCCESS;
 }

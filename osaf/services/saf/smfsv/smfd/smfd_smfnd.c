@@ -321,7 +321,9 @@ uint32_t smfnd_exec_remote_cmd(const char *i_cmd,
                 }
         }
 
-	return cmd_rsp->info.smfd.event.cmd_rsp.result;
+	rc = cmd_rsp->info.smfd.event.cmd_rsp.result;
+	free(cmd_rsp);
+	return rc;
 }
 
 /**
@@ -368,5 +370,7 @@ uint32_t smfnd_remote_cmd(const char *i_cmd, MDS_DEST i_smfnd_dest, uint32_t i_t
 		return SMFSV_CMD_EXEC_FAILED;
 	}
 
-	return cmd_rsp->info.smfd.event.cmd_rsp.result;
+	rc = cmd_rsp->info.smfd.event.cmd_rsp.result;
+	free(cmd_rsp);
+	return rc;
 }

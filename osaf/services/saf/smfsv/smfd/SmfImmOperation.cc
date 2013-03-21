@@ -211,7 +211,7 @@ SmfImmCreateOperation::SmfImmCreateOperation():
 // ~SmfImmCreateOperation()
 // ------------------------------------------------------------------------------
 SmfImmCreateOperation::~SmfImmCreateOperation()
-{
+{	
 }
 
 //------------------------------------------------------------------------------
@@ -454,6 +454,25 @@ SmfImmCreateOperation::execute(SmfRollbackData* o_rollbackData)
 			return result;
 		}
 	}
+
+	//Free the m_immAttrValues mem
+	for (int i = 0; m_immAttrValues[i] != 0; i++) {
+		SaImmAttrValueT* value = m_immAttrValues[i]->attrValues;
+		for (unsigned int k = 0; m_immAttrValues[i]->attrValuesNumber > k; k++) {
+			if (m_immAttrValues[i]->attrValueType == SA_IMM_ATTR_SASTRINGT) {
+				free(*((SaStringT *) *value));
+			} else if (m_immAttrValues[i]->attrValueType == SA_IMM_ATTR_SAANYT) {
+				free(((SaAnyT *) * value)->bufferAddr);
+			}
+
+			free(*value);
+			value++;
+		}
+			
+		free(m_immAttrValues[i]->attrValues);
+		delete m_immAttrValues[i];
+	}
+	delete [] m_immAttrValues;
 
         if (o_rollbackData != NULL) {
                 SaAisErrorT rollbackResult;
@@ -843,7 +862,8 @@ SmfImmModifyOperation::createAttrMods(void)
 	TRACE_ENTER();
 
 	SaImmAttrModificationT_2 **attributeModifications =
-	    (SaImmAttrModificationT_2 **) new SaImmAttrModificationT_2 *[m_values.size() + 1];
+	    (SaImmAttrModificationT_2 **) new(std::nothrow) SaImmAttrModificationT_2 *[m_values.size() + 1];
+	osafassert(attributeModifications != 0);
 
 	int i = 0;		//Index to a SaImmAttrModificationT_2 pointer in the attributeModificationss array
 
@@ -872,9 +892,9 @@ SmfImmModifyOperation::createAttrMods(void)
 		TRACE("Modifying %s:%s = %s", m_dn.c_str(), (*iter).m_name.c_str(), (*iter).m_values.front().c_str());
 
 		if ((*iter).m_values.size() <= 0){
+			delete mod;
 			LOG_ER("SmfImmModifyOperation::createAttrMods, attribute %s contain %zu values, must contain at least one value",
 			       (*iter).m_name.c_str(),(*iter).m_values.size());
-			delete mod;
 			TRACE_LEAVE();
 			return false;
 		}
@@ -1013,6 +1033,26 @@ SmfImmModifyOperation::execute(SmfRollbackData* o_rollbackData)
 		return result;
 	}
 
+	//Free the m_immAttrMods mem
+	for (int i = 0; m_immAttrMods[i] != 0; i++) {
+		SaImmAttrValueT* value = m_immAttrMods[i]->modAttr.attrValues;
+		for (unsigned int k = 0; m_immAttrMods[i]->modAttr.attrValuesNumber > k; k++) {
+			if (m_immAttrMods[i]->modAttr.attrValueType == SA_IMM_ATTR_SASTRINGT) {
+				free(*((SaStringT *) *value));
+			} else if (m_immAttrMods[i]->modAttr.attrValueType == SA_IMM_ATTR_SAANYT) {
+				free(((SaAnyT *) * value)->bufferAddr);
+			}
+
+			free(*value);
+			value++;
+		}
+			
+		free(m_immAttrMods[i]->modAttr.attrValues);
+		delete m_immAttrMods[i];
+	}
+	delete [] m_immAttrMods;
+
+
         if (o_rollbackData != NULL) {
                 if ((result = this->prepareRollback(o_rollbackData)) != SA_AIS_OK) {
                         LOG_ER("SmfImmModifyOperation::execute, failed to prepare rollback data %s", saf_error(result));
@@ -1033,7 +1073,6 @@ SmfImmModifyOperation::execute(SmfRollbackData* o_rollbackData)
 #endif
 
 	TRACE_LEAVE();
-
 	return result;
 }
 
@@ -1160,7 +1199,8 @@ SmfImmRTCreateOperation::createAttrValues(void)
 	TRACE_ENTER();
 
 	//Create space for attributes
-	SaImmAttrValuesT_2 **attributeValues = (SaImmAttrValuesT_2 **) new SaImmAttrValuesT_2 *[m_values.size() + 1];
+	SaImmAttrValuesT_2 **attributeValues = (SaImmAttrValuesT_2 **) new(std::nothrow) SaImmAttrValuesT_2 *[m_values.size() + 1];
+	osafassert(attributeValues != 0);
 
 	std::list < SmfImmAttribute >::iterator iter;
 	std::list < SmfImmAttribute >::iterator iterE;
@@ -1178,7 +1218,7 @@ SmfImmRTCreateOperation::createAttrValues(void)
 
 		attr->attrName = (char *)(*iter).m_name.c_str();
 		if (smf_stringToImmType((char *)(*iter).m_type.c_str(), attr->attrValueType) == false) {
-			delete 	attr;
+			delete attr;
 			LOG_ER("SmfImmRTCreateOperation::createAttrValues, fail to convert attr [%s] type to valid IMM type", attr->attrName);
 			TRACE_LEAVE();
 			return false;
@@ -1189,7 +1229,7 @@ SmfImmRTCreateOperation::createAttrValues(void)
 		attr->attrValuesNumber = (*iter).m_values.size();
 
 		if (smf_stringsToValues(attr, (*iter).m_values) == false) {	//Convert the string to a SA Forum type
-			delete 	attr;
+			delete attr;
 			LOG_ER("SmfImmRTCreateOperation::createAttrValues, fail to convert attr [%s] value string to attr value", attr->attrName);
 			TRACE_LEAVE();
 			return false;
@@ -1262,8 +1302,26 @@ SmfImmRTCreateOperation::execute()
 		TRACE("saImmOiRtObjectCreate_2 returned %s for %s, parent %s", saf_error(result), className, parentName.value);
 	}
 
-	TRACE_LEAVE();
+	//Free the m_immAttrValues mem
+	for (int i = 0; m_immAttrValues[i] != 0; i++) {
+		SaImmAttrValueT* value = m_immAttrValues[i]->attrValues;
+		for (unsigned int k = 0; m_immAttrValues[i]->attrValuesNumber > k; k++) {
+			if (m_immAttrValues[i]->attrValueType == SA_IMM_ATTR_SASTRINGT) {
+				free(*((SaStringT *) *value));
+			} else if (m_immAttrValues[i]->attrValueType == SA_IMM_ATTR_SAANYT) {
+				free(((SaAnyT *) * value)->bufferAddr);
+			}
 
+			free(*value);
+			value++;
+		}
+			
+		free(m_immAttrValues[i]->attrValues);
+		delete m_immAttrValues[i];
+	}
+	delete [] m_immAttrValues;
+
+	TRACE_LEAVE();
 	return result;
 }
 

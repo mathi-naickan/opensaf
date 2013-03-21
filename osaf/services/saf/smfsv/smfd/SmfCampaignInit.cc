@@ -69,9 +69,6 @@ SmfCampaignInit::~SmfCampaignInit()
 	std::list < SmfImmOperation * >::iterator addIter;
 	std::list < SmfImmOperation * >::iterator addIterE;
 
-	std::list <SmfCallback *>::iterator cbkIter;
-	std::list <SmfCallback *>::iterator cbkIterE;
-
 	addIter = SmfCampaignInit::m_addToImm.begin();
 	addIterE = SmfCampaignInit::m_addToImm.end();
 
@@ -79,6 +76,20 @@ SmfCampaignInit::~SmfCampaignInit()
 		delete((*addIter));
 		addIter++;
 	}
+
+	std::list < SmfUpgradeAction * >::iterator campInitIter;
+	std::list < SmfUpgradeAction * >::iterator campInitIterE;
+
+	campInitIter  = SmfCampaignInit::m_campInitAction.begin();
+	campInitIterE = SmfCampaignInit::m_campInitAction.end();
+
+	while (campInitIter != campInitIterE) {
+		delete((*campInitIter));
+		campInitIter++;
+	}
+
+	std::list <SmfCallback *>::iterator cbkIter;
+	std::list <SmfCallback *>::iterator cbkIterE;
 
 	cbkIter = SmfCampaignInit::m_callbackAtInit.begin();
 	cbkIterE = SmfCampaignInit::m_callbackAtInit.end();

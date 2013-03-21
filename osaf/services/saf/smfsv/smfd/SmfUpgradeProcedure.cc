@@ -85,7 +85,13 @@
     m_dn(""),
     m_upgradeMethod(0),
     m_procInitAction(0), 
-    m_procWrapupAction(0)
+    m_procWrapupAction(0),
+    m_procSteps(0),
+    m_beforeLock(0),
+    m_beforeTerm(0),
+    m_afterImmModify(0),
+    m_afterInstantiate(0),
+    m_afterUnlock(0)
 {
 
 }
@@ -120,33 +126,6 @@ SmfUpgradeProcedure::~SmfUpgradeProcedure()
 	/* Delete upgrade steps */
 	for (stepit = m_procSteps.begin(); stepit != m_procSteps.end(); ++stepit) {
 		delete(*stepit);
-	}
-
-	std::list < SmfCallback * >::iterator cbkit;
-
-	/* Delete beforeLock list of callbacks */
-	for (cbkit = m_beforeLock.begin(); cbkit != m_beforeLock.end(); ++cbkit) {
-		delete(*cbkit);
-	}
-
-	/* Delete beforeTerm list of callbacks */
-	for (cbkit = m_beforeTerm.begin(); cbkit != m_beforeTerm.end(); ++cbkit) {
-		delete(*cbkit);
-	}
-
-	/* Delete afterImmModify list of callbacks */
-	for (cbkit = m_afterImmModify.begin(); cbkit != m_afterImmModify.end(); ++cbkit) {
-		delete(*cbkit);
-	}
-
-	/* Delete afterInstantiate list of callbacks */
-	for (cbkit = m_afterInstantiate.begin(); cbkit != m_afterInstantiate.end(); ++cbkit) {
-		delete(*cbkit);
-	}
-
-	/* Delete afterUnlock list of callbacks */
-	for (cbkit = m_afterUnlock.begin(); cbkit != m_afterUnlock.end(); ++cbkit) {
-		delete(*cbkit);
 	}
 
 	TRACE_LEAVE();

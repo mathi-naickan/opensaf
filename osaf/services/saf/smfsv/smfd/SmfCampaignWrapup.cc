@@ -67,10 +67,6 @@ SmfCampaignWrapup::~SmfCampaignWrapup()
 {
 	std::list < SmfImmOperation * >::iterator iter;
 	std::list < SmfImmOperation * >::iterator iterE;
-
-	std::list < SmfCallback * >::iterator cbkIter;
-	std::list < SmfCallback * >::iterator cbkIterE;
-
 	iter = SmfCampaignWrapup::m_removeFromImm.begin();
 	iterE = SmfCampaignWrapup::m_removeFromImm.end();
 
@@ -79,6 +75,26 @@ SmfCampaignWrapup::~SmfCampaignWrapup()
 		iter++;
 	}
 
+	std::list < SmfUpgradeAction * >::iterator actionIter;
+	std::list < SmfUpgradeAction * >::iterator actionIterE;
+	actionIter = SmfCampaignWrapup::m_campCompleteAction.begin();
+	actionIterE = SmfCampaignWrapup::m_campCompleteAction.end();
+
+	while (actionIter != actionIterE) {
+		delete((*actionIter));
+		actionIter++;
+	}
+
+	actionIter = SmfCampaignWrapup::m_campWrapupAction.begin();
+	actionIterE = SmfCampaignWrapup::m_campWrapupAction.end();
+
+	while (actionIter != actionIterE) {
+		delete((*actionIter));
+		actionIter++;
+	}
+
+	std::list < SmfCallback * >::iterator cbkIter;
+	std::list < SmfCallback * >::iterator cbkIterE;
 	cbkIter = SmfCampaignWrapup::m_callbackAtCommit.begin();
 	cbkIterE = SmfCampaignWrapup::m_callbackAtCommit.end();
 
