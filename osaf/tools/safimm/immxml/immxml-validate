@@ -66,6 +66,7 @@ class ImmDocument(BaseImmDocument):
             if self.checkClassClashAcceptable(classElement, className):
                 self.validate_failed("found duplicate class : %s", className)
         else:
+            attrlist = []
             attributeDict = {}
             rdnType = None
             for attribute in classElement.childNodes:
@@ -79,13 +80,18 @@ class ImmDocument(BaseImmDocument):
                     for element in attribute.childNodes:
                         if element.nodeName == "name":
                            attrname = element.firstChild.nodeValue
+                           if attrname in attrlist:
+                               raise Exception("Attribute '%s' is defined more than once in class '%s'" % (attrname, className))
+                           attrlist.append(attrname);
                         elif element.nodeName == "type": 
                            attrtype = element.firstChild.nodeValue
 
                         if attrname != None and attrtype != None:
                             attributeDict[attrname] = attrtype
                             break
-                
+
+            del attrlist
+
             classDefDict = {}
             self.classDict[className] = classDefDict
             self.classDict[className]["attributes"] = attributeDict
@@ -97,13 +103,21 @@ class ImmDocument(BaseImmDocument):
         className = objectElement.getAttribute("class")
         trace("DUMPING Object with className: %s \n %s", className, objectElement.toxml())
                 
+        attrList = []
         objectDnElement = None
         ## find "dn" childnode
         for childNode in objectElement.childNodes:
-            if childNode.nodeName == "dn":
+            if childNode.nodeName == "dn" and objectDnElement == None:
                 objectDnElement = childNode
-                break
-            
+            elif childNode.nodeName == "attr":
+                for attrChild in childNode.childNodes:
+                    if attrChild.nodeName == "name":
+                        if attrChild.firstChild.nodeValue in attrList:
+                            raise Exception("Attribute '%s' is defined more than once in object" % (attrChild.firstChild.nodeValue))
+                        attrList.append(attrChild.firstChild.nodeValue)
+
+        del attrList
+
         if objectDnElement == None or className == None or objectDnElement.firstChild == None:
             self.validate_failed("Failed to find classname or the dn childnode in object:%s. " ,objectElement.toxml())
      

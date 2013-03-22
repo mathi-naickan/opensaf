@@ -1686,6 +1686,14 @@ static void addObjectAttributeDefinition(ParserState* state)
 	/* The object class must be set */
 	assert(state->objectClass);
 
+	std::list<SaImmAttrValuesT_2>::iterator iter;
+	for(iter=state->attrValues.begin(); iter != state->attrValues.end(); iter++) {
+		if(!strcmp(state->attrName, (*iter).attrName)) {
+			LOG_ER("Attribute '%s' is defined more than once in object '%s'", state->attrName, state->objectName);
+			exit(1);
+		}
+	}
+
 	/* Set the valueType */
 	if(state->validation) {
 		/* Set fake value type for validation */
@@ -1852,6 +1860,14 @@ static void addClassAttributeDefinition(ParserState* state)
 
 	/* Set the name */
 	if (state->attrName != NULL) {
+		std::list<SaImmAttrDefinitionT_2>::iterator it;
+		for(it=state->attrDefinitions.begin(); it != state->attrDefinitions.end(); it++) {
+			if(!strcmp(state->attrName, (*it).attrName)) {
+				LOG_ER("Attribute '%s' is defined more than once in class '%s'", state->attrName, state->className);
+				exit(1);
+			}
+		}
+
 		attrDefinition.attrName = state->attrName;
 	} else {
 		LOG_ER( "NO ATTR NAME");
