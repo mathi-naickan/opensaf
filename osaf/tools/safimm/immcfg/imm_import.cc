@@ -372,8 +372,6 @@ void setAdminOwnerHelper(ParserState* state, SaNameT *parentOfObject)
 	std::set<std::string>::iterator set_it = state->adminOwnerSetSet.find(tmpStr);
 	if (set_it != state->adminOwnerSetSet.end()) {
 		LOG_IN("  Already called saImmOmAdminOwnerSet on parent (or parent of parent) '%s'", tmpStr);
-		// lets also store this objectName as "done"
-		state->adminOwnerSetSet.insert(state->objectName);
 		return;
 	}
 
