@@ -586,7 +586,39 @@ static int extractCommonField(char *dest, size_t dest_size,
 
 	case C_TIME_STAMP_DAY_LETTER:
 		stringSize = 3 * sizeof(char);
-		characters = snprintf(dest, dest_size, "%02d", timeStampData->tm_mday);
+		switch (timeStampData->tm_wday) {
+		case DAY_SUNDAY:
+			characters = snprintf(dest, dest_size, "Sun");
+			break;
+
+		case DAY_MONDAY:
+			characters = snprintf(dest, dest_size, "Mon");
+			break;
+
+		case DAY_TUESDAY:
+			characters = snprintf(dest, dest_size, "Tue");
+			break;
+
+		case DAY_WEDNESDAY:
+			characters = snprintf(dest, dest_size, "Wed");
+			break;
+
+		case DAY_THURSDAY:
+			characters = snprintf(dest, dest_size, "Thu");
+			break;
+
+		case DAY_FRIDAY:
+			characters = snprintf(dest, dest_size, "Fri");
+			break;
+
+		case DAY_SATURDAY:
+			characters = snprintf(dest, dest_size, "Sat");
+			break;
+
+		default:
+			(void)strcpy(dest, "");
+			break;
+		}
 		break;
 
 	case C_TIME_STAMP_YEAR_LETTER:
@@ -816,11 +848,44 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		break;
 
 	case N_EVENT_TIME_DAY_LETTER:
-		characters = snprintf(dest, dest_size, "%02d", eventTimeData->tm_mday);
+		switch (eventTimeData->tm_wday) {
+		case DAY_SUNDAY:
+			characters = snprintf(dest, dest_size, "Sun");
+			break;
+
+		case DAY_MONDAY:
+			characters = snprintf(dest, dest_size, "Mon");
+			break;
+
+		case DAY_TUESDAY:
+			characters = snprintf(dest, dest_size, "Tue");
+			break;
+
+		case DAY_WEDNESDAY:
+			characters = snprintf(dest, dest_size, "Wed");
+			break;
+
+		case DAY_THURSDAY:
+			characters = snprintf(dest, dest_size, "Thu");
+			break;
+
+		case DAY_FRIDAY:
+			characters = snprintf(dest, dest_size, "Fri");
+			break;
+
+		case DAY_SATURDAY:
+			characters = snprintf(dest, dest_size, "Sat");
+			break;
+
+		default:
+			(void)strcpy(dest, "");
+			break;
+		}
 		break;
 
 	case N_EVENT_TIME_YEAR_LETTER:
-		characters = snprintf(dest, dest_size, "%02d", eventTimeData->tm_year);
+		characters = snprintf(dest, dest_size, "%02d",
+				eventTimeData->tm_year - (YEAR_2000 - START_YEAR));
 		break;
 
 	case N_EVENT_TIME_FULL_YEAR_LETTER:

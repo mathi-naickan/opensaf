@@ -25,6 +25,7 @@
 #define STRING_END_CHARACTER '\0'
 #define TERMINATION_CHARACTER '\n'
 #define START_YEAR 1900
+#define YEAR_2000 2000
 #define DEFAULT_FMT_EXP_PTR_OFFSET 3
 #define LITTERAL_CHAR_OFFSET 1
 #define MAX_FIELD_SIZE 255
@@ -140,6 +141,16 @@ typedef enum {
 	MONTH_NOVEMBER,
 	MONTH_DECEMBER
 } logRecordMonthTypeT;
+
+typedef enum {
+	DAY_SUNDAY = 0,
+	DAY_MONDAY,
+	DAY_TUESDAY,
+	DAY_WEDNESDAY,
+	DAY_THURSDAY,
+	DAY_FRIDAY,
+	DAY_SATURDAY
+} logRecordDayTypeT;
 
 typedef enum {
 	STREAM_TYPE_ALARM = 0,
