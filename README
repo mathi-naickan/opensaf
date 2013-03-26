@@ -773,13 +773,15 @@ Upgrading OpenSAF from
 - 4.2.0 to 4.2.1 is not possible because of a bug(Refer ticket #2720)
 that got introduced in 4.2.1.
 
-- 4.2.0 to 4.2.2 is supported by default. And,
+- 4.2.0 to 4.2.3 is supported by default.
 
-- 4.2.1 to 4.2.2 is possible by building 4.2.2 with the following
+- 4.2.1 to 4.2.3 is possible by building 4.2.3 with the following
 configure options:
 ./configure CFLAGS="-DUPGRADE_FROM_4_2_1"
- However, upon building 4.2.2 with this build option, an upgrade from
- 4.2.0 to 4.2.2 is not possible.
+ However, upon building 4.2.3 with this build option, an upgrade from
+ 4.2.0 to 4.2.3 is not possible.
+
+- 4.2.2 to 4.2.3 is supported by default.
 
 
 Linux Distro-Specific Notes
