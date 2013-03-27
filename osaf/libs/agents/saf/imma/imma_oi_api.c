@@ -1153,9 +1153,24 @@ SaAisErrorT saImmOiImplementerSet(SaImmOiHandleT immOiHandle, const SaImmOiImple
 	}
 
 	if (cl_node->mImplementerId) {
-		rc = SA_AIS_ERR_EXIST;
-		/* Not BAD_HANDLE. Clarified in SAI-AIS-IMM-A.03.01 */
-		TRACE_2("ERR_EXIST: Implementer already set for this handle");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		/* This is a tricky one #3086. This is not the ERR_EXIST case.
+		   The ERR_EXIST case is where this client is trying to
+		   set implementer-name for the oi-handle and that
+		   implementer-name is occupied by some *other* handle/user.
+		   The problem here is that *this* handle is already occupied
+		   with an implementer name, possibly the same name possibly
+		   not. This is an interface violation since the OI is not
+		   making sense in this request on the handle. Ideally this
+		   should result in ERR_INVALID_PARAM. That error code
+		   happens not to be allowed on saImmOiImplementerSet according
+		   to SAF. The legal alternatives available are BAD_HANDLE or
+		   ERR_LIBRARY, both of which are missleading. We choose to
+		   return ERR_INVALID_PARAM. This is a deviation from the spec,
+		   but only happens to an OI that is incorrectly implemented.
+		 */
+		LOG_NO("ERR_INVALID_PARAM: Implementer %s already set for this handle "
+			"when trying to set %s", cl_node->mImplementerName, implementerName);
 		goto bad_handle;
 	}
 
@@ -1333,12 +1348,12 @@ SaAisErrorT saImmOiImplementerSet(SaImmOiHandleT immOiHandle, const SaImmOiImple
 		}
 	}
 
- bad_handle:
 	if(rc != SA_AIS_OK && cl_node) { /* Revert any flags set optimistically. */
 		cl_node->isApplier = 0x0;
 		cl_node->isPbe = 0x0;
 	}
 
+ bad_handle:
 	if (locked)
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
