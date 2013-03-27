@@ -57,7 +57,7 @@ void saImmOiImplementerSet_04(void)
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
-    test_validate(saImmOiImplementerSet(immOiHandle, implementerName2), SA_AIS_ERR_EXIST);
+    test_validate(saImmOiImplementerSet(immOiHandle, implementerName2), SA_AIS_ERR_INVALID_PARAM);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 }
 
@@ -99,7 +99,7 @@ __attribute__ ((constructor)) static void saImmOiImplementerSet_constructor(void
     test_case_add(2, saImmOiImplementerSet_01, "saImmOiImplementerSet - SA_AIS_OK");
     test_case_add(2, saImmOiImplementerSet_02, "saImmOiImplementerSet - SA_AIS_ERR_BAD_HANDLE");
     test_case_add(2, saImmOiImplementerSet_03, "saImmOiImplementerSet - SA_AIS_ERR_EXIST - som other handle already uses name");
-    test_case_add(2, saImmOiImplementerSet_04, "saImmOiImplementerSet - SA_AIS_ERR_EXIST - handle already associated with name");
+    test_case_add(2, saImmOiImplementerSet_04, "saImmOiImplementerSet - SA_AIS_ERR_INVALID_PARAM - handle already associated with name");
 
     test_case_add(2, saImmOiImplementerClear_01, "saImmOiImplementerClear - SA_AIS_OK");
     test_case_add(2, saImmOiImplementerClear_02, "saImmOiImplementerClear - SA_AIS_ERR_BAD_HANDLE");
