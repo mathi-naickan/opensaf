@@ -1188,7 +1188,7 @@ uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
 		if (stream == NULL) {
 			/* Do not allow standby to get out of sync */
 			LOG_ER("Failed to create stream '%s'", param->logStreamName);
-			lgs_exit("Could not create new stream", SA_AMF_COMPONENT_RESTART);
+			goto done;
 		}
 
 		stream->numOpeners = param->numOpeners;

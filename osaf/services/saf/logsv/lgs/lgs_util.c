@@ -52,10 +52,8 @@ int lgs_create_config_file(log_stream_t *stream)
 	/* check the existence of logsv_root_dir/pathName, create the path if it doesn't */
 	snprintf(pathname, PATH_MAX, "%s/%s", lgs_cb->logsv_root_dir, stream->pathName);
 	struct stat statbuf;
-	if (lstat(pathname, &statbuf) != 0) {
-		char command[PATH_MAX + NAME_MAX];
-		sprintf(command, "mkdir -p %s", pathname);
-		if (system(command) != 0) {
+	if (lgs_relative_path_check(pathname) || lstat(pathname, &statbuf) != 0) {
+		if (lgs_make_dir(lgs_cb->logsv_root_dir, stream->pathName) != 0) {
 			LOG_NO("Create directory '%s/%s' failed", lgs_cb->logsv_root_dir, stream->pathName);
 			rc = -1;
 			goto done;
@@ -289,4 +287,120 @@ void lgs_free_write_log(const lgsv_write_log_async_req_t *param)
 		free(ntfLogH->notificationObject);
 		free(param->logRecord);
 	}
+}
+
+/**
+ * Check if a relative ("/../") path occurs in the path.
+ * @param path
+ */
+bool lgs_relative_path_check(const char* path)
+{
+	bool rc = false;
+	int len_path = strlen(path);
+	if (len_path >= 3) {
+		if (strstr(path, "/../") != NULL || strstr(path, "/..") != NULL) {
+			/* /..dir/ is not allowed, however /dir../ is allowed. */
+			rc = true;
+		} else if (path[0] == '.' && path[1] == '.' && path[2] == '/') {
+			rc = true;
+		}
+	}
+	return rc;
+}
+
+static void quick_fix_make_root_dir(const char* root_dir)
+{
+	struct stat statbuf;
+	char dir_to_make[PATH_MAX];
+	char* dir_ptr = strchr(root_dir, '/');
+	dir_ptr++;
+	while ((dir_ptr = strchr(dir_ptr, '/')) != NULL) {
+		dir_ptr++;
+		strncpy(dir_to_make, root_dir, dir_ptr - root_dir);
+		dir_to_make[dir_ptr - root_dir] = '\0';
+		if (lstat(dir_to_make, &statbuf) != 0) {
+			mkdir(dir_to_make, S_IRWXU | S_IRWXG | S_IRWXO);
+		}
+	}
+	if (lstat(root_dir, &statbuf) != 0) {
+		mkdir(root_dir, S_IRWXU | S_IRWXG | S_IRWXO);
+	}
+}
+
+/**
+ * Create directory structure, if not already created.
+ * @param path
+ */
+int lgs_make_dir(const char* root, const char* path)
+{
+	int rc = 0;
+	const int MAX_DEPTH = 10;
+	const char* path_p = path;
+	int dir_depth = 0;
+	size_t dirs_len[MAX_DEPTH];
+	struct stat buf;
+	char dir_to_make[PATH_MAX + NAME_MAX];
+	int i = 0;
+	int rel_idx = strlen(root);
+
+	TRACE_ENTER();
+
+	/* the root directory must already exist. */
+	struct stat statbuf;
+
+	/* quick temporary fix for ticket 3053 */
+	if (lstat(root, &statbuf) != 0) {
+		quick_fix_make_root_dir(root);
+	}
+	/* end tempoarary fix */
+
+	if (lgs_relative_path_check(root) || lstat(root, &statbuf) != 0 ||
+			(strlen(root) + strlen(path) + 2) > (PATH_MAX + NAME_MAX)) {
+		LOG_ER("root directory problem %s", root);
+		rc = -1;
+		goto done;
+	}
+	if (lgs_relative_path_check(path)) {
+		LOG_ER("relative path in directory %s", path);
+		rc = -1;
+		goto done;
+	}
+
+	/* Check the relative path directory depth, will not allow more than 10. */
+	while (dir_depth < MAX_DEPTH && (path_p = strchr(path_p, '/')) != NULL) {
+		if (path_p > &path[0]) {
+			/* cover the '//' situation */
+			if (*(path_p -1) != '/') {
+				dirs_len[dir_depth++] = path_p - &path[0];
+			}
+		}
+		path_p++;
+	}
+	/* cover the case when the string doesn't end with '/' */
+	if (path[strlen(path) -1] != '/') dirs_len[dir_depth++] = strlen(path);
+
+	if (path_p != NULL) {
+		LOG_ER("relative path directory problem %s", path);
+		rc = -1;
+		goto done;
+	}
+
+	strncpy(dir_to_make, root, strlen(root));
+	if (path[0] != '/' && root[strlen(root) -1] != '/') {
+		dir_to_make[strlen(root)] = '/';
+		rel_idx++;
+	}
+	while (rc == 0 && i < dir_depth) {
+		strncpy(&dir_to_make[rel_idx], path, dirs_len[i]);
+		dir_to_make[rel_idx + dirs_len[i]] = '\0';
+		if (lstat(dir_to_make, &buf) != 0)
+		{
+			rc = mkdir(dir_to_make, S_IRWXU | S_IRWXG | S_IRWXO);
+		}
+		i++;
+	}
+
+done:
+	TRACE_LEAVE2("%u", rc);
+	return rc;
 }

@@ -186,7 +186,7 @@ static bool path_is_writeable_dir(const char *pathname)
 
 	TRACE_ENTER();
 
-	if (stat(pathname, &pathstat) != 0) {
+	if (lgs_relative_path_check(pathname) || stat(pathname, &pathstat) != 0) {
 		LOG_NO("Path %s does not exist", pathname);
 		goto done;
 	}
@@ -535,12 +535,15 @@ static SaAisErrorT check_attr_validity(const struct CcbUtilOperationData *opdata
 				TRACE("fileName: %s", fileName);
 			} else if (!strcmp(attribute->attrName, "saLogStreamPathName")) {
 				struct stat pathstat;
-				char fileName[256];
+				char fileName[PATH_MAX];
 				strcpy(fileName, lgs_cb->logsv_root_dir);
 				strcat(fileName, "//");
 				strcat(fileName, *((char **) value));
 				strcat(fileName, "//.");
-				if (stat(fileName, &pathstat) != 0) {
+				if (lgs_relative_path_check(fileName)) {
+					LOG_ER("Path %s not valid", fileName);
+					rc = SA_AIS_ERR_INVALID_PARAM;
+				} else if (stat(lgs_cb->logsv_root_dir, &pathstat) != 0) {
 					LOG_ER("Path %s does not exist", fileName);
 					rc = SA_AIS_ERR_BAD_OPERATION;
 				}
@@ -557,8 +560,8 @@ static SaAisErrorT check_attr_validity(const struct CcbUtilOperationData *opdata
 				TRACE("maxLogFileSize: %llu", maxLogFileSize);
 			} else if (!strcmp(attribute->attrName, "saLogStreamFixedLogRecordSize")) {
 				SaUint32T fixedLogRecordSize = *((SaUint32T *) value);
-				if (stream->maxLogFileSize > 0 &&
-						stream != NULL &&
+				if (stream != NULL &&
+						stream->maxLogFileSize > 0 &&
 						fixedLogRecordSize > stream->maxLogFileSize) {
 					LOG_ER("fixedLogRecordSize out of range");
 					rc = SA_AIS_ERR_BAD_OPERATION;
@@ -615,12 +618,20 @@ static SaAisErrorT check_attr_validity(const struct CcbUtilOperationData *opdata
 					rc = SA_AIS_ERR_BAD_OPERATION;
 				}
 				TRACE("severityFilter: %u", severityFilter);
+			} else if (!strncmp(attribute->attrName, "SaImm", 5) ||
+					!strncmp(attribute->attrName, "safLg", 5)) {
+				;
 			} else {
 				LOG_ER("invalid attribute %s", attribute->attrName);
 				rc = SA_AIS_ERR_BAD_OPERATION;
 			}
-		} else
-			break;
+		} else {
+			TRACE("i: %d, attribute: %d, value: %d", i, attribute == NULL ? 0 : 1
+					, value == NULL ? 0 : 1);
+			if (attribute == NULL) {
+				break;
+			}
+		}
 		i++;
 	}
 	TRACE_LEAVE();
@@ -1053,9 +1064,10 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 	}
 
 	if (new_cfg_file_needed) {
-		if (log_stream_config_change(LGS_STREAM_CREATE_FILES, stream, current_file_name) != 0) {
-			LOG_ER("log_stream_config_change failed");
-			exit(1);
+		int rc;
+		if ((rc = log_stream_config_change(LGS_STREAM_CREATE_FILES, stream, current_file_name))
+				!= 0) {
+			LOG_ER("log_stream_config_change failed: %d", rc);
 		}
 	}
 

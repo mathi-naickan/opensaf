@@ -46,5 +46,7 @@ extern SaTimeT lgs_get_SaTime(void);
 extern int lgs_file_rename(const char *path, const char *old_name, const char *time_stamp, const char *suffix);
 extern uint32_t lgs_create_known_streams(lgs_cb_t *lgs_cb);
 extern void lgs_exit(const char *msg, SaAmfRecommendedRecoveryT rec_rcvr);
+extern bool lgs_relative_path_check(const char* path);
+extern int lgs_make_dir(const char* root, const char* path);
 
 #endif   /* ifndef __LGS_UTIL_H */

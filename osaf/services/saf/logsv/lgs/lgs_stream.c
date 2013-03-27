@@ -292,6 +292,9 @@ log_stream_t *log_stream_new(SaNameT *dn,
 	osafassert(dn != NULL);
 	TRACE_ENTER2("%s, l: %u", dn->value, dn->length);
 
+	if (lgs_relative_path_check(pathname)) {
+		goto done;
+	}
 	stream = calloc(1, sizeof(log_stream_t));
 	if (stream == NULL) {
 		LOG_WA("log_stream_new calloc FAILED");
@@ -561,9 +564,7 @@ SaAisErrorT log_stream_open(log_stream_t *stream)
 
 	/* first time open? */
 	if (stream->numOpeners == 0) {
-		
-		char command[PATH_MAX + 16];
-		
+
 		/* Delete to get counting right. It might not exist. */
 		(void)delete_config_file(stream);
 
@@ -572,19 +573,18 @@ SaAisErrorT log_stream_open(log_stream_t *stream)
 			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
 		}
-		
-		sprintf(command, "mkdir -p %s/%s", lgs_cb->logsv_root_dir, stream->pathName);  
-		if (system(command) != 0){
+
+		if (lgs_make_dir(lgs_cb->logsv_root_dir, stream->pathName) != 0){
 			LOG_NO("Create directory '%s/%s' failed", lgs_cb->logsv_root_dir, stream->pathName);
 			rc = SA_AIS_ERR_TRY_AGAIN;
-			goto done;   
+			goto done;
 		}
 
 		if (lgs_create_config_file(stream) != 0) {
 			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
 		}
-		
+
 		sprintf(stream->logFileCurrent, "%s_%s", stream->fileName, lgs_get_time());
 		if ((stream->fd = log_file_open(stream, &errno_save)) == -1) {
 			LOG_NO("Could not open '%s' - %s", stream->logFileCurrent, strerror(errno_save));
@@ -827,12 +827,10 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 	 * enables LOG to cope with temporary file system problems. */
 	
 	if (stream->fd == -1) {
-		char command[PATH_MAX + 16];
 		
 		/* Creating directory of given path to store log and cfg files,
 		 * if not using shared file system. */
-		sprintf(command, "mkdir -p %s/%s", lgs_cb->logsv_root_dir, stream->pathName);
-		if (system(command) != 0) {
+		if (lgs_make_dir(lgs_cb->logsv_root_dir, stream->pathName) != 0) {
 			LOG_NO("Create directory '%s/%s' failed", lgs_cb->logsv_root_dir, stream->pathName);
 			rc = -1;
 			goto done;
