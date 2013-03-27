@@ -263,16 +263,20 @@ unsigned int ncs_os_task(NCS_OS_TASK *task, NCS_OS_TASK_REQUEST request)
 					    (void *(*)(void *))task->info.create.i_entry_point,
 					    task->info.create.i_ep_arg);
 			if (rc != 0) {
-				syslog(LOG_ERR, "thread creation failed for %s with rc = %d errno = %s",
-							 task->info.create.i_name, rc, strerror(errno));
+				if (policy == SCHED_RR || policy == SCHED_FIFO)
+					syslog(LOG_ERR, "Creation of real-time thread '%s' FAILED - '%s'",
+							task->info.create.i_name, strerror(rc));
+				else
+					syslog(LOG_ERR, "Creation of thread '%s' FAILED - '%s'",
+							task->info.create.i_name, strerror(rc));
 				free(task->info.create.o_handle);
 				return NCSCC_RC_FAILURE;
-                        }
+			}
 			
 			rc = pthread_attr_destroy(&attr);
 			if (rc != 0) {
-				syslog(LOG_ERR, "Destroying thread attributes failed for %s with rc = %d, errno = %s",
-									task->info.create.i_name, rc, strerror(errno));
+				syslog(LOG_ERR, "pthread_attr_destroy for %s FAILED - '%s'",
+						task->info.create.i_name, strerror(rc));
 				free(task->info.create.o_handle);
 				return NCSCC_RC_INVALID_INPUT;
 			}
