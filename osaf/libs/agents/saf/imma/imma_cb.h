@@ -181,6 +181,7 @@ int imma_oi_ccb_record_abort(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId);
 int imma_oi_ccb_record_exists(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId);
 int imma_oi_ccb_record_set_error(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId, const SaStringT errorString);
 SaStringT imma_oi_ccb_record_get_error(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId);
+void imma_oi_ccb_allow_error_string(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId);
 int imma_oi_ccb_record_note_callback(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId,
 	struct imma_callback_info *callback);
 struct imma_callback_info * imma_oi_ccb_record_ok_augment(IMMA_CLIENT_NODE *cl_node, 
