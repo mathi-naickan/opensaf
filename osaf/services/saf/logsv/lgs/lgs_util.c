@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include <inttypes.h>
+#include <sys/stat.h>
 #include "immutil.h"
 #include "lgs.h"
 #include "lgs_util.h"
@@ -48,8 +49,20 @@ int lgs_create_config_file(log_stream_t *stream)
 
 	TRACE_ENTER();
 
+	/* check the existence of logsv_root_dir/pathName, create the path if it doesn't */
+	snprintf(pathname, PATH_MAX, "%s/%s", lgs_cb->logsv_root_dir, stream->pathName);
+	struct stat statbuf;
+	if (lstat(pathname, &statbuf) != 0) {
+		char command[PATH_MAX + NAME_MAX];
+		sprintf(command, "mkdir -p %s", pathname);
+		if (system(command) != 0) {
+			LOG_NO("Create directory '%s/%s' failed", lgs_cb->logsv_root_dir, stream->pathName);
+			rc = -1;
+			goto done;
+		}
+	}
 	/* create absolute path for config file */
-	n = snprintf(pathname, PATH_MAX, "%s/%s/%s.cfg", lgs_cb->logsv_root_dir, stream->pathName, stream->fileName);
+	n = snprintf(&pathname[strlen(pathname)], PATH_MAX, "/%s.cfg", stream->fileName);
 
 	/* Check if path got truncated */
 	if (n == sizeof(pathname)) {
