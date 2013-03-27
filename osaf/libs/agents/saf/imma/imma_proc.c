@@ -1934,6 +1934,8 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 				{
 					SaImmOiCcbIdT ccbid = 0LL;
 
+					if(!(cl_node->isApplier)) {imma_oi_ccb_allow_error_string(cl_node, ccbid);}
+
 					if(isPbeOp) {
 						osafassert(callback->ccbID == 0);
 						/* Pseudo ccb towards PBE for PRTO deletes */
@@ -2115,6 +2117,8 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 				{
 					/* Anoying type diff for ccbid between OM and OI */
 					SaImmOiCcbIdT ccbid = callback->ccbID;
+
+					if(!(cl_node->isApplier)) {imma_oi_ccb_allow_error_string(cl_node, ccbid);}
 
 					SaNameT parentName = callback->name;
 					const SaImmClassNameT className = callback->className;	/*0 */
@@ -2332,6 +2336,8 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 						ccbid = callback->ccbID;
 					}
 
+					if(!(cl_node->isApplier)) {imma_oi_ccb_allow_error_string(cl_node, ccbid);}
+
 					localEr = cl_node->o.iCallbk.saImmOiCcbObjectDeleteCallback(callback->lcl_imm_hdl,
 						ccbid, &(callback->name));
 
@@ -2444,6 +2450,8 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 				if (cl_node->o.iCallbk.saImmOiCcbObjectModifyCallback) {
 					/* Anoying type diff for ccbid between OM and OI */
 					SaImmOiCcbIdT ccbid = callback->ccbID;
+
+					if(!(cl_node->isApplier)) {imma_oi_ccb_allow_error_string(cl_node, ccbid);}
 
 					SaNameT objectName = callback->name;
 					int noOfAttrMods = 0;

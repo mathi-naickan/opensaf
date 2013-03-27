@@ -224,19 +224,11 @@ void imma_oi_ccb_record_add(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId, SaUi
 			}
 		}
 
-		if(!(cl_node->isApplier)) {new_ccb->isCcbErrOk = true;}
-
-		if (new_ccb->mCcbErrorString) { /* remove any old string. */
-			free(new_ccb->mCcbErrorString);
-			new_ccb->mCcbErrorString = NULL;
-		}
 		return;
 	}
 
 	new_ccb = calloc(1, sizeof(struct imma_oi_ccb_record));
 	new_ccb->ccbId = ccbId;
-
-	if(!(cl_node->isApplier)) {new_ccb->isCcbErrOk = true;}
 
 	if(!inv) {/* zero inv =>PBE or Applier => count ops. */
 		new_ccb->opCount = 1; 
@@ -352,13 +344,8 @@ int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT 
 				TRACE_5("op-count matches with inv:%u", inv);
 			}
 		}
-		if(!(cl_node->isApplier)) {tmp->isCcbErrOk = true;}
 		tmp->isCcbAugOk = false; /* not allowed to augment ccb in completed UC */
 		tmp->ccbCallback = NULL;
-		if (tmp->mCcbErrorString) { /* remove any old string. */
-			free(tmp->mCcbErrorString);
-			tmp->mCcbErrorString = NULL;
-		}
 	} else {
 		LOG_NO("Record for ccb 0x%llx not found or found aborted in ok_for_critical", ccbId);
 	}
@@ -437,10 +424,24 @@ SaStringT imma_oi_ccb_record_get_error(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT 
 
 	if(tmp && tmp->isCcbErrOk) {
 		osafassert(!(tmp->isCritical));
-		tmp->isCcbErrOk = 0x0; 
+		tmp->isCcbErrOk = false; 
 		return tmp->mCcbErrorString;
 	}
 	return NULL;
+}
+
+void imma_oi_ccb_allow_error_string(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT ccbId)
+{
+       struct imma_oi_ccb_record *the_ccb = imma_oi_ccb_record_find(cl_node, ccbId);
+       if(the_ccb && !(cl_node->isApplier)) {
+               the_ccb->isCcbErrOk = true;
+               if (the_ccb->mCcbErrorString) { /* remove any old string. */
+                       free(the_ccb->mCcbErrorString);
+                       the_ccb->mCcbErrorString = NULL;
+               }
+
+       } else TRACE("Tried to allow error string on in non valid context "
+               "ccb:%llu applier:%u", ccbId, cl_node->isApplier);
 }
 
 struct imma_callback_info * 
