@@ -893,7 +893,7 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		break;
 
 	case N_EVENT_TYPE_LETTER:
-		/* Check field size */ 
+		/* Check field size */
 		fieldSize = checkFieldSize(fmtExpPtr, &fieldSizeOffset);
 		if (fieldSize == 0) {
 			characters = snprintf(dest, dest_size, "%#x", logRecord->logHeader.ntfHdr.eventType);
@@ -902,8 +902,10 @@ static int extractNotificationField(char *dest, size_t dest_size,
 
 			/* TODO!!! Fit hex output to size => two steps for non strings */
                 	/* 0x included in total field size */
-			characters = snprintf(dest, ((size_t)fieldSize + 1),    /* Incl NULL */
-                                      "%#.*x", (int)(fieldSize - 2), logRecord->logHeader.ntfHdr.eventType);
+			fieldSize = (fieldSize > 2) ? (fieldSize - 2) : 2;
+			characters = snprintf(dest, dest_size,
+                                      "%#.*x", fieldSize,
+										logRecord->logHeader.ntfHdr.eventType);
 		}
 
 		*fmtExpPtrOffset = *fmtExpPtrOffset + fieldSizeOffset;
@@ -913,16 +915,14 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		/* Check field size and trunkate alternative pad with blanks */
 		fieldSize = checkFieldSize(fmtExpPtr, &fieldSizeOffset);
 		if (fieldSize == 0) {
-                
-			characters = snprintf(dest,
-                                              dest_size, "%s", logRecord->logHeader.ntfHdr.notificationObject->value);
-
+			characters = snprintf(dest, dest_size, "%s",
+						logRecord->logHeader.ntfHdr.notificationObject->value);
 		} else {
-			characters = snprintf(dest, ((size_t)fieldSize + 1),    /* Incl NULL */
-                                      "%*.*s",
-                                      (int)-fieldSize,
-                                      (int)fieldSize, logRecord->logHeader.ntfHdr.notificationObject->value);
-                }
+			characters = snprintf(dest, dest_size,
+						"%*.*s",
+						(int) -fieldSize,
+						(int) fieldSize, logRecord->logHeader.ntfHdr.notificationObject->value);
+		}
 
 		*fmtExpPtrOffset = *fmtExpPtrOffset + fieldSizeOffset;
 		break;
@@ -932,13 +932,12 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		fieldSize = checkFieldSize(fmtExpPtr, &fieldSizeOffset);
 		if (fieldSize == 0) {
 			characters = snprintf(dest,
-                                              dest_size, "%s", logRecord->logHeader.ntfHdr.notifyingObject->value);
+						dest_size, "%s", logRecord->logHeader.ntfHdr.notifyingObject->value);
 		} else {
-
-			characters = snprintf(dest, ((size_t)fieldSize + 1),    /* Incl NULL */
-                                      "%*.*s",
-                                      (int)-fieldSize,
-                                      (int)fieldSize, logRecord->logHeader.ntfHdr.notifyingObject->value);
+			characters = snprintf(dest, dest_size,
+						"%*.*s",
+						(int) -fieldSize,
+						(int) fieldSize, logRecord->logHeader.ntfHdr.notifyingObject->value);
 		}
 
 		*fmtExpPtrOffset = *fmtExpPtrOffset + fieldSizeOffset;
@@ -1209,6 +1208,7 @@ int lgs_format_log_record(SaLogRecordT *logRecord, const SaStringT formatExpress
 		if (i >= dest_size){
 			/* Truncation exists */
 			truncationCharacter = (SaInt8T)TRUNCATED_LOG_RECORD;
+			break;
 		}
 
 		/* Step forward */
