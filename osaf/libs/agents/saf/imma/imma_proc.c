@@ -1925,8 +1925,6 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 				{
 					SaImmOiCcbIdT ccbid = 0LL;
 
-					if(!(cl_node->isApplier)) {imma_oi_ccb_allow_error_string(cl_node, ccbid);}
-
 					if(isPbeOp) {
 						osafassert(callback->ccbID == 0);
 						/* Pseudo ccb towards PBE for PRTO deletes */
@@ -1947,6 +1945,7 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 						imma_oi_ccb_record_terminate(cl_node, ccbid);
 					} else {
 						ccbid = callback->ccbID;
+					        if(!(cl_node->isApplier)) {imma_oi_ccb_allow_error_string(cl_node, ccbid);}
 						/*Verify op-count before PBE commit of ccb. 
 						  This to eliminate the risk of the CCB committing in PBE
 						  yet failing in imma_oi_ccb_record_set_critical below after the
