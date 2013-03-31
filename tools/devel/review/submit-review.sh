@@ -296,7 +296,7 @@ while [ -z "$toline" ]; do
 done
 
 COMMAND="$HG email --plain -gd -s 'Review Request for $subject' --intro --desc \
-	$rr/rr --to '$toline' --cc devel@list.opensaf.org"
+	$rr/rr --to '$toline' --cc opensaf-devel@lists.sourceforge.net"
 
 if [ $dryrun -eq 1 ]; then
 	COMMAND="${COMMAND} -n"

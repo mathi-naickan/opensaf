@@ -10,7 +10,7 @@ system solution.
 `OpenSAF' has been originally contributed by Motorola ECC, by open sourcing
 its HA middleware suite Netplane Core Services (NCS).
 
-`OpenSAF' has a web site at http://www.opensaf.org/
+`OpenSAF' has a web site at http://opensaf.sourceforge.net/
 
 See file `COPYING.LIB' for copying conditions.
 See file `INSTALL' for compilation and installation instructions.
@@ -85,7 +85,7 @@ Downloading
 
 `OpenSAF' release archives can be obtained from here:
 
-    http://devel.opensaf.org/wiki/downloads/
+    http://sourceforge.net/projects/opensaf/files/releases/
 
 
 Documentation
@@ -98,7 +98,7 @@ Forum Specifications can be downloaded from here:
 
 The `OpenSAF' Programmer's Reference Manuals can be obtained from here:
 
-    http://devel.opensaf.org/wiki/downloads/
+    http://sourceforge.net/projects/opensaf/files/docs/
 
     * OpenSAF Overview
     * OpenSAF Availability Service
@@ -116,24 +116,20 @@ The `OpenSAF' Programmer's Reference Manuals can be obtained from here:
 Development
 ===========
 
-`OpenSAF' development is managed using `Trac', the main project portal can
+`OpenSAF' development is hosted by SourceForge, the main project portal can
 be found here:
 
-  http://devel.opensaf.org/
+  http://sourceforge.net/projects/opensaf/
 
 You can find most information concerning the development of `OpenSAF' at
 this site.
 
 `OpenSAF' is using `Mercurial' (hg) as its Source Control Management system
-tool, the repositories index can be found here:
+tool. `Mercurial' is a fast, lightweight Source Control Management system
+designed for efficient handling of very large distributed projects and can be
+obtained from here:
 
-    http://devel.opensaf.org/hg/
-
-`Mercurial' is a fast, lightweight Source Control Management system designed
-for efficient handling of very large distributed projects and can be obtained
-from here:
-
-    http://www.selenic.com/mercurial/wiki/
+    http://mercurial.selenic.com/
 
 
 Building from `Mercurial'
@@ -142,13 +138,9 @@ Building from `Mercurial'
 If you don't want to use one of the `OpenSAF' release archive, you can get a
 clone and bootstrap it by doing the following steps:
 
-    % hg clone http://devel.opensaf.org/hg/<repo>/
-    % cd <repo>
+    % hg clone http://hg.code.sf.net/p/opensaf/staging opensaf-staging
+    % cd opensaf-staging
     % ./bootstrap.sh
-
-Where <repo> is one of the tree from the repositories index listed here:
-
-    http://devel.opensaf.org/hg/
 
 After bootstraping follow the standard build instructions.
 
@@ -156,21 +148,20 @@ After bootstraping follow the standard build instructions.
 Bug Reporting
 =============
 
-You can send `OpenSAF' bug reports to <devel@list.opensaf.org>. You can
-subscribe to the development mailing list from here:
+You can send `OpenSAF' bug reports to <opensaf-devel@lists.sourceforge.net>.
+You can subscribe to the development mailing list from here:
 
-    http://list.opensaf.org/maillist/listinfo/devel/
+    https://lists.sourceforge.net/lists/listinfo/opensaf-devel
 
-If you need help using `OpenSAF', try <users@list.opensaf.org> instead. You can
-subscribe to the user mailing list from here:
+If you need help using `OpenSAF', try <opensaf-users@lists.sourceforge.net>
+instead. You can subscribe to the user mailing list from here:
 
-    http://list.opensaf.org/maillist/listinfo/users/
+    https://lists.sourceforge.net/lists/listinfo/opensaf-users
 
-You can also use the online bug tracking system in the `Trac' `OpenSAF'
-project to submit new problem reports or search for existing ones:
+You can also use the online bug tracking system in the `OpenSAF' project to
+submit new problem reports or search for existing ones:
 
-    * Create New Ticket: http://devel.opensaf.org/newticket/
-    * Available Reports: http://devel.opensaf.org/report/
+    http://sourceforge.net/p/opensaf/tickets/
 
 When reporting bug, make sure you provide various useful informations about
 your Linux environment:
@@ -747,8 +738,8 @@ imm.xml(see file 00-README.conf).
 Users of OpenSAF 4.0.2 or OpenSAF 4.1.1 releases, who wish to perform an In-Service Upgrade
 to OpenSAF 4.2 using SMF based upgrade campaigns should do the following:
 
-1) Download OpenSAF 4.2 release source tar from http://devel.opensaf.org/downloads
-2) Apply the patch 4.2_upgrade_dummydtsv.patch from http://devel.opensaf.org/downloads
+1) Download OpenSAF 4.2 release source tar from http://sourceforge.net/projects/opensaf/files/releases/
+2) Apply the patch 4.2_upgrade_dummydtsv.patch from http://sourceforge.net/projects/opensaf/files/
 <FIXME: Patch name, link>
 3) Build OpenSAF 4.2 rpms
 4) Execute your SMF upgrade campaigns.
