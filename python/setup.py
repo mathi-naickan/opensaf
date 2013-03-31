@@ -32,10 +32,10 @@ setup(
 	description=description,
 
 	author = 'Wind River Systems, Inc.',
-	author_email = 'devel@list.opensaf.org',
+	author_email = 'opensaf-devel@lists.sourceforge.net',
 	license = 'LGPLv2.1',
 	keywords = 'ais opensaf pyosaf saf',
-	url = 'http://devel.opensaf.org',
+	url = 'http://sourceforge.net/projects/opensaf/',
 
 	packages=find_packages(),
 )
