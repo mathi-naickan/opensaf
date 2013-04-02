@@ -673,10 +673,6 @@ static int extractCommonField(char *dest, size_t dest_size,
 					      (int)-fieldSize, (int)fieldSize, (SaStringT)logRecord->logBuffer->logBuf);
 		}
 
-		/* a value of size or more means that the output was truncated */
-		if (characters >= stringSize)
-			characters = logRecord->logBuffer->logBufSize;
-
 		*fmtExpPtrOffset = *fmtExpPtrOffset + fieldSizeOffset;
 		break;
 
