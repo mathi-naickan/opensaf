@@ -23,6 +23,9 @@
    Wed Feb 29 07:13:00 2012, Hans Feldt <hans.feldt@ericsson.com>
       smfsv: schema changes related to AMF HC commands (#2481)
    Wed Jun 02 10:18:22, Ingvar Bergstrom <ingvar.bergstrom@ericsson.com>
+   Wed Apr 03 20:46:09 2013 +0530, Mathivanan N.P. <mathi.naickan@oracle.com>
+   smfsv: change ucs schema to make attributes unique for object create and modify (#3099)
+
    1) SaNameT pattern value <!xs:pattern value="{Name}={Name}(,{Name})*" />
       changed to
       <xs:pattern value="[a-zA-Z0-9_.\\=-]*=[a-zA-Z0-9_.\\=-]*(,[a-zA-Z0-9_.\\=-]*=[a-zA-Z0-9_.\\=-]*)*" />
@@ -31,6 +34,12 @@
       <xs:element maxOccurs="unbounded" name="targetEntityTemplate">
       to
       <xs:element minOccurs="0" maxOccurs="unbounded" name="targetEntityTemplate">
+   3) The schema is modified by defining 'unique' tag for object creation/modification
+      in the following sections of the schema:
+      - amfentitytypes
+      - immCCB
+      - modifyOperation
+      - activationUnit added
 
   -->
   <xs:element name="upgradeCampaign">
@@ -288,6 +297,10 @@
                               </xs:sequence>
                               <xs:attribute name="safCompType" type="CompTypeNameT" use="required" />
                             </xs:complexType>
+                            <xs:unique name="attribute_CompBaseType">
+                              <xs:selector xpath="attribute"/>
+                              <xs:field xpath="@name"/>
+                            </xs:unique>
                           </xs:element>
                           <xs:element name="SUBaseType">
                             <xs:annotation>
@@ -335,6 +348,10 @@
                               </xs:sequence>
                               <xs:attribute name="safSuType" type="SUTypeNameT" use="required" />
                             </xs:complexType>
+                            <xs:unique name="attribute_SUBaseType">
+                              <xs:selector xpath="attribute"/>
+                              <xs:field xpath="@name"/>
+                            </xs:unique>
                           </xs:element>
                           <xs:element name="SGBaseType">
                             <xs:annotation>
@@ -399,6 +416,10 @@
                               </xs:sequence>
                               <xs:attribute name="safSgType" type="SGTypeNameT" use="required" />
                             </xs:complexType>
+                            <xs:unique name="attribute_SGBaseType">
+                              <xs:selector xpath="attribute"/>
+                              <xs:field xpath="@name"/>
+                            </xs:unique>
                           </xs:element>
                           <xs:element name="AppBaseType">
                             <xs:annotation>
@@ -427,6 +448,10 @@
                               </xs:sequence>
                               <xs:attribute name="safAppType" type="AppTypeNameT" use="required" />
                             </xs:complexType>
+                            <xs:unique name="attribute_AppBaseType">
+                              <xs:selector xpath="attribute"/>
+                              <xs:field xpath="@name"/>
+                            </xs:unique>
                           </xs:element>
                           <xs:element name="CSBaseType">
                             <xs:annotation>
@@ -455,6 +480,10 @@
                               </xs:sequence>
                               <xs:attribute name="safCSType" type="CSTypeNameT" use="required" />
                             </xs:complexType>
+                            <xs:unique name="attribute_CSBaseType">
+                              <xs:selector xpath="attribute"/>
+                              <xs:field xpath="@name"/>
+                            </xs:unique>
                           </xs:element>
                           <xs:element name="ServiceBaseType">
                             <xs:annotation>
@@ -490,6 +519,10 @@
                               </xs:sequence>
                               <xs:attribute name="safSvcType" type="SrvTypeNameT" use="required" />
                             </xs:complexType>
+                            <xs:unique name="attribute_ServiceBaseType">
+                              <xs:selector xpath="attribute"/>
+                              <xs:field xpath="@name"/>
+                            </xs:unique>
                           </xs:element>
                         </xs:choice>
                       </xs:complexType>
@@ -816,6 +849,10 @@
                                                   </xs:extension>
                                                 </xs:complexContent>
                                               </xs:complexType>
+                                              <xs:unique name="attribute_modifyOperation">
+                                                <xs:selector xpath="attribute"/>
+                                                <xs:field xpath="@name"/>
+                                              </xs:unique>
                                             </xs:element>
                                           </xs:sequence>
                                         </xs:complexType>
@@ -941,6 +978,10 @@
           <xs:annotation>
             <xs:documentation>Create a new object of the given class by appending it to the parent object. The new object DN is the parent DN + RDN provided as the name attribute.</xs:documentation>
           </xs:annotation>
+          <xs:unique name="attribute_CCBCreate">
+            <xs:selector xpath="attribute"/>
+            <xs:field xpath="@name"/>
+          </xs:unique>
         </xs:element>
         <xs:element name="delete" type="immDeleteT">
           <xs:annotation>
@@ -958,6 +999,10 @@
               </xs:extension>
             </xs:complexContent>
           </xs:complexType>
+          <xs:unique name="attribute_CCBModify">
+            <xs:selector xpath="attribute"/>
+            <xs:field xpath="@name"/>
+          </xs:unique>
         </xs:element>
       </xs:choice>
       <xs:attribute name="ccbFlags" type="SaUint64T" use="required" />
@@ -1307,6 +1352,10 @@
               <xs:annotation>
                 <xs:documentation>The list of entities to be added to the configuration. </xs:documentation>
               </xs:annotation>
+              <xs:unique name="attribute_immCreate">
+                <xs:selector xpath="attribute"/>
+                <xs:field xpath="@name"/>
+              </xs:unique>
             </xs:element>
             <xs:element minOccurs="0" maxOccurs="unbounded" name="swAdd">
               <xs:annotation>

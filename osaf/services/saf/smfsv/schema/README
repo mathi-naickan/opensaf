@@ -12,5 +12,11 @@ SAI-AIS-SMF-UCS-A.01.02_OpenSAF.xsd
 2) No targetEntity needed in the campaign. This allows e.g. installation 
    of SW without changing any attributes in Comp/SU objects. Suitable for
    OS-type software upgrade which has no Comp/SU representation in IMM.
+3) The schema is modified by defining 'unique' tag for object creation/modification
+   in the following sections of the schema:
+   - amfentitytypes
+   - immCCB
+   - modifyOperation
+   - activationUnit added
 
 Detailed information is found in the beginning of each file.
