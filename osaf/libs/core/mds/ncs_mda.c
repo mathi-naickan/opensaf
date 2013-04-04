@@ -346,7 +346,7 @@ MDA_INST_NAME_TYPE mda_get_inst_name_type(SaNameT *name)
 
 void mds_fixed_vdest_to_inst_name(uint32_t i_vdest_id, SaNameT *o_name)
 {
-	memset(o_name, 0, sizeof(o_name));
+	memset(o_name, 0, sizeof(*o_name));
 	o_name->length = (unsigned short)(glmds_vdest_inst_name_pref.length + VDEST_ID_STR_LEN);
 	memcpy(o_name->value, glmds_vdest_inst_name_pref.value, o_name->length - VDEST_ID_STR_LEN);
 

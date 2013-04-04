@@ -2819,7 +2819,7 @@ uint32_t eds_edp_ed_header_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 
 int32_t eds_ckpt_msg_test_type(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_TEST_JUMP_OFFSET_EDS_CKPT_REG = 1,
 		LCL_TEST_JUMP_OFFSET_EDS_CKPT_FINAL,
 		LCL_TEST_JUMP_OFFSET_EDS_CKPT_CHAN,
@@ -2830,7 +2830,7 @@ int32_t eds_ckpt_msg_test_type(NCSCONTEXT arg)
 		LCL_TEST_JUMP_OFFSET_EDS_CKPT_UNSUBSCRIBE,
 		LCL_TEST_JUMP_OFFSET_EDS_CKPT_CSUM,
 		LCL_TEST_JUMP_OFFSET_EDS_CKPT_AGENT_DOWN
-	} LCL_TEST_JUMP_OFFSET;
+	};
 
 	EDS_CKPT_DATA_TYPE ckpt_rec_type;
 

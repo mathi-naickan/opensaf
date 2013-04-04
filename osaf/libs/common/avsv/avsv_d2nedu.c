@@ -396,7 +396,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 *****************************************************************************/
 int avsv_dnd_msg_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_JMP_OFFSET_AVSV_N2D_NODE_UP_MSG = 1,
 		LCL_JMP_OFFSET_AVSV_N2D_REG_SU_MSG = 4,
 		LCL_JMP_OFFSET_AVSV_N2D_REG_COMP_MSG = 8,
@@ -425,7 +425,7 @@ int avsv_dnd_msg_test_type_fnc(NCSCONTEXT arg)
 		LCL_JMP_OFFSET_AVSV_D2N_ADMIN_OP_REQ_MSG = 112,
 		LCL_JMP_OFFSET_AVSV_D2N_HEARTBEAT_MSG = 116,
 		LCL_JMP_OFFSET_AVSV_D2N_REBOOT_MSG = 117
-	} LCL_JMP_OFFSET_;
+	};
 	AVSV_DND_MSG_TYPE type;
 
 	if (arg == NULL)
