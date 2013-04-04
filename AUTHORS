@@ -3,41 +3,35 @@
 =======================================================================
 | anders.bjornerstedt@ericsson.com| IMM                               |
 -----------------------------------------------------------------------
-| arne.r.eriksson@ericsson.com    | NTF                               |
------------------------------------------------------------------------
 | bertil.engelholm@ericsson.com   | SMF                               |
 -----------------------------------------------------------------------
-| currie.reid@windriver.com       | Python bindings and Tests         |
+| hans.nordeback@ericsson.com     | Python bindings                   |
 -----------------------------------------------------------------------
-| hans.feldt@ericsson.com         | AMF, LOG, RDE, UML                |
+| hans.feldt@ericsson.com         | AMF                               |
 -----------------------------------------------------------------------
 | ingvar.bergstrom@ericsson.com   | SMF                               |
 -----------------------------------------------------------------------
-| johan.o.martensson@ericsson.com | Java mapping                      |
------------------------------------------------------------------------
 | jonas.arndt@hp.com              | PLMc                              |
 -----------------------------------------------------------------------
-| jonathan.fournier@windriver.com | Build, Documentation, Process     |
+| mathi.naickan@oracle.com        | CLM, EVT, PLM                     |
 -----------------------------------------------------------------------
-| lars.g.ekman@ericsson.com       | User Mode Linux                   |
+| ramesh.betham@oracle.com        | LEAP, MBCSv, RDE                  |
 -----------------------------------------------------------------------
-| mnaickan@goahead.com            | CLM, EVT, LOG                     |
+| mahesh.valla@oracle.com         | MDS, CKPT, MSG                    |
 -----------------------------------------------------------------------
-| peter.strand@ericsson.com       | IMM XML tools                     |
+| madhurika.koppula@oracle.com    | LOG                               |
 -----------------------------------------------------------------------
-| rbetham@goahead.com             | LEAP, MBCSv                       |
+| praveen.malviya@oracle.com      | AMF, NTF                          |
 -----------------------------------------------------------------------
-| sgarlapati@goahead.com          | MDS                               |
+| nagendra.k@oracle.com           | AMF                               |
 -----------------------------------------------------------------------
-| valla@goahead.com               | CKPT, IMM                         |
+| reddy.neelakanta@oracle.com     | IMM, IMM Tools                    |
 -----------------------------------------------------------------------
-| vpamidipati@goahead.com         | PLM                               |
+| zoran.milinkovic@ericsson.com   | IMM Tools                         |
 -----------------------------------------------------------------------
-| ???                             | MSG                               |
+| lennart.lund@ericsson.com       | LOG                               |
 -----------------------------------------------------------------------
-| rkonda@goahead.com              | LCK                               |
-=======================================================================
-| (P) = Peer maintainer                                               |
+| anders.widell@ericsson.com      | RDE, UML                          |
 =======================================================================
 
 
@@ -46,13 +40,9 @@
 =======================================================================
 | Many! Add your name here :)                                         |
 -----------------------------------------------------------------------
-| cakula at goahead.com                                               |
-| niclas.c.johansson@ericsson.com | AMF                               |
-| nkumar@goahead.com              | AMF                               |
-| npeddavandla at goahead.com                                         |
-| pmalviya at goahead.com         | AMF                               |
-| sharathkg at goahead.com                                            |
-| skhethavath at goahead.com                                          |
+| carl.johannesson@ericsson.com   | LOG                               |
+| sirisha.alla@oracle.com                                             |
+| suresh.sivakoti@oracle.com                                          |
 =======================================================================
 
 
@@ -68,23 +58,17 @@
 =======================================================================
 | cminyard@mvista.com             | Primary                           |
 -----------------------------------------------------------------------
-| currie.reid@windriver.com       | Alternate                         |
+| hans.feldt@ericsson.com         | Alternate                         |
 -----------------------------------------------------------------------
-| dfick@goahead.com               | Alternate                         |
+| jonas.arndt@hp.com              | Primary                           |
 -----------------------------------------------------------------------
-| hans.feldt@ericsson.com         | Primary / TCC                     |
+| mathi.naickan@oracle.com        | Primary / TCC                     |
 -----------------------------------------------------------------------
-| jonas.arndt@hp.com              | Primary / TCC                     |
+| anders.widell@ericsson.com      | Primary / TCC                     |
 -----------------------------------------------------------------------
-| jonathan.fournier@windriver.com | Primary                           |
+| murthy.esakonu@oracle.com       | Alternate                         |
 -----------------------------------------------------------------------
-| mario.angelic@ericsson.com      | Alternate                         |
------------------------------------------------------------------------
-| sesakonu@goahead.com            | Primary                           |
------------------------------------------------------------------------
-| ulrich.kleber@huawei.com        | Primary                           |
------------------------------------------------------------------------
-| ??? @oracle.com                 | Primary                           |
+| mohan@fc.hp.com                 | Alternate                         |
 =======================================================================
 
 
@@ -114,4 +98,34 @@
 | vishal.soni@emerson.com         | Build / MDS                       |
 -----------------------------------------------------------------------
 | zx5337@huawei.com               | TLC                               |
+-----------------------------------------------------------------------
+| arne.r.eriksson@ericsson.com    | NTF                               |
+-----------------------------------------------------------------------
+| dfick@goahead.com               | TLC                               |
+-----------------------------------------------------------------------
+| mario.angelic@ericsson.com      | TLC                               |
+-----------------------------------------------------------------------
+| sesakonu@goahead.com            | TLC                               |
+-----------------------------------------------------------------------
+| niclas.c.johansson@ericsson.com | AMF                               |
+-----------------------------------------------------------------------
+| hans.feldt@ericsson.com         | LOG, RDE, UML                     |
+-----------------------------------------------------------------------
+| currie.reid@windriver.com       | TLC, Python bindings, Tests       |
+-----------------------------------------------------------------------
+| johan.o.martensson@ericsson.com | Java mapping                      |
+-----------------------------------------------------------------------
+| jonathan.fournier@windriver.com | TLC, Build, Documentation, Process|
+-----------------------------------------------------------------------
+| lars.g.ekman@ericsson.com       | UML                               |
+-----------------------------------------------------------------------
+| peter.strand@ericsson.com       | IMM XML tools                     |
+-----------------------------------------------------------------------
+| vpamidipati@goahead.com         | PLM                               |
+-----------------------------------------------------------------------
+| rkonda@goahead.com              | LCK                               |
+-----------------------------------------------------------------------
+| sgarlapati@goahead.com          | MDS                               |
+-----------------------------------------------------------------------
+| mathi.naickan@oracle.com        | LOG                               |
 =======================================================================
