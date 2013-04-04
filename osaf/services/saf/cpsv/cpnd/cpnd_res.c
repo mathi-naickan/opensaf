@@ -836,13 +836,13 @@ bool cpnd_find_exact_ckptinfo(CPND_CB *cb, CKPT_INFO *ckpt_info, uint32_t bitmap
 	bool found = false;
 
 	TRACE_ENTER();
-	memset(&prev_ckpt_info, 0, sizeof(ckpt_info));
+	memset(&prev_ckpt_info, 0, sizeof(CKPT_INFO));
 	memcpy(&prev_ckpt_info, ckpt_info, sizeof(CKPT_INFO));
 	next = ckpt_info->offset;
 	*prev_offset = prev_ckpt_info.offset;
 
 	while (next >= 0) {
-		memset(&prev_ckpt_info, 0, sizeof(ckpt_info));
+		memset(&prev_ckpt_info, 0, sizeof(CKPT_INFO));
 		i_offset = next * sizeof(CKPT_INFO);
 		m_CPND_CKPTINFO_READ(prev_ckpt_info, (char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), i_offset);
 		if (prev_ckpt_info.bm_offset == bitmap_offset) {

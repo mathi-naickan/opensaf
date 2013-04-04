@@ -92,7 +92,7 @@ static int mqd_a2s_que_info_test_type_func(NCSCONTEXT arg);
 *****************************************************************************/
 static int mqd_a2s_msg_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_TEST_JUMP_OFFSET_MQSV_MQD_A2S_MSG_REG = 1,
 		LCL_TEST_JUMP_OFFSET_MQSV_MQD_A2S_MSG_DEREG,
 		LCL_TEST_JUMP_OFFSET_MQSV_MQD_A2S_MSG_TRACK,
@@ -100,7 +100,7 @@ static int mqd_a2s_msg_test_type_fnc(NCSCONTEXT arg)
 		LCL_TEST_JUMP_OFFSET_MQSV_MQD_A2S_MSG_USEREVT,
 		LCL_TEST_JUMP_OFFSET_MQSV_MQD_A2S_MSG_ND_STATEVT,
 		LCL_TEST_JUMP_OFFSET_MQSV_MQD_A2S_MSG_ND_TIMER_EXPEVT,
-	} LCL_TEST_JUMP_OFFSET;
+	};
 	MQD_A2S_MSG_TYPE type;
 
 	if (arg == NULL) {
@@ -736,10 +736,10 @@ static uint32_t mqsv_edp_mqd_qgroup_param(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 *****************************************************************************/
 static int mqd_a2s_que_info_test_type_func(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_TEST_JUMP_OFFSET_MQSV_OBJ_QUEUE = 1,
 		LCL_TEST_JUMP_OFFSET_MQSV_OBJ_QGROUP
-	} LCL_TEST_JUMP_OFFSET;
+	};
 	MQSV_OBJ_TYPE type;
 
 	if (arg == NULL) {

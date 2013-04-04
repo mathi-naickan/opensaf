@@ -73,7 +73,7 @@ static uint32_t glsv_edp_lock_req_info(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
  *****************************************************************************/
 static int glsv_glnd_evt_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_TEST_JUMP_OFFSET_AGENT_INFO = 1,
 		LCL_TEST_JUMP_OFFSET_CLIENT_INFO,
 		LCL_TEST_JUMP_OFFSET_RESTART_CLIENT_INFO,
@@ -89,7 +89,7 @@ static int glsv_glnd_evt_test_type_fnc(NCSCONTEXT arg)
 		LCL_TEST_JUMP_OFFSET_RSC_MASTER_INFO,
 		LCL_TEST_JUMP_OFFSET_NON_MASTER_INFO,
 		LCL_TEST_JUMP_OFFSET_TMR
-	} LCL_TEST_JUMP_OFFSET;
+	};
 	GLSV_GLND_EVT_TYPE evt_type;
 
 	if (arg == NULL)
@@ -1138,11 +1138,11 @@ uint32_t glsv_edp_glnd_evt(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
  *****************************************************************************/
 static int glsv_gld_evt_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_TEST_JUMP_OFFSET_RSC_OPEN_INFO = 1,
 		LCL_TEST_JUMP_OFFSET_RSC_DETAILS,
 		LCL_TEST_JUMP_OFFSET_GLND_DETAILS
-	} LCL_TEST_JUMP_OFFSET;
+	};
 	GLSV_GLD_EVT_TYPE evt_type;
 
 	if (arg == NULL)

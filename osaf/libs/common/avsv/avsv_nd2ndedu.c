@@ -126,10 +126,10 @@ uint32_t avsv_edp_ndnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 *****************************************************************************/
 int avsv_nd_nd_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_JMP_OFFSET_AVSV_N2N_AVA_INFO = 1,
 		LCL_JMP_OFFSET_AVSV_N2N_CBK_DEL_INFO = 2,
-	} LCL_JMP_OFFSET_;
+	};
 
 	AVND_AVND_EVT_TYPE type;
 

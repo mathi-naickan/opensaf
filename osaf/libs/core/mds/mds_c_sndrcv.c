@@ -6397,7 +6397,7 @@ static uint32_t mds_mcm_add_bcast_list(SEND_MSG *msg, MDS_BCAST_ENUM bcast_enum,
 			return NCSCC_RC_FAILURE;
 		}
 
-		memset(add_ptr, 0, sizeof(add_ptr));
+		memset(add_ptr, 0, sizeof(*add_ptr));
 		add_ptr->bcast_flag = 0;
 		add_ptr->bcast_flag |= bcast_enum;
 		if (BCAST_ENC_FLAT == bcast_enum) {

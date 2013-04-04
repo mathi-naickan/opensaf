@@ -489,12 +489,12 @@ uint32_t avsv_edp_nda_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 *****************************************************************************/
 int avsv_nda_msg_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_JMP_OFFSET_AVSV_N2A_API_INFO = 1,
 		LCL_JMP_OFFSET_AVSV_N2A_CBQ_INFO = 2,
 		LCL_JMP_OFFSET_AVSV_N2A_API_RESP_INFO = 3,
 
-	} LCL_JMP_OFFSET_;
+	};
 	AVSV_NDA_AVA_MSG_TYPE type;
 
 	if (arg == NULL)
@@ -536,7 +536,7 @@ int avsv_nda_msg_test_type_fnc(NCSCONTEXT arg)
 *****************************************************************************/
 int avsv_cbq_info_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_JMP_OFFSET_AVSV_N2A_HC_CBQ_INFO = 1,
 		LCL_JMP_OFFSET_AVSV_N2A_COMP_TERM_INFO = 3,
 		LCL_JMP_OFFSET_AVSV_N2A_CSI_SET_INFO = 4,
@@ -545,7 +545,7 @@ int avsv_cbq_info_test_type_fnc(NCSCONTEXT arg)
 		LCL_JMP_OFFSET_AVSV_N2A_PXIED_COMP_INST_INFO = 21,
 		LCL_JMP_OFFSET_AVSV_N2A_PXIED_COMP_CLEAN_INFO = 22,
 
-	} LCL_JMP_OFFSET_;
+	};
 	AVSV_AMF_CBK_TYPE type;
 
 	if (arg == NULL)
@@ -595,11 +595,11 @@ int avsv_cbq_info_test_type_fnc(NCSCONTEXT arg)
 *****************************************************************************/
 int avsv_api_resp_info_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_JMP_OFFSET_AVSV_N2A_HA_GET_API_RESP_INFO = 1,
 		LCL_JMP_OFFSET_AVSV_N2A_OTHER_API_RESP_INFO = 5,
 
-	} LCL_JMP_OFFSET_;
+	};
 	AVSV_AMF_API_TYPE type;
 
 	if (arg == NULL)
@@ -654,7 +654,7 @@ int avsv_api_resp_info_test_type_fnc(NCSCONTEXT arg)
 
 int avsv_api_info_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_JMP_OFFSET_AVSV_N2A_FINALIZE_API_INFO = 1,
 		LCL_JMP_OFFSET_AVSV_N2A_COMP_REG_API_INFO = 3,
 		LCL_JMP_OFFSET_AVSV_N2A_COMP_UNREG_API_INFO = 6,
@@ -672,7 +672,7 @@ int avsv_api_info_test_type_fnc(NCSCONTEXT arg)
 		LCL_JMP_OFFSET_AVSV_N2A_RESP_API_INFO = 55,
 		LCL_JMP_OFFSET_AVSV_N2A_OTHER_API_INFO = 59,
 
-	} LCL_JMP_OFFSET_;
+	};
 	AVSV_AMF_API_TYPE type;
 
 	if (arg == NULL)
@@ -769,12 +769,12 @@ int avsv_api_info_test_type_fnc(NCSCONTEXT arg)
 
 int avsv_ha_test_type_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_JMP_OFFSET_AVSV_HA_STATE_ACTIVE = 1,
 		LCL_JMP_OFFSET_AVSV_HA_STATE_STANDBY = 3,
 		LCL_JMP_OFFSET_AVSV_HA_STATE_OTHERS = 14,
 
-	} LCL_JMP_OFFSET_;
+	};
 	SaAmfHAStateT type;
 
 	if (arg == NULL)

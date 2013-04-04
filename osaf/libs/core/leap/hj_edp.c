@@ -1585,11 +1585,11 @@ uint32_t ncs_edp_ncs_key(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 *****************************************************************************/
 int ncs_edu_ncs_key_test_fmat_fnc(NCSCONTEXT arg)
 {
-	typedef enum {
+	enum {
 		LCL_TEST_JUMP_OFFSET_FMT_NUM = NCS_FMT_NUM,
 		LCL_TEST_JUMP_OFFSET_FMT_STR = NCS_FMT_STR,
 		LCL_TEST_JUMP_OFFSET_FMT_OCT = NCS_FMT_OCT
-	} LCL_TEST_JUMP_OFFSET;
+	};
 	uint8_t fmat;
 
 	fmat = *(uint8_t *)arg;
