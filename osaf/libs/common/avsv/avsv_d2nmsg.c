@@ -275,11 +275,14 @@ void avsv_dnd_msg_free(AVSV_DND_MSG *msg)
 	 */
 	switch (msg->msg_type) {
 	case AVSV_D2N_REG_SU_MSG:
-		return free_d2n_su_msg_info(msg);
+		free_d2n_su_msg_info(msg);
+		break;
 	case AVSV_D2N_INFO_SU_SI_ASSIGN_MSG:
-		return free_d2n_susi_msg_info(msg);
+		free_d2n_susi_msg_info(msg);
+		break;
 	case AVSV_D2N_PG_TRACK_ACT_RSP_MSG:
-		return free_d2n_pg_msg_info(msg);
+		free_d2n_pg_msg_info(msg);
+		break;
 	default:
 		break;
 	}
