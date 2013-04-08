@@ -1035,6 +1035,8 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			if (m_AVND_SU_OPER_STATE_IS_DISABLED(comp->su)) {
 				m_AVND_SU_IS_ENABLED(comp->su, is_en);
 				if (true == is_en) {
+					/*Clear SU failed state as all components are enabled.*/
+					m_AVND_SU_FAILED_RESET(comp->su);
 					m_AVND_SU_OPER_STATE_SET(comp->su, SA_AMF_OPERATIONAL_ENABLED);
 					m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp->su, AVND_CKPT_SU_OPER_STATE);
 					rc = avnd_di_oper_send(cb, comp->su, 0);
