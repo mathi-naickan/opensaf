@@ -1159,7 +1159,7 @@ uint32_t avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_
 {
 	NCSMDS_INFO mds_info;
 	MDS_SEND_INFO *send_info = &mds_info.info.svc_send;
-	uint32_t rc = NCSCC_RC_SUCCESS;
+	uint32_t rc = NCSCC_RC_FAILURE;
 
 	TRACE_ENTER2("Msg type '%u'", msg->type);
 

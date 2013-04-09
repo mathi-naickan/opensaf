@@ -2184,7 +2184,7 @@ uint32_t ncs_os_process_execute_timed(NCS_OS_PROC_EXECUTE_TIMED_INFO *req)
 				syslog(LOG_ERR, "%s: sysconf failed - %s", __FUNCTION__, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
-			for (; i >= 0; --i)
+			for (i--; i >= 0; --i)
 				(void) close(i); /* close all descriptors */
 
 			/* Redirect standard files to /dev/null */
