@@ -96,11 +96,11 @@ uint32_t avd_mds_set_vdest_role(AVD_CL_CB *cb, SaAmfHAStateT role)
  */
 uint32_t avd_mds_init(AVD_CL_CB *cb)
 {
-	NCSVDA_INFO vda_info;
-	NCSMDS_INFO svc_to_mds_info;
+	NCSVDA_INFO vda_info = {0};
+	NCSMDS_INFO svc_to_mds_info = {0};
 	MDS_SVC_ID svc_id[1];
 	uint32_t rc;
-	NCSADA_INFO ada_info;
+	NCSADA_INFO ada_info = {0};
 	EDU_ERR err = EDU_NORMAL;
 
 	TRACE_ENTER();
@@ -117,8 +117,6 @@ uint32_t avd_mds_init(AVD_CL_CB *cb)
 
 	/* prepare the cb with the vaddress */
 	m_NCS_SET_VDEST_ID_IN_MDS_DEST(cb->vaddr, AVSV_AVD_VCARD_ID);
-
-	memset(&vda_info, '\0', sizeof(NCSVDA_INFO));
 
 	vda_info.req = NCSVDA_VDEST_CREATE;
 	vda_info.info.vdest_create.i_persistent = false;

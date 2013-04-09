@@ -286,6 +286,7 @@ static void copySaImmAttrValuesT(SaImmAttrValuesT_2 *copy, const SaImmAttrValues
 
 	valueSize = value_size(original->attrValueType);
 
+	// alloc blob shared by all values
 	databuffer = (char *)malloc(valueCount * valueSize);
 	osafassert(databuffer != NULL);
 	for (i = 0; i < valueCount; i++) {
@@ -1469,6 +1470,7 @@ static void free_objcreate(struct job_imm_objcreate *objcreate)
 			}
 		}
 		free(attrValue->attrName);
+		free(attrValue->attrValues[0]); // free blob shared by all values
 		free(attrValue->attrValues);
 		free(attrValue);
 	}

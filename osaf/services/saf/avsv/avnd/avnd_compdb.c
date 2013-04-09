@@ -910,14 +910,14 @@ static void avnd_comptype_delete(amf_comp_type_t *compt)
 	}
 
 	/* Free saAmfCtDefCmdEnv[i] before freeing saAmfCtDefCmdEnv */
-        if (compt->saAmfCtDefCmdEnv != NULL) {
-        	arg_counter = 0;
-        	while ((argv = compt->saAmfCtDefCmdEnv[arg_counter++]) != NULL)
-        		free(argv);
-        	free(compt->saAmfCtDefCmdEnv);
-        }
+	if (compt->saAmfCtDefCmdEnv != NULL) {
+		arg_counter = 0;
+		while ((argv = compt->saAmfCtDefCmdEnv[arg_counter++]) != NULL)
+			free(argv);
+		free(compt->saAmfCtDefCmdEnv);
+	}
 
-        free(compt->saAmfCtRelPathInstantiateCmd);
+	free(compt->saAmfCtRelPathInstantiateCmd);
 
 	/* Free saAmfCtDefInstantiateCmdArgv[i] before freeing saAmfCtDefInstantiateCmdArgv */
 	arg_counter = 0;
@@ -954,7 +954,14 @@ static void avnd_comptype_delete(amf_comp_type_t *compt)
 		free(argv);
 	free(compt->saAmfCtDefAmStopCmdArgv);
 
+	free(compt->osafAmfCtRelPathHcCmd);
+	arg_counter = 0;
+	while ((argv = compt->osafAmfCtDefHcCmdArgv[arg_counter++]) != NULL)
+		free(argv);
+	free(compt->osafAmfCtDefHcCmdArgv);
+
 	free(compt);
+
 	TRACE_LEAVE();
 }
 
