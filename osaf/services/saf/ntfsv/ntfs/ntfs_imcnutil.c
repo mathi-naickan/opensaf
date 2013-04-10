@@ -107,12 +107,14 @@ static void *cnsurvail_thread(void *_init_params)
 		do {
 			rc = waitpid(ipar->pid, &status, 0);
 		} while ((rc == -1) && (errno == EINTR));
-		if (rc == -1) {
-			/* This should never happend.
-			 * To get here either:
-			 * an inparameter to waitpid is invalid (EINVAL)
-			 * or
-			 * the process that was just started does not exist (ECHILD)
+		
+		if ((rc == -1) && (errno == ECHILD)) {
+			/* The process does not exist, create it */
+			continue;
+		} else if (rc == -1) {
+			/* 
+			 * This should never happen.
+			 * To get here an options to waitpid is invalid (EINVAL)
 			 */
 			LOG_ER("waitpid returned with error %s",strerror(errno));
 			abort();
