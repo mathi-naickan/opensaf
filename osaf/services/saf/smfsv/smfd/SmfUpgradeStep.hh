@@ -519,6 +519,16 @@ class SmfUpgradeStep {
 ///
 	bool createSaAmfNodeSwBundlesOld();
 
+
+///
+/// Purpose:  calculateSingleStepNodes, calculate the nodes to e.g. install a sw bundle.
+/// @param    i_plmExecEnvList, the list of specified PLM exec env for the item e.g. bundle
+/// @param    o_nodelist, the resulting list.
+/// @return   true on success else false
+///
+	bool calculateSingleStepNodes(std::list<SmfPlmExecEnv> const& i_plmExecEnvList,
+				      std::list<std::string>& o_nodelist);
+
 ///
 /// Purpose:  setSwitchOver  
 /// @param    i_switchover true if switch over ordered 
@@ -643,9 +653,6 @@ class SmfUpgradeStep {
 	bool deleteOneSaAmfNodeSwBundle(
 		const std::string & i_node,
 		const SmfBundleRef& i_bundle);
-	bool calculateSingleStepNodes(
-		std::list<SmfPlmExecEnv> const& i_plmExecEnvList,
-		std::list<std::string>& o_nodelist);
 
 ///
 /// Purpose:  Call admin operation on all dn in list

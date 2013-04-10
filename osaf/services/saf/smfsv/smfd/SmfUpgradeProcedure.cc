@@ -1989,7 +1989,7 @@ SmfUpgradeProcedure::createImmStep(SmfUpgradeStep * i_step)
 	std::list < std::string >::const_iterator iterE;
 
 	/* Create the SaSmfDeactivationUnit object if there ia any object to deactivate */
-	const std::list < std::string > deactList = i_step->getDeactivationUnitList();
+	const std::list < std::string >& deactList = i_step->getDeactivationUnitList();
 	if (deactList.size() != 0) {
 		SmfImmRTCreateOperation icoSaSmfDeactivationUnit;
 		icoSaSmfDeactivationUnit.setClassName("SaSmfDeactivationUnit");
@@ -2075,17 +2075,14 @@ SmfUpgradeProcedure::createImmStep(SmfUpgradeStep * i_step)
 			if (getUpgradeMethod()->getUpgradeMethod() == SA_SMF_ROLLING) {
 				saSmfINNode.addValue(i_step->getSwNode());
 			} else {  //SA_SMF_SINGLE_STEP
-				const std::list < std::string > nodes = i_step->getSwNodeList();
-				std::list < std::string >::const_iterator it;
-				for (it = nodes.begin(); it != nodes.end(); ++it) {
-					saSmfINNode.addValue((*it));
-				}
-
-				//Add extra node information from <swRemove> plmExecEnv
-				const std::list<SmfPlmExecEnv>&plmExecEnvList = (*bundleRefiter).getPlmExecEnvList();
-				std::list <SmfPlmExecEnv>::const_iterator execEnvIt;
-				for (execEnvIt = plmExecEnvList.begin(); execEnvIt != plmExecEnvList.end(); ++execEnvIt) {
-					saSmfINNode.addValue((*execEnvIt).getPrefered());
+				std::list<std::string> swNodeList;
+				if (i_step->calculateSingleStepNodes(bundleRefiter->getPlmExecEnvList(), swNodeList)) {
+					std::list < std::string >::const_iterator it;
+					for (it = swNodeList.begin(); it != swNodeList.end(); ++it) {
+						saSmfINNode.addValue(*it);
+					}
+				} else {
+					LOG_NO("SmfUpgradeProcedure::createImmStep: Can not calculate nodes for SaSmfINNode attribute, continue");
 				}
 			}
 
@@ -2108,7 +2105,7 @@ SmfUpgradeProcedure::createImmStep(SmfUpgradeStep * i_step)
 	}
 
 	/* Create the SaSmfActivationUnit object if there is any object to activate */
-	const std::list < std::string > actList = i_step->getActivationUnitList();
+	const std::list < std::string >& actList = i_step->getActivationUnitList();
 	if(actList.size() != 0) {
 		SmfImmRTCreateOperation icoSaSmfActivationUnit;
 		icoSaSmfActivationUnit.setClassName("SaSmfActivationUnit");
@@ -2194,17 +2191,14 @@ SmfUpgradeProcedure::createImmStep(SmfUpgradeStep * i_step)
 			if (getUpgradeMethod()->getUpgradeMethod() == SA_SMF_ROLLING) {
 				saSmfINNode.addValue(i_step->getSwNode());
 			} else {  //SA_SMF_SINGLE_STEP
-				const std::list < std::string > nodes = i_step->getSwNodeList();
-				std::list < std::string >::const_iterator it;
-				for (it = nodes.begin(); it != nodes.end(); ++it) {
-					saSmfINNode.addValue((*it));
-				}
-
-				//Add extra node information from <swAdd> plmExecEnv
-				const std::list<SmfPlmExecEnv>&plmExecEnvList = (*bundleRefiter).getPlmExecEnvList();
-				std::list <SmfPlmExecEnv>::const_iterator execEnvIt;
-				for (execEnvIt = plmExecEnvList.begin(); execEnvIt != plmExecEnvList.end(); ++execEnvIt) {
-					saSmfINNode.addValue((*execEnvIt).getPrefered());
+				std::list<std::string> swNodeList;
+				if (i_step->calculateSingleStepNodes(bundleRefiter->getPlmExecEnvList(), swNodeList)) {
+					std::list < std::string >::const_iterator it;
+					for (it = swNodeList.begin(); it != swNodeList.end(); ++it) {
+						saSmfINNode.addValue(*it);
+					}
+				} else {
+					LOG_NO("SmfUpgradeProcedure::createImmStep: Can not calculate nodes for SaSmfINNode attribute, continue");
 				}
 			}
 
