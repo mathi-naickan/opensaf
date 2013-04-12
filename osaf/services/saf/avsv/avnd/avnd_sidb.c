@@ -579,7 +579,11 @@ uint32_t avnd_su_si_all_modify(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *param
 		curr_si->prv_assign_state = curr_si->curr_assign_state;
 		m_AVND_SU_SI_CURR_ASSIGN_STATE_SET(curr_si, AVND_SU_SI_ASSIGN_STATE_UNASSIGNED);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_si, AVND_CKPT_SU_SI_REC);
-	}			/* for */
+	}                       /* for */
+
+	if (su->si_list.n_nodes > 1)
+		LOG_NO("Assigning 'all (%u) SIs' %s to '%s'", su->si_list.n_nodes,
+				ha_state[param->ha_state], su->name.value);
 
 	/* now modify the comp-csi records */
 	rc = avnd_su_si_csi_all_modify(cb, su, 0);

@@ -204,19 +204,6 @@ static void handle_su_si_assign_in_term_state(AVND_CB *cb,
 
 	assert(cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATED);
 
-	if ((info->msg_act == AVSV_SUSI_ACT_DEL) ||
-			(info->msg_act == AVSV_SUSI_ACT_MOD)) {
-
-		if (info->si_name.length > 0) {
-			if (avnd_su_si_rec_get(cb, &info->su_name, &info->si_name) == NULL)
-				LOG_ER("susi_assign_evh: '%s' is not assigned to '%s'",
-						info->si_name.value, su->name.value);
-		} else {
-			if (m_NCS_DBLIST_FIND_FIRST(&su->si_list) == NULL)
-				LOG_ER("susi_assign_evh: '%s' has no assignments", su->name.value);
-		}
-	}
-
 	msg.info.avd = calloc(1, sizeof(AVSV_DND_MSG));
 	osafassert(msg.info.avd);
 
@@ -269,6 +256,19 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
+
+	if ((info->msg_act == AVSV_SUSI_ACT_DEL) ||
+			(info->msg_act == AVSV_SUSI_ACT_MOD)) {
+
+		if (info->si_name.length > 0) {
+			if (avnd_su_si_rec_get(cb, &info->su_name, &info->si_name) == NULL)
+				LOG_ER("susi_assign_evh: '%s' is not assigned to '%s'",
+						info->si_name.value, su->name.value);
+		} else {
+			if (m_NCS_DBLIST_FIND_FIRST(&su->si_list) == NULL)
+				LOG_ER("susi_assign_evh: '%s' has no assignments", su->name.value);
+		}
+	}
 
 	if (cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATED) {
 		handle_su_si_assign_in_term_state(cb, su, info);
