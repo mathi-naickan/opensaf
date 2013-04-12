@@ -568,12 +568,26 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 		    (m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_ASSIGNED(curr_si) ||
 		     m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVED(curr_si)) ? NCSCC_RC_SUCCESS : NCSCC_RC_FAILURE;
 
+		if (msg.info.avd->msg_info.n2d_su_si_assign.msg_act == AVSV_SUSI_ACT_ASGN)
+			osafassert(si);
+
 		/* send the msg to AvD */
 		TRACE("Sending. msg_id'%u', node_id'%u', msg_act'%u', su'%s', si'%s', ha_state'%u', error'%u', single_csi'%u'",
 				msg.info.avd->msg_info.n2d_su_si_assign.msg_id,  msg.info.avd->msg_info.n2d_su_si_assign.node_id,
 				msg.info.avd->msg_info.n2d_su_si_assign.msg_act,  msg.info.avd->msg_info.n2d_su_si_assign.su_name.value, 
 				msg.info.avd->msg_info.n2d_su_si_assign.si_name.value, msg.info.avd->msg_info.n2d_su_si_assign.ha_state,
 				msg.info.avd->msg_info.n2d_su_si_assign.error,  msg.info.avd->msg_info.n2d_su_si_assign.single_csi);
+
+		if ((su->si_list.n_nodes > 1) && (si == NULL)) {
+			if (msg.info.avd->msg_info.n2d_su_si_assign.msg_act == AVSV_SUSI_ACT_DEL)
+				LOG_NO("Removed 'all SIs' from '%s'", su->name.value);
+
+			if (msg.info.avd->msg_info.n2d_su_si_assign.msg_act == AVSV_SUSI_ACT_MOD)
+				LOG_NO("Assigned 'all SIs' %s of '%s'",
+						ha_state[msg.info.avd->msg_info.n2d_su_si_assign.ha_state],
+						su->name.value);
+		}
+
 		rc = avnd_di_msg_send(cb, &msg);
 		if (NCSCC_RC_SUCCESS == rc)
 			msg.info.avd = 0;

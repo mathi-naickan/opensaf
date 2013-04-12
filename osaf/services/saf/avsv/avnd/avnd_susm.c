@@ -673,10 +673,8 @@ uint32_t avnd_su_si_remove(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 	AVND_COMP_CSI_REC *curr_csi = 0;
 	AVND_SU_SI_REC *curr_si = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	char *siname = si ? (char*) si->name.value : "all SIs";
 
 	TRACE_ENTER2("'%s' '%s'", su->name.value, si ? si->name.value : NULL);
-	LOG_NO("Removing '%s' from '%s'", siname, su->name.value);
 
 	/* mark the si(s) removing */
 	if (si) {
@@ -689,6 +687,9 @@ uint32_t avnd_su_si_remove(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_si, AVND_CKPT_SU_SI_REC_CURR_ASSIGN_STATE);
 		}
 	}
+
+	if ((su->si_list.n_nodes > 1) && (si == NULL))
+		LOG_NO("Removing 'all (%u) SIs' from '%s'", su->si_list.n_nodes, su->name.value);
 
 	/* if no si is specified, the action is aimed at all the sis... pick up any si */
 	curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
@@ -734,7 +735,9 @@ uint32_t avnd_su_si_remove(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 				/* pick up the last csi */
 				curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_LAST(&curr_si->csi_list);
 
-				/* remove the csi */
+				LOG_NO("Removing '%s' from '%s'", curr_si->name.value, su->name.value);
+
+				/* remove all the CSIs from this comp */
 				if (curr_csi) {
 					rc = avnd_comp_csi_remove(cb, curr_csi->comp, NULL);
 					if (NCSCC_RC_SUCCESS != rc || !su->si_list.n_nodes) 

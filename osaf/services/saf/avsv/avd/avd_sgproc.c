@@ -619,6 +619,7 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 			break;
 		default:
 			LOG_ER("%s: invalid act %u", __FUNCTION__, n2d_msg->msg_info.n2d_su_si_assign.msg_act);
+			susi_assign_msg_dump(__FUNCTION__, __LINE__, &n2d_msg->msg_info.n2d_su_si_assign);
 			goto done;
 			break;
 		}		/* switch (n2d_msg->msg_info.n2d_su_si_assign.msg_act) */
