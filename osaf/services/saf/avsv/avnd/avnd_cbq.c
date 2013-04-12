@@ -419,21 +419,10 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 		}
 
 		if (SA_AIS_OK != resp->err) {
-			if (SA_AMF_HA_QUIESCED == cbk_rec->cbk_info->param.csi_set.ha) {
-				if (comp->su->is_ncs == true) {
-					LOG_ER("%s got failure %u for qsd cbk", comp->name.value, resp->err);
-				}
-
-				/* => quiesced assignment failed, treat it as a comp failure */
-				rc = avnd_comp_csi_qscd_assign_fail_prc(cb, comp, csi, &err_info);
-				if (NCSCC_RC_SUCCESS != rc)
-					goto done;
-			} else {
-				/* process comp-failure */
-				err_info.src = AVND_ERR_SRC_CBK_CSI_SET_FAILED;
-				err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
-				rc = avnd_err_process(cb, comp, &err_info);
-			}
+			/* process comp-failure */
+			err_info.src = AVND_ERR_SRC_CBK_CSI_SET_FAILED;
+			err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
+			rc = avnd_err_process(cb, comp, &err_info);
 		} else {
 			if (SA_AMF_HA_QUIESCING != cbk_rec->cbk_info->param.csi_set.ha) {
 				/* indicate that this csi-assignment is over */
@@ -531,7 +520,6 @@ uint32_t avnd_evt_tmr_cbk_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 	AVND_COMP_CBK *rec = 0;
 	AVND_COMP_HC_REC *hc_rec = 0;
 	AVND_ERR_INFO err_info;
-	AVND_COMP_CSI_REC *csi = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
@@ -552,13 +540,7 @@ uint32_t avnd_evt_tmr_cbk_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 	 */
 	ncshm_give_hdl(tmr->opq_hdl);
 
-	if ((AVSV_AMF_CSI_SET == rec->cbk_info->type) && (SA_AMF_HA_QUIESCED == rec->cbk_info->param.csi_set.ha)) {
-		/* => quiesced assignment failed.. process it */
-		csi = m_AVND_COMPDB_REC_CSI_GET(*(rec->comp), rec->cbk_info->param.csi_set.csi_desc.csiName);
-
-		LOG_ER("%s got qsd cbk timeout", rec->comp->name.value);
-		rc = avnd_comp_csi_qscd_assign_fail_prc(cb, rec->comp, csi, &err_info);
-	} else if (AVSV_AMF_PXIED_COMP_INST == rec->cbk_info->type) {
+	if (AVSV_AMF_PXIED_COMP_INST == rec->cbk_info->type) {
 		rc = avnd_comp_clc_fsm_run(cb, rec->comp, AVND_COMP_CLC_PRES_FSM_EV_INST_FAIL);
 	} else if (AVSV_AMF_PXIED_COMP_CLEAN == rec->cbk_info->type) {
 		rc = avnd_comp_clc_fsm_run(cb, rec->comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL);
