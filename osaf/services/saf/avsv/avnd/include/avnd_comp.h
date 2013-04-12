@@ -831,8 +831,6 @@ extern uint32_t avnd_comp_csi_assign_done(struct avnd_cb_tag *, AVND_COMP *, AVN
 
 extern uint32_t avnd_comp_csi_remove_done(struct avnd_cb_tag *, AVND_COMP *, AVND_COMP_CSI_REC *);
 
-extern uint32_t avnd_comp_csi_qscd_assign_fail_prc(struct avnd_cb_tag *, AVND_COMP *, AVND_COMP_CSI_REC *, AVND_ERR_INFO *err_info);
-
 extern uint32_t avnd_comp_curr_info_del(struct avnd_cb_tag *, AVND_COMP *);
 
 

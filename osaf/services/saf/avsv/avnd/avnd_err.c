@@ -606,13 +606,6 @@ uint32_t avnd_err_rcvr_comp_restart(AVND_CB *cb, AVND_COMP *comp)
 		}
 	}
 
-	/* change the comp oper state to disabled */
-	m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
-	m_AVND_COMP_OPER_STATE_AVD_SYNC(cb, comp, rc);
-	if (NCSCC_RC_SUCCESS != rc)
-		goto done;
-	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_OPER_STATE);
-
  done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
