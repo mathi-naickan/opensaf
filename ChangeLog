@@ -1,3 +1,104 @@
+OpenSAF 4.2.3 (released 2013-04-15)
+
+    This is a maintenance release. The following items were fixed and/or added:
+
+    * avsv: improve logging (#3083)
+    * avsv: treat comp quiesced errs as other errs (#3083)
+    * smfd: records correct nodes in SaSmfImageNodes (#3112)
+    * avsv: fix some memleaks (#3109)
+    * avsv: reset SU failed state after recovery of failed comps (#2919)
+    * opensaf: Update AUTHORS file with current maintainers
+    * opensaf: Fix build problems with GCC 4.8.0 (#3098)
+    * smfsv: change ucs schema to make attributes unique for object create and modify (#3099)
+    * tests/safimm: Update immoitest 2 4 to expect ERR_INVALID_PARAM (#3086)
+    * immsv: saImmOiImplementerSet returns INVALID_PARAM on interface violation (#3086)
+    * opensaf: Update web page and mailing addresses
+    * immsv: Providing correct ccbid in completedcallback, when allowing flag to turn setting of ccb-error-string(#3089)
+    * leap: fix pthread_create logging (#2971)
+    * immsv: Flag to allow ccb-error-string turned on just before callback (#3089)
+    * immtools: fix string compare in immcfg and immload (#3076)
+    * immtools: add a check for more attribute occurrences in a class and in an object for immcfg and immxml-validate (#3048)
+    * immtools: fix admin owner handling in immcfg (#3090)
+    * avsv: Correct assignment counters during node lock operation (#3069)
+    * avsv: Reset su level error escalation counters after saAmfNodeSuFailOverProb expires (#3056)
+    * avsv: stop tol tmr for asgnd dep SI if sponsor SI gets reassgnd (#3057)
+    * immsv: implementerSet optimistically sets client node flags (#3072)
+    * dtms: log high level node event messages (#2707)
+    * smfd: plmExecEnv overrides single step node calculation (3055)
+    * mds/tcp : README change as part of #1799
+    * avsv : Ignore comp faults during shutting down (#2976)
+    * build: Add .hgignore file (#2692)
+    * mds/tcp : Fixed gcc 4.6.2 build issues and README change as  part of #1993
+    * mds: determine transport protocol dynamically (#1799)
+    * mds/tcp:Removed unnecessary bind() in the MDS library (#1993)
+    * immsv: class/object-implementerSet avoids ERR_BUSY & aborts ccbs (#2994)
+    * avsv: improve susi modify response handling in SG realign state (#2846)
+    * avsv: ignore comps in FAILED state at shutdown (#2965)
+    * avsv: add failed state file handling (#2965)
+    * immsv: abortSync done also on clients in state IMM_SERVER_SYNC_PENDING (#3040)
+    * immsv: IMMND Nack's to NID at controlled failure (#3039)
+    * avsv: harden avnd_evt_avd_info_su_si_assign_evh (#2921)
+    * avsv: fix avnd_comp_csi_remove_done (#2990)
+    * avsv: set ALL SI flag when rec SUSI req (#2990)
+    * avsv: terminate NPI component when opensaf is stopped (#2978)
+    * leap: Abort process when encountering too large file descriptor (#3031)
+    * uml: Fix race condition when creating the uml_switch socket (#3025)
+    * cpa:Fixed mem leak in saCkptCheckpointWrite() when  multiple vector case(#2960)
+    * immsv: Consumed search/accessor is de-allocated by server (#3007)
+    * tools/safamf: Return EXIT_FAILURE when pm start fails(#3002)
+    * smfsv: finalize search handle to avoid leaks (#3004)
+    * avsv: nodefailover handling when sufailover in progress (#2968)
+    * smfd: allows campaign objects located at root to be deleted (#2993)
+    * tests: fix build problem on ubuntu 12.04 (#2983)
+    * ntfsv: Fix for type conversion of float and double when doing encode/decode (#2967)
+    * tools/safimm: enable modification of one or more attributes to one or more objects in immcfg (#2950)
+    * amf: remove confusing error messages (#2061)
+    * avsv: do not checkpoint during role transition from qscd to stdby (#2973)
+    * immsv: Convert DN to internal rep in CcbAugment code (#2984)
+    * ava: removed cb from TRACE_LEAVE2 stmt in saAmfFinalize (#2981)
+    * immsv: fix saImmOmClassDescriptionGet_2 to return the correct size of default value of SaAnyT type attribute (#2979)
+    * smfsv: handling of IMM handles for parallell procedures corrected (#2907)
+    * smfd: return SA_AIS_ERR_FAILED_OPERATION when poll fail (#2972)
+    * immsv: IMM schema is reverted to IMM SAF schema and added support for base64 encoding (#2853)
+    * tools/safimm: imm tools support new features developed for OpenSAF 4.3 (#2853)
+    * tools/safimm: add SA_IMM_ATTR_CACHED flag when SA_IMM_ATTR_PERSISTENT flag is provided (#2891)
+    * immsv: Abort sync kills sync and handles straggler finalizesync (#2964)
+    * tools/safamf: add timeout option in amf-adm (#2957)
+    * smfsv: all bundle scripts called during upgrade (#2961)
+    * avsv: handle component errors more graceful during system shutdown (#2783)
+    * avsv: adjust SG attrs at unlock-in of NPI SU (#2860)
+    * avsv: init saAmfSGNumPrefInserviceSUs and saAmfSGNumPrefAssignedSUs (#2881)
+    * opensaf: corrected variable name of AMF WatchDog process priority/policy in 00-README.conf (#2952)
+    * opensaf: remove unwanted macro CHECK_FOR_ROOT_PRIVLEGES in os_defs.c (#2952)
+    * tools/safimm: fixed freeing of sqlite_free_table twice in verifyClassPBE(#2949)
+    * immsv: Plug memory leak for PRTO delete in PBE (#2927)
+    * pyosaf: add argtypes & restypes to AMF & LOG APIs (#2905)
+    * avsv: instantiate app SU only in node state PRESENT (#2878)
+    * tools/safimm: include <libxml/xmlmemory.h> into imm_dumper.cc (#2674)
+    * logsv: Free the resources after processing callback messages in dispatch block (#2910)
+    * immsv: Ccb interference check corrected for implementer-set (#2909)
+    * avsv: log wrong SU config (#2880)
+    * tools/safimm: removed length limitation for create class SQL statement in PBE (#2903)
+    * avsv: modified check for deciding SI dependency exists within SU (#2865)
+    * smfsv ignore error from saClmFinalize (#2895)
+    * tools/immxml:corrected generation of imm.xml when old node name conventions are used for CLM node_names(#2889)
+    * immsv:Moving logging info from syslog to trace for PRTO when PBE is disabled(#2886)
+    * avsv : Add HA state in assignment failure message(#2852)
+    * smfsv: build problems fixed
+    * smfsv: improved logging when IMM delete fails (#2785)
+    * smfsv: disallow modification/deletion of executing campaign object (#2792)
+    * smfsv: avoid krasches when too long DNs are used in campaign (#2805)
+    * immsv: adjustEpoch increments continuation when PBE is detached (#2867)
+    * smfsv: make suList unique in actedOn processing (#2874)
+    * immsv: Correct RDN length check for null termination byte (#2856)
+    * immsv: Add constructors where missing in ImmModel.cc (#2863)
+    * immsv: finalizeSync must initialize all members of synced CcbInfo (#2539)
+    * immsv: allow to assign zero size SaAnyT value (#1538)
+    * immsv: included stat.h header file(#2829)
+    * immsv: Fix xml2 callback implementation for error and warning (#1742)
+    * immsv: IMMD avoids exit when loading fails (#1742)
+    * Removed  opensafd  to start at run-level 2 (#2711)
+
 OpenSAF 4.2.2 (released 2012-10-05)
 
     This is a maintenance release. The following items were fixed and/or added:
@@ -83,7 +184,6 @@ OpenSAF 4.2.2 (released 2012-10-05)
     * avsv: improved SAF logging for CCB and admin ops (#2660)
     * avsv: respond to admin ops when SG is STABLE (#2660)
     * SMF parsing of campaign does not delay swap (#2663)
-    
 
 OpenSAF 4.2.1 (released 2012-05-23)
 
@@ -811,282 +911,4 @@ OpenSAF 4.2.0 (released 2012-01-09)
     * avsv/avd: set SU term_state unconditionally at node adm lock & unlock inst (#1803)
     * avsv/avd: Improved node admin op related logging like including DN etc. (#1803)
     * build: the configure --disable-rpath option is no longer ignored (#1805)
-
-
-Changes from OpenSAF 3.0.0 to OpenSAF 3.0.B4
---------------------------------------------
-2009-03-09 Hans Feldt <hans.feldt@ericsson.com>
-	* LOG IMM Object Implementer
-
-2009-03-08 Anders Bjornerstedt <anders.bjornerstedt@ericsson.com>
-	* IMMSv-A.02.01 service added
-
-2009-03-08 Hans Feldt <hans.feldt@ericsson.com>
-	* Simple unit test framework added
-
-2009-03-08 Kenneth Andersson <kenneth.k.andersson@ericsson.com>
-	Gábor Balla, Arne Eriksson <Arne.R.Eriksson@ericsson.com>
-	Niklas Nilsson, Hans Feldt
-	* NTFSv A.01.01 initial contribution 
-
-Changes from OpenSAF 3.0.0 to OpenSAF 3.0.B3
---------------------------------------------
-2009-01-07 Nagendra Kumar <nagendra.kumar@emerson.com>
-	* Introduction of Platform Adaptation Interface (PAI).
-	* External Proxy Support.
-
-2009-01-07 Ramesh Babu <ramesh.betham@emerson.com>
-	* Subslot support.
-	* AMF SI-SI Dependency Support.
-
-2009-01-07 Mahesh <mahesh.alla@emerson.com>
-	* CPSv Subslot support.
-
-
-Changes from OpenSAF 3.0.0 to OpenSAF 3.0.B2
---------------------------------------------
-2008-08-12 Jonathan Fournier <jonathan.fournier@windriver.com>
-	* Build & Packaging Changes
-
-2008-08-12 Troy Heber <troy.heber@hp.com>
-	* OpenSAF Scripts Unification, Build changes
-
-2008-08-12 jozsef.biro <jozsef.biro@nsn.com>
-	* Java Mapping (Java AIS API for OpenSAF) contribution for AMF, CLM.
-
-Changes from OpenSAF 2.0.0 to OpenSAF 3.0.0
--------------------------------------------
-
-2008-09-24 Mathi <Mathivanan.NP@emerson.com>
-	* EDSv B0301 spec changes with backward compatibility.
-	* Applications can initialize with B0101 OR B0301 functionality.
-
-2008-09-16 Mahesh <mahesh.alla@emerson.com>
-	* CPSv B0202 spec changes with backward compatibility.
-	* Applications can initialize with B0202 OR B0101 functionality.
-
-2008-09-16 Vishal <Vishal.Soni@emerson.com>
-	* MQSv B0301 spec changes with backward compatibility.
-	* Applications can initialize with B0101 OR B0301 functionality.
-
-Changes from OpenSAF 1.2.1 to OpenSAF 1.2.2
--------------------------------------------
-The following issues were fixed for 1.2.2
-
-2008-07-24 Michael Bishop <michael.bishop@hp.com>
-	* HiSv needs to handle FRUs that are not ATCA (full 5-state hotswap model).
-
-2008-07-28 Mathivanan <mathivanan.np@emerson.com>
-	* seg fault in ncs_cli_maa pressing tab key.
-	* Stopping/shutdown of OpenSAF services not working properly.
-	* ChangeLog/RPM spec Updates.
-
-2008-07-27 Ramesh Babu <ramesh.betham@emerson.com>
-	* No core dumps generated on payloads nodes.
-	* Wrong path to tipc.h file in the Instalation and Configuration User's Huide and other Documentation updates.
-
-Changes from OpenSAF 1.1.0 to OpenSAF 1.2.1
--------------------------------------------
-The following fixes/enhancements were done for 1.2.1.
-
-2008-06-18 Ramesh Babu <ramesh.betham@emerson.com>
-
-	* CLI commands fail for dtsv on 64-bit and CLI segaults for empty commands.
-	* ncs_mas exits due to seg fault.
-	* ncs_sel_obj_select logs "Too many interrupts" erroneously.
-
-2008-06-12 Hans Feldt <Hans.Feldt@ericsson.com>
-	* seg fault in opensaf_saflogd - lgs_client_new.
-	* Log file rotation does not work at cold start.
-
-2008-06-02 Alla Venkata Mahesh <mahesh.alla@emerson.com>
-	* OpenSAF does not clean all checkpoints from POSIX Shared memory.
-
-2008-06-12 Nagendra Kumar <nagendra.kumar@emerson.com>
-	* ncs_scap exits due to already started timer.
-	* Enhancing rde_rde_config_file.
-	* Controller Redundancy Issues.
-
-2008-06-20 Mathivanan <mathivanan.np@emerson.com>
-	* OpenSAF failed start not handled properly.
-	* OpenSAF CLI fails on a system with only a root user.
-	* PSS division by zero.
-	* NCSScalars Persistance problem.
-	* Support to start all pre-scap/scap processes as 'scripts' by NID.
-	* PSS on standby controller writes to file system.
-	* NIS Not all OpenSAF processes are stopped.
-	* smidump build error.
-	* update INSTALL file with more trouble shooting instructions.
-	* ChangeLog Updates.
-
-2008-06-19 Michael Bishop <michael.bishop@hp.com>
-	* HISv using incorrect value for #define HPI_AUTO_HS_STOP_TMR.
-
-Changes from OpenSAF 1.0.9 to OpenSAF 1.1.0
--------------------------------------------
-
-2008-05-29 Hans Feldt <Hans.Feldt@ericsson.com>, Arne Eriksson, Niklas Nilsson
-
-	* An initial release Log Service was contributed by Ericsson Team.
-
-Changes from OpenSAF 1.0.8 to OpenSAF 1.0.9
--------------------------------------------
-	* Some Trivial Fixes
-
-Changes from OpenSAF 1.0.7 to OpenSAF 1.0.8
--------------------------------------------
-
-2008-04-08 OpenSAF Foudation
-
-	* OpenSAF Foundation is formed (With Emerson Network Power, Ericsson, Nokia Siemens Networks, HP and Sun Microsystems as founding members) and code base is moved to mercurial server.
-
-Changes from OpenSAF 1.0.5 to OpenSAF 1.0.7
--------------------------------------------
-
-2008-01-08 Alla Venkata Mahesh <mahesh.alla@emerson.com>
-
-	* OpenSAF provides tetware based test infrastructure, and contains Single Node API & Functionality related test suites for all OpenSAF services. For details, refer README file at opensaf/tests directory.
-	* OpenSAF enforces to use 'gcc version 4.1.0' and above. Can also be build with the lower versions by removing '-Wno-pointer-sign' flag from configure.ac.
-
-2008-01-08 Nagendra Kumar <nagendra.kumar@emerson.com>
-
-	* OpenSAF code is now 64-bit compatible, OpenSAF (controller & payload) can run on 64-bit machines as well.
-	* OpenSAF bug-fixes 
-
-2008-01-08 Mathivanan <mathivanan.np@emerson.com>
-
-	* LSB (Linux Standard Base) compliance related changes.
-	* OpenSAF bug-fixes 
-	* The '/etc/init.d/nis_scxb status' command on the ACTIVE controller would give the status of the cluster from the time the OpenSAF is started till a FAILOVER period. Also, this command ('/etc/init.d/nis_pld status' on a payload) would show status/information of a fault/error that occurred with a particular component running on that particular node.
-
-2008-01-08 Vishal Soni <vishal.soni@emerson.com>
-
-	* Stack patch, OpenSAF threads stack size has been limited to 128K.
-
-2008-01-08 Ramesh Babu <ramesh.betham@emerson.com>
-
-	* DLL changes, OpenSAF SAF-specific libraries are dynamical loadable. An external application can load & use SAF libraries dynamically at run-time by using dlopen().
-
-
-Changes from OpenSAF 1.0.4 to OpenSAF 1.0.5
--------------------------------------------
-
-2007-12-31 Ramesh Babu <rameshb@motorola.com>
-
-	* Copyright header information in OpenSAF codebase has been updated with new License format (LGPL).
-
-2007-12-31 Nagendra Kumar <nagendra@motorola.com>
-
-	* SPSv patch, correction made to OpenSAF 1.0.4 release to support backward compatibility.
-
-Changes from OpenSAF 1.0.3 to OpenSAF 1.0.4
--------------------------------------------
-
-2007-10-17 Ramesh Babu <rameshb@motorola.com>
-
-	* Made OpenSAF public header files as a stand-alone header files.
-	* OpenSAF public header files are made available in OpenSAF rpm's.
-
-2007-10-17 Vishal Soni <vishal.soni@motorola.com>
-
-	* Removed unwanted OpenSAF shared libraries
-	* OpenSAF just supports 'make' & 'make rpm' commands. 
-	'make install' doesn't have any real mean in OpenSAF context.
-	* Removed SPSv interface from OpenSAF
-
-2007-10-17 Gus  <Gustavo.Leal-isla@motorola.com>
-
-	* OpenSAF 1.0.4 supports HPI-B spec (B.02.01)
-	* Changes in Opensaf installation is necessary. Please refer to the INSTALL file.
-	* OpenSAF supports platform entity paths as defined in SAF HPI B specification. But we observed different platforms are giving entity paths differently. So Modify the following OpenSAF functions based on the entity paths reported by your platform.        - /opensaf/services/hisv/hcd/ham/ham_evt.c  - get_resourceid() line 1450 onwards till 1459.
-	   -  /opensaf/services/hisv/hcd/hsm/hsm.c  - publish_inspending() line 834 onwards till 849 
-	   -  /opensaf/services/hisv/hcd/hsm/hsm.c  -publish_active_healty() line 949 onwards till 963 
-	   -  /opensaf/services/hisv/hcd/hsm/hsm.c  - hcd_hsm()publish_inspending() line 462 onwards till 467 
-
-
-2007-10-17 Hans Feldt  <Hans.Feldt@ericsson.com>
-
-	* UML patch, snmp rpm removal from UML and automatic startup of snmpd
-
-2007-11-01
-	* OpenSAF is tested on Debian4.0R1. Going forward Debian distribution is going to be the official
-	  reference OS for OpenSAF.
-
-Changes from OpenSAF 1.0.2 to OpenSAF 1.0.3
--------------------------------------------
- 
-2007-09-10 Ramesh Babu <rameshb@motorola.com>
-
-	* OpenSAF 1.0.3 release now supports 64-bit agent libraries on payloads for use by 64-bit user applications.
-
-2007-09-10 Vishal Soni <vishal.soni@motorola.com>
-
-	* Script to collect log and configuration information is added.
-
-	* smidump is explicitly configured with 'CFLAGS=-m32 CXXFLAGS=-m32' options.
-
-	* 'make distclean' will clean smidump generated files as well.
-
-2007-09-10 Mathivanan <mathi@motorola.com>
-
-	* buildtype='64bit_agent_libs' configure option is introduced for generating 64-bit agent libraries.
-
-	* Build targets for controller, payload and 64bit agent libraries are separated.
-
-        * The get_ha_state is now updated during more error scenarios to return the correct status of the controller.
-
-	* Removed references to nd_cl_hdl from CPA.
- 
-2007-09-01 Alla Venkata Mahesh <mahesh.alla@motorola.com>
-
-	* AVSv demo will exit appropriately instead of continuously demonstrating restart capability.
-
-2007-08-28 Johan Martensson <johan.xx.martensson@ericsson.com>
-
-	* Resolved header inclusion issue for ncssysf_def.h ncspatricia.h.
-
-
-
-Changes from OpenSAF 1.0.1 to OpenSAF 1.0.2
--------------------------------------------
-
-2007-07-30 Murthy <murthy.esakonu@motorola.com>
-
-	* In OpenSAF 1.0.2 release, HPI support is withdrawn. Once the OpenSAF is in compliance with HPI-B spec, this feature is going to be advertised.
-
-
-2007-07-18 Ramesh Babu <rameshb@motorola.com>
-
-	* OpenSAF bug fixes
-
-2007-07-18 Mathivanan <mathi@motorola.com>
-
-	* tipc.h has been removed from the OpenSAF distribution.
-
-	* bootstrap.sh: '-f' option is removed for "exec autoreconf -fvi", to avoid the overwrite of autotool generated files like INSTALL, README etc.  
-
-	* 'make rpm' command introduced to create OpenSAF rpms.
-
-	* get_ha_state: A new command is provided in OpenSAF that gives the current HA state of the node.
-
-	* nodeinit.conf: Moved to /etc/opt/opensaf directory.
-
-	* RDF updates the /var/opt/opensaf/node_ha_state file instead of the /etc/opt/opensaf/rde_rde_config_file.
-    
-	* NID, MDS logs and syslog updation during startup is optimized.
-
-	* OpenSAF target rpm checks for package dependencies and conflicts during installation.
-	
-	* net-snmp libraries are picked from net-snmp-config --agent-libs
-
-	* RDF integrated with NID.
-
-	* INSTALL file is updated with troubleshooting information.
-
-2007-07-05 Nicolas Thomas <nicolas.thomas@hp.com>
-
-	* generate_files.sh, generate_smidump.sh: 'set -e' option is added to these scripts. 
-
-	* scanner_smi.l, scanner_sming.l: YYPROTO definitions removed, to resolve compilation issues with latest flex/bison.
-
 
