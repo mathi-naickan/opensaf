@@ -2,6 +2,7 @@ OpenSAF 4.2.3 (released 2013-04-15)
 
     This is a maintenance release. The following items were fixed and/or added:
 
+    * Amf: Checkpoint snd_msg_id during comp admin restart (#3114)
     * avsv: improve logging (#3083)
     * avsv: treat comp quiesced errs as other errs (#3083)
     * smfd: records correct nodes in SaSmfImageNodes (#3112)
