@@ -1861,6 +1861,8 @@ int avd_admin_op_msg_snd(const SaNameT *dn, AVSV_AMF_CLASS_ID class_id,
 		--(node->snd_msg_id);
 	}
 
+	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, node, AVSV_CKPT_AVND_SND_MSG_ID);
+
 	TRACE_LEAVE2("(%u)", rc);
 	return rc;
 }
