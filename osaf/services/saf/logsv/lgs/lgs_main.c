@@ -307,11 +307,12 @@ static uint32_t log_initialize(void)
 		}
 	}
 	else {
-		lgs_become_imm_applier(lgs_cb);
-		goto done;
+		if (lgs_become_imm_applier(lgs_cb) != SA_AIS_OK) {
+			LOG_ER("becoming applier FAILED");
+			rc = NCSCC_RC_FAILURE;
+			goto done;
+		}
 	}
-
-	rc = NCSCC_RC_SUCCESS;
 
 done:
 	if (nid_notify("LOGD", rc, NULL) != NCSCC_RC_SUCCESS) {

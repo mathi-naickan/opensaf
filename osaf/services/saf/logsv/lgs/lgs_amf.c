@@ -41,7 +41,7 @@ static void close_all_files(void)
 /****************************************************************************
  * Name          : amf_active_state_handler
  *
- * Description   : This function is called upon receving an active state
+ * Description   : This function is called upon receiving an active state
  *                 assignment from AMF.
  *
  * Arguments     : invocation - Designates a particular invocation.
@@ -69,14 +69,25 @@ static SaAisErrorT amf_active_state_handler(lgs_cb_t *cb, SaInvocationT invocati
 	 */
 	lgs_giveup_imm_applier(lgs_cb);
 	immutilWrapperProfile.nTries = 250; /* LOG will be blocked until IMM responds */
-	(void)immutil_saImmOiImplementerSet(lgs_cb->immOiHandle, "safLogService");
-	(void)immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "SaLogStreamConfig");
+	immutilWrapperProfile.errorsAreFatal = 0;
+	if ((error = immutil_saImmOiImplementerSet(lgs_cb->immOiHandle, "safLogService"))
+			!= SA_AIS_OK) {
+		LOG_ER("saImmOiClassImplementerSet (safLogService) failed: %d", error);
+		goto done;
+	}
+	if ((error = immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle,
+			"SaLogStreamConfig")) != SA_AIS_OK) {
+		LOG_ER("saImmOiClassImplementerSet (SaLogStreamConfig) failed: %d", error);
+		goto done;
+	}
 	/* Do this only if the class exists */
 	if (*(bool*) lgs_imm_logconf_get(LGS_IMM_LOG_OPENSAFLOGCONFIG_CLASS_EXIST, NULL)) {
-		(void)immutil_saImmOiClassImplementerSet(cb->immOiHandle, "OpenSafLogConfig");
+		if ((error = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "OpenSafLogConfig"))
+				!= SA_AIS_OK) {
+			LOG_ER("saImmOiClassImplementerSet (OpenSafLogConfig) failed: %d", error);
+			goto done;
+		}
 	}
-
-	immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
 
 	/* check existing streams */
 	stream = log_stream_getnext_by_name(NULL);
@@ -87,8 +98,9 @@ static SaAisErrorT amf_active_state_handler(lgs_cb_t *cb, SaInvocationT invocati
 		stream = log_stream_getnext_by_name(stream->name);
 	}
 
-
  done:
+	immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
+	immutilWrapperProfile.errorsAreFatal = 1;
 	/* Update role independent of stream processing */
 	lgs_cb->mds_role = V_DEST_RL_ACTIVE;
 	TRACE_LEAVE();
@@ -110,19 +122,18 @@ static SaAisErrorT amf_active_state_handler(lgs_cb_t *cb, SaInvocationT invocati
  *****************************************************************************/
 static SaAisErrorT amf_standby_state_handler(lgs_cb_t *cb, SaInvocationT invocation)
 {
-	TRACE_ENTER2("HA STANDBY request");
-	if (cb->ha_state == SA_AMF_HA_STANDBY) {
-		TRACE("Stat is already STANDBY and we are applier");
-		goto done;
-	}
+	SaAisErrorT error = SA_AIS_OK;
 
-	TRACE("Become applier");
-	lgs_become_imm_applier(lgs_cb);
+	TRACE_ENTER2("HA STANDBY request");
+
+	cb->ha_state = SA_AMF_HA_STANDBY;
 	cb->mds_role = V_DEST_RL_STANDBY;
 
-done:
+	TRACE("Become applier");
+	error = lgs_become_imm_applier(lgs_cb);
+
 	TRACE_LEAVE();
-	return SA_AIS_OK;
+	return error;
 }
 
 /****************************************************************************
@@ -144,7 +155,9 @@ static SaAisErrorT amf_quiescing_state_handler(lgs_cb_t *cb, SaInvocationT invoc
 	close_all_files();
 
 	/* Give up our IMM OI implementer role */
+	immutilWrapperProfile.errorsAreFatal = 0;
 	(void)immutil_saImmOiImplementerClear(cb->immOiHandle);
+	immutilWrapperProfile.errorsAreFatal = 1;
 
 	return saAmfCSIQuiescingComplete(cb->amf_hdl, invocation, SA_AIS_OK);
 }
@@ -171,7 +184,9 @@ static SaAisErrorT amf_quiesced_state_handler(lgs_cb_t *cb, SaInvocationT invoca
 	close_all_files();
 
 	/* Give up our IMM OI implementer role */
+	immutilWrapperProfile.errorsAreFatal = 0;
 	(void)immutil_saImmOiImplementerClear(cb->immOiHandle);
+	immutilWrapperProfile.errorsAreFatal = 1;
 
 	/*
 	 ** Change the MDS VDSET role to Quiesced. Wait for MDS callback with type
@@ -193,48 +208,47 @@ static SaAisErrorT amf_quiesced_state_handler(lgs_cb_t *cb, SaInvocationT invoca
 done:
 	return rc;
 }
-
 /****************************************************************************
  * Name          : amf_health_chk_callback
  *
- * Description   : This is the callback function which will be called 
- *                 when the AMF framework nelgs to health check for the component.
+ * Description   : This is the callback function which will be called
+ *                 when the AMF framework needs to health check for the component.
  *
  * Arguments     : invocation - Designates a particular invocation.
- *                 compName       - A pointer to the name of the component 
- *                                  whose readiness stae the Availability 
+ *                 compName       - A pointer to the name of the component
+ *                                  whose readiness state the Availability
  *                                  Management Framework is setting.
- *                 checkType      - The type of healthcheck to be executed. 
+ *                 checkType      - The type of healthcheck to be executed.
  *
  * Return Values : None
  *
  * Notes         : None
  *****************************************************************************/
-static void amf_health_chk_callback(SaInvocationT invocation, const SaNameT *compName, SaAmfHealthcheckKeyT *checkType)
+static void amf_health_chk_callback(SaInvocationT invocation,
+		const SaNameT *compName, SaAmfHealthcheckKeyT *checkType)
 {
 	saAmfResponse(lgs_cb->amf_hdl, invocation, SA_AIS_OK);
 }
-
 /****************************************************************************
  * Name          : amf_csi_set_callback
  *
  * Description   : AMF callback function called 
  *                 when there is any change in the HA state.
  *
- * Arguments     : invocation     - This parameter designated a particular 
- *                                  invocation of this callback function. The 
- *                                  invoke process return invocation when it 
- *                                  responds to the Avilability Management 
- *                                  FrameWork using the saAmfResponse() 
+ * Arguments     : invocation     - This parameter designated a particular
+ *                                  invocation of this callback function. The
+ *                                  invoke process return invocation when it
+ *                                  responds to the Availability Management
+ *                                  FrameWork using the saAmfResponse()
  *                                  function.
- *                 compName       - A pointer to the name of the component 
- *                                  whose readiness stae the Availability 
+ *                 compName       - A pointer to the name of the component
+ *                                  whose readiness state the Availability
  *                                  Management Framework is setting.
- *                 haState        - The new HA state to be assumeb by the 
- *                                  component service instance identified by 
+ *                 haState        - The new HA state to be assumed by the
+ *                                  component service instance identified by
  *                                  csiName.
- *                 csiDescriptor - This will indicate whether or not the 
- *                                  component service instance for 
+ *                 csiDescriptor - This will indicate whether or not the
+ *                                  component service instance for
  *                                  ativeCompName went through quiescing.
  *
  * Return Values : None.
@@ -242,7 +256,8 @@ static void amf_health_chk_callback(SaInvocationT invocation, const SaNameT *com
  * Notes         : None.
  *****************************************************************************/
 static void amf_csi_set_callback(SaInvocationT invocation,
-				 const SaNameT *compName, SaAmfHAStateT new_haState, SaAmfCSIDescriptorT csiDescriptor)
+		const SaNameT *compName, SaAmfHAStateT new_haState,
+		SaAmfCSIDescriptorT csiDescriptor)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	SaAmfHAStateT prev_haState;
@@ -312,6 +327,7 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 		if ((rc = lgs_mds_change_role(lgs_cb)) != NCSCC_RC_SUCCESS) {
 			LOG_ER("lgs_mds_change_role FAILED");
 			error = SA_AIS_ERR_FAILED_OPERATION;
+			goto response;
 		}
 
 		/* Inform MBCSV of HA state change */
@@ -328,18 +344,18 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 /****************************************************************************
  * Name          : amf_comp_terminate_callback
  *
- * Description   : This is the callback function which will be called 
- *                 when the AMF framework nelgs to terminate LGS. This does
+ * Description   : This is the callback function which will be called
+ *                 when the AMF framework needs to terminate LGS. This does
  *                 all required to destroy LGS(except to unregister from AMF)
  *
- * Arguments     : invocation     - This parameter designated a particular 
+ * Arguments     : invocation     - This parameter designated a particular
  *                                  invocation of this callback function. The
- *                                  invoke process return invocation when it 
- *                                  responds to the Avilability Management 
- *                                  FrameWork using the saAmfResponse() 
+ *                                  invoke process return invocation when it
+ *                                  responds to the Availability Management
+ *                                  FrameWork using the saAmfResponse()
  *                                  function.
- *                 compName       - A pointer to the name of the component 
- *                                  whose readiness stae the Availability 
+ *                 compName       - A pointer to the name of the component
+ *                                  whose readiness state the Availability
  *                                  Management Framework is setting.
  *
  * Return Values : None
@@ -371,11 +387,11 @@ static void amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT 
  * Arguments     : invocation     - This parameter designated a particular
  *                                  invocation of this callback function. The
  *                                  invoke process return invocation when it
- *                                  responds to the Avilability Management
+ *                                  responds to the Availability Management
  *                                  FrameWork using the saAmfResponse()
  *                                  function.
  *                 compName       - A pointer to the name of the component
- *                                  whose readiness stae the Availability
+ *                                  whose readiness state the Availability
  *                                  Management Framework is setting.
  *                 csiName        - A const pointer to csiName
  *                 csiFlags       - csi Flags

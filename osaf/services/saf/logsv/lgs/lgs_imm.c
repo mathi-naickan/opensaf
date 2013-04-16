@@ -1662,41 +1662,62 @@ void lgs_giveup_imm_applier(lgs_cb_t *cb)
 {
 	TRACE_ENTER();
 
-	if (we_are_applier_flag == true){
+	SaAisErrorT rc = SA_AIS_OK;
+	if (we_are_applier_flag == true) {
 		immutilWrapperProfile.nTries = 250;
-		(void)immutil_saImmOiImplementerClear(cb->immOiHandle);
-		immutilWrapperProfile.nTries = 20;
-		
+		immutilWrapperProfile.errorsAreFatal = 0;
+
+		if ((rc = immutil_saImmOiImplementerClear(cb->immOiHandle)) != SA_AIS_OK) {
+			LOG_ER("immutil_saImmOiImplementerClear failed %d\n", rc);
+			goto done;
+		}
+
 		we_are_applier_flag = false;
 		TRACE("Applier cleared");
 	} else {
 		TRACE("We are not an applier");
 	}
 	
+done:
+	immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
+	immutilWrapperProfile.errorsAreFatal = 1;
 	TRACE_LEAVE();
 }
 
 /**
  * Become object and class Applier
  */
-void lgs_become_imm_applier(lgs_cb_t *cb)
+SaAisErrorT lgs_become_imm_applier(lgs_cb_t *cb)
 {
 	TRACE_ENTER();
+	SaAisErrorT rc = SA_AIS_OK;
 
 	/* Become an applier only if an OpenSafLogConfig object exists */
 	if ( false == *(bool*) lgs_imm_logconf_get(LGS_IMM_LOG_OPENSAFLOGCONFIG_CLASS_EXIST, NULL)) {
 		TRACE_LEAVE2("Cannot be applier. OpenSafLogConfig object does not exist");
-		return;
+		return rc;
 	}
 
-	immutilWrapperProfile.nTries = 250; /* LOG will be blocked until IMM responds */
-	(void)immutil_saImmOiImplementerSet(cb->immOiHandle, applierName);
-	(void)immutil_saImmOiClassImplementerSet(cb->immOiHandle, "OpenSafLogConfig");
+	if (false == we_are_applier_flag) {
+		immutilWrapperProfile.nTries = 250; /* LOG will be blocked until IMM responds */
+		immutilWrapperProfile.errorsAreFatal = 0;
+		if ((rc = immutil_saImmOiImplementerSet(cb->immOiHandle, applierName)) !=
+				SA_AIS_OK) {
+			LOG_ER("immutil_saImmOiImplementerSet(applierName) failed %d\n", rc);
+			goto done;
+		}
+		if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "OpenSafLogConfig")) != SA_AIS_OK) {
+			LOG_ER("immutil_saImmOiClassImplementerSet(OpenSafLogConfig) failed %d\n", rc);
+			goto done;
+		}
+		we_are_applier_flag = true;
+	}
+
+done:
 	immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
-
-	we_are_applier_flag = true;
-
+	immutilWrapperProfile.errorsAreFatal = 1;
 	TRACE_LEAVE();
+	return rc;
 }
 
 /**

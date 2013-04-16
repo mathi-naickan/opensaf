@@ -467,7 +467,7 @@ static void lgs_process_lga_down_list(void)
 static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 {
 	log_stream_t *stream;
-	uint32_t rc;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER2("%u", evt->info.rda_info.io_role);
 
@@ -481,8 +481,10 @@ static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 			goto done;
 		}
 
-		if (NCSCC_RC_SUCCESS != lgs_mbcsv_change_HA_state(lgs_cb))
+		if ((rc = lgs_mbcsv_change_HA_state(lgs_cb)) != NCSCC_RC_SUCCESS) {
+			LOG_ER("lgs_mbcsv_change_HA_state FAILED %u", rc);
 			goto done;
+		}
 
 		/* fail over, become implementer
 		 * If we want to be Oi implementer we have to give up the applier role first
@@ -491,13 +493,25 @@ static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 		lgs_giveup_imm_applier(lgs_cb);
 
 		immutilWrapperProfile.nTries = 250; /* LOG will be blocked until IMM responds */
-		(void)immutil_saImmOiImplementerSet(lgs_cb->immOiHandle, "safLogService");
-		(void)immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "SaLogStreamConfig");
-		/* Do this only if the class exists */
-		if ( true == *(bool*) lgs_imm_logconf_get(LGS_IMM_LOG_OPENSAFLOGCONFIG_CLASS_EXIST, NULL)) {
-			(void)immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "OpenSafLogConfig");
+		immutilWrapperProfile.errorsAreFatal = 0;
+		if ((rc = immutil_saImmOiImplementerSet(lgs_cb->immOiHandle, "safLogService"))
+				!= SA_AIS_OK) {
+			LOG_ER("immutil_saImmOiImplementerSet(safLogService) FAILED %u", rc);
+			goto done;
 		}
-		immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
+		if ((rc = immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "SaLogStreamConfig"))
+				!= SA_AIS_OK) {
+			LOG_ER("immutil_saImmOiImplementerSet(SaLogStreamConfig) FAILED %u", rc);
+			goto done;
+		}
+		/* Do this only if the class exists */
+		if (true == *(bool*) lgs_imm_logconf_get(LGS_IMM_LOG_OPENSAFLOGCONFIG_CLASS_EXIST, NULL)) {
+			if ((rc = immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "OpenSafLogConfig"))
+					!= SA_AIS_OK) {
+				LOG_ER("immutil_saImmOiImplementerSet(OpenSafLogConfig) FAILED %u", rc);
+				goto done;
+			}
+		}
 		
 		/* Agent down list has to be processed first */
 		lgs_process_lga_down_list();
@@ -512,9 +526,9 @@ static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 		}
 	}
 
-	rc = NCSCC_RC_SUCCESS;
-
 done:
+	immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
+	immutilWrapperProfile.errorsAreFatal = 1;
 	TRACE_LEAVE();
 	return rc;
 }

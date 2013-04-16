@@ -116,7 +116,7 @@ extern uint32_t lgs_mds_msg_send(lgs_cb_t *cb,
 			      MDS_DEST *dest, MDS_SYNC_SND_CTXT *mds_ctxt, MDS_SEND_PRIORITY_TYPE prio);
 
 extern void lgs_giveup_imm_applier(lgs_cb_t *cb);
-extern void lgs_become_imm_applier(lgs_cb_t *cb);
+extern SaAisErrorT lgs_become_imm_applier(lgs_cb_t *cb);
 extern SaAisErrorT lgs_imm_activate(lgs_cb_t *cb);
 extern void lgs_imm_impl_set(lgs_cb_t *cb);
 extern SaAisErrorT lgs_imm_init(lgs_cb_t *cb);
