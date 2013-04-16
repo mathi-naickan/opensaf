@@ -1010,8 +1010,9 @@ uint32_t amfd_switch_stdby_actv(AVD_CL_CB *cb)
 		avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
 		return NCSCC_RC_FAILURE;
 	}
-	avd_cb->is_implementer = true;
 
+	avd_cb->is_implementer = true;
+	avd_cb->active_services_exist = true;
 
 	if (NCSCC_RC_SUCCESS != avd_rde_set_role(SA_AMF_HA_ACTIVE)) {
 		LOG_ER("rde role change failed from stdy -> Active");

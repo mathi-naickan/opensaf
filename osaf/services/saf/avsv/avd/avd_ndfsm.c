@@ -216,7 +216,6 @@ void avd_nd_ncs_su_assigned(AVD_CL_CB *cb, AVD_AVND *avnd)
 		 */
 		if (avnd->node_info.nodeId == cb->node_id_avd) {
 			cb->init_state = AVD_INIT_DONE;
-			cb->active_services_exist = true;
 
 			/* start the cluster init timer. */
 			m_AVD_CLINIT_TMR_START(cb);

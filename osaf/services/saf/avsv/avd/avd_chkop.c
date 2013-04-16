@@ -438,7 +438,6 @@ ignore_msg:
 				** when in a more critical state */
 				saflog(LOG_NOTICE, amfSvcUsrName, "Cold sync complete at %x", cb->node_id_avd);
 				cb->stby_sync_state = AVD_STBY_IN_SYNC;
-				cb->active_services_exist = true;
 			}
 
 			cb->synced_reo_type = arg->info.decode.i_reo_type;

@@ -1894,6 +1894,12 @@ static uint32_t avd_sg_2n_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 				/* This is as a result of failover, start CLM tracking*/
 				(void) avd_clm_track_start();
 			}
+
+			// Set active_services_exist at error conditions e.g. controller fail-over
+			if ((state == SA_AMF_HA_ACTIVE) && su->sg_of_su->sg_ncs_spec &&
+				(su->sg_of_su->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL)) {
+					avd_cb->active_services_exist = true;
+			}
 		} else {
 			LOG_EM("%s:%u: %u", __FILE__, __LINE__, act);
 			LOG_EM("%s:%u: %u", __FILE__, __LINE__, state);
@@ -2174,6 +2180,8 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 			 * notification now that we have a new active.
 			 */
 			if (su->sg_of_su->sg_ncs_spec) {
+				// Set active_services_exist, this is the place its normally
+				// done during controller switch-over
 				avd_cb->active_services_exist = true;
 
 				for (l_susi = su->sg_of_su->su_oper_list.su->list_of_susi;
