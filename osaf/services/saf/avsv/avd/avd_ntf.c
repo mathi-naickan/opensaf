@@ -542,6 +542,12 @@ uint32_t sendAlarmNotificationAvd(AVD_CL_CB *avd_cb,
 	SaUint16T add_info_items = 0;
 	SaUint64T allocation_size = 0;
 
+	if (!avd_cb->active_services_exist) {
+		// TODO #3051
+		LOG_ER("Alarm lost for %s", ntf_object.value);
+		return status;
+	}
+
 	if (type != 0) {
 		add_info_items = 1;
 		allocation_size = SA_NTF_ALLOC_SYSTEM_LIMIT;
@@ -622,6 +628,12 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 	SaNtfStateChangeNotificationT myStateNotification;
 	SaUint16T add_info_items = 0;
 	SaUint64T allocation_size = 0;
+
+	if (!avd_cb->active_services_exist) {
+		// TODO #3051
+		LOG_WA("State change notification lost for '%s'", ntf_object.value);
+		return status;
+	}
 
 	if (type != 0) {
 		add_info_items = 1;
