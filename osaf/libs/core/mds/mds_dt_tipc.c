@@ -161,7 +161,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	memset(&pat_tree_params, 0, sizeof(pat_tree_params));
 	pat_tree_params.key_size = sizeof(MDTM_REASSEMBLY_KEY);
 	if (NCSCC_RC_SUCCESS != ncs_patricia_tree_init(&mdtm_reassembly_list, &pat_tree_params)) {
-		syslog(LOG_ERR, "MDS:MDTM: ncs_patricia_tree_init failed MDTM_INIT\n");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC ncs_patricia_tree_init failed MDTM_INIT\n");
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -169,24 +169,24 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 
 	tipc_cb.Dsock = socket(AF_TIPC, SOCK_SEQPACKET, 0);
 	if (tipc_cb.Dsock < 0) {
-		syslog(LOG_ERR, "MDS:MDTM: Dsock Socket creation failed in MDTM_INIT\n");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Dsock Socket creation failed in MDTM_INIT err :%s", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 	tipc_cb.BSRsock = socket(AF_TIPC, SOCK_RDM, 0);
 	if (tipc_cb.BSRsock < 0) {
-		syslog(LOG_ERR, "MDS:MDTM: BSRsock Socket creation failed in MDTM_INIT\n");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC BSRsock Socket creation failed in MDTM_INIT err :%s", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 
 	flags = fcntl(tipc_cb.Dsock, F_GETFD, 0);
 	if ((flags < 0) || (flags > 1)) {
-		syslog(LOG_ERR, "MDS:MDTM: Unable to get the CLOEXEC Flag on Dsock");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Unable to get the CLOEXEC Flag on Dsock err :%s", strerror(errno));
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		return NCSCC_RC_FAILURE;
 	} else {
 		if (fcntl(tipc_cb.Dsock, F_SETFD, (flags | FD_CLOEXEC)) == (-1)) {
-			syslog(LOG_ERR, "MDS:MDTM: Unable to set the CLOEXEC Flag on Dsock");
+			syslog(LOG_ERR, "MDS:MDTM:TIPC Unable to set the CLOEXEC Flag on Dsock err :%s", strerror(errno));
 			close(tipc_cb.Dsock);
 			close(tipc_cb.BSRsock);
 			return NCSCC_RC_FAILURE;
@@ -195,13 +195,13 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 
 	flags = fcntl(tipc_cb.BSRsock, F_GETFD, 0);
 	if ((flags < 0) || (flags > 1)) {
-		syslog(LOG_ERR, "MDS:MDTM: Unable to get the CLOEXEC Flag on BSRsock");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Unable to get the CLOEXEC Flag on BSRsock err :%s", strerror(errno));
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		return NCSCC_RC_FAILURE;
 	} else {
 		if (fcntl(tipc_cb.BSRsock, F_SETFD, (flags | FD_CLOEXEC)) == (-1)) {
-			syslog(LOG_ERR, "MDS:MDTM: Unable to set the CLOEXEC Flag on BSRsock");
+			syslog(LOG_ERR, "MDS:MDTM:TIPC Unable to set the CLOEXEC Flag on BSRsock err :%s", strerror(errno));
 			close(tipc_cb.Dsock);
 			close(tipc_cb.BSRsock);
 			return NCSCC_RC_FAILURE;
@@ -212,7 +212,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	/* Code for getting the self tipc random number */
 	memset(&addr, 0, sizeof(addr));
 	if (0 > getsockname(tipc_cb.BSRsock, (struct sockaddr *)&addr, &sz)) {
-		syslog(LOG_ERR, "MDS:MDTM: Failed to get the BSR Sockname");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Failed to get the BSR Sockname  err :%s", strerror(errno));
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		return NCSCC_RC_FAILURE;
@@ -226,7 +226,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	tipc_node_id = mdtm_tipc_own_node(tipc_cb.BSRsock);	/* This gets the tipc ownaddress */
 
 	if (tipc_node_id == 0) {
-		syslog(LOG_ERR, "MDS:MDTM: Zero tipc_node_id ");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Zero tipc_node_id ");
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		return NCSCC_RC_FAILURE;
@@ -248,7 +248,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	topsrv.addr.name.name.instance = TIPC_TOP_SRV;
 
 	if (0 > connect(tipc_cb.Dsock, (struct sockaddr *)&topsrv, sizeof(topsrv))) {
-		syslog(LOG_ERR, "MDS:MDTM: Failed to connect to topology server");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Failed to connect to topology server  err :%s", strerror(errno));
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		return NCSCC_RC_FAILURE;
@@ -258,7 +258,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 
 	if (m_NCS_IPC_CREATE(&tipc_cb.tmr_mbx) != NCSCC_RC_SUCCESS) {
 		/* Mail box creation failed */
-		syslog(LOG_ERR, "MDS:MDTM: Tmr Mailbox Creation failed:\n");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Tmr Mailbox Creation failed:\n");
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		return NCSCC_RC_FAILURE;
@@ -269,7 +269,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 		/* Code added for attaching the mailbox, to eliminate the DBG Print at sysf_ipc.c: 640 */
 		if (NCSCC_RC_SUCCESS != m_NCS_IPC_ATTACH(&tipc_cb.tmr_mbx)) {
 			m_NCS_IPC_RELEASE(&tipc_cb.tmr_mbx, NULL);
-			syslog(LOG_ERR, "MDS:MDTM: Tmr Mailbox  Attach failed:\n");
+			syslog(LOG_ERR, "MDS:MDTM:TIPC Tmr Mailbox  Attach failed:\n");
 			close(tipc_cb.Dsock);
 			close(tipc_cb.BSRsock);
 			return NCSCC_RC_FAILURE;
@@ -285,7 +285,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 
 	/* Create a task to receive the events and data */
 	if (mdtm_create_rcv_task(tipc_cb.hdle_mdtm) != NCSCC_RC_SUCCESS) {
-		syslog(LOG_ERR, "MDS:MDTM: Receive Task Creation Failed in MDTM_INIT\n");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Receive Task Creation Failed in MDTM_INIT\n");
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		m_NCS_IPC_RELEASE(&tipc_cb.tmr_mbx, NULL);
@@ -322,9 +322,8 @@ static uint32_t mdtm_tipc_check_for_endianness(void)
 
 	/* Connect to the Topology Server */
 	d_fd = socket(AF_TIPC, SOCK_SEQPACKET, 0);
-
 	if (d_fd < 0) {
-		syslog(LOG_ERR, "MDS:MDTM: D Socket creation failed in mdtm_tipc_check_for_endianness\n");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC D Socket creation failed in mdtm_tipc_check_for_endianness err :%s", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -335,13 +334,13 @@ static uint32_t mdtm_tipc_check_for_endianness(void)
 	srv.addr.name.name.instance = TIPC_TOP_SRV;
 
 	if (0 > connect(d_fd, (struct sockaddr *)&srv, sizeof(srv))) {
-		syslog(LOG_ERR, "MDS:MDTM: Failed to connect to topology server in mdtm_check_for_endianness");
+		syslog(LOG_ERR, "MDS:MDTM:TIPC Failed to connect to topology server in mdtm_check_for_endianness err :%s", strerror(errno));
 		close(d_fd);
 		return NCSCC_RC_FAILURE;
 	}
 
 	if (send(d_fd, &subs, sizeof(subs), 0) != sizeof(subs)) {
-		perror("failed to send subscription");
+		syslog(LOG_ERR, "failed to send subscription err :%s", strerror(errno));
 		close(d_fd);
 		return NCSCC_RC_FAILURE;
 	}
@@ -451,7 +450,7 @@ static uint32_t mdtm_tipc_own_node(int fd)
 
 	memset(&addr, 0, sizeof(addr));
 	if (0 > getsockname(tipc_cb.Dsock, (struct sockaddr *)&addr, &sz)) {
-		m_MDS_LOG_ERR("MDTM: Failed to get Own Node Address");
+		m_MDS_LOG_ERR("MDTM: Failed to get Own Node Address  err :%s", strerror(errno));
 		return 0;
 	}
 	return addr.addr.id.node;
@@ -569,7 +568,7 @@ static uint32_t mdtm_process_recv_events(void)
 			mds_mutex_lock();
 			if (pfd[0].revents == POLLIN) {
 				if (recv(tipc_cb.Dsock, &event, sizeof(event), 0) != sizeof(event)) {
-					m_MDS_LOG_ERR("Unable to capture the recd event .. Continuing\n");
+					m_MDS_LOG_ERR("Unable to capture the recd event .. Continuing  err :%s", strerror(errno));
 					mds_mutex_unlock();
 					continue;
 				} else {
@@ -637,10 +636,9 @@ static uint32_t mdtm_process_recv_events(void)
 
 				recd_bytes = recvfrom(tipc_cb.BSRsock, inbuf, sizeof(inbuf), 0,
 						      (struct sockaddr *)&client_addr, &alen);
-
 				if (recd_bytes == 0) {	/* As we had disabled the feature of receving the bounced messages, recd_bytes==0 indicates a fatal condition so abort */
 					m_MDS_LOG_CRITICAL
-					    ("MDTM: recd bytes=0 on receive sock, fatal condition. Exiting the process");
+					    ("MDTM: recd bytes=0 on receive sock, fatal condition. Exiting the process  err :%s",strerror(errno) );
 					abort();
 				}
 				data = inbuf;
@@ -1293,7 +1291,7 @@ uint32_t mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_S
 		imp = TIPC_HIGH_IMPORTANCE;
 
 		if (setsockopt(tipc_cb.BSRsock, SOL_TIPC, TIPC_IMPORTANCE, &imp, sizeof(imp)) != 0) {
-			m_MDS_LOG_ERR("MDTM: Can't set socket option TIPC_IMP");
+			m_MDS_LOG_ERR("MDTM: Can't set socket option TIPC_IMP err :%s\n", strerror(errno));
 			assert(0);
 		} else {
 			m_MDS_LOG_INFO("MDTM: Successfully set socket option TIPC_IMP, SVC_ID=%d", svc_id);
@@ -1346,7 +1344,7 @@ uint32_t mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_S
 	m_MDS_LOG_INFO("MDTM: install_tipc : <%u,%u,%u>", server_type, server_inst, server_inst);
 
 	if (0 != bind(tipc_cb.BSRsock, (struct sockaddr *)&server_addr, sizeof(server_addr))) {
-		m_MDS_LOG_ERR("MDTM: SVC-INSTALL Failure\n");
+		m_MDS_LOG_ERR("MDTM: SVC-INSTALL Failure err :%s\n", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 	m_MDS_LOG_NOTIFY("MDTM: install_tipc : svc id=%d, vdest=%d", svc_id, vdest_id);
@@ -1437,7 +1435,7 @@ uint32_t mds_mdtm_svc_uninstall_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS
 	server_addr.addr.nameseq.upper = server_inst;
 
 	if (0 != bind(tipc_cb.BSRsock, (struct sockaddr *)&server_addr, sizeof(server_addr))) {
-		m_MDS_LOG_ERR("MDTM: SVC-UNINSTALL Failure\n");
+		m_MDS_LOG_ERR("MDTM: SVC-UNINSTALL Failure err :%s \n", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 	m_MDS_LOG_NOTIFY("MDTM: uninstall_tipc : svc id=%d,vdest id=%d", svc_id, vdest_id);
@@ -1500,7 +1498,7 @@ uint32_t mds_mdtm_svc_subscribe_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS
 	*((uint64_t *)subscr.usr_handle) = *subtn_ref_val;
 
 	if (send(tipc_cb.Dsock, &subscr, sizeof(subscr), 0) != sizeof(subscr)) {
-		m_MDS_LOG_ERR("MDTM: SVC-SUBSCRIBE Failure\n");
+		m_MDS_LOG_ERR("MDTM: SVC-SUBSCRIBE Failure err :%s", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -1542,7 +1540,7 @@ uint32_t mds_mdtm_node_subscribe_tipc(MDS_SVC_HDL svc_hdl, MDS_SUBTN_REF_VAL *su
 	*((uint64_t *)net_subscr.usr_handle) = *subtn_ref_val;
 
 	if (send(tipc_cb.Dsock, &net_subscr, sizeof(net_subscr), 0) != sizeof(net_subscr)) {
-		perror("failed to send network subscription");
+		syslog(LOG_ERR, "failed to send network subscription err :%s", strerror(errno));
 		m_MDS_LOG_ERR("MDTM: NODE-SUBSCRIBE Failure\n");
 		return NCSCC_RC_FAILURE;
 	}
@@ -1682,7 +1680,7 @@ uint32_t mds_mdtm_vdest_install_tipc(MDS_VDEST_ID vdest_id)
 	server_addr.scope = TIPC_CLUSTER_SCOPE;
 
 	if (0 != bind(tipc_cb.BSRsock, (struct sockaddr *)&server_addr, sizeof(server_addr))) {
-		m_MDS_LOG_ERR("MDTM: VDEST-INSTALL Failure\n");
+		m_MDS_LOG_ERR("MDTM: VDEST-INSTALL Failure err :%s\n", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 	m_MDS_LOG_INFO("MDTM: VDEST-INSTALL Success\n");
@@ -1728,7 +1726,7 @@ uint32_t mds_mdtm_vdest_uninstall_tipc(MDS_VDEST_ID vdest_id)
 	server_addr.addr.nameseq.upper = server_inst;
 	server_addr.scope = -TIPC_CLUSTER_SCOPE;
 	if (0 != bind(tipc_cb.BSRsock, (struct sockaddr *)&server_addr, sizeof(server_addr))) {
-		m_MDS_LOG_ERR("MDTM: VDEST-UNINSTALL Failure\n");
+		m_MDS_LOG_ERR("MDTM: VDEST-UNINSTALL Failure err :%s\n", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -2328,7 +2326,7 @@ static uint32_t mdtm_sendto(uint8_t *buffer, uint16_t buff_len, struct tipc_port
 		m_MDS_LOG_INFO("MDTM: Successfully sent message");
 		return NCSCC_RC_SUCCESS;
 	} else {
-		m_MDS_LOG_ERR("MDTM: Failed to send message");
+		m_MDS_LOG_ERR("MDTM: Failed to send message err :%s", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 }

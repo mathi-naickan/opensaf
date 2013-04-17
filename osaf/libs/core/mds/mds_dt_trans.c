@@ -171,7 +171,7 @@ static uint32_t mds_mdtm_process_poll_out(void)
 		while ((0 != tcp_cb->mdtm_tcp_unsent_counter) && (NULL != mov_ptr)) {
 			send_len = send(tcp_cb->DBSRsock, mov_ptr->buffer, mov_ptr->len, MSG_NOSIGNAL);
 			if ((send_len == -1) || (send_len != mov_ptr->len)) {
-				syslog(LOG_ERR, "Failed to Send From the queue Message");
+				syslog(LOG_ERR, "Failed to Send From the queue Message err :%s", strerror(errno));
 				/* free the deleted nodes and return */
 				mds_mdtm_del_unsent_msg();
 				return NCSCC_RC_SUCCESS;
@@ -678,7 +678,7 @@ void mdtm_process_poll_recv_data_tcp(void)
 
 			recd_bytes = recv(tcp_cb->DBSRsock, tcp_cb->len_buff, 2, 0);
 			if (0 == recd_bytes) {
-				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library", recd_bytes);
+				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 				close(tcp_cb->DBSRsock);
 				exit(0);
 			} else if (2 == recd_bytes) {
@@ -696,11 +696,10 @@ void mdtm_process_poll_recv_data_tcp(void)
 					return;
 				}
 				recd_bytes = recv(tcp_cb->DBSRsock, tcp_cb->buffer, local_len_buf, 0);
-
 				if (recd_bytes < 0) {
 					return;
 				} else if (0 == recd_bytes) {
-					LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library", recd_bytes);
+					LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 					close(tcp_cb->DBSRsock);
 					exit(0);
 				} else if (local_len_buf > recd_bytes) {
@@ -747,7 +746,7 @@ void mdtm_process_poll_recv_data_tcp(void)
 				tcp_cb->buff_total_len = ncs_decode_16bit(&data);
 				return;
 			} else if (0 == recd_bytes) {
-				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library", recd_bytes);
+				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 				close(tcp_cb->DBSRsock);
 				exit(0);
 			} else {
@@ -763,11 +762,10 @@ void mdtm_process_poll_recv_data_tcp(void)
 				return;
 			}
 			recd_bytes = recv(tcp_cb->DBSRsock, tcp_cb->buffer, tcp_cb->buff_total_len, 0);
-
 			if (recd_bytes < 0) {
 				return;
 			} else if (0 == recd_bytes) {
-				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library", recd_bytes);
+				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 				close(tcp_cb->DBSRsock);
 				exit(0);
 			} else if (tcp_cb->buff_total_len > recd_bytes) {
@@ -798,11 +796,10 @@ void mdtm_process_poll_recv_data_tcp(void)
 
 		recd_bytes =
 		    recv(tcp_cb->DBSRsock, &tcp_cb->buffer[(tcp_cb->buff_total_len - tcp_cb->bytes_tb_read)], tcp_cb->bytes_tb_read, 0);
-
 		if (recd_bytes < 0) {
 			return;
 		} else if (0 == recd_bytes) {
-			LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library", recd_bytes);
+			LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 			close(tcp_cb->DBSRsock);
 			exit(0);
 		} else if (tcp_cb->bytes_tb_read > recd_bytes) {

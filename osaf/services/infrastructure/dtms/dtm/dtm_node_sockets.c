@@ -49,7 +49,7 @@ uint32_t dtm_sockdesc_close(int sock_desc)
 	TRACE_ENTER();
 
 	if (close(sock_desc) != 0) {
-		LOG_ER("DTM : dtm_sockdesc_close errno : %d", GET_LAST_ERROR());
+		LOG_ER("DTM : dtm_sockdesc_close err :%s", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
 	sock_desc = -1;
@@ -87,7 +87,7 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 		/* Set SO_KEEPALIVE */
 		optlen = sizeof(so_keepalive);
 		if (setsockopt(sock_desc, SOL_SOCKET, SO_KEEPALIVE, &so_keepalive, optlen) < 0) {
-			LOG_ER("DTM :setsockopt SO_KEEPALIVE failed error : %d", GET_LAST_ERROR());
+			LOG_ER("DTM :setsockopt SO_KEEPALIVE failed err :%s", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
@@ -95,7 +95,7 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 		/* Set TCP_KEEPIDLE */
 		optlen = sizeof(comm_keepidle_time);
 		if (setsockopt(sock_desc, SOL_TCP, TCP_KEEPIDLE, &comm_keepidle_time, optlen) < 0) {
-			LOG_ER("DTM :setsockopt TCP_KEEPIDLE failed error : %d ", GET_LAST_ERROR());
+			LOG_ER("DTM :setsockopt TCP_KEEPIDLE failed err :%s ", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
@@ -103,7 +103,7 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 		/* Set TCP_KEEPINTVL */
 		optlen = sizeof(comm_keepalive_intvl);
 		if (setsockopt(sock_desc, SOL_TCP, TCP_KEEPINTVL, &comm_keepalive_intvl, optlen) < 0) {
-			LOG_ER("DTM :setsockopt TCP_KEEPINTVL failed error : %d ", GET_LAST_ERROR());
+			LOG_ER("DTM :setsockopt TCP_KEEPINTVL failed err :%s ", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
@@ -111,14 +111,14 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 		/* Set TCP_KEEPCNT */
 		optlen = sizeof(comm_keepalive_probes);
 		if (setsockopt(sock_desc, SOL_TCP, TCP_KEEPCNT, &comm_keepalive_probes, optlen) < 0) {
-			LOG_ER("DTM :setsockopt TCP_KEEPCNT  failed error : %d", GET_LAST_ERROR());
+			LOG_ER("DTM :setsockopt TCP_KEEPCNT  failed err :%s", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
 	}
 
 	if ((setsockopt(sock_desc, SOL_SOCKET, SO_REUSEADDR, (void *)&smode, sizeof(smode)) == -1)) {
-		LOG_ER("DTM : Error setsockpot: errno : %d", GET_LAST_ERROR());
+		LOG_ER("DTM : Error setsockpot: err :%s", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -142,12 +142,12 @@ static uint8_t set_nonblocking(int sock_desc, uint8_t bNb)
 	TRACE_ENTER();
 	if (bNb) {
 		if (fcntl(sock_desc, F_SETFL, O_NONBLOCK) == -1) {
-			LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) errno  : %d ", GET_LAST_ERROR());
+			LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
 			return false;
 		}
 	} else {
 		if (fcntl(sock_desc, F_SETFL, 0) == -1) {
-			LOG_ER("DTM :fcntl(F_SETFL, 0) errno :%d", GET_LAST_ERROR());
+			LOG_ER("DTM :fcntl(F_SETFL, 0) err :%s", strerror(errno));
 			return false;
 		}
 	}
@@ -174,7 +174,7 @@ static uint32_t dgram_enable_bcast(int sock_desc)
 	int bcast_permission = 1;
 	if (setsockopt(sock_desc, SOL_SOCKET, SO_BROADCAST, (raw_type *) & bcast_permission, sizeof(bcast_permission)) <
 	    0) {
-		LOG_ER("DTM :setsockopt(SO_BROADCAST) failed errno : %d ", GET_LAST_ERROR());
+		LOG_ER("DTM :setsockopt(SO_BROADCAST) failed err :%s ", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -208,7 +208,7 @@ static uint32_t dgram_join_mcast_group(DTM_INTERNODE_CB * dtms_cb, struct addrin
 		if (setsockopt
 		    (dtms_cb->dgram_sock_rcvr, IPPROTO_IPV6, IPV6_JOIN_GROUP, &join_request,
 		     sizeof(join_request)) < 0) {
-			LOG_ER("DTM :setsockopt(IPV6_JOIN_GROUP) failed errno : %d", GET_LAST_ERROR());
+			LOG_ER("DTM :setsockopt(IPV6_JOIN_GROUP) failed err :%s", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
@@ -222,7 +222,7 @@ static uint32_t dgram_join_mcast_group(DTM_INTERNODE_CB * dtms_cb, struct addrin
 		if (setsockopt
 		    (dtms_cb->dgram_sock_rcvr, IPPROTO_IP, IP_ADD_MEMBERSHIP, &join_request,
 		     sizeof(join_request)) < 0) {
-			LOG_ER("DTM :setsockopt(IP_ADD_MEMBERSHIP) failed errno : %d ", GET_LAST_ERROR());
+			LOG_ER("DTM :setsockopt(IP_ADD_MEMBERSHIP) failed err :%s ", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
@@ -254,11 +254,11 @@ uint32_t dtm_dgram_sendto_mcast(DTM_INTERNODE_CB * dtms_cb, const void *buffer, 
 	ssize_t num_bytes = sendto(dtms_cb->dgram_sock_sndr, (raw_type *) buffer, buffer_len, 0,
 				   mcast_sender_addr->ai_addr, mcast_sender_addr->ai_addrlen);
 	if (num_bytes < 0) {
-		LOG_ER("DTM : sendto() failed errno :%d ", GET_LAST_ERROR());
+		LOG_ER("DTM : sendto() failed err :%s ", strerror(errno));
 		TRACE_LEAVE2("rc::%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	} else if (num_bytes != buffer_len) {
-		LOG_ER("DTM :sendto() sent unexpected number of bytes errno :%d ", GET_LAST_ERROR());
+		LOG_ER("DTM :sendto() sent unexpected number of bytes err :%s ", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -284,13 +284,12 @@ uint32_t dtm_dgram_sendto_bcast(DTM_INTERNODE_CB * dtms_cb, const void *buffer, 
 	/* Multicast the string to all who have joined the group */
 	ssize_t num_bytes = sendto(dtms_cb->dgram_sock_sndr, (raw_type *) buffer, buffer_len, 0,
 				   (struct sockaddr *)bcast_dest_address, bcast_sen_addr_size);
-
 	if (num_bytes < 0) {
-		LOG_ER("DTM :sendto() failed errno :%d", GET_LAST_ERROR());
+		LOG_ER("DTM :sendto() failed err :%s", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	} else if (num_bytes != buffer_len) {
-		LOG_ER("DTM :sendto() sent unexpected number of bytes errno : %d ", GET_LAST_ERROR());
+		LOG_ER("DTM :sendto() sent unexpected number of bytes err :%s ", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -320,7 +319,7 @@ static uint32_t dgram_set_mcast_ttl(DTM_INTERNODE_CB * dtms_cb, int mcast_ttl)
 		/* passed in as an integer */
 		if (setsockopt
 		    (dtms_cb->dgram_sock_sndr, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &mcast_ttl, sizeof(mcast_ttl)) < 0) {
-			LOG_ER("DTM : setsockopt(IPV6_MULTICAST_HOPS) failed errno : %d", GET_LAST_ERROR());
+			LOG_ER("DTM : setsockopt(IPV6_MULTICAST_HOPS) failed err :%s", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
@@ -329,7 +328,7 @@ static uint32_t dgram_set_mcast_ttl(DTM_INTERNODE_CB * dtms_cb, int mcast_ttl)
 		/* passed in an unsigned char */
 		u_char mcTTL = (u_char)mcast_ttl;
 		if (setsockopt(dtms_cb->dgram_sock_sndr, IPPROTO_IP, IP_MULTICAST_TTL, &mcTTL, sizeof(mcTTL)) < 0) {
-			LOG_ER("DTM :setsockopt(IP_MULTICAST_TTL) failed errno :%d", GET_LAST_ERROR());
+			LOG_ER("DTM :setsockopt(IP_MULTICAST_TTL) failed err :%s", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
@@ -392,10 +391,10 @@ uint32_t dtm_comm_socket_close(int *comm_socket)
 		TRACE("DTM :comm_socket_not exist ");
 
 	if (close(*comm_socket) != 0) {
-		err = GET_LAST_ERROR();
+		err = errno;
 		if (!IS_BLOCKIN_ERROR(err)) {
 
-			LOG_ER("DTM : dtm_sockdesc_close errno : %d ", err);
+			LOG_ER("DTM : dtm_sockdesc_close err :%s ", strerror(err));
 			rc = NCSCC_RC_FAILURE;
 			goto done;
 		}
@@ -425,10 +424,10 @@ uint32_t dtm_comm_socket_send(int sock_desc, const void *buffer, int buffer_len)
 	int err = 0;
 	int rc = NCSCC_RC_SUCCESS;
 	rtn = send(sock_desc, (raw_type *) buffer, buffer_len, 0);
+	err = errno;
 	if (rtn < 0) {
-		err = GET_LAST_ERROR();
 		if (!IS_BLOCKIN_ERROR(err)) {
-			LOG_ER("DTM :dtm_comm_socket_send failed  errno : %d", err);
+			LOG_ER("DTM :dtm_comm_socket_send failed  err :%s", strerror(err));
 			rc = NCSCC_RC_FAILURE;
 		}
 
@@ -452,10 +451,9 @@ uint32_t dtm_comm_socket_recv(int sock_desc, void *buffer, int buffer_len)
 	int rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 	if ((rtn = recv(sock_desc, (raw_type *) buffer, buffer_len, 0)) < 0) {
-
-		err = GET_LAST_ERROR();
+		err = errno;
 		if (!IS_BLOCKIN_ERROR(err)) {
-			LOG_ER("DTM :dtm_comm_socket_recv failed errno : %d", err);
+			LOG_ER("DTM :dtm_comm_socket_recv failed err :%s", strerror(err));
 			rc = NCSCC_RC_FAILURE;
 		}
 
@@ -482,7 +480,7 @@ static char *comm_get_foreign_address(int sock_desc)
 	TRACE_ENTER();
 
 	if (getpeername(sock_desc, (sockaddr *) & addr, (socklen_t *)&addr_len) < 0) {
-		LOG_ER("DTM :Fetch of foreign address failed (getpeername()) errno :%d", GET_LAST_ERROR());
+		LOG_ER("DTM :Fetch of foreign address failed (getpeername()) err :%s", strerror(errno));
 		return NULL;
 	}
 	TRACE_LEAVE();
@@ -523,14 +521,14 @@ int comm_socket_setup_new(DTM_INTERNODE_CB * dtms_cb, const char *foreign_addres
 
 	TRACE("DTM:foreign_address : %s local_port_str :%s", foreign_address, local_port_str);
 	if ((rv = getaddrinfo(foreign_address, local_port_str, &addr_criteria, &addr_list)) != 0) {
-		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d errno : %d", rv, GET_LAST_ERROR());
+		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));		
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 
 	}
 
 	if (addr_list == NULL) {
-		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d errno : %d", rv, GET_LAST_ERROR());
+		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));		
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -541,7 +539,7 @@ int comm_socket_setup_new(DTM_INTERNODE_CB * dtms_cb, const char *foreign_addres
 	TRACE("DTM : family : %d, socktype : %d, protocol :%d", p->ai_family, p->ai_socktype, p->ai_protocol);
 	/* Create socket for sending multicast datagrams */
 	if ((sock_desc = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == SOCKET_ERROR()) {
-		LOG_ER("DTM:Socket creation failed (socket()) errno : %d", GET_LAST_ERROR());
+		LOG_ER("DTM:Socket creation failed (socket()) err :%s", strerror(errno));
 		goto done;
 	}
 
@@ -552,13 +550,13 @@ int comm_socket_setup_new(DTM_INTERNODE_CB * dtms_cb, const char *foreign_addres
 	}
 
 	if (setsockopt(sock_desc, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) != 0) {
-		LOG_ER("DTM:Socket rcv buf size set failed errno : %d", GET_LAST_ERROR());
+		LOG_ER("DTM:Socket rcv buf size set failed err :%s", strerror(errno));
 		dtm_comm_socket_close(&sock_desc);
 		goto done;
 	}
 
 	if (setsockopt(sock_desc, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) != 0) {
-		LOG_ER("DTM:Socket snd buf size set failed errno : %d", GET_LAST_ERROR());
+		LOG_ER("DTM:Socket snd buf size set failed err :%s", strerror(errno));
 		dtm_comm_socket_close(&sock_desc);
 		goto done;
 	}
@@ -570,10 +568,9 @@ int comm_socket_setup_new(DTM_INTERNODE_CB * dtms_cb, const char *foreign_addres
 
 	/* Try to connect to the given port */
 	if (connect(sock_desc, addr_list->ai_addr, addr_list->ai_addrlen) < 0) {
-
-		err = GET_LAST_ERROR();
+		err = errno;
 		if (!IS_BLOCKIN_ERROR(err)) {
-			LOG_ER("DTM :Connect failed (connect()) errno : %d", err);
+			LOG_ER("DTM :Connect failed (connect()) err :%s", strerror(err));
 			dtm_comm_socket_close(&sock_desc);
 
 		}
@@ -610,7 +607,7 @@ static uint32_t stream_sock_bind(DTM_INTERNODE_CB * dtms_cb, struct addrinfo *st
 		struct sockaddr_storage local_addr;
 		socklen_t addr_size = sizeof(local_addr);
 		if (getsockname(dtms_cb->stream_sock, (struct sockaddr *)&local_addr, &addr_size) < 0) {
-			LOG_ER("DTM : getsockname() failed errno : %d", GET_LAST_ERROR());
+			LOG_ER("DTM : getsockname() failed err :%s", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
@@ -642,7 +639,6 @@ uint32_t dtm_stream_nonblocking_listener(DTM_INTERNODE_CB * dtms_cb)
 	int rv;
 
 	dtms_cb->stream_sock = -1;
-
 	TRACE_ENTER();
 	/* Construct the serv address structure */
 
@@ -658,14 +654,14 @@ uint32_t dtm_stream_nonblocking_listener(DTM_INTERNODE_CB * dtms_cb)
 
 	TRACE("DTM :ip_addr : %s local_port_str -%s", dtms_cb->ip_addr, local_port_str);
 	if ((rv = getaddrinfo(dtms_cb->ip_addr, local_port_str, &addr_criteria, &addr_list)) != 0) {
-		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d errno : %d", rv, GET_LAST_ERROR());
+		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));		
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 
 	}
 
 	if (addr_list == NULL) {
-		TRACE("DTM:Unable to getaddrinfo() rtn_val :%d errno :%d", rv, GET_LAST_ERROR());
+		TRACE("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));		
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -676,7 +672,7 @@ uint32_t dtm_stream_nonblocking_listener(DTM_INTERNODE_CB * dtms_cb)
 	TRACE("DTM :family : %d, socktype : %d, protocol :%d", p->ai_family, p->ai_socktype, p->ai_protocol);
 	/* Create socket for sending multicast datagrams */
 	if ((dtms_cb->stream_sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == SOCKET_ERROR()) {
-		LOG_ER("DTM:Socket creation failed (socket()) errno :%d", GET_LAST_ERROR());
+		LOG_ER("DTM:Socket creation failed (socket()) err :%s", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -690,11 +686,11 @@ uint32_t dtm_stream_nonblocking_listener(DTM_INTERNODE_CB * dtms_cb)
 	}
 
 	if (setsockopt(dtms_cb->stream_sock, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) != 0) {
-		LOG_ER("DTM:Socket rcv buf size set failed errno :%d", GET_LAST_ERROR());
+		LOG_ER("DTM:Socket rcv buf size set failed err :%s", strerror(errno));
 	}
 
 	if (setsockopt(dtms_cb->stream_sock, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) != 0) {
-		LOG_ER("DTM:Socket snd buf size set failed errno :%d", GET_LAST_ERROR());
+		LOG_ER("DTM:Socket snd buf size set failed err :%s", strerror(errno));
 	}
 
 	if (set_keepalive(dtms_cb, dtms_cb->stream_sock) != NCSCC_RC_SUCCESS) {
@@ -750,14 +746,14 @@ uint32_t dtm_dgram_mcast_listener(DTM_INTERNODE_CB * dtms_cb)
 
 	TRACE("DTM :mcast_addr : %s local_port_str :%s", dtms_cb->mcast_addr, local_port_str);
 	if ((rv = getaddrinfo(dtms_cb->mcast_addr, local_port_str, &addr_criteria, &addr_list)) != 0) {
-		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d errno :%d", rv, GET_LAST_ERROR());
+		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));		
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 
 	}
 
 	if (addr_list == NULL) {
-		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d errno :%d", rv, GET_LAST_ERROR());
+		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));	
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -768,7 +764,7 @@ uint32_t dtm_dgram_mcast_listener(DTM_INTERNODE_CB * dtms_cb)
 	TRACE("DTM :family : %d, socktype : %d, protocol :%d", p->ai_family, p->ai_socktype, p->ai_protocol);
 	/* Create socket for sending multicast datagrams */
 	if ((dtms_cb->dgram_sock_rcvr = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) ==  SOCKET_ERROR()) {
-		LOG_ER("DTM:Socket creation failed (socket()) errno :%d", GET_LAST_ERROR());
+		LOG_ER("DTM:Socket creation failed (socket()) err :%s", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -780,7 +776,7 @@ uint32_t dtm_dgram_mcast_listener(DTM_INTERNODE_CB * dtms_cb)
 	}
 
 	if (bind(dtms_cb->dgram_sock_rcvr, p->ai_addr, p->ai_addrlen) < 0) {
-		LOG_ER("DTM : bind() failed errno :%d ", GET_LAST_ERROR());
+		LOG_ER("DTM : bind() failed err :%s ", strerror(errno));
 		dtm_sockdesc_close(dtms_cb->dgram_sock_rcvr);
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
@@ -831,14 +827,14 @@ uint32_t dtm_dgram_mcast_sender(DTM_INTERNODE_CB * dtms_cb, int mcast_ttl)
 
 	TRACE("DTM :mcast_addr : %s local_port_str :%s", dtms_cb->mcast_addr, local_port_str);
 	if ((rv = getaddrinfo(dtms_cb->mcast_addr, local_port_str, &addr_criteria, &mcast_sender_addr)) != 0) {
-		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d errno :%d", rv, GET_LAST_ERROR());
+		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 
 	}
 
 	if (mcast_sender_addr == NULL) {
-		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d errno :%d", rv, GET_LAST_ERROR());
+		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));	
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);		
 		return NCSCC_RC_FAILURE;
 	}
@@ -849,7 +845,7 @@ uint32_t dtm_dgram_mcast_sender(DTM_INTERNODE_CB * dtms_cb, int mcast_ttl)
 	TRACE("DTM :family : %d, socktype : %d, protocol :%d", p->ai_family, p->ai_socktype, p->ai_protocol);
 	/* Create socket for sending multicast datagrams */
 	if ((dtms_cb->dgram_sock_sndr = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) ==  SOCKET_ERROR()) {
-		LOG_ER("DTM:Socket creation failed (socket()) errno :%d", GET_LAST_ERROR());
+		LOG_ER("DTM:Socket creation failed (socket()) err :%s", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -922,7 +918,7 @@ uint32_t dtm_dgram_bcast_listener(DTM_INTERNODE_CB * dtms_cb)
 	/* FIX ME */
 	/*if ((rv = getaddrinfo(dtms_cb->ip_addr, local_port_str, &addr_criteria, &addr_list)) != 0)  */
 	if ((rv = getaddrinfo(NULL, local_port_str, &addr_criteria, &addr_list)) != 0) {
-		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d errno :%d", rv, GET_LAST_ERROR());
+		LOG_ER("DTM:Unable to getaddrinfo() rtn_val :%d err :%s", rv, strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 
@@ -945,13 +941,13 @@ uint32_t dtm_dgram_bcast_listener(DTM_INTERNODE_CB * dtms_cb)
 		}
 
 		if ((dtms_cb->dgram_sock_rcvr = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) ==  SOCKET_ERROR()) {
-			LOG_ER("DTM:Socket creation failed (socket()) errno :%d", GET_LAST_ERROR());
+			LOG_ER("DTM:Socket creation failed (socket()) err :%s", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			continue;
 		}
 
 		if (bind(dtms_cb->dgram_sock_rcvr, p->ai_addr, p->ai_addrlen) == -1) {
-			LOG_ER("DTM:Socket bind failed  errno :%d", GET_LAST_ERROR());
+			LOG_ER("DTM:Socket bind failed  err :%s", strerror(errno));
 			close(dtms_cb->dgram_sock_rcvr);
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			perror("listener: bind");
@@ -983,7 +979,6 @@ uint32_t dtm_dgram_bcast_sender(DTM_INTERNODE_CB * dtms_cb)
 {
 
 	const char *IN6ADDR_ALLNODES = "FF02::1";	/* v6 addr not built in */
-
 	TRACE_ENTER();
 
 	dtms_cb->dgram_sock_sndr = -1;
@@ -1024,9 +1019,8 @@ uint32_t dtm_dgram_bcast_sender(DTM_INTERNODE_CB * dtms_cb)
 
 	/* Create socket for sending/receiving datagrams */
 	dtms_cb->dgram_sock_sndr = socket(bcast_dest_address->sa_family, SOCK_DGRAM, IPPROTO_UDP);
-
 	if (dtms_cb->dgram_sock_sndr ==  SOCKET_ERROR()) {
-		LOG_ER("DTM :socket create  failederrno %d", GET_LAST_ERROR());
+		LOG_ER("DTM :socket create  failederr :%s", strerror(errno));
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -1211,9 +1205,9 @@ int dtm_process_accept(DTM_INTERNODE_CB * dtms_cb, int stream_sock)
 
 	if ((new_conn_sd = accept(stream_sock, (struct sockaddr *)&clnt_addr, &clnt_addrLen)) < 0) {
 
-		err = GET_LAST_ERROR();
+		err = errno;
 		if (!IS_BLOCKIN_ERROR(err)) {
-			LOG_ER("DTM:Accept failed (accept()) errno :%d", err);
+			LOG_ER("DTM:Accept failed (accept()) err :%s", strerror(err));
 			new_conn_sd = -1;
 			goto done;
 		}
@@ -1311,7 +1305,7 @@ int dtm_dgram_recvfrom_bmcast(DTM_INTERNODE_CB * dtms_cb, char *node_ip, void *b
 	if ((rtn = recvfrom(dtms_cb->dgram_sock_rcvr, (raw_type *) buffer, buffer_len, 0,
 			    (struct sockaddr *)&clnt_addr, (socklen_t *)&addrLen)) < 0) {
 	
-		LOG_ER("DTM:Receive failed (recvfrom()) errno %d", GET_LAST_ERROR());
+		LOG_ER("DTM:Receive failed (recvfrom()) err :%s", strerror(errno));
 
 	} else {
 		const struct sockaddr *clnt_addr1 = (struct sockaddr *)&clnt_addr;

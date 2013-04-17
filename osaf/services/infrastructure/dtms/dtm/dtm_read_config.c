@@ -263,12 +263,12 @@ int dtm_read_config(DTM_INTERNODE_CB * config, char *dtm_config_file)
 	fp = fopen(PKGSYSCONFDIR "/node_name", "r");
 	if (fp == NULL) {
 		LOG_ER("DTM: Could not open file  node_name ");
-		return (GET_LAST_ERROR());
+		return errno;
 	}
 	if (EOF == fscanf(fp, "%s", config->node_name)) {
 		fclose(fp);
 		LOG_ER("DTM: Could not get node name ");
-		return (GET_LAST_ERROR());
+		return errno;
 	}
 	fclose(fp);
 	TRACE("DTM :config->node_nam : %s", config->node_name);
@@ -284,7 +284,7 @@ int dtm_read_config(DTM_INTERNODE_CB * config, char *dtm_config_file)
 	if (dtm_conf_file == NULL) {
 		/* Problem with conf file - return errno value */
 		LOG_ER("DTM: dtm_read_cofig: there was a problem opening the dtm.conf file");
-		return (GET_LAST_ERROR());
+		return errno;
 	}
 
 	/* Read file. */
@@ -496,7 +496,7 @@ int dtm_read_config(DTM_INTERNODE_CB * config, char *dtm_config_file)
 		LOG_ER("DTM: dtm_read_config: cluster_id is missing in conf file");
 		fieldmissing = 1;
 	} else if ((config->node_id) == 0) {
-		LOG_ER("DTM: node_id: msg_protocol_version is missing in conf file");
+		LOG_ER("DTM: dtm_read_config: node_id is missing in configuration");
 		fieldmissing = 1;
 	} else if ((config->dgram_port_sndr) == 0) {
 		LOG_ER("DTM: dtm_read_config: dgram_port_sndr is missing in conf file");

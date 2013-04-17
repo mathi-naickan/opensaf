@@ -17,7 +17,6 @@
 #ifndef DTM_SOCKET_H
 #define DTM_SOCKET_H
 
-#define GET_LAST_ERROR() errno
 #define SOCKET_ERROR()  -1
 #define SDDR_IN_USE (errno == EADDRINUSE)
 #define IS_BLOCKIN_ERROR(a) ((a == EALREADY) || (a == EINPROGRESS) || (a == EAGAIN))
