@@ -1100,24 +1100,24 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uint8_t *data
 
 	}
 
-	/* new_node = dtm_node_get_by_id(node.node_id); */
-	new_node = dtm_node_get_by_node_ip((uint8_t *)node.node_ip);
+	new_node = dtm_node_get_by_id(node.node_id); 
+	/*new_node = dtm_node_get_by_node_ip((uint8_t *)node.node_ip);*/
 
 	if (new_node != NULL) {
 		if (((new_node->node_id == 0) || (new_node->node_id == node.node_id)) &&
-		    (memcmp((uint8_t *)(node.node_ip), (uint8_t *)(new_node->node_ip), INET6_ADDRSTRLEN) == 0) &&
+		    (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) == 0) &&
 		    (new_node->comm_status == false)) {
 			TRACE("DTM:new_node  discovery in progress droping message");
 			TRACE_LEAVE2("sock_desc :%d", sock_desc);
 			return sock_desc;
 		} else if ((new_node->comm_status == true) && (new_node->node_id == node.node_id) &&
-			   (memcmp((uint8_t *)(node.node_ip), (uint8_t *)(new_node->node_ip), INET6_ADDRSTRLEN) == 0)) {
+			   (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) == 0)) {
 			TRACE("DTM:new_node node already discovered droping message");
 			TRACE_LEAVE2("sock_desc :%d", sock_desc);
 			return sock_desc;
 		} else if ((new_node->comm_status == false) &&
 			   ((new_node->node_id != node.node_id) ||
-			    (memcmp((uint8_t *)(node.node_ip), (uint8_t *)(new_node->node_ip), INET6_ADDRSTRLEN) != 0))) {
+			    (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) != 0))) {
 			TRACE("DTM:new_node deleting stale enty ");
 			if (dtm_node_delete(new_node, 0) != NCSCC_RC_SUCCESS) {
 				LOG_ER("DTM :dtm_node_delete failed (recv())");

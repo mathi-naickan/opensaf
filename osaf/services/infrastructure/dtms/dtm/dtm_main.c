@@ -248,6 +248,8 @@ int main(int argc, char *argv[])
 
 	TRACE_ENTER();
 
+	memset(send_bcast_buffer, 0, 255);
+
 	daemonize(argc, argv);
 
 	/*************************************************************/
