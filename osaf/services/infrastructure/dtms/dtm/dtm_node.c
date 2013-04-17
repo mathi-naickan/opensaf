@@ -690,14 +690,9 @@ void node_discovery_process(void *arg)
 				/*****************************************************/
 					new_sd = dtm_process_accept(dtms_cb, dtms_cb->stream_sock);
 					if (new_sd < 0) {
-						
-						if (!IS_BLOCKIN_ERROR(GET_LAST_ERROR())) {
-
-							LOG_ER("DTM: accept() failed");
-							end_server = true;
-						}
+						LOG_ER("DTM: accept() failed");
+						end_server = true;
 						break;
-
 					}
 
 		
@@ -709,7 +704,7 @@ void node_discovery_process(void *arg)
 					local_rc = dtm_comm_socket_send(new_sd, node_info_hrd, node_info_buffer_len);
 					if (local_rc != NCSCC_RC_SUCCESS) {
 						dtm_comm_socket_close(&new_sd);
-						LOG_ER("DTM: send() failed errno : %d ", GET_LAST_ERROR());
+						LOG_ER("DTM: send() failed ");
 						break;
 					}
 					
