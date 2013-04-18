@@ -810,10 +810,6 @@ static SaAisErrorT file_attribute_cmp(lgsv_stream_open_req_t *open_sync_param, l
 		TRACE("logFileFullAction create params differs, new: %d, old: %d",
 		      open_sync_param->logFileFullAction, applicationStream->logFullAction);
 		rs = SA_AIS_ERR_EXIST;
-	} else if (applicationStream->haProperty != open_sync_param->haProperty) {
-		TRACE("haProperty create params differs, new: %d, old: %d",
-			  open_sync_param->haProperty, applicationStream->haProperty);
- 		rs = SA_AIS_ERR_EXIST;
 	} else if (strcmp(applicationStream->fileName, open_sync_param->logFileName) != 0) {
 		TRACE("logFileName differs, new: %s existing: %s",
 		      open_sync_param->logFileName, applicationStream->fileName);
