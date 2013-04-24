@@ -200,6 +200,7 @@ static uint32_t dtm_intranode_snd_unsent_msg(DTM_INTRANODE_PID_INFO * pid_node, 
 			if (DTM_INTRANODE_SND_MAX_COUNT == snd_count) {
 				break;
 			}
+			unsent_msg = unsent_msg->next;
 		} else {
 			break;
 		}

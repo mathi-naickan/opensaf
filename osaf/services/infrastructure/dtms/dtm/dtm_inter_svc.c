@@ -91,6 +91,7 @@ uint32_t dtm_internode_process_rcv_down_msg(uint8_t *buffer, uint16_t len, NODE_
 	dtm_msg_elem->info.svc_event.buffer = buffer;
 	if ((m_NCS_IPC_SEND(&dtm_intranode_cb->mbx, dtm_msg_elem, dtm_msg_elem->pri)) != NCSCC_RC_SUCCESS) {
 		/* Message Queuing failed */
+		free(buffer);
 		free(dtm_msg_elem);
 		TRACE("DTM : Intranode IPC_SEND : SVC DOWN EVENT : FAILED");
 		TRACE_LEAVE();
