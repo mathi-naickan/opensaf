@@ -622,6 +622,7 @@ static void dtm_intranode_processing(void)
 											     len,
 											     msg_elem->info.svc_event.
 											     node_id);
+							free(msg_elem->info.svc_event.buffer);
 						} else if (DTM_MBX_DOWN_TYPE == msg_elem->type) {
 							dtm_process_internode_service_down_msg(msg_elem->info.svc_event.
 											       buffer,
@@ -629,6 +630,7 @@ static void dtm_intranode_processing(void)
 											       len,
 											       msg_elem->info.svc_event.
 											       node_id);
+							free(msg_elem->info.svc_event.buffer);
 						} else if (DTM_MBX_NODE_UP_TYPE == msg_elem->type) {
 							dtm_intranode_process_node_up(msg_elem->info.node.node_id,
 										      msg_elem->info.node.node_name,

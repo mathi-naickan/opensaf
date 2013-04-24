@@ -238,6 +238,14 @@ uint32_t dtm_intranode_process_pid_down(int fd)
 		m_NCS_IPC_RELEASE(&pid_node->mbx, NULL);
 
 		close(pid_node->mbx_fd);
+		DTM_INTRANODE_UNSENT_MSGS  *tmp = NULL;
+		while(pid_node->msgs_hdr != NULL) {
+			tmp = pid_node->msgs_hdr;
+			if (tmp->buffer != NULL)
+				free(tmp->buffer);
+			pid_node->msgs_hdr = pid_node->msgs_hdr->next;
+			free(tmp);
+		}
 		free(pid_node);
 	}
 	TRACE_LEAVE();
@@ -591,9 +599,9 @@ uint32_t dtm_intranode_process_unsubscribe_msg(uint8_t *buff, int fd)
 		} else {
 			server_type = data_subscr->server_type;
 			dtm_intranode_del_subscr_from_pid_info(pid_node, data_subscr);
+			TRACE_1("DTM: INTRA: svc unsubscribe type=%d, ref_hdl =%" PRIu64 " pid=%d", server_type, ref_val, pid_node->pid);
 		}
-		TRACE_1("DTM: INTRA: svc unsubscribe type=%d, ref_hdl =%" PRIu64 " pid=%d", data_subscr->server_type, ref_val,
-		       pid_node->pid);
+
 		subscr_node = dtm_intranode_get_subscr_node(server_type);
 
 		if (NULL == subscr_node) {
@@ -812,6 +820,7 @@ static uint32_t dtm_internode_del_svclist_from_svc_tree(DTM_INTRANODE_NODE_DB * 
 					/*delete the entire tree */
 					ncs_patricia_tree_del(&node_info->dtm_rem_node_svc_tree,
 							      (NCS_PATRICIA_NODE *)&svc_node->svc_install_node);
+					free(svc_node);
 				}
 			} else {
 				back->next = mov_ptr->next;
@@ -854,6 +863,7 @@ static uint32_t dtm_intranode_del_svclist_from_svc_tree(DTM_SVC_INSTALL_INFO * s
 					/*delete the entire tree */
 					ncs_patricia_tree_del(&dtm_intranode_cb->dtm_svc_install_list,
 							      (NCS_PATRICIA_NODE *)&svc_node->svc_install_node);
+					free(svc_node);
 				}
 			} else {
 				back->next = mov_ptr->next;
@@ -1006,6 +1016,7 @@ static uint32_t dtm_intranode_del_subscrlist_from_subscr_tree(DTM_SVC_SUBSCR_INF
 					subscr_node->subscriber_list = NULL;
 					ncs_patricia_tree_del(&dtm_intranode_cb->dtm_svc_subscr_list,
 							      (NCS_PATRICIA_NODE *)&subscr_node->svc_subscr_node);
+					free(subscr_node);
 				} else {
 					subscr_node->subscriber_list = mov_ptr->next;
 				}
@@ -1303,8 +1314,6 @@ static uint32_t dtm_internode_delete_svc_installed_list_from_svc_tree(DTM_INTRAN
 			}
 			dtm_internode_del_svclist_from_svc_tree(node, svc_info, del_ptr);
 		}
-		free(svc_info);
-		svc_info = NULL;
 	}
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
@@ -1832,7 +1841,7 @@ uint32_t dtm_process_internode_service_down_msg(uint8_t *buffer, uint16_t len, N
 					DTM_SUBSCRIBER_LIST *subscr_list = subscr_node->subscriber_list;
 					uint8_t local_buffer[DTM_LIB_DOWN_MSG_SIZE_FULL];
 					DTM_LIB_DOWN_MSG down_msg = { 0 };
-					down_msg.server_type = svc_info->server_type;
+					down_msg.server_type = server_type;
 					down_msg.server_instance_lower = svc_list.server_inst_lower;
 					down_msg.server_instance_upper = svc_list.server_inst_higher;
 
