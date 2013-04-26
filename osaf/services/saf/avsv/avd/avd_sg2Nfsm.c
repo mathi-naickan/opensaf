@@ -919,6 +919,13 @@ SaAisErrorT avd_sg_2n_siswap_func(AVD_SI *si, SaInvocationT invocation)
 		rc = SA_AIS_ERR_BAD_OPERATION;
 		goto done;
 	}
+	if (susi->si->sg_of_si->sg_ncs_spec) {
+		if (SA_TRUE == avd_cb->swap_switch ) {
+			LOG_NO("SI Swap not possible, Controller role switch under progress");
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			goto done;
+		}
+	}
 	/* Check if there is dependency between SI's within SU */
 	if (avd_si_dependency_exists_within_su(susi->su)) {
 		if (avd_sg_susi_mod_snd_honouring_si_dependency(susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
