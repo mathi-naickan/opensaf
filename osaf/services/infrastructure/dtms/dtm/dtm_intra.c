@@ -102,23 +102,10 @@ uint32_t dtm_intra_processing_init(void)
 	NCS_PATRICIA_PARAMS pat_tree_params;
 	struct sockaddr_in serveraddr;
 	struct sockaddr_in6 serveraddr6;
-	char *inet_or_unix = NULL;
-	struct addrinfo *addr_list;
-	uint32_t rc;
 
 	TRACE_ENTER();
-
-	inet_or_unix = getenv("MDS_INTRANODE_TRANSPORT");
-	if (strcmp(inet_or_unix, "TCP") == 0) {
-		if ((rc = getaddrinfo("localhost", NULL,NULL, &addr_list)) != 0) {
-			syslog(LOG_ERR,"MDTM:Unable to getaddrinfo() with errno = %d", errno);
-			return NCSCC_RC_FAILURE;
-		}
-
-		dtm_socket_domain = addr_list->ai_family; /* AF_INET or AF_INET6 */
-	} else {
-		dtm_socket_domain = AF_UNIX;
-	}
+	/* UNIX is default transport for intranode */
+	dtm_socket_domain = AF_UNIX;
 
 	if (NULL == (dtm_intranode_cb = calloc(1, sizeof(DTM_INTRANODE_CB)))) {
 		LOG_ER("DTM: Memory allocation failed for dtm_intranode_cb");
