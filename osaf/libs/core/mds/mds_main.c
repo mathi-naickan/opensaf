@@ -362,14 +362,12 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 
 void mds_init_transport(void)
 {
-	char *inet_or_unix = NULL;
 	char *tipc_or_tcp = NULL;
-	struct addrinfo *addr_list;
-	int rc,rc1;
+	int rc;
 	struct stat sockStat;
 
-	rc1 = stat(MDS_MDTM_CONNECT_PATH, &sockStat);
-	if (rc1 == 0)  /* dtm intra server exists */
+	rc = stat(MDS_MDTM_CONNECT_PATH, &sockStat);
+	if (rc == 0)  /* dtm intra server exists */
 		tipc_or_tcp = "TCP";
 	else
 		tipc_or_tcp = "TIPC";
@@ -391,22 +389,10 @@ void mds_init_transport(void)
 		mds_mdtm_send = mds_mdtm_send_tcp;
 		mds_mdtm_node_subscribe = mds_mdtm_node_subscribe_tcp;
 		mds_mdtm_node_unsubscribe = mds_mdtm_node_unsubscribe_tcp;
+		
+		/* UNIX is default transport for intranode */
+		mds_socket_domain = AF_UNIX;
 
-		inet_or_unix = getenv("MDS_INTRANODE_TRANSPORT");
-
-		if (NULL == inet_or_unix)
-			inet_or_unix = "UNIX";
-
-		if (strcmp(inet_or_unix, "TCP") == 0) {
-			if ((rc = getaddrinfo("localhost", NULL,NULL, &addr_list)) != 0) {
-				syslog(LOG_ERR,"MDTM:Unable to getaddrinfo() with errno = %d", errno);
-				return;
-			}
-			mds_socket_domain = addr_list->ai_family; /* AF_INET or AF_INET6 */
-
-		} else {
-			mds_socket_domain = AF_UNIX;
-		}
 		return;
 	}
 
