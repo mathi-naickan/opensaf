@@ -755,6 +755,8 @@ int32_t fork_script(NID_SPAWN_INFO *service, char *app, char *args[], char *strb
 		for (i = 1; i < NSIG; i++)
 			SETSIG(sa, i, SIG_DFL, SA_RESTART);
 
+		SETSIG(sa, SIGPIPE, SIG_IGN, 0);
+
 		execvp(app, args);
 
 		/* Hope we never come here, incase if we are here, Lets rest in peace */
