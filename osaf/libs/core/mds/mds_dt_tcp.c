@@ -216,9 +216,14 @@ uint32_t mds_mdtm_init_tcp(NODE_ID nodeid, uint32_t *mds_tcp_ref)
 	}
 
 	/* Convert the socket to a Non-blocking socket */
-	flags = fcntl(tcp_cb->DBSRsock, F_SETFD, O_NONBLOCK);
-	if ((flags < 0) || (flags > 1)) {
-		syslog(LOG_ERR, "MDS:MDTM:TCP Unable to get the CLOEXEC Flag on DBSRsock  err :%s", strerror(errno));
+	if ((flags = fcntl(tcp_cb->DBSRsock, F_GETFL, NULL)) < 0) {
+		syslog(LOG_ERR, "MDS:MDTM:TCP Unable to set the  F_GETFL O_NONBLOCK Flag on DBSRsock  err :%s", strerror(errno));
+		close(tcp_cb->DBSRsock);
+		return NCSCC_RC_FAILURE;	
+	}
+	flags |= O_NONBLOCK;
+	if (fcntl(tcp_cb->DBSRsock, F_SETFL, flags) < 0) {
+		syslog(LOG_ERR, "MDS:MDTM:TCP Unable to set the F_SETFL  O_NONBLOCK Flag on DBSRsock  err :%s", strerror(errno));		
 		close(tcp_cb->DBSRsock);
 		return NCSCC_RC_FAILURE;
 	}
