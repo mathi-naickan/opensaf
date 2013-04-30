@@ -688,14 +688,12 @@ static uint32_t cpa_mds_dec(CPA_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 		pstream = ncs_dec_flatten_space(dec_info->io_uba, local_data, 8);
 		msg_ptr->type = ncs_decode_32bit(&pstream);
 		if (msg_ptr->type == CPSV_EVT_TYPE_CPA) {
-			msg_ptr->info.cpa.type = ncs_decode_32bit(&pstream);
-			if (msg_ptr->info.cpa.type == CPA_EVT_ND2A_CKPT_DATA_RSP) {
-				ncs_dec_skip_space(dec_info->io_uba, 8);
-				rc = cpsv_data_access_rsp_decode(&msg_ptr->info.cpa.info.sec_data_rsp,
-								 dec_info->io_uba);
-				goto free;
+			/* For Events  Write/Read Call EDU VER_EXEC*/
+			rc = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, FUNC_NAME(CPSV_EVT),
+					dec_info->io_uba, EDP_OP_TYPE_DEC,
+					(CPSV_EVT **)&dec_info->o_msg, &ederror, dec_info->i_msg_fmt_ver);
+			goto free;
 
-			}
 			/* if(msg_ptr->info.cpa.type == CPA_EVT_ND2A_CKPT_DATA_RSP) */
 		}
 		/* if( msg_ptr->type == CPSV_EVT_TYPE_CPA) */

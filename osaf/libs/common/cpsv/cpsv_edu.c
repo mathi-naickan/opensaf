@@ -548,7 +548,7 @@ TEST_FUNC_DECLARATION(DS)
 FUNC_DECLARATION(DS)
 {
 	uint16_t ver_compare = 0;
-	ver_compare = 3; /* CPND_MDS_PVT_SUBPART_VERSION */
+	ver_compare = 4; /* CPND_MDS_PVT_SUBPART_VERSION  and CPA_MDS_PVT_SUBPART_VERSION*/
 	NCS_ENC_DEC_DECLARATION(DS);
 	NCS_ENC_DEC_ARRAY(DS) {
 
@@ -560,6 +560,8 @@ FUNC_DECLARATION(DS)
       {EDU_EXEC, ncs_edp_uns64 , 0, 0, 0, (long)&((DS*)0)->ckpt_id, 0, NULL},
       {EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((DS*)0)->error_index, 0, NULL},
       {EDU_EXEC, ncs_edp_mds_dest, 0, 0, 0, (long)&((DS*)0)->from_svc, 0, NULL},
+      {EDU_VER_GE, NULL, 0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver_compare)))},
+      {EDU_EXEC,ncs_edp_uns64 , 0, 0, 0, (long)&((DS*)0)->lcl_ckpt_id, 0, NULL},
       {EDU_TEST, ncs_edp_uns32, 0, 0, 0, (long)&((DS*)0)->type, 0, (void *)TEST_FUNC(CPSV_ND2A_DATA_ACCESS_RSP)},
 
 
@@ -574,8 +576,6 @@ FUNC_DECLARATION(DS)
 
       {EDU_EXEC,FUNC_NAME(CPSV_SAERR_INFO), 0, 0, EDU_EXIT, (long)&((DS*)0)->info.ovwrite_error, 0, NULL},
 
-      {EDU_VER_GE, NULL, 0, 0, 1, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver_compare)))},
-      {EDU_EXEC,ncs_edp_uns64 , 0, 0, 0, (long)&((DS*)0)->lcl_ckpt_id, 0, NULL},
 
       {EDU_END, 0, 0, 0, 0, 0, 0, NULL},
 

@@ -149,7 +149,7 @@ typedef struct cpa_prcess_evt_sync {
             (((attr & SA_CKPT_CHECKPOINT_COLLOCATED) != 0)?true:false)
 
 /*30B Versioning Changes */
-#define CPA_MDS_PVT_SUBPART_VERSION 2
+#define CPA_MDS_PVT_SUBPART_VERSION 4
 /*CPA - CPND communication */
 #define CPA_WRT_CPND_SUBPART_VER_MIN 1
 #define CPA_WRT_CPND_SUBPART_VER_MAX 2

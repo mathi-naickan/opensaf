@@ -84,7 +84,7 @@ uint32_t gl_cpnd_cb_hdl;
 #define m_CPND_IS_ON_SCXB(m,n) ((m==n)?1:0)
 
 /*30B Versioning Changes */
-#define CPND_MDS_PVT_SUBPART_VERSION 3
+#define CPND_MDS_PVT_SUBPART_VERSION 4
 
 /*CPND - CPA communication */
 #define CPND_WRT_CPA_SUBPART_VER_MIN 1
@@ -96,7 +96,7 @@ uint32_t gl_cpnd_cb_hdl;
 
 /*CPND - CPND communication */
 #define CPND_WRT_CPND_SUBPART_VER_MIN 1
-#define CPND_WRT_CPND_SUBPART_VER_MAX 3
+#define CPND_WRT_CPND_SUBPART_VER_MAX 2
 
 #define CPND_WRT_CPND_SUBPART_VER_RANGE \
         (CPND_WRT_CPND_SUBPART_VER_MAX - \

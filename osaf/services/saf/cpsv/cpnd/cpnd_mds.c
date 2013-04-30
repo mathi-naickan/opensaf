@@ -47,7 +47,7 @@ MDS_CLIENT_MSG_FORMAT_VER cpnd_cpa_msg_fmt_table[CPND_WRT_CPA_SUBPART_VER_RANGE]
 };
 
 MDS_CLIENT_MSG_FORMAT_VER cpnd_cpnd_msg_fmt_table[CPND_WRT_CPND_SUBPART_VER_RANGE] = {
-	1, 2, 3
+	1, 2
 };
 
 MDS_CLIENT_MSG_FORMAT_VER cpnd_cpd_msg_fmt_table[CPND_WRT_CPD_SUBPART_VER_RANGE] = {
