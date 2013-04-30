@@ -96,12 +96,13 @@ uint32_t dtm_service_discovery_init(void)
 uint32_t dtm_intra_processing_init(void)
 {
 
-	int servlen, sock_opt, size = DTM_INTRANODE_SOCK_SIZE;	/* For socket fd and server len */
+	int servlen, size = DTM_INTRANODE_SOCK_SIZE;	/* For socket fd and server len */
 	struct sockaddr_un serv_addr;	/* For Unix Sock address */
 	char server_ux_name[255];
 	NCS_PATRICIA_PARAMS pat_tree_params;
 	struct sockaddr_in serveraddr;
 	struct sockaddr_in6 serveraddr6;
+	int flags;
 
 	TRACE_ENTER();
 	/* UNIX is default transport for intranode */
@@ -117,17 +118,20 @@ uint32_t dtm_intra_processing_init(void)
 	dtm_intranode_cb->server_sockfd = socket(dtm_socket_domain, SOCK_STREAM, 0);
 
 	if (dtm_intranode_cb->server_sockfd < 0) {
-		LOG_ER("DTM: Socket creation failed");
+		LOG_ER("DTM: Socket creation failed err :%s ", strerror(errno));
 		free(dtm_intranode_cb);
 		return NCSCC_RC_FAILURE;
 	}
 
 	/*Make the socket Non-Blocking for accepting */
-	sock_opt = fcntl(dtm_intranode_cb->server_sockfd, F_SETFL, O_NONBLOCK);
-
-	if (sock_opt != 0) {
+	if ((flags = fcntl(dtm_intranode_cb->server_sockfd, F_GETFL, NULL)) < 0) {
+		LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
+		return false;
+	}
+	flags |= O_NONBLOCK;
+	if(fcntl(dtm_intranode_cb->server_sockfd, F_SETFL, flags) < 0) {
 		/*Non-Blocking Options hasnt been set, what shall we do now */
-		LOG_ER("DTM: Socket NON Block set failed");
+		LOG_ER("DTM: Socket NON Block set failed err :%s ", strerror(errno));
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
 		return NCSCC_RC_FAILURE;
@@ -135,13 +139,13 @@ uint32_t dtm_intra_processing_init(void)
 
 	/* Increase the socket buffer size */
 	if (setsockopt(dtm_intranode_cb->server_sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) != 0) {
-		LOG_ER("DTM: Unable to set the SO_RCVBUF ");
+		LOG_ER("DTM: Unable to set the SO_RCVBUF err :%s ", strerror(errno)); 
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
 		return NCSCC_RC_FAILURE;
 	}
 	if (setsockopt(dtm_intranode_cb->server_sockfd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) != 0) {
-		LOG_ER("DTM: Unable to set the SO_SNDBUF ");
+		LOG_ER("DTM: Unable to set the SO_SNDBUF err :%s ", strerror(errno));
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
 		return NCSCC_RC_FAILURE;
@@ -167,7 +171,7 @@ uint32_t dtm_intra_processing_init(void)
 		 * created socket*/
 
 		if (bind(dtm_intranode_cb->server_sockfd, (struct sockaddr *)&serv_addr, servlen) < 0) {
-			LOG_ER("DTM: Bind failed");
+			LOG_ER("DTM: Bind failed err :%s ", strerror(errno));
 			close(dtm_intranode_cb->server_sockfd);
 			free(dtm_intranode_cb);
 			return NCSCC_RC_FAILURE;
@@ -187,7 +191,7 @@ uint32_t dtm_intra_processing_init(void)
  			serveraddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
  
  			if (bind(dtm_intranode_cb->server_sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr) ) < 0) {
- 				syslog(LOG_ERR, "\nBind failed");
+ 				LOG_ER("DTM: Bind failed err :%s ", strerror(errno));
  				close(dtm_intranode_cb->server_sockfd);
  				free(dtm_intranode_cb);
  				return NCSCC_RC_FAILURE;
@@ -433,7 +437,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 
 			recd_bytes = recv(fd, node->len_buff, 2, 0);
 			if (0 == recd_bytes) {
-				TRACE("DTM_INTRA: Socket close: %d", fd);
+				TRACE("DTM_INTRA: Socket close: %d  err :%s", fd, strerror(errno));
 				dtm_intranode_process_pid_down(fd);
 				dtm_intranode_del_poll_fdlist(fd);
 				return;
@@ -456,6 +460,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 				if (recd_bytes < 0) {
 					return;
 				} else if (0 == recd_bytes) {
+					TRACE("DTM_INTRA: Socket close: %d  err :%s", fd, strerror(errno));
 					dtm_intranode_process_pid_down(fd);
 					dtm_intranode_del_poll_fdlist(fd);
 					return;
@@ -497,6 +502,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 				node->buff_total_len = ncs_decode_16bit(&data);
 				return;
 			} else if (0 == recd_bytes) {
+				TRACE("DTM_INTRA: Socket close: %d  err :%s", fd, strerror(errno));
 				dtm_intranode_process_pid_down(fd);
 				dtm_intranode_del_poll_fdlist(fd);
 				return;
@@ -517,6 +523,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 			if (recd_bytes < 0) {
 				return;
 			} else if (0 == recd_bytes) {
+				TRACE("DTM_INTRA: Socket close: %d  err :%s", fd, strerror(errno));
 				dtm_intranode_process_pid_down(fd);
 				dtm_intranode_del_poll_fdlist(fd);
 				return;
@@ -546,6 +553,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 		if (recd_bytes < 0) {
 			return;
 		} else if (0 == recd_bytes) {
+			TRACE("DTM_INTRA: Socket close: %d  err :%s", fd, strerror(errno));
 			/* Close the connection */
 			dtm_intranode_process_pid_down(fd);
 			dtm_intranode_del_poll_fdlist(fd);
@@ -642,6 +650,7 @@ static void dtm_intranode_processing(void)
 					dtm_intranode_process_pollout(pfd_list[i].fd);
 				} else if (pfd_list[i].revents & POLLHUP) {
 					num_fd_checked++;
+					TRACE("DTM_INTRA: Socket close: %d  err :%s", pfd_list[i].fd, strerror(errno));
 					dtm_intranode_process_pid_down(pfd_list[i].fd);
 					dtm_intranode_del_poll_fdlist(pfd_list[i].fd);
 				}
@@ -876,8 +885,9 @@ static uint32_t dtm_intranode_create_pid_info(int fd)
  */
 static uint32_t dtm_intranode_process_incoming_conn(void)
 {
+	 int flags;
 	/* Accept processing */
-	int accept_fd = 0, sock_opt = 0, retry_count = 0, size = DTM_INTRANODE_SOCK_SIZE;
+	int accept_fd = 0,  retry_count = 0, size = DTM_INTRANODE_SOCK_SIZE;
 	socklen_t len = sizeof(struct sockaddr_un);
 	struct sockaddr_un cli_addr;
 	/* Accept should be non_block */
@@ -892,8 +902,12 @@ static uint32_t dtm_intranode_process_incoming_conn(void)
 
 tryagain:
 	/*Make the socket Non-Blocking for accepting */
-	sock_opt = fcntl(accept_fd, F_SETFL, O_NONBLOCK);
-	if (sock_opt != 0) {
+	if ((flags = fcntl(accept_fd, F_GETFL, NULL)) < 0) {
+                LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
+                return false;
+        }
+	flags |= O_NONBLOCK;	
+	if (fcntl(accept_fd, F_SETFL, flags) < 0) {
 		LOG_ER("DTM: accept_fd Non-Blocking hasnt been Set");
 		retry_count++;
 		/* Non-Blocking Options hasnt been set */

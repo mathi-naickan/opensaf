@@ -140,13 +140,20 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 static uint8_t set_nonblocking(int sock_desc, uint8_t bNb)
 {
 	TRACE_ENTER();
+	int flags;
+	if ((flags = fcntl(sock_desc, F_GETFL, NULL)) < 0) {
+		LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
+		return false;
+	}
 	if (bNb) {
-		if (fcntl(sock_desc, F_SETFL, O_NONBLOCK) == -1) {
+		flags |= O_NONBLOCK;
+		if (fcntl(sock_desc, F_SETFL, flags) < 0) {
 			LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
 			return false;
 		}
 	} else {
-		if (fcntl(sock_desc, F_SETFL, 0) == -1) {
+		flags &= (~O_NONBLOCK);
+		if (fcntl(sock_desc, F_SETFL, flags) < 0) {
 			LOG_ER("DTM :fcntl(F_SETFL, 0) err :%s", strerror(errno));
 			return false;
 		}
