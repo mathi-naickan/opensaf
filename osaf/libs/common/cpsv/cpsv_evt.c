@@ -309,18 +309,22 @@ uint32_t cpsv_nd2a_read_data_encode(CPSV_ND2A_READ_DATA *read_data, NCS_UBAID *i
 
  ARGUMENTS      : *CPSV_ND2A_DATA_ACCESS_RSP *data_rsp .
                   *io_ub  - User Buff.
+				  MDS_CLIENT_MSG_FORMAT_VER.
 
  RETURNS        : None
 
  NOTES          : 
 \*****************************************************************************/
-uint32_t cpsv_data_access_rsp_encode(CPSV_ND2A_DATA_ACCESS_RSP *data_rsp, NCS_UBAID *io_uba)
+uint32_t cpsv_data_access_rsp_encode(CPSV_ND2A_DATA_ACCESS_RSP *data_rsp, NCS_UBAID *io_uba, MDS_CLIENT_MSG_FORMAT_VER o_msg_fmt_ver)
 {
 
 	uint8_t *pstream = NULL;
 	uint32_t size, i;
-
-   size = 4 + 4 + 4 + 4 + 8 + 4 + 8 + 8;   
+	uint32_t ver_compare = 4; /* CPND_MDS_PVT_SUBPART_VERSION  and CPA_MDS_PVT_SUBPART_VERSION*/
+	if (o_msg_fmt_ver  >= ver_compare)
+		size = 4 + 4 + 4 + 4 + 8 + 4 + 8 + 8;   
+	else
+		size = 4 + 4 + 4 + 4 + 8 + 4 + 8;
    pstream = ncs_enc_reserve_space(io_uba, size);
    if(!pstream)
             return m_CPSV_DBG_SINK(NCSCC_RC_FAILURE,"Memory alloc failed in cpsv_data_access_rsp_encode\n");
@@ -331,7 +335,8 @@ uint32_t cpsv_data_access_rsp_encode(CPSV_ND2A_DATA_ACCESS_RSP *data_rsp, NCS_UB
    ncs_encode_64bit(&pstream , data_rsp->ckpt_id);
    ncs_encode_32bit(&pstream , data_rsp->error_index);
    ncs_encode_64bit(&pstream , data_rsp->from_svc);
-   ncs_encode_64bit(&pstream , data_rsp->lcl_ckpt_id);
+   if (o_msg_fmt_ver  >= ver_compare) 
+	   ncs_encode_64bit(&pstream , data_rsp->lcl_ckpt_id);
    ncs_enc_claim_space(io_uba, size);
 
 	if (data_rsp->type == CPSV_DATA_ACCESS_WRITE_RSP) {
@@ -770,19 +775,24 @@ uint32_t cpsv_nd2a_read_data_decode(CPSV_ND2A_READ_DATA *read_data, NCS_UBAID *i
 
  ARGUMENTS      :  CPSV_ND2A_DATA_ACCESS_RSP *data_rsp .
                   *io_uba  - User Buff.
+				  MDS_CLIENT_MSG_FORMAT_VER.
 
  RETURNS        : None
 
  NOTES          : 
 \*****************************************************************************/
-uint32_t cpsv_data_access_rsp_decode(CPSV_ND2A_DATA_ACCESS_RSP *data_rsp, NCS_UBAID *io_uba)
+uint32_t cpsv_data_access_rsp_decode(CPSV_ND2A_DATA_ACCESS_RSP *data_rsp, NCS_UBAID *io_uba , MDS_CLIENT_MSG_FORMAT_VER i_msg_fmt_ver)
 {
   
    uint8_t local_data[1024];
    uint8_t *pstream;
    uint32_t i,size , rc =NCSCC_RC_SUCCESS;
+   uint32_t ver_compare = 4; /* CPND_MDS_PVT_SUBPART_VERSION  and CPA_MDS_PVT_SUBPART_VERSION*/  
    
-   size = 4 + 4 + 4 + 4 + 8 + 4 + 8 + 8;
+   if ( i_msg_fmt_ver >= ver_compare)
+	   size = 4 + 4 + 4 + 4 + 8 + 4 + 8 + 8;
+   else
+	   size = 4 + 4 + 4 + 4 + 8 + 4 + 8;
    pstream = ncs_dec_flatten_space(io_uba, local_data , size);
    data_rsp->type      =     ncs_decode_32bit(&pstream);
    data_rsp->num_of_elmts =  ncs_decode_32bit(&pstream);
@@ -791,7 +801,8 @@ uint32_t cpsv_data_access_rsp_decode(CPSV_ND2A_DATA_ACCESS_RSP *data_rsp, NCS_UB
    data_rsp->ckpt_id   =     ncs_decode_64bit(&pstream);
    data_rsp->error_index      =     ncs_decode_32bit(&pstream);
    data_rsp->from_svc  =     ncs_decode_64bit(&pstream);
-   data_rsp->lcl_ckpt_id   = ncs_decode_64bit(&pstream);
+   if ( i_msg_fmt_ver >= ver_compare)  
+	   data_rsp->lcl_ckpt_id   = ncs_decode_64bit(&pstream);
    ncs_dec_skip_space(io_uba, size);
    if(data_rsp->type == CPSV_DATA_ACCESS_WRITE_RSP)
    {

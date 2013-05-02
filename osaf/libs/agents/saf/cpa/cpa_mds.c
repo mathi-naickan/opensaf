@@ -45,7 +45,7 @@ FUNC_DECLARATION(CPSV_EVT);
 
 /* Message Format Verion Tables at CPND */
 MDS_CLIENT_MSG_FORMAT_VER cpa_cpnd_msg_fmt_table[CPA_WRT_CPND_SUBPART_VER_RANGE] = {
-	1, 2
+	1, 2,3,4
 };
 
 MDS_CLIENT_MSG_FORMAT_VER cpa_cpd_msg_fmt_table[CPA_WRT_CPD_SUBPART_VER_RANGE] = {
@@ -576,9 +576,18 @@ static uint32_t cpa_mds_enc(CPA_CB *cb, MDS_CALLBACK_ENC_INFO *enc_info)
 
 	/* Get the Msg Format version from the SERVICE_ID & RMT_SVC_PVT_SUBPART_VERSION */
 	if (enc_info->i_to_svc_id == NCSMDS_SVC_ID_CPND) {
-		enc_info->o_msg_fmt_ver = m_NCS_ENC_MSG_FMT_GET(enc_info->i_rem_svc_pvt_ver,
-								CPA_WRT_CPND_SUBPART_VER_MIN,
-								CPA_WRT_CPND_SUBPART_VER_MAX, cpa_cpnd_msg_fmt_table);
+		/* This is special case to handle the 4.2 deployed node upgrade , the 4.2 has inconsistency  between
+		   `enc_info->i_rem_svc_pvt_ver` ( CPND_MDS_PVT_SUBPART_VERSION  /CPA_MDS_PVT_SUBPART_VERSION )
+		   and  `cpa_cpnd_msg_fmt_table`  ( CPND_WRT_CPND_SUBPART_VER_RANGE  / CPND_WRT_CPA_SUBPART_VER_RANGE)
+		   For all other  up coming  version `m_NCS_ENC_MSG_FMT_GET` logic works fine */
+		if (enc_info->i_rem_svc_pvt_ver <= 3)
+			/* opensaf 4.2  CPND_MDS_PVT_SUBPART_VERSION  was  3 but  CPND_WRT_CPND_SUBPART_VER_RANGE was 2 */
+			enc_info->o_msg_fmt_ver = cpa_cpnd_msg_fmt_table[enc_info->i_rem_svc_pvt_ver - 2];
+		else
+			/* m_NCS_ENC_MSG_FMT_GET call is equal to cpa_cpnd_msg_fmt_table[enc_info->i_rem_svc_pvt_ver - 1] */	
+			enc_info->o_msg_fmt_ver = m_NCS_ENC_MSG_FMT_GET(enc_info->i_rem_svc_pvt_ver,
+					CPA_WRT_CPND_SUBPART_VER_MIN,
+					CPA_WRT_CPND_SUBPART_VER_MAX, cpa_cpnd_msg_fmt_table);
 	}
 	if (enc_info->o_msg_fmt_ver) {
 		pevt = (CPSV_EVT *)enc_info->i_msg;

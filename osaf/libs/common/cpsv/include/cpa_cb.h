@@ -152,7 +152,7 @@ typedef struct cpa_prcess_evt_sync {
 #define CPA_MDS_PVT_SUBPART_VERSION 4
 /*CPA - CPND communication */
 #define CPA_WRT_CPND_SUBPART_VER_MIN 1
-#define CPA_WRT_CPND_SUBPART_VER_MAX 2
+#define CPA_WRT_CPND_SUBPART_VER_MAX 4
 
 #define CPA_WRT_CPND_SUBPART_VER_RANGE \
         (CPA_WRT_CPND_SUBPART_VER_MAX - \

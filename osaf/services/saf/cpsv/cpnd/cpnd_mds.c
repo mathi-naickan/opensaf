@@ -43,11 +43,11 @@ FUNC_DECLARATION(CPSV_EVT);
 
 /* Message Format Verion Tables at CPND */
 MDS_CLIENT_MSG_FORMAT_VER cpnd_cpa_msg_fmt_table[CPND_WRT_CPA_SUBPART_VER_RANGE] = {
-	1, 2
+	1, 2, 3, 4
 };
 
 MDS_CLIENT_MSG_FORMAT_VER cpnd_cpnd_msg_fmt_table[CPND_WRT_CPND_SUBPART_VER_RANGE] = {
-	1, 2
+	1, 2, 3, 4
 };
 
 MDS_CLIENT_MSG_FORMAT_VER cpnd_cpd_msg_fmt_table[CPND_WRT_CPD_SUBPART_VER_RANGE] = {
@@ -283,9 +283,19 @@ static uint32_t cpnd_mds_enc(CPND_CB *cb, MDS_CALLBACK_ENC_INFO *enc_info)
 								CPND_WRT_CPA_SUBPART_VER_MAX, cpnd_cpa_msg_fmt_table);
 
 	} else if (enc_info->i_to_svc_id == NCSMDS_SVC_ID_CPND) {
-		enc_info->o_msg_fmt_ver = m_NCS_ENC_MSG_FMT_GET(enc_info->i_rem_svc_pvt_ver,
-								CPND_WRT_CPND_SUBPART_VER_MIN,
-								CPND_WRT_CPND_SUBPART_VER_MAX, cpnd_cpnd_msg_fmt_table);
+		/* This is special case to handle the 4.2 deployed node upgrade , the opensaf 4.2 has inconsistency between
+		   `enc_info->i_rem_svc_pvt_ver` ( CPND_MDS_PVT_SUBPART_VERSION  /CPA_MDS_PVT_SUBPART_VERSION )
+		   and  `cpnd_cpnd_msg_fmt_table`  ( CPND_WRT_CPND_SUBPART_VER_RANGE  / CPND_WRT_CPA_SUBPART_VER_RANGE)
+		   For all other  up coming  version `m_NCS_ENC_MSG_FMT_GET` logic works fine */
+
+		if (enc_info->i_rem_svc_pvt_ver <= 3) 
+			/* opensaf 4.2  CPND_MDS_PVT_SUBPART_VERSION  was  3 but  CPND_WRT_CPND_SUBPART_VER_RANGE was 2 */
+			enc_info->o_msg_fmt_ver = cpnd_cpnd_msg_fmt_table[enc_info->i_rem_svc_pvt_ver - 2];
+		else
+			/* m_NCS_ENC_MSG_FMT_GET call equal to  cpnd_cpnd_msg_fmt_table[enc_info->i_rem_svc_pvt_ver - 1] */   
+			enc_info->o_msg_fmt_ver = m_NCS_ENC_MSG_FMT_GET(enc_info->i_rem_svc_pvt_ver,
+					CPND_WRT_CPND_SUBPART_VER_MIN,
+					CPND_WRT_CPND_SUBPART_VER_MAX, cpnd_cpnd_msg_fmt_table);
 	} else if (enc_info->i_to_svc_id == NCSMDS_SVC_ID_CPD) {
 		enc_info->o_msg_fmt_ver = m_NCS_ENC_MSG_FMT_GET(enc_info->i_rem_svc_pvt_ver,
 								CPND_WRT_CPD_SUBPART_VER_MIN,
@@ -306,7 +316,7 @@ static uint32_t cpnd_mds_enc(CPND_CB *cb, MDS_CALLBACK_ENC_INFO *enc_info)
 				ncs_encode_32bit(&pstream, pevt->info.cpa.type);
 				ncs_enc_claim_space(io_uba, 8);
 
-				rc = cpsv_data_access_rsp_encode(&pevt->info.cpa.info.sec_data_rsp, io_uba);
+				rc = cpsv_data_access_rsp_encode(&pevt->info.cpa.info.sec_data_rsp, io_uba, enc_info->o_msg_fmt_ver);
 				return rc;
 			}
 
@@ -351,7 +361,7 @@ static uint32_t cpnd_mds_enc(CPND_CB *cb, MDS_CALLBACK_ENC_INFO *enc_info)
 				ncs_encode_32bit(&pstream, pevt->info.cpnd.type);	/* cpnd_evt SubType */
 				ncs_enc_claim_space(io_uba, 12);
 
-				rc = cpsv_data_access_rsp_encode(&pevt->info.cpnd.info.ckpt_nd2nd_data_rsp, io_uba);
+				rc = cpsv_data_access_rsp_encode(&pevt->info.cpnd.info.ckpt_nd2nd_data_rsp, io_uba, enc_info->o_msg_fmt_ver);
 				return rc;
 			default:
 				break;
@@ -497,7 +507,7 @@ static uint32_t cpnd_mds_dec(CPND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 			case CPSV_EVT_ND2ND_CKPT_SECT_ACTIVE_DATA_ACCESS_RSP:
 				ncs_dec_skip_space(dec_info->io_uba, 12);
 				rc = cpsv_data_access_rsp_decode(&msg_ptr->info.cpnd.info.ckpt_nd2nd_data_rsp,
-			 dec_info->io_uba);
+						dec_info->io_uba,dec_info->i_msg_fmt_ver);
 				goto free;
 				
 				          case CPND_EVT_A2ND_CKPT_REFCNTSET:
