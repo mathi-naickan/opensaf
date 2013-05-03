@@ -39,6 +39,11 @@ TERMTIMEOUT=${OPENSAF_TERMTIMEOUT:=60}
 nodetype=$(cat $pkgsysconfdir/node_type)
 nodeinitdotconf=$pkgsysconfdir/nodeinit.conf.$nodetype
 
+osafversion=@OPENSAF_RPM_RELEASE@
+if [ $osafversion = "1" ] ; then
+       osafversion=@OPENSAF_RELEASE@
+fi
+
 unload_tipc() {
 	# FIXME: Once tipc scripts are cleaned
 	pkill -9 nid_tipc*
@@ -220,7 +225,7 @@ start() {
 	start_daemon $binary $args
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
-		logger -t $prog "OpenSAF services successfully started"
+		logger -t $prog "OpenSAF($osafversion) services successfully started"
 		touch $lockfile
 		log_success_msg
 	else
