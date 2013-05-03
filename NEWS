@@ -1,2 +1,32 @@
-4.2 enhancements: http://devel.opensaf.org/report/61
+The OpenSAF community is pleased to announce general availability of the 4.3 release.
+The 4.3 release comes with the following major list of enhancements:
+
+IMM enhancements
+- Support for redundant data export special applier OI
+- xml export/import of SA_IMM_ATTR_NOTIFY & SA_IMM_ATTR_NO_DUPLICATES
+- immcfg should support better control over admin-owner usage
+- Add SA_IMM_ATTR_NO_DUPLICATES to SAI-AIS-IMM SAF standard
+- Add SA_IMM_SEARCH_GET_CONFIG_ATTR to SAI-AIS-IMM SAF standard
+- Configurable sanity limit on number of concurrent search handles
+- immsv: Drop all use of return codes ERR_NO_RESOURCES and ERR_BUSY
+
+NTF enhancement
+ - Implement data export special OI, converting imm data changes to notifications
+
+OpenSAF enhancements
+- Flat MDS addressing scheme should be the default
+
+AMF enhancements
+- Add support for Linux HA LSB/OCF style resource agents
+
+SMF enhancements
+- SMF changes for AMF HC commands
+- Define pre-campaign callback check
+- Handle single node system node reboot upgrade
+
+LOG enhancements
+- Allow application streams to be configured using configuration objects
+- Introduce IMM configuration object for LOG service itself
+
+A complete list of 4.3 enhancements can be found in : http://devel.opensaf.org/report/66
 
