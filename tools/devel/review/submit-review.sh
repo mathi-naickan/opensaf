@@ -186,9 +186,8 @@ if [ $mq -eq 1 ]; then
 elif [ $cs -eq 1 ]; then
 	if echo $rev | grep -q ":"; then
 		cs1=`echo $rev | awk -F ":" '{ print $1 }'`
-		cs1=$(($cs1-1))
 		cs2=`echo $rev | awk -F ":" '{ print $2 }'`
-		$HG diff --stat -g -r ${cs1}:${cs2} >> $rr/rr
+		$HG diff --stat -g -r ${cs1}^:${cs2} >> $rr/rr
 	else
 		$HG diff --stat -g -c $rev >> $rr/rr
 	fi
