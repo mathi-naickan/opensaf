@@ -1071,8 +1071,15 @@ void avd_sg_app_node_su_inst_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 			    (i_su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) && 
 			    (i_su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) { 
 				if (i_su->saAmfSUPreInstantiable == true) {
-					/* instantiate all the pre-instatiable SUs */
-					avd_snd_presence_msg(cb, i_su, false);
+					if (i_su->sg_of_su->saAmfSGNumPrefInserviceSUs >
+							(sg_instantiated_su_count(i_su->sg_of_su) +
+							 i_su->sg_of_su->try_inst_counter)) {
+						/* instantiate all the pre-instatiable SUs */
+						if (avd_snd_presence_msg(cb, i_su, false) == NCSCC_RC_SUCCESS) {
+							i_su->sg_of_su->try_inst_counter++;
+						}
+					}
+
 				} else {
 					/* mark the non preinstatiable as enable. */
 					avd_su_oper_state_set(i_su, SA_AMF_OPERATIONAL_ENABLED);
@@ -1087,6 +1094,7 @@ void avd_sg_app_node_su_inst_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 
 			i_su = i_su->avnd_list_su_next;
 		}
+		node_reset_su_try_inst_counter(avnd);
 
 	} else if (cb->init_state == AVD_APP_STATE) {
 		i_su = avnd->list_of_su;
@@ -1171,14 +1179,17 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg)
 				}
 
 			} else if ((i_su->saAmfSUPreInstantiable == true) &&
-				   (sg->saAmfSGNumPrefInserviceSUs > (num_insvc_su + num_try_insvc_su)) &&
-				   (i_su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) &&
-				   ((i_su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) ||
-				    (i_su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED)) &&
-				   (i_su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
-				   (i_su->su_on_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
-				   (su_node_ptr->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) &&
-				   (i_su->term_state == false)) {
+					(sg->saAmfSGNumPrefInserviceSUs > (sg_instantiated_su_count(i_su->sg_of_su) +
+									   num_try_insvc_su)) &&
+					(i_su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) &&
+					((i_su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) ||
+					 (i_su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED)) &&
+					(i_su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+					(i_su->su_on_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+					(su_node_ptr->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) &&
+					(su_node_ptr->node_info.member == true) &&
+					(i_su->term_state == false)) {
+
 				/* Try to Instantiate this SU */
 				if (avd_snd_presence_msg(cb, i_su, false) == NCSCC_RC_SUCCESS) {
 					num_try_insvc_su++;

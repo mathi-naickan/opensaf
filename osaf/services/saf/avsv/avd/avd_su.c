@@ -1102,8 +1102,9 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 		} 
 
 		if ((node->node_state == AVD_AVND_STATE_PRESENT) &&
-			((node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) && 
-			 (su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION))) {
+				((node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) && 
+				 (su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) && 
+				(su->sg_of_su->saAmfSGNumPrefInserviceSUs > sg_instantiated_su_count(su->sg_of_su))) {
 			/* When the SU will instantiate then prescence state change message will come
 			   and so store the callback parameters to send response later on. */
 			if (avd_snd_presence_msg(cb, su, false) == NCSCC_RC_SUCCESS) {
