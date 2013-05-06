@@ -47,16 +47,21 @@ static void clm_node_join_complete(AVD_AVND *node)
 		} else {
 
 			if ((node->node_state == AVD_AVND_STATE_PRESENT)   ||
-				(node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
-				(node->node_state == AVD_AVND_STATE_NCS_INIT)) {
+					(node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
+					(node->node_state == AVD_AVND_STATE_NCS_INIT)) {
 				if ((su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
-					(su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) {
+						(su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) {
 					/* When the SU will instantiate then prescence state change message will come
 					   and so store the callback parameters to send response later on. */
-					if (avd_snd_presence_msg(avd_cb, su, false) == NCSCC_RC_SUCCESS) {
-						m_AVD_SET_SU_TERM(avd_cb, su, false);
-					} else {
-						LOG_ER("Internal error, could not send message to avnd");
+					if (su->sg_of_su->saAmfSGNumPrefInserviceSUs >
+							(sg_instantiated_su_count(su->sg_of_su) +
+							 su->sg_of_su->try_inst_counter)) {
+						if (avd_snd_presence_msg(avd_cb, su, false) == NCSCC_RC_SUCCESS) {
+							m_AVD_SET_SU_TERM(avd_cb, su, false);
+							su->sg_of_su->try_inst_counter++;
+						} else {
+							LOG_ER("Internal error, could not send message to avnd");
+						}
 					}
 				}
 			}
@@ -64,6 +69,9 @@ static void clm_node_join_complete(AVD_AVND *node)
 		/* get the next SU on the node */
 		su = su->avnd_list_su_next;
 	}
+
+	node_reset_su_try_inst_counter(node);
+
 done:
 	TRACE_LEAVE();
 }

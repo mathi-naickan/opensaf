@@ -913,20 +913,26 @@ static uint32_t sg_app_sg_admin_lock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 static void sg_app_sg_admin_unlock_inst(AVD_CL_CB *cb, AVD_SG *sg)
 {
 	AVD_SU *su;
+	uint32_t su_try_inst;
 
 	TRACE_ENTER2("%s", sg->name.value);
 
 	/* Instantiate the SUs in this SG */
-	for (su = sg->list_of_su; su != NULL; su = su->sg_list_su_next) {
+	for (su = sg->list_of_su, su_try_inst = 0; su != NULL; su = su->sg_list_su_next) {
 		if ((su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
-			(su->su_on_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)
-			&& (su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED)) {
+				(su->su_on_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+				&& (su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED)) {
 
 			if (su->saAmfSUPreInstantiable == true) {
 				if (su->su_on_node->node_state == AVD_AVND_STATE_PRESENT) {
-					if (avd_snd_presence_msg(cb, su, false) != NCSCC_RC_SUCCESS) {
-						LOG_NO("%s: Failed to send Instantiation order of '%s' to %x",
-							   __FUNCTION__, su->name.value, su->su_on_node->node_info.nodeId);
+					if (su->sg_of_su->saAmfSGNumPrefInserviceSUs > su_try_inst) {
+						if (avd_snd_presence_msg(cb, su, false) != NCSCC_RC_SUCCESS) {
+							LOG_NO("%s: Failed to send Instantiation order of '%s' to %x",
+									__FUNCTION__, su->name.value,
+									su->su_on_node->node_info.nodeId);
+						} else {
+							su_try_inst ++;
+						}
 					}
 				}
 
@@ -1497,3 +1503,28 @@ void avd_sg_adjust_config(AVD_SG *sg)
 				sg->name.value, sg->saAmfSGNumPrefAssignedSUs);
 	}
 }
+
+
+/**
+ * @brief Counts number of instantiated su in the sg.
+ * @param Service Group
+ *
+ * @return Number of instantiated su in the sg.
+ */
+uint32_t sg_instantiated_su_count(const AVD_SG *sg)
+{
+	uint32_t inst_su_count;
+	AVD_SU *su;
+
+	for (su = sg->list_of_su, inst_su_count = 0; su != NULL; su = su->sg_list_su_next) {
+		TRACE_1("su'%s', pres state'%u'", su->name.value, su->saAmfSUPresenceState);
+		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) ||
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATING) ||
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_RESTARTING)) {
+			inst_su_count ++;
+		}
+	}
+
+	return inst_su_count;
+}
+

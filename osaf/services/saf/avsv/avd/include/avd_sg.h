@@ -191,6 +191,12 @@ typedef struct avd_sg_tag {
 	 struct avd_su_tag * max_assigned_su;
 	 struct avd_su_tag * min_assigned_su; 
 	 struct avd_si_tag * si_tobe_redistributed;
+	 uint32_t try_inst_counter; /* It should be used when amfd try to send
+				       instantiate command to amfnd in a loop
+				       for all those SUs hosted on a particular
+				       node. It should be reset to zero after
+				       use.*/
+
 } AVD_SG;
 
 typedef struct avd_amf_sg_type_tag {
@@ -310,5 +316,7 @@ extern void avd_sg_nway_screen_si_distr_equal(AVD_SG *sg);
 extern void avd_su_role_failover(struct avd_su_tag *su, struct avd_su_tag *stdby_su);
 extern bool sg_is_tolerance_timer_running_for_any_si(AVD_SG *sg);
 extern void avd_sg_adjust_config(AVD_SG *sg);
+extern uint32_t sg_instantiated_su_count(const AVD_SG *sg);
+
 
 #endif

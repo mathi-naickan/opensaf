@@ -204,6 +204,7 @@ extern uint32_t avd_node_admin_lock_instantiation(AVD_AVND *node);
 extern uint32_t node_admin_unlock_instantiation(AVD_AVND *node);
 extern void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 			    SaInvocationT invocation, SaAmfAdminOperationIdT operationId);
+extern void node_reset_su_try_inst_counter(const AVD_AVND *node);
 /* AMF Node group */
 extern SaAisErrorT avd_ng_config_get(void);
 extern AVD_AMF_NG *avd_ng_get(const SaNameT *dn);

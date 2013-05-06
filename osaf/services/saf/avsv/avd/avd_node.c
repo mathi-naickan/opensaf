@@ -724,11 +724,16 @@ uint32_t node_admin_unlock_instantiation(AVD_AVND *node)
 		    (su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED)) {
 
 			if (su->saAmfSUPreInstantiable == true) {
-				if (avd_snd_presence_msg(avd_cb, su, false) == NCSCC_RC_SUCCESS) {
-					node->su_cnt_admin_oper++;
-				} else {
-					rc = NCSCC_RC_FAILURE;
-					LOG_WA("Failed Instantiation '%s'", su->name.value);
+				if (su->sg_of_su->saAmfSGNumPrefInserviceSUs >
+						(sg_instantiated_su_count(su->sg_of_su) +
+						 su->sg_of_su->try_inst_counter)) {
+					if (avd_snd_presence_msg(avd_cb, su, false) == NCSCC_RC_SUCCESS) {
+						node->su_cnt_admin_oper++;
+						su->sg_of_su->try_inst_counter++;
+					} else {
+						rc = NCSCC_RC_FAILURE;
+						LOG_WA("Failed Instantiation '%s'", su->name.value);
+					}
 				}
 			} else {
 				avd_su_oper_state_set(su, SA_AMF_OPERATIONAL_ENABLED);
@@ -736,6 +741,8 @@ uint32_t node_admin_unlock_instantiation(AVD_AVND *node)
 		}
 		su = su->avnd_list_su_next;
 	}
+
+	node_reset_su_try_inst_counter(node);
 
 	TRACE_LEAVE2("%u, %u", rc, node->su_cnt_admin_oper);
 	return rc;
@@ -1343,6 +1350,24 @@ void avd_node_remove_su(AVD_SU *su)
 
 		su->avnd_list_su_next = NULL;
 		su->su_on_node = NULL;
+	}
+}
+
+/**
+ * Reset try_inst_counter of SG of all SU of the node given.
+ *
+ * @param node pointer
+ * @return None
+ */
+void node_reset_su_try_inst_counter(const AVD_AVND *node)
+{
+        AVD_SU *su;
+
+	/* Reset the counters.*/
+	su = node->list_of_su;
+	while (su != NULL) {
+		su->sg_of_su->try_inst_counter = 0;
+		su = su->avnd_list_su_next;
 	}
 }
 
