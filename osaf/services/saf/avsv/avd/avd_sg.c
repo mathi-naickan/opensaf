@@ -987,6 +987,8 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 	SaAisErrorT rc = SA_AIS_OK;
 	AVD_SG *sg;
 	SaAmfAdminStateT adm_state;
+	AVD_SU *su;
+	AVD_AVND *node;
 
 	TRACE_ENTER2("'%s', %llu", object_name->value, op_id);
 	sg = avd_sg_get(object_name);
@@ -1002,6 +1004,23 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		LOG_WA("SG not in STABLE state (%s)", sg->name.value);
 		goto done;
 	}
+
+	/* Avoid multiple admin operations on other SUs belonging to the same SG. */
+	for (su = sg->list_of_su; su != NULL; su = su->sg_list_su_next) {
+		m_AVD_GET_SU_NODE_PTR(avd_cb, su, node);
+		if (su->pend_cbk.invocation != 0) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			LOG_WA("Admin operation'%u' is already going on su'%s' belonging to the same SG",
+					su->pend_cbk.admin_oper, su->name.value);
+			goto done;
+		} else if (node->admin_node_pend_cbk.admin_oper != 0) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			LOG_WA("Node'%s' hosting SU'%s' belonging to the same SG, undergoing admin operation'%u'",
+					node->name.value, su->name.value, node->admin_node_pend_cbk.admin_oper);
+			goto done;
+		}
+	}
+
 
 	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
 	if (sg_is_tolerance_timer_running_for_any_si(sg)) {
