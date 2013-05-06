@@ -852,7 +852,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 	const SaImmAdminOperationParamsT_2 **params)
 {
 	AVD_CL_CB *cb = (AVD_CL_CB*) avd_cb;
-	AVD_SU    *su;
+	AVD_SU    *su, *su_ptr;
 	AVD_AVND  *node;
 	SaBoolT   is_oper_successful = SA_TRUE;
 	SaAmfAdminStateT adm_state = SA_AMF_ADMIN_LOCK;
@@ -887,10 +887,13 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 		goto done;
 	}
 
-	if (su->pend_cbk.invocation != 0) {
-		rc = SA_AIS_ERR_TRY_AGAIN;
-		LOG_WA("Admin operation is already going");
-		goto done;
+	/* Avoid multiple admin operations on other SUs belonging to the same SG. */
+	for (su_ptr = su->sg_of_su->list_of_su; su_ptr != NULL; su_ptr = su_ptr->sg_list_su_next) {
+		if (su_ptr->pend_cbk.invocation != 0) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			LOG_WA("Admin operation is already going on (su'%s')", su_ptr->name.value);
+			goto done;
+		}
 	}
 
 	if (su->sg_of_su->sg_fsm_state != AVD_SG_FSM_STABLE) {
@@ -936,6 +939,12 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 	}
 
 	m_AVD_GET_SU_NODE_PTR(cb, su, node);
+	if (node->admin_node_pend_cbk.admin_oper != 0) {
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		LOG_WA("Node'%s' hosting SU'%s', undergoing admin operation'%u'", node->name.value, su->name.value,
+				node->admin_node_pend_cbk.admin_oper);
+		goto done;
+	}
 
 	/* Validation has passed and admin operation should be done. Proceed with it... */
 	switch (op_id) {

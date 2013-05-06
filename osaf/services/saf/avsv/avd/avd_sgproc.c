@@ -1594,7 +1594,8 @@ void avd_sg_app_node_su_inst_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 			    (i_su->term_state == false) &&
 			    (i_su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) &&
 			    (i_su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) && 
-			    (i_su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) { 
+			    (i_su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+			    (i_su->su_on_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) { 
 				if (i_su->saAmfSUPreInstantiable == true) {
 					if (i_su->sg_of_su->saAmfSGNumPrefInserviceSUs >
 							(sg_instantiated_su_count(i_su->sg_of_su) +
