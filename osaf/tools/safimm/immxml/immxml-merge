@@ -344,9 +344,8 @@ class MergedImmDocument(BaseImmDocument):
         
         diff_classes = self.classes_parsed-len(self.classList)
         diff_objects = self.objects_parsed-len(self.objectList)
-        if diff_classes != 0 or diff_objects != 0:
-            print_info_stderr("Note! Merge ignored %d classes (parsed:%d stored:%d)", diff_classes, self.classes_parsed, len(self.classList) )
-            print_info_stderr("Note! Merge ignored %d objects (parsed:%d stored:%d)", diff_objects, self.objects_parsed, len(self.objectList) )
+        print_info_stderr("Note! Merge ignored %d classes (parsed:%d stored:%d)", diff_classes, self.classes_parsed, len(self.classList) )
+        print_info_stderr("Note! Merge ignored %d objects (parsed:%d stored:%d)", diff_objects, self.objects_parsed, len(self.objectList) )
         
         
         trace("Stored formatted xml document in file: %s", Options.outputFilename)
