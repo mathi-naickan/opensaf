@@ -3480,14 +3480,16 @@ static SaAisErrorT admin_op_invoke_common(
 		memset(p, 0, sizeof(IMMSV_ADMIN_OPERATION_PARAM));
 		TRACE("PARAM:%s \n", param->paramName);
 
-		opNamePar = opIdEsc && (strcmp(param->paramName, SA_IMM_PARAM_ADMOP_NAME) == 0);
-		if(opNamePar && (param->paramType != SA_IMM_ATTR_SASTRINGT)) {
-			TRACE_2("ERR_INVALID_PARAM: Param %s must be of type SaStringT", 
-				SA_IMM_PARAM_ADMOP_NAME);
-			rc = SA_AIS_ERR_INVALID_PARAM;
-			free(p);
-			p=NULL;
-			goto mds_send_fail;
+		if(!opNamePar) {
+			opNamePar = opIdEsc && (strcmp(param->paramName, SA_IMM_PARAM_ADMOP_NAME) == 0);
+			if(opNamePar && (param->paramType != SA_IMM_ATTR_SASTRINGT)) {
+				TRACE_2("ERR_INVALID_PARAM: Param %s must be of type SaStringT",
+					SA_IMM_PARAM_ADMOP_NAME);
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				free(p);
+				p=NULL;
+				goto mds_send_fail;
+			}
 		}
 
 		p->paramName.size = strlen(param->paramName) + 1;
@@ -3930,14 +3932,16 @@ SaAisErrorT saImmOmAdminOperationInvokeAsync_2(SaImmAdminOwnerHandleT ownerHandl
 		memset(p, 0, sizeof(IMMSV_ADMIN_OPERATION_PARAM));
 		TRACE("PARAM:%s ", param->paramName);
 
-		opNamePar = opIdEsc && (strcmp(param->paramName, SA_IMM_PARAM_ADMOP_NAME) == 0);
-		if(opNamePar && (param->paramType != SA_IMM_ATTR_SASTRINGT)) {
-			TRACE_2("ERR_INVALID_PARAM: Param %s must be of type SaStringT", 
-				SA_IMM_PARAM_ADMOP_NAME);
-			rc = SA_AIS_ERR_INVALID_PARAM;
-			free(p);
-			p=NULL;
-			goto mds_send_fail;
+		if(!opNamePar) {
+			opNamePar = opIdEsc && (strcmp(param->paramName, SA_IMM_PARAM_ADMOP_NAME) == 0);
+			if(opNamePar && (param->paramType != SA_IMM_ATTR_SASTRINGT)) {
+				TRACE_2("ERR_INVALID_PARAM: Param %s must be of type SaStringT",
+					SA_IMM_PARAM_ADMOP_NAME);
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				free(p);
+				p=NULL;
+				goto mds_send_fail;
+			}
 		}
 
 		p->paramName.size = strlen(param->paramName) + 1;
