@@ -364,7 +364,6 @@ static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block)
 			inds_rmvd = m_NCS_SEL_OBJ_RMV_IND(ncs_ipc->sel_obj, true, true);
 			if (inds_rmvd != 0) {
 				/* Should never reach here */
-				assert(0);
 				m_NCS_UNLOCK(&ncs_ipc->queue_lock, NCS_LOCK_WRITE);
 				ncshm_give_hdl((uint32_t)*mbx);
 				m_LEAP_DBG_SINK(0);
