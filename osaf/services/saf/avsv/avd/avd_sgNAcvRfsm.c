@@ -219,6 +219,7 @@ AVD_SU *avd_sg_nacvred_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
 
 	}/* while ((i_si != AVD_SI_NULL) && (l_flag == true)) */
 
+	TRACE_LEAVE2("%p", sg->su_oper_list.su);
 	return sg->su_oper_list.su;
 }
 
@@ -1082,6 +1083,7 @@ uint32_t avd_sg_nacvred_susi_sucss_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL
 		break;
 	}			/* switch(su->sg_of_su->sg_fsm_state) */
 
+	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -1727,8 +1729,30 @@ uint32_t avd_sg_nacvred_su_admin_fail(AVD_CL_CB *cb, AVD_SU *su, AVD_AVND *avnd)
 				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
 				return NCSCC_RC_FAILURE;
 			}
+		} else if ((avnd != NULL) && (avnd->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED)) {
+			/* Use case: node lock with two (or more) SUs of the same SG hosted
+			 * by the same node */
+			if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+				LOG_ER("%s:%u: %s", __FILE__, __LINE__, su->name.value);
+				return NCSCC_RC_FAILURE;
+			}
+
+			avd_sg_su_oper_list_add(cb, su, false);
+			m_AVD_SET_SG_FSM(cb, su->sg_of_su, AVD_SG_FSM_SG_REALIGN);
 		}
 		break;		/* case AVD_SG_FSM_SU_OPER: */
+	case AVD_SG_FSM_SG_REALIGN:
+		if ((avnd != NULL) && (avnd->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED)) {
+			/* Use case: node lock with two (or more) SUs of the same SG hosted
+			 * by the same node */
+			if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
+				LOG_ER("%s:%u: %s", __FILE__, __LINE__, su->name.value);
+				return NCSCC_RC_FAILURE;
+			}
+
+			avd_sg_su_oper_list_add(cb, su, false);
+		}
+		break;
 	default:
 		LOG_ER("%s:%u: %u", __FILE__, __LINE__, ((uint32_t)su->sg_of_su->sg_fsm_state));
 		LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
@@ -1736,6 +1760,7 @@ uint32_t avd_sg_nacvred_su_admin_fail(AVD_CL_CB *cb, AVD_SU *su, AVD_AVND *avnd)
 		break;
 	}			/* switch (su->sg_of_su->sg_fsm_state) */
 
+	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
 

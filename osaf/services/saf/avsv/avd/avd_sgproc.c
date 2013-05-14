@@ -193,7 +193,12 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 	 */
 
 	if (false == ckpt) {
-		if (avd_snd_susi_msg(cb, su, susi, AVSV_SUSI_ACT_ASGN, false, NULL) != NCSCC_RC_SUCCESS) {
+		if (avd_snd_susi_msg(cb, su, susi, AVSV_SUSI_ACT_ASGN, false, NULL) == NCSCC_RC_SUCCESS) {
+			if (su->su_on_node->admin_node_pend_cbk.invocation != 0) {
+				su->su_on_node->su_cnt_admin_oper++;
+				TRACE("su_cnt_admin_oper:%u", su->su_on_node->su_cnt_admin_oper);
+			}
+		} else {
 			/* free all the CSI assignments and end this loop */
 			avd_compcsi_delete(cb, susi, true);
 			/* Unassign the SUSI */
@@ -932,9 +937,9 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				(AVSV_SUSI_ACT_DEL == n2d_msg->msg_info.n2d_su_si_assign.msg_act)) ||
 				((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK_INSTANTIATION) &&
 				 (su->saAmfSUNumCurrActiveSIs == 0) && (su->saAmfSUNumCurrStandbySIs == 0)) ||
-				((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK) &&
-				 (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE))) {
+				((su->su_on_node->admin_node_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK))) {
 				su->su_on_node->su_cnt_admin_oper--;
+				TRACE("su_cnt_admin_oper:%u", su->su_on_node->su_cnt_admin_oper);
 			}
 
 

@@ -1761,6 +1761,7 @@ void avd_saImmOiAdminOperationResult(SaImmOiHandleT immOiHandle,
 {
 	SaAisErrorT error;
 
+	TRACE_ENTER2("inv:%llu, res:%u", invocation, result);
 	saflog(LOG_NOTICE, amfSvcUsrName, "Admin op done for invocation: %llu, result %u",
 		   invocation, result);
 
