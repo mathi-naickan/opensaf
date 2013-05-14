@@ -829,6 +829,11 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 
 		node_admin_state_set(node, new_admin_state);
 
+		/* store invocation early since insvc logic depends on it */
+		node->admin_node_pend_cbk.invocation = invocation;
+		node->admin_node_pend_cbk.admin_oper = operationId;
+		node->su_cnt_admin_oper = 0;
+
 		su = node->list_of_su;
 		while (su != NULL) {
 			m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
@@ -871,19 +876,15 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 				avd_sg_app_su_inst_func(cb, su->sg_of_su);
 			}
 
-			/* Update the counter to respond adm opreration. Checking list_of_susi is required to obviate
-			   incrementing counters for spare Sus on the node.*/
-			if ((su->list_of_susi != NULL) && (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_SG_REALIGN))
-				node->su_cnt_admin_oper++;
-
 			/* get the next SU on the node */
 			su = su->avnd_list_su_next;
 		}
-		if (node->su_cnt_admin_oper == 0 && invocation != 0)
+
+		if (node->su_cnt_admin_oper == 0 && invocation != 0) {
 			avd_saImmOiAdminOperationResult(cb->immOiHandle, invocation, SA_AIS_OK);
-		else if (invocation != 0) {
-			node->admin_node_pend_cbk.invocation = invocation;
-			node->admin_node_pend_cbk.admin_oper = operationId;
+			/* reset state, invocation consumed */
+			node->admin_node_pend_cbk.invocation = 0;
+			node->admin_node_pend_cbk.admin_oper = 0;
 		}
 		break;		/* case NCS_ADMIN_STATE_UNLOCK: */
 
@@ -894,8 +895,9 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 		while (su != NULL) {
 			if (su->list_of_susi != AVD_SU_SI_REL_NULL) {
 				is_assignments_done = true;
-				/* verify that two assigned SUs belonging to the same SG are not
-				 * on this node 
+
+				/* Verify that two assigned SUs hosted by the same node does
+				 * not belong to the same SG. Allow for nway-active.
 				 */
 				su_sg = su->sg_of_su->list_of_su;
 				while (su_sg != NULL) {
@@ -904,8 +906,11 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 
 					if ((su != su_sg) &&
 					    (su_node_ptr == su_sg_node_ptr) &&
-					    (su_sg->list_of_susi != AVD_SU_SI_REL_NULL)) {
-						LOG_WA("two SUs on same node");
+					    (su_sg->list_of_susi != AVD_SU_SI_REL_NULL) &&
+					    (!((su->sg_of_su->sg_redundancy_model ==
+					    		SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL) &&
+					    		(new_admin_state == SA_AMF_ADMIN_LOCKED)))) {
+						LOG_WA("Node lock/shutdown not allowed with two SUs on same node");
 						if (invocation != 0)
 							avd_saImmOiAdminOperationResult(cb->immOiHandle, invocation,SA_AIS_ERR_NOT_SUPPORTED);
 						else {
@@ -1006,8 +1011,10 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 			avd_sg_app_su_inst_func(cb, su->sg_of_su);
 
 			if ((is_assignments_done) && ((su->sg_of_su->sg_fsm_state == AVD_SG_FSM_SG_REALIGN) ||
-						(su->sg_of_su->sg_fsm_state == AVD_SG_FSM_SU_OPER)))
+						(su->sg_of_su->sg_fsm_state == AVD_SG_FSM_SU_OPER))) {
 				node->su_cnt_admin_oper++;
+				TRACE("su_cnt_admin_oper:%u", node->su_cnt_admin_oper);
+			}
 
 			/* get the next SU on the node */
 			su = su->avnd_list_su_next;
