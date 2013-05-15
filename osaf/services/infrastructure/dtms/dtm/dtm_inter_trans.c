@@ -137,10 +137,10 @@ uint32_t dtm_internode_snd_msg_to_all_nodes(uint8_t *buffer, uint16_t len)
 	DTM_NODE_DB *node = NULL;
 	TRACE_ENTER();
 
-	/* while (NULL != (node = (DTM_NODE_DB *) ncs_patricia_tree_getnext(&dtms_gl_cb->nodeid_tree, (uint8_t *)&node_id)))  */
 	while (NULL != (node = dtm_node_getnext_by_id(node_id))) {
 		node_id = node->node_id;
-		if (node_id != dtms_gl_cb->node_id) {
+		/* send only to fully connected peers */
+		if ((node_id != dtms_gl_cb->node_id) &&	node->comm_status) {
 			uint8_t *buf_send = NULL;
 			if (NULL == (buf_send = calloc(1, len))) {
 				TRACE("DTM :calloc failed for snd_msg_to_all_nodes");
