@@ -1030,7 +1030,10 @@ bool cpd_is_noncollocated_replica_present_on_payload(CPD_CB *cb, CPD_CKPT_INFO_N
 		/* Check if a replica is present on one of the payload blades */
 		if ((!m_CPND_IS_ON_SCXB(cb->cpd_self_id, cpd_get_slot_sub_id_from_mds_dest(nref_info->dest))) &&
 		    (!m_CPND_IS_ON_SCXB(cb->cpd_remote_id, cpd_get_slot_sub_id_from_mds_dest(nref_info->dest)))) {
-			return true;
+			/* Check whether this  is the lost application closed for this cktp, 
+			   in the cluster ( num_users = 1 )if not, don't delete the  replicas in the cluster . */
+			if (ckpt_node->num_users > 1)
+				return true;
 		}
 
 		nref_info = nref_info->next;
