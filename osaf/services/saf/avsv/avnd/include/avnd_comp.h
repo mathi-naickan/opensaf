@@ -883,4 +883,13 @@ extern int avnd_comp_config_reinit(AVND_COMP *comp);
 extern void avnd_comp_delete(AVND_COMP *comp);
 extern void avnd_comp_pres_state_set(AVND_COMP *comp, SaAmfPresenceStateT newstate);
 
+/**
+ * Initiate restart of a component.
+ * This means either:
+ * 	* PI components: call the terminate callback
+ * 	* NPI components: launch the terminate CLC CLI script
+ * 	* Faulty NPI/PI components: launch the cleanup CLC CLI script
+ */
+extern uint32_t comp_restart_initiate(AVND_COMP *comp);
+
 #endif   /* !AVND_COMP_H */
