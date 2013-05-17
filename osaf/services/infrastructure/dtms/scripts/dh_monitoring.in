@@ -19,7 +19,7 @@ while true
 do
 	if ! test -d /proc/$pidval ; then
 		logger -s -t $prog "$prog Process down, Rebooting the node"
-		. $pkglibdir/opensaf_reboot 0 &
+		$pkglibdir/opensaf_reboot 0
 		exit 0
 	fi
 	sleep 1
