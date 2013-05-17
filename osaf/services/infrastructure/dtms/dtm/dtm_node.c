@@ -105,7 +105,7 @@ uint32_t dtm_process_node_info(DTM_INTERNODE_CB * dtms_cb, int stream_sock, uint
 			strncpy((char *)&node->node_name, nodename, nodename_len);
 			node->comm_status = true;
 			if (dtm_node_add(node, 0) != NCSCC_RC_SUCCESS) {
-				assert(0);
+				osafassert(0);
 				rc = NCSCC_RC_FAILURE;
 				goto done;
 			}
@@ -122,7 +122,7 @@ uint32_t dtm_process_node_info(DTM_INTERNODE_CB * dtms_cb, int stream_sock, uint
 			node->comm_status = true;
 
 		} else
-			assert(0);
+			osafassert(0);
 
 		rc = dtm_process_node_up_down(node->node_id, node->node_name, node->comm_status);
 
@@ -132,7 +132,7 @@ uint32_t dtm_process_node_info(DTM_INTERNODE_CB * dtms_cb, int stream_sock, uint
 		}
 	} else {
 		LOG_ER(" conn details msg recd when conn_status is true");
-		assert(0);
+		osafassert(0);
 	}
 
  done:
@@ -344,7 +344,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 
 	if (NULL == node) {
 		LOG_ER("DTM: database mismatch");
-		assert(0);
+		osafassert(0);
 	}
 	if (0 == node->bytes_tb_read) {
 		if (0 == node->num_by_read_for_len_buff) {
@@ -391,7 +391,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 					dtm_internode_process_poll_rcv_msg_common(node, local_len_buf, node_info_hrd,
 										  node_info_buffer_len, fd, close_conn);
 				} else {
-					assert(0);
+					osafassert(0);
 				}
 			} else {
 				/* we had recd some bytes */
@@ -402,7 +402,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 					/* We recd one byte of the length part */
 					node->num_by_read_for_len_buff = recd_bytes;
 				} else {
-					assert(0);
+					osafassert(0);
 				}
 			}
 		} else if (1 == node->num_by_read_for_len_buff) {
@@ -422,7 +422,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 				*close_conn = true;
 				return;
 			} else {
-				assert(0);	/* This should never occur */
+				osafassert(0);	/* This should never occur */
 			}
 		} else if (2 == node->num_by_read_for_len_buff) {
 			int recd_bytes = 0;
@@ -451,10 +451,10 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 				dtm_internode_process_poll_rcv_msg_common(node, node->buff_total_len, node_info_hrd,
 									  node_info_buffer_len, fd, close_conn);
 			} else {
-				assert(0);
+				osafassert(0);
 			}
 		} else {
-			assert(0);
+			osafassert(0);
 		}
 
 	} else {
@@ -479,7 +479,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 			dtm_internode_process_poll_rcv_msg_common(node, node->buff_total_len, node_info_hrd,
 								  node_info_buffer_len, fd, close_conn);
 		} else {
-			assert(0);
+			osafassert(0);
 		}
 	}
 	TRACE_LEAVE();

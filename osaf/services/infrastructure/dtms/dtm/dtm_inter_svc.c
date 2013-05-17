@@ -266,7 +266,7 @@ static uint32_t dtm_internode_init_svc_dist_list(void)
 {
 	if (NULL == (dtm_svc_dist_list = calloc(1, sizeof(DTM_SVC_DISTRIBUTION_LIST)))) {
 		LOG_ER("calloc failure for dtm_svc_dist_list");
-		assert(0);
+		osafassert(0);
 		return NCSCC_RC_FAILURE;
 	}
 	return NCSCC_RC_SUCCESS;
@@ -389,7 +389,7 @@ uint32_t dtm_internode_del_from_svc_dist_list(uint32_t server_type, uint32_t ser
 	} else {
 		/* dont send to any node */
 		TRACE("DTM :No matching entry found in svc dist list for deletion");
-		/* assert */
+		/* osafassert */
 		TRACE_LEAVE();
 		return NCSCC_RC_FAILURE;
 	}

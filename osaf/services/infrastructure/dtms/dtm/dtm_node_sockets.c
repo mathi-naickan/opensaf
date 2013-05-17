@@ -1285,7 +1285,7 @@ int dtm_process_accept(DTM_INTERNODE_CB * dtms_cb, int stream_sock)
 	} else {
 	     	LOG_ER("DTM: AF not supported=%d", clnt_addr1->sa_family);
 		dtm_comm_socket_close(&new_conn_sd);
-		assert(0);
+		osafassert(0);
 	}
 
 	/* Convert binary to printable address */
@@ -1367,7 +1367,7 @@ int dtm_dgram_recvfrom_bmcast(DTM_INTERNODE_CB * dtms_cb, char *node_ip, void *b
 			numericAddress = &((struct sockaddr_in6 *)clnt_addr1)->sin6_addr;
 		} else {
 			LOG_ER("DTM:AF not supported=%d", clnt_addr1->sa_family);
-			assert(0);
+			osafassert(0);
 		}
 
 		/* Convert binary to printable address */
