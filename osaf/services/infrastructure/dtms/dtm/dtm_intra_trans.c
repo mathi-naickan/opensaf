@@ -153,7 +153,7 @@ uint32_t dtm_intranode_process_pollout(int fd)
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
 		TRACE("DTM:Destination PID not found : %d", fd);
-		assert(0);
+		osafassert(0);
 		return NCSCC_RC_FAILURE;
 	} else {
 		/* Get the unsent messages from the list and send them */

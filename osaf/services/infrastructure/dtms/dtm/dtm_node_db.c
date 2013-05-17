@@ -317,7 +317,7 @@ uint32_t dtm_node_add(DTM_NODE_DB * node, int i)
 	TRACE_ENTER();
 	TRACE("DTM:value of i %d", i);
 
-	assert(node != NULL);
+	osafassert(node != NULL);
 
 	switch (i) {
 
@@ -379,7 +379,7 @@ uint32_t dtm_node_delete(DTM_NODE_DB * node, int i)
 	DTM_INTERNODE_CB *dtms_cb = dtms_gl_cb;
 	TRACE_ENTER2("DTM:value of i %d", i);
 
-	assert(node != NULL);
+	osafassert(node != NULL);
 
 	switch (i) {
 
@@ -417,7 +417,7 @@ uint32_t dtm_node_delete(DTM_NODE_DB * node, int i)
 		break;
 
 	default:
-		assert(0);
+		osafassert(0);
 	}
 
  done:

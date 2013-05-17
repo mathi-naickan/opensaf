@@ -260,7 +260,7 @@ uint32_t dtm_internode_process_pollout(int fd)
 	node = dtm_node_get_by_comm_socket((uint32_t)fd);
 	if (NULL == node) {
 		TRACE("DTM :No node matching the fd for pollout, delete this fd from fd list ");
-		assert(0);
+		osafassert(0);
 		return NCSCC_RC_FAILURE;
 	} else {
 		/* Get the unsent messages from the list and send them */

@@ -89,7 +89,7 @@ uint32_t dtm_intranode_process_pid_msg(uint8_t *buffer, int fd)
 
 	if (NULL == pid_node) {
 		LOG_ER("DTM INTRA : PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);
-		assert(0);
+		osafassert(0);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -102,7 +102,7 @@ uint32_t dtm_intranode_process_pid_msg(uint8_t *buffer, int fd)
 	if (0 == pid_node->pid) {
 	pid_node->pid = process_id;
 	} else {
-		assert(0);
+		osafassert(0);
 	}
 	pid_node->node_id = m_NCS_GET_NODE_ID;
 	pid_node->pid_node.key_info = (uint8_t *)&pid_node->pid;
@@ -132,7 +132,7 @@ uint32_t dtm_intranode_process_pid_down(int fd)
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	TRACE_ENTER();
 	if (NULL == pid_node) {
-		assert(0);	/* This condition should never come,database mismatch */
+		osafassert(0);	/* This condition should never come,database mismatch */
 	} else {
 		DTM_PID_SVC_INSTALLED_INFO *svc_list = pid_node->svc_installed_list, *del_ptr = NULL;
 		DTM_INTRANODE_PID_INFO *pid_node1 = NULL;
@@ -146,7 +146,7 @@ uint32_t dtm_intranode_process_pid_down(int fd)
 
 			if (NULL == subscr_tmp) {
 				/* Data base mismatch, unsubscribe without subscribe , is this possible */
-				assert(0);
+				osafassert(0);
 			} else {
 				/* Now Delete the entry */
 				dtm_intranode_del_subscrlist_from_subscr_tree(subscr_tmp, subscr_data->ref_hdl,
@@ -270,7 +270,7 @@ uint32_t dtm_intranode_process_bind_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
-		assert(0);	/* This condition should never come */
+		osafassert(0);	/* This condition should never come */
 	} else {
 		/* Decode the message  */
 		uint8_t *data = buff;	/* Used for decoding */
@@ -396,7 +396,7 @@ uint32_t dtm_intranode_process_unbind_msg(uint8_t *buff, int fd)
 	install_scope = install_scope + 1;
 
 	if (NULL == pid_node) {
-		assert(0);	/* This condition should never come */
+		osafassert(0);	/* This condition should never come */
 	} else {
 		DTM_SVC_INSTALL_INFO *svc_node = NULL;
 		DTM_SVC_SUBSCR_INFO *subscr_node = NULL;
@@ -412,7 +412,7 @@ uint32_t dtm_intranode_process_unbind_msg(uint8_t *buff, int fd)
 		svc_node = dtm_intranode_get_svc_node(server_type);
 		if (NULL == svc_node) {
 			/* Data base mismatch */
-			assert(0);
+			osafassert(0);
 		}
 
 		dtm_intranode_del_svclist_from_pid_tree(pid_node, &pid_svc_info);
@@ -472,7 +472,7 @@ uint32_t dtm_intranode_process_subscribe_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
-		assert(0);	/* This condition should never come */
+		osafassert(0);	/* This condition should never come */
 	} else {
 		/* Decode the message  */
 		uint8_t *data = buff;	/* Used for decoding */
@@ -583,7 +583,7 @@ uint32_t dtm_intranode_process_unsubscribe_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
-		assert(0);	/* This condition should never come */
+		osafassert(0);	/* This condition should never come */
 	} else {
 		/* Decode the message  */
 		uint8_t *data = buff;
@@ -595,7 +595,7 @@ uint32_t dtm_intranode_process_unsubscribe_msg(uint8_t *buff, int fd)
 
 		data_subscr = dtm_intranode_get_subscr_from_pid_info(pid_node, ref_val);
 		if (NULL == data_subscr) {
-			assert(0);
+			osafassert(0);
 		} else {
 			server_type = data_subscr->server_type;
 			dtm_intranode_del_subscr_from_pid_info(pid_node, data_subscr);
@@ -606,7 +606,7 @@ uint32_t dtm_intranode_process_unsubscribe_msg(uint8_t *buff, int fd)
 
 		if (NULL == subscr_node) {
 			/* Data base mismatch, unsubscribe without subscribe , is this possible */
-			assert(0);
+			osafassert(0);
 		} else {
 			/* Now Delete the entry */
 			dtm_intranode_del_subscrlist_from_subscr_tree(subscr_node, ref_val, pid_node->pid);
@@ -634,7 +634,7 @@ uint32_t dtm_intranode_process_node_subscribe_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
-		assert(0);	/* This condition should never come */
+		osafassert(0);	/* This condition should never come */
 	} else {
 		uint8_t *data = buff;
 		DTM_NODE_SUBSCR_INFO *node_subscr_info = NULL;
@@ -686,7 +686,7 @@ uint32_t dtm_intranode_process_node_unsubscribe_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
-		assert(0);	/* This condition should never come */
+		osafassert(0);	/* This condition should never come */
 	} else {
 		uint8_t *data = buff;
 		NODE_ID node_id = ncs_decode_32bit(&data);
@@ -1429,7 +1429,7 @@ uint32_t dtm_intranode_process_node_up(NODE_ID node_id, char *node_name, SYSF_MB
 	if (NCSCC_RC_SUCCESS != (dtm_add_to_node_db_list(node_db_info))) {
 		/* This is critical */
 		TRACE("DTM : Unable to add the node to node_db_list");
-		assert(0);
+		osafassert(0);
 	} else {
 		/* Deliver node UP */
 		DTM_NODE_SUBSCR_INFO *node_subscr_info = dtm_node_subscr_list;
@@ -1522,7 +1522,7 @@ static uint32_t dtm_deliver_svc_down(NODE_ID node_id)
 
 	if (NULL == node_info) {
 		/* This should not occur, database mismatch */
-		assert(0);
+		osafassert(0);
 	} else {
 		dtm_intranode_process_svc_down_common(node_info);
 	}
@@ -1672,7 +1672,7 @@ uint32_t dtm_process_internode_service_up_msg(uint8_t *buffer, uint16_t len, NOD
 
 	if (NULL == node_info) {
 		/* This should not occur, database mismatch */
-		assert(0);
+		osafassert(0);
 	} else {
 
 		while (0 != num_of_elements) {
@@ -1799,7 +1799,7 @@ uint32_t dtm_process_internode_service_down_msg(uint8_t *buffer, uint16_t len, N
 
 	if (NULL == node_info) {
 		/* This should not occur, database mismatch */
-		assert(0);
+		osafassert(0);
 	} else {
 
 		while (0 != num_of_elements) {
@@ -1827,7 +1827,7 @@ uint32_t dtm_process_internode_service_down_msg(uint8_t *buffer, uint16_t len, N
 				local_svc_node = dtm_intranode_get_svc_node(server_type);
 				if (NULL == local_svc_node) {
 					/* Data base mismatch */
-					assert(0);
+					osafassert(0);
 				}
 
 				dtm_intranode_del_svclist_from_svc_tree(local_svc_node, &svc_list);
@@ -1903,7 +1903,7 @@ uint32_t dtm_intranode_add_self_node_to_node_db(NODE_ID node_id)
 	if (NCSCC_RC_SUCCESS != (dtm_add_to_node_db_list(node_db_info))) {
 		/* This is critical */
 		TRACE("DTM : Unable to add the node to node_db_list");
-		assert(0);
+		osafassert(0);
 	}
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;

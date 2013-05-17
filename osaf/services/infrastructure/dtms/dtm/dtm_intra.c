@@ -424,7 +424,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 
 	if (NULL == node) {
 		LOG_ER("DTM INTRA : PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);
-		assert(0);
+		osafassert(0);
 	}
 	if (0 == node->bytes_tb_read) {
 		if (0 == node->num_by_read_for_len_buff) {
@@ -474,7 +474,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 					/* Call the common rcv function */
 					dtm_intranode_process_poll_rcv_msg_common(node);
 				} else {
-					assert(0);
+					osafassert(0);
 				}
 			} else {
 				/* we had recd some bytes */
@@ -485,7 +485,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 					/* We recd one byte of the length part */
 					node->num_by_read_for_len_buff = recd_bytes;
 				} else {
-					assert(0);
+					osafassert(0);
 				}
 			}
 		} else if (1 == node->num_by_read_for_len_buff) {
@@ -507,7 +507,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 				dtm_intranode_del_poll_fdlist(fd);
 				return;
 			} else {
-				assert(0);	/* This should never occur */
+				osafassert(0);	/* This should never occur */
 			}
 		} else if (2 == node->num_by_read_for_len_buff) {
 			int recd_bytes = 0;
@@ -537,10 +537,10 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 				/* Call the common rcv function */
 				dtm_intranode_process_poll_rcv_msg_common(node);
 			} else {
-				assert(0);
+				osafassert(0);
 			}
 		} else {
-			assert(0);
+			osafassert(0);
 		}
 
 	} else {
@@ -567,7 +567,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 			/* Call the common rcv function */
 			dtm_intranode_process_poll_rcv_msg_common(node);
 		} else {
-			assert(0);
+			osafassert(0);
 		}
 	}
 	return;
@@ -912,7 +912,7 @@ tryagain:
 		retry_count++;
 		/* Non-Blocking Options hasnt been set */
 		if (retry_count > 3) {
-			assert(0);
+			osafassert(0);
 		} else {
 			goto tryagain;
 		}
