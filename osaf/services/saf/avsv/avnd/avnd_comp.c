@@ -2612,6 +2612,50 @@ void avnd_comp_cmplete_all_csi_rec(AVND_CB *cb, AVND_COMP *comp)
 	TRACE_LEAVE();
 }
 
+uint32_t comp_restart_initiate(AVND_COMP *comp)
+{
+	AVND_CB *cb = avnd_cb;
+	uint32_t rc;
+
+	TRACE_ENTER2("%s", comp->name.value);
+
+	rc = avnd_comp_curr_info_del(cb, comp);
+	if (NCSCC_RC_SUCCESS != rc)
+		goto done;
+
+	rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_RESTART);
+	if (NCSCC_RC_SUCCESS != rc)
+		goto done;
+
+	/* for npi comp mark the CSI restarting/assigning */
+	if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
+		AVND_COMP_CSI_REC *csi =
+			m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+		if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNED(csi) ||
+				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_RESTARTING(csi)) {
+			m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi,
+					AVND_COMP_CSI_ASSIGN_STATE_RESTARTING);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, csi,
+					AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+		} else if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_UNASSIGNED(csi)) {
+			/* we need not change the csi state. let it be in unassigned state.
+			 * The instantiation success will not trigger any csi assignment done.
+			 * If this component is assigned afterwards before completing restart,
+			 * the csi will move to assinging.
+			 */
+		} else {
+			m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi,
+					AVND_COMP_CSI_ASSIGN_STATE_ASSIGNING);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, csi,
+					AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+		}
+	}
+
+done:
+	TRACE_LEAVE2("%u", rc);
+	return rc;
+}
+
 /**
  * Process component admin operation request from director
  *
@@ -2638,7 +2682,7 @@ uint32_t avnd_evt_comp_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 			/* Now trigger the component admin restart */  
 			comp->admin_oper = SA_TRUE;
 			LOG_NO("Admin restart requested for '%s'", info->dn.value);
-			rc = avnd_err_rcvr_comp_restart(cb, comp);
+			rc = comp_restart_initiate(comp);
 		}
 		else {
 			LOG_NO("Admin restart failed '%s' Presence state '%d'", info->dn.value, comp->pres);
