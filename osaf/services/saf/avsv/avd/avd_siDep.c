@@ -950,6 +950,11 @@ void sidep_take_action_on_dependents(AVD_SI *si)
 		 */
 		if ((dep_si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) &&
 				(dep_si->sg_of_si != si->sg_of_si)) {
+			if ((dep_si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) &&
+					(avd_sidep_all_sponsors_active(dep_si))) {
+				dep_si->si_dep_state = AVD_SI_READY_TO_ASSIGN;
+				sidep_dependentsi_role_failover(dep_si);
+			}
 			si_dep_rec = avd_sidep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
 			continue;
 		}
@@ -2114,13 +2119,56 @@ void avd_sidep_update_depstate_su_rolefailover(AVD_SU *su)
  **/
 static void sidep_dependentsi_role_failover(AVD_SI *si)
 {
-	AVD_SU *stdby_su = NULL;
+	AVD_SU *stdby_su = NULL, *actv_su = NULL;
 	AVD_SU_SI_REL *susi;
 
 	TRACE_ENTER2(" for SI '%s'", si->name.value);
 
 	switch (si->sg_of_si->sg_redundancy_model) {
 	case SA_AMF_2N_REDUNDANCY_MODEL:
+		for (susi = si->list_of_sisu;susi != NULL;susi = susi->si_next) {
+			if (susi->state == SA_AMF_HA_STANDBY)
+				stdby_su = susi->su;
+			else
+				actv_su = susi->su;
+		}
+		if (stdby_su) {
+			if (avd_sidep_si_dependency_exists_within_su(stdby_su)) {
+				for (susi = stdby_su->list_of_susi;susi != NULL;susi = susi->su_next) {
+					if (avd_susi_role_failover(susi, actv_su) == NCSCC_RC_FAILURE) {
+						LOG_NO(" %s: %u: Active role modification failed for  %s ",
+								__FILE__, __LINE__, susi->su->name.value);
+						goto done;
+					}
+				}
+
+			}
+			else {
+				/* Check if there are any dependent SI's on this SU, if so check
+				   if their sponsor SI's * are in enable state or not
+				 */
+				for (susi = stdby_su->list_of_susi;susi != NULL;susi = susi->su_next) {
+					if (susi->si->spons_si_list) {
+						if (!avd_sidep_all_sponsors_active(si)) {
+							TRACE("SI's sponsors are not yet assigned");
+							goto done;
+						}
+					}
+				}
+				/* All of the dependent's Sponsors's are in assigned state
+				 * So performing role modification for the stdby_su
+				 */
+				avd_sg_su_si_mod_snd(avd_cb, stdby_su, SA_AMF_HA_ACTIVE);
+
+				avd_sidep_si_dep_state_set(si, AVD_SI_ASSIGNED);
+			}
+			if (si->sg_of_si->su_oper_list.su == NULL) {
+				/* add the SU to the operation list and change the SG FSM to SG realign. */
+				avd_sg_su_oper_list_add(avd_cb, stdby_su, false);
+				m_AVD_SET_SG_FSM(avd_cb, stdby_su->sg_of_su, AVD_SG_FSM_SG_REALIGN);
+			}
+		}
+		break;
 	case SA_AMF_NPM_REDUNDANCY_MODEL:
 		for (susi = si->list_of_sisu;susi != NULL;susi = susi->si_next) {
 			if (susi->state == SA_AMF_HA_STANDBY) {
@@ -2231,7 +2279,7 @@ bool avd_sidep_si_dependency_exists_within_su(const AVD_SU *su)
 	TRACE_ENTER();
 
 	for (susi = su->list_of_susi; susi != NULL; susi = susi->su_next) {
-		if (!susi->si->num_dependents) {
+		if (susi->si->num_dependents) {
 			spons_exist = true;
 		}
 		if (susi->si->spons_si_list) {
