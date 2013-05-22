@@ -780,21 +780,17 @@ static int32_t ncs_shm_prot_flags(uint32_t flags)
 
 	int prot_flag = PROT_NONE;
 
-	if (flags | O_RDONLY) {
-		prot_flag |= PROT_READ;
-	}
-
-	if (flags | O_WRONLY) {
+	if (flags & O_WRONLY) {
 		prot_flag |= PROT_WRITE;
 	}
 
-	if (flags | O_RDWR) {
+	if (flags & O_RDWR) {
 		prot_flag |= (PROT_READ | PROT_WRITE);
 	}
 
-	if (flags | O_EXCL) {
-		prot_flag |= PROT_EXEC;
-	}
+	/* By default, prot_flag is PROT_READ */
+	if (prot_flag == PROT_NONE)
+		prot_flag |= PROT_READ;
 
 	return prot_flag;
 }
