@@ -812,7 +812,13 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 				/* delete all SUSI record in amfnd database */
 				tmp_su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
 				while (tmp_su != NULL) {
-					avnd_su_si_del(cb, &tmp_su->name);
+					if (tmp_su->is_ncs || tmp_su->su_is_external) {
+						/* Don't delete middleware SUSI. We are only performing appl
+						   failover in case of node failover recovery. This will help
+						   when we implement node repair later.*/
+					} else {
+						avnd_su_si_del(cb, &tmp_su->name);
+					}
 					tmp_su = (AVND_SU *) ncs_patricia_tree_getnext(&cb->sudb,
 							(uint8_t *)&tmp_su->name);
 

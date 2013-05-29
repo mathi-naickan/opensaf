@@ -146,7 +146,8 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, struct avd_evt_tag *evt);
 void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 void avd_role_switch_ncs_su_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 void avd_mds_qsd_role_evh(AVD_CL_CB *cb, AVD_EVT *evt);
-void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd);
+void avd_node_down_appl_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd);
+void avd_node_down_mw_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd);
 void avd_node_down_func(AVD_CL_CB *cb, AVD_AVND *avnd);
 uint32_t avd_node_down(AVD_CL_CB *cb, SaClmNodeIdT node_id);
 AVD_AVND *avd_msg_sanity_chk(AVD_EVT *evt, SaClmNodeIdT node_id,

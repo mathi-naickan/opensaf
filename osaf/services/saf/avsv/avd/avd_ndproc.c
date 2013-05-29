@@ -773,7 +773,8 @@ void avd_node_failover(AVD_AVND *node)
 	TRACE_ENTER2("'%s'", node->name.value);
 	avd_node_mark_absent(node);
 	avd_pg_node_csi_del_all(avd_cb, node);
-	avd_node_susi_fail_func(avd_cb, node);
+	avd_node_down_mw_susi_failover(avd_cb, node);
+	avd_node_down_appl_susi_failover(avd_cb, node);
 	avd_node_delete_nodeid(node);
 	TRACE_LEAVE();
 }
