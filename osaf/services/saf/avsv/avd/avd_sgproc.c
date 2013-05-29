@@ -347,9 +347,24 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				node->recvr_fail_sw = true;
 				switch (n2d_msg->msg_info.n2d_opr_state.rec_rcvr.saf_amf) {
 				case SA_AMF_NODE_FAILOVER:
-					avd_pg_node_csi_del_all(avd_cb, node);
-					avd_node_susi_fail_func(avd_cb, node);
-					break;
+					if ((node->node_info.nodeId == cb->node_id_avd) && 
+							(node->saAmfNodeAutoRepair)) {
+						/* This is a case when Act ctlr is rebooting. Don't do appl failover
+						   as of now because during appl failover if Act controller reboots,
+						   then there may be packet losses. Anyway, this controller is
+						   rebooting and Std controller will take up its role and will do 
+						   appl failover. Here Recovery and Repair is done at the same time.*/
+						saflog(LOG_NOTICE, amfSvcUsrName,
+								"Ordering reboot of '%s' as node fail/switch-over"
+								" repair action",
+								node->name.value);
+						avd_d2n_reboot_snd(node);
+						goto done;
+					} else {
+						avd_pg_node_csi_del_all(avd_cb, node);
+						avd_node_down_appl_susi_failover(avd_cb, node);
+						break;
+					}
 				case SA_AMF_NODE_SWITCHOVER:
 					i_su = node->list_of_su;
 					while (i_su != NULL) {
@@ -1960,11 +1975,11 @@ done:
 }
 
 /*****************************************************************************
- * Function: avd_node_susi_fail_func
+ * Function: avd_node_down_mw_susi_failover
  *
- * Purpose:  This function is called to un assign all the SUSIs on
+ * Purpose:  This function is called to un assign all the Mw SUSIs on
  * the node after the node is found to be down. This function Makes all 
- * the SUs on the node as O.O.S and failover all the SUSI assignments based 
+ * the Mw SUs on the node as O.O.S and failover all the SUSI assignments based 
  * on their service groups. It will then delete all the SUSI assignments 
  * corresponding to the SUs on this node if any left.
  *
@@ -1978,7 +1993,7 @@ done:
  * 
  **************************************************************************/
 
-void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
+void avd_node_down_mw_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd)
 {
 	AVD_SU *i_su;
 	AVD_COMP *i_comp;
@@ -1991,7 +2006,6 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 	 * disable and uninstantiated.  All the functionality for MW SUs is done in
 	 * one loop as more than one MW SU per SG in one node is not supported.
 	 */
-
 	i_su = avnd->list_of_ncs_su;
 	osafassert(i_su != 0);
 	while (i_su != NULL) {
@@ -2002,7 +2016,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 		/* Check if there was any admin operations going on this SU. */
 		if (i_su->pend_cbk.invocation != 0) {
 			avd_saImmOiAdminOperationResult(cb->immOiHandle, i_su->pend_cbk.invocation,
-							    SA_AIS_ERR_TIMEOUT);
+					SA_AIS_ERR_TIMEOUT);
 			i_su->pend_cbk.invocation = 0;
 			i_su->pend_cbk.admin_oper = 0;
 		}
@@ -2015,7 +2029,8 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 			avd_comp_pres_state_set(i_comp, SA_AMF_PRESENCE_UNINSTANTIATED);
 			i_comp->saAmfCompRestartCount = 0;
 			if (i_comp->admin_pend_cbk.invocation != 0) {
-				avd_saImmOiAdminOperationResult(cb->immOiHandle, i_comp->admin_pend_cbk.invocation, SA_AIS_ERR_TIMEOUT);
+				avd_saImmOiAdminOperationResult(cb->immOiHandle, 
+						i_comp->admin_pend_cbk.invocation, SA_AIS_ERR_TIMEOUT);
 				i_comp->admin_pend_cbk.invocation = 0;
 				i_comp->admin_pend_cbk.admin_oper = 0;
 			}
@@ -2095,6 +2110,27 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 		avnd->su_cnt_admin_oper = 0;
 	}
 
+	TRACE_LEAVE();
+}
+
+/**
+ * @brief       This function is called to un assign all the Appl SUSIs on
+ *              the node after the node is found to be down. This function Makes all
+ *              the Appl SUs on the node as O.O.S and failover all the SUSI assignments
+ *              based on their service groups. It will then delete all the SUSI assignments
+ *              corresponding to the SUs on this node if any left.
+ * @param[in]   cb - Avd control Block
+ *              Avnd - The AVND pointer of the node whose SU SI assignments need to be
+ *              deleted.
+ * @return      Returns nothing
+ **/
+void avd_node_down_appl_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd)
+{
+        AVD_SU *i_su;
+        AVD_COMP *i_comp;
+
+        TRACE_ENTER2("'%s'", avnd->name.value);
+
 	/* Run through the list of application SUs make all of them O.O.S. 
 	 */
 	i_su = avnd->list_of_su;
@@ -2106,7 +2142,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 		/* Check if there was any admin operations going on this SU. */
 		if (i_su->pend_cbk.invocation != 0) {
 			avd_saImmOiAdminOperationResult(cb->immOiHandle, i_su->pend_cbk.invocation,
-							    SA_AIS_ERR_TIMEOUT);
+					SA_AIS_ERR_TIMEOUT);
 			i_su->pend_cbk.invocation = 0;
 			i_su->pend_cbk.admin_oper = 0;
 		}
@@ -2119,7 +2155,8 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 			avd_comp_pres_state_set(i_comp, SA_AMF_PRESENCE_UNINSTANTIATED);
 			i_comp->saAmfCompRestartCount = 0;
 			if (i_comp->admin_pend_cbk.invocation != 0) {
-				avd_saImmOiAdminOperationResult(cb->immOiHandle, i_comp->admin_pend_cbk.invocation, SA_AIS_ERR_TIMEOUT);
+				avd_saImmOiAdminOperationResult(cb->immOiHandle, i_comp->admin_pend_cbk.invocation, 
+						SA_AIS_ERR_TIMEOUT);
 				i_comp->admin_pend_cbk.invocation = 0;
 				i_comp->admin_pend_cbk.admin_oper = 0;
 			}
@@ -2128,7 +2165,7 @@ void avd_node_susi_fail_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 		}
 
 		i_su = i_su->avnd_list_su_next;
-	}			/* while (i_su != AVD_SU_NULL) */
+	} /* while (i_su != AVD_SU_NULL) */
 
 	/* If the AvD is in AVD_APP_STATE run through all the application SUs and 
 	 * reassign all the SUSI assignments for the SG of which the SU is a member
