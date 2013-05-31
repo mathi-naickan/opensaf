@@ -3044,8 +3044,10 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 
 	immnd_evt_destroy(&frwrd_evt, SA_FALSE, __LINE__);
 
-	if ((error != SA_AIS_OK) && (error != SA_AIS_ERR_NO_BINDINGS)) {
-		LOG_NO("Precheck of fevs message failed ERROR:%u", error);
+	if ((error != SA_AIS_OK) && (error != SA_AIS_ERR_NO_BINDINGS) && 
+		(error != SA_AIS_ERR_TRY_AGAIN)) {
+		LOG_NO("Precheck of fevs message of type <%u> failed with ERROR:%u", 
+			frwrd_evt.info.immnd.type, error);
 	}
 
 	TRACE_LEAVE();
