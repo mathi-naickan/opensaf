@@ -195,7 +195,6 @@ void avnd_main_process(void)
 		nfds++;
 	}
 #endif
-	(void) nid_notify("AMFND", NCSCC_RC_SUCCESS, NULL);
 
 	/* now wait forever */
 	while (1) {
