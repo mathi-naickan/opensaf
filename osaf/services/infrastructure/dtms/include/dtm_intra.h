@@ -17,6 +17,8 @@
 #ifndef DTM_INTRA_H
 #define DTM_INTRA_H
 
+#include <netinet/tcp.h>
+
 #define DTM_INTRANODE_RCV_MSG_IDENTIFIER 0x56123456
 
 #define DTM_INTRANODE_RCV_MSG_VER	1
