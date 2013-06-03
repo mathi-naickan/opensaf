@@ -567,6 +567,14 @@ int comm_socket_setup_new(DTM_INTERNODE_CB * dtms_cb, const char *foreign_addres
 		dtm_comm_socket_close(&sock_desc);
 		goto done;
 	}
+
+        int flag = 1;
+        if (setsockopt(sock_desc, IPPROTO_TCP, TCP_NODELAY, (void *)&flag, sizeof(flag)) != 0) {
+                LOG_ER("DTM:Socket TCP_NODELAY set failed err :%s", strerror(errno));
+                dtm_comm_socket_close(&sock_desc);
+                goto done;
+        }
+
 	if (NCSCC_RC_SUCCESS != set_keepalive(dtms_cb, sock_desc)) {
 		LOG_ER("DTM :set_keepalive failed ");
 		dtm_comm_socket_close(&sock_desc);
@@ -700,6 +708,13 @@ uint32_t dtm_stream_nonblocking_listener(DTM_INTERNODE_CB * dtms_cb)
 		LOG_ER("DTM:Socket snd buf size set failed err :%s", strerror(errno));
 	}
 
+        int flag = 1;
+        if (setsockopt(dtms_cb->stream_sock, IPPROTO_TCP, TCP_NODELAY, (void *)&flag, sizeof(flag)) != 0) {
+                LOG_ER("DTM:Socket TCP_NODELAY set failed err :%s", strerror(errno));
+                dtm_sockdesc_close(dtms_cb->stream_sock);
+                return NCSCC_RC_FAILURE;
+        }
+	
 	if (set_keepalive(dtms_cb, dtms_cb->stream_sock) != NCSCC_RC_SUCCESS) {
 		LOG_ER("DTM : set_keepalive() failed");
 		dtm_sockdesc_close(dtms_cb->stream_sock);
@@ -1231,6 +1246,14 @@ int dtm_process_accept(DTM_INTERNODE_CB * dtms_cb, int stream_sock)
 		dtm_comm_socket_close(&new_conn_sd);
 		goto done;
 	}
+
+        int flag = 1;
+        if (setsockopt(new_conn_sd, IPPROTO_TCP, TCP_NODELAY, (void *)&flag, sizeof(flag)) != 0) {
+                LOG_ER("DTM:Socket TCP_NODELAY set failed err :%s", strerror(errno));
+                dtm_comm_socket_close(&new_conn_sd);
+                goto done;
+        }
+
 	if (NCSCC_RC_SUCCESS != set_keepalive(dtms_cb, new_conn_sd)) {
 		LOG_ER("DTM:set_keepalive failed ");
 		dtm_comm_socket_close(&new_conn_sd);
