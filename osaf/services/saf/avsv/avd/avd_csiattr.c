@@ -306,14 +306,6 @@ static SaAisErrorT csiattr_ccb_completed_create_hdlr(CcbUtilOperationData_t *opd
 		goto done;
 	}
 
-	/* check whether the SI of parent csi is in locked state */
-	if ((csi->si->saAmfSIAdminState != SA_AMF_ADMIN_LOCKED) ||
-			(csi->si->list_of_sisu != NULL) || (csi->list_compcsi != NULL)) {
-		LOG_ER("SI '%s' admin state(%u) is not locked or csi '%s' in use", csi->si->name.value,
-				csi->si->saAmfSIAdminState, csi->name.value);
-		goto done;
-	}
-
 	/* check whether an attribute with this name already exists in csi
 	   if exists, only then the modification of attr values allowed */
 	if (is_csiattr_exists(csi, &opdata->objectName)) {
@@ -364,14 +356,6 @@ static SaAisErrorT csiattr_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opd
 
 	if (NULL == (csi = avd_csi_get(&csi_dn))) {
 		LOG_ER("csi '%s' doesn't exists", csi_dn.value);
-		goto done;
-	}
-
-	/* check whether the SI of parent csi is in locked state */
-	if ((csi->si->saAmfSIAdminState != SA_AMF_ADMIN_LOCKED) ||
-			(csi->si->list_of_sisu != NULL) || (csi->list_compcsi != NULL)) {
-		LOG_ER("SI '%s' admin state(%u) is not locked or csi '%s' in use", csi->si->name.value, 
-				csi->si->saAmfSIAdminState, csi->name.value);
 		goto done;
 	}
 
