@@ -674,8 +674,8 @@ def saAmfInitialize_4(amfHandle, amfCallbacks, version):
 
 	"""
 	
-	amfdll.saAmfInitialize_4.argtypes = [POINTER(SaNameT),
-                                         POINTER(SaNameT),
+	amfdll.saAmfInitialize_4.argtypes = [POINTER(SaAmfHandleT),
+                                         POINTER(SaAmfCallbacksT_4),
                                          POINTER(SaVersionT)]
 
 	amfdll.saAmfInitialize_4.restype = SaAisErrorT
