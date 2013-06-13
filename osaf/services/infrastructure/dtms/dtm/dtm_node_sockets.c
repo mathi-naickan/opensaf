@@ -1085,9 +1085,11 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uint8_t *data
 	node.node_id = ncs_decode_32bit(&buffer);
 	if (dtms_cb->node_id == node.node_id) {
 		if (dtms_cb->mcast_flag != true) {
-			TRACE("DTM: received the self node_id bcast  message,  droping message");
+			TRACE("DTM: received the self node_id bcast message, dropping message cluster_id: %d node_id: %u",
+					node.cluster_id, node.node_id);
 		} else {
-			TRACE("DTM: received the self node_id mcast message,  droping message");
+			TRACE("DTM: received the self node_id mcast message, dropping message cluster_id: %d node_id: %u",
+					node.cluster_id, node.node_id);
 		}
 		TRACE_LEAVE2("sock_desc :%d", sock_desc);
 		return sock_desc;
@@ -1095,7 +1097,8 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uint8_t *data
 
 	/* Decode end */
 	if (node.cluster_id != dtms_cb->cluster_id) {
-		TRACE("DTM:cluster_id  mis match  droping message");
+		LOG_WA("DTM:cluster_id  mis match  dropping message cluster_id: %d, node_id: %u",
+				node.cluster_id ,node.node_id);
 		TRACE_LEAVE2("sock_desc :%d", sock_desc);
 		return sock_desc;
 	}
@@ -1110,31 +1113,36 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uint8_t *data
 
 	if (initial_discovery_phase == true) {
 		if (node.node_id < dtms_cb->node_id) {
-			TRACE("DTM: received node_id is less than local node_id  droping message");
+			TRACE("DTM: received node_id is less than local node_id dropping message cluster_id: %d node_id: %u",
+					node.cluster_id, node.node_id);	
 			return sock_desc;
 		}
-
 	}
 
 	new_node = dtm_node_get_by_id(node.node_id); 
-	/*new_node = dtm_node_get_by_node_ip((uint8_t *)node.node_ip);*/
-
 	if (new_node != NULL) {
-		if (((new_node->node_id == 0) || (new_node->node_id == node.node_id)) &&
-		    (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) == 0) &&
-		    (new_node->comm_status == false)) {
-			TRACE("DTM:new_node  discovery in progress droping message");
-			TRACE_LEAVE2("sock_desc :%d", sock_desc);
+		if ((new_node->node_id == 0) || (new_node->node_id == node.node_id) ||
+				(strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) == 0)) { 
+			if (new_node->comm_status == true) {
+				if ((new_node->node_id == node.node_id) && 
+						(strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) == 0)) 
+					TRACE("DTM:node already discovered dropping message cluster_id: %d,node_id :%u, node_ip: %s",
+							node.cluster_id, node.node_id, node.node_ip);
+				else
+					LOG_WA("DTM:node duplicate discovered dropping message  cluster_id: %d, node_id :%u, node_ip:%s",
+							node.cluster_id, node.node_id, node.node_ip);
+				TRACE_LEAVE2("sock_desc :%d", sock_desc);
+			} else {
+
+				TRACE("DTM: discovery in progress dropping message cluster_id: %d, node_id :%u, node_ip:%s",
+						node.cluster_id, node.node_id, node.node_ip);
+				TRACE_LEAVE2("sock_desc :%d", sock_desc);
+			} 
 			return sock_desc;
-		} else if ((new_node->comm_status == true) && (new_node->node_id == node.node_id) &&
-			   (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) == 0)) {
-			TRACE("DTM:new_node node already discovered droping message");
-			TRACE_LEAVE2("sock_desc :%d", sock_desc);
-			return sock_desc;
-		} else if ((new_node->comm_status == false) &&
-			   ((new_node->node_id != node.node_id) ||
-			    (strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) != 0))) {
-			TRACE("DTM:new_node deleting stale enty ");
+		} else if ((new_node->comm_status == false) && ((new_node->node_id != node.node_id) || 
+					(strncmp(node.node_ip, new_node->node_ip, INET6_ADDRSTRLEN) != 0))) {
+			TRACE("DTM: deleting stale enty cluster_id: %d, node_id :%u, node_ip:%s",
+					node.cluster_id, node.node_id, node.node_ip);
 			if (dtm_node_delete(new_node, 0) != NCSCC_RC_SUCCESS) {
 				LOG_ER("DTM :dtm_node_delete failed (recv())");
 			}
@@ -1164,31 +1172,30 @@ int dtm_process_connect(DTM_INTERNODE_CB * dtms_cb, char *node_ip, uint8_t *data
 
 	if (sock_desc != -1) {
 
+		TRACE("DTM: dtm_node_add .node_ip: %s node_id: %u, comm_socket %d",
+				new_node->node_ip, new_node->node_id, new_node->comm_socket);
 		if (dtm_node_add(new_node, 0) != NCSCC_RC_SUCCESS) {
-			LOG_ER("DTM: dtm_node_add failed .node_ip : %s ", new_node->node_ip);
+			LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u", new_node->node_ip, new_node->node_id);
 			dtm_comm_socket_close(&sock_desc);
 			sock_desc = -1;
 			free(new_node);
 			goto node_fail;
-
 		}
 
 		if (dtm_node_add(new_node, 1) != NCSCC_RC_SUCCESS) {
-			LOG_ER("DTM:dtm_node_add failed .node_ip : %s ", new_node->node_ip);
+			LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u", new_node->node_ip, new_node->node_id);			
 			dtm_comm_socket_close(&sock_desc);
 			sock_desc = -1;
 			free(new_node);
 			goto node_fail;
-
 		}
 
 		if (dtm_node_add(new_node, 2) != NCSCC_RC_SUCCESS) {
-			LOG_ER("DTM:dtm_node_add  failed .node_ip : %s ", new_node->node_ip);
+			LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u", new_node->node_ip, new_node->node_id);
 			dtm_comm_socket_close(&sock_desc);
 			sock_desc = -1;
 			free(new_node);
 			goto node_fail;
-
 		}
 	}
 
@@ -1287,20 +1294,20 @@ int dtm_process_accept(DTM_INTERNODE_CB * dtms_cb, int stream_sock)
 		new_node = dtm_node_new(&node);
 
 		if (new_node == NULL) {
-			LOG_ER(" DTM: dtm_node_new failed .node_ip : %s ", node.node_ip);
+			LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u", new_node->node_ip, new_node->node_id);
 			dtm_comm_socket_close(&new_conn_sd);
 			goto node_fail;
 		}
 
 		if (dtm_node_add(new_node, 1) != NCSCC_RC_SUCCESS) {
-			LOG_ER("DTM: dtm_node_add failed .node_ip : %s ", node.node_ip);
+			LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u", new_node->node_ip, new_node->node_id);
 			dtm_comm_socket_close(&new_conn_sd);
 			goto node_fail;
 		}
 
 		if (dtm_node_add(new_node, 2) != NCSCC_RC_SUCCESS) {
 
-			LOG_ER("DTM: dtm_node_add failed .node_ip : %s ", node.node_ip);
+			LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u", new_node->node_ip, new_node->node_id);
 			dtm_comm_socket_close(&new_conn_sd);
 			goto node_fail;
 		}
