@@ -26,7 +26,17 @@
 
 #include <configmake.h>
 
-#include <ncsgl_defs.h>
+#include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <signal.h>
+#include <syslog.h>
+#include "ncs_main_papi.h"
+#include "ncsgl_defs.h"
 #include "ncs_osprm.h"
 
 #include "ncs_svd.h"
@@ -38,6 +48,17 @@
 #include "sysf_exc_scr.h"
 #include "usrbuf.h"
 
+/**
+ *  File descriptor pointing to /proc/sysrq-trigger. If a process wants to be
+ *  able to reboot the local node without running as root, this file is opened
+ *  before dropping root privileges. The reason is that only root can open this
+ *  file. Another advantage of keeping this file open is that we can reboot
+ *  also in the error scenario when open() would fail because either the
+ *  process itself or the kernel has run out of free file descriptors. Note
+ *  that it is also a danger in keeping this file open, if a bug happens to
+ *  write something to the wrong file descriptor.
+ */
+static int sysrq_trigger_fd = -1;
 
 /*****************************************************************************
 
@@ -271,20 +292,99 @@ uint32_t leap_env_destroy()
 	return NCSCC_RC_SUCCESS;
 }
 
+void opensaf_reboot_prepare(void)
+{
+	if (sysrq_trigger_fd != -1) return;
+	int fd;
+	do {
+		fd = open("/proc/sysrq-trigger", O_WRONLY);
+	} while (fd == -1 && errno == EINTR);
+	if (fd >= 0 && fd <= 2) {
+		/* We don't want to get file descriptors 0, 1 or 2 because:
+		 *   1) it would be dangerous
+		 *   2) it would by closed by deamonize()
+		 *
+		 * If this happens, we request a new file descriptor by calling
+		 * ourselves recursively. Since the old file descriptor is
+		 * still open during the recursive call, we are guaranteed to
+		 * eventually get a descriptor outside the range [0, 2].
+		 */
+		opensaf_reboot_prepare();
+		close(fd);
+	} else {
+		sysrq_trigger_fd = fd;
+	}
+}
+
+/**
+ *  This is a signal handler that is called when the time supervision of the
+ *  opensaf_reboot script expires. It reboots the node immediately by writing
+ *  "b" to the file "/proc/sysrq-trigger" and then exit the process.
+ */
+static void opensaf_reboot_fallback(int sig_no)
+{
+	(void) sig_no;
+	int fd = sysrq_trigger_fd;
+	if (fd == -1) {
+		do {
+			fd = open("/proc/sysrq-trigger", O_WRONLY);
+		} while (fd == -1 && errno == EINTR);
+	}
+	if (fd != -1) {
+		char buf[] = {'b'};
+		ssize_t result;
+		do {
+			result = write(fd, buf, sizeof(buf));
+		} while (result == -1 && errno == EINTR);
+	}
+	_Exit(EXIT_SUCCESS);
+}
+
 /**
  * 
  * @param reason
  */
-void opensaf_reboot(unsigned int node_id, char *ee_name, const char *reason) 
+void opensaf_reboot(unsigned node_id, const char* ee_name, const char* reason)
 {
+	char* env_var = getenv("OPENSAF_REBOOT_TIMEOUT");
+	unsigned long supervision_time = 0;
+	if (env_var != NULL) {
+		char* endptr;
+		errno = 0;
+		supervision_time = strtoul(env_var, &endptr, 0);
+		if (errno != 0 || *env_var == '\0' || *endptr != '\0') {
+			supervision_time = 0;
+		}
+	}
+
+	unsigned own_node_id = ncs_get_node_id();
+	bool use_fallback = supervision_time > 0 && (node_id == 0 || node_id ==
+		own_node_id);
+	if (use_fallback) {
+		if (signal(SIGALRM, opensaf_reboot_fallback) == SIG_ERR) {
+			opensaf_reboot_fallback(0);
+		}
+		alarm(supervision_time);
+	}
+
+	syslog(LOG_CRIT,
+		"Rebooting OpenSAF NodeId = %u EE Name = %s, Reason: %s, "
+		"OwnNodeId = %u, SupervisionTime = %lu",
+		node_id, ee_name == NULL ? "No EE Mapped" : ee_name, reason,
+		own_node_id, supervision_time);
 
 	char str[256];
-	memset(str,0,256);
+	snprintf(str, sizeof(str), PKGLIBDIR "/opensaf_reboot %u %s", node_id,
+		ee_name == NULL ? "" : ee_name);
+	int reboot_result = system(str);
+	if (reboot_result != EXIT_SUCCESS) {
+        	syslog(LOG_CRIT, "node reboot failure: exit code %d",
+			reboot_result);
+	}
 
-	snprintf(str,255,PKGLIBDIR"/opensaf_reboot %d %s\n",node_id,((ee_name == NULL)?"":ee_name));
-	syslog(LOG_CRIT,"Rebooting OpenSAF NodeId = %d EE Name = %s, Reason: %s\n",node_id,((ee_name == NULL)? "No EE Mapped":ee_name),reason);
-	if(system(str) == -1){
-        	syslog(LOG_CRIT, "node reboot failure!");
+	if (use_fallback) {
+		/* Wait for the alarm signal we set up earlier. */
+		for (;;) pause();
 	}
 }
 

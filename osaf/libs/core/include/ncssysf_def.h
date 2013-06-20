@@ -83,7 +83,33 @@ extern "C" {
 #define m_START_CRITICAL               m_NCS_OS_START_TASK_LOCK
 #define m_END_CRITICAL                 m_NCS_OS_END_TASK_LOCK
 
-extern void opensaf_reboot(unsigned int node_id, char *ee_name, const char *reason);
+/**
+ *  Prepare for a future call to opensaf_reboot() by opening the necessary file
+ *  (/proc/sysrq-trigger). Call this function before dropping root privileges
+ *  (which is done by the daemonize() function in OpenSAF), if you later intend
+ *  to call opensaf_reboot() to reboot the local node without having root
+ *  privileges.
+ *
+ * NOTE: Do NOT call this function unless you have to (e.g. don't call it if
+ *       your service is running as root, or if you only intend to use
+ *       opensaf_reboot() to reboot non-local nodes). The reason is that is can
+ *       be dangerous to hold an open file handle to /proc/sysrq-trigger, if a
+ *       bug causes the service to write to the wrong file descriptor.
+ */
+void opensaf_reboot_prepare(void);
+
+/**
+ *  Reboot a node. Call this function with @a node_id zero to reboot the local
+ *  node. If you intend to use this function to reboot the local node without
+ *  having root privileges, you must first call opensaf_reboot_prepare() before
+ *  dropping root privileges (which is done by the daemonize() function in
+ *  OpenSAF).
+ *
+ *  Note that this function uses the configuration option
+ *  OPENSAF_REBOOT_TIMEOUT in nid.conf. Therefore, this function must only be
+ *  called from services that are started by NID.
+ */
+void opensaf_reboot(unsigned node_id, const char* ee_name, const char* reason);
 
 /*****************************************************************************
  **                                                                         **

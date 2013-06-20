@@ -137,6 +137,7 @@ int main(int argc, char *argv[])
 	SaAmfHealthcheckKeyT hc_key;
 	char *hc_key_env;
 	
+	opensaf_reboot_prepare();
 	daemonize(argc, argv);
 	
 	ava_install_amf_down_cb(amf_down_cb);

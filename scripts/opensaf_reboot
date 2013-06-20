@@ -67,7 +67,15 @@ if [ "$self_node_id" = "$node_id" ] || [ $node_id = 0 ]; then
 	# uncomment the following line if debugging errors that keep restarting the node
 	# exit 0
 
-	logger -t "opensaf_reboot" "Rebooting local node"
+	logger -t "opensaf_reboot" "Rebooting local node; timeout=$OPENSAF_REBOOT_TIMEOUT"
+
+	# Start a reboot supervision background process. Note that a similar
+	# supervision is also done in the opensaf_reboot() function in LEAP.
+	# However, that supervision may be stopped by one of the pkill commands
+	# below, if it was called from AMF or FM.
+	if [ "${OPENSAF_REBOOT_TIMEOUT}0" -gt "0" ]; then
+		(sleep "$OPENSAF_REBOOT_TIMEOUT"; echo -n "b" > "/proc/sysrq-trigger") &
+	fi
 
 	# Stop some important opensaf processes to prevent bad things from happening
 	$icmd pkill -STOP osafamfwd
