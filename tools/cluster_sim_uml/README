@@ -112,6 +112,10 @@ To clean persistent store:
 
 When the persistent store is cleaned, the next start will be from XML.
 
+Default memory size for each blade is 128M. You can change this using the
+environment variable OSAF_UML_MEMSIZE, e.g.:
+
+    export OSAF_UML_MEMSIZE=256M
 
 Running the cluster adds the following direcories:
 

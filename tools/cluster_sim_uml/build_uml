@@ -179,14 +179,17 @@ cmd_create_rootfs()
     install $(which nice) usr/bin
     
     # Change LOG configuration to use "replicated" disk
-    sed -i 's/=$pkglogdir\/saflog/=repl_opensaf\/saflog/g' \
+    sed -i 's/=$pkglogdir\/saflog/=\/repl_opensaf\/saflog/g' \
 	etc/opensaf/logd.conf
+    sed -i 's/\/var\/log\/opensaf\/saflog/\/repl_opensaf\/saflog/g' \
+	usr/local/share/opensaf/immxml/services/logsv_objects.xml
 
     # Change core pattern, uml cannot write cores to hostfs
     sed -i 's/var\/crash\/opensaf/tmp/g' etc/init.d/opensafd
 
     # UML can only runas root
-    sed -i '/export\ OPENSAF/d' etc/opensaf/nid.conf
+    sed -i '/export\ OPENSAF_GROUP/d' etc/opensaf/nid.conf
+    sed -i '/export\ OPENSAF_USER/d' etc/opensaf/nid.conf
 
     # The var directory structure is setup from within each UML
     rm -rf var/*
@@ -230,9 +233,15 @@ cmd_installibs() {
     local deplib=$tmp/deplib
     cd $root
     cmd_getlibs \
-	$(find . -name osafimmloadd) ./bin/* ./usr/bin/* ./usr/sbin/* |\
+	$(find . -name osafimmloadd -or -name libopensaf_core.so) ./bin/* ./usr/bin/* ./usr/sbin/* |\
 	grep -v -e 'libSa\|libimmsv\|libsaf' \
 	-e "^/$lib_dir/ld-\|^/$lib_dir/libc.so" > $deplib
+    local all_dirs=`ldd $top/uml/bin/busybox | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,' | sed -e 's:/[^/]*$::'`
+    for d in $all_dirs; do
+	if [ -e $d/libnss_files.so.? ]; then
+	    echo $d/libnss_files.so.? >> $deplib
+	fi
+    done
 
     for n in $(cat $deplib | sort | uniq); do
         # Skip OpenSAF libraries installed on the host

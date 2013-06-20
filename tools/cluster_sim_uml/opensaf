@@ -35,6 +35,7 @@ test -x $UML_DIR/bin/uml_start || die "Not executable [$UML_DIR/bin/uml_start]"
 NUMNODES=${2:-5}
 IPADDRBASE=${IPADDRBASE:-192.168.0}
 PIDFILEDIR=/tmp/${USER}_opensaf
+OSAF_UML_MEMSIZE=${OSAF_UML_MEMSIZE:-128M}
 uid=`id -u`
 
 cluster_start() {
@@ -81,7 +82,7 @@ cluster_start() {
 		fi
 		hostname=$node_name_prefix$p
 		xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
-			$UML_DIR/bin/uml_start $p umid=$hostname mem=128M hostname=$hostname shadowroot=$rootdir $$ &
+			$UML_DIR/bin/uml_start $p umid=$hostname mem=${OSAF_UML_MEMSIZE} hostname=$hostname shadowroot=$rootdir $$ &
 		echo $! > $PIDFILEDIR/$hostname
 		y=$((y+dy))
 

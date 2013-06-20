@@ -62,25 +62,20 @@ cd $dir
 archive=${ARCHIVE:-$dir/archive}
 configd=${CONFIGD:-$dir/config}
 
-kver=${KVER:-3.4.2}
+kver=${KVER:-3.9.5}
 if [ `echo $kver | cut -d. -f1` -ge 3 ]
 then
     kbasedir=`echo $kver | cut -d. -f1`.x
 else
     kbasedir=`echo $kver | cut -d. -f1-2`
 fi
-kurlbase=${KURLBASE:-"http://www.kernel.org/pub/linux/kernel/v$kbasedir"}
-if echo $kver | grep -q -e '^[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+$'; then
-    kbase=`echo $kver | cut -d. -f1-3`
-    kurl="http://www.kernel.org/pub/linux/kernel/v$kbasedir/linux-$kbase.tar.bz2"
-    purl="http://www.kernel.org/pub/linux/kernel/v$kbasedir/longterm/v$kbase/patch-$kver.bz2"
-else
-    kurl="http://www.kernel.org/pub/linux/kernel/v$kbasedir/linux-$kver.tar.bz2"
-fi
-tipcutilsver=${TIPCUTILSVER:-2.0.2}
+#kurlbase=${KURLBASE:-"https://www.kernel.org/pub/linux/kernel/v$kbasedir"}
+kurlbase=${KURLBASE:-"http://ftp.sunet.se/pub/Linux/kernel.org/linux/kernel/v$kbasedir"}
+kurl="$kurlbase/linux-$kver.tar.bz2"
+tipcutilsver=${TIPCUTILSVER:-2.0.3}
 tipcutilsurl="http://prdownloads.sourceforge.net/tipc/tipcutils-$tipcutilsver.tar.gz"
 
-bbver=${BBVER:-1.19.4}
+bbver=${BBVER:-1.21.0}
 bburl="http://busybox.net/downloads/busybox-$bbver.tar.bz2"
 umlutilsver=20070815
 umlutilsurl="http://user-mode-linux.sourceforge.net/uml_utilities_$umlutilsver.tar.bz2"
@@ -105,12 +100,6 @@ cmd_info() {
     test -r $f && exists="(exists)"
     echo "    $f $exists"
     echo "    $kurl"
-    if test -n "$purl"; then
-	f=$archive/$(basename $purl)
-	test -r $f && exists="(exists)"
-	echo "    $f $exists"
-	echo "    $purl"
-    fi
     echo "BusyBox $bbver:"
     f=$archive/$(basename $bburl)
     test -r $f && exists="(exists)"
@@ -134,7 +123,7 @@ cmd_info() {
 ##
 cmd_download() {
     mkdir -p $archive
-    for a in $kurl $purl $bburl $umlutilsurl $tipcutilsurl; do
+    for a in $kurl $bburl $umlutilsurl $tipcutilsurl; do
 	f=$(basename $a)
 	if test -s $archive/$f; then
 	    echo "Already downloaded [$f]"
@@ -157,18 +146,10 @@ cmd_extract_kernel() {
     f=$archive/$(basename $kurl)
     test -r $f || die "Not readable [$f]"
     echo "Extracting [linux-$kver]..."
-    rm -rf linux-extract-dir linux-$kbase linux-$kver
+    rm -rf linux-extract-dir linux-$kver
     mkdir linux-extract-dir
     tar -C linux-extract-dir -xjf "$f" && mv linux-extract-dir/* .
     rm -rf linux-extract-dir
-    if ! test -d "linux-$kver"; then
-	mv linux-$kbase linux-$kver
-	f=$archive/$(basename $purl)
-	test -r $f || die "Not readable [$f]"
-	cd linux-$kver
-	bzcat $f | patch -p1 > /dev/null 2>&1
-	cd -
-    fi
 }
 
 ##   refresh_root
@@ -195,7 +176,8 @@ cmd_refresh_root() {
 }
 
 cmd_patch_tipc_tolerance() {
-    tipc_cfg=$dir/linux-$kver/include/linux/tipc_config.h
+    tipc_cfg=$dir/linux-$kver/include/uapi/linux/tipc_config.h
+    test -e "$tipc_cfg" || tipc_cfg=$dir/linux-$kver/include/linux/tipc_config.h
     grep -q 'TIPC_DEF_LINK_TOL 1500' $tipc_cfg || return 0
     mv -f $tipc_cfg $tipc_cfg.orig
     sed -e 's,TIPC_DEF_LINK_TOL 1500,TIPC_DEF_LINK_TOL 3500,' \
@@ -226,6 +208,7 @@ cmd_build_linux()
     cmd_patch_tipc_tolerance
     make -C linux-$kver -j3 ARCH=um oldconfig
     make -C linux-$kver -j4 ARCH=um
+    make -C linux-$kver headers_install
     cmd_refresh_root
 }
 
@@ -248,7 +231,7 @@ cmd_build_busybox()
     cfg=$configd/busybox-$bbver
     test -r $cfg || cfg=config/busybox-config
     cp -L $cfg busybox-$bbver/.config
-    make -C busybox-$bbver
+    make -C busybox-$bbver -j4
     cp busybox-$bbver/busybox bin
 }
 
@@ -275,7 +258,10 @@ cmd_create_initramfs()
         ln -fs /bin/busybox root/$n
     done
     cp -L `ldd ./bin/busybox | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,'` root/$lib_dir
-    cp -L /$lib_dir/libnss_files.so.? /$lib_dir/libpthread.so.? /$lib_dir/libm.so.? root/$lib_dir
+    local all_dirs=`ldd ./bin/busybox | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,' | sed -e 's:/[^/]*$::'`
+    for d in $all_dirs; do
+	cp -L $d/libnss_files.so.? $d/libpthread.so.? $d/libm.so.? root/$lib_dir 2> /dev/null
+    done
     chown -hR $UID:$gid root
 }
 
@@ -320,19 +306,15 @@ cmd_build_tipcutils()
     test -r $f || die "Not downloaded [$f]"
     rm -rf tipcutils-$tipcutilsver
     tar xzf $f
-
-    # Different build for older/newer kernels;
-    if [ `echo $tipcutilsver | cut -d. -f1` -ge 2 ]
-    then
-        make -C tipcutils-$tipcutilsver INCLUDE_PATH="$dir/linux-$kver/include" EXTRAS="-I$dir/linux-$kver/arch/x86/include"
-        cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin
-    elif ! make KERNELDIR=$dir/linux-$kver -C tipcutils-$tipcutilsver \
-	>/dev/null 2>&1; then
-	archd=$dir/linux-$kver/arch/x86
-	test "$(arch)" = "x86_64" && archd=$dir/linux-$kver/arch/ia64
-	make KERNELDIR="$dir/linux-$kver/include -I$archd" \
-	    -C tipcutils-$tipcutilsver || die "Build failed"
-        cp tipcutils-$tipcutilsver/tipc-config bin
+    if [ -x tipcutils-$tipcutilsver/configure ]; then
+	cd tipcutils-$tipcutilsver
+	./configure CFLAGS="-I$dir/linux-$kver/usr/include"
+	make -j4
+	cd $dir
+	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin
+    else
+	make -C tipcutils-$tipcutilsver INCLUDE_PATH="$dir/linux-$kver/include" EXTRAS="-I$dir/linux-$kver/arch/x86/include"
+	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin
     fi
 }
 
