@@ -1435,6 +1435,18 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 				goto done;
 		}
 
+		/* instantiating -> term-failed */
+		if ((SA_AMF_PRESENCE_INSTANTIATING == prv_st) &&
+				(SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)) {
+			TRACE("SU Instantiating -> Termination Failed");
+			m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
+			/* Don't send su-oper state msg, just update su oper state
+			 * AMF has lost control over this component and the operator needs
+			 * to repair this node. Failover is not possible in this state. */
+			avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSUOperState_ID, &su->name, su->oper);
+		}
+
 		/* instantiated/restarting -> inst-failed */
 		if (((SA_AMF_PRESENCE_INSTANTIATED == prv_st) || (SA_AMF_PRESENCE_RESTARTING == prv_st)) &&
 		    (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)) {
