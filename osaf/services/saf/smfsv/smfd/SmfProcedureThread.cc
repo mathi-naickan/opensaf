@@ -323,6 +323,9 @@ SmfProcedureThread::init(void)
 			m_NCS_IPC_RELEASE(&m_mbx, NULL);
 			m_NCS_IPC_DETACH(&m_cbk_mbx, NULL, NULL);
 			m_NCS_IPC_RELEASE(&m_cbk_mbx, NULL);
+			if (deleteImmHandle() != SA_AIS_OK) {
+			        LOG_NO("SmfProcedureThread::init, deleteImmHandle FAILED, re-execution of campaign may not be possible");
+			}
 			return -1;
 		}
 	} else if (result == SA_AIS_OK) {
@@ -344,6 +347,9 @@ SmfProcedureThread::init(void)
 		m_NCS_IPC_RELEASE(&m_mbx, NULL);
 		m_NCS_IPC_DETACH(&m_cbk_mbx, NULL, NULL);
 		m_NCS_IPC_RELEASE(&m_cbk_mbx, NULL);
+		if (deleteImmHandle() != SA_AIS_OK) {
+		        LOG_NO("SmfProcedureThread::init, deleteImmHandle FAILED, re-execution of campaign may not be possible");
+		}
 		return -1;
 	}
 
