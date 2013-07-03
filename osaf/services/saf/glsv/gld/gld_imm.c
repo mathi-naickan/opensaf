@@ -253,11 +253,15 @@ void *_gld_imm_declare_implementer(void *cb)
 void gld_imm_declare_implementer(GLSV_GLD_CB *cb)
 {
 	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	if (pthread_create(&thread, NULL, _gld_imm_declare_implementer, cb) != 0) {
+	if (pthread_create(&thread, &attr, _gld_imm_declare_implementer, cb) != 0) {
 		LOG_CR("pthread_create FAILED: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	pthread_attr_destroy(&attr);
 }
 
 /**

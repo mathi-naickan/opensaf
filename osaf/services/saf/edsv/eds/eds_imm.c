@@ -212,7 +212,7 @@ void eds_imm_declare_implementer(EDS_CB *cb)
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	if (pthread_create(&thread, NULL, _eds_imm_declare_implementer, cb) != 0) {
+	if (pthread_create(&thread, &attr, _eds_imm_declare_implementer, cb) != 0) {
 		LOG_ER("pthread create failed: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
