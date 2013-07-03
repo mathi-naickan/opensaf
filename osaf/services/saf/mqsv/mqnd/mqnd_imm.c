@@ -519,7 +519,7 @@ void mqnd_imm_declare_implementer(MQND_CB *cb)
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 	TRACE_ENTER();
 
-	if (pthread_create(&thread, NULL, _mqnd_imm_declare_implementer, cb) != 0) {
+	if (pthread_create(&thread, &attr, _mqnd_imm_declare_implementer, cb) != 0) {
 		LOG_CR("pthread_create FAILED: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}

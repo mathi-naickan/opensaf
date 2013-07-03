@@ -1740,7 +1740,7 @@ void avd_imm_reinit_bg(void)
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	if (pthread_create(&thread, NULL, avd_imm_reinit_bg_thread, avd_cb) != 0) {
+	if (pthread_create(&thread, &attr, avd_imm_reinit_bg_thread, avd_cb) != 0) {
 		LOG_ER("pthread_create FAILED: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}

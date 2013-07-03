@@ -425,7 +425,7 @@ uint32_t immd_amf_init(IMMD_CB *immd_cb)
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	if (pthread_create(&thread, NULL, amf_init_start, NULL) != 0) {
+	if (pthread_create(&thread, &attr, amf_init_start, NULL) != 0) {
 		LOG_ER("pthread_create FAILED: %s", strerror(errno));
 		goto done;
 	}
