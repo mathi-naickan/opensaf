@@ -1466,7 +1466,8 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 		}
 
 		/* terminating -> term-failed */
-		if ((SA_AMF_PRESENCE_TERMINATING == prv_st) && (SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)) {
+		if (((prv_st == SA_AMF_PRESENCE_RESTARTING) || (SA_AMF_PRESENCE_TERMINATING == prv_st)) 
+				&& (SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)) {
 			TRACE("Terminating -> Termination Failed");
 			m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
