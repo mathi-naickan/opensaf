@@ -253,6 +253,12 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 				info->su_name.value, info->msg_act);
 		goto done;
 	}
+	if ((cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED) ||
+			(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)) {
+			LOG_NO("Shutting started : Ignoring assignment for SU'%s'",
+						info->su_name.value);
+		goto done;
+        }
 
 	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
