@@ -629,6 +629,9 @@ void amfd_switch(AVD_CL_CB *cb)
 
 	TRACE_ENTER();
 
+	LOG_NO("Controller switch over initiated");
+	saflog(LOG_NOTICE, amfSvcUsrName, "Controller switch over initiated");
+
 	/* First check if there are any other SI's that are any other active */
 	/* get the avnd from node_id */
 	avnd = avd_node_find_nodeid(cb->node_id_avd);

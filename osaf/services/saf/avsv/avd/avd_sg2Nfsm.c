@@ -876,8 +876,6 @@ SaAisErrorT avd_sg_2n_siswap_func(AVD_SI *si, SaInvocationT invocation)
 	saflog(LOG_NOTICE, amfSvcUsrName, "%s Swap initiated", susi->si->name.value);
 
 	if (susi->si->sg_of_si->sg_ncs_spec) {
-		LOG_NO("Controller switch over initiated");
-		saflog(LOG_NOTICE, amfSvcUsrName, "Controller switch over initiated");
 		avd_cb->swap_switch = SA_TRUE;
 		avd_cb->active_services_exist = false;
 	}
