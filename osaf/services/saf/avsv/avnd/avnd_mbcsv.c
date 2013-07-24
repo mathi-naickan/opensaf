@@ -1297,7 +1297,7 @@ uint32_t avnd_evt_avd_role_change_evh(AVND_CB *cb, AVND_EVT *evt)
 	if ((SA_AMF_HA_ACTIVE == cb->avail_state_avnd) && (SA_AMF_HA_QUIESCED == info->role)) {
 		TRACE_1("SA_AMF_HA_QUIESCED role received");
 		if (NCSCC_RC_SUCCESS != (rc = avnd_mds_set_vdest_role(cb, V_DEST_RL_QUIESCED))) {
-			LOG_ER("avnd_mds_set_vdest_role returned failure, role:%u",info->role);
+			TRACE("avnd_mds_set_vdest_role returned failure, role:%u",info->role);
 			return rc;
 		}
 		return rc;
