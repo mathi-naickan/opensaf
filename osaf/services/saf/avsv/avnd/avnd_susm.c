@@ -1923,6 +1923,10 @@ uint32_t avnd_su_pres_inst_suterm_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *com
 		for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_LAST(&su->comp_list));
 		     curr_comp;
 		     curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_PREV(&curr_comp->su_dll_node))) {
+
+			if (curr_comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED)
+				continue;
+
 			/* terminate the pi comp */
 			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp)) {
 				TRACE("Running the component clc FSM, terminate the component");
@@ -2283,6 +2287,10 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su, AVND_CO
 		for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_PREV(&comp->su_dll_node));
 		     curr_comp;
 		     curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_PREV(&curr_comp->su_dll_node))) {
+
+			if (curr_comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED)
+				continue;
+
 			/* terminate the pi comp */
 			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp)) {
 				TRACE("Running the component clc FSM");
