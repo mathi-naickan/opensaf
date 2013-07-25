@@ -3865,6 +3865,12 @@ void avd_sg_2n_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 
 	TRACE_ENTER2("'%s', %u", su->name.value, su->sg_of_su->sg_fsm_state);
 
+	/* If we are in the middle of admin switch, Reset the flag. */
+	if ((cb->swap_switch == SA_TRUE) && (SA_TRUE == su->sg_of_su->sg_ncs_spec)) {
+		TRACE("Resetting swap_switch.");
+		cb->swap_switch = SA_FALSE;
+	}
+
 	if (su->list_of_susi == AVD_SU_SI_REL_NULL)
 		goto done;
 
