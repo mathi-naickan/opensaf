@@ -1351,6 +1351,8 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 				value = &comp_type->saAmfCtDefRecoveryOnError;
 
 			recovery = *((SaUint32T *)value);
+			if (recovery == SA_AMF_NO_RECOMMENDATION)
+				recovery = SA_AMF_COMPONENT_FAILOVER;
 			param.attr_id = saAmfCompRecoveryOnError_ID;
 			param.value_len = sizeof(uint32_t);
 			recovery = htonl(recovery);
