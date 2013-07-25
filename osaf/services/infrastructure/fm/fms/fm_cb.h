@@ -57,6 +57,9 @@ typedef struct fm_cb {
 /* Holds own role. */
 	PCS_RDA_ROLE role;
 
+/* AMF HA state for FM */
+	SaAmfHAStateT amf_state;
+	
 /* MDS handles. */
 	MDS_DEST adest;
 	MDS_HDL adest_hdl;
