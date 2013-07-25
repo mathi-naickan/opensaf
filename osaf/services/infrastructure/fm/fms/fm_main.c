@@ -372,11 +372,11 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt)
 				 *	  transitioned CSI state, but not the RDA state.
 				 *       In both the cases, this node should be set to ACTIVE.
 				 */
-				if (fm_cb->role != fm_cb->amf_state )
+				if ((SaAmfHAStateT)fm_cb->role != fm_cb->amf_state )
 					LOG_NO("Failover occurred in the middle of switchover");
 				opensaf_reboot(fm_cb->peer_node_id, (char *)fm_cb->peer_node_name.value,
 						"Received Node Down for peer controller");
-				if (!((fm_cb->role == PCS_RDA_ACTIVE) && (fm_cb->amf_state == PCS_RDA_ACTIVE))) {
+				if (!((fm_cb->role == PCS_RDA_ACTIVE) && (fm_cb->amf_state == (SaAmfHAStateT)PCS_RDA_ACTIVE))) {
 					fm_cb->role = PCS_RDA_ACTIVE;
 					fm_rda_set_role(fm_cb, PCS_RDA_ACTIVE);
 				}
