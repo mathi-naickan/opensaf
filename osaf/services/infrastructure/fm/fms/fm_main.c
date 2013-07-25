@@ -73,6 +73,39 @@ static void sigusr1_handler(int sig)
 	ncs_sel_obj_ind(usr1_sel_obj);
 }
 
+/**
+ * Callback from RDA. Post a message/event to the FM mailbox.
+ * @param cb_hdl
+ * @param cb_info
+ * @param error_code
+ */
+static void rda_cb(uint32_t cb_hdl, PCS_RDA_CB_INFO *cb_info, PCSRDA_RETURN_CODE error_code)
+{
+	uint32_t rc;
+	FM_EVT *evt = NULL;
+
+	TRACE_ENTER();
+
+	evt = calloc(1, sizeof(FM_EVT));
+	if (NULL == evt) {
+		LOG_ER("calloc failed");
+		goto done;
+	}
+
+	evt->evt_code = FM_EVT_RDA_ROLE;
+	evt->info.rda_info.role = cb_info->info.io_role;
+
+	rc = ncs_ipc_send(&fm_cb->mbx, (NCS_IPC_MSG *)evt, MDS_SEND_PRIORITY_HIGH);
+	if (rc != NCSCC_RC_SUCCESS) {
+		syslog(LOG_ERR, "IPC send failed %d", rc);
+		free(evt);	
+	}
+
+ done:
+	TRACE_LEAVE();
+}
+
+
 /*****************************************************************************
 
 PROCEDURE NAME:       main
@@ -140,6 +173,11 @@ int main(int argc, char *argv[])
 /* RDA initialization */
 	if (fm_rda_init(fm_cb) != NCSCC_RC_SUCCESS) {
 		fm_nid_notify((uint32_t)NCSCC_RC_FAILURE);
+		goto fm_init_failed;
+	}
+
+	if ((rc = rda_register_callback(0, rda_cb)) != NCSCC_RC_SUCCESS) {
+		syslog(LOG_ERR, "rda_register_callback FAILED %u", rc);
 		goto fm_init_failed;
 	}
 
@@ -315,27 +353,34 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt)
 	switch (fm_mbx_evt->evt_code) {
 	case FM_EVT_NODE_DOWN:
 		LOG_NO("Role: %s, Node Down for node id: %x", role_string[fm_cb->role], fm_mbx_evt->node_id);
-		if ((fm_cb->role == PCS_RDA_STANDBY)||(fm_cb->role == PCS_RDA_QUIESCED)) {
-			if ((fm_mbx_evt->node_id == fm_cb->peer_node_id)) {
-				/* Start Promote active timer */
-				if ((fm_cb->role != PCS_RDA_QUIESCED) && (fm_cb->active_promote_tmr_val != 0)){
-					fm_tmr_start(&fm_cb->promote_active_tmr, fm_cb->active_promote_tmr_val);
-					LOG_NO("Promote active timer started");
-				} else {
-					/* Check whether node(AMF) initialization is done */
-					if (fm_cb->csi_assigned == false) {
-						opensaf_reboot(0, NULL,
+		if ((fm_mbx_evt->node_id == fm_cb->peer_node_id)) {
+			/* Check whether node(AMF) initialization is done */
+			if (fm_cb->csi_assigned == false) {
+				opensaf_reboot(0, NULL,
 						"Failover occurred, but this node is not yet ready");
-					}
+			}
+			/* Start Promote active timer */
+			if ((fm_cb->role == PCS_RDA_STANDBY) && (fm_cb->active_promote_tmr_val != 0)){
+				fm_tmr_start(&fm_cb->promote_active_tmr, fm_cb->active_promote_tmr_val);
+				LOG_NO("Promote active timer started");
+			} else {
+				TRACE("rda role: %s, amf_state: %u", role_string[fm_cb->role], fm_cb->amf_state);
+				/* The local node is Standby, Quiesced or Active. Reboot the peer node. 
+				 * Note: If local node is Active, there are two interpretations.
+				 *	- Normal scenario where the Standby went down
+				 *	- Standby went down in the middle of a swtichover and AMF has
+				 *	  transitioned CSI state, but not the RDA state.
+				 *       In both the cases, this node should be set to ACTIVE.
+				 */
+				if (fm_cb->role != fm_cb->amf_state )
+					LOG_NO("Failover occurred in the middle of switchover");
+				opensaf_reboot(fm_cb->peer_node_id, (char *)fm_cb->peer_node_name.value,
+						"Received Node Down for peer controller");
+				if (!((fm_cb->role == PCS_RDA_ACTIVE) && (fm_cb->amf_state == PCS_RDA_ACTIVE))) {
 					fm_cb->role = PCS_RDA_ACTIVE;
-					opensaf_reboot(fm_cb->peer_node_id, (char *)fm_cb->peer_node_name.value,
-						"Received Node Down for Active peer");
 					fm_rda_set_role(fm_cb, PCS_RDA_ACTIVE);
 				}
 			}
-		} else if (fm_cb->role == PCS_RDA_ACTIVE) {
-				opensaf_reboot(fm_cb->peer_node_id, (char *)fm_cb->peer_node_name.value,
-					"Received Node Down for standby peer");
 		}
 		break;
 	case FM_EVT_PEER_UP:
@@ -360,7 +405,11 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt)
 			fm_rda_set_role(fm_cb, PCS_RDA_ACTIVE);
 		}
 		break;
-
+	case FM_EVT_RDA_ROLE:
+		/* RDA role assignment for this controller node */
+		fm_cb->role = fm_mbx_evt->info.rda_info.role;
+		syslog(LOG_INFO, "RDA role for this controller node: %s", role_string[fm_cb->role]);
+		break;
 	default:
 		break;
 	}

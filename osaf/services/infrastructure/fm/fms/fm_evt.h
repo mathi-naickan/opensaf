@@ -38,11 +38,16 @@ typedef struct gfm_gfm_msg {
 
 } GFM_GFM_MSG;
 
+typedef struct fm_rda_info_t {
+	PCS_RDA_ROLE role;
+} FM_RDA_INFO;
+
 /* FM generated events.*/
 typedef enum {
 	FM_EVT_TMR_EXP,
 	FM_EVT_NODE_DOWN,
 	FM_EVT_PEER_UP,
+	FM_EVT_RDA_ROLE,
 	FM_FSM_EVT_MAX
 } FM_FSM_EVT_CODE;
 
@@ -56,6 +61,7 @@ typedef struct fm_evt {
 	union {
 		FM_TMR *fm_tmr;
 		GFM_GFM_MSG gfm_msg;
+		FM_RDA_INFO rda_info;
 	} info;
 } FM_EVT;
 
