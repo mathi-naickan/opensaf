@@ -241,9 +241,10 @@ void cpnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *c
 	}
 	saAmfResponse(cb->amf_hdl, invocation, saErr);
 	ncshm_give_hdl(gl_cpnd_cb_hdl);
-	sleep(1);
 	LOG_NO("Received AMF component terminate callback, exiting");
-	exit(0);
+	TRACE_LEAVE();
+
+	_Exit(EXIT_SUCCESS);
 }
 
 /****************************************************************************

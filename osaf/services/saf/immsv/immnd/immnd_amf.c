@@ -72,11 +72,17 @@ static void immnd_saf_health_chk_callback(SaInvocationT invocation,
 static void immnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *compName)
 {
 	TRACE_ENTER();
-	saAmfResponse(immnd_cb->amf_hdl, invocation, SA_AIS_OK);
-	sleep(1);
-	TRACE_LEAVE();
+	
+	if (immnd_cb->pbePid > 0)
+		kill(immnd_cb->pbePid, SIGTERM);
+	if (immnd_cb->syncPid > 0)
+		kill(immnd_cb->syncPid, SIGTERM);
+
 	LOG_NO("Received AMF component terminate callback, exiting");
-	exit(0);
+	saAmfResponse(immnd_cb->amf_hdl, invocation, SA_AIS_OK);
+
+	TRACE_LEAVE();
+	_Exit(EXIT_SUCCESS);
 }
 
 /****************************************************************************

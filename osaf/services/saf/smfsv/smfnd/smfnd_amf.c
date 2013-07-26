@@ -110,10 +110,10 @@ static void amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT 
 
 	saAmfResponse(smfnd_cb->amf_hdl, invocation, SA_AIS_OK);
 
-	TRACE_LEAVE();
-	sleep(1);
 	LOG_NO("Received AMF component terminate callback, exiting");
-	exit(0);
+	TRACE_LEAVE();
+
+	_Exit(EXIT_SUCCESS);
 }
 
 /****************************************************************************

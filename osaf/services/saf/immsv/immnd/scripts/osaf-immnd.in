@@ -62,6 +62,7 @@ instantiate() {
 	echo $SA_AMF_COMPONENT_NAME > $COMPNAMEFILE
 	if [ -e $lockfile ]; then
 		killproc -p $pidfile $binary -USR1
+		rm -f $lockfile
 	else
 		start_daemon -p $pidfile $binary $args
 	fi
