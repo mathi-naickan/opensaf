@@ -148,6 +148,7 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb,
 	SaClmNodeIdT node_id;
 	SaNameT ckpt_name;
 	CPD_REP_KEY_INFO key_info;
+	bool noncoll_rep_on_payload = false;
 
 	memset(&ckpt_name, 0, sizeof(SaNameT));
 	memset(&cluster_node, 0, sizeof(SaClmClusterNodeT));
@@ -167,9 +168,6 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb,
 	} else {
 		map_info = *io_map_info;
 	}
-
-	nref_info = m_MMGR_ALLOC_CPD_NODE_REF_INFO;
-	cref_info = m_MMGR_ALLOC_CPD_CKPT_REF_INFO;
 
 	if (!(nref_info && cref_info)) {
 		TRACE_4("CPD DB add failed");
@@ -271,13 +269,34 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb,
 		}
 
 		*o_ckpt_node = ckpt_node;
-               	if (reploc_info && create_reploc_node) {
-			proc_rc = cpd_ckpt_reploc_node_add(&cb->ckpt_reploc_tree, reploc_info, cb->ha_state, cb->immOiHandle);
-                       	if (proc_rc != NCSCC_RC_SUCCESS) {
-                             /* goto reploc_node_add_fail; */
-                             TRACE_4("cpd db add failed in db entry update");
-                       	}
-                }
+		if (reploc_info && create_reploc_node) {
+			/*According to Ckpt non-collocated ckpt implementation the cluster can have max 3 replicas 
+			  and minimum of 2 replicas,if the non-collocated ckpt is opened on controller initially ,
+			  by default cpsv service will create 2 replicas each one on controllers ,
+			  else the non-collocated ckpt is opened on payload initially,by default cpsv service will create 3 replicas  
+			  one on the payload and other each one on controllers,so any further opens form any other payload is not 
+			  required to create replicas  locally.All other node ckpt application will access the data form the
+			  default created active replica. */
+			if (m_IS_SA_CKPT_CHECKPOINT_COLLOCATED(&(*io_map_info)->attributes)) {
+				TRACE_4("Reploc node add  for collocated ckpt_id:%llx",ckpt_id);
+				proc_rc = cpd_ckpt_reploc_node_add(&cb->ckpt_reploc_tree, reploc_info, cb->ha_state, cb->immOiHandle);
+				if (proc_rc != NCSCC_RC_SUCCESS) {
+					/* goto reploc_node_add_fail; */
+					TRACE_4("cpd db add failed in db entry update");
+				}
+			} else if ((cpd_get_slot_sub_id_from_mds_dest(*cpnd_dest) == cb->cpd_remote_id) ||
+				(cpd_get_slot_sub_id_from_mds_dest(*cpnd_dest) == cb->cpd_self_id) ) {
+				TRACE_4(" reploc node add for non-collocated on controller ckpt_id:%llx",ckpt_id);
+				proc_rc = cpd_ckpt_reploc_node_add(&cb->ckpt_reploc_tree, reploc_info, cb->ha_state, cb->immOiHandle);
+				if (proc_rc != NCSCC_RC_SUCCESS) {
+					/* goto reploc_node_add_fail; */
+					TRACE_4("cpd db add failed in db entry update");
+				}
+			} else {
+				TRACE_4(" reploc node add for non-collocated on paylaod ckpt_id:%llx",ckpt_id);
+				noncoll_rep_on_payload = true;
+			}
+		}
 	} else {
 		/* Fill the Map Info */
 		memset(map_info, 0, sizeof(CPD_CKPT_MAP_INFO));
@@ -342,15 +361,19 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb,
 		*o_ckpt_node = ckpt_node;
 	}
 
-	/* Add the CPND Details (CPND reference) to the ckpt node */
-	memset(nref_info, 0, sizeof(CPD_NODE_REF_INFO));
-	nref_info->dest = *cpnd_dest;
-	cpd_node_ref_info_add(ckpt_node, nref_info);
+	if (noncoll_rep_on_payload != true) {
+		nref_info = m_MMGR_ALLOC_CPD_NODE_REF_INFO;
+		cref_info = m_MMGR_ALLOC_CPD_CKPT_REF_INFO;
+		/* Add the CPND Details (CPND reference) to the ckpt node */
+		memset(nref_info, 0, sizeof(CPD_NODE_REF_INFO));
+		nref_info->dest = *cpnd_dest;
+		cpd_node_ref_info_add(ckpt_node, nref_info);
 
-	/* Add the ckpt reference to the CPND node info */
-	memset(cref_info, 0, sizeof(CPD_CKPT_REF_INFO));
-	cref_info->ckpt_node = ckpt_node;
-	cpd_ckpt_ref_info_add(node_info, cref_info);
+		/* Add the ckpt reference to the CPND node info */
+		memset(cref_info, 0, sizeof(CPD_CKPT_REF_INFO));
+		cref_info->ckpt_node = ckpt_node;
+		cpd_ckpt_ref_info_add(node_info, cref_info);
+	}
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
