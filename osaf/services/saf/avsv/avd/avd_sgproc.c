@@ -1489,6 +1489,23 @@ void avd_node_down_appl_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd)
 	if (cb->init_state == AVD_APP_STATE) {
 		i_su = avnd->list_of_su;
 		while (i_su != NULL) {
+
+			/* Unlike active, quiesced and standby HA states, assignment counters
+			   in quiescing HA state are updated when AMFD receives assignment 
+			   response from AMFND. During nodefailover amfd will not receive 
+			   assignment response from AMFND. 
+			   So if any SU is under going modify operation then update assignment 
+			   counters for those SUSIs which are in quiescing state in the SU.
+			 */ 
+			AVD_SU_SI_REL *susi;
+			for (susi = i_su->list_of_susi; susi; susi = susi->su_next) {
+				if ((susi->fsm == AVD_SU_SI_STATE_MODIFY) &&
+						(susi->state == SA_AMF_HA_QUIESCING)) {
+					avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_MOD,
+							SA_AMF_HA_QUIESCING, SA_AMF_HA_QUIESCED);
+				}
+			}
+
 			/* Now analyze the service group for the new HA state
 			 * assignments and send the SU SI assign messages
 			 * accordingly.
