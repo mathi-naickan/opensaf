@@ -169,6 +169,9 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb,
 		map_info = *io_map_info;
 	}
 
+	nref_info = m_MMGR_ALLOC_CPD_NODE_REF_INFO;
+	cref_info = m_MMGR_ALLOC_CPD_CKPT_REF_INFO;
+
 	if (!(nref_info && cref_info)) {
 		TRACE_4("CPD DB add failed");
 		proc_rc = NCSCC_RC_OUT_OF_MEM;
@@ -362,8 +365,6 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb,
 	}
 
 	if (noncoll_rep_on_payload != true) {
-		nref_info = m_MMGR_ALLOC_CPD_NODE_REF_INFO;
-		cref_info = m_MMGR_ALLOC_CPD_CKPT_REF_INFO;
 		/* Add the CPND Details (CPND reference) to the ckpt node */
 		memset(nref_info, 0, sizeof(CPD_NODE_REF_INFO));
 		nref_info->dest = *cpnd_dest;
@@ -373,7 +374,14 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb,
 		memset(cref_info, 0, sizeof(CPD_CKPT_REF_INFO));
 		cref_info->ckpt_node = ckpt_node;
 		cpd_ckpt_ref_info_add(node_info, cref_info);
+	} else {
+		if (cref_info)
+			m_MMGR_FREE_CPD_CKPT_REF_INFO(cref_info);
+
+		if (nref_info)
+			m_MMGR_FREE_CPD_NODE_REF_INFO(nref_info);
 	}
+
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
