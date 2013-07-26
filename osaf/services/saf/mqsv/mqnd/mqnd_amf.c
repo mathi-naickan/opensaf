@@ -241,11 +241,10 @@ static void mqnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaN
 
 	/* giveup the handle */
 	ncshm_give_hdl(cb_hdl);
-	TRACE_LEAVE();
 	LOG_NO("Received AMF component terminate callback, exiting");
-	sleep(1);
-	exit(0);
+	TRACE_LEAVE();
 
+	_Exit(EXIT_SUCCESS);
 }
 
 static void mqnd_amf_CSI_set_callback(SaInvocationT invocation,

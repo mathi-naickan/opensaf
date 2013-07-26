@@ -125,10 +125,10 @@ void glnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *c
 		/* giveup the handle */
 		m_GLND_GIVEUP_GLND_CB;
 	}
-	TRACE_LEAVE();
-	sleep(1);
 	LOG_NO("Received AMF component terminate callback, exiting");
-	exit(0);
+	TRACE_LEAVE();
+
+	_Exit(EXIT_SUCCESS);
 }
 
 /****************************************************************************
