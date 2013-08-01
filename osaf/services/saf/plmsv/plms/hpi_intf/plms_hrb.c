@@ -276,7 +276,6 @@ static SaUint32T hrb_process_hpi_req( PLMS_HPI_REQ  *hpi_req )
 	PLMS_INV_DATA  	   inv_data; 
 	SaHpiRptEntryT     rpt_entry;
 	SaUint32T	   rc = NCSCC_RC_SUCCESS;
-	SaHpiSessionIdT    session_id;
 
 	TRACE_ENTER();
 
@@ -297,12 +296,6 @@ static SaUint32T hrb_process_hpi_req( PLMS_HPI_REQ  *hpi_req )
 						&rpt_entry,&resourceid))
 		return NCSCC_RC_FAILURE;
 
-
-	/* Get the session_id */
-	pthread_mutex_lock(&cb->mutex);
-	session_id = cb->session_id; 	
-	pthread_mutex_unlock(&cb->mutex);
-		
 	response = (PLMS_HPI_RSP *)malloc(sizeof(PLMS_HPI_RSP));
 	if(NULL == response){
 		LOG_ER("HRB:PLMS_HPI_RSP memory alloc failed error val:%s",

@@ -321,7 +321,6 @@ static SaUint32T convert_entity_types(SaHpiEntityPathT *entity_path,
 				SaUint32T  index_array[SAHPI_MAX_ENTITY_PATH])
 {
 	SaUint32T i     = 0;
-	SaUint32T index = 0;
 	SaUint32T count;
 	SaUint32T rc = NCSCC_RC_SUCCESS;
 
@@ -332,8 +331,6 @@ static SaUint32T convert_entity_types(SaHpiEntityPathT *entity_path,
 
         for(i = 0; i < SAHPI_MAX_ENTITY_PATH; i++)
         {
-		index = entity_path->Entry[i].EntityLocation;
-
 		memcpy(ent_path_str,hpi_ent_type_list[index_array[i]].etype_str,
 			strlen(hpi_ent_type_list[index_array[i]].etype_str));
 
