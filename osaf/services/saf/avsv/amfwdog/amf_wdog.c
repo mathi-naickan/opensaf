@@ -39,6 +39,8 @@
 #include <libgen.h>
 #include <time.h>
 #include <sched.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 #include <saAmf.h>
 #include <ncssysf_def.h>
@@ -219,8 +221,14 @@ int main(int argc, char *argv[])
 			** error. We want to catch that asap and fix it.
 			*/
 			syslog(LOG_ERR, "TIMEOUT receiving AMF health check request, generating core for amfnd");
-			if ((status = system("killall -ABRT osafamfnd")) == -1)
-				syslog(LOG_ERR, "system(killall) FAILED %x", status);
+
+			if (getuid() == 0 || geteuid() == 0) { /* running as a root user */
+				if ((status = system("killall -ABRT osafamfnd")) == -1)
+					syslog(LOG_ERR, "system(killall -ABRT osafamfnd) FAILED %x", status);
+			} else { /* running as the non-root user, default as the 'opensaf' user */
+				if ((status = system("sudo killall -ABRT osafamfnd")) == -1)
+					syslog(LOG_ERR, "system(sudo killall -ABRT osafamfnd) FAILED %x", status);
+			}
 
 			syslog(LOG_ERR, "%s", latest_healthcheck_trace); 
 			syslog(LOG_ERR, "ordering system reboot"); 

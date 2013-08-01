@@ -747,7 +747,7 @@ getent group %{opensaf_group} > /dev/null || groupadd -r %{opensaf_group}
 getent passwd %{opensaf_user} > /dev/null || \
    useradd -r -g %{opensaf_user} -d %{_pkgdatadir} -s /sbin/nologin -c "OpenSAF" %{opensaf_user}
 if ! grep %{opensaf_user} /etc/sudoers > /dev/null; then
-   echo '%{opensaf_user} ALL = NOPASSWD: /sbin/reboot, /sbin/tipc-config, /usr/bin/pkill' >> /etc/sudoers
+   echo '%{opensaf_user} ALL = NOPASSWD: /sbin/reboot, /sbin/tipc-config, /usr/bin/pkill, /usr/bin/killall' >> /etc/sudoers
    echo 'Defaults:%opensaf !requiretty' >> /etc/sudoers
    echo 'Defaults:opensaf !requiretty' >> /etc/sudoers
 fi
