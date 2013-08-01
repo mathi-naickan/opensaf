@@ -1093,7 +1093,7 @@ static SaAisErrorT plms_imm_ccb_obj_modify_cbk(SaImmOiHandleT imm_oi_hdl,
 	PLMS_ENTITY *plm_ent, *dep_node;
 	SaUint8T j, k;
 	SaUint32T parent_dn_len, *attr_value;
-	SaStringT rdn_val, rdn, parent_dn;
+	SaStringT rdn_val, parent_dn;
 	SaNameT key_dn, *dep_name;
 	SaAisErrorT rc;
 	SaUint8T dep_names_num=0, dep_min_num=0, cur_names_num=0;
@@ -1260,7 +1260,7 @@ static SaAisErrorT plms_imm_ccb_obj_modify_cbk(SaImmOiHandleT imm_oi_hdl,
 		/* This object can be modified only if the associated HE/EE 
 		   is out-of-service. */
 		/* Get the parent DN and parent object in patricia tree */
-		rdn = strtok(dn_name, ",");
+		(void)strtok(dn_name, ",");
 		parent_dn = strtok(NULL, "\0");
 		parent_dn_len = strlen(parent_dn);
 		memset(&key_dn, 0, sizeof(SaNameT));
@@ -1778,7 +1778,7 @@ static SaAisErrorT validate_deletion_of_ee_base_type_obj(SaImmOiCcbIdT ccb_id,
 {
 	CcbUtilOperationData_t *opdata = NULL;
 	PLMS_ENTITY *plm_ent;
-	SaStringT parent_dn, tmp;
+	SaStringT parent_dn;
 	SaUint8T j;
 	SaNameT *attr_val;
 	SaImmAttrValuesT_2 **attr;
@@ -1794,7 +1794,7 @@ static SaAisErrorT validate_deletion_of_ee_base_type_obj(SaImmOiCcbIdT ccb_id,
 			strncpy(ee_type, (SaInt8T *)plm_ent->entity.ee_entity.
 				saPlmEEType.value, plm_ent->entity.ee_entity.
 				saPlmEEType.length);
-			tmp = strtok(ee_type, ",");
+			(void)strtok(ee_type, ",");
 			parent_dn = strtok(NULL, "\0");
 			if ((obj_name->length == strlen(parent_dn)) &&
 				(memcmp(parent_dn, obj_name->value, obj_name->
@@ -1828,7 +1828,7 @@ static SaAisErrorT validate_deletion_of_ee_base_type_obj(SaImmOiCcbIdT ccb_id,
 					memset(ee_type,0,SA_MAX_NAME_LENGTH+1);
 					strncpy(ee_type, (SaInt8T *)attr_val->
 						value, attr_val->length);
-					tmp = strtok(ee_type, ",");
+					(void)strtok(ee_type, ",");
 					parent_dn = strtok(NULL, "\0");
 					if((obj_name->length == strlen(
 					parent_dn)) && (memcmp(parent_dn, 
@@ -3904,14 +3904,14 @@ static void plms_free_ee_type_obj(PLMS_EE_TYPE_INFO *ee_type_node)
 }
 static void plms_delete_dep_obj(SaNameT *obj_name)
 {
-	SaStringT rdn, parent_dn;
+	SaStringT parent_dn;
 	SaNameT key_dn;
 	PLMS_ENTITY *plm_ent;
 	SaInt8T tmp_dn[SA_MAX_NAME_LENGTH+1] = {0};
 	TRACE_ENTER();
 	/* Get the parent_dn and then plm_ent from the patricia tree */
 	strncpy(tmp_dn, (SaInt8T *)obj_name->value, obj_name->length);
-	rdn = strtok(tmp_dn, ",");
+	(void)strtok(tmp_dn, ",");
 	parent_dn = strtok(NULL, "\0");
 	memset(&key_dn, 0, sizeof(SaNameT));
 	key_dn.length = strlen(parent_dn);

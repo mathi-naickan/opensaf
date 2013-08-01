@@ -1783,7 +1783,6 @@ SaNtfIdentifierT plms_readiness_flag_clear(PLMS_ENTITY *ent,
 {
 	SaUint32T ntf = 0;
 	SaUint32T old_flag;
-	SaUint32T ret_err = NCSCC_RC_FAILURE;
 	SaUint32T ret_val;
 	PLMS_CB *cb = plms_cb;
 	SaNtfIdentifierT ntf_id = SA_NTF_IDENTIFIER_UNUSED;
@@ -1815,7 +1814,6 @@ SaNtfIdentifierT plms_readiness_flag_clear(PLMS_ENTITY *ent,
 			}
 
 			ntf = 1;
-			ret_err = NCSCC_RC_SUCCESS;
 
 		}	
 	}else{
@@ -1844,7 +1842,6 @@ SaNtfIdentifierT plms_readiness_flag_clear(PLMS_ENTITY *ent,
 			}
 
 			ntf = 1;
-			ret_err = NCSCC_RC_SUCCESS;
 		}	
 	
 	}
