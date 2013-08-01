@@ -380,13 +380,13 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 static uint32_t proc_node_lock_tmr_exp_msg(CLMSV_CLMS_EVT * evt)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	SaClmNodeIdT node_id;
+	SaNameT node_name = { 0 };
 	CLMS_CLUSTER_NODE *op_node = NULL;
 
 	TRACE_ENTER();
 	/*Get the node details */
-	node_id = evt->info.tmr_info.node_id;
-	op_node = clms_node_get_by_id(node_id);
+	node_name = evt->info.tmr_info.node_name;
+	op_node = clms_node_get_by_name(&node_name);
 	osafassert(op_node != NULL);
 
 	rc = clms_node_trackresplist_empty(op_node);

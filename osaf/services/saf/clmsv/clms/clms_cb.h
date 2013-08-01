@@ -181,7 +181,7 @@ typedef struct clms_cb_t {
 } CLMS_CB;
 
 typedef struct clms_lock_tmr_t {
-	SaClmNodeIdT node_id;
+	SaNameT node_name;
 } CLMS_LOCK_TMR;
 
 uint32_t clm_snd_track_changes(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, CLMS_CLIENT_INFO * client,
