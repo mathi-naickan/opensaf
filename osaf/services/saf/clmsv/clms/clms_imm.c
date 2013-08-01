@@ -27,7 +27,7 @@ uint32_t clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop);
 uint32_t clms_imm_node_lock(CLMS_CLUSTER_NODE * nodeop);
 uint32_t clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop);
 static void clms_lock_send_start_cbk(CLMS_CLUSTER_NODE * nodeop);
-static void clms_timer_ipc_send(SaClmNodeIdT node_id);
+static void clms_timer_ipc_send(SaNameT node_name);
 static uint32_t clms_lock_send_no_start_cbk(CLMS_CLUSTER_NODE * nodeop);
 
 static SaVersionT immVersion = { 'A', 2, 1 };
@@ -1642,7 +1642,7 @@ void clms_lock_timer_exp(int signo, siginfo_t *info, void *context)
 
 	TRACE("node on which lock was performed %s", node->node_name.value);
 
-	clms_timer_ipc_send(node->node_id);
+	clms_timer_ipc_send(node->node_name);
 
 	/*m_NCS_UNLOCK(&clms_cb->lock, NCS_LOCK_WRITE); */
 
@@ -1654,7 +1654,7 @@ void clms_lock_timer_exp(int signo, siginfo_t *info, void *context)
 * Send the timer expiry event to the mailbox
 * @param[in] node_id  timer expired for admin operation on  node_id 
 */
-static void clms_timer_ipc_send(SaClmNodeIdT node_id)
+static void clms_timer_ipc_send(SaNameT node_name)
 {
 	CLMSV_CLMS_EVT *clmsv_evt;
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -1668,9 +1668,9 @@ static void clms_timer_ipc_send(SaClmNodeIdT node_id)
 
 	memset(clmsv_evt, 0, sizeof(CLMSV_CLMS_EVT));
 	clmsv_evt->type = CLMSV_CLMS_NODE_LOCK_TMR_EXP;
-	clmsv_evt->info.tmr_info.node_id = node_id;
+	clmsv_evt->info.tmr_info.node_name = node_name;
 
-	TRACE("clmsv_evt.type %d,node_id %d", clmsv_evt->type, clmsv_evt->info.tmr_info.node_id);
+	TRACE("clmsv_evt.type %d,node_name %s", clmsv_evt->type, clmsv_evt->info.tmr_info.node_name.value);
 
 	rc = m_NCS_IPC_SEND(&clms_cb->mbx, clmsv_evt, MDS_SEND_PRIORITY_VERY_HIGH);
 	if (rc != NCSCC_RC_SUCCESS) {
