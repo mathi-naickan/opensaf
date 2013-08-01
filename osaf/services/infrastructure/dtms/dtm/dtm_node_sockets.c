@@ -1279,7 +1279,7 @@ int dtm_process_accept(DTM_INTERNODE_CB * dtms_cb, int stream_sock)
 
 	/* Convert binary to printable address */
 	if (inet_ntop(clnt_addr1->sa_family, numericAddress, addrBuffer, sizeof(addrBuffer)) == NULL) {
-		LOG_ER("DTM:[invalid address] %s ", addrBuffer);
+		LOG_ER("DTM: [invalid address]");
 		dtm_comm_socket_close(&new_conn_sd);
 		goto done;
 	} else {
@@ -1294,7 +1294,7 @@ int dtm_process_accept(DTM_INTERNODE_CB * dtms_cb, int stream_sock)
 		new_node = dtm_node_new(&node);
 
 		if (new_node == NULL) {
-			LOG_ER("DTM: dtm_node_add failed .node_ip: %s, node_id: %u", new_node->node_ip, new_node->node_id);
+			LOG_ER("DTM: dtm_node_new failed. node_ip: %s, node_id: %u", node.node_ip, node.node_id);
 			dtm_comm_socket_close(&new_conn_sd);
 			goto node_fail;
 		}
