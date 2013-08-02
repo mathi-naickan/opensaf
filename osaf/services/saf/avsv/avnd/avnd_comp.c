@@ -1382,10 +1382,16 @@ uint32_t avnd_comp_csi_reassign(AVND_CB *cb, AVND_COMP *comp)
 		 *             likely csi-rem failed); generate csi-done indication.
 		 * removed -> comp-restart recovery executed after removal phase;
 		 *            do nothing.
+		 * unassigned-> means HA state of the SI changed during component restart 
+		 *		recovery. This can occur when SI dependency is configured 
+		 *              and fault of any other component of the same SU leads to 
+		 *              component failover.
 		 */
-		if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr) ||
+		if ((m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr) ||
 		    m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNED(curr) ||
-		    m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_RESTARTING(curr)) {
+		    m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_RESTARTING(curr)) ||
+				(m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_UNASSIGNED(curr) &&
+				(SA_AMF_HA_QUIESCED == curr->si->curr_state))) {
 			/* mark the csi state assigning */
 			m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNING);
 
