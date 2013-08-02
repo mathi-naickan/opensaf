@@ -1082,7 +1082,8 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 				 */
 				if (((SA_AMF_HA_QUIESCED == csi->si->curr_state) ||
 				     (SA_AMF_HA_QUIESCING == csi->si->curr_state)) &&
-				    (SA_AMF_HA_QUIESCING != csi->si->prv_state)) {
+				    (SA_AMF_HA_QUIESCING != csi->si->prv_state) &&
+                                    (SA_AMF_HA_ACTIVE != curr_csi->si->prv_state)) {
 					/* no need to assign this csi.. generate csi-oper done indication */
 					rc = avnd_comp_csi_assign_done(cb, comp, csi);
 					if (NCSCC_RC_SUCCESS != rc)
