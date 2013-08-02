@@ -2029,6 +2029,13 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		m_AVND_COMP_REG_PARAM_RESET(cb, comp);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
 	}
+
+	/* TODO(hafe) needs to be changed when SU failover is implemented */
+	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(comp->su)) {
+		/* request director to orchestrate component failover */
+		rc = avnd_di_oper_send(cb, comp->su, SA_AMF_COMPONENT_FAILOVER);
+	}
+
 	TRACE_LEAVE();
 	return rc;
 }
@@ -2053,6 +2060,15 @@ uint32_t avnd_comp_clc_terming_cleanfail_hdler(AVND_CB *cb, AVND_COMP *comp)
 
 	/* just transition to 'term-failed' state */
 	avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_TERMINATION_FAILED);
+
+	/* TODO(hafe) needs to be changed when SU failover is implemented
+	 * AMF should not failover assignments from a TERM-FAILED SU but that
+	 * could/should be handled by the director.
+	 */
+	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(comp->su)) {
+		/* request director to orchestrate component failover */
+		rc = avnd_di_oper_send(cb, comp->su, SA_AMF_COMPONENT_FAILOVER);
+	}
 
 	TRACE_LEAVE();
 	return rc;

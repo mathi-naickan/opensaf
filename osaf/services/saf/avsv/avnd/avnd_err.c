@@ -703,9 +703,6 @@ uint32_t avnd_err_rcvr_su_failover(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_c
 	m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
 
-	/* inform AvD */
-	rc = avnd_di_oper_send(cb, su, AVSV_ERR_RCVR_SU_FAILOVER);
-
 	/*
 	 *  su-sis may be in assigning/removing state. signal csi
 	 * assign/remove done so that su-si assignment/removal algo can proceed.
@@ -723,11 +720,12 @@ uint32_t avnd_err_rcvr_su_failover(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_c
 	if (NCSCC_RC_SUCCESS != rc)
 		goto done;
 
-	/* clean the failed comp */
 	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
+		/* clean the failed comp */
 		rc = avnd_comp_clc_fsm_run(cb, failed_comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
-		if (NCSCC_RC_SUCCESS != rc)
-			goto done;
+	} else  {
+		/* request director to orchestrate component failover */
+		rc = avnd_di_oper_send(cb, failed_comp->su, AVSV_ERR_RCVR_SU_FAILOVER);
 	}
 
  done:
