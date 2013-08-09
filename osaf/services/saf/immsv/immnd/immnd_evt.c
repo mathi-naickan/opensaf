@@ -2777,11 +2777,21 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 	case IMMND_EVT_A2ND_CCB_FINALIZE:
 	case IMMND_EVT_A2ND_OI_CCB_AUG_INIT:
 	case IMMND_EVT_A2ND_AUG_ADMO:
-	case IMMND_EVT_A2ND_CCB_APPLY:
-		if(immModel_immNotWritable(cb)) {
-			LOG_WA("Ccb request type (%u) arrived during Sync", frwrd_evt.info.immnd.type);
+		if(immModel_pbeNotWritable(cb)) {
 			error = SA_AIS_ERR_TRY_AGAIN;
-			/* Should in principle return ERR_LIBRARY here..*/
+		}
+		break;
+
+	case IMMND_EVT_A2ND_CCB_APPLY:
+		if(immModel_pbeNotWritable(cb)) {
+			/* NO_RESOURCES is here imm internal proxy for TRY_AGAIN.
+			   The library code for saImmOmCcbApply will translate NO_RESOURCES
+			   to TRY_AGAIN towards the user. That library code (for ccbApply)
+			   treats TRY_AGAIN from IMMND as an indication of handle resurrect.
+			   So we need to take this detour to really communicate TRY_AGAIN 
+			   towards that particular library code. 
+			 */
+			error = SA_AIS_ERR_NO_RESOURCES;
 		}
 		break;
 
