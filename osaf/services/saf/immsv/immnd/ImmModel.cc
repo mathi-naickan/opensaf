@@ -32,6 +32,7 @@
 #define DEFAULT_TIMEOUT_SEC 6 /* Should be saImmOiTimeout in SaImmMngt */
 #define PRT_LOW_THRESHOLD 1 /* See ImmModel::immNotPbeWritable */
 #define PRT_HIGH_THRESHOLD 4 /* See ImmModel::immNotPbeWritable */
+#define CCB_CRIT_THRESHOLD 8 /* See ImmModel::immNotPbeWritable */
 
 
 struct ContinuationInfo2
@@ -1742,22 +1743,21 @@ ImmModel::immNotPbeWritable(bool isPrtoClient)
 
     /* Pbe is present but Check also for backlog. */
 
-    time_t now = time(NULL);
-    bool ccbStuck = false;
+    unsigned int ccbsInCritical = 0;
     CcbVector::iterator i3 = sCcbVector.begin();
     for(; i3!=sCcbVector.end(); ++i3) {
-        if((*i3)->mState == IMM_CCB_CRITICAL &&
-           (((*i3)->mWaitStartTime && 
-             now - (*i3)->mWaitStartTime >= DEFAULT_TIMEOUT_SEC)||/* Should be saImmOiTimeout*/
-           (*i3)->mPbeRestartId))
-        {
-            ccbStuck=true;
-            break;
+        if((*i3)->mState == IMM_CCB_CRITICAL) {
+            ccbsInCritical++;
+
+            if((*i3)->mPbeRestartId) {
+                /* PBE was restarted with a ccb in critical. */
+                return true;
+            }
         }
     }
 
-    /* If one ore more ccbs are stuck, reject any new persistifications. */
-    if(ccbStuck) {return true;} 
+    /* If too many ccbs are already critical then delay new ccbs. */
+    if(ccbsInCritical > CCB_CRIT_THRESHOLD) {return true;} 
 
     /* Finally, be extra stringent PRTO/PRTA changes: 
        PrtCreate, PrtUpdate, PrtDelete
