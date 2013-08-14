@@ -138,8 +138,6 @@ typedef struct avnd_ha_state_change_evt {
 typedef struct avnd_clc_evt {
 	NCS_EXEC_HDL exec_ctxt;	/* execution context */
 	NCS_OS_PROC_EXEC_STATUS_INFO exec_stat;	/* cmd execution status */
-
-	/* valid only when cmd launch (fork, exec etc) fails */
 	SaNameT comp_name;	/* comp-name */
 	AVND_COMP_CLC_CMD_TYPE cmd_type;	/* cmd-type */
 } AVND_CLC_EVT;

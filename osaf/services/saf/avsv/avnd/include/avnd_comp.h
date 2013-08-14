@@ -104,14 +104,11 @@ typedef struct avnd_comp_clc_info {
 	uint32_t saAmfCompNumMaxAmStopAttempts;
 
 	/* 
-	 * current command execution info (note that a comp has only 
-	 * one outstanding command in execution other than AM related)
+	 * current command execution info
+	 * TODO: not used anymore, should be removed completely
 	 */
 	AVND_COMP_CLC_CMD_TYPE exec_cmd;	/* command in execution */
 	NCS_EXEC_HDL cmd_exec_ctxt;	/* command execution context */
-
-	AVND_COMP_CLC_CMD_TYPE am_exec_cmd;	/* command in execution */
-	NCS_EXEC_HDL am_cmd_exec_ctxt;	/* command execution context */
 
 	/* comp reg tmr info */
 	SaTimeT inst_cmd_ts;	/* instantiate cmd start timestamp */
