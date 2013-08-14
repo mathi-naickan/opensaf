@@ -70,7 +70,6 @@ static uint32_t avnd_comp_clc_orph_restart_hdler(AVND_CB *, AVND_COMP *);
 
 uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *, AVND_COMP *, SaAmfPresenceStateT, SaAmfPresenceStateT);
 
-static uint32_t avnd_comp_clc_resp(NCS_OS_PROC_EXECUTE_TIMED_CB_INFO *);
 static uint32_t avnd_instfail_su_failover(AVND_CB *, AVND_SU *, AVND_COMP *);
 
 /***************************************************************************
@@ -311,135 +310,105 @@ uint32_t avnd_evt_clc_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 	AVND_CLC_EVT *clc_evt = &evt->info.clc;
 	AVND_COMP *comp = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	uint32_t amcmd = 0;
 	TRACE_ENTER();
 
-	/* get the comp */
-	if (clc_evt->exec_ctxt) {
-		/* => cmd successfully launched (scan the entire comp-database) */
-		for (comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb,
-								   (uint8_t *)0); comp;
-		     comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)&comp->name)) {
-			if (comp->clc_info.cmd_exec_ctxt == clc_evt->exec_ctxt)
-				break;
-			if (comp->clc_info.am_cmd_exec_ctxt == clc_evt->exec_ctxt) {
-				amcmd = 1;
-				break;
+	comp = m_AVND_COMPDB_REC_GET(cb->compdb, clc_evt->comp_name);
+
+	/* the comp has been deleted? */
+	if (comp == NULL) {
+		 LOG_WA("%s: could not find comp '%s'", __FUNCTION__,
+				 clc_evt->comp_name.value);
+		 goto done;
+	}
+
+	TRACE("'%s', command type:%s", comp->name.value, clc_cmd_type[clc_evt->cmd_type]);
+
+	switch (clc_evt->cmd_type) {
+	case AVND_COMP_CLC_CMD_TYPE_INSTANTIATE:
+		/*
+		 * note that inst-succ evt is generated for the fsm only
+		 * when the comp is registered too
+		 */
+		if (NCS_OS_PROC_EXIT_NORMAL == clc_evt->exec_stat.value) {
+			/* mark that the inst cmd has been successfully executed */
+			m_AVND_COMP_INST_CMD_SUCC_SET(comp);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
+
+			if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) || m_AVND_COMP_IS_REG(comp)) {
+				/* all set... proceed with inst-succ evt for the fsm */
+				ev = AVND_COMP_CLC_PRES_FSM_EV_INST_SUCC;
+				TRACE("Comp '%s' Inst. flag '%u'", comp->name.value, comp->flag);
+			} else {
+				/* start the comp-reg timer */
+				m_AVND_TMR_COMP_REG_START(cb, *comp, rc);
+				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CLC_REG_TMR);
 			}
+		} else {
+			ev = AVND_COMP_CLC_PRES_FSM_EV_INST_FAIL;
+
+			if (NCS_OS_PROC_EXIT_WITH_CODE == clc_evt->exec_stat.value) {
+				comp->clc_info.inst_code_rcvd =
+					clc_evt->exec_stat.info.exit_with_code.exit_code;
+				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_INST_CODE_RCVD);
+			}
+
+			LOG_NO("Instantiation of '%s' failed", comp->name.value);
+			log_failed_exec(&clc_evt->exec_stat, comp, clc_evt->cmd_type);
 		}
-	} else
-		/* => cmd did not launch successfully (comp is available) */
-		comp = m_AVND_COMPDB_REC_GET(cb->compdb, clc_evt->comp_name);
+		break;
 
-	/* either other cmd is currently executing or the comp is deleted */
-	if (!comp)
-		goto done;
-
-	TRACE("'%s'", comp->name.value);
-
-	if (amcmd || clc_evt->cmd_type == AVND_COMP_CLC_CMD_TYPE_AMSTART ||
-	    clc_evt->cmd_type == AVND_COMP_CLC_CMD_TYPE_AMSTOP) {
-		TRACE("CLC command type:'%s'",clc_cmd_type[clc_evt->cmd_type]);
-		switch (comp->clc_info.am_exec_cmd) {
-		case AVND_COMP_CLC_CMD_TYPE_AMSTART:
-			rc = avnd_comp_amstart_clc_res_process(cb, comp, clc_evt->exec_stat.value);
-			break;
-		case AVND_COMP_CLC_CMD_TYPE_AMSTOP:
-			rc = avnd_comp_amstop_clc_res_process(cb, comp, clc_evt->exec_stat.value);
-			break;
-
-		default:
-			osafassert(0);
-		}
-	} else {
-		TRACE("CLC command type:'%s'",clc_cmd_type[comp->clc_info.exec_cmd]);
-		/* determine the event for the fsm */
-		switch (comp->clc_info.exec_cmd) {
-		case AVND_COMP_CLC_CMD_TYPE_INSTANTIATE:
-			/* 
-			 * note that inst-succ evt is generated for the fsm only 
-			 * when the comp is registered too 
-			 */
-			if (NCS_OS_PROC_EXIT_NORMAL == clc_evt->exec_stat.value) {
-				/* mark that the inst cmd has been successfully executed */
-				m_AVND_COMP_INST_CMD_SUCC_SET(comp);
-				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
-
-				if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) || m_AVND_COMP_IS_REG(comp)) {
-					/* all set... proceed with inst-succ evt for the fsm */
-					ev = AVND_COMP_CLC_PRES_FSM_EV_INST_SUCC;
-					TRACE("Comp '%s' Inst. flag '%u'", comp->name.value, comp->flag);
-				}
-				else {
-					/* start the comp-reg timer */
-					m_AVND_TMR_COMP_REG_START(cb, *comp, rc);
-					m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CLC_REG_TMR);
-				}
-			} else {
-				ev = AVND_COMP_CLC_PRES_FSM_EV_INST_FAIL;
-
-				if (NCS_OS_PROC_EXIT_WITH_CODE == clc_evt->exec_stat.value) {
-					comp->clc_info.inst_code_rcvd =
-					    clc_evt->exec_stat.info.exit_with_code.exit_code;
-					m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_INST_CODE_RCVD);
-				}
-
-				LOG_NO("Instantiation of '%s' failed", comp->name.value);
-				log_failed_exec(&clc_evt->exec_stat, comp, comp->clc_info.exec_cmd);
-			}
-			break;
-
-		case AVND_COMP_CLC_CMD_TYPE_TERMINATE:
-
-			if (NCS_OS_PROC_EXIT_NORMAL == clc_evt->exec_stat.value) {
-				ev = AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC;
-				TRACE("Comp '%s' Term.", comp->name.value);
-			}
-			else {
-				ev = AVND_COMP_CLC_PRES_FSM_EV_CLEANUP;
-				m_AVND_COMP_TERM_FAIL_SET(comp);
-				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
-				LOG_NO("Termination of '%s' failed", comp->name.value);
-				log_failed_exec(&clc_evt->exec_stat, comp, comp->clc_info.exec_cmd);
-			}
-
-			break;
-
-		case AVND_COMP_CLC_CMD_TYPE_CLEANUP:
-
-			if (NCS_OS_PROC_EXIT_NORMAL == clc_evt->exec_stat.value) {
-				ev = AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC;
-				TRACE("Comp '%s' Cleanup.", comp->name.value);
-			} else {
-				ev = AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL;
-				LOG_NO("Cleanup of '%s' failed", comp->name.value);
-				log_failed_exec(&clc_evt->exec_stat, comp, comp->clc_info.exec_cmd);
-			}
-			break;
-		case AVND_COMP_CLC_CMD_TYPE_HC:
-			if (NCS_OS_PROC_EXIT_NORMAL == clc_evt->exec_stat.value) {
-				avnd_comp_hc_cmd_restart(comp);
-			} else {
-				AVND_ERR_INFO err_info;
-				LOG_NO("Healthcheck failed for '%s'", comp->name.value);
-				log_failed_exec(&clc_evt->exec_stat, comp, comp->clc_info.exec_cmd);
-				err_info.src = AVND_ERR_SRC_HC;
-				err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
-				rc = avnd_err_process(cb, comp, &err_info);
-				goto done;
-			}
-			break;
-
-		default:
-			osafassert(0);
+	case AVND_COMP_CLC_CMD_TYPE_TERMINATE:
+		if (NCS_OS_PROC_EXIT_NORMAL == clc_evt->exec_stat.value) {
+			ev = AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC;
+			TRACE("Comp '%s' Term.", comp->name.value);
+		} else {
+			ev = AVND_COMP_CLC_PRES_FSM_EV_CLEANUP;
+			m_AVND_COMP_TERM_FAIL_SET(comp);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
+			LOG_NO("Termination of '%s' failed", comp->name.value);
+			log_failed_exec(&clc_evt->exec_stat, comp, clc_evt->cmd_type);
 		}
 
-		/* reset the cmd exec context params */
-		comp->clc_info.exec_cmd = AVND_COMP_CLC_CMD_TYPE_MAX;
-		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_EXEC_CMD);
-		comp->clc_info.cmd_exec_ctxt = 0;
-		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CMD_EXEC_CTXT);
-	}			/* if */
+		break;
+
+	case AVND_COMP_CLC_CMD_TYPE_AMSTART:
+		rc = avnd_comp_amstart_clc_res_process(cb, comp, clc_evt->exec_stat.value);
+		break;
+
+	case AVND_COMP_CLC_CMD_TYPE_AMSTOP:
+		rc = avnd_comp_amstop_clc_res_process(cb, comp, clc_evt->exec_stat.value);
+		break;
+
+	case AVND_COMP_CLC_CMD_TYPE_CLEANUP:
+		if (NCS_OS_PROC_EXIT_NORMAL == clc_evt->exec_stat.value) {
+			ev = AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC;
+			TRACE("Comp '%s' Cleanup.", comp->name.value);
+		} else {
+			ev = AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL;
+			LOG_NO("Cleanup of '%s' failed", comp->name.value);
+			log_failed_exec(&clc_evt->exec_stat, comp, clc_evt->cmd_type);
+		}
+		break;
+
+	case AVND_COMP_CLC_CMD_TYPE_HC:
+		if (NCS_OS_PROC_EXIT_NORMAL == clc_evt->exec_stat.value) {
+			avnd_comp_hc_cmd_restart(comp);
+		} else {
+			AVND_ERR_INFO err_info;
+			LOG_NO("Healthcheck failed for '%s'", comp->name.value);
+			log_failed_exec(&clc_evt->exec_stat, comp, clc_evt->cmd_type);
+			err_info.src = AVND_ERR_SRC_HC;
+			err_info.rec_rcvr.avsv_ext = comp->err_info.def_rec;
+			rc = avnd_err_process(cb, comp, &err_info);
+			goto done;
+		}
+
+		break;
+
+	default:
+		osafassert(0);
+		break;
+	}
 
 	/* run the fsm */
 	if (AVND_COMP_CLC_PRES_FSM_EV_MAX != ev)
@@ -623,36 +592,30 @@ done:
 }
 
 /****************************************************************************
-  Name          : avnd_comp_clc_resp
  
   Description   : This is a callback routine that is invoked when either the 
                   command finishes execution (success or failure) or it times
-                  out. It sends the corresponding event to the AvND thread.
+                  out. It sends the corresponding event to the main thread.
  
   Arguments     : info - ptr to the cbk info
  
   Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- 
-  Notes         : None.
 ******************************************************************************/
-uint32_t avnd_comp_clc_resp(NCS_OS_PROC_EXECUTE_TIMED_CB_INFO *info)
+static uint32_t comp_clc_resp_callback(NCS_OS_PROC_EXECUTE_TIMED_CB_INFO *info)
 {
-	AVND_CLC_EVT clc_evt;
+	AVND_CLC_EVT *clc_evt = NULL;
 	AVND_EVT *evt = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();	
 
-	if (!info)
-		goto done;
-
-	memset(&clc_evt, 0, sizeof(AVND_CLC_EVT));
+	assert(info != NULL);
+	clc_evt = (AVND_CLC_EVT *)info->i_usr_hdl;
 
 	/* fill the clc-evt param */
-	clc_evt.exec_ctxt = info->i_exec_hdl;
-	clc_evt.exec_stat = info->exec_stat;
+	clc_evt->exec_stat = info->exec_stat;
 
 	/* create the event */
-	evt = avnd_evt_create(avnd_cb, AVND_EVT_CLC_RESP, 0, 0, 0, (void *)&clc_evt, 0);
+	evt = avnd_evt_create(avnd_cb, AVND_EVT_CLC_RESP, 0, 0, 0, (void *)clc_evt, 0);
 	if (!evt) {
 		rc = NCSCC_RC_FAILURE;
 		goto done;
@@ -662,6 +625,7 @@ uint32_t avnd_comp_clc_resp(NCS_OS_PROC_EXECUTE_TIMED_CB_INFO *info)
 	rc = avnd_evt_send(avnd_cb, evt);
 
  done:
+	free(clc_evt);
 	/* free the event */
 	if (NCSCC_RC_SUCCESS != rc && evt)
 		avnd_evt_destroy(evt);
@@ -2512,7 +2476,7 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 	char env_var_nodeid[] = "NCS_ENV_NODE_ID";
 	char env_var_comp_err[] = "NCS_ENV_COMPONENT_ERROR_SRC";
 	char *env_attr_val = 0;
-	AVND_CLC_EVT clc_evt;
+	AVND_CLC_EVT *clc_evt;
 	AVND_EVT *evt = 0;
 	AVND_COMP_CLC_INFO *clc_info = &comp->clc_info;
 	char scr[SAAMF_CLC_LEN];
@@ -2532,34 +2496,34 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 		goto err;
 	}
 
+	/* the allocated memory is normally freed in comp_clc_resp_callback */
+	clc_evt = (AVND_CLC_EVT *)calloc(1, sizeof(AVND_CLC_EVT));
+	memcpy(&clc_evt->comp_name, &comp->name, sizeof(SaNameT));
+	clc_evt->cmd_type = cmd_type;
+
 	/* For external component, there is no cleanup command. So, we will send a
 	   SUCCESS message to the mail box for external components. There wouldn't
 	   be any other command for external component comming. */
 	if (true == comp->su->su_is_external) {
 		if (AVND_COMP_CLC_CMD_TYPE_CLEANUP == cmd_type) {
-			memset(&clc_evt, 0, sizeof(AVND_CLC_EVT));
-			memcpy(&clc_evt.comp_name, &comp->name, sizeof(SaNameT));
-			clc_evt.cmd_type = cmd_type;
-			clc_evt.exec_stat.value = NCS_OS_PROC_EXIT_NORMAL;
-
-			clc_info->exec_cmd = cmd_type;
-			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_EXEC_CMD);
-
-			clc_info->cmd_exec_ctxt = 0;
-			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CMD_EXEC_CTXT);
+			clc_evt->exec_stat.value = NCS_OS_PROC_EXIT_NORMAL;
 
 			/* create the event */
-			evt = avnd_evt_create(cb, AVND_EVT_CLC_RESP, 0, 0, 0, (void *)&clc_evt, 0);
+			evt = avnd_evt_create(cb, AVND_EVT_CLC_RESP, 0, 0, 0, (void *)clc_evt, 0);
 			if (!evt) {
+				free(clc_evt);
 				rc = NCSCC_RC_FAILURE;
 				goto err;
 			}
 
 			/* send the event */
 			rc = avnd_evt_send(cb, evt);
-			if (NCSCC_RC_SUCCESS != rc)
+			if (NCSCC_RC_SUCCESS != rc) {
+				free(clc_evt);
 				goto err;
+			}
 
+			free(clc_evt);
 			return rc;
 		} else {
 			LOG_ER("Command other than cleanup recvd for ext comp: Comp and cmd_type are '%s': %u",\
@@ -2684,8 +2648,9 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 	cmd_info.i_script = argv[0];
 	cmd_info.i_argv = argv;
 	cmd_info.i_timeout_in_ms = (uint32_t)((clc_info->cmds[cmd_type - 1].timeout) / 1000000);
-	cmd_info.i_cb = avnd_comp_clc_resp;
+	cmd_info.i_cb = comp_clc_resp_callback;
 	cmd_info.i_set_env_args = &arg;
+	cmd_info.i_usr_hdl = (NCS_EXEC_USR_HDL) clc_evt;
 
 	TRACE_1("CLC CLI script:'%s'",cmd_info.i_script);
 	for(count=1;count<argc;count++)
@@ -2711,39 +2676,25 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 	if (NCSCC_RC_SUCCESS != rc) {
 		TRACE_2("The CLC CLI command execution failed");
 		/* generate a cmd failure event; it'll be executed asynchronously */
-		memset(&clc_evt, 0, sizeof(AVND_CLC_EVT));
-
-		/* fill the clc-evt param */
-		memcpy(&clc_evt.comp_name, &comp->name, sizeof(SaNameT));
-		clc_evt.cmd_type = cmd_type;
 
 		/* create the event */
-		evt = avnd_evt_create(cb, AVND_EVT_CLC_RESP, 0, 0, 0, (void *)&clc_evt, 0);
+		evt = avnd_evt_create(cb, AVND_EVT_CLC_RESP, 0, 0, 0, (void *)clc_evt, 0);
 		if (!evt) {
+			free(clc_evt);
 			rc = NCSCC_RC_FAILURE;
 			goto err;
 		}
 
 		/* send the event */
 		rc = avnd_evt_send(cb, evt);
-		if (NCSCC_RC_SUCCESS != rc)
+		if (NCSCC_RC_SUCCESS != rc) {
+			free(clc_evt);
 			goto err;
+		}
+		free(clc_evt);
 	} else {
 		TRACE_2("The CLC CLI command execution success");
-		if (cmd_type == AVND_COMP_CLC_CMD_TYPE_AMSTART || cmd_type == AVND_COMP_CLC_CMD_TYPE_AMSTOP)
-			clc_info->am_cmd_exec_ctxt = cmd_info.o_exec_hdl;
-		else {
-			clc_info->cmd_exec_ctxt = cmd_info.o_exec_hdl;
-			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CMD_EXEC_CTXT);
-		}
-	}
-
-	/* irrespective of the command execution status, set the current cmd */
-	if (cmd_type == AVND_COMP_CLC_CMD_TYPE_AMSTART || cmd_type == AVND_COMP_CLC_CMD_TYPE_AMSTOP)
-		clc_info->am_exec_cmd = cmd_type;
-	else {
-		clc_info->exec_cmd = cmd_type;
-		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_EXEC_CMD);
+		// outcome of command is reported in comp_clc_resp_callback()
 	}
 
 	TRACE_LEAVE2("success");
