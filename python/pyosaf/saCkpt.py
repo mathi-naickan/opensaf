@@ -148,7 +148,15 @@ def saCkptInitialize(ckptHandle, callbacks, version):
 	returns:
 		SaAisErrorT
 
- 	"""
+	"""
+	ckptdll.saCkptInitialize.argtypes = [
+								POINTER(SaCkptHandleT),
+								POINTER(SaCkptCallbacksT),
+	                        	POINTER(SaVersionT)
+	                            ]
+	
+	ckptdll.saCkptInitialize.restype = SaAisErrorT
+
 	return ckptdll.saCkptInitialize(BYREF(ckptHandle),
 			BYREF(callbacks),
 			BYREF(version))
@@ -163,8 +171,15 @@ def saCkptSelectionObjectGet(ckptHandle, selectionObject):
 
 	returns:
 		SaAisErrorT
-
+	
 	"""
+	ckptdll.saCkptSelectionObjectGet.argtypes = [
+	                            SaCkptHandleT,
+	                            POINTER(SaSelectionObjectT)
+	                            ]
+	
+	ckptdll.saCkptSelectionObjectGet.restype = SaAisErrorT
+
 	return ckptdll.saCkptSelectionObjectGet(ckptHandle,
 			BYREF(selectionObject))
 
@@ -179,6 +194,13 @@ def saCkptDispatch(ckptHandle, dispatchFlags):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptDispatch.argtypes = [
+								SaCkptHandleT,
+	                            SaDispatchFlagsT
+	                            ]
+	
+	ckptdll.saCkptDispatch.restype = SaAisErrorT
+
 	return ckptdll.saCkptDispatch(ckptHandle, dispatchFlags)
 
 def saCkptFinalize(ckptHandle):
@@ -191,6 +213,12 @@ def saCkptFinalize(ckptHandle):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptFinalize.argtypes = [
+	                            SaCkptHandleT
+	                            ]
+	
+	ckptdll.saCkptFinalize.restype = SaAisErrorT
+
 	return ckptdll.saCkptFinalize(ckptHandle)
 
 def saCkptCheckpointOpen(ckptHandle,
@@ -213,6 +241,17 @@ def saCkptCheckpointOpen(ckptHandle,
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointOpen.argtypes = [
+	                            SaCkptHandleT,
+	                            POINTER(SaNameT),
+	                            POINTER(SaCkptCheckpointCreationAttributesT),
+	                            SaCkptCheckpointOpenFlagsT,
+	                            SaTimeT,
+	                            POINTER(SaCkptCheckpointHandleT)
+	                            ]
+	
+	ckptdll.saCkptCheckpointOpen.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointOpen(ckptHandle,
 			BYREF(checkpointName),
 			BYREF(checkpointCreationAttributes),
@@ -238,6 +277,16 @@ def saCkptCheckpointOpenAsync(ckptHandle,
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointOpenAsync.argtypes = [
+								SaCkptHandleT,
+	                            SaInvocationT,
+	                            POINTER(SaNameT),
+	                            POINTER(SaCkptCheckpointCreationAttributesT),
+	                            SaCkptCheckpointOpenFlagsT
+	                            ]
+	
+	ckptdll.saCkptCheckpointOpenAsync.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointOpenAsync(ckptHandle,
 			invocation,
 			BYREF(checkpointName),
@@ -254,6 +303,12 @@ def saCkptCheckpointClose(checkpointHandle):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointClose.argtypes = [
+	                            SaCkptCheckpointHandleT
+	                            ]
+	
+	ckptdll.saCkptCheckpointClose.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointClose(checkpointHandle)
 
 def saCkptCheckpointUnlink(ckptHandle, checkpointName):
@@ -267,6 +322,13 @@ def saCkptCheckpointUnlink(ckptHandle, checkpointName):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointUnlink.argtypes = [
+								SaCkptHandleT,
+	                            POINTER(SaNameT)
+	                            ]
+	
+	ckptdll.saCkptCheckpointUnlink.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointUnlink(ckptHandle,
 			BYREF(checkpointName))
 
@@ -281,6 +343,13 @@ def saCkptCheckpointRetentionDurationSet(checkpointHandle, retentionDuration):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointRetentionDurationSet.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            SaTimeT
+	                            ]
+	
+	ckptdll.saCkptCheckpointRetentionDurationSet.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointRetentionDurationSet(checkpointHandle,
 			retentionDuration)
 
@@ -294,6 +363,12 @@ def saCkptActiveReplicaSet(checkpointHandle):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptActiveReplicaSet.argtypes = [
+	                            SaCkptCheckpointHandleT
+	                            ]
+	
+	ckptdll.saCkptActiveReplicaSet.restype = SaAisErrorT
+
 	return ckptdll.saCkptActiveReplicaSet(checkpointHandle)
 
 def saCkptCheckpointStatusGet(checkpointHandle, checkpointStatus):
@@ -307,6 +382,13 @@ def saCkptCheckpointStatusGet(checkpointHandle, checkpointStatus):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointStatusGet.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            POINTER(SaCkptCheckpointDescriptorT)
+	                            ]
+	
+	ckptdll.saCkptCheckpointStatusGet.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointStatusGet(checkpointHandle,
 			BYREF(checkpointStatus))
 
@@ -326,6 +408,15 @@ def saCkptSectionCreate(checkpointHandle,
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptSectionCreate.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            POINTER(SaCkptSectionCreationAttributesT),
+	                            POINTER(void),
+								SaSizeT
+	                            ]
+	
+	ckptdll.saCkptSectionCreate.restype = SaAisErrorT
+
 	return ckptdll.saCkptSectionCreate(checkpointHandle,
 			BYREF(sectionCreationAttributes),
 			BYREF(initialData),
@@ -343,6 +434,13 @@ def saCkptSectionDelete(checkpointHandle, sectionId):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptSectionDelete.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            POINTER(SaCkptSectionIdT)
+	                            ]
+	
+	ckptdll.saCkptSectionDelete.restype = SaAisErrorT
+
 	return ckptdll.saCkptSectionDelete(checkpointHandle,
 			BYREF(sectionId))
 
@@ -361,6 +459,14 @@ def saCkptSectionExpirationTimeSet(checkpointHandle,
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptSectionExpirationTimeSet.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            POINTER(SaCkptSectionIdT),
+	                            SaTimeT
+	                            ]
+	
+	ckptdll.saCkptSectionExpirationTimeSet.restype = SaAisErrorT
+
 	return ckptdll.saCkptSectionExpirationTimeSet(checkpointHandle,
 			BYREF(sectionId),
 			expirationTime)
@@ -381,6 +487,15 @@ def saCkptSectionIterationInitialize(checkpointHandle,
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptSectionIterationInitialize.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            SaCkptSectionsChosenT,
+	                            SaTimeT,
+	                            POINTER(SaCkptSectionIterationHandleT)
+	                            ]
+	
+	ckptdll.saCkptSectionIterationInitialize.restype = SaAisErrorT
+
 	return ckptdll.saCkptSectionIterationInitialize(checkpointHandle,
 			sectionsChosen,
 			expirationTime,
@@ -398,6 +513,13 @@ def saCkptSectionIterationNext(sectionIterationHandle, sectionDescriptor):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptSectionIterationNext.argtypes = [
+	                            SaCkptSectionIterationHandleT,
+	                            POINTER(SaCkptSectionDescriptorT)
+	                            ]
+	
+	ckptdll.saCkptSectionIterationNext.restype = SaAisErrorT
+
 	return ckptdll.saCkptSectionIterationNext(sectionIterationHandle,
 			BYREF(sectionDescriptor))
  
@@ -411,6 +533,12 @@ def saCkptSectionIterationFinalize(sectionIterationHandle):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptSectionIterationFinalize.argtypes = [
+	                            SaCkptSectionIterationHandleT
+	                            ]
+	
+	ckptdll.saCkptSectionIterationFinalize.restype = SaAisErrorT
+
 	return ckptdll.saCkptSectionIterationFinalize(sectionIterationHandle)
 
 def createSaCkptIOVector(size):
@@ -435,6 +563,15 @@ def saCkptCheckpointWrite(checkpointHandle,
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointWrite.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            createSaCkptIOVector,
+	                            SaUint32T,
+	                            POINTER(SaUint32T)
+	                            ]
+	
+	ckptdll.saCkptCheckpointWrite.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointWrite(checkpointHandle,
 			ioVector,
 			numberOfElements,
@@ -455,8 +592,17 @@ def saCkptSectionOverwrite(checkpointHandle,
 
 	returns:
 		SaAisErrorT
-
+	
 	"""
+	ckptdll.saCkptSectionOverwrite.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            POINTER(SaCkptSectionIdT),
+	                            SaVoidPtr,
+	                            SaSizeT
+	                            ]
+	
+	ckptdll.saCkptSectionOverwrite.restype = SaAisErrorT
+
 	return ckptdll.saCkptSectionOverwrite(checkpointHandle,
 			BYREF(sectionId),
 			dataBuffer,
@@ -479,6 +625,14 @@ def saCkptCheckpointRead(checkpointHandle,
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointRead.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            createSaCkptIOVector,
+	                            SaUint32T,
+	                            POINTER(SaUint32T)
+	                            ]
+	ckptdll.saCkptCheckpointRead.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointRead(checkpointHandle,
 			ioVector,
 			numberOfElements,
@@ -496,6 +650,13 @@ def saCkptCheckpointSynchronize(checkpointHandle, timeout):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointSynchronize.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            SaTimeT
+	                            ]
+	
+	ckptdll.saCkptCheckpointSynchronize.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointSynchronize(checkpointHandle, timeout)
 
 def saCkptCheckpointSynchronizeAsync(checkpointHandle, invocation):
@@ -510,6 +671,13 @@ def saCkptCheckpointSynchronizeAsync(checkpointHandle, invocation):
 		SaAisErrorT
 
 	"""
+	ckptdll.saCkptCheckpointSynchronizeAsync.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            SaInvocationT
+	                            ]
+	
+	ckptdll.saCkptCheckpointSynchronizeAsync.restype = SaAisErrorT
+
 	return ckptdll.saCkptCheckpointSynchronizeAsync(checkpointHandle,
 			invocation)
 
@@ -524,7 +692,15 @@ def saCkptSectionIdFree(checkpointHandle, id):
 		SaAisErrorT
 
 	"""
-	return ckptdll.saCkptSectionIdFree(checkpointHandle, id)
+	ckptdll.saCkptSectionIdFree.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            POINTER(SaUint8T)
+	                            ]
+	
+	ckptdll.saCkptSectionIdFree.restype = SaAisErrorT
+
+	return ckptdll.saCkptSectionIdFree(checkpointHandle, 
+									BYREF(id))
 
 def saCkptIOVectorElementDataFree(checkpointHandle, data):
 	"""Free memory to which data points, allocated by saCkptCheckpointRead().
@@ -537,4 +713,12 @@ def saCkptIOVectorElementDataFree(checkpointHandle, data):
 		SaAisErrorT
 
 	"""
-	return ckptdll.saCkptIOVectorElementDataFree(checkpointHandle, data)
+	ckptdll.saCkptIOVectorElementDataFree.argtypes = [
+	                            SaCkptCheckpointHandleT,
+	                            POINTER(SaVoidPtr)
+	                            ]
+	
+	ckptdll.saCkptIOVectorElementDataFree.restype = SaAisErrorT
+
+	return ckptdll.saCkptIOVectorElementDataFree(checkpointHandle, 
+												BYREF(data))
