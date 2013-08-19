@@ -238,6 +238,13 @@ def saClmInitialize(clmHandle, clmCallbacks, version):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmInitialize.argtypes = [POINTER(SaClmHandleT),
+									   POINTER(SaClmCallbacksT),
+									   POINTER(SaVersionT)]
+	
+	clmdll.saClmInitialize.restype = SaAisErrorT
+	
 	return clmdll.saClmInitialize(BYREF(clmHandle),
 			BYREF(clmCallbacks), BYREF(version))
 #endif /* SA_CLM_B01 || SA_CLM_B02 */
@@ -254,6 +261,7 @@ def saClmInitialize_3(clmHandle, clmCallbacks, version):
 	returns:
 		SaAisErrorT
 	"""
+
 	return clmdll.saClmInitialize_3(BYREF(clmHandle), 
 			BYREF(clmCallbacks), BYREF(version))
 #endif /* SA_CLM_B03 */
@@ -269,6 +277,12 @@ def saClmInitialize_4(clmHandle, clmCallbacks, version):
 	returns:
 		SaAisErrorT
 	"""
+	clmdll.saClmInitialize_4.argtypes = [POINTER(SaClmHandleT),
+										 POINTER(SaClmCallbacksT_4),
+										 POINTER(SaVersionT)]
+	
+	clmdll.saClmInitialize_4.restype = SaAisErrorT
+	
 	return clmdll.saClmInitialize_4(BYREF(clmHandle),
 			BYREF(clmCallbacks), BYREF(version))
 
@@ -283,6 +297,12 @@ def saClmSelectionObjectGet(clmHandle, selectionObject):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmSelectionObjectGet.argtypes = [SaClmHandleT,
+											   POINTER(SaSelectionObjectT)]
+	
+	clmdll.saClmSelectionObjectGet.restype = SaAisErrorT
+	
 	return clmdll.saClmSelectionObjectGet(clmHandle,
 			BYREF(selectionObject))
 
@@ -296,6 +316,11 @@ def saClmDispatch(clmHandle, dispatchFlags):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmDispatch.argtypes = [SaClmHandleT, SaDispatchFlagsT]
+	
+	clmdll.saClmDispatch.restype = SaAisErrorT
+	
 	return clmdll.saClmDispatch(clmHandle, dispatchFlags)
 
 def saClmFinalize(clmHandle):
@@ -307,6 +332,11 @@ def saClmFinalize(clmHandle):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmFinalize.argtypes = [SaClmHandleT]
+	
+	clmdll.saClmFinalize.restype = SaAisErrorT
+	
 	return clmdll.saClmFinalize(clmHandle)
 
 #if defined(SA_CLM_B01) || defined(SA_CLM_B02) || defined(SA_CLM_B03)
@@ -322,6 +352,13 @@ def saClmClusterTrack(clmHandle, trackFlags, notificationBuffer):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmClusterTrack.argtypes = [SaClmHandleT,
+										 SaUint8T,
+										 POINTER(SaClmClusterNotificationBufferT)]
+	
+	clmdll.saClmClusterTrack.restype = SaAisErrorT
+	
 	return clmdll.saClmClusterTrack(clmHandle,
 			trackFlags,
 			BYREF(notificationBuffer))
@@ -338,6 +375,14 @@ def saClmClusterNodeGet(clmHandle, nodeId, timeout, clusterNode):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmClusterNodeGet.argtypes = [SaClmHandleT, 
+										SaClmNodeIdT,
+										SaTimeT,
+										POINTER(SaClmClusterNodeT)]
+	
+	clmdll.saClmClusterNodeGet.restype = SaAisErrorT
+	
 	return clmdll.saClmClusterNodeGet(clmHandle,
 			nodeId, 
 			timeout,
@@ -355,23 +400,9 @@ def saClmClusterNotificationFree(clmHandle, notification):
 	returns:
 		SaAisErrorT
 	"""
+
 	return clmdll.saClmClusterNotificationFree(clmHandle, notification)
 #endif /* SA_CLM_B02 || SA_CLM_B03 */
-
-#ifdef SA_CLM_B03
-def saClmResponse(clmHandle, invocation, error):
-	"""Respond to CLM with result of callback invoked by CLM.
-
-	type arguments:
-		SaClmHandleT clmHandle
-		SaInvocationT invocation
-		SaAisErrorT error
-
-	returns:
-		SaAisErrorT
-	"""
-	return clmdll.saClmResponse(clmHandle, invocation, error)
-#endif /* SA_CLM_B03 */
 
 def saClmClusterTrack_4(clmHandle, trackFlags, notificationBuffer):
 	"""Obtain current cluster membership and request notification of changes
@@ -385,6 +416,13 @@ def saClmClusterTrack_4(clmHandle, trackFlags, notificationBuffer):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmClusterTrack_4.argtypes = [SaClmHandleT,
+										   SaUint8T,
+										   POINTER(SaClmClusterNotificationBufferT_4)]
+
+	clmdll.saClmClusterTrack_4.restype = SaAisErrorT
+	
 	return clmdll.saClmClusterTrack_4(clmHandle,
 			trackFlags,
 			BYREF(notificationBuffer))
@@ -399,6 +437,11 @@ def saClmClusterTrackStop(clmHandle):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmClusterTrackStop.argtypes = [SaClmHandleT] 
+
+	clmdll.saClmClusterTrackStop.restype = SaAisErrorT
+	
 	return clmdll.saClmClusterTrackStop(clmHandle)
 
 def saClmClusterNotificationFree_4(clmHandle, notification):
@@ -411,7 +454,14 @@ def saClmClusterNotificationFree_4(clmHandle, notification):
 	returns:
 		SaAisErrorT
 	"""
-	return clmdll.saClmClusterNotificationFree_4(clmHandle, notification)
+	
+	clmdll.saClmClusterNotificationFree_4.argtypes = [SaClmHandleT,
+													  POINTER(SaClmClusterNotificationT_4)]
+	
+	clmdll.saClmClusterNotificationFree_4.restype = SaAisErrorT
+	
+	return clmdll.saClmClusterNotificationFree_4(clmHandle, 
+												 BYREF(notification))
 
 def saClmClusterNodeGet_4(clmHandle, nodeId, timeout, clusterNode):
 	"""Synchronously retrieve information about identified member node.
@@ -425,6 +475,14 @@ def saClmClusterNodeGet_4(clmHandle, nodeId, timeout, clusterNode):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmClusterNodeGet_4.argtypes = [SaClmHandleT,
+											 SaClmNodeItT,
+											 SaTimeT,
+											 POINTER(SaClmClusterNodeT_4)]
+	
+	clmdll.saClmClusterNodeGet_4.restype = SaAisErrorT
+	
 	return clmdll.saClmClusterNodeGet_4(clmHandle,
 			nodeId,
 			timeout,
@@ -441,6 +499,13 @@ def saClmClusterNodeGetAsync(clmHandle, invocation, nodeId):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmClusterNodeGetAsync.argtypes = [SaClmHandleT,
+												SaInvocationT,
+												SaClmNodeIdT]
+	
+	clmdll.saClmClusterNodeGetAsync.restype = SaAisErrorT
+	
 	return clmdll.saClmClusterNodeGetAsync(clmHandle, invocation, nodeId)
 
 def saClmResponse_4(clmHandle, invocation, response):
@@ -454,4 +519,11 @@ def saClmResponse_4(clmHandle, invocation, response):
 	returns:
 		SaAisErrorT
 	"""
+	
+	clmdll.saClmResponse_4.argtypes = [SaClmHandleT, 
+									   SaInvocationT,
+									   SaClmResponseT] 
+
+	clmdll.saClmResponse_4.restype = SaAisErrorT
+	
 	return clmdll.saClmResponse_4(clmHandle, invocation, response)
