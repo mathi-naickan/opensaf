@@ -63,6 +63,7 @@ static uint32_t avnd_comp_clc_restart_termsucc_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_restart_termfail_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_restart_clean_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_restart_cleanfail_hdler(AVND_CB *, AVND_COMP *);
+static uint32_t avnd_comp_clc_restart_restart_hdler(AVND_CB *cb, AVND_COMP *comp);
 static uint32_t avnd_comp_clc_orph_instsucc_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_orph_term_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_orph_clean_hdler(AVND_CB *, AVND_COMP *);
@@ -149,7 +150,7 @@ static AVND_COMP_CLC_FSM_FN avnd_comp_clc_fsm[][AVND_COMP_CLC_PRES_FSM_EV_MAX - 
 	 avnd_comp_clc_restart_clean_hdler,	/* CLEANUP EV */
 	 avnd_comp_clc_xxxing_cleansucc_hdler,	/* CLEANUP_SUCC EV */
 	 avnd_comp_clc_restart_cleanfail_hdler,	/* CLEANUP_FAIL EV */
-	 0,			/* RESTART EV */
+	 avnd_comp_clc_restart_restart_hdler,			/* RESTART EV */
 	 0,			/* ORPH EV */
 	 },
 
@@ -2760,6 +2761,39 @@ uint32_t avnd_instfail_su_failover(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_c
 		LOG_NO("SU Failover trigerred for '%s': Failed component: '%s'",
 			su->name.value, failed_comp->name.value);
 	TRACE_LEAVE2("%u", rc);
+	return rc;
+}
+
+
+/**
+ * @brief	This function processes component restart event in RESTARTING state.
+ *
+ * @param 	ptr to avnd_cb 
+ * @param	ptr to component
+ * 
+ * @return	NCSCC_RC_FAILURE/NCSCC_RC_SUCCESS
+ */
+static uint32_t avnd_comp_clc_restart_restart_hdler(AVND_CB *cb, AVND_COMP *comp)
+{
+	uint32_t rc;
+	TRACE_ENTER2("'%s': Restart event in the restarting state", comp->name.value);
+
+	if (m_AVND_COMP_TYPE_IS_PROXIED(comp))
+		avnd_comp_cbq_del(cb, comp, true);
+
+	if (m_AVND_COMP_TYPE_IS_PROXIED(comp) && comp->pxy_comp != 0)
+		rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+	else
+		rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+
+	if (rc == NCSCC_RC_SUCCESS) {
+		if (!m_AVND_COMP_TYPE_IS_PROXIED(comp))
+			m_AVND_COMP_REG_PARAM_RESET(cb, comp);
+		m_AVND_COMP_CLC_INST_PARAM_RESET(comp);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
+	}
+
+	TRACE_LEAVE();
 	return rc;
 }
 

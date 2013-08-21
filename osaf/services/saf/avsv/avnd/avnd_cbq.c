@@ -370,6 +370,9 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 	case AVSV_AMF_COMP_TERM:
 		/* trigger comp-fsm & delete the record */
 		if (SA_AIS_OK != resp->err) {
+			LOG_NO("TerminateCallback failed for '%s' aisError:%u",
+					comp->name.value, resp->err);
+
 			m_AVND_COMP_TERM_FAIL_SET(comp);
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
 		}
