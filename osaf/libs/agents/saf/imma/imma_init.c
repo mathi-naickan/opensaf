@@ -366,9 +366,7 @@ void imma_freeAttrValue3(SaImmAttrValueT p, const SaImmValueTypeT attrValueType)
 			break;
 		case SA_IMM_ATTR_SAANYT:
 			saAnyTp = (SaAnyT *)p;
-			if (saAnyTp->bufferSize) {
-				free(saAnyTp->bufferAddr);
-			}
+			free(saAnyTp->bufferAddr);
 			break;
 
 		default:
