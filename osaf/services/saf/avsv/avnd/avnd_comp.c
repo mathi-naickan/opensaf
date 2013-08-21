@@ -2952,8 +2952,13 @@ void avnd_comp_pres_state_set(AVND_COMP *comp, SaAmfPresenceStateT newstate)
 	SaAmfPresenceStateT prv_st = comp->pres;
 
 	osafassert(newstate <= SA_AMF_PRESENCE_ORPHANED);
-	LOG_IN("'%s' Presence State %s => %s", comp->name.value,
-		presence_state[comp->pres], presence_state[newstate]);
+	if (newstate == SA_AMF_PRESENCE_TERMINATION_FAILED ||
+		newstate == SA_AMF_PRESENCE_INSTANTIATION_FAILED)
+		LOG_WA("'%s' Presence State %s => %s", comp->name.value,
+				presence_state[comp->pres], presence_state[newstate]);
+	else
+		LOG_IN("'%s' Presence State %s => %s", comp->name.value,
+				presence_state[comp->pres], presence_state[newstate]);
 	comp->pres = newstate;
 
 	/* inform avd of the change in presence state for all 

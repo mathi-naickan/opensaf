@@ -2263,6 +2263,13 @@ uint32_t avnd_comp_clc_restart_cleanfail_hdler(AVND_CB *cb, AVND_COMP *comp)
 	/* transition to 'term-failed' state */
 	avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_TERMINATION_FAILED);
 
+	if ((cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED) &&
+			all_comps_terminated()) {
+		LOG_WA("Terminated all AMF components (with failures)");
+		LOG_NO("Shutdown completed, exiting");
+		exit(0);
+	}
+
 	TRACE_LEAVE();
 	return rc;
 }
