@@ -3128,6 +3128,10 @@ SaAisErrorT saImmOmCcbApply(SaImmCcbHandleT ccbHandle)
 		*/
 		TRACE_3("client_node %p exposed :%u", cl_node, cl_node ? (cl_node->exposed) : 0);
 
+		/* Reset the ccb_node flags back to indicate apply is in progress. */
+		ccb_node->mExclusive = true; 
+		ccb_node->mApplying = true;
+
 		/* Release the CB lock Before MDS Send */
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 		locked = false;
@@ -3146,7 +3150,12 @@ SaAisErrorT saImmOmCcbApply(SaImmCcbHandleT ccbHandle)
 			} 
 			locked = true;
 
+			ccb_node = NULL;
 			imma_ccb_node_get(&cb->ccb_tree, &ccbHandle, &ccb_node);
+			if(ccb_node) {
+				ccb_node->mExclusive = false; 
+				ccb_node->mApplying = false;
+			}
 		}
 
 		if(rc == SA_AIS_OK) {

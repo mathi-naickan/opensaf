@@ -3642,8 +3642,10 @@ ImmModel::ccbApply(SaUint32T ccbId,
                 ccb->mAdminOwnerId);
             ccb->mVeto = SA_AIS_ERR_BAD_HANDLE;
         } else if(ccb->mState > IMM_CCB_READY) {
-            LOG_NO("ERR_FAILED_OPERATION: Ccb not in correct state (%u) for Apply", ccb->mState);
-            ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
+            LOG_NO("Ccb <%u> not in correct state (%u) for Apply ignoring request",
+                ccb->mId, ccb->mState);
+            err = SA_AIS_ERR_ACCESS_DENIED;
+            goto ignore;
         }
 
         osafassert(reqConn==0 || (ccb->mOriginatingConn == reqConn));
@@ -3712,6 +3714,7 @@ ImmModel::ccbApply(SaUint32T ccbId,
             }
         }
     }
+ ignore:
     
     TRACE_LEAVE();
     return err;

@@ -6039,6 +6039,12 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 			}
 		} else {
 			SaUint32T client = 0;
+			if(err == SA_AIS_ERR_ACCESS_DENIED) {
+				LOG_WA("Spurious and redundant ccb-apply request ignored ccbId:%u",
+					evt->info.ccbId);
+				/* Dont touch the ccb object and dont even reply to the client. */
+				goto done;
+			}
 			/*err != SA_AIS_OK => generate SaImmOiCcbAbortCallbackT upcalls
 			 */
 			immnd_evt_ccb_abort(cb, evt->info.ccbId, &client);
@@ -6065,6 +6071,7 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 			}
 		}
 	}
+ done:
 	TRACE_LEAVE();
 }
 
