@@ -14413,17 +14413,19 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                             "according to finalizeSync. Assunimg implSet bypased finSync",
                             info->mId, implName.c_str());
                         explained = true;
-                    } else if(info->mId == 0) {
-                        /* Here info->mid == 0 i.e. veteran claims dead implementer 
-                           but coord claims non-dead implementer. This can happen
-                           when implementer is deleted just after coord sends 
+                    } else {
+                        /* Here veteran claims either dead implementer, i.e. (info->mId == 0),
+                           or different implementer, i.e. new and different info->mId,
+                           but coord claims non-dead implementer. This can happen when
+                           implementer disconnects just after coord sends finalizeSync,
+                           or both disconnects and reconnects just after coord sends
                            finalizeSync. Checking for this.
                         */
                         IdVector::iterator ivi = sImplsDeadDuringSync.begin();
                         for(;ivi != sImplsDeadDuringSync.end(); ++ivi) {
                             if((*ivi) == ii->id) {
-                                LOG_NO("Detected dead implementer %u in "
-                                      "finalizeSync message - ignoring.", ii->id);
+                                LOG_NO("Detected disconnected implementer %u in "
+                                          "finalizeSync message - ignoring.", ii->id);
                                 explained = true;
                                 break;
                             }
