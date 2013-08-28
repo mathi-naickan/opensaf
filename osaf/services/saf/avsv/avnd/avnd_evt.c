@@ -177,7 +177,9 @@ AVND_EVT *avnd_evt_create(AVND_CB *cb,
 		break;
 
 	default:
-		osafassert(0);
+		free(evt);
+		evt = NULL;
+		break;
 	}
 
  done:
@@ -294,8 +296,10 @@ void avnd_evt_destroy(AVND_EVT *evt)
 		/* PID exist event */
 	case AVND_EVT_PID_EXIT:
 		break;
+
 	default:
-		osafassert(0);
+		LOG_NO("%s: unknown event type %u", __FUNCTION__, type);
+		break;
 	}
 
 	/* free the avnd event */

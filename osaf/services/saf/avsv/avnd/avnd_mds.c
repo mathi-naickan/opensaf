@@ -446,6 +446,21 @@ uint32_t avnd_mds_rcv(AVND_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 
 		msg.type = AVND_MSG_AVA;
 		msg.info.ava = (AVSV_NDA_AVA_MSG *)rcv_info->i_msg;
+
+		if (msg.info.ava->type != AVSV_AVA_API_MSG) {
+			LOG_NO("%s: unknown message type (%u)", __FUNCTION__,
+					msg.info.ava->type);
+			rc = NCSCC_RC_FAILURE;
+			goto done;
+		}
+
+		if ((msg.info.ava->info.api_info.type == 0) ||
+			(msg.info.ava->info.api_info.type >= AVSV_AMF_API_MAX)) {
+			LOG_NO("%s: unknown API type (%u)", __FUNCTION__,
+					msg.info.ava->info.api_info.type);
+			rc = NCSCC_RC_FAILURE;
+			goto done;
+		}
 		break;
 
 	case NCSMDS_SVC_ID_AVND:
@@ -1016,7 +1031,8 @@ uint32_t avnd_mds_dec(AVND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 		break;
 
 	default:
-		osafassert(0);
+		LOG_NO("%s: unknown 'from' SVC ID %u", __FUNCTION__, dec_info->i_fr_svc_id);
+		rc = NCSCC_RC_FAILURE;
 		break;
 	}
 
@@ -1092,7 +1108,8 @@ uint32_t avnd_mds_flat_dec(AVND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 		break;
 
 	default:
-		osafassert(0);
+		LOG_NO("%s: unknown 'from' SVC ID %u", __FUNCTION__, dec_info->i_fr_svc_id);
+		rc = NCSCC_RC_FAILURE;
 		break;
 	}
 
@@ -1114,12 +1131,18 @@ uint32_t avnd_mds_flat_dec(AVND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 uint32_t avnd_mds_flat_ava_dec(AVND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 {
 	AVSV_NDA_AVA_MSG *ava_msg = 0;
-	uint32_t rc = NCSCC_RC_SUCCESS;
+	uint32_t rc = NCSCC_RC_FAILURE;
 
-	/* alloc memory for ava-msg */
+	/* AMF library always sends a fixed size message, verify that size so that
+	 * the decode routine does not read over the edge */
+	if (dec_info->io_uba->max != sizeof(AVSV_NDA_AVA_MSG)) {
+		LOG_NO("%s: wrong number of bytes to decode (%u vs %lu)",
+				__FUNCTION__, dec_info->io_uba->max, sizeof(AVSV_NDA_AVA_MSG));
+		goto err;
+	}
+
 	ava_msg = calloc(1, sizeof(AVSV_NDA_AVA_MSG));
 	if (!ava_msg) {
-		rc = NCSCC_RC_FAILURE;
 		goto err;
 	}
 
