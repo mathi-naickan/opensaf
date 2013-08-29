@@ -222,7 +222,7 @@ class SaNtfNotificationHeaderT(Structure):
 		('numAdditionalInfo', SaUint16T),
 		('notificationId', POINTER(SaNtfIdentifierT)),
 		('correlatedNotifications', POINTER(SaNtfIdentifierT)),
-		('additionalText', POINTER(SaInt8T)),
+		('additionalText', SaStringT),
 		('additionalInfo', POINTER(SaNtfAdditionalInfoT))]
 
 SaNtfSourceIndicatorT = SaEnumT
