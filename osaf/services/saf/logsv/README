@@ -34,7 +34,7 @@ DEPENDENCIES
 logsv depends of the following other OpenSAF services:
 - MBCSV
 - MDS
-- LEAP
+- BASE
 - logtrace
 
 

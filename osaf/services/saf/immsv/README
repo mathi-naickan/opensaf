@@ -1190,7 +1190,7 @@ immsv depends of the following other services:
 - NID
 - MBCSV
 - MDS
-- LEAP
+- BASE
 - AvSv
 - logtrace
 - libxml2

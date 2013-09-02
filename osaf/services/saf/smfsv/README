@@ -52,7 +52,7 @@ smfsv depends of the following other OpenSAF services:
 - NTF
 - AMF
 - MDS
-- LEAP
+- BASE
 - logtrace
 
 DIRECTORY STRUCTURE
