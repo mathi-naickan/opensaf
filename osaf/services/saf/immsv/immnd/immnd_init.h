@@ -261,7 +261,7 @@ extern "C" {
 
 	void immModel_setLoader(IMMND_CB *cb, SaInt32T loaderPid);
 
-	SaBoolT immModel_pbeOiExists(IMMND_CB *cb);
+	unsigned int immModel_pbeOiExists(IMMND_CB *cb);
 
 	SaBoolT immModel_protocol41Allowed(IMMND_CB *cb);
 
