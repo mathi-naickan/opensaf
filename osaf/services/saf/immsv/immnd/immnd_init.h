@@ -261,7 +261,7 @@ extern "C" {
 
 	void immModel_setLoader(IMMND_CB *cb, SaInt32T loaderPid);
 
-	SaBoolT immModel_pbeOiExists(IMMND_CB *cb);
+	unsigned int immModel_pbeOiExists(IMMND_CB *cb);
 
 	struct immsv_attr_values_list * 
 	immModel_specialApplierTrimCreate(IMMND_CB *cb, SaUint32T clientId, struct ImmsvOmCcbObjectCreate *req);

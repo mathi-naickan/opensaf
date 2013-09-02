@@ -900,7 +900,15 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 	/*TRACE_ENTER(); */
 
 	if((cb->mRim == SA_IMM_KEEP_REPOSITORY) && !(cb->mPbeVeteran)) {
-		cb->mPbeVeteran = immModel_pbeOiExists(cb) && immModel_pbeIsInSync(cb, false);
+
+		/*
+		  If we are coord then the PBE has to be LOCAL.
+		  If we are not coord then the PBE has to be remote.
+		*/
+		SaUint32T nodeId = immModel_pbeOiExists(cb);
+		cb->mPbeVeteran = nodeId && immModel_pbeIsInSync(cb, false) &&
+			(cb->mIsCoord) == (nodeId == cb->node_id);
+
 		if(cb->mPbeVeteran && cb->mCanBeCoord) {		       
 			LOG_NO("PBE-OI established on %s SC. Dumping incrementally to file %s", 
 				(cb->mIsCoord)?"this":"other", 	cb->mPbeFile);
@@ -1162,9 +1170,11 @@ void immnd_proc_global_abort_ccb(IMMND_CB *cb, SaUint32T ccbId)
 }
 
 
-static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration)
+static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration, SaBoolT* pbeImmndDeadlock)
 {
 	osafassert(cb->mIsCoord);
+	osafassert(pbeImmndDeadlock);
+	(*pbeImmndDeadlock) = SA_FALSE;
 	if (cb->mPendSync) {
 		TRACE("ccbsTerminated false because cb->mPendSync is still true");
 		return SA_FALSE;
@@ -1201,6 +1211,12 @@ static SaBoolT immnd_ccbsTerminated(IMMND_CB *cb, SaUint32T duration)
 				"immnd_pbePrtoPurgeMutations");
 			immnd_pbePrtoPurgeMutations(cb);
 		}
+	}
+
+	if(!ccbsTerminated && cb->mPbeFile && (cb->mRim == SA_IMM_KEEP_REPOSITORY) && 
+		!immModel_pbeOiExists(cb) && !immModel_pbeIsInSync(cb, true)) {
+		/* Started sync is blocked by critical ccbs while PBE is being restarted, See (#556) */
+		(*pbeImmndDeadlock) = SA_TRUE;
 	}
 
 	if (duration % 5) {/* Wait 5 secs for non critical ccbs to terminate */
@@ -1470,6 +1486,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 	time_t now = time(NULL);
 	osafassert(now > ((time_t) 0));
 	uint32_t jobDuration = (uint32_t) now - cb->mJobStart;
+	SaBoolT pbeImmndDeadlock=SA_FALSE;
 	if(!jobDuration) {++jobDuration;} /* Avoid jobDuraton of zero */
 	/*TRACE_ENTER(); */
 
@@ -1723,8 +1740,21 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 		break;
 
 	case IMM_SERVER_SYNC_SERVER:
-		if (!immnd_ccbsTerminated(cb, jobDuration)) {
+		if (!immnd_ccbsTerminated(cb, jobDuration, &pbeImmndDeadlock)) {
 			/*Phase 1 */
+			if(pbeImmndDeadlock) {
+				LOG_WA("Apparent deadlock detected between IMMND sync and restarting PBE, "
+				       "with Ccbs in critical. Aborting this sync attempt");
+				immnd_abortSync(cb);
+				if(cb->syncPid > 0) {
+					LOG_WA("STOPPING sync process pid %u", cb->syncPid);
+					kill(cb->syncPid, SIGTERM);
+				}
+				cb->mStep = 0;
+				cb->mJobStart = now;
+				cb->mState = IMM_SERVER_READY;
+				LOG_NO("SERVER STATE: IMM_SERVER_SYNC_SERVER --> IMM SERVER READY");
+			}
 			if (!(cb->mStep % 60)) {
 				LOG_IN("Sync Phase-1, waiting for existing "
 				       "Ccbs to terminate, seconds waited: %u", jobDuration);
