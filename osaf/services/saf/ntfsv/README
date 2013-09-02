@@ -53,7 +53,7 @@ DEPENDENCIES
 ntfsv depends of the following other OpenSAF services:
 - MBCSV
 - MDS
-- LEAP
+- BASE
 - logtrace
 
 DIRECTORY STRUCTURE
