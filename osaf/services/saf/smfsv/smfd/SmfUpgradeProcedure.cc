@@ -702,38 +702,80 @@ SmfUpgradeProcedure::getNodeForCompSu(const std::string & i_objectDn)
         }
 
         if (strcmp(className, "SaAmfSU") == 0) {
-                const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                  "saAmfSUHostedByNode",
-                                                                  0);
-                if (hostedByNode != NULL) {
+                //The attribute hostedByNode may not be set by AMF yet
+                //SMFD tries to read the attribute every 5 seconds until set
+                //Times out after time configured as reboot timeout
+                int interval = 5; //seconds
+                int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                bool nodeEmpty = false;  //Used to control log printout
+                while(true) {
+                        const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                          "saAmfSUHostedByNode",
+                                                                          0);
+                        if (hostedByNode == NULL) {
+                                if(timeout <= 0) { //Timeout                                
+                                        LOG_NO("SmfUpgradeProcedure::getNodeForCompSu:No hostedByNode attr set for %s", i_objectDn.c_str());  
+                                        TRACE_LEAVE();
+                                        return "";
+                                }
+                                if (nodeEmpty == false) {
+                                        LOG_NO("SmfUpgradeProcedure::getNodeForCompSu:saAmfSUHostedByNode attribute in %s is empty, waiting for it to be set", i_objectDn.c_str());
+                                        nodeEmpty = true;
+                                }
+                                sleep(interval);
+                                timeout -= interval;
+                                if (immUtil.getObject(i_objectDn, &attributes) == false) {
+                                        TRACE("SmfUpgradeProcedure::getNodeForCompSu:failed to get imm object %s", i_objectDn.c_str());
+                                        TRACE_LEAVE();
+                                        return "";
+                                }
+
+                                continue; //No hostedByNode was set, read the same object again
+                        }
+                        if (nodeEmpty == true) {
+                                LOG_NO("SmfUpgradeProcedure::getNodeForCompSu:saAmfSUHostedByNode attribute in %s is now set, continue", i_objectDn.c_str());
+                        }
                         return (char *)hostedByNode->value;
-                } else {
-                        LOG_ER("SmfUpgradeProcedure::getNodeForCompSu:No hostedByNode attr set for %s", i_objectDn.c_str());  
-                        TRACE_LEAVE();
-                        return "";
-                }
+                } //End while(true)
 
         } else if (strcmp(className, "SaAmfComp") == 0) {
                 /* Find the parent SU to this component */
-                if (immUtil.getParentObject((i_objectDn), &attributes) == true) {
-                        const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                          "saAmfSUHostedByNode", 
-                                                                          0);
-                        if (hostedByNode != NULL) {
-                                TRACE_LEAVE();
-                                return (char *)hostedByNode->value;
-                        } else {
-                                LOG_ER("SmfUpgradeProcedure::getNodeForCompSu:No hostedByNode attr set for %s", i_objectDn .c_str());  
+                //The attribute hostedByNode may not be set by AMF yet
+                //SMFD tries to read the attribute every 5 seconds until set
+                //Times out after time configured as reboot timeout
+                int interval = 5; //seconds
+                int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                bool nodeEmpty = false;  //Used to control log printout
+                while(true) {
+                        if (immUtil.getParentObject((i_objectDn), &attributes) != true) {
+                                LOG_NO("SmfUpgradeProcedure::getNodeForCompSu:Fails to get parent to %s", i_objectDn.c_str());  
                                 TRACE_LEAVE();
                                 return "";
                         }
-                } else {
-                        LOG_ER("SmfUpgradeProcedure::getNodeForCompSu:Fails to get parent to %s", i_objectDn.c_str());  
-                        TRACE_LEAVE();
-                        return "";
-                }
-        }
 
+                        const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                          "saAmfSUHostedByNode", 
+                                                                          0);
+                        if (hostedByNode == NULL) {
+                                if(timeout <= 0) { //Timeout                                
+                                        LOG_NO("SmfUpgradeProcedure::getNodeForCompSu:No hostedByNode attr set for %s", i_objectDn.c_str());  
+                                        TRACE_LEAVE();
+                                        return "";
+                                }
+                                if (nodeEmpty == false) {
+                                        LOG_NO("SmfUpgradeProcedure::getNodeForCompSu:saAmfSUHostedByNode attribute in %s parent is empty, waiting for it to be set", i_objectDn.c_str());
+                                        nodeEmpty = true;
+                                }
+                                sleep(interval);
+                                timeout -= interval;
+                                continue; //No hostedByNode was set, read the same object again
+                        }
+                        if (nodeEmpty == true) {
+                                LOG_NO("SmfUpgradeProcedure::getNodeForCompSu:saAmfSUHostedByNode attribute in %s parent is now set, continue", i_objectDn.c_str());
+                        }
+                        return (char *)hostedByNode->value;
+                } //End while(true)
+        }
         LOG_ER("SmfUpgradeProcedure::getNodeForCompSu:The DN does not refere to a  SaAmfSUT or SaAmfComp class, DN=%s", i_objectDn.c_str());  
         TRACE_LEAVE();
         return "";
@@ -1122,42 +1164,69 @@ SmfUpgradeProcedure::calcActivationUnitsFromTemplate(SmfParentType * i_parentTyp
                         //For each found object check the versioned type
                         for (objit = foundObjs.begin(); objit != foundObjs.end(); ++objit) {
                                 TRACE("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Check SU %s for modifications", (*objit).c_str());
-                                if (immUtil.getObject((*objit), &attributes) == true) {
+
+                                //The attribute hostedByNode may not be set by AMF yet
+                                //SMFD tries to read the attribute every 5 seconds until set
+                                //Times out after time configured as reboot timeout
+                                int interval = 5; //seconds
+                                int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                                bool nodeEmpty = false;  //Used to control log printout
+                                while(true) {
+                                        if (immUtil.getObject((*objit), &attributes) != true) {
+                                                LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Fails to get object %s", (*objit).c_str());  
+                                                return false;
+                                        }
+
                                         const SaNameT *typeRef = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes, 
                                                                                      "saAmfSUType",
                                                                                      0);
-                                        if ((typeRef != NULL) && 
-                                            (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0)) {
+                                        if (typeRef == NULL) {
+                                                LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:NO typeRef attr set for %s", (*objit).c_str());
+                                                return false;
+                                        }
+
+                                        if (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0) {
                                                                       
                                                 /* This SU is of the correct version type. Check if it is hosted by any node in the node list */
-                                                const SaNameT *hostedByNode =
-                                                        immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                            "saAmfSUHostedByNode",
-                                                                            0);
-						if (hostedByNode == NULL) {
-                                                        LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
-                                                        return false;
-						}
-						TRACE("SU %s hosted by %s, add to list", (*objit).c_str(), (char *)hostedByNode->value);
+                                                const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                                                  "saAmfSUHostedByNode",
+                                                                                                  0);
+                                                if (hostedByNode == NULL) {
+                                                        if(timeout <= 0) { //Timeout                                
+                                                                LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
+                                                                return false;
+                                                        }
+                                                        if (nodeEmpty == false) {
+                                                                LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s is empty, waiting for it to be set", (*objit).c_str());
+                                                                nodeEmpty = true;
+                                                        }
+                                                        sleep(interval);
+                                                        timeout -= interval;
+                                                        continue; //No hostedByNode was set, read the same object again
+                                                }
+                                                if (nodeEmpty == true) {
+                                                        LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s is now set, continue", (*objit).c_str());
+                                                }
+                                                //The attr hostedByNode contain a value
+                                                TRACE("SU %s hosted by %s, add to list", (*objit).c_str(), (char *)hostedByNode->value);
                                                 if (o_nodeList == NULL) { //No output nodelist given, use the input nodelist to check the scope
                                                         std::list < std::string >::const_iterator it;
                                                         for (it = i_nodeList.begin(); it != i_nodeList.end(); ++it) {
                                                                 if (strcmp((*it).c_str(), (char *)hostedByNode->value) == 0) {
                                                                         /* The SU is hosted by the node */
-									TRACE("SU %s is hosted on node within the targetNodeTemplate, add to list", (*objit).c_str());
+                                                                        TRACE("SU %s is hosted on node within the targetNodeTemplate, add to list", (*objit).c_str());
                                                                         o_actDeactUnits.push_back(*objit);
                                                                         break;
                                                                 } 
                                                         }
                                                 } else { //Scope (of nodes) unknown, add the hosting node to the output node list
-							o_actDeactUnits.push_back(*objit);
-							o_nodeList->push_back((const char*)hostedByNode->value);
+                                                        o_actDeactUnits.push_back(*objit);
+                                                        o_nodeList->push_back((const char*)hostedByNode->value);
                                                 }
                                         }
-                                } else {
-                                        LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Fails to get object %s", (*objit).c_str());  
-                                        return false;
-                                }
+
+                                        break; //Exit the while(true) loop
+                                } //END while(true)
                         }
                 } else if (strcmp(className, "SaAmfCompType") == 0) {
                         TRACE("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Check Comp type %s for modifications", i_parentType->getTypeDn().c_str());
@@ -1174,73 +1243,100 @@ SmfUpgradeProcedure::calcActivationUnitsFromTemplate(SmfParentType * i_parentTyp
                         std::list < std::string >::const_iterator objit;
                         for (objit = foundObjs.begin(); objit != foundObjs.end(); ++objit) {
                                 TRACE("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Check Comp %s for modifications", (*objit).c_str());
-                                if (immUtil.getObject((*objit), &attributes) == true) {
-                                        const SaNameT *typeRef =
-                                                immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                    "saAmfCompType", 0); 
-
-                                        if ((typeRef != NULL)
-                                            && (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0)) {
-                                                /* This component is of the correct version type. */
-
-						/* Check if it is hosted by any node in the node list */
-                                                /* Find the parent SU to this component */
-                                                if (immUtil.getParentObject((*objit), &attributes) == true) {
-                                                        const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                                                          "saAmfSUHostedByNode", 
-                                                                                                          0);
-                                                        if (hostedByNode == NULL) {
-								LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
-								return false;
-							}
-
-							TRACE("Component %s hosted by %s", (*objit).c_str(), (char *)hostedByNode->value);
-							if (o_nodeList == NULL) {//No output nodelist given, use the input nodelist to check the scope
-                                                                std::list < std::string >::const_iterator it;
-                                                                for (it = i_nodeList.begin(); it != i_nodeList.end(); ++it) {
-                                                                        if (strcmp((*it).c_str(), (char *)hostedByNode->value) == 0) {
-                                                                                /* The SU is hosted by the node */
-										if (getUpgradeMethod()->getStepRestartOption() == 0) { //saSmfStepRestartOption is set to false, use SU level
-											std::string parentDn = (*objit).substr((*objit).find(',') + 1, std::string::npos);
-											TRACE("Component %s is hosted on node within the targetNodeTemplate", (*objit).c_str());
-											TRACE("The stepRestartOption was set to false(0), use parent %s, as act/deactComponent", parentDn.c_str());
-											o_actDeactUnits.push_back(parentDn);
-											removeDuplicates = true;  //Duplicates must be removed from list when the loop is finished
-										} else { // saSmfStepRestartOption is set to true
-											TRACE("Component %s is hosted on node within the targetNodeTemplate, add to list", (*objit).c_str());
-											//Check if component is restartable
-											if (isCompRestartable((*objit)) == false) {
-												LOG_ER("Component %s is not restartable", (*objit).c_str());
-												return false;
-											}
-											o_actDeactUnits.push_back(*objit);
-										}
-
-                                                                                break;
-                                                                        }
-                                                                }
-                                                        } else { //Scope (of nodes) unknown, add the hosting node to the output node list
-								if (getUpgradeMethod()->getStepRestartOption() == 0) { //saSmfStepRestartOption is set to false, use SU level
-									std::string parentDn = (*objit).substr((*objit).find(',') + 1, std::string::npos);
-									TRACE("The stepRestartOption was set to false(0), use parent %s, as act/deactComponent", parentDn.c_str());
-									o_actDeactUnits.push_back(parentDn);
-									removeDuplicates = true;  //Duplicates must be removed from list when the loop is finished
-								} else { // saSmfStepRestartOption is set to true
-									//Check if component is restartable
-									if (isCompRestartable((*objit)) == false) {
-										LOG_ER("Component %s is not restartable", (*objit).c_str());
-										return false;
-									}
-									o_actDeactUnits.push_back(*objit);
-								}
-
-								o_nodeList->push_back((const char*)hostedByNode->value);
-                                                        }
-                                                }
-                                        }
-                                } else {
+                                if (immUtil.getObject((*objit), &attributes) != true) {
                                         LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Fails to get object %s", (*objit).c_str());  
                                         return false;
+                                }
+                                const SaNameT *typeRef =
+                                        immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                            "saAmfCompType", 0);
+                                if (typeRef == NULL) {
+                                        LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No typeRef attr set for %s", (*objit).c_str());
+                                        return false;
+                                }
+
+                                if (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0) {
+                                        /* This component is of the correct version type. */
+
+                                        //Check if it is hosted by any node in the node list
+                                        //Find the parent SU to this component
+                                        //The attribute hostedByNode may not be set by AMF yet
+                                        //SMFD tries to read the attribute every 5 seconds until set
+                                        //Times out after time configured as reboot timeout
+                                        int interval = 5; //seconds
+                                        int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                                        SaNameT *hostedByNode = 0;
+                                        bool nodeEmpty = false;  //Used to control log printout
+                                        while(true) {
+                                                if (immUtil.getParentObject((*objit), &attributes) != true) {
+                                                        LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Fails to get parent object to %s", (*objit).c_str());
+                                                        return false;
+                                                }
+
+                                                hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                                              "saAmfSUHostedByNode", 
+                                                                                              0);
+                                                if (hostedByNode == NULL) {
+                                                        if(timeout <= 0) { //Timeout
+                                                                LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
+                                                                return false;
+                                                        }
+                                                        if (nodeEmpty == false) {
+                                                                LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s parent is empty, waiting for it to be set", (*objit).c_str());
+                                                                nodeEmpty = true;
+                                                        }
+                                                        sleep(interval);
+                                                        timeout -= interval;
+                                                        continue; //No hostedByNode was set, read the same object again
+                                                }
+                                                if (nodeEmpty == true) {
+                                                        LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s parent is now set, continue",(*objit).c_str());
+                                                }
+                                                break; //Exit the while(true) loop
+                                        } //END while(true) loop
+
+                                        TRACE("Component %s hosted by %s", (*objit).c_str(), (char *)hostedByNode->value);
+                                        if (o_nodeList == NULL) {//No output nodelist given, use the input nodelist to check the scope
+                                                std::list < std::string >::const_iterator it;
+                                                for (it = i_nodeList.begin(); it != i_nodeList.end(); ++it) {
+                                                        if (strcmp((*it).c_str(), (char *)hostedByNode->value) == 0) {
+                                                                /* The SU is hosted by the node */
+                                                                if (getUpgradeMethod()->getStepRestartOption() == 0) { //saSmfStepRestartOption is set to false, use SU level
+                                                                        std::string parentDn = (*objit).substr((*objit).find(',') + 1, std::string::npos);
+                                                                        TRACE("Component %s is hosted on node within the targetNodeTemplate", (*objit).c_str());
+                                                                        TRACE("The stepRestartOption was set to false(0), use parent %s, as act/deactComponent", parentDn.c_str());
+                                                                        o_actDeactUnits.push_back(parentDn);
+                                                                        removeDuplicates = true;  //Duplicates must be removed from list when the loop is finished
+                                                                } else { // saSmfStepRestartOption is set to true
+                                                                        TRACE("Component %s is hosted on node within the targetNodeTemplate, add to list", (*objit).c_str());
+                                                                        //Check if component is restartable
+                                                                        if (isCompRestartable((*objit)) == false) {
+                                                                                LOG_ER("Component %s is not restartable", (*objit).c_str());
+                                                                                return false;
+                                                                        }
+                                                                        o_actDeactUnits.push_back(*objit);
+                                                                }
+
+                                                                break;
+                                                        }
+                                                }
+                                        } else { //Scope (of nodes) unknown, add the hosting node to the output node list
+                                                if (getUpgradeMethod()->getStepRestartOption() == 0) { //saSmfStepRestartOption is set to false, use SU level
+                                                        std::string parentDn = (*objit).substr((*objit).find(',') + 1, std::string::npos);
+                                                        TRACE("The stepRestartOption was set to false(0), use parent %s, as act/deactComponent", parentDn.c_str());
+                                                        o_actDeactUnits.push_back(parentDn);
+                                                        removeDuplicates = true;  //Duplicates must be removed from list when the loop is finished
+                                                } else { // saSmfStepRestartOption is set to true
+                                                        //Check if component is restartable
+                                                        if (isCompRestartable((*objit)) == false) {
+                                                                LOG_ER("Component %s is not restartable", (*objit).c_str());
+                                                                return false;
+                                                        }
+                                                        o_actDeactUnits.push_back(*objit);
+                                                }
+
+                                                o_nodeList->push_back((const char*)hostedByNode->value);
+                                        }
                                 }
                         } //End for (objit = foundObjs.begin(); objit != foundObjs.end(); ++objit)
 
@@ -1266,35 +1362,57 @@ SmfUpgradeProcedure::calcActivationUnitsFromTemplate(SmfParentType * i_parentTyp
                 //For all found SUs
                 for (objit = foundObjs.begin(); objit != foundObjs.end(); ++objit) {
                         TRACE("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Check SU %s for modifications", (*objit).c_str());
-                        if (immUtil.getObject((*objit), &attributes) == true) {
-                                /* Type does not matter. Check if the SU is hosted by any node in the node list */
-                                const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                                  "saAmfSUHostedByNode",
-                                                                                  0);
-				if (hostedByNode == NULL) {
-                                        LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
+                        //The attribute hostedByNode may not be set by AMF yet
+                        //SMFD tries to read the attribute every 5 seconds until set
+                        //Times out after time configured as reboot timeout
+                        int interval = 5; //seconds
+                        int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                        SaNameT *hostedByNode = 0;
+                        bool nodeEmpty = false;  //Used to control log printout
+                        while(true) {
+                                if (immUtil.getObject((*objit), &attributes) != true) {
+                                        LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Fails to get object %s", (*objit).c_str());  
                                         return false;
-				}
+                                }
 
-				TRACE("SU %s is hosted by %s", (*objit).c_str(), (char *)hostedByNode->value);
-                                if (o_nodeList == NULL) {
-                                        std::list < std::string >::const_iterator it;
-					TRACE("Check if node is within the the targetNodeTemplate");
-                                        for (it = i_nodeList.begin(); it != i_nodeList.end(); ++it) {                                                
-						if (strcmp((*it).c_str(), (char *)hostedByNode->value) == 0) {
-                                                        /* The SU is hosted by the node */
-                                                        TRACE("SU %s is hosted on node within the targetNodeTemplate, add to list", (*objit).c_str());
-                                                        o_actDeactUnits.push_back(*objit);
-                                                        break;
-                                                }
+                                /* Type does not matter. Check if the SU is hosted by any node in the node list */
+                                hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                              "saAmfSUHostedByNode",
+                                                                              0);
+                                if (hostedByNode == NULL) {
+                                        if(timeout <= 0) { //Timeout                                
+                                                LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());
+                                                return false;
                                         }
-                                } else {
-					o_actDeactUnits.push_back(*objit);
-					o_nodeList->push_back((const char*)hostedByNode->value);
+                                        if (nodeEmpty == false) {
+                                                LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s is empty, waiting for it to be set", (*objit).c_str());
+                                                nodeEmpty = true;
+                                        }
+                                        sleep(interval);
+                                        timeout -= interval;
+                                        continue; //No hostedByNode was set, read the same object again
+                                }
+                                if (nodeEmpty == true) {
+                                        LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s is now set, continue", (*objit).c_str());
+                                }
+                                break; //Exit the while(true) loop
+                        } //End while(true)
+
+                        TRACE("SU %s is hosted by %s", (*objit).c_str(), (char *)hostedByNode->value);
+                        if (o_nodeList == NULL) {
+                                std::list < std::string >::const_iterator it;
+                                TRACE("Check if node is within the the targetNodeTemplate");
+                                for (it = i_nodeList.begin(); it != i_nodeList.end(); ++it) {                                                
+                                        if (strcmp((*it).c_str(), (char *)hostedByNode->value) == 0) {
+                                                /* The SU is hosted by the node */
+                                                TRACE("SU %s is hosted on node within the targetNodeTemplate, add to list", (*objit).c_str());
+                                                o_actDeactUnits.push_back(*objit);
+                                                break;
+                                        }
                                 }
                         } else {
-                                LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:Fails to get object %s", (*objit).c_str());  
-                                return false;
+                                o_actDeactUnits.push_back(*objit);
+                                o_nodeList->push_back((const char*)hostedByNode->value);
                         }
                 }
         }
@@ -1409,42 +1527,69 @@ SmfUpgradeProcedure::addStepModificationsNode(SmfUpgradeStep * i_newStep, const 
 
 			for (objit = objectList.begin(); objit != objectList.end(); ++objit) {
 				TRACE("SmfUpgradeProcedure::addStepModificationsNode:Check SU %s for modifications", (*objit).c_str());
-				if (immUtil.getObject((*objit), &attributes) == true) {
-					const SaNameT *typeRef =
+                                //The attribute hostedByNode may not be set by AMF yet
+                                //SMFD tries to read the attribute every 5 seconds until set
+                                //Times out after time configured as reboot timeout
+                                int interval = 5; //seconds
+                                int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                                bool nodeEmpty = false;  //Used to control log printout
+                                while(true) {
+                                        if (immUtil.getObject((*objit), &attributes) != true) {
+                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:Fails to get object %s", (*objit).c_str());  
+                                                return false;
+                                        }
+
+                                        const SaNameT *typeRef =
                                                 immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes, "saAmfSUType",
                                                                     0);
+                                        if (typeRef == NULL) {
+                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:No typeRef attr set for %s", (*objit).c_str());
+                                                return false;
+                                        }
 
-					TRACE("typeRef = %s", (char*)typeRef->value);
+                                        TRACE("typeRef = %s", (char*)typeRef->value);
 
-					if ((typeRef != NULL)
-					    && (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0)) {
-						/* This SU is of the correct version type */
-						TRACE("This SU is of the correct version type");
+                                        if (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0) {
+                                                /* This SU is of the correct version type */
+                                                TRACE("This SU is of the correct version type");
 
-						/* Check if the found SU is hosted by the activation unit (node) */
-						TRACE("Check if the found SU is hosted by the activation unit (node)");
-						const SaNameT *hostedByNode =
+                                                /* Check if the found SU is hosted by the activation unit (node) */
+                                                TRACE("Check if the found SU is hosted by the activation unit (node)");
+                                                const SaNameT *hostedByNode =
                                                         immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
                                                                             "saAmfSUHostedByNode",
                                                                             0);
-						if (hostedByNode == NULL) {
-                                                        LOG_ER("SmfUpgradeProcedure::addStepModificationsNode:No hostedByNode attr set for %s", (*objit).c_str());  
-                                                        return false;
-						}
-                               
-						TRACE("hostedByNode = %s", (char*)hostedByNode->value);
-						if ((hostedByNode != NULL)
-						    && (strcmp(auNodeName.c_str(), (char *)hostedByNode->value) == 0)) {
-							/* The SU is hosted by the AU node */
-							TRACE("SmfUpgradeProcedure::addStepModificationsNode:SU %s hosted by %s, add modifications", (*objit).c_str(),
-							      auNodeName.c_str());
-							if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
-                                                                LOG_ER("SmfUpgradeProcedure::addStepModificationsNode:addStepModificationList fails");
+                                                if (hostedByNode == NULL) {
+                                                        if(timeout <= 0) { //Timeout                                
+                                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:No hostedByNode attr set for %s", (*objit).c_str());
                                                                 return false;
                                                         }
-						}
-					}
-				}
+                                                        if (nodeEmpty == false) {
+                                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:saAmfSUHostedByNode attribute in %s is empty, waiting for it to be set", (*objit).c_str());
+                                                                nodeEmpty = true;
+                                                        }
+                                                        sleep(interval);
+                                                        timeout -= interval;
+                                                        continue; //No hostedByNode was set, read the same object again
+                                                }
+
+                                                if (nodeEmpty == true) {
+                                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:saAmfSUHostedByNode attribute in %s is now set, continue", (*objit).c_str());
+                                                }
+                                                TRACE("hostedByNode = %s", (char*)hostedByNode->value);
+                                                if (strcmp(auNodeName.c_str(), (char *)hostedByNode->value) == 0) {
+                                                        /* The SU is hosted by the AU node */
+                                                        TRACE("SmfUpgradeProcedure::addStepModificationsNode:SU %s hosted by %s, add modifications", (*objit).c_str(),
+                                                              auNodeName.c_str());
+                                                        if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+                                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:addStepModificationList fails");
+                                                                return false;
+                                                        }
+                                                }
+                                        }
+
+                                        break; //Exit the while(true) loop
+                                } //End while(true)
 			}
 		} else if (strcmp(className, "SaAmfCompType") == 0) {
 			TRACE("SmfUpgradeProcedure::addStepModificationsNode:Check Comp type %s for modifications", i_parentType->getTypeDn().c_str());
@@ -1454,36 +1599,66 @@ SmfUpgradeProcedure::addStepModificationsNode(SmfUpgradeStep * i_newStep, const 
 
 			for (objit = objectList.begin(); objit != objectList.end(); ++objit) {
 				TRACE("SmfUpgradeProcedure::addStepModificationsNode:Check Comp %s for modifications", (*objit).c_str());
-				if (immUtil.getObject((*objit), &attributes) == true) {
-					const SaNameT *typeRef =
-                                                immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                    "saAmfCompType", 0);
+                                if (immUtil.getObject((*objit), &attributes) != true) {
+                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:Fails to get object %s", (*objit).c_str());  
+                                        return false;
+                                }
+                                const SaNameT *typeRef =
+                                        immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                            "saAmfCompType", 0);
+                                if (typeRef == NULL) {
+                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:No typeRef attr set for %s", (*objit).c_str());
+                                        return false;
+                                }
 
-					if ((typeRef != NULL)
-					    && (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0)) {
-						/* This component is of the correct version type */
+                                if (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0) {
+                                        /* This component is of the correct version type */
 
-						/* Check if the found component is hosted by the activation unit (node) */
+                                        /* Check if the found component is hosted by the activation unit (node) */
 
-						/* Find the parent SU to this component */
+                                        /* Find the parent SU to this component */
+
+                                        //The attribute hostedByNode may not be set by AMF yet
+                                        //SMFD tries to read the attribute every 5 seconds until set
+                                        //Times out after time configured as reboot timeout
+                                        int interval = 5; //seconds
+                                        int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                                        SaNameT *hostedByNode = 0;
+                                        bool nodeEmpty = false;  //Used to control log printout
+                                        while(true) {
 						if (immUtil.getParentObject((*objit), &attributes) == true) {
-							const SaNameT *hostedByNode =
-                                                                immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                                    "saAmfSUHostedByNode", 0);
-							if ((hostedByNode != NULL)
-							    && (strcmp(auNodeName.c_str(), (char *)hostedByNode->value)
-								== 0)) {
-								/* The component is hosted by the AU node */
-								TRACE("Component %s hosted by %s, add modifications",
-								      (*objit).c_str(), auNodeName.c_str());
-                                                                if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
-                                                                        LOG_ER("SmfUpgradeProcedure::addStepModificationsNode:addStepModificationList fails");
+							hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                                                      "saAmfSUHostedByNode", 0);
+                                                        if (hostedByNode == NULL) {
+                                                                if(timeout <= 0) { //Timeout                                
+                                                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsNode::No hostedByNode attr set for %s", (*objit).c_str());  
                                                                         return false;
                                                                 }
-							}
+                                                                if (nodeEmpty == false) {
+                                                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:saAmfSUHostedByNode attribute in %s parent is empty, waiting for it to be set", (*objit).c_str());
+                                                                        nodeEmpty = true;
+                                                                }
+                                                                sleep(interval);
+                                                                timeout -= interval;
+                                                                continue; //No hostedByNode was set, read the same object again
+                                                        }
 						}
-					}
-				}
+                                                if (nodeEmpty == true) {
+                                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:saAmfSUHostedByNode attribute in %s parent is now set, continue", (*objit).c_str());
+                                                }
+                                                break; //Exit the while(true) loop
+                                        } //End while(true)
+
+                                        if (strcmp(auNodeName.c_str(), (char *)hostedByNode->value) == 0) {
+                                                /* The component is hosted by the AU node */
+                                                TRACE("Component %s hosted by %s, add modifications",
+                                                      (*objit).c_str(), auNodeName.c_str());
+                                                if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+                                                        LOG_ER("SmfUpgradeProcedure::addStepModificationsNode:addStepModificationList fails");
+                                                        return false;
+                                                }
+                                        }
+                                }
 			}
 		} else {
 			LOG_ER("SmfUpgradeProcedure::addStepModificationsNode:class name %s for type %s not valid as type", className,
@@ -1499,21 +1674,52 @@ SmfUpgradeProcedure::addStepModificationsNode(SmfUpgradeStep * i_newStep, const 
 
                 for (objit = objectList.begin(); objit != objectList.end(); ++objit) {
                         TRACE("SmfUpgradeProcedure::addStepModificationsNode:Check child SU %s for modifications", (*objit).c_str());
-                        if (immUtil.getObject((*objit), &attributes) == true) {
-                                /* Check if the found SU is hosted by the activation unit (node) */
-                                const SaNameT *hostedByNode =
-                                        immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                            "saAmfSUHostedByNode",
-                                                            0);
-                                if ((hostedByNode != NULL)
-                                    && (strcmp(auNodeName.c_str(), (char *)hostedByNode->value) == 0)) {
-                                        /* The SU is hosted by the AU node */
-                                        TRACE("SmfUpgradeProcedure::addStepModificationsNode:SU %s hosted by %s, add modifications", (*objit).c_str(),
-                                              auNodeName.c_str());
-                                        if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
-                                                LOG_ER("SmfUpgradeProcedure::addStepModificationsNode:addStepModificationList fails");
+                        //Check if it is hosted by any node in the node list
+                        //Find the parent SU to this component
+                        //The attribute hostedByNode may not be set by AMF yet
+                        //SMFD tries to read the attribute every 5 seconds until set
+                        //Times out after time configured as reboot timeout
+                        int interval = 5; //seconds
+                        int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                        SaNameT *hostedByNode = 0;
+                        bool nodeEmpty = false;  //Used to control log printout
+                        while(true) {
+                                if (immUtil.getObject((*objit), &attributes) != true) {
+                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:Fails to get object %s", (*objit).c_str());  
+                                        return false;
+                                }
+
+                                hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                              "saAmfSUHostedByNode",
+                                                                              0);
+
+                                if (hostedByNode == NULL) {
+                                        if(timeout <= 0) { //Timeout                                
+                                                LOG_ER("SmfUpgradeProcedure::addStepModificationsNode::No hostedByNode attr set for %s", (*objit).c_str());
                                                 return false;
                                         }
+                                        if (nodeEmpty == false) {
+                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:saAmfSUHostedByNode attribute in %s is empty, waiting for it to be set", (*objit).c_str());
+                                                nodeEmpty = true;
+                                        }
+                                        sleep(interval);
+                                        timeout -= interval;
+                                        continue; //No hostedByNode was set, read the same object again
+                                }
+                                if (nodeEmpty == true) {
+                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsNode:saAmfSUHostedByNode attribute in %s is now set, continue", (*objit).c_str());
+                                }
+                                break;//Exit the while(true) loop
+                        }//End while(true)
+
+                        /* Check if the found SU is hosted by the activation unit (node) */
+                        if (strcmp(auNodeName.c_str(), (char *)hostedByNode->value) == 0) {
+                                /* The SU is hosted by the AU node */
+                                TRACE("SmfUpgradeProcedure::addStepModificationsNode:SU %s hosted by %s, add modifications", (*objit).c_str(),
+                                      auNodeName.c_str());
+                                if (!addStepModificationList(i_newStep, *objit, i_modificationList)) {
+                                        LOG_ER("SmfUpgradeProcedure::addStepModificationsNode:addStepModificationList fails");
+                                        return false;
                                 }
                         }
                 }
@@ -1577,9 +1783,12 @@ SmfUpgradeProcedure::addStepModificationsSuComp(SmfUpgradeStep * i_newStep, cons
 				if (immUtil.getObject((*objit), &attributes) == true) {
 					const SaNameT *typeRef =
 						immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes, "saAmfSUType", 0);
+                                        if (typeRef == NULL) {
+                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsSuComp:No typeRef attr set for %s", (*objit).c_str());
+                                                return false;
+                                        }
 
-
-					if ((typeRef != NULL) && (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0)) {
+					if (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0) {
 						/* This SU is of the correct version type */
                                                 //For all AU/DU in the step, check if the SU DN is within the AU/DU DN
                                                 for (auEntityIt = auEntityList.begin(); auEntityIt != auEntityList.end(); ++auEntityIt) {
@@ -1602,19 +1811,40 @@ SmfUpgradeProcedure::addStepModificationsSuComp(SmfUpgradeStep * i_newStep, cons
 							if (strcmp(className, "SaAmfNode") == 0) {  
 								//The auEntity is a node.
 								//Find out if the instance of the SaAmfSUType is located on the node
-								if (immUtil.getObject((*objit), &attributes) == false) {
-									LOG_ER("addStepModificationsSuComp: Can not read object %s", (*objit).c_str());
-									return false;
-								}
+                                                                //The attribute hostedByNode may not be set by AMF yet
+                                                                //SMFD tries to read the attribute every 5 seconds until set
+                                                                //Times out after time configured as reboot timeout
+                                                                int interval = 5; //seconds
+                                                                int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                                                                SaNameT *hostedByNode = 0;
+                                                                bool nodeEmpty = false;  //Used to control log printout
+                                                                while(true) {
+                                                                        if (immUtil.getObject((*objit), &attributes) == false) {
+                                                                                LOG_ER("addStepModificationsSuComp: Can not read object %s", (*objit).c_str());
+                                                                                return false;
+                                                                        }
 
-							       	const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-														  "saAmfSUHostedByNode",
-														  0);
-								
-								if (hostedByNode == NULL) {
-									LOG_ER("addStepModificationsSuComp:No hostedByNode attribute set for %s", (*objit).c_str());  
-									return false;
-								}
+                                                                        hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                                                           "saAmfSUHostedByNode",
+                                                                                                           0);
+                                                                        if (hostedByNode == NULL) {
+                                                                                if(timeout <= 0) { //Timeout                                
+                                                                                        LOG_ER("SmfUpgradeProcedure::addStepModificationsSuComp::No hostedByNode attr set for %s", (*objit).c_str());
+                                                                                        return false;
+                                                                                }
+                                                                                if (nodeEmpty == false) {
+                                                                                        LOG_NO("SmfUpgradeProcedure::addStepModificationsSuComp:saAmfSUHostedByNode attribute in %s is empty, waiting for it to be set", (*objit).c_str());
+                                                                                        nodeEmpty = true;
+                                                                                }
+                                                                                sleep(interval);
+                                                                                timeout -= interval;
+                                                                                continue; //No hostedByNode was set, read the same object again
+                                                                        }
+                                                                        if (nodeEmpty == true) {
+                                                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsSuComp:saAmfSUHostedByNode attribute in %s is now set, continue", (*objit).c_str());
+                                                                        }
+                                                                        break; //Exit the while(true) loop
+                                                                } //End while(true)
 
 								//Match "hostedByNode" with the auEntity
 								if (strcmp((*auEntityIt).c_str(), (char *)hostedByNode->value) == 0) {
@@ -1637,7 +1867,6 @@ SmfUpgradeProcedure::addStepModificationsSuComp(SmfUpgradeStep * i_newStep, cons
 									//The auEntityIt DN is a substring of objit i.e. the object 
 									//to modify within the AU/DU domain
 									//Add object modifications
-
 									TRACE("SmfUpgradeProcedure::addStepModificationsSuComp:Modification DN=%s, is within AU/DU=%s, add modifications", 
 									      (*objit).c_str(),
 									      (*auEntityIt).c_str());
@@ -1666,9 +1895,12 @@ SmfUpgradeProcedure::addStepModificationsSuComp(SmfUpgradeStep * i_newStep, cons
 				if (immUtil.getObject((*objit), &attributes) == true) {
 					const SaNameT *typeRef =
                                                 immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes, "saAmfCompType", 0);
+                                        if (typeRef == NULL) {
+                                                LOG_NO("SmfUpgradeProcedure::addStepModificationsSuComp:No typeRef attr set for %s", (*objit).c_str());
+                                                return false;
+                                        } 
 
-					if ((typeRef != NULL)
-					    && (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0)) {
+					if (strcmp(i_parentType->getTypeDn().c_str(), (char *)typeRef->value) == 0) {
 						/* This component is of the correct version type */
                                                 //For all objects found of this type, match DNs to see if it is within the act/deact unit
 						for (auEntityIt = auEntityList.begin(); auEntityIt != auEntityList.end(); ++auEntityIt) {
@@ -1693,19 +1925,41 @@ SmfUpgradeProcedure::addStepModificationsSuComp(SmfUpgradeStep * i_newStep, cons
 								//The auEntity is a node.
 								//Find out if the instance of the SaAmfCompType is located on the node
 
-								//Find the parent SU to this component
-								if (immUtil.getParentObject((*objit), &attributes) == false) {
-									LOG_ER("addStepModificationsSuComp:No parent found to %s", (*objit).c_str());
-									return false;
-								}
+                                                                //The attribute hostedByNode may not be set by AMF yet
+                                                                //SMFD tries to read the attribute every 5 seconds until set
+                                                                //Times out after time configured as reboot timeout
+                                                                int interval = 5; //seconds
+                                                                int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                                                                SaNameT *hostedByNode = 0;
+                                                                bool nodeEmpty = false;  //Used to control log printout
+                                                                while(true) {
+                                                                        //Find the parent SU to this component
+                                                                        if (immUtil.getParentObject((*objit), &attributes) == false) {
+                                                                                LOG_ER("addStepModificationsSuComp:No parent found to %s", (*objit).c_str());
+                                                                                return false;
+                                                                        }
 
-								const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-														  "saAmfSUHostedByNode", 
-														  0);
-								if (hostedByNode == NULL) {
-									LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
-									return false;
-								}
+                                                                        hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                                                                      "saAmfSUHostedByNode", 
+                                                                                                                      0);
+                                                                        if (hostedByNode == NULL) {
+                                                                                if(timeout <= 0) { //Timeout                                
+                                                                                        LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate::No hostedByNode attr set for %s", (*objit).c_str());
+                                                                                        return false;
+                                                                                }
+                                                                                if (nodeEmpty == false) {
+                                                                                        LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s parent is empty, waiting for it to be set", (*objit).c_str());
+                                                                                        nodeEmpty = true;
+                                                                                }
+                                                                                sleep(interval);
+                                                                                timeout -= interval;
+                                                                                continue; //No hostedByNode was set, read the same object again
+                                                                        }
+                                                                        if (nodeEmpty == true) {
+                                                                                LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s parent is now set, continue", (*objit).c_str());
+                                                                        }
+                                                                        break; //Exit the while(true) loop
+                                                                } //End while(true)
 
 								//Match "hostedByNode" with the auEntity
 								if (strcmp((*auEntityIt).c_str(), (char *)hostedByNode->value) == 0) {
@@ -1784,20 +2038,41 @@ SmfUpgradeProcedure::addStepModificationsSuComp(SmfUpgradeStep * i_newStep, cons
 					if (strcmp(className, "SaAmfNode") == 0) {  
 						//The auEntity is a node.
 						//Find out if the instance of the SaAmfCompType is located on the node
+                                                //The attribute hostedByNode may not be set by AMF yet
+                                                //SMFD tries to read the attribute every 5 seconds until set
+                                                //Times out after time configured as reboot timeout
+                                                int interval = 5; //seconds
+                                                int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                                                SaNameT *hostedByNode = 0;
+                                                bool nodeEmpty = false;  //Used to control log printout
+                                                while(true) {
+                                                        //Find the parent SU to this component
+                                                        if (immUtil.getParentObject((*objit), &attributes) == false) {
+                                                                LOG_ER("addStepModificationsSuComp:No parent found to %s", (*objit).c_str());
+                                                                return false;
+                                                        }
 
-						//Find the parent SU to this component
-						if (immUtil.getParentObject((*objit), &attributes) == false) {
-							LOG_ER("addStepModificationsSuComp:No parent found to %s", (*objit).c_str());
-							return false;
-						}
-
-						const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-												  "saAmfSUHostedByNode", 
-												  0);
-						if (hostedByNode == NULL) {
-							LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:No hostedByNode attr set for %s", (*objit).c_str());  
-							return false;
-						}
+                                                        hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                                                          "saAmfSUHostedByNode", 
+                                                                                                          0);
+                                                        if (hostedByNode == NULL) {
+                                                                if(timeout <= 0) { //Timeout                                
+                                                                        LOG_ER("SmfUpgradeProcedure::calcActivationUnitsFromTemplate::No hostedByNode attr set for parent to %s", (*objit).c_str());
+                                                                        return false;
+                                                                }
+                                                                if (nodeEmpty == false) {
+                                                                        LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s parent is empty, waiting for it to be set", (*objit).c_str());
+                                                                        nodeEmpty = true;
+                                                                }
+                                                                sleep(interval);
+                                                                timeout -= interval;
+                                                                continue; //No hostedByNode was set, read the same object again
+                                                        }
+                                                        if (nodeEmpty == true) {
+                                                                LOG_NO("SmfUpgradeProcedure::calcActivationUnitsFromTemplate:saAmfSUHostedByNode attribute in %s parent is now set, continue", (*objit).c_str());
+                                                        }
+                                                        break; //Exit the while(true) loop
+                                                } //End while(true)
 
 						//Match "hostedByNode" with the auEntity
 						if (strcmp((*auEntityIt).c_str(), (char *)hostedByNode->value) == 0) {
