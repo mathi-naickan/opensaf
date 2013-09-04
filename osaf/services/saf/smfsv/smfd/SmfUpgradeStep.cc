@@ -844,19 +844,44 @@ SmfUpgradeStep::setMaintenanceState(SmfActivationUnit& i_units)
 
                         std::list < std::string >::const_iterator suit;
 			for (suit = objectList.begin(); suit != objectList.end(); ++suit) {
-				if (immUtil.getObject((*suit), &attributes) == true) {
+                                //The attribute hostedByNode may not be set by AMF yet
+                                //SMFD tries to read the attribute every 5 seconds until set
+                                //Times out after time configured as reboot timeout
+                                int interval = 5; //seconds
+                                int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+                                SaNameT *hostedByNode = 0;
+                                bool nodeEmpty = false;  //Used to control log printout
+                                while(true) {
+                                        if (immUtil.getObject((*suit), &attributes) == true) {
 
-                                        // Check if the found SU is hosted by the activation unit (node)
-                                        const SaNameT *hostedByNode =
-                                                immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-                                                                    "saAmfSUHostedByNode",
-                                                                    0);
-                                        if ((hostedByNode != NULL)
-                                            && (strcmp((*it).c_str(), (char *)hostedByNode->value) == 0)) {
-                                                /* The SU is hosted by the AU node */
-                                                suList.push_back(*suit);
+                                                hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                                  "saAmfSUHostedByNode",
+                                                                                  0);
+                                                if (hostedByNode == NULL) {
+                                                        if(timeout <= 0) { //Timeout                                
+                                                                LOG_NO("SmfUpgradeStep::setMaintenanceState:No hostedByNode attr set for %s", (*suit).c_str());  
+                                                                return false;
+                                                        }
+                                                        if (nodeEmpty == false) {
+                                                          LOG_NO("SmfUpgradeStep::setMaintenanceState:saAmfSUHostedByNode attribute in %s is empty, waiting for it to be set", (*suit).c_str());
+                                                          nodeEmpty = true;
+                                                        }
+                                                        sleep(interval);
+                                                        timeout -= interval;
+                                                        continue; //No hostedByNode was set, read the same object again
+                                                }
                                         }
-				}
+                                        if (nodeEmpty == true) {
+                                                LOG_NO("SmfUpgradeStep::setMaintenanceState:saAmfSUHostedByNode attribute in %s is now set, continue", (*suit).c_str());
+                                        }
+                                        break; //Exit the while(true) loop
+                                } //End while(true)
+
+                                // Check if the found SU is hosted by the activation unit (node)
+                               if (strcmp((*it).c_str(), (char *)hostedByNode->value) == 0) {
+                                        /* The SU is hosted by the AU node */
+                                        suList.push_back(*suit);
+                                }
 			}
                 } else if ((*it).find("safSu") == 0) { 
                         //If DN is a SU, set saAmfSUMaintenanceCampaign for this SU only
@@ -1422,33 +1447,55 @@ SmfUpgradeStep::isCurrentNode(const std::string & i_amfNodeDN)
 
 	SmfImmUtils immUtil;
 	SaImmAttrValuesT_2 **attributes;
-	bool rc = false;
 	std::string comp_name = getenv("SA_AMF_COMPONENT_NAME");
 	TRACE("My components name is %s", comp_name.c_str());
 
 	// Find the parent SU to this component and read which node that is hosting the SU
-	if (immUtil.getParentObject(comp_name, &attributes) == true) {
-		const SaNameT *hostedByNode = immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
-								  "saAmfSUHostedByNode", 
-								  0);
-		if (hostedByNode != NULL){
-			TRACE("The SU is hosted by node %s", (char *)hostedByNode->value);
-			if (strcmp(i_amfNodeDN.c_str(), (char *)hostedByNode->value) == 0) {
-				/* The SU is hosted by the node */
-				TRACE("SmfUpgradeStep::isCurrentNode:MATCH, component %s hosted by %s", comp_name.c_str(), i_amfNodeDN.c_str());
-				rc = true;
-			}
-		} else {
-			LOG_ER("SmfUpgradeStep::isCurrentNode:No hostedByNode attr set for components hosting SU %s", comp_name.c_str());  
-			rc = false;
-		}
-        } else {
-		LOG_ER("SmfUpgradeStep::isCurrentNode:Fails to get parent to %s", comp_name.c_str());  
-		rc = false;
-	}
+        //The attribute hostedByNode may not be set by AMF yet
+        //SMFD tries to read the attribute every 5 seconds until set
+        //Times out after time configured as reboot timeout
+	int interval = 5; //seconds
+        int timeout = smfd_cb->rebootTimeout/1000000000; //seconds
+        SaNameT *hostedByNode = 0;
+        bool nodeEmpty = false;  //Used to control log printout
+        while(true) {
+                if (immUtil.getParentObject(comp_name, &attributes) != true) {
+                        LOG_NO("SmfUpgradeStep::isCurrentNode:Fails to get parent to %s", comp_name.c_str());  
+                        return false;
+                }
 
-	TRACE_LEAVE();
-        return rc;
+                hostedByNode = (SaNameT *)immutil_getNameAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                              "saAmfSUHostedByNode", 
+                                                              0);
+                if (hostedByNode == NULL) {
+                        if(timeout <= 0) { //Timeout                                
+                                LOG_NO("SmfUpgradeStep::isCurrentNode:No hostedByNode attr set for components hosting SU %s", comp_name.c_str());  
+                                return false;
+                        }
+                        if (nodeEmpty == false) {
+                                LOG_NO("SmfUpgradeStep::isCurrentNode:saAmfSUHostedByNode attribute in %s parent is empty, waiting for it to be set", comp_name.c_str());
+                                nodeEmpty = true;
+                        }
+                        sleep(interval);
+                        timeout -= interval;
+                        continue; //No hostedByNode was set, read the same object again
+                }
+                if (nodeEmpty == true) {
+                        LOG_NO("SmfUpgradeStep::isCurrentNode:saAmfSUHostedByNode attribute in %s parent is now set, continue", comp_name.c_str());
+                }
+                break; //Exit the while(true) loop
+        } //End while(true)
+
+        TRACE("The SU is hosted by node %s", (char *)hostedByNode->value);
+        if (strcmp(i_amfNodeDN.c_str(), (char *)hostedByNode->value) == 0) {
+                /* The SU is hosted by the node */
+                TRACE("SmfUpgradeStep::isCurrentNode:MATCH, component %s hosted by %s", comp_name.c_str(), i_amfNodeDN.c_str());
+                return true;
+        }
+
+        TRACE("SmfUpgradeStep::isCurrentNode:NO MATCH, component %s is not hosted by %s", comp_name.c_str(), i_amfNodeDN.c_str());
+        TRACE_LEAVE();
+        return false;
 }
 
 //------------------------------------------------------------------------------
