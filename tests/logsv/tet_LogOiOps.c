@@ -34,6 +34,9 @@ static SaLogFileCreateAttributesT_2 appStreamLogFileCreateAttributes =
     .logFileFmt = DEFAULT_FORMAT_EXPRESSION
 };
 
+/**
+ * CCB Object Modify saLogStreamFileName
+ */
 void saLogOi_01(void)
 {
     int rc;
@@ -67,6 +70,9 @@ void saLogOi_02(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * CCB Object Modify saLogStreamMaxLogFileSize
+ */
 void saLogOi_03(void)
 {
     int rc;
@@ -78,6 +84,9 @@ void saLogOi_03(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * CCB Object Modify saLogStreamFixedLogRecordSize
+ */
 void saLogOi_04(void)
 {
     int rc;
@@ -89,6 +98,9 @@ void saLogOi_04(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * CCB Object Modify saLogStreamLogFullAction=1
+ */
 void saLogOi_05(void)
 {
     int rc;
@@ -100,6 +112,9 @@ void saLogOi_05(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * CCB Object Modify saLogStreamLogFullAction=2
+ */
 void saLogOi_06(void)
 {
     int rc;
@@ -111,6 +126,9 @@ void saLogOi_06(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * CCB Object Modify saLogStreamLogFullAction=3
+ */
 void saLogOi_07(void)
 {
     int rc;
@@ -122,6 +140,9 @@ void saLogOi_07(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * CCB Object Modify saLogStreamLogFullAction=4, ERR invalid
+ */
 void saLogOi_08(void)
 {
     int rc;
@@ -134,6 +155,9 @@ void saLogOi_08(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * CCB Object Modify saLogStreamLogFullHaltThreshold=90%
+ */
 void saLogOi_09(void)
 {
     int rc;
@@ -145,6 +169,9 @@ void saLogOi_09(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * CCB Object Modify saLogStreamLogFullHaltThreshold=101%, invalid
+ */
 void saLogOi_10(void)
 {
     int rc;
@@ -156,6 +183,9 @@ void saLogOi_10(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * CCB Object Modify saLogStreamMaxFilesRotated
+ */
 void saLogOi_11(void)
 {
     int rc;
@@ -167,6 +197,9 @@ void saLogOi_11(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * CCB Object Modify saLogStreamLogFileFormat
+ */
 void saLogOi_12(void)
 {
     int rc;
@@ -178,6 +211,9 @@ void saLogOi_12(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * CCB Object Modify saLogStreamLogFileFormat - wrong format
+ */
 void saLogOi_13(void)
 {
     int rc;
@@ -189,6 +225,9 @@ void saLogOi_13(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * CCB Object Modify saLogStreamSeverityFilter
+ */
 void saLogOi_14(void)
 {
     int rc;
@@ -200,6 +239,9 @@ void saLogOi_14(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * saImmOiRtAttrUpdateCallback
+ */
 void saLogOi_15(void)
 {
     int rc;
@@ -210,6 +252,9 @@ void saLogOi_15(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * Log Service Administration API, change sev filter for app stream OK
+ */
 void saLogOi_16(void)
 {
     int rc;
@@ -225,6 +270,9 @@ void saLogOi_16(void)
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
+/**
+ * Log Service Administration API, change sev filter, ERR invalid stream
+ */
 void saLogOi_17(void)
 {
     int rc;
@@ -236,6 +284,9 @@ void saLogOi_17(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * Log Service Administration API, change sev filter, ERR invalid arg type
+ */
 void saLogOi_18(void)
 {
     int rc;
@@ -251,6 +302,9 @@ void saLogOi_18(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * Log Service Administration API, change sev filter, ERR invalid severity
+ */
 void saLogOi_19(void)
 {
     int rc;
@@ -266,6 +320,9 @@ void saLogOi_19(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * Log Service Administration API, change sev filter, ERR invalid param name
+ */
 void saLogOi_20(void)
 {
     int rc;
@@ -281,6 +338,9 @@ void saLogOi_20(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * Log Service Administration API, no change in sev filter, ERR NO OP
+ */
 void saLogOi_21(void)
 {
     int rc;
@@ -297,6 +357,9 @@ void saLogOi_21(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * Log Service Administration API, invalid opId
+ */
 void saLogOi_22(void)
 {
     int rc;

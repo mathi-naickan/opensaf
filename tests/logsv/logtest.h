@@ -33,7 +33,6 @@
 #define DEFAULT_APP_LOG_REC_SIZE 128
 #define DEFAULT_APP_LOG_FILE_SIZE 512
 #define DEFAULT_FORMAT_EXPRESSION "@Cr @Ch:@Cn:@Cs @Cm/@Cd/@CY @Sv @Sl \"@Cb\""
-//#define SA_LOG_STREAM_APPLICATION1 "safLgStr=saLogApplication1"
 #define DEFAULT_ALM_LOG_REC_SIZE 1024  
 #define DEFAULT_ALM_LOG_BUFFER "Alarm stream test" 
 #define DEFAULT_NOT_LOG_REC_SIZE 1024  
