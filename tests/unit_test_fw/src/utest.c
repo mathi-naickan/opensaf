@@ -46,6 +46,14 @@ static unsigned int current_test;
 
 unsigned int testdebug;
 
+/**
+ * Used when rc is an SA_AIS_XXX reurn code
+ * 
+ * NOTE: Deprecated. Use aisrc_validate()
+ * 
+ * @param rc
+ * @param expected
+ */
 void test_validate(SaUint32T rc, SaUint32T expected)
 {
     /* Save for later use */
@@ -63,6 +71,68 @@ void test_validate(SaUint32T rc, SaUint32T expected)
         test_failed++;
         printf("  %3d  FAILED", current_test);
         last_test_status = -1;
+    }
+
+    test_total++;
+}
+
+/**
+ * Used when rc is an SA_AIS_XXX reurn code
+ * 
+ * @param rc
+ * @param expected
+ */
+void aisrc_validate(SaAisErrorT rc, SaAisErrorT expected)
+{
+    /* Save for later use */
+    actualStatus = rc;
+    expectedStatus = expected;
+
+    if (rc == expected)
+    {
+        test_passed++;
+        printf("  %3d  PASSED", current_test);
+        last_test_status = 0;
+    }
+    else
+    {
+        test_failed++;
+        printf("  %3d  FAILED", current_test);
+        last_test_status = -1;
+    }
+
+    test_total++;
+}
+
+/**
+ * Used when rc is an exit code from an external tool e.g. immadm
+ * 
+ * @param rc
+ * @param expected
+ */
+void rc_validate(int rc, int expected)
+{
+	char *exit_str[] = {"EXIT_SUCCESS","EXIT_FAILURE"};
+	char other_str[] = "UNKNOWN";
+	char *rcstr, *expstr;
+	
+    /* Save for later use */
+    actualStatus = rc;
+    expectedStatus = expected;
+    last_test_status = 0;
+	
+    if (rc == expected)
+    {
+        test_passed++;
+        printf("  %3d  PASSED", current_test);
+    }
+    else
+    {
+        test_failed++;
+        printf("  %3d  FAILED", current_test);
+		rcstr = (rc < 2) ? exit_str[rc]: other_str;
+		expstr = (expected < 2) ? exit_str[expected]: other_str;
+		printf("\t(expected %s, got %s (%d))",expstr, rcstr, rc);
     }
 
     test_total++;

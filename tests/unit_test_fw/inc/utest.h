@@ -45,10 +45,27 @@ extern void test_case_add(unsigned int suite, void(*testfunc)(void), const char 
 
 /**
  * Validate and print result of a test case.
+ * NOTE: Deprecated. Use aisrc_validate()
  * @param actual actual status code
  * @param expected expected status code
  */
 extern void test_validate(SaUint32T actual, SaUint32T expected);
+
+/**
+ * Validate and print result of a test case.
+ * Used when rc is an SA_AIS_XXX return code
+ * @param actual actual status code
+ * @param expected expected status code
+ */
+void aisrc_validate(SaAisErrorT rc, SaAisErrorT expected);
+
+/**
+ * Validate and print result of a test case.
+ * Used when rc is an exit code from an external tool e.g. immadm
+ * @param rc
+ * @param expected
+ */
+void rc_validate(int rc, int expected);
 
 /**
  * Run all test cases, all test cases in a suite or a specific
