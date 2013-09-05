@@ -17,6 +17,11 @@
 
 #include <sys/time.h>
 #include <unistd.h>
+#include <limits.h>
+#include <configmake.h>
+#include <saImmOm.h>
+#include <immutil.h>
+#include <saImm.h>
 
 #include "logtest.h"
 
@@ -93,16 +98,52 @@ SaLogRecordT genLogRecord =
 };
 
 SaVersionT logVersion = {'A', 0x02, 0x01}; 
+SaVersionT immVersion = {'A', 2, 11};
 SaAisErrorT rc;
 SaLogHandleT logHandle;
 SaLogStreamHandleT logStreamHandle;
 SaLogCallbacksT logCallbacks = {NULL, NULL, NULL};
 SaSelectionObjectT selectionObject;
+char log_root_path[PATH_MAX];
+
+void init_logrootpath(void)
+{
+	SaImmHandleT omHandle;
+	SaNameT objectName = {
+		.value = "logConfig=1,safApp=safLogService",
+		.length = strlen("logConfig=1,safApp=safLogService")
+	};
+	SaImmAccessorHandleT accessorHandle;
+	SaImmAttrValuesT_2 *attribute;
+	SaImmAttrValuesT_2 **attributes;
+	SaAisErrorT ais_rc = SA_AIS_OK;
+	const char logRootDirectory_name[] = "logRootDirectory";
+	SaImmAttrNameT attributeNames[2] = {(char *) logRootDirectory_name, NULL};
+	void *value;
+	
+	/* NOTE: immutil init osaf_assert if error */
+	(void) immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
+	(void) immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
+
+	/* Get all attributes of the object */
+	ais_rc = immutil_saImmOmAccessorGet_2(accessorHandle, &objectName,
+										attributeNames, &attributes);
+	if (ais_rc == SA_AIS_OK) {
+		attribute = attributes[0];
+		value = attribute->attrValues[0];
+		strncpy(log_root_path, *((char **) value), PATH_MAX);
+	} else {
+		/* We didn't get a root path from IMM. Use default */
+		strncpy(log_root_path, PKGLOGDIR, PATH_MAX);
+	}
+	(void) immutil_saImmOmFinalize(omHandle);
+}
 
 int main(int argc, char **argv) 
 {
     int suite = ALL_SUITES, tcase = ALL_TESTS;
 
+	init_logrootpath();
     srandom(getpid());
 
     if (argc > 1)
@@ -120,6 +161,10 @@ int main(int argc, char **argv)
         test_list();
         return 0;
     }
+	
+	if (suite == 999) {
+		return 0;
+	}
 
     return test_run(suite, tcase);
 }  

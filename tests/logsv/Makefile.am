@@ -25,11 +25,13 @@ noinst_HEADERS = \
 
 logtest_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-I$(top_srcdir)/tests/unit_test_fw/inc
+	-I$(top_srcdir)/tests/unit_test_fw/inc \
+	-I$(top_srcdir)/osaf/libs/common/immsv/include
 
 logtest_SOURCES = \
 	$(top_srcdir)/tests/unit_test_fw/src/utest.c \
 	$(top_srcdir)/tests/unit_test_fw/src/util.c \
+	$(top_srcdir)/osaf/tools/safimm/src/immutil.c \
 	logtest.c \
 	tet_saLogInitialize.c \
 	tet_saLogSelectionObjectGet.c \
