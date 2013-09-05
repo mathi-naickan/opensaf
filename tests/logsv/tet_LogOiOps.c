@@ -17,8 +17,6 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <saImm.h>
-#include <saImmOm.h>
 #include <limits.h>
 #include "logtest.h"
 

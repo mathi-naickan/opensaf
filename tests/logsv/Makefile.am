@@ -49,7 +49,9 @@ logtest_SOURCES = \
 	tet_LogOiOps.c
 
 logtest_LDADD = \
-	$(top_builddir)/osaf/libs/saf/libSaLog/libSaLog.la
+	$(top_builddir)/osaf/libs/saf/libSaLog/libSaLog.la \
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOi.la \
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la
 
 saflogtest_SOURCES = \
 	saflogtest.c
