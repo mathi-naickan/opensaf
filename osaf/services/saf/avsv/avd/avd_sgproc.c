@@ -1281,8 +1281,11 @@ uint32_t avd_sg_app_sg_admin_func(AVD_CL_CB *cb, AVD_SG *sg)
 		 */
 		for (i_su = sg->list_of_su; i_su != NULL; i_su = i_su->sg_list_su_next) {
 			m_AVD_GET_SU_NODE_PTR(cb, i_su, i_su_node_ptr);
-
-			if (m_AVD_APP_SU_IS_INSVC(i_su, i_su_node_ptr)) {
+			// TODO(nagu) remove saAmfSUPreInstantiable check and move into m_AVD_APP_SU_IS_INSVC
+			if (m_AVD_APP_SU_IS_INSVC(i_su, i_su_node_ptr) &&
+					((i_su->saAmfSUPreInstantiable) ?
+					 (i_su->saAmfSUPresenceState == 
+					  SA_AMF_PRESENCE_INSTANTIATED):true)) {
 				avd_su_readiness_state_set(i_su, SA_AMF_READINESS_IN_SERVICE);
 			}
 		}
