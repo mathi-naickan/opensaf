@@ -1183,6 +1183,11 @@ uint32_t imma_search_node_delete(IMMA_CB *cb, IMMA_SEARCH_NODE *search_node)
 	if (search_node == NULL)
 		return NCSCC_RC_FAILURE;
 
+	if (search_node->mLastAttributes) {
+		imma_freeSearchAttrs(search_node->mLastAttributes);
+		search_node->mLastAttributes = NULL;
+	}
+
 	/* Remove the Node from the tree */
 	if (ncs_patricia_tree_del(&cb->search_tree, &search_node->patnode) != NCSCC_RC_SUCCESS) {
 		rc = NCSCC_RC_FAILURE;
@@ -1345,3 +1350,31 @@ SaStringT* imma_getErrorStrings(IMMSV_SAERR_INFO* errRsp)
  done:
 	return errStringArr;
 }
+
+void imma_freeSearchAttrs(SaImmAttrValuesT_2 **attr)
+{
+	SaImmAttrValuesT_2 *att = NULL;
+	int ix;
+	for (ix = 0; attr[ix]; ++ix) {
+		int ix2;
+
+		att = attr[ix];
+		free(att->attrName);    /*free-3 */
+		att->attrName = NULL;
+
+		for (ix2 = 0; ix2 < att->attrValuesNumber; ++ix2) {
+			SaImmAttrValueT aval = att->attrValues[ix2];
+			imma_freeAttrValue3(aval, att->attrValueType);  /*free-5 */
+		}
+		free(att->attrValues);  /*free-4 */
+		att->attrValues = NULL;
+		att->attrValuesNumber = 0;
+		att->attrValueType = 0;
+
+		free(att);      /*free-2 */
+		attr[ix] = NULL;
+	}
+
+	free(attr);             /*free-1 */
+}
+
