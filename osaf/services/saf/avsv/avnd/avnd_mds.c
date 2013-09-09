@@ -1136,7 +1136,7 @@ uint32_t avnd_mds_flat_ava_dec(AVND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 	/* AMF library always sends a fixed size message, verify that size so that
 	 * the decode routine does not read over the edge */
 	if (dec_info->io_uba->max != sizeof(AVSV_NDA_AVA_MSG)) {
-		LOG_NO("%s: wrong number of bytes to decode (%u vs %u)",
+		LOG_NO("%s: wrong number of bytes to decode (%u vs %zu)",
 				__FUNCTION__, dec_info->io_uba->max, sizeof(AVSV_NDA_AVA_MSG));
 		goto err;
 	}
