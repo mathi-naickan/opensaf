@@ -14,10 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include "util.h"
 
 void saNtfNotificationUnsubscribe_01(void)
 {

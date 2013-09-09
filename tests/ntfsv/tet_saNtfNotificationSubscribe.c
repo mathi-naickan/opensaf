@@ -14,10 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include "util.h"
 
 void saNtfNotificationSubscribe_01(void)
 {
@@ -67,7 +67,7 @@ void saNtfNotificationSubscribe_01(void)
     test_validate(rc, SA_AIS_OK);
 }
 
-/* Test NULL handle paramter */
+/* Test NULL handle parameter */
 void saNtfNotificationSubscribe_02(void)
 {
     rc = saNtfNotificationSubscribe(NULL, 4);
@@ -91,11 +91,11 @@ void saNtfNotificationSubscribe_03(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion), SA_AIS_OK);
 
     /* Initialize filter handles */
-    myNotificationFilterHandles.alarmFilterHandle = 0;
-    myNotificationFilterHandles.attributeChangeFilterHandle = 0;
-    myNotificationFilterHandles.objectCreateDeleteFilterHandle = 0;
-    myNotificationFilterHandles.securityAlarmFilterHandle = 0;
-    myNotificationFilterHandles.stateChangeFilterHandle = 0;
+    myNotificationFilterHandles.alarmFilterHandle = SA_NTF_FILTER_HANDLE_NULL;
+    myNotificationFilterHandles.attributeChangeFilterHandle = SA_NTF_FILTER_HANDLE_NULL;
+    myNotificationFilterHandles.objectCreateDeleteFilterHandle = SA_NTF_FILTER_HANDLE_NULL;
+    myNotificationFilterHandles.securityAlarmFilterHandle = SA_NTF_FILTER_HANDLE_NULL;
+    myNotificationFilterHandles.stateChangeFilterHandle = SA_NTF_FILTER_HANDLE_NULL;
 
     rc = saNtfNotificationSubscribe(&myNotificationFilterHandles, 4);
     safassert(saNtfNotificationUnsubscribe(4), SA_AIS_ERR_NOT_EXIST);

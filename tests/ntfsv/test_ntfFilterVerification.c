@@ -24,10 +24,10 @@
  * after they have been sent. A test if the last sent id is received 
  * (which has to be expected) before stoping the polling.
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include "util.h"
 
 #define NOTIF_OBJECT_TEST "safComp=CompT_SC_FAKE,safSu=SuT_SC_FAKE,safNode=SC_2_1"
 #define NOTIF_OBJECT_TEST2 "safComp=CompT_SC_FAKE,safSu=SuT_SC_FAKE,safNode=SC_2_2"
@@ -143,11 +143,13 @@ static void saNtfNotificationCallbackT(
     SaNtfSubscriptionIdT subscriptionId,
     const SaNtfNotificationsT *notification)
 {
+    SaNtfNotificationHandleT notificationHandle = 0;
 	cb_index++;
 /* printf("received Type %#x\n", notification->notificationType);*/
 	switch(notification->notificationType)
 	{
 		case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
+                    notificationHandle = notification->notification.objectCreateDeleteNotification.notificationHandle;
 			ntfRecieved.objectCreateDeleteFilterHandle += 1;
 			if(myNotificationFilterHandles.objectCreateDeleteFilterHandle == 0)
 				errors +=1;
@@ -156,6 +158,7 @@ static void saNtfNotificationCallbackT(
 			break;
 
 		case SA_NTF_TYPE_ATTRIBUTE_CHANGE:
+                    notificationHandle = notification->notification.attributeChangeNotification.notificationHandle;
 			ntfRecieved.attributeChangeFilterHandle += 1;
 			if(myNotificationFilterHandles.attributeChangeFilterHandle == 0)
 				errors += 1;
@@ -164,6 +167,7 @@ static void saNtfNotificationCallbackT(
 			break;
 
 		case SA_NTF_TYPE_STATE_CHANGE:
+                    notificationHandle = notification->notification.stateChangeNotification.notificationHandle;
 			ntfRecieved.stateChangeFilterHandle += 1;
 			if(myNotificationFilterHandles.stateChangeFilterHandle == 0)
 				errors += 1;
@@ -172,6 +176,7 @@ static void saNtfNotificationCallbackT(
 			break;
 
 		case SA_NTF_TYPE_ALARM:
+                    notificationHandle = notification->notification.alarmNotification.notificationHandle;
 			ntfRecieved.alarmFilterHandle += 1;
 			if(myNotificationFilterHandles.alarmFilterHandle == 0) {
 				printf("alarmFilterHandle == 0\n");				
@@ -181,6 +186,7 @@ static void saNtfNotificationCallbackT(
 			break;
 
 		case SA_NTF_TYPE_SECURITY_ALARM:
+                    notificationHandle = notification->notification.securityAlarmNotification.notificationHandle;
 			ntfRecieved.securityAlarmFilterHandle += 1;
 			if(myNotificationFilterHandles.securityAlarmFilterHandle == 0)
 				errors += 1;
@@ -198,6 +204,8 @@ static void saNtfNotificationCallbackT(
 		printf("received id %llu\n", last_not_id);
     if(verbose) {
         newNotification(subscriptionId, notification);
+    } else if (notificationHandle != 0) {
+        safassert(saNtfNotificationFree(notificationHandle), SA_AIS_OK);
     }
 }
 
@@ -1275,10 +1283,10 @@ void objectCreateDeleteNotificationFilterTest(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfObjectCreateDeleteNotificationFilterAllocate(
+    if((rc = saNtfObjectCreateDeleteNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		1, 1, 1, 1, 2)), SA_AIS_OK)) {
+    		1, 1, 1, 1, 2)) == SA_AIS_OK) {
 		 myFilter.sourceIndicators[0] = SA_NTF_OBJECT_OPERATION;
 		 myFilter.sourceIndicators[1] = SA_NTF_MANAGEMENT_OPERATION;
 		 fillFilterHeader(&myFilter.notificationFilterHeader);
@@ -1339,10 +1347,10 @@ void attributeChangeNotificationFilterTest(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfAttributeChangeNotificationFilterAllocate(
+    if((rc = saNtfAttributeChangeNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		1, 1, 1, 1, 2)), SA_AIS_OK)) {
+    		1, 1, 1, 1, 2)) == SA_AIS_OK) {
 		 myFilter.sourceIndicators[0] = SA_NTF_OBJECT_OPERATION;
 		 myFilter.sourceIndicators[1] = SA_NTF_MANAGEMENT_OPERATION;
 		 fillFilterHeader(&myFilter.notificationFilterHeader);
@@ -1402,10 +1410,10 @@ void stateChangeNotificationFilterTest(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfStateChangeNotificationFilterAllocate(
+    if((rc = saNtfStateChangeNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		1, 1, 1, 1, 2, 0)), SA_AIS_OK)) {
+    		1, 1, 1, 1, 2, 0)) == SA_AIS_OK) {
 		 myFilter.sourceIndicators[0] = SA_NTF_OBJECT_OPERATION;
 		 myFilter.sourceIndicators[1] = SA_NTF_MANAGEMENT_OPERATION;
 		 fillFilterHeader(&myFilter.notificationFilterHeader);
@@ -1465,10 +1473,10 @@ void stateChangeNotificationFilterTest2(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfStateChangeNotificationFilterAllocate(
+    if((rc = saNtfStateChangeNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		1, 1, 1, 1, 2, 2)), SA_AIS_OK)) {
+    		1, 1, 1, 1, 2, 2)) == SA_AIS_OK) {
 		 myFilter.sourceIndicators[0] = SA_NTF_OBJECT_OPERATION;
 		 myFilter.sourceIndicators[1] = SA_NTF_MANAGEMENT_OPERATION;
 		 fillFilterHeader(&myFilter.notificationFilterHeader);
@@ -1555,10 +1563,10 @@ void securityAlarmNotificationFilterTest(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfSecurityAlarmNotificationFilterAllocate(
+    if((rc = saNtfSecurityAlarmNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		0, 0, 0, 0, 3,0,0,0,0)), SA_AIS_OK)) {
+    		0, 0, 0, 0, 3,0,0,0,0)) == SA_AIS_OK) {
 
     	/* Initialize filter handles */
     	myNotificationFilterHandles.alarmFilterHandle = 0;
@@ -1633,10 +1641,10 @@ void securityAlarmNotificationFilterTest2(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfSecurityAlarmNotificationFilterAllocate(
+    if((rc = saNtfSecurityAlarmNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		0, 0, 0, 0, 0,2,0,0,0)), SA_AIS_OK)) {
+    		0, 0, 0, 0, 0,2,0,0,0)) == SA_AIS_OK) {
 
     	/* Initialize filter handles */
     	myNotificationFilterHandles.alarmFilterHandle = 0;
@@ -1701,10 +1709,10 @@ void securityAlarmNotificationFilterTest3(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfSecurityAlarmNotificationFilterAllocate(
+    if((rc = saNtfSecurityAlarmNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		0, 0, 0, 0, 0,0,3,0,0)), SA_AIS_OK)) {
+    		0, 0, 0, 0, 0,0,3,0,0)) == SA_AIS_OK) {
 
     	/* Initialize filter handles */
     	myNotificationFilterHandles.alarmFilterHandle = 0;
@@ -1782,10 +1790,10 @@ void securityAlarmNotificationFilterTest4(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfSecurityAlarmNotificationFilterAllocate(
+    if((rc = saNtfSecurityAlarmNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		0, 0, 0, 0, 0,0,0,3,0)), SA_AIS_OK)) {
+    		0, 0, 0, 0, 0,0,0,3,0)) == SA_AIS_OK) {
 
     	/* Initialize filter handles */
     	myNotificationFilterHandles.alarmFilterHandle = 0;
@@ -1863,10 +1871,10 @@ void securityAlarmNotificationFilterTest5(void)
     safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
     safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfSecurityAlarmNotificationFilterAllocate(
+    if((rc = saNtfSecurityAlarmNotificationFilterAllocate(
     		ntfHandle,
     		&myFilter,
-    		0, 0, 0, 0, 0,0,0,0,3)), SA_AIS_OK)) {
+    		0, 0, 0, 0, 0,0,0,0,3)) == SA_AIS_OK) {
 
     	/* Initialize filter handles */
     	myNotificationFilterHandles.alarmFilterHandle = 0;
@@ -1959,7 +1967,7 @@ void combinedNotificationFilterTest(void)
 	safassert(saNtfInitialize(&ntfHandle, &ntfCbTest, &ntfVersion) , SA_AIS_OK);
 	safassert(saNtfSelectionObjectGet(ntfHandle, &selectionObject) , SA_AIS_OK);
 	
-	if(!safassertNice((rc =saNtfAlarmNotificationFilterAllocate(
+	if((rc =saNtfAlarmNotificationFilterAllocate(
 		ntfHandle,
 		&myAlarmFilter,
 		1,
@@ -1968,35 +1976,35 @@ void combinedNotificationFilterTest(void)
 		1,
 		1,
 		1,
-		1)), SA_AIS_OK)){
+		1)) == SA_AIS_OK){
 		fillFilterHeader(&myAlarmFilter.notificationFilterHeader);
 		myAlarmFilter.perceivedSeverities[0] = SA_NTF_SEVERITY_WARNING;
 		myAlarmFilter.probableCauses[0] = SA_NTF_BANDWIDTH_REDUCED;
 		myAlarmFilter.trends[0] = SA_NTF_TREND_MORE_SEVERE;
 		
-		if(!safassertNice((rc = saNtfObjectCreateDeleteNotificationFilterAllocate(
+		if((rc = saNtfObjectCreateDeleteNotificationFilterAllocate(
 			ntfHandle,
 			&myObjCrDeFilter,
 			1,
 			1,
 			1,
 			1,
-			1)), SA_AIS_OK)) {
+			1)) == SA_AIS_OK) {
 			fillFilterHeader(&myObjCrDeFilter.notificationFilterHeader);
 			myObjCrDeFilter.notificationFilterHeader.eventTypes[0] = SA_NTF_OBJECT_CREATION;
 			myObjCrDeFilter.sourceIndicators[0] = SA_NTF_MANAGEMENT_OPERATION;
 			
 			
-			if(!safassertNice((rc = saNtfAttributeChangeNotificationFilterAllocate(
+			if((rc = saNtfAttributeChangeNotificationFilterAllocate(
 				ntfHandle,
 				&myAttrChangeFilter,
-				1, 1, 1, 1, 1)), SA_AIS_OK)) {
+				1, 1, 1, 1, 1)) == SA_AIS_OK) {
 				fillFilterHeader(&myAttrChangeFilter.notificationFilterHeader);
 				myAttrChangeFilter.notificationFilterHeader.eventTypes[0] = SA_NTF_ATTRIBUTE_CHANGED;
 				myAttrChangeFilter.sourceIndicators[0] = SA_NTF_OBJECT_OPERATION;
 				  
-				if(!safassertNice((rc = saNtfSecurityAlarmNotificationFilterAllocate(
-					ntfHandle, &mySecAlarmFilter, 1, 1, 1, 1, 1, 1, 1, 1,1)), SA_AIS_OK)) {
+				if((rc = saNtfSecurityAlarmNotificationFilterAllocate(
+					ntfHandle, &mySecAlarmFilter, 1, 1, 1, 1, 1, 1, 1, 1,1)) == SA_AIS_OK) {
 					fillFilterHeader(&mySecAlarmFilter.notificationFilterHeader);
 					mySecAlarmFilter.notificationFilterHeader.eventTypes[0] = SA_NTF_OPERATION_VIOLATION;
 					mySecAlarmFilter.serviceUsers[0].valueType = SA_NTF_VALUE_INT32;
@@ -2008,10 +2016,10 @@ void combinedNotificationFilterTest(void)
 					mySecAlarmFilter.severities[0] = SA_NTF_SEVERITY_MAJOR;
 					mySecAlarmFilter.probableCauses[0] = SA_NTF_AUTHENTICATION_FAILURE;
 					
-					if(!safassertNice((rc = saNtfStateChangeNotificationFilterAllocate(
+					if((rc = saNtfStateChangeNotificationFilterAllocate(
 						  ntfHandle,
 						  &myStateChangeFilter,
-						  1, 1, 1, 1, 1, 1)), SA_AIS_OK)) {
+						  1, 1, 1, 1, 1, 1)) == SA_AIS_OK) {
 						myStateChangeFilter.sourceIndicators[0] = SA_NTF_OBJECT_OPERATION;
 						fillFilterHeader(&myStateChangeFilter.notificationFilterHeader);
 						myStateChangeFilter.notificationFilterHeader.eventTypes[0] = SA_NTF_OBJECT_STATE_CHANGE;		 
@@ -2164,6 +2172,7 @@ void combinedNotificationFilterTest(void)
     	safassert(saNtfNotificationFilterFree(myAlarmFilter.notificationFilterHandle), SA_AIS_OK);
     }
 
+    free(myNotificationParams.additionalText);
     safassert(saNtfFinalize(ntfHandle) , SA_AIS_OK);
 	 if(rc == SA_AIS_OK)
 		 rc = check_errors();

@@ -14,10 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
-#include "test.h"
 #include "tet_ntf_common.h"
-#include "util.h"
 
 void saNtfObjectCreateDeleteNotificationFilterAllocate_01(void)
 {
@@ -26,14 +26,14 @@ void saNtfObjectCreateDeleteNotificationFilterAllocate_01(void)
 
     safassert(saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion), SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfObjectCreateDeleteNotificationFilterAllocate(
+    if((rc = saNtfObjectCreateDeleteNotificationFilterAllocate(
     		ntfHandle,
     		&myObjCreDelFilter,
     		0,
     		0,
     		0,
     		1,
-    		0)), SA_AIS_OK)) {
+    		0)) == SA_AIS_OK) {
     	safassert(saNtfNotificationFilterFree(myObjCreDelFilter.notificationFilterHandle), SA_AIS_OK);
     }
 

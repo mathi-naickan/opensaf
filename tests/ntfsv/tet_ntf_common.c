@@ -17,16 +17,23 @@
 #include <stdio.h>
 #include <time.h>
 #include <saNtf.h>
+#include <util.h>
+#include <poll.h>
+#include <unistd.h>
 #include "sa_error.h"
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "util.h"
-#include <poll.h>
-#include <unistd.h>
 
 #define CALLBACK_USED 1
 
 SaNtfIdentifierT last_not_id = SA_NTF_IDENTIFIER_UNUSED;
+
+void assertvalue_impl(__const char *__assertion, __const char *__file,
+		   unsigned int __line, __const char *__function)
+{
+        fprintf(stderr, "assert failed in %s at %u, %s(): %s\n",
+                __file, __line, __function, __assertion);
+}
 
 extern SaNtfIdentifierT get_ntf_id(const SaNtfNotificationsT *notif)
 {
@@ -68,7 +75,6 @@ void poll_until_received(SaNtfHandleT ntfHandle, SaNtfIdentifierT wanted_id)
 				perror("timeout");				
 			else
 				perror(NULL);
-			safassertNice(0,SA_AIS_OK);
 			break;
 		}
 		safassert(saNtfDispatch(ntfHandle, SA_DISPATCH_ALL) , SA_AIS_OK);
@@ -142,12 +148,12 @@ void newNotification(
     const SaNtfNotificationsT *notification)
 {
     SaInt32T i;
-//    SaNtfNotificationHandleT notificationHandle;	// check line #284
+    SaNtfNotificationHandleT notificationHandle = 0;
     switch (notification->notificationType) {
     case SA_NTF_TYPE_ALARM:
         (void)printf("\n===  notificationType: alarm notification ===\n");
-/*	notificationHandle =
-	    notification->notification.alarmNotification.notificationHandle; */
+	notificationHandle =
+	    notification->notification.alarmNotification.notificationHandle;
 
         print_header(
             (SaNtfNotificationHeaderT*)&notification->notification.\
@@ -168,9 +174,9 @@ void newNotification(
 
     case SA_NTF_TYPE_STATE_CHANGE:
 	(void)printf("===  notificationType:  state change notification ===\n");
-/*	notificationHandle =
+	notificationHandle =
 	    notification->notification.\
-	    stateChangeNotification.notificationHandle; */
+	    stateChangeNotification.notificationHandle;
 
 	print_header(
 	     (SaNtfNotificationHeaderT*)&notification->notification.\
@@ -198,9 +204,9 @@ void newNotification(
 
     case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
 	(void)printf("===  notificationType: object create/delete notification ===\n");
-/*	notificationHandle =
+	notificationHandle =
 	     notification->notification.\
-	     objectCreateDeleteNotification.notificationHandle; */
+	     objectCreateDeleteNotification.notificationHandle;
 	print_header(
 	     (SaNtfNotificationHeaderT*)&notification->notification.\
 	     objectCreateDeleteNotification.notificationHeader,
@@ -226,9 +232,9 @@ void newNotification(
 
     case SA_NTF_TYPE_ATTRIBUTE_CHANGE:
 	(void)printf("===  notificationType: attribute change notification ===\n");
-/*	notificationHandle =
+	notificationHandle =
 	      notification->notification.\
-	      attributeChangeNotification.notificationHandle; */
+	      attributeChangeNotification.notificationHandle;
 	print_header(
 	     (SaNtfNotificationHeaderT*)&notification->notification.\
 	     attributeChangeNotification.notificationHeader, subscriptionId,\
@@ -253,9 +259,9 @@ void newNotification(
 
     case SA_NTF_TYPE_SECURITY_ALARM:
 	(void)printf("===  notificationType:  security alarm notification ===\n");
-/*	notificationHandle =
+	notificationHandle =
 	     notification->notification.\
-	     securityAlarmNotification.notificationHandle; */
+	     securityAlarmNotification.notificationHandle;
 	print_header(
 	     (SaNtfNotificationHeaderT*)&notification->notification.\
 	     securityAlarmNotification.notificationHeader, subscriptionId,\
@@ -280,8 +286,9 @@ void newNotification(
         break;
     }
 	(void)printf("==========================================\n");
-    /* TODO!!! Free resources! */
-    //saNtfNotificationFree(notificationHandle);
+
+    if (notificationHandle != 0)
+        safassert(saNtfNotificationFree(notificationHandle), SA_AIS_OK);
 }
 
 
@@ -507,25 +514,25 @@ int cmpSaNtfValueT(const SaNtfValueTypeT type,
 	switch(type)
 	{
 		case SA_NTF_VALUE_UINT8:
-			return assertvalue(val1->uint8Val == val2->uint8Val);
+			return (val1->uint8Val == val2->uint8Val) ? 0 : 1;
 		case SA_NTF_VALUE_INT8:
-			return assertvalue(val1->int8Val == val2->int8Val);
+			return (val1->int8Val == val2->int8Val) ? 0 : 1;
 		case SA_NTF_VALUE_UINT16:
-			return assertvalue(val1->uint16Val == val2->uint16Val);
+			return (val1->uint16Val == val2->uint16Val) ? 0 : 1;
 		case SA_NTF_VALUE_INT16:
-			return assertvalue(val1->int16Val == val2->int16Val);
+			return (val1->int16Val == val2->int16Val) ? 0 : 1;
 		case SA_NTF_VALUE_UINT32:
-			return assertvalue(val1->uint32Val == val2->uint32Val);
+			return (val1->uint32Val == val2->uint32Val) ? 0 : 1;
 		case SA_NTF_VALUE_INT32:
-			return assertvalue(val1->int32Val == val2->int32Val);
+			return (val1->int32Val == val2->int32Val) ? 0 : 1;
 		case SA_NTF_VALUE_FLOAT:
-			return assertvalue(val1->floatVal == val2->floatVal);
+			return (val1->floatVal == val2->floatVal) ? 0 : 1;
 		case SA_NTF_VALUE_UINT64:
-			return assertvalue(val1->uint64Val == val2->uint64Val);
+			return (val1->uint64Val == val2->uint64Val) ? 0 : 1;
 		case SA_NTF_VALUE_INT64:
-			return assertvalue(val1->int64Val == val2->int64Val);
+			return (val1->int64Val == val2->int64Val) ? 0 : 1;
 		case SA_NTF_VALUE_DOUBLE:
-			return assertvalue(val1->doubleVal == val2->doubleVal);
+			return (val1->doubleVal == val2->doubleVal) ? 0 : 1;
 
 			/* TODO: Not supported yet */
 		case SA_NTF_VALUE_LDAP_NAME:

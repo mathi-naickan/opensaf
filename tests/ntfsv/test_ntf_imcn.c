@@ -28,10 +28,10 @@
 #include <saImmOi.h>
 #include <saImmOm.h>
 #include <immutil.h>
-#include "util.h"
+#include <util.h>
+#include <utest.h>
 #include "saNtf.h"
 #include "test_ntf_imcn.h"
-#include "utest.h"
 
 /*
  * Global variables.
@@ -700,6 +700,7 @@ static SaBoolT compare_notifs(NotifData* n_exp, NotifData* n_rec)
 			}
 		}
 	}
+        (n_exp->c_d_notif_ptr != NULL) ? free(n_exp->c_d_notif_ptr) : free(n_exp->a_c_notif_ptr);
 	return rc;
 }
 
@@ -766,11 +767,17 @@ static SaAisErrorT subscribe_notifications()
 
 				/* make the subscription */
 				errorCode = saNtfNotificationSubscribe(&notifFilterHandles, 1);
-			}
-		}
+                                saNtfNotificationFilterFree(notifFilterHandles.stateChangeFilterHandle);
+                                saNtfNotificationFilterFree(notifFilterHandles.objectCreateDeleteFilterHandle);
+                                saNtfNotificationFilterFree(notifFilterHandles.attributeChangeFilterHandle);
+			} else {
+                            saNtfNotificationFilterFree(notifFilterHandles.objectCreateDeleteFilterHandle);
+                            saNtfNotificationFilterFree(notifFilterHandles.attributeChangeFilterHandle);
+                        }
+		} else {
+                    saNtfNotificationFilterFree(notifFilterHandles.attributeChangeFilterHandle);
+                }
 	}
-	saNtfNotificationFilterFree(notifFilterHandles.attributeChangeFilterHandle);
-	saNtfNotificationFilterFree(notifFilterHandles.objectCreateDeleteFilterHandle);
 
 	return errorCode;
 }
@@ -784,7 +791,7 @@ static SaAisErrorT unsub_notifications()
 	int tryCnt = 0;
 	while ((errorCode = saNtfNotificationUnsubscribe(1)) == SA_AIS_ERR_TRY_AGAIN
 			&& tryCnt++ < 5) {
-		sleep(1);
+		usleep(1000000);
 	}
 	return errorCode;
 }
@@ -802,6 +809,7 @@ static SaAisErrorT set_ntf(NotifData* n_exp, SaNtfEventTypeT ntfEventType,
 	SaBoolT configObj = !strncmp(dn, "stringRdnCfg", 12);
 
 	n_exp->evType = ntfEventType;
+        n_exp->ccbInfoId = 0;
 	SaNtfNotificationHeaderT* nHeader = NULL;
 	n_exp->o_s_c_notif_ptr = NULL;
 
@@ -934,7 +942,6 @@ static SaAisErrorT set_attr_scalar(NotifData* n_exp, SaUint16T idx,
 	} else {
 		error = SA_AIS_ERR_FAILED_OPERATION;
 	}
-
 	return error;
 }
 
@@ -1057,7 +1064,6 @@ static SaAisErrorT set_attr_change_scalar(NotifData* n_exp, SaUint16T idx,
 	} else {
 		error = SA_AIS_ERR_FAILED_OPERATION;
 	}
-
 	return error;
 }
 
@@ -1169,9 +1175,10 @@ static void create_rt_test_object(const SaImmClassNameT cname, const char* dn,
 		NULL
 	};
 
-	safassert(saImmOiInitialize_2(&immOiHnd, NULL, (SaVersionT*) & immVersion), SA_AIS_OK);
+	safassert(saImmOiInitialize_2(&immOiHnd, NULL, (SaVersionT*)&immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHnd, IMPLEMENTERNAME_RT), SA_AIS_OK);
-	safassert(saImmOiRtObjectCreate_2(immOiHnd, cname, NULL, attrVal), SA_AIS_OK);
+	saImmOiRtObjectCreate_2(immOiHnd, cname, NULL, attrVal);
+	safassert(saImmOiImplementerClear(immOiHnd), SA_AIS_OK);
 	safassert(saImmOiFinalize(immOiHnd), SA_AIS_OK);
 }
 
@@ -1200,7 +1207,8 @@ static void modify_rt_test_object(const char* dn, SaInt32T modType, TestAttribut
 
 	safassert(saImmOiInitialize_2(&immOiHnd, NULL, (SaVersionT*) & immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHnd, IMPLEMENTERNAME_RT), SA_AIS_OK);
-	safassert(saImmOiRtObjectUpdate_2(immOiHnd, &objName, (const SaImmAttrModificationT_2 **) attrMod), SA_AIS_OK);
+	saImmOiRtObjectUpdate_2(immOiHnd, &objName, (const SaImmAttrModificationT_2 **) attrMod);
+	safassert(saImmOiImplementerClear(immOiHnd), SA_AIS_OK);
 	safassert(saImmOiFinalize(immOiHnd), SA_AIS_OK);
 	i = 0;
 	while (attrMod[i] != NULL) {
@@ -1220,7 +1228,8 @@ static void delete_rt_test_object(const char* dn)
 
 	safassert(saImmOiInitialize_2(&immOiHnd, NULL, (SaVersionT*) & immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHnd, IMPLEMENTERNAME_RT), SA_AIS_OK);
-	safassert(saImmOiRtObjectDelete(immOiHnd, &objName), SA_AIS_OK);
+	saImmOiRtObjectDelete(immOiHnd, &objName);
+	safassert(saImmOiImplementerClear(immOiHnd), SA_AIS_OK);
 	safassert(saImmOiFinalize(immOiHnd), SA_AIS_OK);
 }
 
@@ -1259,7 +1268,7 @@ void objectCreateTest_01(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1338,7 +1347,7 @@ void objectModifyTest_02(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1402,7 +1411,7 @@ void objectModifyTest_03(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1465,7 +1474,7 @@ void objectModifyTest_04(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1526,7 +1535,7 @@ void objectModifyTest_05(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1587,7 +1596,7 @@ void objectModifyTest_06(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1648,7 +1657,7 @@ void objectModifyTest_07(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1709,7 +1718,7 @@ void objectModifyTest_08(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1770,7 +1779,7 @@ void objectModifyTest_09(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1831,7 +1840,7 @@ void objectModifyTest_10(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1892,7 +1901,7 @@ void objectModifyTest_11(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -1955,7 +1964,7 @@ void objectModifyTest_12(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2016,7 +2025,7 @@ void objectModifyTest_13(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2078,7 +2087,7 @@ void objectModifyTest_14(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2136,7 +2145,7 @@ void objectModifyTest_15(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2200,7 +2209,7 @@ void objectModifyTest_16(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2269,7 +2278,7 @@ void objectModifyTest_17(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2373,7 +2382,7 @@ void objectModifyTest_18(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2452,7 +2461,7 @@ void objectDeleteTest_19(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2486,14 +2495,17 @@ void objectCreateTest_20(void)
 	rec_notif_data.populated = SA_FALSE;
 
 	/* create an object */
-	sprintf(command, "immcfg -c OsafNtfCmTestCFG %s -a testNameCfg=%s -a testStringCfg=%s -a testAnyCfg=%s",
+	sprintf(command, "immcfg -t 20 -c OsafNtfCmTestCFG %s -a testNameCfg=%s -a testStringCfg=%s -a testAnyCfg=%s",
 			DNTESTCFG, NAME1, STRINGVAR1, BUF1);
 	assert(system(command) != -1);
 
+	/*
+	 * Wait for notification reception.
+	 */
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2571,7 +2583,7 @@ void objectModifyTest_21(void)
 	/* modify an object */
 	SaUint32T ivar = UINT32VAR2;
 	SaFloatT fvar = FLOATVAR2;
-	sprintf(command, "immcfg -a testUint32Cfg=%u -a testFloatCfg=%f %s", ivar, fvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testUint32Cfg=%u -a testFloatCfg=%f %s", ivar, fvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -2580,7 +2592,7 @@ void objectModifyTest_21(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2631,15 +2643,18 @@ void objectModifyTest_22(void)
 	memcpy(var1.value, NAME2, sizeof (NAME2));
 	SaAnyT var2 = {.bufferSize = sizeof (BUF2), .bufferAddr = (SaUint8T*) BUF2};
 
-	/* create an object */
-	sprintf(command, "immcfg -a testNameCfg=%s -a testAnyCfg=%s %s",
+	/* modify an object */
+	sprintf(command, "immcfg -t 20 -a testNameCfg=%s -a testAnyCfg=%s %s",
 			NAME2, BUF2, DNTESTCFG);
 	assert(system(command) != -1);
 
+	/*
+	 * Wait for notification reception.
+	 */
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2689,7 +2704,7 @@ void objectModifyTest_23(void)
 	/* modify an object */
 	SaInt32T addvar = INT32VAR2;
 	SaInt32T oldvar = INT32VAR1;
-	sprintf(command, "immcfg -a testInt32Cfg+=%d %s", addvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testInt32Cfg+=%d %s", addvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -2698,7 +2713,7 @@ void objectModifyTest_23(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2747,7 +2762,7 @@ void objectModifyTest_24(void)
 	/* modify an object */
 	SaUint32T addvar = UINT32VAR3;
 	SaUint32T oldvar = UINT32VAR2;
-	sprintf(command, "immcfg -a testUint32Cfg+=%u %s", addvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testUint32Cfg+=%u %s", addvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -2756,7 +2771,7 @@ void objectModifyTest_24(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2805,7 +2820,7 @@ void objectModifyTest_25(void)
 	/* modify an object */
 	SaInt64T addvar = INT64VAR2;
 	SaInt64T oldvar = INT64VAR1;
-	sprintf(command, "immcfg -a testInt64Cfg+=%lld %s", addvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testInt64Cfg+=%lld %s", addvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -2814,7 +2829,7 @@ void objectModifyTest_25(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2863,7 +2878,7 @@ void objectModifyTest_26(void)
 	/* modify an object */
 	SaUint64T addvar = UINT64VAR2;
 	SaUint64T oldvar = UINT64VAR1;
-	sprintf(command, "immcfg -a testUint64Cfg+=%llu %s", addvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testUint64Cfg+=%llu %s", addvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -2872,7 +2887,7 @@ void objectModifyTest_26(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2921,7 +2936,7 @@ void objectModifyTest_27(void)
 	/* modify an object */
 	SaFloatT addvar = FLOATVAR3;
 	SaFloatT oldvar = FLOATVAR2;
-	sprintf(command, "immcfg -a testFloatCfg+=%f %s", addvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testFloatCfg+=%f %s", addvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -2930,7 +2945,7 @@ void objectModifyTest_27(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -2979,7 +2994,7 @@ void objectModifyTest_28(void)
 	/* modify an object */
 	SaDoubleT addvar = DOUBLEVAR2;
 	SaDoubleT oldvar = DOUBLEVAR1;
-	sprintf(command, "immcfg -a testDoubleCfg+=%lf %s", addvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testDoubleCfg+=%lf %s", addvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -2988,7 +3003,7 @@ void objectModifyTest_28(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3037,7 +3052,7 @@ void objectModifyTest_29(void)
 	/* modify an object */
 	SaTimeT addvar = TIMEVAR2;
 	SaTimeT oldvar = TIMEVAR1;
-	sprintf(command, "immcfg -a testTimeCfg+=%lld %s", (SaInt64T) addvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testTimeCfg+=%lld %s", (SaInt64T) addvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -3046,7 +3061,7 @@ void objectModifyTest_29(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3095,7 +3110,7 @@ void objectModifyTest_30(void)
 	/* modify an object */
 	SaStringT addvar = STRINGVAR2;
 	SaStringT oldvar = STRINGVAR1;
-	sprintf(command, "immcfg -a testStringCfg+=%s %s", addvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testStringCfg+=%s %s", addvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -3104,7 +3119,7 @@ void objectModifyTest_30(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3164,7 +3179,7 @@ void objectModifyTest_31(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3213,7 +3228,7 @@ void objectModifyTest_32(void)
 	/* modify an object */
 	SaAnyT oldvar = {.bufferSize = sizeof (BUF2), .bufferAddr = (SaUint8T*) BUF2};
 	SaAnyT addvar = {.bufferSize = sizeof (BUF3), .bufferAddr = (SaUint8T*) BUF3};
-	sprintf(command, "immcfg -a testAnyCfg+=%s %s", BUF3, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testAnyCfg+=%s %s", BUF3, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -3222,7 +3237,7 @@ void objectModifyTest_32(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3271,7 +3286,7 @@ void objectModifyTest_33(void)
 	/* modify an object */
 	SaStringT svar = STRINGVAR3;
 	SaDoubleT dvar = DOUBLEVAR3;
-	sprintf(command, "immcfg -a testStringCfg=%s -a testDoubleCfg=%lf %s", svar, dvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testStringCfg=%s -a testDoubleCfg=%lf %s", svar, dvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -3280,7 +3295,7 @@ void objectModifyTest_33(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3329,7 +3344,7 @@ void objectModifyTest_34(void)
 
 	/* modify an object */
 	SaTimeT tvar = TIMEVAR3;
-	sprintf(command, "immcfg -a testTimeCfg=%lld %s", (SaInt64T) tvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testTimeCfg=%lld %s", (SaInt64T) tvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -3338,7 +3353,7 @@ void objectModifyTest_34(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3389,7 +3404,7 @@ void objectModifyTest_35(void)
 	SaInt32T iaddvar = INT32VAR3;
 	SaInt32T ioldvar1 = INT32VAR1;
 	SaInt32T ioldvar2 = INT32VAR2;
-	sprintf(command, "immcfg -a testStringCfg+=%s -a testInt32Cfg+=%d %s", saddvar, iaddvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testStringCfg+=%s -a testInt32Cfg+=%d %s", saddvar, iaddvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -3398,7 +3413,7 @@ void objectModifyTest_35(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3454,7 +3469,7 @@ void objectModifyTest_36(void)
 	SaInt32T idelvar = INT32VAR2;
 	SaInt32T ivar1 = INT32VAR1;
 	SaInt32T ivar2 = INT32VAR3;
-	sprintf(command, "immcfg -a testStringCfg-=%s -a testInt32Cfg-=%d %s", sdelvar, idelvar, DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -a testStringCfg-=%s -a testInt32Cfg-=%d %s", sdelvar, idelvar, DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -3463,7 +3478,7 @@ void objectModifyTest_36(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3530,7 +3545,7 @@ void objectModifyTest_37(void)
 	SaAnyT avar100 = {.bufferSize = sizeof (BUF2), .bufferAddr = (SaUint8T*) BUF2};
 	SaAnyT avar1000 = {.bufferSize = sizeof (BUF3), .bufferAddr = (SaUint8T*) BUF3};
 
-	sprintf(command, "immcfg -a testInt32Cfg+=%d -a testUint32Cfg+=%u"
+	sprintf(command, "immcfg -t 20 -a testInt32Cfg+=%d -a testUint32Cfg+=%u"
 			" -a testInt64Cfg+=%lld -a testUint64Cfg+=%llu"
 			" -a testFloatCfg+=%f -a testDoubleCfg+=%f"
 			" -a testTimeCfg+=%lld -a testStringCfg+=%s"
@@ -3545,7 +3560,7 @@ void objectModifyTest_37(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3632,7 +3647,7 @@ void objectMultiCcbTest_38(void)
 	SaImmHandleT omHandle = 0;
 	SaImmAdminOwnerHandleT ownerHandle = 0;
 	SaImmCcbHandleT immCcbHandle = 0;
-	SaNameT objectName;
+	static SaNameT objectName;
 	objectName.length = (SaUint16T) strlen(DNTESTCFG);
 	memcpy(objectName.value, DNTESTCFG, objectName.length);
 
@@ -3697,7 +3712,7 @@ void objectMultiCcbTest_38(void)
 		int dwCnt = 0;
 		while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 			saNtfDispatch(ntfHandle, SA_DISPATCH_ONE);
-			sleep(1);
+			if (!rec_notif_data.populated) usleep(100);
 		}
 
 		NotifData n_exp;
@@ -3776,7 +3791,7 @@ void objectMultiCcbTest_39(void)
 	SaImmHandleT omHandle = 0;
 	SaImmAdminOwnerHandleT ownerHandle = 0;
 	SaImmCcbHandleT immCcbHandle = 0;
-	SaNameT objectName;
+	static SaNameT objectName;
 	objectName.length = (SaUint16T) strlen(DNTESTCFG);
 	memcpy(objectName.value, DNTESTCFG, objectName.length);
 
@@ -3862,86 +3877,88 @@ void objectMultiCcbTest_39(void)
 
 	int noOfNotifs = 0;
 	/* three notifications (same CCB) are expected */
-	while (noOfNotifs < 3) {
-		/*
-		 * Wait for notification reception.
-		 */
-		int dwCnt = 0;
-		while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
-			saNtfDispatch(ntfHandle, SA_DISPATCH_ONE);
-			sleep(1);
-		}
+    while (noOfNotifs < 3) {
+        /*
+         * Wait for notification reception.
+         */
+        int dwCnt = 0;
+        while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
+            saNtfDispatch(ntfHandle, SA_DISPATCH_ONE);
+            if (!rec_notif_data.populated) usleep(100);
+        }
 
-		NotifData n_exp;
-		if (rec_notif_data.populated && noOfNotifs == 0) {
-			safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED, DNTESTCFG, 5, 6), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 0, 0, "SaImmAttrAdminOwnerName"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 1, 1, "SaImmAttrClassName"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 2, 2, "SaImmOiCcbIdT"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 3, 3, "ccbLast"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 4, 4, "testUint32Cfg"), SA_AIS_OK);
-			safassert(set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"), SA_AIS_OK);
-			safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"), SA_AIS_OK);
-			SaUint64T ccidVar = 3;
-			safassert(set_attr_change_scalar(&n_exp, 2, 2, SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
-			SaUint32T ccbLast = 0;
-			safassert(set_attr_change_scalar(&n_exp, 3, 3, SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
-			safassert(set_attr_change_scalar(&n_exp, 4, 4, SA_NTF_VALUE_UINT32, &var1), SA_AIS_OK);
-			safassert(set_attr_change_scalar(&n_exp, 5, 4, SA_NTF_VALUE_UINT32, &oldvar1), SA_AIS_OK);
-		} else if (rec_notif_data.populated && noOfNotifs == 1) {
-			safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED, DNTESTCFG, 5, 5), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 0, 0, "SaImmAttrAdminOwnerName"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 1, 1, "SaImmAttrClassName"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 2, 2, "SaImmOiCcbIdT"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 3, 3, "ccbLast"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 4, 4, "testInt32Cfg"), SA_AIS_OK);
-			safassert(set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"), SA_AIS_OK);
-			safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"), SA_AIS_OK);
-			SaUint64T ccidVar = 3;
-			safassert(set_attr_change_scalar(&n_exp, 2, 2, SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
-			SaUint32T ccbLast = 0;
-			safassert(set_attr_change_scalar(&n_exp, 3, 3, SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
-			safassert(set_attr_change_scalar(&n_exp, 4, 4, SA_NTF_VALUE_INT32, &var2), SA_AIS_OK);
-		} else if (rec_notif_data.populated && noOfNotifs == 2) {
-			/*
-			 * the non-multivalue attributes testUint64Cfg and testInt64Cfg was deleted (see
-			 * earlier TCs), therefor no attribute values exist, only additional info.
-			 */
-			safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED, DNTESTCFG, 8, 7), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 0, 0, "SaImmAttrAdminOwnerName"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 1, 1, "SaImmAttrClassName"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 2, 2, "SaImmOiCcbIdT"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 3, 3, "ccbLast"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 4, 4, "testUint64Cfg"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 5, 5, "testInt64Cfg"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 6, 6, "testFloatCfg"), SA_AIS_OK);
-			safassert(set_add_info(&n_exp, 7, 7, "testDoubleCfg"), SA_AIS_OK);
-			safassert(set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"), SA_AIS_OK);
-			safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"), SA_AIS_OK);
-			SaUint64T ccidVar = 3;
-			safassert(set_attr_change_scalar(&n_exp, 2, 2, SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
-			SaUint32T ccbLast = 1; /* Last notification of the CCB */
-			safassert(set_attr_change_scalar(&n_exp, 3, 3, SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
-			safassert(set_attr_change_scalar(&n_exp, 4, 6, SA_NTF_VALUE_FLOAT, &oldvar6), SA_AIS_OK);
-			safassert(set_attr_change_scalar(&n_exp, 5, 6, SA_NTF_VALUE_FLOAT, &oldvar66), SA_AIS_OK);
-			safassert(set_attr_change_scalar(&n_exp, 6, 7, SA_NTF_VALUE_DOUBLE, &oldvar5), SA_AIS_OK);
-		} else {
-			error = SA_AIS_ERR_FAILED_OPERATION;
-			break;
-		}
-		rec_notif_data.populated = SA_FALSE;
-		if (!compare_notifs(&n_exp, &rec_notif_data)) {
-			print_notif(&n_exp);
-			print_notif(&rec_notif_data);
-			error = SA_AIS_ERR_FAILED_OPERATION;
-		}
-		safassert(saNtfNotificationFree(rec_notif_data.nHandle), SA_AIS_OK);
-		safassert(saNtfNotificationFree(n_exp.nHandle), SA_AIS_OK);
-		noOfNotifs++;
-	}
-	safassert(unsub_notifications(), SA_AIS_OK);
-	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
-	test_validate(error, SA_AIS_OK);
+        NotifData n_exp;
+        if (rec_notif_data.populated && noOfNotifs == 0) {
+            safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED, DNTESTCFG, 5, 6), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 0, 0, "SaImmAttrAdminOwnerName"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 1, 1, "SaImmAttrClassName"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 2, 2, "SaImmOiCcbIdT"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 3, 3, "ccbLast"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 4, 4, "testUint32Cfg"), SA_AIS_OK);
+            safassert(set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"), SA_AIS_OK);
+            safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"), SA_AIS_OK);
+            SaUint64T ccidVar = 3;
+            safassert(set_attr_change_scalar(&n_exp, 2, 2, SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
+            SaUint32T ccbLast = 0;
+            safassert(set_attr_change_scalar(&n_exp, 3, 3, SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
+            safassert(set_attr_change_scalar(&n_exp, 4, 4, SA_NTF_VALUE_UINT32, &var1), SA_AIS_OK);
+            safassert(set_attr_change_scalar(&n_exp, 5, 4, SA_NTF_VALUE_UINT32, &oldvar1), SA_AIS_OK);
+        } else if (rec_notif_data.populated && noOfNotifs == 1) {
+            safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED, DNTESTCFG, 5, 5), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 0, 0, "SaImmAttrAdminOwnerName"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 1, 1, "SaImmAttrClassName"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 2, 2, "SaImmOiCcbIdT"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 3, 3, "ccbLast"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 4, 4, "testInt32Cfg"), SA_AIS_OK);
+            safassert(set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"), SA_AIS_OK);
+            safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"), SA_AIS_OK);
+            SaUint64T ccidVar = 3;
+            safassert(set_attr_change_scalar(&n_exp, 2, 2, SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
+            SaUint32T ccbLast = 0;
+            safassert(set_attr_change_scalar(&n_exp, 3, 3, SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
+            safassert(set_attr_change_scalar(&n_exp, 4, 4, SA_NTF_VALUE_INT32, &var2), SA_AIS_OK);
+        } else if (rec_notif_data.populated && noOfNotifs == 2) {
+
+            /*
+             * the non-multivalue attributes testUint64Cfg and testInt64Cfg was deleted (see
+             * earlier TCs), therefor no attribute values exist, only additional info.
+             */
+            safassert(set_ntf(&n_exp, SA_NTF_ATTRIBUTE_CHANGED, DNTESTCFG, 8, 7), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 0, 0, "SaImmAttrAdminOwnerName"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 1, 1, "SaImmAttrClassName"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 2, 2, "SaImmOiCcbIdT"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 3, 3, "ccbLast"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 4, 4, "testUint64Cfg"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 5, 5, "testInt64Cfg"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 6, 6, "testFloatCfg"), SA_AIS_OK);
+            safassert(set_add_info(&n_exp, 7, 7, "testDoubleCfg"), SA_AIS_OK);
+            safassert(set_attr_change_str(&n_exp, 0, 0, "multiCcbOwner"), SA_AIS_OK);
+            safassert(set_attr_change_str(&n_exp, 1, 1, "OsafNtfCmTestCFG"), SA_AIS_OK);
+            SaUint64T ccidVar = 3;
+            safassert(set_attr_change_scalar(&n_exp, 2, 2, SA_NTF_VALUE_UINT64, &ccidVar), SA_AIS_OK);
+            SaUint32T ccbLast = 1; /* Last notification of the CCB */
+            safassert(set_attr_change_scalar(&n_exp, 3, 3, SA_NTF_VALUE_UINT32, &ccbLast), SA_AIS_OK);
+            safassert(set_attr_change_scalar(&n_exp, 4, 6, SA_NTF_VALUE_FLOAT, &oldvar6), SA_AIS_OK);
+            safassert(set_attr_change_scalar(&n_exp, 5, 6, SA_NTF_VALUE_FLOAT, &oldvar66), SA_AIS_OK);
+            safassert(set_attr_change_scalar(&n_exp, 6, 7, SA_NTF_VALUE_DOUBLE, &oldvar5), SA_AIS_OK);
+
+        } else {
+            error = SA_AIS_ERR_FAILED_OPERATION;
+            break;
+        }
+        rec_notif_data.populated = SA_FALSE;
+        if (!compare_notifs(&n_exp, &rec_notif_data)) {
+            print_notif(&n_exp);
+            print_notif(&rec_notif_data);
+            error = SA_AIS_ERR_FAILED_OPERATION;
+        }
+        safassert(saNtfNotificationFree(rec_notif_data.nHandle), SA_AIS_OK);
+        safassert(saNtfNotificationFree(n_exp.nHandle), SA_AIS_OK);
+        noOfNotifs++;
+    }
+    safassert(unsub_notifications(), SA_AIS_OK);
+    safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
+    test_validate(error, SA_AIS_OK);
 }
 
 /**
@@ -3956,7 +3973,7 @@ void objectDeleteTest_40(void)
 	rec_notif_data.populated = SA_FALSE;
 
 	/* delete object */
-	sprintf(command, "immcfg -d %s", DNTESTCFG);
+	sprintf(command, "immcfg -t 20 -d %s", DNTESTCFG);
 	assert(system(command) != -1);
 
 	/*
@@ -3965,7 +3982,7 @@ void objectDeleteTest_40(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -3996,63 +4013,9 @@ void objectDeleteTest_40(void)
 }
 
 /**
- * Kill the osafntfimcnd daemon and verify received notification.
- */
-void objectKillTest_41(void)
-{
-	char command[1024];
-	SaAisErrorT error = SA_AIS_ERR_FAILED_OPERATION;
-	safassert(init_ntf(), SA_AIS_OK);
-	safassert(subscribe_notifications(), SA_AIS_OK);
-	rec_notif_data.populated = SA_FALSE;
-
-	/* kill osafntfimcnd process */
-	assert(system("pidof osafntfimcnd > /tmp/pid.txt") != -1);
-
-	FILE* fd;
-	char pid[16];
-	if ((fd = fopen("/tmp/pid.txt", "r")) != NULL) {
-		if (fscanf(fd, "%s", pid) == 1) {
-			sprintf(command, "kill %s", pid);
-			assert(system(command) != -1);
-		}
-		fclose(fd);
-	}
-
-	/*
-	 * Wait for notification reception.
-	 */
-	int dwCnt = 0;
-	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
-		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
-	}
-
-	if (rec_notif_data.populated) {
-		if (rec_notif_data.evType != SA_NTF_OBJECT_STATE_CHANGE);
-		else if (rec_notif_data.o_s_c_notif_ptr->notificationHeader.
-				notificationObject->length != strlen("osafntfimcnd") + 1);
-		else if (strcmp((char*) rec_notif_data.o_s_c_notif_ptr->notificationHeader.
-				notificationObject->value, "osafntfimcnd"));
-		else if (rec_notif_data.o_s_c_notif_ptr->notificationHeader.notificationClassId->vendorId != 32993);
-		else if (rec_notif_data.o_s_c_notif_ptr->notificationHeader.notificationClassId->majorId != SA_SVC_IMMS);
-		else if (rec_notif_data.o_s_c_notif_ptr->notificationHeader.notificationClassId->minorId != 0);
-		else if (*(rec_notif_data.o_s_c_notif_ptr->sourceIndicator) != SA_NTF_OBJECT_OPERATION);
-		else error = SA_AIS_OK;
-		if (error != SA_AIS_OK) {
-			print_notif(&rec_notif_data);
-		}
-		safassert(saNtfNotificationFree(rec_notif_data.nHandle), SA_AIS_OK);
-	}
-	safassert(unsub_notifications(), SA_AIS_OK);
-	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
-	test_validate(error, SA_AIS_OK);
-}
-
-/**
  * Create a runtime test object and verify correctness of generated notification.
  */
-void objectCreateTest_3301(void)
+void objectCreateTest_3401(void)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	safassert(init_ntf(), SA_AIS_OK);
@@ -4072,10 +4035,6 @@ void objectCreateTest_3301(void)
 	SaStringT stringVar = STRINGVAR1;
 	SaAnyT anyVar = {.bufferSize = sizeof (BUF1), .bufferAddr = (SaUint8T*) BUF1};
 
-	/* Activate PBE */
-	assert(system("immcfg -a saImmRepositoryInit=1 safRdn=immManagement,safApp=safImmService") != -1);
-	sleep(2);
-
 	/*
 	 * Create the object in IMM.
 	 */
@@ -4088,7 +4047,7 @@ void objectCreateTest_3301(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -4137,7 +4096,7 @@ void objectCreateTest_3301(void)
 /**
  * Modify a runtime test object and verify correctness of generated notification.
  */
-void objectModifyTest_3302(void)
+void objectModifyTest_3402(void)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	safassert(init_ntf(), SA_AIS_OK);
@@ -4167,7 +4126,7 @@ void objectModifyTest_3302(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -4201,7 +4160,7 @@ void objectModifyTest_3302(void)
  * Modify (multi-value, INT32) a runtime test object and verify correctness
  * of generated notification.
  */
-void objectModifyTest_3303(void)
+void objectModifyTest_3403(void)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	safassert(init_ntf(), SA_AIS_OK);
@@ -4230,7 +4189,7 @@ void objectModifyTest_3303(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(100);
 	}
 
 	if (rec_notif_data.populated) {
@@ -4262,7 +4221,7 @@ void objectModifyTest_3303(void)
 /**
  * Delete a runtime test object and verify correctness of generated notification.
  */
-void objectDeleteTest_3304(void)
+void objectDeleteTest_3404(void)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	safassert(init_ntf(), SA_AIS_OK);
@@ -4275,7 +4234,7 @@ void objectDeleteTest_3304(void)
 	int dwCnt = 0;
 	while (dwCnt++ < POLLWAIT && !rec_notif_data.populated) {
 		saNtfDispatch(ntfHandle, SA_DISPATCH_ALL);
-		sleep(1);
+		if (!rec_notif_data.populated) usleep(10000);
 	}
 
 	if (rec_notif_data.populated) {
@@ -4302,8 +4261,11 @@ __attribute__((constructor)) static void notificationFilterVerification_construc
 {
 	int rc = system("immcfg -f //hostfs//repl-opensaf//ntfsv_test_classes.xml");
 	if (rc != 0) {
+            rc = system("immcfg -f //hostfs//ntfsv_test_classes.xml");
+            if (rc != 0) {
 		printf("ntfsv_test_classes.xml file not installed (see README)");
 		return;
+            }
 	}
 	test_suite_add(32, "CM notifications test");
 	test_case_add(32, objectCreateTest_01, "CREATE, runtime (OsafNtfCmTestRT) object");
@@ -4346,11 +4308,10 @@ __attribute__((constructor)) static void notificationFilterVerification_construc
 	test_case_add(32, objectMultiCcbTest_38, "config, multiple op in ccb, 2 REPLACE");
 	test_case_add(32, objectMultiCcbTest_39, "config, multiple op in ccb, ADD, REPLACE, DELETE");
 	test_case_add(32, objectDeleteTest_40, "DELETE, config (OsafNtfCmTestCFG) object");
-	test_case_add(32, objectKillTest_41, "KILL, osafntfimcnd daemon (active SC)");
-	test_suite_add(33, "CM notifications test, persistent runtime");
-	test_case_add(33, objectCreateTest_3301, "CREATE, runtime (OsafNtfCmTestRT1) object");
-	test_case_add(33, objectModifyTest_3302, "runtime, attr ch, REPLACE (UINT32, FLOAT)");
-	test_case_add(33, objectModifyTest_3303, "runtime, attr ch, ADD (INT32)");
-	test_case_add(33, objectDeleteTest_3304, "DELETE, runtime (OsafNtfCmTestRT1) object");
+	test_suite_add(34, "CM notifications test, persistent runtime");
+	test_case_add(34, objectCreateTest_3401, "CREATE, runtime (OsafNtfCmTestRT1) object");
+	test_case_add(34, objectModifyTest_3402, "runtime, attr ch, REPLACE (UINT32, FLOAT)");
+	test_case_add(34, objectModifyTest_3403, "runtime, attr ch, ADD (INT32)");
+	test_case_add(34, objectDeleteTest_3404, "DELETE, runtime (OsafNtfCmTestRT1) object");
 }
 

@@ -14,14 +14,13 @@
  * Author(s): Ericsson AB
  *
  */
-#include "tet_ntf.h"
-#include "tet_ntf_common.h"
-#include "test.h"
-#include "util.h"
-
+#include <utest.h>
+#include <util.h>
 #include <poll.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "tet_ntf.h"
+#include "tet_ntf_common.h"
 
 static SaNtfIdentifierT cb_notId[8];
 static SaNtfSubscriptionIdT cb_subId[8];
@@ -228,6 +227,7 @@ void saNtfNotificationCallbackT_01(void)
             rc = SA_AIS_OK;
         }
     }
+    safassert(saNtfNotificationFilterFree(myAlarmFilter.notificationFilterHandle), SA_AIS_OK);
     safassert(saNtfNotificationFree(myAlarmNotification.notificationHandle) , SA_AIS_OK);
     safassert(saNtfNotificationUnsubscribe(myNotificationParams.subscriptionId[0]),
                                            SA_AIS_OK);
@@ -353,6 +353,7 @@ void saNtfNotificationCallbackT_02(void)
             break;
         }
     }
+    safassert(saNtfNotificationFilterFree(myAlarmFilter.notificationFilterHandle), SA_AIS_OK);
     safassert(saNtfNotificationFree(myAlarmNotification.notificationHandle) , SA_AIS_OK);
     safassert(saNtfNotificationUnsubscribe(myNotificationParams.subscriptionId[0]),
                                            SA_AIS_OK);

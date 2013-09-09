@@ -14,8 +14,9 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
-#include "test.h"
 
 void saNtfFinalize_01(void)
 {
@@ -40,7 +41,7 @@ void saNtfFinalize_03(void)
 
 __attribute__ ((constructor)) static void saNtfFinalize_constructor(void)
 {
-    test_suite_add(2, "Life Cykel API 2");
+    test_suite_add(2, "Life cycle, finalize, API 2");
     test_case_add(2, saNtfFinalize_01, "saNtfFinalize SA_AIS_OK");
     test_case_add(2, saNtfFinalize_02, "saNtfFinalize SA_AIS_ERR_BAD_HANDLE - invalid handle");
     test_case_add(2, saNtfFinalize_03, "saNtfFinalize SA_AIS_ERR_BAD_HANDLE - handle already returned");

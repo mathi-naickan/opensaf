@@ -25,16 +25,16 @@ dist_bin_SCRIPTS = ntf_search_criteria_test.sh
 
 noinst_HEADERS = \
 	sa_error.h \
-	test.h \
 	tet_ntf_common.h \
-	tet_ntf.h \
-	util.h
+	tet_ntf.h
 
 ntftest_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/tests/unit_test_fw/inc
 
 ntftest_SOURCES = \
+	$(top_srcdir)/tests/unit_test_fw/src/utest.c \
+	$(top_srcdir)/tests/unit_test_fw/src/util.c \
 	$(top_srcdir)/osaf/libs/core/common/logtrace.c \
 	tet_ntf_main.c \
 	sa_error.c \
@@ -67,9 +67,7 @@ ntftest_SOURCES = \
 	tet_saNtfPtrValAllocate.c \
 	tet_saNtfArrayValGet.c \
 	tet_saNtfPtrValGet.c \
-	test_ntfFilterVerification.c \
-	test.c \
-	util.c
+	test_ntfFilterVerification.c
 
 if ENABLE_NTFIMCN
 

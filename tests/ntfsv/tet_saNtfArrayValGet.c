@@ -14,14 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include "util.h"
-
-#include <poll.h>
-#include <unistd.h>
-#include <pthread.h>
 
 static int errors = 0;
 /* Indicates which test to perform in the callBack */
@@ -75,11 +71,11 @@ void test1ArrayValGet_value_ok(SaNtfSubscriptionIdT subscriptionId,
 					return;
 				}
 
-				if(safassertNice((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
+				if((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
 						&ntfAlarm->proposedRepairActions[iCount].actionValue,
 						(void **)&srcPtr,
 						&numElements,
-						&elementSize)), SA_AIS_OK))
+						&elementSize)) != SA_AIS_OK)
 				{
 					errors += 1;
 					return;
@@ -123,46 +119,46 @@ void test2ArrayValGet_bad_return(SaNtfSubscriptionIdT subscriptionId,
 		{
 
 			/* NULL in notificationHandle */
-			if(safassertNice((rc = saNtfArrayValGet(0,
+			if((rc = saNtfArrayValGet(0,
 					&ntfAlarm->proposedRepairActions[iCount].actionValue,
 					(void **)&srcPtr,
 					&numElements,
-					&elementSize)), SA_AIS_ERR_BAD_HANDLE)) errors +=1;
+					&elementSize)) != SA_AIS_ERR_BAD_HANDLE) errors +=1;
 
 			/* NULL in *value */
-			if(safassertNice((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
 					NULL,
 					(void **)&srcPtr,
 					&numElements,
-					&elementSize)), SA_AIS_ERR_INVALID_PARAM)) errors +=1;
+					&elementSize)) != SA_AIS_ERR_INVALID_PARAM) errors +=1;
 
 			/* NULL **arrayPtr */
-			if(safassertNice((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
 					&ntfAlarm->proposedRepairActions[iCount].actionValue,
 					NULL,
 					&numElements,
-					&elementSize)), SA_AIS_ERR_INVALID_PARAM)) errors +=1;
+					&elementSize)) != SA_AIS_ERR_INVALID_PARAM) errors +=1;
 
 			/* NULL *numElements */
-			if(safassertNice((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
 					&ntfAlarm->proposedRepairActions[iCount].actionValue,
 					(void **)&srcPtr,
 					NULL,
-					&elementSize)), SA_AIS_ERR_INVALID_PARAM)) errors +=1;
+					&elementSize)) != SA_AIS_ERR_INVALID_PARAM) errors +=1;
 
 			/* NULL *elementSize */
-			if(safassertNice((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
 					&ntfAlarm->proposedRepairActions[iCount].actionValue,
 					(void **)&srcPtr,
 					&numElements,
-					NULL)), SA_AIS_ERR_INVALID_PARAM)) errors +=1;
+					NULL)) != SA_AIS_ERR_INVALID_PARAM) errors +=1;
 
 			/* actionValue not from notification */
-			if(safassertNice((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfArrayValGet(ntfAlarm->notificationHandle,
 					&myValue,
 					(void **)&srcPtr,
 					&numElements,
-					&elementSize)), SA_AIS_ERR_INVALID_PARAM)) errors +=1;
+					&elementSize)) != SA_AIS_ERR_INVALID_PARAM) errors +=1;
 		}
 	}
 }
@@ -202,7 +198,10 @@ static void saNtfNotificationCallbackT(
 			errors +=1;
 			break;
     }
-	 last_not_id = get_ntf_id(notification);
+    last_not_id = get_ntf_id(notification);
+    SaNtfNotificationHandleT notificationHandle = \
+    notification->notification.alarmNotification.notificationHandle;
+    safassert(saNtfNotificationFree(notificationHandle), SA_AIS_OK);
 }
 
 
@@ -293,19 +292,19 @@ void saNtfArrayGetTest_common_prep(void)
 		  DEFAULT_ADDITIONAL_TEXT, sizeof(DEFAULT_ADDITIONAL_TEXT));
 
     myAlarmNotification.proposedRepairActions[0].actionValueType = SA_NTF_VALUE_ARRAY;
-    if(!safassertNice((rc = saNtfArrayValAllocate(
+    if((rc = saNtfArrayValAllocate(
     		myAlarmNotification.notificationHandle,
     		2,
     		(SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) + 1),
     		(void**)&destPtr,
-    		&(myAlarmNotification.proposedRepairActions[0].actionValue))), SA_AIS_OK))
+    		&(myAlarmNotification.proposedRepairActions[0].actionValue))) == SA_AIS_OK)
     {
     	/* Copy the actual value */
     	strncpy(destPtr, DEFAULT_ADDITIONAL_TEXT, strlen(DEFAULT_ADDITIONAL_TEXT) + 1);
 		destPtr += strlen(DEFAULT_ADDITIONAL_TEXT) + 1; /* move to next string */
     	strncpy(destPtr, DEFAULT_ADDITIONAL_TEXT, strlen(DEFAULT_ADDITIONAL_TEXT) + 1);
 
-    	if(!safassertNice(saNtfNotificationSend(myAlarmNotification.notificationHandle), SA_AIS_OK)) {
+    	if(saNtfNotificationSend(myAlarmNotification.notificationHandle) == SA_AIS_OK) {
 			poll_until_received(ntfHandle, *myAlarmNotification.notificationHeader.notificationId);
     	}
     }

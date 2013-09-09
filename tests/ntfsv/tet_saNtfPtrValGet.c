@@ -14,14 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include "util.h"
-
-#include <poll.h>
-#include <unistd.h>
-#include <pthread.h>
 
 static int errors = 0;
 /* Indicates which test to perform in the callBack */
@@ -73,10 +69,10 @@ void test1_value_ok(SaNtfSubscriptionIdT subscriptionId,
 					return;
 				}
 
-				if(safassertNice((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
+				if((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
 						&ntfAlarm->proposedRepairActions[iCount].actionValue,
 						(void **)&srcPtr,
-						&dataSize)), SA_AIS_OK))
+						&dataSize)) != SA_AIS_OK)
 				{
 					errors += 1;
 					return;
@@ -113,34 +109,34 @@ void test2_bad_return(SaNtfSubscriptionIdT subscriptionId,
 		for(iCount = 0; iCount < ntfAlarm->numProposedRepairActions; iCount++)
 		{
 			/* NULL in notificationHandle */
-			if(safassertNice((rc = saNtfPtrValGet(0,
+			if((rc = saNtfPtrValGet(0,
 					&ntfAlarm->proposedRepairActions[iCount].actionValue,
 					(void **)&srcPtr,
-					&dataSize)), SA_AIS_ERR_BAD_HANDLE)) errors += 1;
+					&dataSize)) != SA_AIS_ERR_BAD_HANDLE) errors += 1;
 
 			/* NULL in *value */
-			if(safassertNice((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
 					NULL,
 					(void **)&srcPtr,
-					&dataSize)), SA_AIS_ERR_INVALID_PARAM))	errors += 1;
+					&dataSize)) != SA_AIS_ERR_INVALID_PARAM) errors += 1;
 
 			/* NULL **dataPtr */
-			if(safassertNice((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
 					&ntfAlarm->proposedRepairActions[iCount].actionValue,
 					NULL,
-					&dataSize)), SA_AIS_ERR_INVALID_PARAM))	errors += 1;
+					&dataSize)) != SA_AIS_ERR_INVALID_PARAM) errors += 1;
 
 			/* NULL *dataSize */
-			if(safassertNice((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
 					&ntfAlarm->proposedRepairActions[iCount].actionValue,
 					(void **)&srcPtr,
-					NULL)), SA_AIS_ERR_INVALID_PARAM)) errors += 1;
+					NULL)) != SA_AIS_ERR_INVALID_PARAM) errors += 1;
 
 			/* actionValue not from notification */
-			if(safassertNice((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
+			if((rc = saNtfPtrValGet(ntfAlarm->notificationHandle,
 					&myValue,
 					(void **)&srcPtr,
-					&dataSize)), SA_AIS_ERR_INVALID_PARAM)) errors += 1;
+					&dataSize)) != SA_AIS_ERR_INVALID_PARAM) errors += 1;
 
 		}
 	}
@@ -181,7 +177,10 @@ static void saNtfNotificationCallbackT(
 			errors +=1;
 			break;
     }
-	 last_not_id = get_ntf_id(notification);
+    last_not_id = get_ntf_id(notification);
+    SaNtfNotificationHandleT notificationHandle = \
+    notification->notification.alarmNotification.notificationHandle;
+    safassert(saNtfNotificationFree(notificationHandle), SA_AIS_OK);
 }
 
 
@@ -274,17 +273,17 @@ void saNtfPtrGetTest_common_prep(void)
 	 strncpy(myAlarmNotification.notificationHeader.additionalText,
 			DEFAULT_ADDITIONAL_TEXT, sizeof(DEFAULT_ADDITIONAL_TEXT));
 
-    if(!safassertNice((rc = saNtfPtrValAllocate(
+    if((rc = saNtfPtrValAllocate(
     		myAlarmNotification.notificationHandle,
     		(SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) + 1),
     		&destPtr,
-    		&(myAlarmNotification.proposedRepairActions[0].actionValue))), SA_AIS_OK))
+    		&(myAlarmNotification.proposedRepairActions[0].actionValue))) == SA_AIS_OK)
     {
-		charPtr = (char*)destPtr;
+	charPtr = (char*)destPtr;
     	/* Copy the actual value */
     	strncpy(charPtr, DEFAULT_ADDITIONAL_TEXT, strlen(DEFAULT_ADDITIONAL_TEXT)+ 1);
-    	if(!safassertNice(saNtfNotificationSend(myAlarmNotification.notificationHandle), SA_AIS_OK)) {
-			poll_until_received(ntfHandle, *myAlarmNotification.notificationHeader.notificationId);
+    	if(saNtfNotificationSend(myAlarmNotification.notificationHandle) == SA_AIS_OK) {
+		poll_until_received(ntfHandle, *myAlarmNotification.notificationHeader.notificationId);
     	}
     }
     safassert(saNtfNotificationFree(myAlarmNotification.notificationHandle) , SA_AIS_OK);

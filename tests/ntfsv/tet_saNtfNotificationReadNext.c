@@ -16,16 +16,49 @@
  */
  
 #include <errno.h>
-#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <wait.h>
-
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
 
 extern int verbose;
+
+void free_notif(
+    SaNtfSubscriptionIdT subscriptionId,
+    const SaNtfNotificationsT *notification) {
+    SaNtfNotificationHandleT notificationHandle = 0;
+    switch (notification->notificationType) {
+        case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
+            notificationHandle = notification->notification.objectCreateDeleteNotification.notificationHandle;
+            break;
+
+        case SA_NTF_TYPE_ATTRIBUTE_CHANGE:
+            notificationHandle = notification->notification.attributeChangeNotification.notificationHandle;
+            break;
+
+        case SA_NTF_TYPE_STATE_CHANGE:
+            notificationHandle = notification->notification.stateChangeNotification.notificationHandle;
+            break;
+
+        case SA_NTF_TYPE_ALARM:
+            notificationHandle = notification->notification.alarmNotification.notificationHandle;
+            break;
+
+        case SA_NTF_TYPE_SECURITY_ALARM:
+            notificationHandle = notification->notification.securityAlarmNotification.notificationHandle;
+            break;
+
+        default:
+            assert(0);
+            break;
+    }
+    if (notificationHandle != 0) {
+        safassert(saNtfNotificationFree(notificationHandle), SA_AIS_OK);
+    }
+}
 
 /**
  *
@@ -139,6 +172,8 @@ void saNtfNotificationReadNext_01(void)
        if(verbose)
        {
            newNotification(69, &returnedNotification);
+       } else {
+           free_notif(0, &returnedNotification);
        }
    }
    if(verbose)
@@ -149,9 +184,11 @@ void saNtfNotificationReadNext_01(void)
 	errorCode = SA_AIS_ERR_FAILED_OPERATION;
     }
     // No more...
-
-    safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
+    safassert(saNtfNotificationReadFinalize(readHandle), SA_AIS_OK);
+    safassert(saNtfNotificationFilterFree(myAlarmFilter.notificationFilterHandle), SA_AIS_OK);
     free(myNotificationParams.additionalText);
+    safassert(saNtfNotificationFree(myNotification.notificationHandle), SA_AIS_OK);
+    safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
     test_validate(errorCode, SA_AIS_ERR_NOT_EXIST); /* read all notifications!! */
 }
 
@@ -265,6 +302,8 @@ void saNtfNotificationReadNext_02(void)
        if(verbose)
        {
            newNotification(69, &returnedNotification);
+       } else {
+           free_notif(0, &returnedNotification);
        }
    }
    if(verbose)
@@ -277,6 +316,7 @@ void saNtfNotificationReadNext_02(void)
    }
 
    readCounter =0;
+   SaNtfIdentifierT last_id = 0;
    for (i=0 ; (errorCode = saNtfNotificationReadNext(
        readHandle,
        SA_NTF_SEARCH_OLDER,
@@ -284,9 +324,13 @@ void saNtfNotificationReadNext_02(void)
    {
        safassert(errorCode, SA_AIS_OK);
        readCounter++;
+       last_id = *returnedNotification.notification.alarmNotification.
+        notificationHeader.notificationId;
        if(verbose)
        {
            newNotification(69, &returnedNotification);
+       } else {
+           free_notif(0, &returnedNotification);
        }
    }
 
@@ -299,13 +343,15 @@ void saNtfNotificationReadNext_02(void)
     }
 
     /* check that last is the same as the first */
-    if (*returnedNotification.notification.alarmNotification.
-        notificationHeader.notificationId != notids[0])
+    if (last_id != notids[0])
     {
         errorCode = SA_AIS_ERR_FAILED_OPERATION;
     }
     // No more...
 error:
+    safassert(saNtfNotificationReadFinalize(readHandle), SA_AIS_OK);
+    safassert(saNtfNotificationFilterFree(myAlarmFilter.notificationFilterHandle), SA_AIS_OK);
+    safassert(saNtfNotificationFree(myNotification.notificationHandle), SA_AIS_OK);
     safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
     free(myNotificationParams.additionalText);
     test_validate(errorCode, SA_AIS_ERR_NOT_EXIST); /* read all notifications!! */

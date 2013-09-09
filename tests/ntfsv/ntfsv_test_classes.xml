@@ -289,4 +289,27 @@
 			<flag>SA_PERSISTENT</flag>
 		</attr>
 	</class>
+	<class name="OsafNtfCmTestRT2">
+		<category>SA_RUNTIME</category>
+		<rdn>
+			<name>stringRdn2</name>
+			<type>SA_STRING_T</type>
+			<category>SA_RUNTIME</category>
+			<flag>SA_CACHED</flag>
+		</rdn>
+		<attr>
+			<name>testUint32</name>
+			<type>SA_UINT32_T</type>
+			<category>SA_RUNTIME</category>
+			<flag>SA_CACHED</flag>
+			<flag>SA_NOTIFY</flag>
+		</attr>
+		<attr>
+			<name>testInt32</name>
+			<type>SA_INT32_T</type>
+			<category>SA_RUNTIME</category>
+			<flag>SA_CACHED</flag>
+			<flag>SA_NOTIFY</flag>
+		</attr>
+	</class>
 </imm:IMM-contents>

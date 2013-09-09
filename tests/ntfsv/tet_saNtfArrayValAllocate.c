@@ -14,14 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include "util.h"
-
-#include <poll.h>
-#include <unistd.h>
-#include <pthread.h>
 
 /**
  * Test saNtfArrayValAllocate.

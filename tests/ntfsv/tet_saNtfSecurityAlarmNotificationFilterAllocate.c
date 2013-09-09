@@ -14,10 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
-#include "test.h"
 #include "tet_ntf_common.h"
-#include "util.h"
 
 void saNtfSecurityAlarmNotificationFilterAllocate_01(void)
 {
@@ -26,7 +26,7 @@ void saNtfSecurityAlarmNotificationFilterAllocate_01(void)
 
     safassert(saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion), SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfSecurityAlarmNotificationFilterAllocate(
+    if((rc = saNtfSecurityAlarmNotificationFilterAllocate(
         ntfHandle,
         &mySecurityAlarmFilter,
         0,
@@ -37,7 +37,7 @@ void saNtfSecurityAlarmNotificationFilterAllocate_01(void)
         0,
         0,
         0,
-        0)), SA_AIS_OK)) {
+        0)) == SA_AIS_OK) {
     	safassert(saNtfNotificationFilterFree(mySecurityAlarmFilter.notificationFilterHandle) , SA_AIS_OK);
     }
 

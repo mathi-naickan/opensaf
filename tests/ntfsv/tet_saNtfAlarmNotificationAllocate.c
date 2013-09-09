@@ -14,12 +14,11 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
+#include <sys/time.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include <sys/time.h>
-#include <poll.h>
-#include <unistd.h>
 
 static SaNtfAlarmNotificationT myAlarmNotification;
 
@@ -64,6 +63,7 @@ void saNtfAlarmNotificationAllocate_01(void) {
 					myAlarmParams.numProposedRepairActions,
 					myAlarmParams.variableDataSize);
 
+        free(myNotificationParams.additionalText);
 	safassert(saNtfNotificationFree(myAlarmNotification.notificationHandle) , SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle) , SA_AIS_OK);
 	test_validate(rc, SA_AIS_OK);
@@ -117,6 +117,7 @@ void saNtfAlarmNotificationAllocate_02(void) {
 		errors++;
 	}
 
+        free(myNotificationParams.additionalText);
 	/* Create a handle and then destroy it */
 	safassert(saNtfInitialize(&ntfHandle, &ntfSendCallbacks, &ntfVersion) , SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle) , SA_AIS_OK);
@@ -189,6 +190,7 @@ void saNtfAlarmNotificationAllocate_03(void) {
 		errors++;
 	}
 
+        free(myNotificationParams.additionalText);
 	safassert(saNtfFinalize(ntfHandle) , SA_AIS_OK);
 
 	rc = (errors == 0)? SA_AIS_OK:  SA_AIS_ERR_INVALID_PARAM;
@@ -202,7 +204,5 @@ __attribute__ ((constructor)) static void saNtfNotificationSend_constructor(
 	test_case_add(6, saNtfAlarmNotificationAllocate_01, "saNtfAlarmNotificationAllocate SA_AIS_OK");
 	test_case_add(6, saNtfAlarmNotificationAllocate_02, "saNtfAlarmNotificationAllocate SA_AIS_ERR_BAD_HANDLE");
 	test_case_add(6, saNtfAlarmNotificationAllocate_03, "saNtfAlarmNotificationAllocate SA_AIS_ERR_INVALID_PARAM");
-//	test_case_add(30, saNtfAlarmNotificationAllocate_04, "saNtfAlarmNotificationAllocate SA_AIS_ERR_TOO_BIG");
-//	test_case_add(30, saNtfAlarmNotificationAllocate_05, "saNtfAlarmNotificationAllocate SA_AIS_ERR_UNAVAILABLE");
 }
 

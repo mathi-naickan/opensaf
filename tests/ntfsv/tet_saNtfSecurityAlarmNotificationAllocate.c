@@ -14,12 +14,11 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
+#include <sys/time.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include <sys/time.h>
-#include <poll.h>
-#include <unistd.h>
 
 void saNtfSecurityAlarmNotificationAllocate_01(void) {
 	SaNtfSecurityAlarmNotificationT  myNotification;
@@ -44,6 +43,7 @@ void saNtfSecurityAlarmNotificationAllocate_01(void) {
 					/* use default allocation size */
 					myNotificationAllocationParams.variableDataSize);
 
+        free(myNotificationParams.additionalText);
 	safassert(saNtfNotificationFree(myNotification.notificationHandle), SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
 	test_validate(rc, SA_AIS_OK);
@@ -81,7 +81,7 @@ void saNtfSecurityAlarmNotificationAllocate_02(void) {
 	if(rc != SA_AIS_ERR_BAD_HANDLE) {
 		errors++;
 	}
-
+        free(myNotificationParams.additionalText);
 	safassert(saNtfInitialize(&ntfHandle, &ntfSendCallbacks, &ntfVersion), SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
 	rc = saNtfSecurityAlarmNotificationAllocate(
@@ -127,6 +127,7 @@ void saNtfSecurityAlarmNotificationAllocate_03(void) {
 					/* use default allocation size */
 					myNotificationAllocationParams.variableDataSize);
 
+        free(myNotificationParams.additionalText);
 	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
 	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 
@@ -141,7 +142,5 @@ __attribute__ ((constructor)) static void saNtfSecurityAlarmNotificationAllocate
 				"saNtfSecurityAlarmNotificationAllocate SA_AIS_ERR_BAD_HANDLE");
 	test_case_add(6, saNtfSecurityAlarmNotificationAllocate_03,
 				"saNtfSecurityAlarmNotificationAllocate SA_AIS_ERR_INVALID_PARAM");
-	//	test_case_add(6, saNtfSecurityAlarmNotificationAllocate_03, "saNtfSecurityAlarmNotificationAllocate SA_AIS_ERR_TOO_BIG");
-	//	test_case_add(6, saNtfSecurityAlarmNotificationAllocate_03, "saNtfSecurityAlarmNotificationAllocate SA_AIS_ERR_UNAVAILABLE");
 }
 

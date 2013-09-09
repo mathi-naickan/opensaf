@@ -14,10 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
-#include "test.h"
 #include "tet_ntf_common.h"
-#include "util.h"
 
 void saNtfAttributeChangeNotificationFilterAllocate_01(void)
 {
@@ -27,14 +27,14 @@ void saNtfAttributeChangeNotificationFilterAllocate_01(void)
 
     safassert(saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion), SA_AIS_OK);
 
-    if(!safassertNice((rc = saNtfAttributeChangeNotificationFilterAllocate(
+    if((rc = saNtfAttributeChangeNotificationFilterAllocate(
         ntfHandle,
         &myAttributeChangeFilter,
         0,
         0,
         0,
         1,
-        0)), SA_AIS_OK)) {
+        0)) == SA_AIS_OK) {
 
     	myAttributeChangeFilter.notificationFilterHeader.notificationClassIds[0].vendorId = 33333;
     	myAttributeChangeFilter.notificationFilterHeader.notificationClassIds[0].majorId = 999;

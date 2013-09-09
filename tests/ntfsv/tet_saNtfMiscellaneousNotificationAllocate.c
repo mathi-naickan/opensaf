@@ -14,16 +14,15 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
+#include <sys/time.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include <sys/time.h>
-#include <poll.h>
-#include <unistd.h>
 
 
 void saNtfMiscellaneousNotificationAllocate_01(void) {
-	test_validate(SA_AIS_ERR_NOT_SUPPORTED, SA_AIS_OK);
+	test_validate(SA_AIS_ERR_NOT_SUPPORTED, SA_AIS_ERR_NOT_SUPPORTED);
 #if 0
 	/*  struct pollfd fds[1];*/
 	/*  int ret;             */
@@ -79,7 +78,7 @@ void saNtfMiscellaneousNotificationAllocate_01(void) {
  *           Create a handle and then destroy it.
  */
 void saNtfMiscellaneousNotificationAllocate_02(void) {
-	test_validate(SA_AIS_ERR_NOT_SUPPORTED, SA_AIS_OK);
+	test_validate(SA_AIS_ERR_NOT_SUPPORTED, SA_AIS_ERR_NOT_SUPPORTED);
 #if 0
 	/* Variable to count the number of errors */
 	int errors = 0;
@@ -154,7 +153,7 @@ void saNtfMiscellaneousNotificationAllocate_02(void) {
  * Strategy:
  */
 void saNtfMiscellaneousNotificationAllocate_03(void) {
-	test_validate(SA_AIS_ERR_NOT_SUPPORTED, SA_AIS_OK);
+	test_validate(SA_AIS_ERR_NOT_SUPPORTED, SA_AIS_ERR_NOT_SUPPORTED);
 #if 0
 	int errors = 0;
 
@@ -211,7 +210,7 @@ void saNtfMiscellaneousNotificationAllocate_03(void) {
 __attribute__ ((constructor)) static void saNtfMiscellaneousNotificationAllocate_constructor(
 		void) {
 	test_suite_add(6, "Producer API 2 allocate");
-	test_case_add(6, saNtfMiscellaneousNotificationAllocate_01, "saNtfMiscellaneousNotificationAllocate SA_AIS_OK");
+	test_case_add(6, saNtfMiscellaneousNotificationAllocate_01, "saNtfMiscellaneousNotificationAllocate, Not supported");
 	test_case_add(6, saNtfMiscellaneousNotificationAllocate_02, "saNtfMiscellaneousNotificationAllocate SA_AIS_ERR_BAD_HANDLE");
 	test_case_add(6, saNtfMiscellaneousNotificationAllocate_03, "saNtfMiscellaneousNotificationAllocate SA_AIS_ERR_INVALID_PARAM");
 //	test_case_add(30, saNtfAlarmNotificationAllocate_04, "saNtfAlarmNotificationAllocate SA_AIS_ERR_TOO_BIG");

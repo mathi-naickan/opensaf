@@ -14,9 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
 
 void saNtfObjectCreateDeleteNotificationAllocate_01(void)
 {
@@ -97,6 +98,7 @@ void saNtfObjectCreateDeleteNotificationAllocate_01(void)
     myNotification.objectAttributes[0].attributeValue.int32Val =
         myNotificationParams.objectAttributes[0].attributeValue.int32Val;
 
+    free(myNotificationParams.additionalText);
     safassert(saNtfNotificationFree(myNotification.notificationHandle), SA_AIS_OK);
     safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
     test_validate(rc, SA_AIS_OK);
@@ -140,7 +142,7 @@ void saNtfObjectCreateDeleteNotificationAllocate_02(void)
 		errors++;
 	}
 
-
+    free(myNotificationParams.additionalText);
     safassert(saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion), SA_AIS_OK);
     safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
 
@@ -196,6 +198,7 @@ void saNtfObjectCreateDeleteNotificationAllocate_03(void)
         /* use default allocation size */
         myNotificationAllocationParams.variableDataSize);
 
+    free(myNotificationParams.additionalText);
     safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
     test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }

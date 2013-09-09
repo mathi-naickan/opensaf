@@ -16,16 +16,16 @@
  */
 #include <sys/time.h>
 #include <unistd.h>
+#include <utest.h>
 #include "tet_ntf.h"
-#include "test.h"
 
 /* Change this to current highest supported version */
 #define NTF_HIGHEST_SUPPORTED_VERSION {'A', 0x01, 0x01}
 
 const SaVersionT refVersion = NTF_HIGHEST_SUPPORTED_VERSION;
 SaVersionT ntfVersion = NTF_HIGHEST_SUPPORTED_VERSION;
-SaAisErrorT rc;
-SaNtfHandleT ntfHandle;
+SaAisErrorT rc = SA_AIS_OK;
+SaNtfHandleT ntfHandle = 0;
 SaNtfCallbacksT ntfCallbacks = {NULL, NULL};
 SaSelectionObjectT selectionObject;
 int verbose = 0;
@@ -59,9 +59,8 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    test_run(suite, tcase);
+    return test_run(suite, tcase);
 
-    return 0;
 }
 
 

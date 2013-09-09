@@ -14,9 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
 
 /* Parameter stuct instances */
 static saNotificationAllocationParamsT
@@ -73,7 +74,7 @@ void saNtfNotificationReadFinalize_01(void)
 					      &readHandle), SA_AIS_OK);
 
     rc = saNtfNotificationReadFinalize(readHandle);
-
+    safassert(saNtfNotificationFilterFree(myAlarmFilter.notificationFilterHandle), SA_AIS_OK);
     safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
     free(myNotificationParams.additionalText);
     test_validate(rc, SA_AIS_OK);

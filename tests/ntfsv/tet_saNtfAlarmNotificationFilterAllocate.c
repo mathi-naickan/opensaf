@@ -14,10 +14,11 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
-#include "test.h"
 #include "tet_ntf_common.h"
-#include "util.h"
+
 
 void saNtfAlarmNotificationFilterAllocate_01(void)
 {
@@ -58,10 +59,10 @@ void saNtfAlarmNotificationFilterAllocate_01(void)
     myNotificationFilterHandles.securityAlarmFilterHandle = 0;
     myNotificationFilterHandles.stateChangeFilterHandle = 0;
 
+    free(myNotificationParams.additionalText); /* allocated in fillInDefaultValues */
     safassert(saNtfNotificationFilterFree(
                   myNotificationFilterHandles.alarmFilterHandle), SA_AIS_OK);
     safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
-    free(myNotificationParams.additionalText); /* allocated in fillInDefaultValues */
     test_validate(rc, SA_AIS_OK);
 
 }

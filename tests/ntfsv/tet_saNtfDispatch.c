@@ -14,8 +14,9 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
-#include "test.h"
 
 void saNtfDispatch_01(void)
 {
@@ -41,7 +42,7 @@ void saNtfDispatch_03(void)
 
 __attribute__ ((constructor)) static void saNtfDispatch_constructor(void)
 {
-    test_suite_add(4, "Life Cykel API 4");
+    test_suite_add(4, "Life cycle, dispatch, API 4");
     test_case_add(4, saNtfDispatch_01, "saNtfDispatch - SA_AIS_OK SA_DISPATCH_ALL");
     test_case_add(4, saNtfDispatch_02, "saNtfDispatch - invalid handle SA_AIS_ERR_BAD_HANDLE");
     test_case_add(4, saNtfDispatch_03, "saNtfDispatch - zero flag SA_AIS_ERR_INVALID_PARAM");

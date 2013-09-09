@@ -14,12 +14,11 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
+#include <sys/time.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include <sys/time.h>
-#include <poll.h>
-#include <unistd.h>
 
 
 void saNtfStateChangeNotificationAllocate_01(void) {
@@ -48,6 +47,7 @@ void saNtfStateChangeNotificationAllocate_01(void) {
 					myNotificationAllocationParams.variableDataSize);
 
 	safassert(saNtfNotificationFree(myNotification.notificationHandle) , SA_AIS_OK);
+        free(myNotificationParams.additionalText);
 	safassert(saNtfFinalize(ntfHandle) , SA_AIS_OK);
 	test_validate(rc, SA_AIS_OK);
 }
@@ -86,7 +86,7 @@ void saNtfStateChangeNotificationAllocate_02(void) {
 		errors++;
 	}
 
-
+        free(myNotificationParams.additionalText);
 	safassert(saNtfInitialize(&ntfHandle, &ntfSendCallbacks, &ntfVersion) , SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle) , SA_AIS_OK);
 	rc = saNtfStateChangeNotificationAllocate(
@@ -141,6 +141,7 @@ void saNtfStateChangeNotificationAllocate_03(void) {
 					myNotificationAllocationParams.numAttributes,
 					/* use default allocation size */
 					myNotificationAllocationParams.variableDataSize);
+        free(myNotificationParams.additionalText);
 	safassert(saNtfFinalize(ntfHandle) , SA_AIS_OK);
 	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
@@ -153,7 +154,5 @@ __attribute__ ((constructor)) static void saNtfStateChangeNotificationAllocate_c
 				"saNtfStateChangeNotificationAllocate SA_AIS_ERR_BAD_HANDLE");
 	test_case_add(6, saNtfStateChangeNotificationAllocate_03,
 				"saNtfStateChangeNotificationAllocate NULL notification SA_AIS_ERR_INVALID_PARAM");
-	//	test_case_add(6, saNtfStateChangeNotificationAllocate_03, "saNtfStateChangeNotificationAllocate SA_AIS_ERR_TOO_BIG");
-	//	test_case_add(6, saNtfStateChangeNotificationAllocate_03, "saNtfStateChangeNotificationAllocate SA_AIS_ERR_UNAVAILABLE");
 }
 

@@ -14,8 +14,9 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
-#include "test.h"
 
 void saNtfSelectionObjectGet_01(void)
 {
@@ -51,7 +52,7 @@ void saNtfSelectionObjectGet_04(void)
 
 __attribute__ ((constructor)) static void saNtfSelectionObjectGet_constructor(void)
 {
-    test_suite_add(3, "Life Cykel API 3");
+    test_suite_add(3, "Life cycle, selectObject, API 3");
     test_case_add(3, saNtfSelectionObjectGet_01, "saNtfSelectionObjectGet SA_AIS_OK");
     test_case_add(3, saNtfSelectionObjectGet_02, "saNtfSelectionObjectGet NULL handle SA_AIS_ERR_BAD_HANDLE");
     test_case_add(3, saNtfSelectionObjectGet_03, "saNtfSelectionObjectGet invalid handle SA_AIS_ERR_BAD_HANDLE");

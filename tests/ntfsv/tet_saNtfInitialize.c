@@ -14,8 +14,9 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
-#include "test.h"
 
 
 SaAisErrorT checkReturnedVersion(SaVersionT rVersion)
@@ -131,7 +132,7 @@ void saNtfInitialize_12(void)
 
 __attribute__ ((constructor)) static void saNtfInitialize_constructor(void)
 {
-    test_suite_add(1, "Life Cykel API");
+    test_suite_add(1, "Life cycle, initialize, API 1");
     test_case_add(1, saNtfInitialize_01, "saNtfInitialize SA_AIS_OK");
     test_case_add(1, saNtfInitialize_02, "saNtfInitialize with NULL pointer to handle");
     test_case_add(1, saNtfInitialize_03, "saNtfInitialize with NULL pointer to callbacks");

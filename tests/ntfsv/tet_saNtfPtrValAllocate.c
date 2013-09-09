@@ -14,14 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
-#include "util.h"
-
-#include <poll.h>
-#include <unistd.h>
-#include <pthread.h>
 
 /**
  * Test saNtfPtrValAllocate.
@@ -34,7 +30,7 @@ void saNtfPtrAllocateTest_01(void)
 
     safassert(saNtfInitialize(&ntfHandle, &ntfSendCallbacks, &ntfVersion) , SA_AIS_OK);
 
-	safassertNice(saNtfAlarmNotificationAllocate(
+    safassert(saNtfAlarmNotificationAllocate(
 			ntfHandle,
 			&myAlarmNotification,
 			0,

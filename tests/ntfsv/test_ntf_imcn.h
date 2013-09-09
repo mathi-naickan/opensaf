@@ -70,8 +70,8 @@ extern "C" {
 	const SaInt64T INT64VAR1 = -64;
 	const SaUint64T UINT64VAR1 = 64;
 	const SaTimeT TIMEVAR1 = 12345;
-	const SaFloatT FLOATVAR1 = 3.14;
-	const SaDoubleT DOUBLEVAR1 = 2.7122;
+	const SaFloatT FLOATVAR1 = 3.140000;
+	const SaDoubleT DOUBLEVAR1 = 2.712200;
 	const SaStringT STRINGVAR1 = "firstString";
 
 	const SaInt32T INT32VAR2 = -232;
@@ -92,13 +92,14 @@ extern "C" {
 	const SaDoubleT DOUBLEVAR3 = 2244.712223;
 	const SaStringT STRINGVAR3 = "thirdStringMultivalue";
 
-	const int POLLWAIT = 7;
+	const int POLLWAIT = 100;
 
 	static const SaImmOiImplementerNameT IMPLEMENTERNAME_RT = "Runtime_implementer";
 	static SaVersionT immVersion = {'A', 0x02, 0x0c};
 
 	static const char* const DNTESTRT = "stringRdn=TestObject";
 	static const char* const DNTESTRT1 = "stringRdn1=TestObject";
+	static const char* const DNTESTRT2 = "stringRdn2=TestObject";
 	static const char* const DNTESTCFG = "stringRdnCfg=TestObject";
 
 #ifdef	__cplusplus

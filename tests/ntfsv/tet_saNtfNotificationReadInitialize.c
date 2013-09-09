@@ -14,9 +14,10 @@
  * Author(s): Ericsson AB
  *
  */
+#include <utest.h>
+#include <util.h>
 #include "tet_ntf.h"
 #include "tet_ntf_common.h"
-#include "test.h"
 
 /* Parameter struct instances */
 static saNotificationAllocationParamsT myNotificationAllocationParams;
@@ -25,11 +26,11 @@ static saNotificationFilterAllocationParamsT
 static saNotificationParamsT myNotificationParams;
 
 void saNtfNotificationReadInitialize_01(SaNtfSearchModeT sMode, SaAisErrorT expectedRC) {
-	SaNtfHandleT ntfHandle;
+	SaNtfHandleT ntfHandle = 0;
 	SaNtfSearchCriteriaT searchCriteria;
 	SaNtfAlarmNotificationFilterT myAlarmFilter;
 	SaNtfNotificationTypeFilterHandlesT myNotificationFilterHandles = {0,0,0,0,0};
-	SaNtfReadHandleT readHandle;
+	SaNtfReadHandleT readHandle = 0;
 
 	searchCriteria.searchMode = sMode;
 
@@ -64,6 +65,8 @@ void saNtfNotificationReadInitialize_01(SaNtfSearchModeT sMode, SaAisErrorT expe
 	rc = saNtfNotificationReadInitialize(searchCriteria,
 			&myNotificationFilterHandles, &readHandle);
 
+        if (rc == SA_AIS_OK) safassert(saNtfNotificationReadFinalize(readHandle), SA_AIS_OK);
+        safassert(saNtfNotificationFilterFree(myAlarmFilter.notificationFilterHandle), SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
 	free(myNotificationParams.additionalText);
 	test_validate(rc, expectedRC);
@@ -253,12 +256,19 @@ void saNtfNotificationReadInitialize_not_supported(int filter) {
 		myNotificationFilterHandles.stateChangeFilterHandle
 		= myStateChangefilter.notificationFilterHandle;
 	if (filter == 3)
-		myNotificationFilterHandles.stateChangeFilterHandle
-		= myStateChangefilter.notificationFilterHandle;
+		myNotificationFilterHandles.attributeChangeFilterHandle
+		= myAttributeChangeFilter.notificationFilterHandle;
 	
 	rc = saNtfNotificationReadInitialize(searchCriteria,
 			&myNotificationFilterHandles, &readHandle);
 
+        safassert(saNtfNotificationFilterFree(myAlarmFilter.notificationFilterHandle), SA_AIS_OK);
+        if (filter == 1)
+            safassert(saNtfNotificationFilterFree(myObjCrDeFilter.notificationFilterHandle), SA_AIS_OK);
+        if (filter == 2)
+            safassert(saNtfNotificationFilterFree(myStateChangefilter.notificationFilterHandle), SA_AIS_OK);
+        if (filter == 3)
+            safassert(saNtfNotificationFilterFree(myAttributeChangeFilter.notificationFilterHandle), SA_AIS_OK);
 	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
 	free(myNotificationParams.additionalText);
 	test_validate(rc, SA_AIS_ERR_NOT_SUPPORTED);
@@ -308,7 +318,7 @@ __attribute__ ((constructor)) static void saNtfNotificationReadInitialize_constr
 	test_case_add(20, saNtfNotificationReadInitialize_04,
 			"saNtfNotificationReadInitialize multiple filters with objCreateDelete SA_AIS_ERR_NOT_SUPPORTED");
 	test_case_add(20, saNtfNotificationReadInitialize_05,
-			"saNtfNotificationReadInitialize multiple filters with attributeChange SA_AIS_ERR_NOT_SUPPORTED");
-	test_case_add(20, saNtfNotificationReadInitialize_06,
 			"saNtfNotificationReadInitialize multiple filters with stateChangeFilter SA_AIS_ERR_NOT_SUPPORTED");
+	test_case_add(20, saNtfNotificationReadInitialize_06,
+			"saNtfNotificationReadInitialize multiple filters with attributeChange SA_AIS_ERR_NOT_SUPPORTED");
 }

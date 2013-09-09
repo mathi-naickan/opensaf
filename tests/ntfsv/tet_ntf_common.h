@@ -186,4 +186,10 @@ void newNotification(
 extern SaNtfIdentifierT get_ntf_id(const SaNtfNotificationsT *notif);
 void poll_until_received(SaNtfHandleT ntfHandle, SaNtfIdentifierT wanted_id);
 
+
+extern void assertvalue_impl(__const char *__assertion, __const char *__file,
+		   unsigned int __line, __const char *__function);
+#define assertvalue(expr) \
+  (((expr) ? 0 : (assertvalue_impl (__STRING(expr), __FILE__, __LINE__, __FUNCTION__), 1)))
+
 #endif
