@@ -74,4 +74,5 @@ void saImmOmAdminOwnerFinalize_03(void)
 
     /* Cleanup */ 
     safassert(saImmOmAdminOwnerFinalize(rudeGuyHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }

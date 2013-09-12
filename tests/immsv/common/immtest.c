@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "immtest.h"
 
 SaVersionT immVersion = {'A', 0x02, 0x011}; 
@@ -54,7 +55,12 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    return test_run(suite, tcase);
+    int rc = test_run(suite, tcase);
+
+    /* Added pthread_exit() to remove dlopen@@GLIBC leak from valgrind */
+    pthread_exit(NULL);
+
+    return rc;
 }  
 
 SaAisErrorT config_class_create(SaImmHandleT immHandle)

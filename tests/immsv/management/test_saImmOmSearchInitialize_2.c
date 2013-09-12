@@ -53,7 +53,7 @@ void saImmOmSearchInitialize_2_03(void)
 
 void saImmOmSearchInitialize_2_04(void)
 {
-    SaImmSearchHandleT searchHandle;
+    SaImmSearchHandleT searchHandle = -1;
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     rc = saImmOmSearchInitialize_2(immOmHandle, NULL, SA_IMM_ONE,
