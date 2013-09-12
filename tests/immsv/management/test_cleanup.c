@@ -70,7 +70,7 @@ static void cleanup() {
 
 	/* Delete objects */
 	int len;
-	SaNameT objectName;
+	SaNameT objectName = {0};
 	SaNameT *objectNames[2] = { &objectName, NULL };
 	obj = objects;
 	while(*obj) {

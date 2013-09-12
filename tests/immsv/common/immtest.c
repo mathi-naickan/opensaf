@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "immtest.h"
 
 const SaVersionT constImmVersion = {'A', 0x02, 0x0c}; 
@@ -67,6 +68,9 @@ int main(int argc, char **argv)
 
     if(test_cleanup)
         test_cleanup();
+
+    /* Added pthread_exit() to remove dlopen@@GLIBC leak from valgrind */
+    pthread_exit(NULL);
 
     return rc;
 }  

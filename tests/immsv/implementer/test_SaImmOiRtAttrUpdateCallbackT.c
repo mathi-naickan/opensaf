@@ -138,9 +138,9 @@ static void *test_saImmOmAccessorGet_2(void *arg)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAccessorInitialize(immOmHandle, &accessorHandle), SA_AIS_OK);
     safassert(saImmOmAccessorGet_2(accessorHandle, dn, attributeNames, &attributes), SA_AIS_OK);
-    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     assert(attributes[0]->attrValueType == SA_IMM_ATTR_SAINT32T);
     assert(*((SaInt32T*) attributes[0]->attrValues[0]) == int1Value);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
     TRACE_LEAVE();
     return NULL;

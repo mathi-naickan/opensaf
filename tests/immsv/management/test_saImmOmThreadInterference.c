@@ -88,7 +88,7 @@ void saImmOmThreadInterference_01(void) {
 	SaImmAdminOwnerHandleT ownerHandle;
 	SaImmSearchHandleT searchHandle;
 	SaImmCcbHandleT ccbHandle;
-	pthread_t threadid;
+	pthread_t threadid1, threadid2;
 	SaAisErrorT rc;
 	SaImmAttrDefinitionT_2 attrDef = { "rdn", SA_IMM_ATTR_SASTRINGT, SA_IMM_ATTR_RDN | SA_IMM_ATTR_CONFIG, NULL };
 	const SaImmAttrDefinitionT_2 *attrDefs[2] = { &attrDef, NULL };
@@ -123,7 +123,7 @@ void saImmOmThreadInterference_01(void) {
 	safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiObjectImplementerSet(immOiHandle, &objectName, SA_IMM_ONE), SA_AIS_OK);
-	assert(!pthread_create(&threadid, NULL, implementer_thread, &immOiHandle));
+	assert(!pthread_create(&threadid1, NULL, implementer_thread, &immOiHandle));
 
 	while(!isReady)
 		usleep(100);
@@ -132,7 +132,7 @@ void saImmOmThreadInterference_01(void) {
 	isReady = 0;
 	isOmDone = 0;
 	isAdminOperDone = 0;
-	assert(!pthread_create(&threadid, NULL, lockomhandle_thread, &ownerHandle));
+	assert(!pthread_create(&threadid2, NULL, lockomhandle_thread, &ownerHandle));
 
 	while(!isReady)
 		usleep(100);
@@ -165,6 +165,10 @@ done:
 	safassert(saImmOiObjectImplementerRelease(immOiHandle, &objectName, SA_IMM_ONE), SA_AIS_OK);
 	safassert(saImmOiImplementerClear(immOiHandle), SA_AIS_OK);
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
+
+	/* Use pthread_detach() to remove pthread_create@@GLIBC leak from valgrind */
+	pthread_detach(threadid1);
+	pthread_detach(threadid2);
 
 	while(!isOiDone)
 		usleep(200);

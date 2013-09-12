@@ -243,6 +243,7 @@ void saImmOmInitialize_10(void)
 
     test_validate(rc, SA_AIS_OK);
 
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
 void saImmOmInitialize_11(void)
