@@ -33,6 +33,8 @@ void immd_proc_rebroadcast_fevs(IMMD_CB *immd_cb, uint16_t back_count);
 
 uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node, bool active);
 
+void immd_pending_payload_discards(IMMD_CB *cb);
+
 void immd_cb_dump(void);
 
 uint32_t immd_mbcsv_chgrole(IMMD_CB *cb);

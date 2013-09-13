@@ -1978,6 +1978,7 @@ static uint32_t immd_evt_proc_lga_callback(IMMD_CB *cb, IMMD_EVT *evt)
 		/* Change of role to active => We may need to elect new coord */
 		immd_proc_elect_coord(cb, true);
 		immd_db_purge_fevs(cb);
+		immd_pending_payload_discards(cb); /*Ensure node down for payloads.*/
 	}
 done:
 	TRACE_LEAVE();
