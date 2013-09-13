@@ -439,15 +439,115 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, 
 
 			free(tmpData);
 		}
+	} else if(!(immnd_info->isOnController)) {
+		/* Standby NOT immediately sending redundant D2ND_DISCARD_NODE in this case.
+		   But will record any payload down event in case the active SC is included
+		   in a burst of node downs. See ticket #563. The active IMMD may be going
+		   down together with many payload nodes, such that the active IMMD never has
+		   time to generate the discard node message for all payloads. This will be
+		   detected if this (standby) IMMD becomes active in close time proximity.
+		   See immd_pending_payload_discards() below.
+		 */
+		
+		LOG_IN("Standby IMMD recording IMMND DOWN for node %x", immnd_info->immnd_key);
+		IMMD_IMMND_DETACHED_NODE *detached_node = calloc(1, sizeof(IMMD_IMMND_DETACHED_NODE));
+		osafassert(detached_node);
+		detached_node->node_id = immnd_info->immnd_key;
+		detached_node->immnd_execPid = immnd_info->immnd_execPid;
+		detached_node->epoch = immnd_info->epoch;
+		detached_node->next = cb->detached_nodes;
+		cb->detached_nodes = detached_node;
 	}
 
 	/*We remove the node for the lost IMMND on both active and standby. */
-	TRACE_5("Removing node key:%u dest:%u", immnd_info->immnd_key,
-		m_NCS_NODE_ID_FROM_MDS_DEST(immnd_info->immnd_dest));
+	TRACE_5("Removing node id:%x", immnd_info->immnd_key);
 	immd_immnd_info_node_delete(cb, immnd_info);
 	immd_cb_dump();
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
+}
+
+
+/****************************************************************************
+ * Name          : immd_pending_payload_discards
+ *
+ * Description   : Send possibly redundant discard-node message to IMMNDs for
+ *                 payload nodes (IMMNDs) that have departed and not returned.
+ *                 This is needed to plug the small hole that exists in the
+ *                 handling of IMMND node down, when the current active IMMD
+ *                 is being taken down concurrently with several payloads.
+ *
+ *                 The active IMMD may then be pulled down after having 
+ *                 received the IMMND MDS down event for the payloads, but
+ *                 before having created or sent the fevs message broadcasting
+ *                 each node down to the IMMND cluster.
+ *
+ *                 The list of detached nodes is screened for having occcurred
+ *                 in the current epoch. This is an extra guard against the new 
+ *                 active shooting down a recently restarted payload. The list
+ *                 is also pruned in immd_sbevt.c when it receives info about
+ *                 a payload having re-joined.
+ *
+ *                 This function should only be invoked by the just recently
+ *                 newly active IMMD. It is only relevant for fail-over, not
+ *                 for switch-over (si-swap) since for a switch-over the old
+ *                 active would never drop sending node-down messages. 
+ *
+ * Return Values : -
+ *
+ * Notes         : None.
+ *****************************************************************************/
+void immd_pending_payload_discards(IMMD_CB *cb)
+{
+	IMMSV_EVT send_evt;
+	char *tmpData = NULL;
+	NCS_UBAID uba;
+	TRACE_ENTER();
+
+	osafassert(cb->ha_state == SA_AMF_HA_ACTIVE);
+
+	IMMD_IMMND_DETACHED_NODE *detached_node = cb->detached_nodes;
+
+	while (detached_node) {
+		if(!cb->immd_remote_up && detached_node->epoch == cb->mRulingEpoch) {
+			LOG_NO("Old active NOT present => send discard node payload %x", 
+				detached_node->node_id);
+
+			memset(&send_evt, 0, sizeof(IMMSV_EVT));
+			send_evt.type = IMMSV_EVT_TYPE_IMMND;
+			send_evt.info.immnd.type = IMMND_EVT_D2ND_DISCARD_NODE;
+			send_evt.info.immnd.info.ctrl.nodeId = detached_node->node_id;
+			send_evt.info.immnd.info.ctrl.ndExecPid = detached_node->immnd_execPid;
+
+			osafassert(ncs_enc_init_space(&uba) == NCSCC_RC_SUCCESS);
+			osafassert(immsv_evt_enc(&send_evt, &uba) == NCSCC_RC_SUCCESS);
+
+			int32_t size = uba.ttl;
+			tmpData = malloc(size);
+			osafassert(tmpData);
+			char *data = m_MMGR_DATA_AT_START(uba.start, size, tmpData);
+
+			memset(&send_evt, 0, sizeof(IMMSV_EVT));
+			send_evt.type = IMMSV_EVT_TYPE_IMMD;
+			send_evt.info.immd.type = 0;
+			send_evt.info.immd.info.fevsReq.msg.size = size;
+			send_evt.info.immd.info.fevsReq.msg.buf = data;
+
+			if (immd_evt_proc_fevs_req(cb, &(send_evt.info.immd), NULL, false)
+			    != NCSCC_RC_SUCCESS) {
+				LOG_ER("Failed to send discard node message over FEVS");
+			}
+
+			free(tmpData);
+		}
+
+		LOG_IN("Removing pending discard for node:%x epoch:%u", 
+			detached_node->node_id, detached_node->epoch);
+		cb->detached_nodes = detached_node->next;
+		detached_node->next = NULL;
+		free(detached_node);
+		detached_node = cb->detached_nodes;
+	}
 }
 
 /****************************************************************************

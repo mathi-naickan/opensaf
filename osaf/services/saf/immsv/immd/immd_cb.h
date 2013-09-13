@@ -53,12 +53,19 @@ typedef struct immd_immnd_info_node {
 
 	/*ABT below corresponds to old ImmEvs::NodeInfo */
 	int immnd_execPid;
-	int epoch;
+	unsigned int epoch;
 	bool syncRequested;
 	bool isOnController;
 	bool isCoord;
 	bool syncStarted;
 } IMMD_IMMND_INFO_NODE;
+
+typedef struct immd_immnd_detached_node { /* IMMD SBY tracking of departed payload */
+	NODE_ID node_id;
+	int immnd_execPid;
+	unsigned int epoch;
+	struct immd_immnd_detached_node *next;
+} IMMD_IMMND_DETACHED_NODE;
 
 typedef struct immd_cb_tag {
 	SYSF_MBX mbx;
@@ -117,6 +124,7 @@ typedef struct immd_cb_tag {
 	IMMD_SAVED_FEVS_MSG *saved_msgs;
 
 	SaImmRepositoryInitModeT mRim; /* Should be the rim obtained from coord. */
+	IMMD_IMMND_DETACHED_NODE *detached_nodes; /* IMMD SBY list of recently departed payloads */
 } IMMD_CB;
 
 uint32_t immd_immnd_info_tree_init(IMMD_CB *cb);

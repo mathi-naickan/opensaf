@@ -182,6 +182,30 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 				LOG_IN("Corrected execPid for immnd node info");
 			}
 		}
+
+		if(!(ctrl->canBeCoord)) { /* payload node */
+			/* Remove the node-id from the list of detached payloads. */
+			IMMD_IMMND_DETACHED_NODE *detached_node = cb->detached_nodes;
+			IMMD_IMMND_DETACHED_NODE **prev = &(cb->detached_nodes);
+			while(detached_node) {
+				if(detached_node->node_id == ctrl->nodeId) {
+					*prev = detached_node->next;
+					detached_node->next = NULL;
+					break;/* out of while */
+				}
+
+				/* next iteration */
+				prev = &(detached_node->next);
+				detached_node = detached_node->next;
+			}
+
+			if(detached_node) {
+				free(detached_node);
+				LOG_IN("SBY: Received node-accept from active IMMD for "
+					"payload node %x, discarding pending removal record.",
+					ctrl->nodeId);
+			}
+		}
 	} else {
 		LOG_IN("Standby IMMD could not find node with nodeId:%x", ctrl->nodeId);
 	}
