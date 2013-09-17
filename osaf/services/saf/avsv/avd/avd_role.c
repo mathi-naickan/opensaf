@@ -579,6 +579,15 @@ void avd_mds_qsd_role_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 
 	TRACE_ENTER();
 
+	/* Only accept this event in controller switch-over state, in other
+	 * states it is invalid and indicates severe cluster problems.
+	 */
+	if (cb->swap_switch == SA_FALSE) {
+		LOG_NO("%s: MDS unexpectedly changed role to QUIESCED", __FUNCTION__);
+		LOG_CR("Duplicate ACTIVE detected, exiting");
+		_exit(EXIT_FAILURE); // should never get here...
+	}
+
 	/* Give up IMM OI implementer role */
 	if ((rc = immutil_saImmOiImplementerClear(cb->immOiHandle)) != SA_AIS_OK) {
 		LOG_ER("FAILOVER Active --> Quiesced FAILED, ImplementerClear failed %u", rc);
