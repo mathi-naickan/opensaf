@@ -1457,7 +1457,7 @@ SaAisErrorT saImmOiImplementerClear(SaImmOiHandleT immOiHandle)
 		rc = SA_AIS_ERR_LIBRARY;
 		/* Losing track of the pending reply count, but ERR_LIBRARY dominates*/
 		TRACE_4("ERR_LIBRARY: LOCK failed");
-		goto lock_fail;
+		goto lock_fail1;
 	}
 	locked = true;
 
@@ -1507,6 +1507,7 @@ SaAisErrorT saImmOiImplementerClear(SaImmOiHandleT immOiHandle)
 	if (locked) 
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
+ lock_fail1:
 	if (out_evt) 
 		free(out_evt);
 
@@ -2465,7 +2466,7 @@ SaAisErrorT saImmOiRtObjectUpdate_2(SaImmOiHandleT immOiHandle,
 		rc = SA_AIS_ERR_LIBRARY;
 		/* Losing track of the pending reply count, but ERR_LIBRARY dominates*/
 		TRACE_4("ERR_LIBRARY: Lock failed");
-		goto lock_fail;
+		goto lock_fail1;
 	}
 	locked = true;
 
@@ -2473,7 +2474,7 @@ SaAisErrorT saImmOiRtObjectUpdate_2(SaImmOiHandleT immOiHandle,
 	if (!cl_node || cl_node->isOm) {
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		TRACE_2("ERR_BAD_HANDLE: client_node_get failed");
-		goto bad_handle;
+		goto lock_fail1;
 	}
 
 	imma_proc_decrement_pending_reply(cl_node, true);
@@ -2482,7 +2483,7 @@ SaAisErrorT saImmOiRtObjectUpdate_2(SaImmOiHandleT immOiHandle,
 		TRACE_1("Handle %llx is stale", immOiHandle);
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		cl_node->exposed = true;
-		goto bad_handle;
+		goto lock_fail1;
 	}
 
 	if (out_evt) {
@@ -2496,6 +2497,7 @@ SaAisErrorT saImmOiRtObjectUpdate_2(SaImmOiHandleT immOiHandle,
 
  skip_over_send:
  bad_sync:
+ lock_fail1:
 	if (evt.info.immnd.info.objModify.objectName.buf) {	/*free-1 */
 		free(evt.info.immnd.info.objModify.objectName.buf);
 		evt.info.immnd.info.objModify.objectName.buf = NULL;
