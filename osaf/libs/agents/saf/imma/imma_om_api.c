@@ -194,14 +194,14 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 	proc_rc = imma_startup(NCSMDS_SVC_ID_IMMA_OM);
 	if (NCSCC_RC_SUCCESS != proc_rc) {
 		TRACE_4("ERR_LIBRARY: imma startup failed:%u", proc_rc);
-		TRACE_LEAVE();
-		return SA_AIS_ERR_LIBRARY;
+		rc = SA_AIS_ERR_LIBRARY;
+		goto lock_fail;
 	}
 
 	if (false == cb->is_immnd_up) {
 		TRACE_2("ERR_TRY_AGAIN: IMMND is DOWN");
 		rc = SA_AIS_ERR_TRY_AGAIN;
-		goto end;
+		goto lock_fail;
 	}
 
 	if((timeout_env_value = getenv("IMMA_SYNCR_TIMEOUT"))!=NULL) {
@@ -364,6 +364,7 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 		imma_callback_ipc_destroy(cl_node);
 
  ipc_init_fail:
+ lock_fail:
 	if (rc != SA_AIS_OK) {
 		free(cl_node);
 		cl_node=NULL;
@@ -372,7 +373,6 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 	if (locked)
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
- lock_fail:
 
 	if (out_evt) {
 		free(out_evt);
@@ -384,7 +384,6 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 		*immHandle = cl_node->handle;
 	}
 
- end:
 	if (rc != SA_AIS_OK) {
 		if (NCSCC_RC_SUCCESS != imma_shutdown(NCSMDS_SVC_ID_IMMA_OM)) {
 			/* Oh boy. Failure in imma_shutdown when we already have
@@ -3555,7 +3554,7 @@ static SaAisErrorT admin_op_invoke_common(
 	if (!locked && m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 		TRACE_4("ERR_LIBRARY: Lock failed");
 		rc = SA_AIS_ERR_LIBRARY;
-		goto lock_fail;
+		goto lock_fail1;
 	}
 	locked = true;
 
@@ -3594,6 +3593,24 @@ static SaAisErrorT admin_op_invoke_common(
  stale_handle:
 	if (locked)
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
+
+ lock_fail1:
+	if( out_evt && rc == SA_AIS_ERR_LIBRARY && returnParams && *returnParams != NULL ) {
+		SaImmAdminOperationParamsT_2 **Params = *returnParams;
+		SaImmAdminOperationParamsT_2 *q = NULL;
+		unsigned int ix = 0;
+		while(Params[ix]) {
+			q = Params[ix];
+			imma_freeAttrValue3(q->paramBuffer, q->paramType);
+			free(q->paramName);
+			q->paramName = NULL;
+			free(q);
+			++ix;
+		}
+
+		free(Params);
+	}
+
 
  lock_fail:
 
@@ -4696,7 +4713,7 @@ SaAisErrorT saImmOmClassDescriptionGet_2(SaImmHandleT immHandle,
 		rc = SA_AIS_ERR_LIBRARY;
 		TRACE_4("ERR_LIBRARY: Lock failed");
 		/* Losing track of the pending reply count, but ERR_LIBRARY dominates*/
-		goto lock_fail;
+		goto lock_fail1;
 	}
 	locked = true;
 
@@ -4720,6 +4737,24 @@ SaAisErrorT saImmOmClassDescriptionGet_2(SaImmHandleT immHandle,
 	if (locked)
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
+ lock_fail1:
+
+       if ( out_evt && rc == SA_AIS_ERR_LIBRARY && *attrDefinition ) {
+		SaImmAttrDefinitionT_2 **attr1 = *attrDefinition;
+		int i;
+		for (i = 0; attr1[i]; ++i) {
+			if (attr1[i]->attrDefaultValue) {
+				imma_freeAttrValue3(attr1[i]->attrDefaultValue, attr1[i]->attrValueType);  /* free-4, free-5 */	
+				attr1[i]->attrDefaultValue = 0;
+			}
+			free(attr1[i]->attrName);      /*free-3 */
+			attr1[i]->attrName = 0;
+			free(attr1[i]);        /*free-2 */
+			attr1[i] = 0;
+		}
+		free(attr1);   /*free-1 */
+	}
+	
  lock_fail:
 
 	TRACE_LEAVE();
@@ -4762,36 +4797,7 @@ SaAisErrorT saImmOmClassDescriptionMemoryFree_2(SaImmHandleT immHandle, SaImmAtt
 		int i;
 		for (i = 0; attrDefinition[i]; ++i) {
 			if (attrDefinition[i]->attrDefaultValue) {
-				SaStringT *strp;
-				SaAnyT *anyp;
-				switch (attrDefinition[i]->attrValueType) {
-					case SA_IMM_ATTR_SAINT32T:	//intended fall through
-					case SA_IMM_ATTR_SAUINT32T:	//intended fall through
-					case SA_IMM_ATTR_SAINT64T:	//intended fall through
-					case SA_IMM_ATTR_SAUINT64T:	//intended fall through
-					case SA_IMM_ATTR_SATIMET:	//intended fall through
-					case SA_IMM_ATTR_SAFLOATT:	//intended fall through
-					case SA_IMM_ATTR_SADOUBLET:
-					case SA_IMM_ATTR_SANAMET:
-						free(attrDefinition[i]->attrDefaultValue);	/*free-4 */
-						break;
-
-					case SA_IMM_ATTR_SASTRINGT:
-						strp = (SaStringT *)attrDefinition[i]->attrDefaultValue;
-						free(*strp);	/*free-5 */
-						free(strp);	/*free-4 */
-						break;
-
-					case SA_IMM_ATTR_SAANYT:
-						anyp = (SaAnyT *)attrDefinition[i]->attrDefaultValue;
-						free(anyp->bufferAddr);	/*free-5 */
-						anyp->bufferAddr = 0;
-						free(anyp);	/*free-4 */
-						break;
-
-					default:
-						abort();
-				}//switch
+				imma_freeAttrValue3(attrDefinition[i]->attrDefaultValue, attrDefinition[i]->attrValueType);  /* free-4, free-5 */	
 				attrDefinition[i]->attrDefaultValue = 0;
 			}
 			free(attrDefinition[i]->attrName);	/*free-3 */
@@ -5944,7 +5950,7 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 		rc = SA_AIS_ERR_LIBRARY;
 		TRACE_4("ERR_LIBRARY: Lock error");
-		goto release_cb;
+		goto lock_fail;
 	}
 	locked = true;
 
@@ -6005,7 +6011,7 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 	if (locked) {
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 	}
-
+lock_fail:
 	if(out_evt) {
 		free(out_evt);
 		out_evt=NULL;
@@ -6133,8 +6139,8 @@ SaAisErrorT saImmOmSearchNext_2(SaImmSearchHandleT searchHandle, SaNameT *object
 
 	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 		TRACE_4("ERR_LIBRARY: Lock error");
-		return SA_AIS_ERR_LIBRARY;
-		/*Error case will leak memory. */
+		error = SA_AIS_ERR_LIBRARY;
+		goto release_evt;
 	}
 	locked = true;
 
