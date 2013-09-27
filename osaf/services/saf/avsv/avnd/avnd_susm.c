@@ -1660,6 +1660,8 @@ uint32_t avnd_su_pres_uninst_suinst_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *c
 uint32_t avnd_su_pres_insting_suterm_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp)
 {
 	AVND_COMP *curr_comp = 0;
+	AVND_SU_SI_REC *si = 0;
+	AVND_COMP_CSI_REC *curr_csi = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("SU Terminate event in Instantiating state:'%s'", su->name.value);
 
@@ -1667,23 +1669,51 @@ uint32_t avnd_su_pres_insting_suterm_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *
 	 * If pi su, pick all the instantiated/instantiating pi comps & 
 	 * trigger their FSM with TermEv.
 	 */
-	for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
-	     curr_comp; curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_comp->su_dll_node))) {
-		/* 
-		 * skip the npi comps.. as the su is yet to be instantiated, 
-		 * there are no SIs assigned.
-		 */
-		if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp))
-			continue;
+	if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(su)){
+		for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
+				curr_comp; curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_comp->su_dll_node))) {
+			/* 
+			 * skip the npi comps.. as the su is yet to be instantiated, 
+			 * there are no SIs assigned.
+			 */
+			if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp))
+				continue;
 
-		/* terminate the non-uninstantiated pi comp */
-		if (!m_AVND_COMP_PRES_STATE_IS_UNINSTANTIATED(curr_comp)) {
-			TRACE("Running the component clc FSM");
-			rc = avnd_comp_clc_fsm_run(cb, curr_comp, AVND_COMP_CLC_PRES_FSM_EV_TERM);
-			if (NCSCC_RC_SUCCESS != rc)
-				goto done;
+			/* terminate the non-uninstantiated pi comp */
+			if (!m_AVND_COMP_PRES_STATE_IS_UNINSTANTIATED(curr_comp)) {
+				TRACE("Running the component clc FSM");
+				rc = avnd_comp_clc_fsm_run(cb, curr_comp, AVND_COMP_CLC_PRES_FSM_EV_TERM);
+				if (NCSCC_RC_SUCCESS != rc)
+					goto done;
+			}
 		}
-	}			/* for */
+	} else {
+		TRACE("NPI SU:'%s'", su->name.value);
+		/* get the only si rec */
+		si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
+		osafassert(si);
+		/* This is a case when unlocking fails in middle and there may chance that some csi is not
+		   assigned and are in uninstantiated state. In this case, we need to ignore those csis */
+		for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_LAST(&si->csi_list);
+				curr_csi; curr_csi = 
+				(AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&curr_csi->si_dll_node)) {
+			/* terminate the component containing non-unassigned csi */
+			if (m_AVND_COMP_PRES_STATE_IS_UNINSTANTIATED(curr_csi->comp)) {
+				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, 
+						AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED);
+			} else {
+				rc = avnd_comp_clc_fsm_run(cb, curr_csi->comp,
+						(m_AVND_COMP_IS_FAILED(curr_csi->comp))?
+						AVND_COMP_CLC_PRES_FSM_EV_CLEANUP : 
+						AVND_COMP_CLC_PRES_FSM_EV_TERM);
+				if (NCSCC_RC_SUCCESS != rc)
+					goto done;
+				else
+					/* We need to break as we had triggered FSM. */
+					break;
+			}
+		}
+	}
 
 	/* transition to terminating state */
 	avnd_su_pres_state_set(su, SA_AMF_PRESENCE_TERMINATING);
