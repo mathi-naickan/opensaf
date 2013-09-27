@@ -2027,8 +2027,8 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
 	}
 
-	/* TODO(hafe) needs to be changed when SU failover is implemented */
-	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(comp->su)) {
+	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(comp->su) &&
+			m_AVND_SU_IS_PREINSTANTIABLE(comp->su)) {
 		/* request director to orchestrate component failover */
 		rc = avnd_di_oper_send(cb, comp->su, SA_AMF_COMPONENT_FAILOVER);
 	}
