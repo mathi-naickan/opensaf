@@ -4257,15 +4257,38 @@ void objectDeleteTest_3404(void)
 }
 
 
-__attribute__((constructor)) static void notificationFilterVerification_constructor(void)
+__attribute__((constructor)) static void ntf_imcn_constructor(void)
 {
-	int rc = system("immcfg -f //hostfs//repl-opensaf//ntfsv_test_classes.xml");
-	if (rc != 0) {
-            rc = system("immcfg -f //hostfs//ntfsv_test_classes.xml");
-            if (rc != 0) {
-		printf("ntfsv_test_classes.xml file not installed (see README)");
-		return;
+        struct stat buf;
+        int rc = 0;
+        /*
+         * if ntfsv_test_classes.xml file not stored in /tmp, search for
+         * it and copy it to /tmp.
+         */
+        if (stat("//tmp//ntfsv_test_classes.xml", &buf) != 0) {
+            rc = system("find / -name ntfsv_test_classes.xml > /tmp/ntftemp.txt");
+            if (rc == 0) {
+                char line[80];
+                char cp_cmd[80];
+                FILE* f = fopen("/tmp/ntftemp.txt", "r");
+                fgets(line, 80, f);
+                fclose(f);
+                if (strstr(line, ".xml") != NULL) {
+                    strcpy(cp_cmd, "cp ");
+                    strncat(cp_cmd, line, strlen(line) -1); // don't add newline
+                    strncat(cp_cmd, " /tmp/.", 80 - strlen(cp_cmd));
+                    rc = system(cp_cmd);
+                } else {
+                    rc = -1;
+                }
             }
+        }
+        if (rc == 0) {
+            rc = system("immcfg -f //tmp//ntfsv_test_classes.xml");
+        }
+        if (rc != 0) {
+	    printf("ntfsv_test_classes.xml file not installed (see README)");
+	    return;
 	}
 	test_suite_add(32, "CM notifications test");
 	test_case_add(32, objectCreateTest_01, "CREATE, runtime (OsafNtfCmTestRT) object");
