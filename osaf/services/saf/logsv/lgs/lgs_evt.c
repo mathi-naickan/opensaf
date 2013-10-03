@@ -478,12 +478,12 @@ static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 
 		if ((rc = lgs_mds_change_role(lgs_cb)) != NCSCC_RC_SUCCESS) {
 			LOG_ER("lgs_mds_change_role FAILED %u", rc);
-			goto done;
+			exit(EXIT_FAILURE);
 		}
 
 		if ((rc = lgs_mbcsv_change_HA_state(lgs_cb)) != NCSCC_RC_SUCCESS) {
 			LOG_ER("lgs_mbcsv_change_HA_state FAILED %u", rc);
-			goto done;
+			exit(EXIT_FAILURE);
 		}
 
 		/* fail over, become implementer
@@ -492,27 +492,9 @@ static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 		TRACE("Give up applier role and become implementer");
 		lgs_giveup_imm_applier(lgs_cb);
 
-		immutilWrapperProfile.nTries = 250; /* LOG will be blocked until IMM responds */
-		immutilWrapperProfile.errorsAreFatal = 0;
-		if ((rc = immutil_saImmOiImplementerSet(lgs_cb->immOiHandle, "safLogService"))
-				!= SA_AIS_OK) {
-			LOG_ER("immutil_saImmOiImplementerSet(safLogService) FAILED %u", rc);
-			goto done;
-		}
-		if ((rc = immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "SaLogStreamConfig"))
-				!= SA_AIS_OK) {
-			LOG_ER("immutil_saImmOiImplementerSet(SaLogStreamConfig) FAILED %u", rc);
-			goto done;
-		}
-		/* Do this only if the class exists */
-		if (true == *(bool*) lgs_imm_logconf_get(LGS_IMM_LOG_OPENSAFLOGCONFIG_CLASS_EXIST, NULL)) {
-			if ((rc = immutil_saImmOiClassImplementerSet(lgs_cb->immOiHandle, "OpenSafLogConfig"))
-					!= SA_AIS_OK) {
-				LOG_ER("immutil_saImmOiImplementerSet(OpenSafLogConfig) FAILED %u", rc);
-				goto done;
-			}
-		}
-		
+		/* Declare implementership from a separate thread */
+		lgs_imm_impl_set(lgs_cb);
+
 		/* Agent down list has to be processed first */
 		lgs_process_lga_down_list();
 
@@ -526,9 +508,6 @@ static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 		}
 	}
 
-done:
-	immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
-	immutilWrapperProfile.errorsAreFatal = 1;
 	TRACE_LEAVE();
 	return rc;
 }
