@@ -4271,15 +4271,18 @@ __attribute__((constructor)) static void ntf_imcn_constructor(void)
                 char line[80];
                 char cp_cmd[80];
                 FILE* f = fopen("/tmp/ntftemp.txt", "r");
-                fgets(line, 80, f);
-                fclose(f);
-                if (strstr(line, ".xml") != NULL) {
-                    strcpy(cp_cmd, "cp ");
-                    strncat(cp_cmd, line, strlen(line) -1); // don't add newline
-                    strncat(cp_cmd, " /tmp/.", 80 - strlen(cp_cmd));
-                    rc = system(cp_cmd);
-                } else {
-                    rc = -1;
+                if (f != NULL) {
+                    if (fgets(line, 80, f) != NULL) {
+                        if (strstr(line, ".xml") != NULL) {
+                            strcpy(cp_cmd, "cp ");
+                            strncat(cp_cmd, line, strlen(line) -1); // don't add newline
+                            strncat(cp_cmd, " /tmp/.", 80 - strlen(cp_cmd));
+                            rc = system(cp_cmd);
+                        } else {
+                            rc = -1;
+                        }
+                    }
+                    if (fclose(f) != 0); // coverity requires checking returns.
                 }
             }
         }
