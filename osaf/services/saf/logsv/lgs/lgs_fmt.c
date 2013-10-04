@@ -154,6 +154,15 @@ static SaBoolT validateComToken(SaStringT fmtExpPtr,
 		}
 		break;
 
+	case C_TIME_STAMP_DAYN_LETTER:
+		shiftOffset = (int)C_TIME_STAMP_DAYN_SHIFT_OFFSET;
+		if ((SaBoolT)((*tokenFlags >> shiftOffset) & 1) == SA_TRUE) {
+			tokenOk = SA_FALSE;	/* Same token used two times */
+		} else {
+			*tokenFlags = (*tokenFlags | (1 << shiftOffset));
+		}
+		break;
+
 	case C_TIME_STAMP_YEAR_LETTER:
 		shiftOffset = (int)C_TIME_STAMP_YEAR_SHIFT_OFFSET;
 		if ((SaBoolT)((*tokenFlags >> shiftOffset) & 1) == SA_TRUE) {
@@ -325,6 +334,15 @@ static SaBoolT validateNtfToken(SaStringT fmtExpPtr,
 
 	case N_EVENT_TIME_DAY_LETTER:
 		shiftOffset = (int)N_EVENT_TIME_DAY_SHIFT_OFFSET;
+		if ((SaBoolT)((*tokenFlags >> shiftOffset) & 1) == SA_TRUE) {
+			tokenOk = SA_FALSE;	/* Same token used two times */
+		} else {
+			*tokenFlags = (*tokenFlags | (1 << shiftOffset));
+		}
+		break;
+
+	case N_EVENT_TIME_DAYN_LETTER:
+		shiftOffset = (int)N_EVENT_TIME_DAYN_SHIFT_OFFSET;
 		if ((SaBoolT)((*tokenFlags >> shiftOffset) & 1) == SA_TRUE) {
 			tokenOk = SA_FALSE;	/* Same token used two times */
 		} else {
@@ -583,8 +601,13 @@ static int extractCommonField(char *dest, size_t dest_size,
 		}
 
 		break;
-
+		
 	case C_TIME_STAMP_DAY_LETTER:
+		stringSize = 3 * sizeof(char);
+		characters = snprintf(dest, dest_size, "%02d", (timeStampData->tm_mday));
+		break;
+
+	case C_TIME_STAMP_DAYN_LETTER:
 		stringSize = 3 * sizeof(char);
 		switch (timeStampData->tm_wday) {
 		case DAY_SUNDAY:
@@ -843,7 +866,7 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		}
 		break;
 
-	case N_EVENT_TIME_DAY_LETTER:
+	case N_EVENT_TIME_DAYN_LETTER:
 		switch (eventTimeData->tm_wday) {
 		case DAY_SUNDAY:
 			characters = snprintf(dest, dest_size, "Sun");
