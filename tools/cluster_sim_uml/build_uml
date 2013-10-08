@@ -191,6 +191,11 @@ cmd_create_rootfs()
     sed -i '/export\ OPENSAF_GROUP/d' etc/opensaf/nid.conf
     sed -i '/export\ OPENSAF_USER/d' etc/opensaf/nid.conf
 
+    # Select TIPC transport if OpenSAF was configured with it.
+    if grep -q "define ENABLE_TIPC_TRANSPORT 1" ../../../config.h; then
+	sed -i 's/MDS_TRANSPORT=TCP/MDS_TRANSPORT=TIPC/g' etc/opensaf/nid.conf
+    fi
+
     # The var directory structure is setup from within each UML
     rm -rf var/*
 

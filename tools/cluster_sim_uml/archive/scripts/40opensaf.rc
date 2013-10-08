@@ -60,6 +60,7 @@ fi
 rm -f /etc/opensaf/slot_id
 rm -f /etc/opensaf/node_id
 echo $hostnumber > /etc/opensaf/slot_id 
+sed -i "s/DTM_NODE_IP=.*/DTM_NODE_IP=192.168.0.$hostnumber/" /etc/opensaf/dtmd.conf
 
 # Generate node unique node_name & node_id files
 rm -f /etc/opensaf/node_name /etc/opensaf/node_id
