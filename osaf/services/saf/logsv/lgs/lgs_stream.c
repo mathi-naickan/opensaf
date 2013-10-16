@@ -852,15 +852,17 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 		if (errno == EINTR)
 			goto retry;
 
-		LOG_ER("write FAILED: %s", strerror(errno));
 		/* Careful with log level here to avoid syslog flooding */
 		LOG_IN("write '%s' failed - %s", stream->logFileCurrent, strerror(errno));
 		goto done;
 	} else {
 		/* Handle partial writes */
 		bytes_written += rc;
-		if (bytes_written < stream->fixedLogRecordSize)
+		if (bytes_written < count) {
+			TRACE("Partial write. bytes_written = %d, count = %ld",
+					bytes_written, count);
 			goto retry;
+		}
 	}
 
 	rc = 0;
