@@ -294,6 +294,20 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 		return NCSCC_RC_FAILURE;
 	}
 
+        /* Set the default TIPC importance level */
+        if (TIPCIMPORTANCE > TIPC_HIGH_IMPORTANCE) {
+                m_MDS_LOG_ERR("MDTM: Can't set socket option TIPC_IMP = %d\n", TIPCIMPORTANCE);
+                osafassert(0);
+        }
+
+        int imp = TIPCIMPORTANCE;
+        if (setsockopt(tipc_cb.BSRsock, SOL_TIPC, TIPC_IMPORTANCE, &imp, sizeof(imp)) != 0) {
+                m_MDS_LOG_ERR("MDTM: Can't set default socket option TIPC_IMP err :%s\n", strerror(errno));
+                osafassert(0);
+        } else {
+                m_MDS_LOG_INFO("MDTM: Successfully set default socket option TIPC_IMP = %d", TIPCIMPORTANCE);
+        }
+
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -1291,6 +1305,9 @@ uint32_t mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_S
 	if (svc_id == NCSMDS_SVC_ID_AVND) {
 		int imp = 0;
 		imp = TIPC_HIGH_IMPORTANCE;
+
+		if (TIPCIMPORTANCE == TIPC_HIGH_IMPORTANCE)
+			LOG_WA("Default TIPC importance set to same level as AVND (TIPC_HIGH_IMPORTANCE). A non preferred and untested option");
 
 		if (setsockopt(tipc_cb.BSRsock, SOL_TIPC, TIPC_IMPORTANCE, &imp, sizeof(imp)) != 0) {
 			m_MDS_LOG_ERR("MDTM: Can't set socket option TIPC_IMP err :%s\n", strerror(errno));

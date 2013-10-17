@@ -309,6 +309,19 @@ the following configure command:
     % ./configure CFLAGS=-DRUNASROOT
 
 
+3) Configure TIPC importance (optional)
+
+The default TIPC importance is LOW for all services except for AVND which is HIGH.
+In some cases the default importance must be changed if e.g. an application starves the LOW importance communication level.
+To change the default importance, use the following configure command
+
+   % ./configure CFLAGS=-DTIPCIMPORTANCE=level
+   where level is any of TIPC_LOW_IMPORTANCE, TIPC_MEDIUM_IMPORTANCE or TIPC_HIGH_IMPORTANCE
+   e.g. configure CFLAGS=-DTIPCIMPORTANCE=TIPC_HIGH_IMPORTANCE
+
+Note: Giving same importance to AVND & all other Opensaf models is not preferred option. The behavior is UN-tested.
+
+
 If you are using a released archive (dist tarball) follow the simple common
 steps:
 
