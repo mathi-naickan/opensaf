@@ -781,7 +781,7 @@ void avnd_comp_hc_cmd_restart(AVND_COMP *comp)
 	if (rec->status == AVND_COMP_HC_STATUS_SND_TMR_EXPD) {
 		uint32_t rc = avnd_start_tmr(avnd_cb, &rec->tmr, AVND_TMR_HC, rec->period, rec->opq_hdl);
 		osafassert(rc == NCSCC_RC_SUCCESS);
-		rec->status = AVND_COMP_HC_STATUS_WAIT_FOR_RESP;
+		rec->status = AVND_COMP_HC_STATUS_STABLE;
 	} else
 		rec->status = AVND_COMP_HC_STATUS_STABLE;
 }
