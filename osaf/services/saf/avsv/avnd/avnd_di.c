@@ -505,6 +505,30 @@ uint32_t avnd_di_oper_send(AVND_CB *cb, AVND_SU *su, uint32_t rcvr)
 	return rc;
 }
 
+/*
+* @brief      Check if all SI assignments for this SU are in stable state. 
+*
+* @param [in]  ptr to SU
+*
+* @returns     true/false
+*/
+
+static bool su_assign_state_is_stable(const AVND_SU *su)
+{
+	AVND_SU_SI_REC *si;
+
+	for (si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
+			si;
+			si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&si->su_dll_node)) {
+		if (m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_ASSIGNING(si) ||
+				m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVING(si)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 /****************************************************************************
   Name          : avnd_di_susi_resp_send
  
@@ -528,8 +552,11 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 
 	memset(&msg, 0, sizeof(AVND_MSG));
 
+	if (cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)
+		return rc;
+
 	// should be in assignment pending state to be here
-	osafassert(m_AVND_SU_ASSIGN_PEND_SET(su));
+	osafassert(m_AVND_SU_IS_ASSIGN_PEND(su));
 
 	/* get the curr-si */
 	curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
@@ -593,7 +620,8 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 			msg.info.avd = 0;
 
 		/* we have completed the SU SI msg processing */
-		m_AVND_SU_ASSIGN_PEND_RESET(su);
+		if (su_assign_state_is_stable(su))
+			m_AVND_SU_ASSIGN_PEND_RESET(su);
 		m_AVND_SU_ALL_SI_RESET(su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 	} else
