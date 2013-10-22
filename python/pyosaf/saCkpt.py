@@ -555,7 +555,7 @@ def saCkptCheckpointWrite(checkpointHandle,
 
 	type arguments:
 		SaCkptCheckpointHandleT checkpointHandle
-		createSaCkptIOVector ioVector
+		SaCkptIOVectorElementT* ioVector
 		SaUint32T numberOfElements
 		SaUint32T erroneousVectorIndex
 
@@ -565,7 +565,7 @@ def saCkptCheckpointWrite(checkpointHandle,
 	"""
 	ckptdll.saCkptCheckpointWrite.argtypes = [
 	                            SaCkptCheckpointHandleT,
-	                            createSaCkptIOVector,
+	                            POINTER(SaCkptIOVectorElementT),
 	                            SaUint32T,
 	                            POINTER(SaUint32T)
 	                            ]
@@ -573,7 +573,7 @@ def saCkptCheckpointWrite(checkpointHandle,
 	ckptdll.saCkptCheckpointWrite.restype = SaAisErrorT
 
 	return ckptdll.saCkptCheckpointWrite(checkpointHandle,
-			ioVector,
+			BYREF(ioVector),
 			numberOfElements,
 			BYREF(erroneousVectorIndex))
 
@@ -617,7 +617,7 @@ def saCkptCheckpointRead(checkpointHandle,
 
 	type arguments:
 		SaCkptCheckpointHandleT checkpointHandle
-		createSaCkptIOVector ioVector
+		SaCkptIOVectorElementT* ioVector
 		SaUint32T numberOfElements
 		SaUint32T erroneousVectorIndex
 
@@ -627,14 +627,14 @@ def saCkptCheckpointRead(checkpointHandle,
 	"""
 	ckptdll.saCkptCheckpointRead.argtypes = [
 	                            SaCkptCheckpointHandleT,
-	                            createSaCkptIOVector,
+	                            POINTER(SaCkptIOVectorElementT),
 	                            SaUint32T,
 	                            POINTER(SaUint32T)
 	                            ]
 	ckptdll.saCkptCheckpointRead.restype = SaAisErrorT
 
 	return ckptdll.saCkptCheckpointRead(checkpointHandle,
-			ioVector,
+			BYREF(ioVector),
 			numberOfElements,
 			BYREF(erroneousVectorIndex))
 
