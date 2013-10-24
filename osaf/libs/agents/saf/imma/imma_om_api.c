@@ -196,13 +196,13 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 	if (NCSCC_RC_SUCCESS != proc_rc) {
 		TRACE_4("ERR_LIBRARY: imma startup failed:%u", proc_rc);
 		rc = SA_AIS_ERR_LIBRARY;
-		goto lock_fail;
+		goto end;
 	}
 
 	if (false == cb->is_immnd_up) {
 		TRACE_2("ERR_TRY_AGAIN: IMMND is DOWN");
 		rc = SA_AIS_ERR_TRY_AGAIN;
-		goto lock_fail;
+		goto end;
 	}
 
 	if((timeout_env_value = getenv("IMMA_SYNCR_TIMEOUT"))!=NULL) {
@@ -219,7 +219,7 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 		TRACE_4("ERR_LIBRARY: Lock failed");
 		rc = SA_AIS_ERR_LIBRARY;
-		goto lock_fail;
+		goto end;
 	}
 	/* locked == true already */
 
@@ -376,12 +376,6 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 		imma_callback_ipc_destroy(cl_node);
 
  ipc_init_fail:
- lock_fail:
-	if (rc != SA_AIS_OK) {
-		free(cl_node);
-		cl_node=NULL;
-	}
-
 	if (locked)
 		m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
@@ -396,6 +390,7 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 		*immHandle = cl_node->handle;
 	}
 
+ end:
 	if (rc != SA_AIS_OK) {
 		if (NCSCC_RC_SUCCESS != imma_shutdown(NCSMDS_SVC_ID_IMMA_OM)) {
 			/* Oh boy. Failure in imma_shutdown when we already have
@@ -404,6 +399,9 @@ static SaAisErrorT initialize_common(SaImmHandleT *immHandle, IMMA_CLIENT_NODE *
 
 			rc = SA_AIS_ERR_LIBRARY;
 		}
+
+		free(cl_node);
+		cl_node=NULL;
 	}
 
 	TRACE_LEAVE();
