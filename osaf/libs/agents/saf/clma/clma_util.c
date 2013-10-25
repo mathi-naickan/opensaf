@@ -423,6 +423,9 @@ static SaAisErrorT clma_hdl_cbk_rec_prc(clma_cb_t * cb, CLMSV_MSG * msg, clma_cl
 					reg_cbk->saClmClusterTrackCallback(buf,
 									   cbk_info->param.track.mem_num,
 									   cbk_info->param.track.err);
+					if(buf->numberOfItems)
+						free(buf->notification);
+					free(buf);
 				}
 			} else {
 				if (reg_cbk_4->saClmClusterTrackCallback) {
@@ -448,6 +451,7 @@ static SaAisErrorT clma_hdl_cbk_rec_prc(clma_cb_t * cb, CLMSV_MSG * msg, clma_cl
 					clma_fill_node_from_node4(node, cbk_info->param.node_get.info);
 					reg_cbk->saClmClusterNodeGetCallback(cbk_info->param.node_get.inv,
 									     node, cbk_info->param.node_get.err);
+					free(node);
 				}
 			} else {
 				if (reg_cbk_4->saClmClusterNodeGetCallback) {
