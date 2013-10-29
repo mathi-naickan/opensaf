@@ -409,11 +409,10 @@ void ncs_os_atomic_destroy(void)
  ****************************************************************************/
 unsigned int ncs_os_lock(NCS_OS_LOCK * lock, NCS_OS_LOCK_REQUEST request, unsigned int type)
 {
-	volatile int rc;
-	pthread_mutexattr_t mutex_attr;
-
 	switch (request) {
-	case NCS_OS_LOCK_CREATE:
+	case NCS_OS_LOCK_CREATE: {
+		pthread_mutexattr_t mutex_attr;
+
 		if (pthread_mutexattr_init(&mutex_attr) != 0)
 			return (NCSCC_RC_FAILURE);
 
@@ -429,24 +428,18 @@ unsigned int ncs_os_lock(NCS_OS_LOCK * lock, NCS_OS_LOCK_REQUEST request, unsign
 			return (NCSCC_RC_FAILURE);
 
 		break;
-
+	}
 	case NCS_OS_LOCK_RELEASE:
 		if (pthread_mutex_destroy(&lock->lock) != 0)
 			return (NCSCC_RC_FAILURE);
 		break;
 
 	case NCS_OS_LOCK_LOCK:
-		if ((rc = pthread_mutex_lock(&lock->lock)) != 0) { /* get the lock */
-			assert(0);
-			return (NCSCC_RC_FAILURE);
-		}
+		osaf_mutex_lock_ordie(&lock->lock);
 		break;
 
 	case NCS_OS_LOCK_UNLOCK:
-		if ((rc = pthread_mutex_unlock(&lock->lock)) != 0) { /* unlock for all tasks */
-			assert(0);
-			return (NCSCC_RC_FAILURE);
-		}
+		osaf_mutex_unlock_ordie(&lock->lock);
 		break;
 
 	default:
