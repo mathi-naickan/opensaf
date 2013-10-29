@@ -332,14 +332,25 @@ uint32_t avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 		esc_rcvr = SA_AMF_NODE_FAILOVER;
 	}
 
-	/* We need not entertain errors when comp is not in shape. 
-	   In case of terminating, ava down may come before clc response */
+	/* We need not entertain errors when comp is not in shape. */
 	if (comp && (m_AVND_COMP_PRES_STATE_IS_UNINSTANTIATED(comp) ||
 		     m_AVND_COMP_PRES_STATE_IS_INSTANTIATIONFAILED(comp) ||
-		     m_AVND_COMP_PRES_STATE_IS_TERMINATIONFAILED(comp) || m_AVND_COMP_PRES_STATE_IS_TERMINATING(comp)))
+		     m_AVND_COMP_PRES_STATE_IS_TERMINATIONFAILED(comp)))
 		goto done;
 
-   	/* update the err params */
+	if  (m_AVND_COMP_PRES_STATE_IS_TERMINATING(comp)) {
+		// special treat failures while terminating, no escalation just cleanup
+		LOG_NO("'%s' faulted due to '%s' : Recovery is 'cleanup'",
+				comp->name.value, g_comp_err[err_info->src]);
+		rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
+		if (NCSCC_RC_SUCCESS != rc) {
+			// this is bad situation, what can we do?
+			LOG_ER("%s: '%s' termination failed", __FUNCTION__, comp->name.value);
+		}
+		goto done;
+	}
+
+	/* update the err params */
 	comp->err_info.src = err_info->src;
 
 	/* if time's not specified, use current time TBD */

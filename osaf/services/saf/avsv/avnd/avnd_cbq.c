@@ -380,6 +380,12 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 		rc = avnd_comp_clc_fsm_run(cb, comp, (SA_AIS_OK == resp->err) ?
 					   AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC : AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
 		avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec, false);
+
+		// if all OK send a response to the client
+		if ((rc == NCSCC_RC_SUCCESS) && (resp->err == SA_AIS_OK)) {
+			rc = avnd_amf_resp_send(cb, AVSV_AMF_COMP_TERM_RSP, SA_AIS_OK, NULL,
+					&api_info->dest, &evt->mds_ctxt, comp, false);
+		}
 		break;
 
 	case AVSV_AMF_CSI_SET:
