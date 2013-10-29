@@ -773,15 +773,17 @@ unsigned int ncs_os_lock(NCS_OS_LOCK * lock, NCS_OS_LOCK_REQUEST request, unsign
 
 	case NCS_OS_LOCK_LOCK:
 		if ((rc = pthread_mutex_lock(&lock->lock)) != 0) { /* get the lock */
-			assert(0);
-			return (NCSCC_RC_FAILURE);
+			syslog(LOG_ERR, "%s: pthread_mutex_lock failed error %u",
+				__FUNCTION__, rc);
+			abort();
 		}
 		break;
 
 	case NCS_OS_LOCK_UNLOCK:
 		if ((rc = pthread_mutex_unlock(&lock->lock)) != 0) { /* unlock for all tasks */
-			assert(0);
-			return (NCSCC_RC_FAILURE);
+			syslog(LOG_ERR, "%s: pthread_mutex_unlock failed error %u",
+				__FUNCTION__, rc);
+			abort();
 		}
 		break;
 
