@@ -1830,6 +1830,8 @@ SaAisErrorT saAmfResponse(SaAmfHandleT hdl, SaInvocationT inv, SaAisErrorT error
 	AVA_PEND_RESP *list_resp = 0;
 	AVA_PEND_CBK_REC *rec = 0;
 	SaAisErrorT rc = SA_AIS_OK;
+	AVSV_NDA_AVA_MSG *msg_rsp = NULL;
+
 	TRACE_ENTER2("SaAmfHandleT passed is %llx", hdl);
 
 	if ((!m_AVA_AMF_RESP_ERR_CODE_IS_VALID(error)) || (!inv)) {
@@ -1875,9 +1877,28 @@ SaAisErrorT saAmfResponse(SaAmfHandleT hdl, SaInvocationT inv, SaAisErrorT error
 
 	/* populate & send the 'AMF response' message */
 	m_AVA_AMF_RESP_MSG_FILL(msg, cb->ava_dest, hdl, inv, error, cb->comp_name);
-	rc = ava_mds_send(cb, &msg, 0);
+
+	if (rec->cbk_info->type == AVSV_AMF_COMP_TERM)
+		rc = ava_mds_send(cb, &msg, &msg_rsp);
+	else
+		rc = ava_mds_send(cb, &msg, NULL);
+
 	if (NCSCC_RC_SUCCESS != rc)
 		rc = SA_AIS_ERR_TRY_AGAIN;
+
+	if (rec->cbk_info->type == AVSV_AMF_COMP_TERM) {
+		if (msg_rsp->type != AVSV_AVND_AMF_API_RESP_MSG) {
+			TRACE_2("ERR_LIBRARY: wrong type");
+			rc = SA_AIS_ERR_LIBRARY;
+			goto done;
+		}
+		if (msg_rsp->info.api_resp_info.type != AVSV_AMF_COMP_TERM_RSP) {
+			TRACE_2("ERR_LIBRARY: wrong msg type");
+			rc = SA_AIS_ERR_LIBRARY;
+			goto done;
+		}
+		rc = msg_rsp->info.api_resp_info.rc;
+	}
 
 	/* if we are done with this rec, free it */
 	if ((rec->cbk_info->type != AVSV_AMF_PG_TRACK) && !m_AVA_HDL_IS_CBK_REC_IN_DISPATCH(rec)) {
