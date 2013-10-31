@@ -50,7 +50,8 @@ static void clm_node_join_complete(AVD_AVND *node)
 					(node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
 					(node->node_state == AVD_AVND_STATE_NCS_INIT)) {
 				if ((su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
-						(su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) {
+						(su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+						(su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED)) {
 					/* When the SU will instantiate then prescence state change message will come
 					   and so store the callback parameters to send response later on. */
 					if (su->sg_of_su->saAmfSGNumPrefInserviceSUs >
