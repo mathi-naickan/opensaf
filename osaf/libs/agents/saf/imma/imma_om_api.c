@@ -6270,7 +6270,7 @@ SaAisErrorT saImmOmSearchNext_2(SaImmSearchHandleT searchHandle, SaNameT *object
 
 	if (out_evt) {
 		/* Free the search_next structure. */
-		if (out_evt->info.imma.info.searchNextRsp) {
+		if ((out_evt->info.imma.type == IMMA_EVT_ND2A_SEARCHNEXT_RSP) && out_evt->info.imma.info.searchNextRsp) {
 			free(out_evt->info.imma.info.searchNextRsp->objectName.buf);
 			out_evt->info.imma.info.searchNextRsp->objectName.buf = NULL;
 			out_evt->info.imma.info.searchNextRsp->objectName.size = 0;
