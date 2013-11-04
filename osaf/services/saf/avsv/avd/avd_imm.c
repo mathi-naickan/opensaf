@@ -886,21 +886,21 @@ static void ccb_apply_cb(SaImmOiHandleT immoi_handle, SaImmOiCcbIdT ccb_id)
 			 * AMFD's information model
 			 */
 			ccb_insert_ordered_list(ccb_apply_callback[type], opdata, type);
+		}
 
-			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
-				switch (opdata->operationType) {
-				case CCBUTIL_CREATE:
-					saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Created %s", ccb_id, opdata->objectName.value);
-					break;
-				case CCBUTIL_MODIFY:
-					saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Modified %s", ccb_id, opdata->objectName.value);
-					break;
-				case CCBUTIL_DELETE:
-					saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Deleted %s", ccb_id, opdata->objectName.value);
-					break;
-				default:
-					osafassert(0);
-				}
+		if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+			switch (opdata->operationType) {
+			case CCBUTIL_CREATE:
+				saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Created %s", ccb_id, opdata->objectName.value);
+				break;
+			case CCBUTIL_MODIFY:
+				saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Modified %s", ccb_id, opdata->objectName.value);
+				break;
+			case CCBUTIL_DELETE:
+				saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu Deleted %s", ccb_id, opdata->objectName.value);
+				break;
+			default:
+				osafassert(0);
 			}
 		}
 	}
