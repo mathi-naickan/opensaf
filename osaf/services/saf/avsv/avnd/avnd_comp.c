@@ -1314,7 +1314,7 @@ uint32_t avnd_comp_csi_remove(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 		}
 	}
 
-	/* initiate csi assignment to npi comp */
+	/* initiate CSI removal for NPI comp */
 	if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
 		/* get the only csi record */
 		curr_csi = csi;
