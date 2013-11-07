@@ -387,7 +387,9 @@ uint32_t avnd_su_si_msg_prc(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *info)
 					goto done;
 				}
 				csi_rec->single_csi_add_rem_in_si = AVSV_SUSI_ACT_DEL;
+				LOG_NO("Removing CSI '%s'", csi_param->csi_name.value);
 			}
+
 			rc = avnd_su_si_remove(cb, su, si);
 		}
 		break;
@@ -781,16 +783,32 @@ uint32_t avnd_su_si_remove(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 
 	/* initiate the si removal for npi su */
 	if (!m_AVND_SU_IS_PREINSTANTIABLE(su)) {
-		/* nothing to be done, termination already done in
-		   quiescing/quiesced state */
-		if (su->pres == SA_AMF_PRESENCE_INSTANTIATED) {
-			rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_TERM);
-			if (NCSCC_RC_SUCCESS != rc)
-				goto done;
+		if ((si != NULL) && (si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_DEL) &&
+				(si->curr_state == SA_AMF_HA_ACTIVE)) {
+			/* we are removing a single CSI, first find it */
+			for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si->csi_list);
+				 curr_csi != NULL;
+					curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
+				if (AVSV_SUSI_ACT_DEL == curr_csi->single_csi_add_rem_in_si)
+					break;
+			}
+
+			osafassert(curr_csi != NULL);
+   			rc = avnd_comp_csi_remove(cb, curr_csi->comp, curr_csi);
+			if (rc == NCSCC_RC_SUCCESS)
+				avnd_su_pres_state_set(su, SA_AMF_PRESENCE_TERMINATING);
 		} else {
-			rc = avnd_su_si_oper_done(cb, su, si);
-			if (NCSCC_RC_SUCCESS != rc)
-				goto done;
+			/* nothing to be done, termination already done in
+				quiescing/quiesced state */
+			if (su->pres == SA_AMF_PRESENCE_INSTANTIATED) {
+				rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_TERM);
+				if (NCSCC_RC_SUCCESS != rc)
+					goto done;
+			} else {
+				rc = avnd_su_si_oper_done(cb, su, si);
+				if (NCSCC_RC_SUCCESS != rc)
+					goto done;
+			}
 		}
 	}
 
@@ -2417,6 +2435,15 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su, AVND_CO
 			m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED);
 
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi, AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+
+		if (curr_csi->single_csi_add_rem_in_si == AVSV_SUSI_ACT_DEL) {
+			/* get here when a CSI is removed from a component in an NPI SU */
+			assert(curr_csi->si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_DEL);
+			rc = avnd_su_si_oper_done(cb, su, curr_csi->si);
+			avnd_su_pres_state_set(su, SA_AMF_PRESENCE_INSTANTIATED);
+			goto done;
+		}
+
 		/* get the prv csi */
 		curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&curr_csi->si_dll_node);
 		if (curr_csi) {
