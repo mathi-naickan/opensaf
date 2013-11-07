@@ -337,6 +337,8 @@ uint32_t avnd_su_si_msg_prc(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *info)
 				}
 			} else {
 				AVND_COMP_CSI_PARAM *csi_param;
+				AVND_COMP_CSI_REC *csi;
+
 				/* verify if su-si relationship already exists */
 				if (0 == (si = avnd_su_si_rec_get(cb, &info->su_name, &info->si_name))) {
 					LOG_ER("No SUSI Rec exists"); 
@@ -347,10 +349,13 @@ uint32_t avnd_su_si_msg_prc(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *info)
 				csi_param = info->list;
 				osafassert(csi_param);
 				osafassert(!(csi_param->next));
-				avnd_su_si_csi_rec_add(cb, su, si, csi_param, &rc);
+				csi = avnd_su_si_csi_rec_add(cb, su, si, csi_param, &rc);
 				m_AVND_SEND_CKPT_UPDT_ASYNC_ADD(cb, si_rec, AVND_CKPT_CSI_REC);
-				si->single_csi_add_rem_in_si =  AVSV_SUSI_ACT_ASGN;
+				si->single_csi_add_rem_in_si = AVSV_SUSI_ACT_ASGN;
+				csi->single_csi_add_rem_in_si = AVSV_SUSI_ACT_ASGN;
+				LOG_NO("Adding CSI '%s'", csi_param->csi_name.value);
 			}
+
 			/* initiate si assignment */
 			if (si)
 				rc = avnd_su_si_assign(cb, su, si);
@@ -533,6 +538,32 @@ static uint32_t assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 	/* initiate the si assignment for npi su */
 	if (!m_AVND_SU_IS_PREINSTANTIABLE(su)) {
 		TRACE("SU is NPI");
+
+		if ((single_csi == true) && (si->single_csi_add_rem_in_si == AVSV_SUSI_ACT_ASGN)) {
+			// we are adding a CSI to an unlocked SU
+
+			// first find the newly added unassigned CSI
+			for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si->csi_list);
+					curr_csi != NULL;
+					curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
+
+				if (curr_csi->single_csi_add_rem_in_si == AVSV_SUSI_ACT_ASGN)
+					break;
+			}
+
+			osafassert(curr_csi);
+
+			if (si->curr_state == SA_AMF_HA_ACTIVE) {
+				avnd_su_pres_state_set(su, SA_AMF_PRESENCE_INSTANTIATING);
+				rc = avnd_comp_csi_assign(avnd_cb, curr_csi->comp, curr_csi);
+			} else {
+				curr_csi->single_csi_add_rem_in_si = AVSV_SUSI_ACT_BASE;
+				rc = avnd_su_si_oper_done(avnd_cb, su, si);
+			}
+
+			goto done;
+		}
+
 		bool npi_prv_inst = true, npi_curr_inst = true;
 		AVND_SU_PRES_FSM_EV su_ev = AVND_SU_PRES_FSM_EV_MAX;
 
@@ -1813,6 +1844,13 @@ uint32_t avnd_su_pres_insting_compinst_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP
 		/* mark the csi state assigned */
 		m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi, AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+
+		if (curr_csi->single_csi_add_rem_in_si == AVSV_SUSI_ACT_ASGN) {
+			// we are adding a single CSI, the comp is instantiated so now we're done
+			curr_csi->single_csi_add_rem_in_si = AVSV_SUSI_ACT_BASE;
+			avnd_su_pres_state_set(su, SA_AMF_PRESENCE_INSTANTIATED);
+			goto done;
+		}
 
 		/* get the next csi */
 		curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node);

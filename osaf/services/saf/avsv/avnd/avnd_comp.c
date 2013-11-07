@@ -1734,13 +1734,21 @@ static AVND_COMP_CSI_REC *find_unassigned_csi_at_rank(struct avnd_su_si_rec *si,
 ******************************************************************************/
 uint32_t avnd_comp_csi_assign_done(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *csi)
 {
-	AVND_COMP_CSI_REC *curr_csi = 0;
+	AVND_COMP_CSI_REC *curr_csi;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	char *csiname = csi ? (char*)csi->name.value : "all CSIs";
+	const char *csiname;
 
-	TRACE_ENTER2("comp: '%s'", comp->name.value);
+	TRACE_ENTER2("'%s', %p", comp->name.value, csi);
 
-	curr_csi = (csi) ? csi : m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+	if (csi != NULL) {
+		csi->single_csi_add_rem_in_si = AVSV_SUSI_ACT_BASE;
+		curr_csi = csi;
+		csiname = (char*)csi->name.value;
+	} else {
+		curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+		csiname = "all CSIs";
+	}
+
 	LOG_IN("Assigned '%s' %s to '%s'", csiname, ha_state[curr_csi->si->curr_state], comp->name.value);
 
 	/* 
