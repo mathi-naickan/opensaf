@@ -286,7 +286,7 @@ def saImmOiRtObjectCreate_2(immOiHandle, className, parentName, attrValues):
 		SaImmOiHandleT immOiHandle
 		SaImmClassNameT className
 		SaNameT parentName
-		SaImmAttrValuesT_2 attrValues
+		SaImmAttrValuesT_2** attrValues
 
 	returns:
 		SaAisErrorT
@@ -296,10 +296,10 @@ def saImmOiRtObjectCreate_2(immOiHandle, className, parentName, attrValues):
 	oidll.saImmOiRtObjectCreate_2.argtypes = [SaImmOiHandleT,
 											  SaImmClassNameT,
 											  POINTER(SaNameT),
-											  POINTER(SaImmAttrValuesT_2)]
+											  POINTER(POINTER(SaImmAttrValuesT_2))]
 	
 	oidll.saImmOiRtObjectCreate_2.restype = SaAisErrorT
-	
+
 	return oidll.saImmOiRtObjectCreate_2(immOiHandle,
 			className,
 			BYREF(parentName),
