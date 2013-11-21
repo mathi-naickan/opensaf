@@ -43,6 +43,10 @@ static SaAisErrorT amf_active_state_handler(smfd_cb_t * cb,
 
 	cb->mds_role = V_DEST_RL_ACTIVE;
 
+        //Read the SMF config object in case it was changed after SMF start
+        //If changed after start, only the active side was notified
+        read_config_and_set_control_block(smfd_cb);
+
 	if (campaign_oi_activate(cb) != NCSCC_RC_SUCCESS) {
 		LOG_ER("amf_active_state_handler oi activate FAILED");
 		result = SA_AIS_ERR_FAILED_OPERATION;
