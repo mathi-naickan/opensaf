@@ -40,6 +40,7 @@ typedef struct cluster_db_t {
 	SaNameT name;
 	SaUint32T num_nodes;
 	SaTimeT init_time;
+	SaBoolT rtu_pending; /* Flag to indicate whether an RTU failed and is pending */
 	/*struct cluster_db_t *next; */	/* Multiple cluster is not supported as of now */
 } CLMS_CLUSTER_INFO;
 
@@ -69,6 +70,8 @@ typedef struct cluster_node_t {
 	ADMIN_OP admin_op;	/*plm or clm operation */
 	timer_t lock_timerid;	/*Timer id for admin lock operation */
 	SaInvocationT plm_invid;	/*plmtrack callback invocation id */
+	SaBoolT rtu_pending; /* Flag to mark whether an IMM RunTime attribute Update is pending and to be retried */
+	SaBoolT admin_rtu_pending; /* Flag to mark whether an IMM RunTime attribute Update is pending and to be retried */
 	struct cluster_node_t *dep_node_list;	/*Dependent nodes list - in case of plm operation */
 	struct cluster_node_t *next;
 } CLMS_CLUSTER_NODE;
@@ -172,6 +175,7 @@ typedef struct clms_cb_t {
 	SaSelectionObjectT plm_sel_obj;	/* PLMSv selection object */
 	SaNtfHandleT ntf_hdl;	/* Handled obtained from NTFSv */
 	SaBoolT reg_with_plm;	/*plm present in system */
+	SaBoolT rtu_pending; /* Global flag to determine a pending RTU update and the poll timeout */
 	CLMA_DOWN_LIST *clma_down_list_head;	/* CLMA down reccords - Fix for Failover missed 
 						   down events Processing */
 	CLMA_DOWN_LIST *clma_down_list_tail;

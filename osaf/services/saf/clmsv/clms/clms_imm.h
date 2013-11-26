@@ -45,4 +45,7 @@ extern uint32_t clms_prep_and_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node,
 extern uint32_t clms_send_track_local(CLMS_CLUSTER_NODE * node, CLMS_CLIENT_INFO * client, 
 				     SaClmChangeStepT step);
 extern void clms_trackresp_patricia_init(CLMS_CLUSTER_NODE * node);
+extern void clms_switchoff_all_pending_rtupdates(void);
+extern void clms_switchon_all_pending_rtupdates(void);
+extern void clms_retry_pending_rtupdates(void);
 #endif

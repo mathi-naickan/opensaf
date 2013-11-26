@@ -22,6 +22,7 @@
 extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 void clms_all_node_rattr_update(void);
+static SaBoolT clms_is_any_rtu_pending(void);
 SaAisErrorT clms_node_ccb_comp_cb(CcbUtilOperationData_t * opdata);
 uint32_t clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop);
 uint32_t clms_imm_node_lock(CLMS_CLUSTER_NODE * nodeop);
@@ -31,6 +32,10 @@ static void clms_timer_ipc_send(SaNameT node_name);
 static uint32_t clms_lock_send_no_start_cbk(CLMS_CLUSTER_NODE * nodeop);
 
 static SaVersionT immVersion = { 'A', 2, 1 };
+
+
+const unsigned int sleep_delay_ms = 500;
+const unsigned int max_waiting_time_ms = 60 * 1000;     /* 60 seconds */
 
 /**
 * Initialize the track response patricia tree for the node
@@ -64,22 +69,49 @@ static void *imm_impl_set_node_down_proc(void *_cb)
 	NODE_DOWN_LIST *node_down_rec = NULL;
 	NODE_DOWN_LIST *temp_node_down_rec = NULL;
 	CLMS_CLUSTER_NODE *node = NULL;
+	int msecs_waited;
 
 	TRACE_ENTER();
 
 	/* Update IMM */
-	if ((rc = immutil_saImmOiImplementerSet(cb->immOiHandle, IMPLEMENTER_NAME)) != SA_AIS_OK) {
-		LOG_ER("saImmOiImplementerSet failed rc:%u, exiting", rc);
+
+	msecs_waited = 0;
+	rc = saImmOiImplementerSet(cb->immOiHandle, IMPLEMENTER_NAME);
+	while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST)) &&
+						(msecs_waited < max_waiting_time_ms)) {
+		usleep(sleep_delay_ms * 1000);
+		msecs_waited += sleep_delay_ms;
+		rc = saImmOiImplementerSet(cb->immOiHandle, IMPLEMENTER_NAME);
+	}
+	if (rc != SA_AIS_OK) {
+		/* We have tried enough, now just exit */
+		LOG_ER("saImmOiImplementerSet failed, rc = %u", rc);
 		exit(EXIT_FAILURE);
 	}
-
-	if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode")) != SA_AIS_OK) {
-		LOG_ER("saImmOiClassImplementerSet failed for class SaClmNode rc:%u, exiting", rc);
+	
+	msecs_waited = 0;
+	rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode");
+	while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST)) &&
+						(msecs_waited < max_waiting_time_ms)) {
+		usleep(sleep_delay_ms * 1000);
+		msecs_waited += sleep_delay_ms;
+		rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmNode");
+	}
+	if (rc != SA_AIS_OK) {
+		LOG_ER("saImmOiClassImplementerSet failed for class SaClmNode, rc = %u", rc);
 		exit(EXIT_FAILURE);
 	}
-
-	if ((rc = immutil_saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster")) != SA_AIS_OK) {
-		LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster rc:%u, exiting", rc);
+	
+	msecs_waited = 0;
+	rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster");
+	while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST)) &&
+						(msecs_waited < max_waiting_time_ms)) {
+		usleep(sleep_delay_ms * 1000);
+		msecs_waited += sleep_delay_ms;
+		rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaClmCluster");
+	}
+	if (rc != SA_AIS_OK) {
+		LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster, rc = %u,", rc);
 		exit(EXIT_FAILURE);
 	}
 
@@ -175,7 +207,10 @@ CLMS_CLUSTER_NODE *clms_node_new(SaNameT *name, const SaImmAttrValuesT_2 **attrs
 	node->node_name.length = name->length;
 	node->node_addr.family = 1;
 	node->admin_state = SA_CLM_ADMIN_UNLOCKED;
+	node->rtu_pending = false;
+	node->admin_rtu_pending = false;
 
+	TRACE("RTU pending flag is switched off");
 	TRACE("nodename %s", node->node_name.value);
 
 	while ((attr = attrs[i++]) != NULL) {
@@ -350,6 +385,9 @@ SaAisErrorT clms_cluster_config_get(void)
 		if (clms_cb->ha_state == SA_AMF_HA_ACTIVE) {
 			osaf_cluster->init_time = clms_get_SaTime();
 		}
+
+		osaf_cluster->rtu_pending = false;
+		TRACE("RTU pending flag is switched off");
 	}
 	rc = SA_AIS_OK;
  done2:
@@ -405,8 +443,8 @@ SaAisErrorT clms_imm_activate(CLMS_CB *cb)
 			goto done;
 		}
 
-		clms_all_node_rattr_update();
 		cb->is_impl_set = true;
+		clms_all_node_rattr_update();
 	}
 
 	rc = SA_AIS_OK;
@@ -428,6 +466,13 @@ void clms_admin_state_update_rattr(CLMS_CLUSTER_NODE * nd)
 
 	TRACE_ENTER2("Admin state %d update for node %s", nd->admin_state, nd->node_name.value);
 
+	CLMS_CLUSTER_NODE *node = NULL;
+	/* If this update was attempted was for a node down and as a part of try-again-later, then
+	 * we need to lookup using name, because the node_id record would
+	 * have been deleted as a part of node down processing
+	 */
+	osafassert((node = clms_node_get_by_name(&nd->node_name)));
+
 	SaImmAttrValueT attrUpdateValue[] = { &nd->admin_state };
 	const SaImmAttrModificationT_2 *attrMods[] = {
 		&attr_Mod[0],
@@ -440,13 +485,34 @@ void clms_admin_state_update_rattr(CLMS_CLUSTER_NODE * nd)
 	attr_Mod[0].modAttr.attrValueType = SA_IMM_ATTR_SAUINT32T;
 	attr_Mod[0].modAttr.attrValues = attrUpdateValue;
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-	rc = immutil_saImmOiRtObjectUpdate_2(clms_cb->immOiHandle, &nd->node_name, attrMods);
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
+	rc = saImmOiRtObjectUpdate_2(clms_cb->immOiHandle, &nd->node_name, attrMods);
+	if (rc == SA_AIS_OK) {
+		node->admin_rtu_pending = false;
+		/* Walk through all nodes to find out if any other rtu is pending
+		 * and accordingly turn off the global flag in cb.
+		 */
+		if (clms_cb->rtu_pending == true) {
+			if (clms_is_any_rtu_pending() == false) {
+				clms_cb->rtu_pending = false;
+				TRACE("RTUpdate success. Turning off flag");
+			}
+		}
+	} else if ((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_TIMEOUT)) {
+		LOG_IN("saImmOiRtObjectUpdate for %s failed with rc = %u. Trying again", node->node_name.value, rc);
+		node->admin_rtu_pending = true;
+		clms_cb->rtu_pending = true;
+	} else {
+		/* Right now, there is no guarantee on IMM error codes. So Reinit for everyother error code */
+		LOG_IN("saImmOiRtObjectUpdate for %s failed with rc = %u. Reinit with IMM", node->node_name.value, rc);
+		node->admin_rtu_pending = true;
+		clms_cb->rtu_pending = true;
 
-	if (rc != SA_AIS_OK) {
-		LOG_ER("saImmOiRtObjectUpdate FAILED %u, '%s'", rc, nd->node_name.value);
+		saImmOiFinalize(clms_cb->immOiHandle);
+		clms_cb->immOiHandle = 0;
+		clms_cb->is_impl_set = false;
+
+		/* Initiate IMM reinitializtion in the background */
+		clm_imm_reinit_bg(clms_cb);
 	}
 
 	TRACE_LEAVE();
@@ -473,7 +539,18 @@ void clms_node_update_rattr(CLMS_CLUSTER_NODE * nd)
 		NULL
 	};
 
+	CLMS_CLUSTER_NODE *node = NULL;
+
 	TRACE_ENTER();
+	osafassert((node = clms_node_get_by_name(&nd->node_name)));
+
+	if (clms_cb->is_impl_set == false) {
+		TRACE("Implementer not yet set: Switching on the tryagain flag");
+		node->rtu_pending = true;
+		clms_cb->rtu_pending = true;
+		TRACE_LEAVE();
+		return;
+	}
 
 	attr_Mod[0].modType = SA_IMM_ATTR_VALUES_REPLACE;
 	attr_Mod[0].modAttr.attrName = "saClmNodeIsMember";
@@ -499,20 +576,41 @@ void clms_node_update_rattr(CLMS_CLUSTER_NODE * nd)
 	attr_Mod[3].modAttr.attrValueType = SA_IMM_ATTR_SAUINT64T;
 	attr_Mod[3].modAttr.attrValues = attrUpdateValue3;
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-	rc = immutil_saImmOiRtObjectUpdate_2(clms_cb->immOiHandle, &nd->node_name, attrMods);
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
+	rc = saImmOiRtObjectUpdate_2(clms_cb->immOiHandle, &nd->node_name, attrMods);
 
-	if (rc != SA_AIS_OK) {
-		LOG_ER("saImmOiRtObjectUpdate FAILED %u, '%s'", rc, nd->node_name.value);
+	if (rc == SA_AIS_OK) {
+		node->rtu_pending = false;
+		/* Walk through all nodes to find out if any other rtu is pending
+		 * and accordingly turn off the global flag in cb.
+		 */
+		if (clms_cb->rtu_pending == true) {
+			if (clms_is_any_rtu_pending() == false) {
+				clms_cb->rtu_pending = false;
+				TRACE("RTUpdate success. Turning off flag");
+			}
+		}
+	} else if ((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_TIMEOUT)) {
+		LOG_IN("saImmOiRtObjectUpdate for %s failed with rc = %u. Trying again", node->node_name.value, rc);
+		node->rtu_pending = true;
+		clms_cb->rtu_pending = true;
+	} else {
+		LOG_IN("saImmOiRtObjectUpdate for %s failed with rc = %u. Reinit with IMM", node->node_name.value, rc);
+		node->rtu_pending = true;
+		clms_cb->rtu_pending = true;
+
+		saImmOiFinalize(clms_cb->immOiHandle);
+		clms_cb->immOiHandle = 0;
+		clms_cb->is_impl_set = false;
+
+		/* Initiate IMM reinitializtion in the background */
+		clm_imm_reinit_bg(clms_cb);
 	}
 
 	TRACE_LEAVE();
 }
 
 /** 
-* Update IMMSv the runtime info of all node 
+* Update IMMSv the runtime info of all nodes 
 */
 void clms_all_node_rattr_update(void)
 {
@@ -525,6 +623,97 @@ void clms_all_node_rattr_update(void)
 		node = clms_node_getnext_by_id(node->node_id);
 	}
 
+}
+
+/** 
+*  Process all pending runtime attribute updates toward IMM
+*/
+void clms_retry_pending_rtupdates(void)
+{
+	CLMS_CLUSTER_NODE *node = NULL;
+	SaNameT nodename = {0};
+	TRACE_ENTER();
+
+	if (clms_cb->is_impl_set == false) {
+		TRACE_LEAVE2("Implementerset yet to happen, try later");
+		return;
+	}
+	for (node = clms_node_getnext_by_name(&nodename); node != NULL; node = clms_node_getnext_by_name(&nodename)) {
+		if (node->rtu_pending == true)
+			clms_node_update_rattr(node);
+		if (node->admin_rtu_pending == true)
+			clms_admin_state_update_rattr(node);
+		memcpy(&nodename, &node->node_name, sizeof(SaNameT));
+	}
+
+	if (osaf_cluster->rtu_pending == true)
+		clms_cluster_update_rattr(osaf_cluster);
+	TRACE_LEAVE();
+}
+
+/** 
+*  As a standby, clear all pending runtime attribute updates toward IMM
+*  The new active will take care of it.
+*/
+void clms_switchoff_all_pending_rtupdates(void)
+{
+	CLMS_CLUSTER_NODE *node = NULL;
+	SaNameT nodename = {0};
+	TRACE_ENTER();
+
+	for (node = clms_node_getnext_by_name(&nodename); node != NULL; node = clms_node_getnext_by_name(&nodename)) {
+		TRACE("Switching on the tryagain flag");
+		node->rtu_pending = false;
+		node->admin_rtu_pending = false;
+		memcpy(&nodename, &node->node_name, sizeof(SaNameT));
+	}
+	osaf_cluster->rtu_pending = false;
+	clms_cb->rtu_pending = false;
+	TRACE_LEAVE();
+}
+
+/** 
+*  As a active, mark runtime attribute updates pending for all nodes.
+*/
+void clms_switchon_all_pending_rtupdates(void)
+{
+	CLMS_CLUSTER_NODE *node = NULL;
+	SaNameT nodename = {0};
+	TRACE_ENTER();
+
+	for (node = clms_node_getnext_by_name(&nodename); node != NULL; node = clms_node_getnext_by_name(&nodename)) {
+		TRACE("Switching on the pending RTUs");
+		node->rtu_pending = true;
+		node->admin_rtu_pending = true;
+		memcpy(&nodename, &node->node_name, sizeof(SaNameT));
+	}
+	osaf_cluster->rtu_pending = true;
+	clms_cb->rtu_pending = true;
+	TRACE_LEAVE();
+}
+
+/** 
+*  As a standby, clear all pending runtime attribute updates toward IMM
+*  The new active will take care of it.
+*/
+static SaBoolT clms_is_any_rtu_pending(void)
+{
+	CLMS_CLUSTER_NODE *node = NULL;
+	SaNameT nodename = {0};
+	TRACE_ENTER();
+
+	if (osaf_cluster->rtu_pending == true)
+		return true;
+
+	for (node = clms_node_getnext_by_name(&nodename); node != NULL; node = clms_node_getnext_by_name(&nodename)) {
+		if ((node->rtu_pending == true) || (node->admin_rtu_pending == true)) {
+			TRACE_LEAVE2("There is a pending RTU");
+			return true;
+		}
+		memcpy(&nodename, &node->node_name, sizeof(SaNameT));
+	}
+	TRACE_LEAVE2("There are no pending RTUs");
+	return false;
 }
 
 /** 
@@ -546,6 +735,14 @@ void clms_cluster_update_rattr(CLMS_CLUSTER_INFO * osaf_cluster)
 
 	TRACE_ENTER();
 
+	if (clms_cb->is_impl_set == false) {
+		TRACE("Implementer is not set. Switching on flag in %s", __FUNCTION__);
+		osaf_cluster->rtu_pending = true;
+		clms_cb->rtu_pending = true;
+		TRACE_LEAVE();
+		return;
+	}
+
 	attr_Mod[0].modType = SA_IMM_ATTR_VALUES_REPLACE;
 	attr_Mod[0].modAttr.attrName = "saClmClusterNumNodes";
 	attr_Mod[0].modAttr.attrValuesNumber = 1;
@@ -558,13 +755,31 @@ void clms_cluster_update_rattr(CLMS_CLUSTER_INFO * osaf_cluster)
 	attr_Mod[1].modAttr.attrValueType = SA_IMM_ATTR_SATIMET;
 	attr_Mod[1].modAttr.attrValues = attrUpdateValue1;
 
-	int errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile.errorsAreFatal = 0;
-	rc = immutil_saImmOiRtObjectUpdate_2(clms_cb->immOiHandle, &osaf_cluster->name, attrMods);
-	immutilWrapperProfile.errorsAreFatal = errorsAreFatal;
+	rc = saImmOiRtObjectUpdate_2(clms_cb->immOiHandle, &osaf_cluster->name, attrMods);
 
-	if (rc != SA_AIS_OK) {
-		LOG_ER("saImmOiRtObjectUpdate FAILED %u, '%s'", rc, osaf_cluster->name.value);
+	if (rc == SA_AIS_OK){
+		osaf_cluster->rtu_pending = false;
+		if (clms_cb->rtu_pending == true) {
+			if (clms_is_any_rtu_pending() == false) {
+				clms_cb->rtu_pending = false;
+				TRACE("RTU success, Switching off");
+			}
+		}
+	} else if ((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_TIMEOUT)) {
+		LOG_IN("saImmOiRtObjectUpdate failed for cluster object with rc = %u. Trying again", rc);
+		osaf_cluster->rtu_pending = true;
+		clms_cb->rtu_pending = true;
+	} else {
+		LOG_IN("saImmOiRtObjectUpdate failed for cluster object with rc = %u. Reinit with IMM", rc);
+		osaf_cluster->rtu_pending = true;
+		clms_cb->rtu_pending = true;
+
+		saImmOiFinalize(clms_cb->immOiHandle);
+		clms_cb->immOiHandle = 0;
+		clms_cb->is_impl_set = false;
+
+		/* Initiate IMM reinitializtion in the background */
+		clm_imm_reinit_bg(clms_cb);
 	}
 
 	/* TBD: We need to handle a case where there's only one node,
