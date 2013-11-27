@@ -575,6 +575,8 @@ static void csiattr_modify_apply(CcbUtilOperationData_t *opdata)
 						 */
 						memset(tmp_csi_attr->name_value.string_ptr, 0, 
 							strlen(tmp_csi_attr->name_value.string_ptr));
+						/* Decrement the num_attributes as the value is deleted. */
+						csi->num_attributes--;
 					} else {
 							avd_csi_remove_csiattr(csi, csiattr);
 					}
