@@ -1506,6 +1506,7 @@ SaAisErrorT saAmfProtectionGroupTrack(SaAmfHandleT hdl,
 					memcpy(buf->notification, rsp_buf->notification,
 					       buf->numberOfItems * sizeof(SaAmfProtectionGroupNotificationT));
 					rc = SA_AIS_ERR_NO_SPACE;
+					buf->numberOfItems = rsp_buf->numberOfItems;
 
 				}
 			} else {	/* if(create_memory == false) */
@@ -2294,6 +2295,7 @@ SaAisErrorT saAmfProtectionGroupTrack_4(SaAmfHandleT hdl,
 					ava_cpy_protection_group_ntf(buf->notification, rsp_buf->notification,
 							buf->numberOfItems, SA_AMF_HARS_READY_FOR_ASSIGNMENT);
 					rc = SA_AIS_ERR_NO_SPACE;
+					buf->numberOfItems = rsp_buf->numberOfItems;
 				}
 			} else {	/* if(create_memory == false) */
 
