@@ -490,10 +490,8 @@ uint32_t avnd_evt_su_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 			m_AVND_COMP_STATE_RESET(comp);
 			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
 			
-			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
-				m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_ENABLED);
-				avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompOperState_ID, &comp->name, comp->oper);
-			}
+			m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_ENABLED);
+			avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompOperState_ID, &comp->name, comp->oper);
 		}
 
 		m_AVND_SU_STATE_RESET(su);
