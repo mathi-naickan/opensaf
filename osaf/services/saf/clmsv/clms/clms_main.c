@@ -227,6 +227,7 @@ uint32_t clms_cb_init(CLMS_CB * clms_cb)
 	clms_cb->curr_invid = 1;
 	clms_cb->immOiHandle = 0;
 	clms_cb->is_impl_set = false;
+	clms_cb->rtu_pending = false; /* Flag to control try-again of rt-updates */
 
 	/* Assign Version. Currently, hardcoded, This will change later */
 	clms_cb->clm_ver.releaseCode = CLM_RELEASE_CODE;
@@ -378,6 +379,7 @@ int main(int argc, char *argv[])
 	SaAisErrorT error = SA_AIS_OK;
 	uint32_t rc;
 	osaf_cluster = NULL;
+	int timeout = -1;
 
 	daemonize(argc, argv);
 
@@ -405,6 +407,13 @@ int main(int argc, char *argv[])
 
 	while (1) {
 
+		if (clms_cb->rtu_pending == true) {
+			TRACE("There is an IMM task to be tried again. setting poll time out to 500");
+			timeout = 500;
+		}else {
+			timeout = -1;
+		}
+
 		if ((clms_cb->immOiHandle != 0) && (clms_cb->is_impl_set == true)) {
 			fds[FD_IMM].fd = clms_cb->imm_sel_obj;
 			fds[FD_IMM].events = POLLIN;
@@ -412,8 +421,7 @@ int main(int argc, char *argv[])
 		} else {
 			nfds = NUM_FD - 1;
 		}
-
-		int ret = poll(fds, nfds, -1);
+		int ret = poll(fds, nfds, timeout);
 
 		if (ret == -1) {
 			if (errno == EINTR)
@@ -422,6 +430,14 @@ int main(int argc, char *argv[])
 			LOG_ER("poll failed - %s", strerror(errno));
 			break;
 		}
+
+		if (ret == 0) {
+			/* Process any/all pending RTAttribute updates to IMM */
+			TRACE("poll time out processing pending updates");
+			clms_retry_pending_rtupdates();
+			continue;
+		}
+
 		if (fds[FD_AMF].revents & POLLIN) {
 			if (clms_cb->amf_hdl != 0) {
 				if ((error = saAmfDispatch(clms_cb->amf_hdl, SA_DISPATCH_ALL)) != SA_AIS_OK) {
@@ -496,7 +512,10 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-	}
+		/* Retry any pending updates */
+		if (clms_cb->rtu_pending == true)
+			clms_retry_pending_rtupdates();
+	} /* End while (1) */
 
  done:
 	LOG_ER("Failed, exiting...");
