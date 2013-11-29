@@ -815,8 +815,8 @@ static uint32_t immnd_evt_proc_search_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_S
 	/*Look up client-node */
 	immnd_client_node_get(cb, evt->info.searchInit.client_hdl, &cl_node);
 	if (cl_node == NULL || cl_node->mIsStale) {
-		LOG_WA("IMMND - Client Node Get Failed for cli_hdl");
-		TRACE_2("Client Node get failed for handle:%llu", evt->info.searchInit.client_hdl);
+		LOG_WA("IMMND - Client Node Get Failed for client handle: %llu",
+			evt->info.searchInit.client_hdl);
 
 		send_evt.info.imma.info.searchInitRsp.error = SA_AIS_ERR_BAD_HANDLE;
 		goto agent_rsp;
@@ -1465,7 +1465,7 @@ static uint32_t immnd_evt_proc_search_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMM
 	/*Look up client-node */
 	immnd_client_node_get(cb, evt->info.searchOp.client_hdl, &cl_node);
 	if (cl_node == NULL || cl_node->mIsStale) {
-		LOG_WA("IMMND - Client Died");
+		LOG_WA("IMMND - %llu Client Died", evt->info.searchOp.client_hdl);
 		send_evt.info.imma.info.errRsp.error = SA_AIS_ERR_BAD_HANDLE;
 		goto agent_rsp;
 	}
@@ -1913,8 +1913,9 @@ static uint32_t immnd_evt_proc_admowner_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV
 	client_hdl = evt->info.adminitReq.client_hdl;
 	immnd_client_node_get(cb, client_hdl, &cl_node);
 	if (cl_node == NULL || cl_node->mIsStale) {
-		LOG_WA("IMMND - Client %llu went down so no response", client_hdl);
-		return rc;
+		LOG_WA("ERR_BAD_HANDLE: Client %llu not found in server", client_hdl);
+		send_evt.info.imma.info.admInitRsp.error = SA_AIS_ERR_BAD_HANDLE;
+		goto agent_rsp;
 	}
 
 	if (!immnd_is_immd_up(cb)) {
@@ -2018,8 +2019,9 @@ static uint32_t immnd_evt_proc_impl_set(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 	client_hdl = evt->info.implSet.client_hdl;
 	immnd_client_node_get(cb, client_hdl, &cl_node);
 	if (cl_node == NULL || cl_node->mIsStale) {
-		LOG_WA("IMMND - Client went down so no response");
-		return rc;
+		LOG_WA("ERR_BAD_HANDLE: Client %llu not found in server", client_hdl);
+		send_evt.info.imma.info.implSetRsp.error = SA_AIS_ERR_BAD_HANDLE;
+		goto agent_rsp;
 	}
 
 	if (!immnd_is_immd_up(cb)) {
@@ -2141,9 +2143,9 @@ static uint32_t immnd_evt_proc_ccb_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 	client_hdl = evt->info.ccbinitReq.client_hdl;
 	immnd_client_node_get(cb, client_hdl, &cl_node);
 	if (cl_node == NULL || cl_node->mIsStale) {
-		LOG_WA("IMMND - Client went down so no response");
-		TRACE_LEAVE();
-		return rc;
+		LOG_WA("ERR_BAD_HANDLE: Client %llu not found in server", client_hdl);
+		send_evt.info.imma.info.ccbInitRsp.error = SA_AIS_ERR_BAD_HANDLE;
+		goto agent_rsp;
 	}
 
 	if (!immnd_is_immd_up(cb)) {
@@ -2256,9 +2258,9 @@ static uint32_t immnd_evt_proc_rt_update(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 	client_hdl = evt->info.objModify.immHandle;
 	immnd_client_node_get(cb, client_hdl, &cl_node);
 	if (cl_node == NULL || cl_node->mIsStale) {
-		LOG_WA("IMMND - Client went down so no response");
-		TRACE_LEAVE();
-		return rc;
+		LOG_WA("ERR_BAD_HANDLE: Client %llu not found in server", client_hdl);
+		err = SA_AIS_ERR_BAD_HANDLE;
+		goto agent_rsp;
 	}
 
 	/* Do broadcast checks BEFORE updating model because we dont want
