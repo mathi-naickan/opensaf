@@ -31,4 +31,6 @@ noinst_HEADERS = \
 	nid_start_util.h \
 	daemon.h \
 	osaf_unicode.h \
+	osaf_poll.h \
+	osaf_time.h \
         saf_error.h
