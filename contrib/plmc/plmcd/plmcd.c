@@ -43,6 +43,7 @@
 #include <pthread.h>
 #include <libgen.h>
 #include <limits.h>
+#include <poll.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
@@ -373,8 +374,7 @@ int process_cmd(char *msg)
  */ 
 int nbconnect(struct sockaddr_in *sin)
 {
-	fd_set wset; 
-	struct timeval tv; 
+	struct pollfd wset;
 	socklen_t len; 
 	int flags, ret, opt;
 
@@ -393,20 +393,18 @@ int nbconnect(struct sockaddr_in *sin)
 	ret = connect(sockd, (struct sockaddr *)sin, sizeof(struct sockaddr_in)); 
 	if (ret < 0) { 
 		if (errno == EINPROGRESS) { 
-			/* select on the fd until we get a connection, timeout, or error  */
+			/* poll the fd until we get a connection, timeout, or error  */
 			while(1) { 
-				tv.tv_sec = PLMC_TCP_TIMEOUT_SECS;
-				tv.tv_usec = 0; 
-				FD_ZERO(&wset); 
-				FD_SET(sockd, &wset); 
+				wset.fd = sockd;
+				wset.events = POLLOUT;
 
-				ret = select(sockd + 1, NULL, &wset, NULL, &tv); 
+				ret = poll(&wset, 1, PLMC_TCP_TIMEOUT_SECS * 1000);
 				if (ret < 0 && errno != EINTR) { 
-					syslog(LOG_ERR, "Error select:  %m");
+					syslog(LOG_ERR, "Error poll:  %m");
 					return -1;
 
 				} else if (ret > 0) { 
-					// Socket selected for write 
+					// Socket polled for write
 					len = sizeof(int); 
 					if (getsockopt(sockd, SOL_SOCKET, SO_ERROR, (void*)(&opt), &len) < 0) { 
 						syslog(LOG_ERR, "Error getsockopt:  %m");

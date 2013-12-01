@@ -201,7 +201,6 @@ typedef struct ncs_sel_obj {
 	int raise_obj;
 	int rmv_obj;
 } NCS_SEL_OBJ;
-typedef fd_set NCS_SEL_OBJ_SET;
 
 #ifdef  __cplusplus
 }

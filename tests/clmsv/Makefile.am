@@ -47,4 +47,5 @@ clmtest_SOURCES = \
 	$(top_srcdir)/tests/clmsv/src/tet_saClmFinalize.c
 
 clmtest_LDADD = \
-	$(top_builddir)/osaf/libs/saf/libSaClm/libSaClm.la
+	$(top_builddir)/osaf/libs/saf/libSaClm/libSaClm.la \
+	$(top_builddir)/osaf/libs/core/libopensaf_core.la

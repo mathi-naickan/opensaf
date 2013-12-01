@@ -28,6 +28,14 @@
 ******************************************************************************/
 
 #include "cpnd.h"
+#include "osaf_poll.h"
+
+enum {
+	FD_MBX,
+	FD_AMF,
+	FD_CLM,
+	NUMBER_OF_FDS
+};
 
 #define CPND_CLM_API_TIMEOUT 10000000000LL
 uint32_t gl_cpnd_cb_hdl = 0;
@@ -489,7 +497,6 @@ static bool cpnd_clear_mbx(NCSCONTEXT arg, NCSCONTEXT msg)
  *****************************************************************************/
 void cpnd_main_process(CPND_CB *cb)
 {
-	NCS_SEL_OBJ_SET all_sel_obj;
 	NCS_SEL_OBJ mbx_fd;
 	SYSF_MBX mbx = cb->cpnd_mbx;
 	CPSV_EVT *evt = NULL;
@@ -497,11 +504,11 @@ void cpnd_main_process(CPND_CB *cb)
 	SaAmfHandleT amf_hdl;
 	SaAisErrorT amf_error;
 	SaAisErrorT clm_error;
-	NCS_SEL_OBJ amf_ncs_sel_obj, clm_ncs_sel_obj, highest_sel_obj;
+	struct pollfd sel[NUMBER_OF_FDS];
 
 	mbx_fd = m_NCS_IPC_GET_SEL_OBJ(&cb->cpnd_mbx);
-	m_NCS_SEL_OBJ_ZERO(&all_sel_obj);
-	m_NCS_SEL_OBJ_SET(mbx_fd, &all_sel_obj);
+	sel[FD_MBX].fd = m_GET_FD_FROM_SEL_OBJ(mbx_fd);
+	sel[FD_MBX].events = POLLIN;
 
 	amf_hdl = cb->amf_hdl;
 	amf_error = saAmfSelectionObjectGet(amf_hdl, &amf_sel_obj);
@@ -511,18 +518,23 @@ void cpnd_main_process(CPND_CB *cb)
 		TRACE_LEAVE();
 		return;
 	}
-	m_SET_FD_IN_SEL_OBJ((uint32_t)amf_sel_obj, amf_ncs_sel_obj);
-	m_NCS_SEL_OBJ_SET(amf_ncs_sel_obj, &all_sel_obj);
+	sel[FD_AMF].fd = amf_sel_obj;
+	sel[FD_AMF].events = POLLIN;
 
-	highest_sel_obj = m_GET_HIGHER_SEL_OBJ(amf_ncs_sel_obj, mbx_fd);
-
-	m_SET_FD_IN_SEL_OBJ((uint32_t)cb->clm_sel_obj, clm_ncs_sel_obj);
-	m_NCS_SEL_OBJ_SET(clm_ncs_sel_obj, &all_sel_obj);
-	highest_sel_obj = m_GET_HIGHER_SEL_OBJ(clm_ncs_sel_obj, highest_sel_obj);
-	while (m_NCS_SEL_OBJ_SELECT(highest_sel_obj, &all_sel_obj, 0, 0, 0) != -1) {
+	sel[FD_CLM].fd = cb->clm_sel_obj;
+	sel[FD_CLM].events = POLLIN;
+	for (;;) {
+		osaf_poll(sel, NUMBER_OF_FDS, -1);
+		if (((sel[FD_AMF].revents | sel[FD_CLM].revents | sel[FD_MBX].revents) &
+			(POLLERR | POLLHUP | POLLNVAL)) != 0) {
+			LOG_ER("cpnd poll() failure: %hd %hd %hd",
+				sel[FD_AMF].revents, sel[FD_CLM].revents, sel[FD_MBX].revents);
+			TRACE_LEAVE();
+			return;
+		}
 
 		/* process all the AMF messages */
-		if (m_NCS_SEL_OBJ_ISSET(amf_ncs_sel_obj, &all_sel_obj)) {
+		if (sel[FD_AMF].revents & POLLIN) {
 			/* dispatch all the AMF pending function */
 			amf_error = saAmfDispatch(amf_hdl, SA_DISPATCH_ALL);
 			if (amf_error != SA_AIS_OK) {
@@ -530,24 +542,20 @@ void cpnd_main_process(CPND_CB *cb)
 			}
 		}
 
-		if (m_NCS_SEL_OBJ_ISSET(clm_ncs_sel_obj, &all_sel_obj)) {
+		if (sel[FD_CLM].revents & POLLIN) {
 			clm_error = saClmDispatch(cb->clm_hdl, SA_DISPATCH_ALL);
 			if (clm_error != SA_AIS_OK) {
 				LOG_ER("cpnd amf dispatch failure %u",clm_error);
 			}
 		}
 		/* process the CPND Mail box */
-		if (m_NCS_SEL_OBJ_ISSET(mbx_fd, &all_sel_obj)) {
+		if (sel[FD_MBX].revents & POLLIN) {
 
 			if (NULL != (evt = (CPSV_EVT *)m_NCS_IPC_NON_BLK_RECEIVE(&mbx, evt))) {
 				/* now got the IPC mail box event */
 				cpnd_process_evt(evt);
 			}
 		}
-		m_NCS_SEL_OBJ_SET(clm_ncs_sel_obj, &all_sel_obj);
-		m_NCS_SEL_OBJ_SET(amf_ncs_sel_obj, &all_sel_obj);
-		m_NCS_SEL_OBJ_SET(mbx_fd, &all_sel_obj);
-
 	}
 	TRACE_LEAVE();
 	return;

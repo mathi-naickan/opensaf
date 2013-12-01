@@ -15,7 +15,8 @@
  *
  */
 
-#include <logtrace.h>
+#include "logtrace.h"
+#include "osaf_poll.h"
 
 #include "eda.h"
 
@@ -1520,9 +1521,6 @@ uint32_t eda_mds_init(EDA_CB *cb)
 **********************************************************************/
 void eda_sync_with_eds(EDA_CB *cb)
 {
-	NCS_SEL_OBJ_SET set;
-	uint32_t timeout = 3000;
-
 	m_NCS_LOCK(&cb->eds_sync_lock, NCS_LOCK_WRITE);
 
 	if (cb->eds_intf.eds_up) {
@@ -1535,9 +1533,7 @@ void eda_sync_with_eds(EDA_CB *cb)
 	m_NCS_UNLOCK(&cb->eds_sync_lock, NCS_LOCK_WRITE);
 
 	/* Await indication from MDS saying EDS is up */
-	m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(cb->eds_sync_sel, &set);
-	m_NCS_SEL_OBJ_SELECT(cb->eds_sync_sel, &set, 0, 0, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(cb->eds_sync_sel), 30000);
 
 	/* Destroy the sync - object */
 	m_NCS_LOCK(&cb->eds_sync_lock, NCS_LOCK_WRITE);

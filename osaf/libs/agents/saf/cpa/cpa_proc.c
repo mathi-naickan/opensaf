@@ -29,6 +29,8 @@
 */
 
 #include "cpa.h"
+#include "osaf_poll.h"
+
 static void cpa_process_callback_info(CPA_CB *cb, CPA_CLIENT_NODE *cl_node, CPA_CALLBACK_INFO *callback);
 
 #define m_MMGR_FREE_CPSV_DEFAULT(p) m_NCS_MEM_FREE(p, \
@@ -1323,9 +1325,6 @@ uint32_t cpa_proc_check_iovector(CPA_CB *cb, CPA_LOCAL_CKPT_NODE *lc_node, const
 **********************************************************************/
 void cpa_sync_with_cpd_for_active_replica_set(CPA_GLOBAL_CKPT_NODE *gc_node)
 {
-	NCS_SEL_OBJ_SET set;
-	uint32_t timeout = 5000;
-
 	TRACE_ENTER();
 	m_NCS_LOCK(&gc_node->cpd_active_sync_lock, NCS_LOCK_WRITE);
 	if (gc_node->is_active_bcast_came == true) {
@@ -1338,9 +1337,7 @@ void cpa_sync_with_cpd_for_active_replica_set(CPA_GLOBAL_CKPT_NODE *gc_node)
 	m_NCS_SEL_OBJ_CREATE(&gc_node->cpd_active_sync_sel);
 	m_NCS_UNLOCK(&gc_node->cpd_active_sync_lock, NCS_LOCK_WRITE);
 
-	m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(gc_node->cpd_active_sync_sel, &set);
-	m_NCS_SEL_OBJ_SELECT(gc_node->cpd_active_sync_sel, &set, 0, 0, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(gc_node->cpd_active_sync_sel), 50000);
 
 	/* Destroy the sync - object */
 	m_NCS_LOCK(&gc_node->cpd_active_sync_lock, NCS_LOCK_WRITE);

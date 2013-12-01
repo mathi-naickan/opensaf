@@ -38,6 +38,7 @@
 #include "plms_hrb.h"
 #include "plms_hsm.h"
 #include "plms_evt.h"
+#include "osaf_poll.h"
 
 static PLMS_HRB_CB _hrb_cb;
 PLMS_HRB_CB     *hrb_cb = &_hrb_cb;
@@ -201,13 +202,9 @@ static void *plms_hrb(void)
 	PLMS_HRB_CB   *cb = hrb_cb;
 	PLMS_HPI_REQ   *hpi_req = NULL;
 	NCS_SEL_OBJ    mbx_fd = m_NCS_IPC_GET_SEL_OBJ(&cb->mbx);
-	NCS_SEL_OBJ_SET     sel_obj;
 
 	TRACE_ENTER();
 
-	m_NCS_SEL_OBJ_ZERO(&sel_obj);
-	m_NCS_SEL_OBJ_SET(mbx_fd,&sel_obj);
-	
 	/* Wait on condition variable for the HA role from PLMS main thread */
 	pthread_mutex_lock(&hrb_ha_state.mutex);
 	if(hrb_ha_state.state != SA_AMF_HA_ACTIVE){
@@ -216,26 +213,19 @@ static void *plms_hrb(void)
 	}
 	pthread_mutex_unlock(&hrb_ha_state.mutex);
 
-	while (m_NCS_SEL_OBJ_SELECT(mbx_fd,&sel_obj,0,0,0) != -1){
+	while (osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(mbx_fd), -1) != -1) {
 		
 		/* process the Mail box */
-		if (m_NCS_SEL_OBJ_ISSET(mbx_fd,&sel_obj)){
-			/* Process messages delivered on mailbox */ 
-			while(NULL != (hpi_req =
+		/* Process messages delivered on mailbox */
+		while(NULL != (hpi_req =
 		(PLMS_HPI_REQ *)m_NCS_IPC_NON_BLK_RECEIVE(&cb->mbx,hpi_req))){
-				/*Process the received message*/ 
-				hrb_process_hpi_req(hpi_req); 
+			/*Process the received message*/
+			hrb_process_hpi_req(hpi_req);
 
-				if(hpi_req->entity_path)
-					free(hpi_req->entity_path);
-				free(hpi_req);
-			}
-					  
-
+			if(hpi_req->entity_path)
+				free(hpi_req->entity_path);
+			free(hpi_req);
 		}
-
-		/* do the fd set for the select obj */
-		m_NCS_SEL_OBJ_SET(mbx_fd,&sel_obj);
 
 		if(hrb_ha_state.state != SA_AMF_HA_ACTIVE){
 			/* Wait on condition variable for the HA role from 

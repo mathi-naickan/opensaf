@@ -39,6 +39,8 @@
 #include "ncssysf_tsk.h"
 #include "ncspatricia.h"
 #include "ncssysf_mem.h"
+#include "osaf_time.h"
+#include "osaf_poll.h"
 
 #include <stdlib.h>
 #include <sched.h>
@@ -307,37 +309,6 @@ static bool sysfTmrExpiry(SYSF_TMR_PAT_NODE *tmp)
 	return false;
 }
 
-static uint32_t ncs_tmr_select_intr_process(struct timeval *tv, struct
-					 timespec *ts_current, uint64_t next_delay)
-{
-	uint64_t tmr_restart = 0;
-	uint64_t time_left = 0;
-	struct timespec ts_curr = *ts_current;
-	struct timespec ts_eint = { 0, 0 };
-
-	tv->tv_sec = tv->tv_usec = 0;
-
-	if (next_delay == 0) {
-		tv->tv_sec = 0xffffff;
-		tv->tv_usec = 0;
-		return NCSCC_RC_SUCCESS;
-	}
-
-	if (clock_gettime(CLOCK_MONOTONIC, &ts_eint)) {
-		perror("clock_gettime with MONOTONIC Failed \n");
-		return NCSCC_RC_FAILURE;
-	} else {
-		tmr_restart = TIMESPEC_DIFF_IN_NS(ts_eint, ts_curr);
-		time_left = ((next_delay * 1000000LL * NCS_MILLISECONDS_PER_TICK) - (tmr_restart));
-		if (time_left > 0) {
-			tv->tv_sec = time_left / 1000000000LL;
-			tv->tv_usec = ((time_left % 1000000000LL) / 1000);
-		}
-	}
-
-	return NCSCC_RC_SUCCESS;
-}
-
 static uint32_t ncs_tmr_engine(struct timeval *tv, uint64_t *next_delay)
 {
 	uint64_t next_expiry = 0;
@@ -418,20 +389,15 @@ static uint32_t ncs_tmr_engine(struct timeval *tv, uint64_t *next_delay)
 static uint32_t ncs_tmr_wait(void)
 {
 
-	int rc = 0;
+	unsigned rc;
 	int inds_rmvd;
-	int save_errno = 0;
 
 	uint64_t next_delay = 0;
 
-	NCS_SEL_OBJ mbx_fd = gl_tcb.sel_obj;
-	NCS_SEL_OBJ highest_sel_obj;
-	NCS_SEL_OBJ_SET all_sel_obj;
 	struct timeval tv = { 0xffffff, 0 };
 	struct timespec ts_current = { 0, 0 };
-
-	m_NCS_SEL_OBJ_ZERO(&all_sel_obj);
-	highest_sel_obj = mbx_fd;
+	struct timespec ts;
+	struct pollfd set;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts_start)) {
 		perror("clock_gettime with MONOTONIC Failed \n");
@@ -441,24 +407,15 @@ static uint32_t ncs_tmr_wait(void)
 	ts_current = ts_start;
 
 	while (true) {
- select_sleep:
-		m_NCS_SEL_OBJ_SET(mbx_fd, &all_sel_obj);
-		rc = select(highest_sel_obj.rmv_obj + 1, &all_sel_obj, NULL, NULL, &tv);
-		save_errno = errno;
+		set.fd = m_GET_FD_FROM_SEL_OBJ(gl_tcb.sel_obj);
+		set.events = POLLIN;
+		osaf_timeval_to_timespec(&tv, &ts);
+		rc = osaf_ppoll(&set, 1, next_delay != 0 ? &ts : NULL, NULL);
 		m_NCS_LOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);
 
-		if (rc < 0) {
-			if (save_errno != EINTR)
-				assert(0);
+		if (rc == 1) {
+			if (set.revents != POLLIN) osaf_abort(set.revents);
 
-			if (ncs_tmr_select_intr_process(&tv, &ts_current, next_delay) == NCSCC_RC_SUCCESS) {
-				m_NCS_UNLOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);
-				goto select_sleep;
-			} else {
-				m_NCS_UNLOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);
-				return NCSCC_RC_FAILURE;
-			}
-		} else if (rc == 1) {
 			/* if select returned because of indication on sel_obj from sysfTmrDestroy */
 			if (tmr_destroying == true) {
 				/* Raise An indication */
@@ -588,7 +545,6 @@ bool sysfTmrDestroy(void)
 {
 	SYSF_TMR *tmr;
 	SYSF_TMR *free_tmr;
-	uint32_t timeout = 2000;	/* 20seconds */
 	SYSF_TMR_PAT_NODE *tmp = NULL;
 
 	/* There is only ever one timer per instance */
@@ -612,7 +568,7 @@ bool sysfTmrDestroy(void)
 	m_NCS_UNLOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);	/* critical region END */
 
 	/* Wait on Poll object */
-	m_NCS_SEL_OBJ_POLL_SINGLE_OBJ(tmr_destroy_syn_obj, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(tmr_destroy_syn_obj), 20000);
 
 	m_NCS_LOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);
 	tmr = &gl_tcb.safe.dmy_keep;

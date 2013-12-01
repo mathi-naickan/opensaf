@@ -27,6 +27,7 @@
 #include "ncs_main_papi.h"
 #include "dtm.h"
 #include "dtm_node.h"
+#include "osaf_poll.h"
 
 #include <stdlib.h>
 #include <sched.h>
@@ -240,8 +241,6 @@ int main(int argc, char *argv[])
 	int rc = -1;
 	uint8_t send_bcast_buffer[255];
 	int bcast_buf_len = 0;
-	fd_set rfds1;
-	struct timeval bcast_freq;
 	long int dis_time_out_usec = 0;
 	long int dis_elapsed_time_usec = 0;
 	DTM_INTERNODE_CB *dtms_cb = dtms_gl_cb;
@@ -337,14 +336,9 @@ int main(int argc, char *argv[])
 
 	do {
 		/* Wait up to bcast_msg_freq seconds. */
-		bcast_freq.tv_sec = 0;
-		bcast_freq.tv_usec = (dtms_cb->bcast_msg_freq * 1000);
 		/* Check if stdin has input. */
-		FD_ZERO(&rfds1);
-		FD_SET(dtms_cb->dgram_sock_sndr, &rfds1);
-
-		if (select(dtms_cb->dgram_sock_sndr + 1, &rfds1, NULL, NULL, &bcast_freq) < 0) {
-			LOG_ER("DTM: select failed");
+		if (osaf_poll_one_fd(dtms_cb->dgram_sock_sndr, dtms_cb->bcast_msg_freq) < 0) {
+			LOG_ER("DTM: poll failed");
 			goto done1;
 
 		}

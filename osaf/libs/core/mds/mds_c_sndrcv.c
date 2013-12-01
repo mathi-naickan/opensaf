@@ -45,6 +45,7 @@
 #include "mds_log.h"
 #include "ncssysf_mem.h"
 #include "osaf_utility.h"
+#include "osaf_poll.h"
 
 uint32_t mds_mcm_global_exchange_id = 0;
 
@@ -2558,12 +2559,8 @@ static uint32_t mds_await_active_tbl_del_entry(MDS_PWE_HDL env_hdl, MDS_SVC_ID f
 static uint32_t mds_mcm_time_wait(NCS_SEL_OBJ sel_obj, uint32_t time_val)
 {
 	/* Now wait for the response to come */
-	uint32_t count = 0;
-
-	if (time_val == 0) {
-		count = m_NCS_SEL_OBJ_POLL_SINGLE_OBJ(sel_obj, NULL);
-	} else
-		count = m_NCS_SEL_OBJ_POLL_SINGLE_OBJ(sel_obj, &time_val);
+	int count = osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(sel_obj),
+		time_val == 0 ? -1 : (time_val * 10));
 
 	if ((count == 0) || (count == -1)) {
 		/* Both for Timeout and Error Case */

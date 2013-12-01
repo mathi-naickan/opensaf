@@ -809,7 +809,7 @@ SaAisErrorT saNtfInitialize(SaNtfHandleT *ntfHandle, const SaNtfCallbacksT *ntfC
  * allows a process to avoid repeated invoking saNtfDispatch() to see if
  * there is a new event, thus, needlessly consuming CPU time. In a POSIX
  * environment the system handle could be a file descriptor that is used with
- * the poll() or select() system calls to detect incoming callbacks.
+ * the poll() system call to detect incoming callbacks.
  *
  *
  * Parameters

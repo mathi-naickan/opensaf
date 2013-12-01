@@ -31,6 +31,7 @@
 #include "mqa.h"
 #include <pthread.h>
 #include "osaf_utility.h"
+#include "osaf_poll.h"
 
 /* global cb handle */
 uint32_t gl_mqa_hdl = 0;
@@ -104,8 +105,6 @@ uint32_t mqa_lib_req(NCS_LIB_REQ_INFO *req_info)
 **********************************************************************/
 static void mqa_sync_with_mqd(MQA_CB *cb)
 {
-	NCS_SEL_OBJ_SET set;
-	uint32_t timeout = 3000;
 	TRACE_ENTER();
 
 	m_NCS_LOCK(&cb->mqd_sync_lock, NCS_LOCK_WRITE);
@@ -121,9 +120,7 @@ static void mqa_sync_with_mqd(MQA_CB *cb)
 	m_NCS_UNLOCK(&cb->mqd_sync_lock, NCS_LOCK_WRITE);
 
 	/* Await indication from MDS saying MQND is up */
-	m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(cb->mqd_sync_sel, &set);
-	m_NCS_SEL_OBJ_SELECT(cb->mqd_sync_sel, &set, 0, 0, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(cb->mqd_sync_sel), 30000);
 
 	/* Destroy the sync - object */
 	m_NCS_LOCK(&cb->mqd_sync_lock, NCS_LOCK_WRITE);
@@ -145,8 +142,6 @@ static void mqa_sync_with_mqd(MQA_CB *cb)
 **********************************************************************/
 static void mqa_sync_with_mqnd(MQA_CB *cb)
 {
-	NCS_SEL_OBJ_SET set;
-	uint32_t timeout = 3000;
 	TRACE_ENTER();
 
 	m_NCS_LOCK(&cb->mqnd_sync_lock, NCS_LOCK_WRITE);
@@ -162,9 +157,7 @@ static void mqa_sync_with_mqnd(MQA_CB *cb)
 	m_NCS_UNLOCK(&cb->mqnd_sync_lock, NCS_LOCK_WRITE);
 
 	/* Await indication from MDS saying MQND is up */
-	m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(cb->mqnd_sync_sel, &set);
-	m_NCS_SEL_OBJ_SELECT(cb->mqnd_sync_sel, &set, 0, 0, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(cb->mqnd_sync_sel), 30000);
 
 	/* Destroy the sync - object */
 	m_NCS_LOCK(&cb->mqnd_sync_lock, NCS_LOCK_WRITE);

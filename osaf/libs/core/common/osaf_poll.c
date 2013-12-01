@@ -135,7 +135,7 @@ int osaf_poll_one_fd(int i_fd, int i_timeout)
 	set.events = POLLIN;
 	result = osaf_poll(&set, 1, i_timeout);
 	if (result == 1) {
-		if ((set.revents & (POLLNVAL | POLLERR | POLLHUP)) != 0) {
+		if ((set.revents & (POLLNVAL | POLLERR)) != 0) {
 			LOG_ER("osaf_poll_one_fd(%d, %d) called from %p "
 			       "failed: revents=%hd",
 			       i_fd, i_timeout, __builtin_return_address(0),

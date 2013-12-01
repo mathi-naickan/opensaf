@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include "imma.h"
+#include "osaf_poll.h"
 
 /*****************************************************************************
  global data used by IMMA
@@ -57,8 +58,6 @@ IMMA_CB imma_cb;
 
 static void imma_sync_with_immnd(IMMA_CB *cb)
 {
-	NCS_SEL_OBJ_SET set;
-	uint32_t timeout = 3000;
 	TRACE_ENTER();
 
 	m_NCS_LOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);
@@ -74,9 +73,7 @@ static void imma_sync_with_immnd(IMMA_CB *cb)
 	m_NCS_UNLOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);
 
 	/* Await indication from MDS saying IMMND is up */
-	m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(cb->immnd_sync_sel, &set);
-	m_NCS_SEL_OBJ_SELECT(cb->immnd_sync_sel, &set, 0 , 0, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(cb->immnd_sync_sel), 30000);
 	TRACE("Blocking wait released");
 
 	/* Destroy the sync - object */

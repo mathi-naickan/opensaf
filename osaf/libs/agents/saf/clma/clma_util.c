@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include "clma.h"
+#include "osaf_poll.h"
 
 static void clma_hdl_list_del(clma_client_hdl_rec_t ** list);
 /* Variables used during startup/shutdown only */
@@ -52,14 +53,10 @@ uint32_t clma_validate_version(SaVersionT *version)
  */
 static unsigned int clma_create(void)
 {
-	unsigned int timeout = 3000;
-	NCS_SEL_OBJ_SET set;
 	unsigned int rc = NCSCC_RC_SUCCESS;
 
 	/* create and init sel obj for mds sync */
 	m_NCS_SEL_OBJ_CREATE(&clma_cb.clms_sync_sel);
-	m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(clma_cb.clms_sync_sel, &set);
 	pthread_mutex_lock(&clma_cb.cb_lock);
 	clma_cb.clms_sync_awaited = 1;
 	pthread_mutex_unlock(&clma_cb.cb_lock);
@@ -71,7 +68,7 @@ static unsigned int clma_create(void)
 	}
 
 	/* Block and wait for indication from MDS meaning CMLS is up */
-	m_NCS_SEL_OBJ_SELECT(clma_cb.clms_sync_sel, &set, 0, 0, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(clma_cb.clms_sync_sel), 30000);
 
 	pthread_mutex_lock(&clma_cb.cb_lock);
 	clma_cb.clms_sync_awaited = 0;

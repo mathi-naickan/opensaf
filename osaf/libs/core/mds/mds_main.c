@@ -43,10 +43,11 @@
 #include "mds_dt_tcp_trans.h"
 #include <netdb.h>
 #include <config.h>
+#include "osaf_utility.h"
+#include "osaf_poll.h"
 #ifdef ENABLE_TIPC_TRANSPORT
 #include "mds_dt_tipc.h"
 #endif
-#include "osaf_utility.h"
 #include <configmake.h>
 #define MDS_MDTM_CONNECT_PATH PKGLOCALSTATEDIR "/osaf_dtm_intra_server"
 
@@ -122,7 +123,6 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 	char *p_field = NULL;
 	uint32_t node_id = 0, cluster_id, mds_tipc_ref = 0;	/* this mds tipc ref is random num part of the TIPC id */
 	uint32_t status = NCSCC_RC_SUCCESS;
-	uint32_t destroy_ack_tmout;
 	NCS_SEL_OBJ destroy_ack_obj;
 	char *ptr;
 
@@ -312,9 +312,8 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 			return NCSCC_RC_FAILURE;
 		}
 		/* Wait for indication from MDS thread that it is ok to kill it */
-		destroy_ack_tmout = 7000;	/* 70seconds */
-		m_NCS_SEL_OBJ_POLL_SINGLE_OBJ(destroy_ack_obj, &destroy_ack_tmout);
-		m_MDS_LOG_DBG("LIB_DESTROY:Destroy ack from MDS thread in %d ms", destroy_ack_tmout * 10);
+		osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(destroy_ack_obj), 70000); /* 70 seconds */
+		m_MDS_LOG_DBG("LIB_DESTROY:Destroy ack from MDS thread in 70 s");
 
 		/* Take the lock before killing the thread */
 		osaf_mutex_lock_ordie(&gl_mds_library_mutex);

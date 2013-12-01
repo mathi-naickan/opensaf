@@ -49,6 +49,7 @@
 #include "ncssysf_def.h"
 #include "usrbuf.h"
 #include "ncssysf_mem.h"
+#include "osaf_poll.h"
 
 static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block);
 static uint32_t ipc_enqueue_ind_processing(NCS_IPC *ncs_ipc, unsigned int queue_number);
@@ -314,7 +315,6 @@ static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block)
 	unsigned int active_queue;
 	int inds_rmvd;
 	NCS_SEL_OBJ mbx_obj;
-	NCS_SEL_OBJ_SET obj_set;
 
 	if ((NULL == NCS_INT32_TO_PTR_CAST(mbx)) || (NULL == NCS_INT32_TO_PTR_CAST(*mbx)))
 		return NULL;
@@ -329,10 +329,7 @@ static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block)
 			return NULL;
 
 		if (block == true) {
-			m_NCS_SEL_OBJ_ZERO(&obj_set);
-			m_NCS_SEL_OBJ_SET(mbx_obj, &obj_set);
-
-			if (m_NCS_SEL_OBJ_SELECT(mbx_obj, &obj_set, NULL, NULL, NULL) != 1) {
+			if (osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(mbx_obj), -1) != 1) {
 				ncshm_give_hdl((uint32_t)*mbx);
 				return NULL;
 			}
@@ -350,7 +347,7 @@ static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block)
 		if (ncs_ipc->msg_count == 0) {
 			/* 
 			   We may reach here due to the following reasons.
-			   Blocking case: Between the select() and m_NCS_LOCK() calls above, 
+			   Blocking case: Between the osaf_poll_one_fd() and m_NCS_LOCK() calls above,
 			   some thread detached from this mail-box, making this mailbox empty.
 			   In such a case by the time we reach here, all indications
 			   must have been removed.

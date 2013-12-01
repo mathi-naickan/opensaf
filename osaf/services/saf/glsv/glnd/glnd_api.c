@@ -31,6 +31,12 @@
 ******************************************************************************/
 
 #include "glnd.h"
+#include "osaf_poll.h"
+
+enum {
+	FD_AMF,
+	FD_MBX
+};
 
 void glnd_main_process(SYSF_MBX *mbx);
 
@@ -182,13 +188,12 @@ void glnd_main_process(SYSF_MBX *mbx)
 	GLND_CB *glnd_cb = NULL;
 	TRACE_ENTER();	
 	
-	NCS_SEL_OBJ_SET all_sel_obj;
 	SaAmfHandleT amf_hdl;
 
 	SaSelectionObjectT amf_sel_obj;
 	SaAisErrorT amf_error;
 
-	NCS_SEL_OBJ amf_ncs_sel_obj, highest_sel_obj;
+	struct pollfd sel[2];
 
 	/* take the handle */
 	glnd_cb = (GLND_CB *)m_GLND_TAKE_GLND_CB;
@@ -202,22 +207,27 @@ void glnd_main_process(SYSF_MBX *mbx)
 	/*giveup the handle */
 	m_GLND_GIVEUP_GLND_CB;
 
-	m_NCS_SEL_OBJ_ZERO(&all_sel_obj);
-	m_NCS_SEL_OBJ_SET(mbx_fd, &all_sel_obj);
-
 	amf_error = saAmfSelectionObjectGet(amf_hdl, &amf_sel_obj);
 	if (amf_error != SA_AIS_OK) {
 		LOG_ER("GLND amf get sel obj error");
 		goto end;
 	}
-	m_SET_FD_IN_SEL_OBJ((uint32_t)amf_sel_obj, amf_ncs_sel_obj);
-	m_NCS_SEL_OBJ_SET(amf_ncs_sel_obj, &all_sel_obj);
 
-	highest_sel_obj = m_GET_HIGHER_SEL_OBJ(amf_ncs_sel_obj, mbx_fd);
+	sel[FD_AMF].fd = amf_sel_obj;
+	sel[FD_AMF].events = POLLIN;
+	sel[FD_MBX].fd = m_GET_FD_FROM_SEL_OBJ(mbx_fd);
+	sel[FD_MBX].events = POLLIN;
 
-	while (m_NCS_SEL_OBJ_SELECT(highest_sel_obj, &all_sel_obj, 0, 0, 0) != -1) {
+	while (osaf_poll(&sel[0], 2, -1) > 0) {
+		if (((sel[FD_AMF].revents | sel[FD_MBX].revents) &
+			(POLLERR | POLLHUP | POLLNVAL)) != 0) {
+			LOG_ER("GLND poll() failure: %hd %hd",
+				sel[FD_AMF].revents, sel[FD_MBX].revents);
+			TRACE_LEAVE();
+			return;
+		}
 		/* process all the AMF messages */
-		if (m_NCS_SEL_OBJ_ISSET(amf_ncs_sel_obj, &all_sel_obj)) {
+		if (sel[FD_AMF].revents & POLLIN) {
 			/* dispatch all the AMF pending function */
 			amf_error = saAmfDispatch(amf_hdl, SA_DISPATCH_ALL);
 			if (amf_error != SA_AIS_OK) {
@@ -225,7 +235,7 @@ void glnd_main_process(SYSF_MBX *mbx)
 			}
 		}
 		/* process the GLND Mail box */
-		if (m_NCS_SEL_OBJ_ISSET(mbx_fd, &all_sel_obj)) {
+		if (sel[FD_MBX].revents & POLLIN) {
 			glnd_cb = (GLND_CB *)m_GLND_TAKE_GLND_CB;
 			if (glnd_cb) {
 				/* now got the IPC mail box event */
@@ -233,14 +243,9 @@ void glnd_main_process(SYSF_MBX *mbx)
 				m_GLND_GIVEUP_GLND_CB;	/* giveup the handle */
 			} else
 				break;
-
 		}
-
-		/* do the fd set for the select obj */
-		m_NCS_SEL_OBJ_SET(amf_ncs_sel_obj, &all_sel_obj);
-		m_NCS_SEL_OBJ_SET(mbx_fd, &all_sel_obj);
-
 	}
+
 	TRACE("DANGER: Exiting the Select loop of GLND");
 end:
 	TRACE_LEAVE();

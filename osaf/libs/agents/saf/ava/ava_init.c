@@ -34,6 +34,7 @@
 #include "ava.h"
 #include <pthread.h>
 #include "osaf_utility.h"
+#include "osaf_poll.h"
 
 /* global cb handle */
 uint32_t gl_ava_hdl = 0;
@@ -117,8 +118,7 @@ uint32_t ava_lib_req(NCS_LIB_REQ_INFO *req_info)
 uint32_t ava_create(NCS_LIB_CREATE *create_info)
 {
 	AVA_CB *cb = 0;
-	NCS_SEL_OBJ_SET set;
-	uint32_t rc = NCSCC_RC_SUCCESS, timeout = 300;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	EDU_ERR err;
 	TRACE_ENTER();
 
@@ -181,8 +181,6 @@ uint32_t ava_create(NCS_LIB_CREATE *create_info)
 	}
 	TRACE("AVA Handles DB created successfully");
 
-	m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(cb->sel_obj, &set);
 	m_AVA_FLAG_SET(cb, AVA_FLAG_FD_VALID);
 
 	/* register with MDS */
@@ -195,7 +193,7 @@ uint32_t ava_create(NCS_LIB_CREATE *create_info)
 
 	TRACE_1("Waiting on select till AMF Node Director is up");
 	/* block until mds detects avnd */
-	m_NCS_SEL_OBJ_SELECT(cb->sel_obj, &set, 0, 0, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(cb->sel_obj), 3000);
 
 	/* reset the fd validity flag  */
 	m_NCS_LOCK(&cb->lock, NCS_LOCK_WRITE);

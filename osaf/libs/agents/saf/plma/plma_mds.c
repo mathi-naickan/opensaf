@@ -24,6 +24,7 @@
 *****************************************************************************/
 
 #include "plma.h"
+#include "osaf_poll.h"
 
 
 MDS_CLIENT_MSG_FORMAT_VER plma_plms_msg_fmt_table[PLMA_WRT_PLMS_SUBPART_VER_RANGE] = { 1 };
@@ -334,8 +335,6 @@ done:
 ***************************************************************************/
 void plma_sync_with_plms()
 {
-	NCS_SEL_OBJ_SET set;
-	uint32_t timeout = 3000;
 	PLMA_CB *cb = plma_ctrlblk;
 	
 	TRACE_ENTER();
@@ -353,9 +352,7 @@ void plma_sync_with_plms()
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
 	/** Await indication from MDS saying PLMS is up */
-	m_NCS_SEL_OBJ_ZERO(&set);
-	m_NCS_SEL_OBJ_SET(cb->sel_obj, &set);
-	m_NCS_SEL_OBJ_SELECT(cb->sel_obj, &set, 0, 0, &timeout);
+	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(cb->sel_obj), 30000);
 
 	/* Destroy the sync - object */
 	m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE);
