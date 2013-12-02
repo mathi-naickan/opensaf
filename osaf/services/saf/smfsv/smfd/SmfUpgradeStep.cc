@@ -922,11 +922,12 @@ SmfUpgradeStep::setMaintenanceState(SmfActivationUnit& i_units)
 										0);
 		//If a value is set, this shall be the current campaign DN
 		if(saAmfSUMaintenanceCampaign != NULL) {
-			if(strncmp((char *)saAmfSUMaintenanceCampaign->value, campDn.c_str(), saAmfSUMaintenanceCampaign->length) != 0){ //Exist, but no match
-				LOG_ER("saAmfSUMaintenanceCampaign already set to unknown campaign dn = %s", (char *)saAmfSUMaintenanceCampaign->value);
-				rc = false;
-				goto exit;
-			}
+                        if((saAmfSUMaintenanceCampaign->length != campDn.length()) || 
+                           (strncmp((char *)saAmfSUMaintenanceCampaign->value, campDn.c_str(), saAmfSUMaintenanceCampaign->length) != 0)){ //Exist, but no match
+                                LOG_ER("saAmfSUMaintenanceCampaign already set to unknown campaign dn = %s", (char *)saAmfSUMaintenanceCampaign->value);
+                                rc = false;
+                                goto exit;
+                        }
 		} else {
 			SmfImmModifyOperation *modop = new (std::nothrow) SmfImmModifyOperation;
 			osafassert(modop != 0);
