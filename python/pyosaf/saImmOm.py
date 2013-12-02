@@ -341,7 +341,7 @@ def saImmOmAccessorGet_2(accessorHandle,
 
 	return omdll.saImmOmAccessorGet_2(accessorHandle,
 			BYREF(objectName),
-			BYREF(c_attributeNames),
+			c_attributeNames,
 			BYREF(attributes))
 
 def saImmOmAccessorFinalize(accessorHandle):
@@ -408,7 +408,7 @@ def saImmOmAdminOwnerSet(ownerHandle, objectNames, scope):
 	omdll.saImmOmAdminOwnerSet.restype = SaAisErrorT
 
 	return omdll.saImmOmAdminOwnerSet(ownerHandle,
-			BYREF(c_objectNames),
+			c_objectNames,
 			scope)
 
 def saImmOmAdminOwnerRelease(ownerHandle, objectNames, scope):
