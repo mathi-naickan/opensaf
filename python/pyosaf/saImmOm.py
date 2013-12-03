@@ -432,7 +432,7 @@ def saImmOmAdminOwnerRelease(ownerHandle, objectNames, scope):
 	omdll.saImmOmAdminOwnerRelease.restype = SaAisErrorT
 
 	return omdll.saImmOmAdminOwnerRelease(ownerHandle,
-			BYREF(c_objectNames),
+			c_objectNames,
 			scope)
 
 def saImmOmAdminOwnerFinalize(ownerHandle):
@@ -473,7 +473,7 @@ def saImmOmAdminOwnerClear(immHandle, objectNames, scope):
 	omdll.saImmOmAdminOwnerClear.restype = SaAisErrorT
 
 	return omdll.saImmOmAdminOwnerClear(immHandle,
-			BYREF(c_objectNames),
+			c_objectNames,
 			scope)
 
 def saImmOmCcbInitialize(ownerHandle, ccbFlags, ccbHandle):
