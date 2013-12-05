@@ -192,6 +192,15 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 	 * called while doing checkpoint update.
 	 */
 
+	if (susi->list_of_csicomp == NULL) {
+		TRACE("Couldn't add any compcsi to Si'%s'", susi->si->name.value);
+		avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_DEL, static_cast<SaAmfHAStateT>(0), 
+				static_cast<SaAmfHAStateT>(0));
+		avd_susi_delete(cb, susi, true);
+		rc = NCSCC_RC_FAILURE;
+		goto done;
+	}
+
 	if (false == ckpt) {
 		if (avd_snd_susi_msg(cb, su, susi, AVSV_SUSI_ACT_ASGN, false, NULL) == NCSCC_RC_SUCCESS) {
 			if (su->su_on_node->admin_node_pend_cbk.invocation != 0) {
