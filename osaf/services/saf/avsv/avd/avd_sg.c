@@ -28,6 +28,7 @@
 #include <avd_sg.h>
 #include <avd_proc.h>
 #include <avd_si_dep.h>
+#include <avd_csi.h>
 
 static NCS_PATRICIA_TREE sg_db;
 static void avd_verify_equal_ranked_su(AVD_SG *avd_sg);
@@ -1021,6 +1022,12 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		}
 	}
 
+        /* Avoid if any single Csi assignment is undergoing on SG. */
+        if (csi_assignment_validate(sg) == true) {
+                rc = SA_AIS_ERR_TRY_AGAIN;
+                LOG_WA("Single Csi assignment undergoing on (sg'%s')", sg->name.value);
+                goto done;
+        }
 
 	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
 	if (sg_is_tolerance_timer_running_for_any_si(sg)) {

@@ -793,6 +793,13 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
                 goto done;
         }
 
+        /* Avoid if any single Csi assignment is undergoing on SG. */
+        if (csi_assignment_validate(si->sg_of_si) == true) {
+                rc = SA_AIS_ERR_TRY_AGAIN;
+                LOG_WA("Single Csi assignment undergoing on (sg'%s')", si->sg_of_si->name.value);
+                goto done;
+        }
+
 	switch (operationId) {
 	case SA_AMF_ADMIN_UNLOCK:
 		if (SA_AMF_ADMIN_UNLOCKED == si->saAmfSIAdminState) {
