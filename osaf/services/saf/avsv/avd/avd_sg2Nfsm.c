@@ -920,6 +920,16 @@ static uint32_t avd_sg_2n_su_fault_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 	if (su->sg_of_su->su_oper_list.su == su) {
 		su_ha_state = avd_su_state_determine(su);
 		if (su_ha_state == SA_AMF_HA_QUIESCED) {
+			if (su->su_switch == AVSV_SI_TOGGLE_SWITCH) {
+				AVD_SU_SI_REL *temp_susi;
+				for (temp_susi = su->list_of_susi; temp_susi != NULL; temp_susi = temp_susi->su_next) {
+					if (temp_susi->si->invocation != 0) {
+						avd_saImmOiAdminOperationResult(cb->immOiHandle,
+								temp_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
+						temp_susi->si->invocation = 0;
+					}
+				}
+			}
 			m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
 		} else if (su_ha_state == SA_AMF_HA_QUIESCING) {
 			if (avd_sidep_si_dependency_exists_within_su(su)) {
