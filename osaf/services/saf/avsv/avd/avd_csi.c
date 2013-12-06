@@ -1252,3 +1252,21 @@ void avd_csi_constructor(void)
 	avd_class_impl_set("SaAmfCSI", NULL, NULL, csi_ccb_completed_cb, csi_ccb_apply_cb);
 }
 
+/**
+ * @brief	Check whether the Single csi assignment is undergoing on the SG.
+ *
+ * @param[in]	sg - Pointer to the Service Group.
+ *
+ * @return	true if operation is undergoing else false.
+ */
+bool csi_assignment_validate(AVD_SG *sg)
+{
+	AVD_SI *temp_si;
+	AVD_SU_SI_REL *temp_sisu;
+
+	for (temp_si = sg->list_of_si; temp_si; temp_si = temp_si->sg_list_of_si_next)
+		for (temp_sisu = temp_si->list_of_sisu; temp_sisu; temp_sisu = temp_sisu->si_next)
+			if (temp_sisu->csi_add_rem == true)
+				return true;
+	return false;
+}
