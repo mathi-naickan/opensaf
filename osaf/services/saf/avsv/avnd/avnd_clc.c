@@ -1318,6 +1318,12 @@ uint32_t avnd_comp_clc_uninst_inst_hdler(AVND_CB *cb, AVND_COMP *comp)
 
 	TRACE_ENTER2("'%s' : Instantiate event in the Uninstantiated state", comp->name.value);
 
+	/* Refresh the component configuration, it may have changed */
+	if (!m_AVND_IS_SHUTTING_DOWN(cb) && (avnd_comp_config_reinit(comp) != 0)) {
+		rc = NCSCC_RC_FAILURE;
+		goto done;
+	}
+
 	/*if proxied component check whether the proxy exists, if so continue 
 	   instantiating by calling the proxied callback. else start timer and 
 	   wait for inst timeout duration */
@@ -1587,6 +1593,11 @@ uint32_t avnd_comp_clc_xxxing_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	AVND_COMP_CLC_INFO *clc_info = &comp->clc_info;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("'%s': Cleanup success event in the instantiating/restarting state", comp->name.value);
+	/* Refresh the component configuration, it may have changed */
+	if (!m_AVND_IS_SHUTTING_DOWN(cb) && (avnd_comp_config_reinit(comp) != 0)) {
+		rc = NCSCC_RC_FAILURE;
+		goto done;
+	}
 
 	if ((clc_info->inst_retry_cnt < clc_info->inst_retry_max) &&
 	    (AVND_COMP_INST_EXIT_CODE_NO_RETRY != clc_info->inst_code_rcvd)) {
@@ -1631,7 +1642,7 @@ uint32_t avnd_comp_clc_xxxing_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		/* => retries over... transition to inst-failed state */
 		avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_INSTANTIATION_FAILED);
 	}
-
+done:
 	TRACE_LEAVE();
 	return rc;
 }
@@ -2168,6 +2179,12 @@ uint32_t avnd_comp_clc_restart_termsucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("'%s': Terminate success event in the restarting state", comp->name.value);
 
+	/* Refresh the component configuration, it may have changed */
+	if (!m_AVND_IS_SHUTTING_DOWN(cb) && (avnd_comp_config_reinit(comp) != 0)) {
+		rc = NCSCC_RC_FAILURE;
+		goto done;
+	}
+
 	if (!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
 		m_AVND_COMP_REG_PARAM_RESET(cb, comp);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
@@ -2189,7 +2206,7 @@ uint32_t avnd_comp_clc_restart_termsucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		m_GET_TIME_STAMP(comp->clc_info.inst_cmd_ts);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_INST_CMD_TS);
 	}
-
+done:
 	TRACE_LEAVE();
 	return rc;
 }
@@ -2497,12 +2514,6 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 	size_t env_set_nmemb;
 
 	TRACE_ENTER2("'%s':CLC CLI command type:'%s'",comp->name.value,clc_cmd_type[cmd_type]);
-
-	/* Refresh the component configuration, it may have changed */
-	if (!m_AVND_IS_SHUTTING_DOWN(cb) && (avnd_comp_config_reinit(comp) != 0)) {
-		rc = NCSCC_RC_FAILURE;
-		goto err;
-	}
 
 	/* the allocated memory is normally freed in comp_clc_resp_callback */
 	clc_evt = (AVND_CLC_EVT *)calloc(1, sizeof(AVND_CLC_EVT));
