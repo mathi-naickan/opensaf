@@ -134,8 +134,10 @@ AVND_EVT *avnd_evt_create(AVND_CB *cb,
 		break;
 
 		/* mds event types */
-	case AVND_EVT_MDS_AVD_UP:
 	case AVND_EVT_MDS_AVD_DN:
+		evt->info.mds.node_id = *(uint32_t *)info;
+		/* Don't break, continue */
+	case AVND_EVT_MDS_AVD_UP:
 	case AVND_EVT_MDS_AVND_DN:
 	case AVND_EVT_MDS_AVND_UP:
 		evt->priority = NCS_IPC_PRIORITY_HIGH;	/* bump up the priority */

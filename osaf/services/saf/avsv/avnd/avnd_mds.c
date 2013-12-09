@@ -636,16 +636,13 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 	case NCSMDS_DOWN:
 		switch (evt_info->i_svc_id) {
 		case NCSMDS_SVC_ID_AVD:
-			if (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest)) {
-				/* Supervise our node local director */
-				if (evt_info->i_node_id != ncs_get_node_id()) {
-					/* Ignore the other AVD Adest Down.*/
-					return rc;
-				}
-			}
+			if (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest) && (evt_info->i_node_id != ncs_get_node_id())) {
+				/* No action is required, Proceed ahead. */
+			} else /* Reset the vdest as this node is going to get rebooted. */ 
+				memset(&cb->avd_dest, 0, sizeof(MDS_DEST));
 
-			memset(&cb->avd_dest, 0, sizeof(MDS_DEST));
-			evt = avnd_evt_create(cb, AVND_EVT_MDS_AVD_DN, 0, &evt_info->i_dest, 0, 0, 0);
+			evt = avnd_evt_create(cb, AVND_EVT_MDS_AVD_DN, 0, &evt_info->i_dest, &evt_info->i_node_id,
+					0, 0);
 			break;
 
 		case NCSMDS_SVC_ID_AVA:

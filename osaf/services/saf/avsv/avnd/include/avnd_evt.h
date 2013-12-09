@@ -127,6 +127,7 @@ typedef struct avnd_tmr_evt {
 /* mds event definition */
 typedef struct avnd_mds_evt {
 	MDS_DEST mds_dest;	/* mds address */
+	NODE_ID node_id;
 } AVND_MDS_EVT;
 
 /* HA STATE change event definition */
