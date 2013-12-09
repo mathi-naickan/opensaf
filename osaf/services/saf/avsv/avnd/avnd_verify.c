@@ -92,6 +92,8 @@ uint32_t avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt)
 	bool msg_found = false;
 
 	TRACE_ENTER2("Data Verify message received from newly ACTIVE AVD");
+	/* We need to reset the flag as it looks failover case. */
+	avnd_cb->cont_reboot_in_progress = false;
 
 	info = &evt->info.avd->msg_info.d2n_data_verify;
 

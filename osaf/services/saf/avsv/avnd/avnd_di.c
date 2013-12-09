@@ -386,6 +386,17 @@ done:
 uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt)
 {
 	TRACE_ENTER2("%" PRIx64, evt->info.mds.mds_dest);
+
+	/* If AvD UP event has come just after AvD DOWN for Act controller, then it is a case of
+	   TIPC flicker */
+
+	if ((m_MDS_DEST_IS_AN_ADEST(evt->info.mds.mds_dest) && avnd_cb->cont_reboot_in_progress) &&
+			(evt->info.mds.mds_dest == cb->active_avd_adest)) {
+		cb->reboot_in_progress = true;
+		opensaf_reboot(avnd_cb->node_info.nodeId, (char *)avnd_cb->node_info.executionEnvironment.value,
+				"Link reset with Act controller");
+		goto done;
+	}
 	
 	/* Validate whether this is a ADEST or VDEST */
 	if (m_MDS_DEST_IS_AN_ADEST(evt->info.mds.mds_dest)) {
@@ -436,6 +447,15 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
+
+	if (m_MDS_DEST_IS_AN_ADEST(evt->info.mds.mds_dest)) {
+		if (evt->info.mds.node_id != ncs_get_node_id()) {
+			/* Ignore the other AVD Adest Down.*/
+			if(evt->info.mds.mds_dest == cb->active_avd_adest)
+				avnd_cb->cont_reboot_in_progress = true;
+			return rc;
+		}
+	}
 
 	LOG_ER("AMF director unexpectedly crashed");
 

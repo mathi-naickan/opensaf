@@ -130,6 +130,7 @@ typedef struct avnd_cb_tag {
 	SaBoolT first_time_up;
 	bool reboot_in_progress;
 	AVND_SU *failed_su;
+	bool cont_reboot_in_progress;
 } AVND_CB;
 
 #define AVND_CB_NULL ((AVND_CB *)0)
