@@ -1365,8 +1365,8 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 				avd_gen_su_ha_state_changed_ntf(avd_cb, l_susi);
 				avd_susi_update_assignment_counters(l_susi, AVSV_SUSI_ACT_MOD, SA_AMF_HA_QUIESCING, SA_AMF_HA_QUIESCED);
 				avd_susi_update(l_susi, l_susi->state);
-
-				if (avd_si_dependency_exists_within_su(su)) {
+				bool sidep_flag = avd_si_dependency_exists_within_su(su);
+				if (sidep_flag) {
 					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
 						LOG_NO("%s:%u: %s ", __FILE__, __LINE__, su->name.value);
 						goto done;
@@ -1378,7 +1378,10 @@ static uint32_t avd_sg_2n_su_fault_si_oper(AVD_CL_CB *cb, AVD_SU *su)
 					}
 				}
 
-				avd_si_admin_state_set((su->sg_of_su->admin_si), SA_AMF_ADMIN_LOCKED);
+				if (sidep_flag)
+					avd_si_admin_state_set((su->sg_of_su->admin_si), SA_AMF_ADMIN_LOCKED);
+				else
+					avd_si_admin_state_set((su->sg_of_su->admin_si), SA_AMF_ADMIN_UNLOCKED);
 				m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 				avd_sg_su_oper_list_add(cb, su, false);
 				m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SU_OPER);
