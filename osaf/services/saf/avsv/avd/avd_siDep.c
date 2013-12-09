@@ -1929,7 +1929,21 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 					failover_possible = true;
 					if (sisu->fsm == AVD_SU_SI_STATE_MODIFY)
 						sponsor_in_modify_state = true;
+					if ((sisu->su == su) && (sisu->fsm == AVD_SU_SI_STATE_ASGND)) {
+						sponsor_in_modify_state = true;
+						TRACE("Sponsor '%s' active in same SU",sisu->si->name.value);
+					}
 					break;
+				} else if ((sisu->state == SA_AMF_HA_QUIESCED) &&
+						(sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
+						(sisu->su == su) &&
+						(avd_check_si_state_enabled(avd_cb, sisu->si) != NCSCC_RC_SUCCESS)) {
+					/* If sponsor is quiesced in the same SU and not active in
+					   any other SU, it means failover of sponsor is still pending.
+					 */
+					sponsor_in_modify_state = true;
+					TRACE("Sponsor '%s' quiescd assigned in same SU",sisu->si->name.value);
+
 				} else if ((spons_si_node->si->sg_of_si == si->sg_of_si) && (sisu->su != su) &&
 					(!valid_standby)) {
 					/* Sponsor also belongs to the same SG 
