@@ -1948,33 +1948,29 @@ uint32_t avnd_comp_csi_remove_done(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_R
 			if (NCSCC_RC_SUCCESS != rc)
 				goto done;
 		}
-	} else {		/* assign all the csis belonging to the prv rank in one shot */
-		/* get the first csi-record for this comp */
-		curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
-		/* get the prv csi */
-		if (curr_csi) {
-find_next:
-			curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&curr_csi->si_dll_node);
-			if (curr_csi) {
-				if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVED(curr_csi)) goto find_next;
+	} else {		
+		AVND_COMP_CSI_REC *csi = 0;
+		/* Issue remove callback with TARGET_ALL for CSIs belonging to prv rank.*/
+		for (curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+			curr_csi;
+			curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_csi->comp_dll_node))) {
+			for (csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&curr_csi->si_dll_node);
+					csi;
+					csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&csi->si_dll_node)) {
+				if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVED(csi)) 
+					continue;
+				else {
+					/* remove all the csis belonging to this comp */
+					rc = avnd_comp_csi_remove(cb, csi->comp, 0);
+					break;
+				}
 			}
-		}
-		else {
-			/* csi rec is already deleted, so SI rec would also have been deleted
-			 *  we are already done with rmv operation, just quit
-			 */
-			goto done;
 		}
 
-		/* remove all the csis belonging to this comp */
-		if (curr_csi){
-			rc = avnd_comp_csi_remove(cb, curr_csi->comp, 0);
-		}
-		else {
-			/* su operation doone if all csis in all sis of su are in removed state*/
-			if(all_csis_in_removed_state(comp->su)) {
-				rc = avnd_su_si_oper_done(cb, comp->su, 0);
-			}
+		/* This is removal with TARGET_ALL. So if all CSIs in all SIs of SU are moved 
+		   to removed state, mark all SIs removed and inform AMF director.*/
+		if (all_csis_in_removed_state(comp->su) && m_AVND_SU_IS_ALL_SI(comp->su)) {
+			rc = avnd_su_si_oper_done(cb, comp->su, 0);
 		}
 	}
 
