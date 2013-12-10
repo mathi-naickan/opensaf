@@ -959,7 +959,7 @@ SaAisErrorT saAmfPmStart(SaAmfHandleT hdl,
 	}
 
 	/* input validation of Recomended recovery */
-	if (rec_Recovery < SA_AMF_NO_RECOMMENDATION || rec_Recovery > SA_AMF_CLUSTER_RESET) {
+	if (rec_Recovery < SA_AMF_NO_RECOMMENDATION || rec_Recovery > SA_AMF_CONTAINER_RESTART) {
 		TRACE_LEAVE2("Incorrect argument specified for SaAmfRecommendedRecoveryT");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
@@ -2027,8 +2027,8 @@ SaAisErrorT saAmfInitialize_4(SaAmfHandleT *o_hdl, const SaAmfCallbacksT_4 *reg_
 	if ((reg_cbks != NULL) &&
 	    ((reg_cbks->saAmfContainedComponentCleanupCallback != 0) ||
 	     (reg_cbks->saAmfContainedComponentInstantiateCallback != 0))) {
-		TRACE_4("SA_AIS_ERR_INVALID_PARAM: unsupported callbacks");
-		rc = SA_AIS_ERR_INVALID_PARAM;
+		TRACE_4("SA_AIS_ERR_NOT_SUPPORTED: unsupported callbacks");
+		rc = SA_AIS_ERR_NOT_SUPPORTED;
 		goto done;
 	}
 
@@ -2588,6 +2588,10 @@ SaAisErrorT saAmfResponse_4(SaAmfHandleT hdl, SaInvocationT inv, SaNtfCorrelatio
 		/* Support for SaNtfCorrelationIdsT is not yet implemented */
 		if(!((corr_ids->rootCorrelationId == SA_NTF_IDENTIFIER_UNUSED) && (corr_ids->parentCorrelationId == SA_NTF_IDENTIFIER_UNUSED))) {
 			TRACE_2("Value other then SA_NTF_IDENTIFIER_UNUSED for SaNtfIdentifierT and SaNtfIdentifierT is not yet supported");
+			rc = SA_AIS_ERR_NOT_SUPPORTED;
+			goto done;
+		}
+		if (error == SA_AIS_ERR_NOT_READY) {
 			rc = SA_AIS_ERR_NOT_SUPPORTED;
 			goto done;
 		}
