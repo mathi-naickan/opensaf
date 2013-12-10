@@ -557,6 +557,11 @@ void avnd_comp_pm_param_val(AVND_CB *cb,
 				*o_amf_rc = SA_AIS_ERR_NOT_EXIST;
 				return;
 			}
+			if ((pm_start->rec_rcvr.saf_amf >= SA_AMF_CLUSTER_RESET) && 
+					(pm_start->rec_rcvr.saf_amf <= SA_AMF_CONTAINER_RESTART)) {
+				*o_amf_rc = SA_AIS_ERR_NOT_SUPPORTED;
+				return;
+			}
 		}
 		break;
 
