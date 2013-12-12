@@ -539,24 +539,28 @@ static void csiattr_modify_apply(CcbUtilOperationData_t *opdata)
 				tmp_csi_attr->name_value.string_ptr = calloc(1,strlen(value)+1);
 				osafassert(tmp_csi_attr->name_value.string_ptr);
 				memcpy(tmp_csi_attr->name_value.string_ptr, value, strlen(value)+1);
+				tmp_csi_attr->name_value.value.length
+					= snprintf((char *)tmp_csi_attr->name_value.value.value,
+							SA_MAX_NAME_LENGTH, "%s", value);
 				i = 1;
+			} else {
+				for (i = 0; i < attribute->attrValuesNumber; i++) {
+					char *value = *(char **)attribute->attrValues[i++];
+					if ((i_attr = calloc(1, sizeof(AVD_CSI_ATTR))) == NULL) {
+						LOG_ER("%s:calloc FAILED", __FUNCTION__);
+						return;
+					}
+
+					i_attr->attr_next = csiattr;
+					csiattr = i_attr;
+
+					csiattr->name_value.name.length = csi_attr_name.length;
+					memcpy(csiattr->name_value.name.value, csi_attr_name.value, csiattr->name_value.name.length);
+					csiattr->name_value.string_ptr = calloc(1,strlen(value)+1);
+					osafassert(csiattr->name_value.string_ptr);
+					memcpy(csiattr->name_value.string_ptr, value, strlen(value)+1 );
+				} /* for  */
 			}
-			for (i = 0; i < attribute->attrValuesNumber; i++) {
-				char *value = *(char **)attribute->attrValues[i++];
-				if ((i_attr = calloc(1, sizeof(AVD_CSI_ATTR))) == NULL) {
-					LOG_ER("%s:calloc FAILED", __FUNCTION__);
-					return;
-				}
-
-				i_attr->attr_next = csiattr;
-				csiattr = i_attr;
-
-				csiattr->name_value.name.length = csi_attr_name.length;
-				memcpy(csiattr->name_value.name.value, csi_attr_name.value, csiattr->name_value.name.length);
-				csiattr->name_value.string_ptr = calloc(1,strlen(value)+1);
-				osafassert(csiattr->name_value.string_ptr);
-				memcpy(csiattr->name_value.string_ptr, value, strlen(value)+1 );
-			} /* for  */
 			/* add the modified csiattr values to parent csi */
 			if(csiattr) {
 				avd_csi_add_csiattr(csi, csiattr);
@@ -575,8 +579,9 @@ static void csiattr_modify_apply(CcbUtilOperationData_t *opdata)
 						 */
 						memset(tmp_csi_attr->name_value.string_ptr, 0, 
 							strlen(tmp_csi_attr->name_value.string_ptr));
-						/* Decrement the num_attributes as the value is deleted. */
-						csi->num_attributes--;
+						memset(&tmp_csi_attr->name_value.value, 0,
+								sizeof(tmp_csi_attr->name_value.value));
+
 					} else {
 							avd_csi_remove_csiattr(csi, csiattr);
 					}
