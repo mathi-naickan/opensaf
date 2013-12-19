@@ -623,6 +623,8 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClmHandleImpl_invokeSaClmRespons
         _response = SA_CLM_CALLBACK_RESPONSE_REJECTED;
     else if( value == 3)
         _response = SA_CLM_CALLBACK_RESPONSE_ERROR;
+    else
+        _response = SA_CLM_CALLBACK_RESPONSE_ERROR;
 
     /* call saClmResponse_4 */
 

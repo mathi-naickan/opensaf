@@ -135,7 +135,6 @@ JNIEXPORT jintArray JNICALL Java_org_opensaf_ais_SelectionObjectMediator_00024Wo
     int* fds = (*jniEnv)->GetIntArrayElements(jniEnv, sockets, 0);
 
     fd_set rfds;
-    fd_set rfds_copy;
 	FD_ZERO(&rfds);
 	int i;
 	int maxfd = 0;
@@ -143,8 +142,6 @@ JNIEXPORT jintArray JNICALL Java_org_opensaf_ais_SelectionObjectMediator_00024Wo
 		FD_SET(fds[i], &rfds);
 		if (maxfd < fds[i]) maxfd = fds[i];
 	}
-
-	rfds_copy = rfds;
 
 	int numFds = select(maxfd + 1, &rfds, NULL, NULL, NULL);
 	if (numFds < 1) {

@@ -208,7 +208,7 @@ void U_printSaClusterNotificationBuffer_4(
     // TODO should be some sensible error handling for invalid numberOfItems values...
     for( _idx = 0; _idx < saClusterNotificationBufferPtr->numberOfItems; _idx++ ){
         _TRACE2( "NATIVE: \t  notification[%d]:\n", _idx );
-        U_printSaClusterNotification( "", &(saClusterNotificationBufferPtr->notification[_idx]) );
+        U_printSaClusterNotification_4( "", &(saClusterNotificationBufferPtr->notification[_idx]) );
     }
 
 }
@@ -250,7 +250,7 @@ void U_printSaClusterNotification_4(
     _TRACE_INLINE( "%s", msg );
     _TRACE2( "NATIVE: \t\t(Address of saClusterNotification:%p:)\n", saClusterNotificationPtr );
     _TRACE2( "NATIVE: \t\t clusterChange:%u\n", saClusterNotificationPtr->clusterChange );
-    U_printSaClusterNode( "NATIVE: \t\t clusterNode\n", &(saClusterNotificationPtr->clusterNode) );
+    U_printSaClusterNode_4( "NATIVE: \t\t clusterNode\n", &(saClusterNotificationPtr->clusterNode) );
 }
 
 /**************************************************************************

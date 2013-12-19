@@ -14,6 +14,8 @@
 # Author(s): Wind River Systems
 #
 
+include $(top_srcdir)/Makefile.common
+
 MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = javah.xml

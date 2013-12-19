@@ -1330,6 +1330,8 @@ JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_
         _saTrackFlags = SA_TRACK_CURRENT | SA_TRACK_LOCAL;
     else if( localflag == JNI_FALSE )
         _saTrackFlags = SA_TRACK_CURRENT;  
+    else
+        _saTrackFlags = SA_TRACK_CURRENT;
 
     return JNU_invokeSaClmClusterTrack_Sync( jniEnv,
                                              thisClusterMembershipManager,
@@ -1358,6 +1360,8 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_get
     if( localflag == JNI_TRUE )
         _saTrackFlags = SA_TRACK_CURRENT | SA_TRACK_LOCAL;
     else if( localflag == JNI_FALSE )
+        _saTrackFlags = SA_TRACK_CURRENT;
+    else
         _saTrackFlags = SA_TRACK_CURRENT;
 
     JNU_invokeSaClmClusterTrack_Async( jniEnv, thisClusterMembershipManager, _saTrackFlags);

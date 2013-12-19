@@ -27,6 +27,7 @@
  *************************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 #include <sys/select.h>
@@ -55,8 +56,14 @@
 #include "j_ais_amf_errReporting.h"
 #include "j_ais_amf_healthcheck.h"
 #include "j_ais_amf_pgManager.h"
+#include "j_ais_amf_pm.h"
 
 #include "j_utils.h"
+
+/* JNU_ThrowByName is declared in the header file jni_util.h, which is not
+   distributed in OpenJDK. Is it a private function? */
+JNIEXPORT void JNICALL
+JNU_ThrowByName(JNIEnv *env, const char *name, const char *msg);
 
 /**************************************************************************
  * Constants
