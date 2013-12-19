@@ -30,7 +30,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include <sys/select.h>
 #include <jni.h>
 #include <saAis.h>
 #include <saClm.h>
@@ -779,39 +778,4 @@ jclass JNU_GetGlobalClassRef(JNIEnv *jniEnv, const char *className)
 		return NULL;	// EXIT POINT! Exception pending...
 	}
 	return _globalCls;
-}
-
-/**************************************************************************
- * FUNCTION:      U_convertTimeout
- * TYPE:          internal function
- * OVERVIEW:      converts the timeout value specified in nanoseconds to
- *                POSIX struct timeval.
- * INTERFACE:
- *   parameters:  TODO
- *   returns:     none
- * NOTE:
- *************************************************************************/
-void U_convertTimeout(struct timeval *to_timeout, const jlong from_timeout)
-{
-	// BODY
-#ifndef NDEBUG
-	// _TRACE2( "NATIVE: Executing U_convertTimeout(..., %ld )\n", (long) from_timeout );
-#endif				// NDEBUG
-	// TODO types checking! negative values
-	if (from_timeout < SA_TIME_ONE_MICROSECOND) {
-		// no timout
-		to_timeout->tv_sec = 0;
-		to_timeout->tv_usec = 0;
-		return;		// EXIT POINT!!!
-	}
-	if (from_timeout < SA_TIME_ONE_SECOND) {
-		// subsecond timout
-		to_timeout->tv_sec = 0;
-		to_timeout->tv_usec = from_timeout / SA_TIME_ONE_MICROSECOND;
-		return;		// EXIT POINT!!!
-	}
-	to_timeout->tv_sec = from_timeout / SA_TIME_ONE_SECOND;
-	to_timeout->tv_usec =
-		(from_timeout % SA_TIME_ONE_SECOND) / SA_TIME_ONE_MICROSECOND;
-	return;
 }

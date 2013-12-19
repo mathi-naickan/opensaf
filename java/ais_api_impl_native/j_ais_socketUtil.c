@@ -15,15 +15,16 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <jni.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/select.h>
 #include <assert.h>
 #include "j_utilsPrint.h"
 #include "j_utils.h"
 #include "jni_ais.h"
+#include "osaf_poll.h"
 
 /**
  * Opens a socket pair and returns the two descriptors.
@@ -129,11 +130,11 @@ Java_org_opensaf_ais_SelectionObjectMediator_writeSocketpair(JNIEnv *jniEnv,
 }
 
 /**
- * Calls select() on the given socket descriptors and returns an array of the modified ones.
+ * Calls poll() on the given socket descriptors and returns an array of the modified ones.
  * In case of any error, it returns NULL.
- * @param sockets The socket descriptors on whom we call select().
+ * @param sockets The socket descriptors on whom we call poll().
  * @param socketSize Size of the array of socket descriptors.
- * @return An array of sockets returned by select().
+ * @return An array of sockets returned by poll().
  */
 JNIEXPORT jintArray JNICALL
 Java_org_opensaf_ais_SelectionObjectMediator_00024Worker_doSelect(JNIEnv
@@ -150,27 +151,23 @@ Java_org_opensaf_ais_SelectionObjectMediator_00024Worker_doSelect(JNIEnv
 	_TRACE2
 		("NATIVE: Executing Java_org_opensaf_ais_SelectionObjectMediator_00024Worker_doSelect\n");
 
-	int *fds = (*jniEnv)->GetIntArrayElements(jniEnv, sockets, 0);
+	struct pollfd *rfds = malloc(socketSize * sizeof(struct pollfd));
+	if (rfds == NULL)
+		return NULL;
 
-	fd_set rfds;
-	FD_ZERO(&rfds);
+	int *fds = (*jniEnv)->GetIntArrayElements(jniEnv, sockets, 0);
 	int i;
-	int maxfd = 0;
 	for (i = 0; i < socketSize; i++) {
-		FD_SET(fds[i], &rfds);
-		if (maxfd < fds[i])
-			maxfd = fds[i];
+		rfds[i].fd = fds[i];
+		rfds[i].events = POLLIN;
 	}
 
-	int numFds = select(maxfd + 1, &rfds, NULL, NULL, NULL);
-	if (numFds < 1) {
-		perror("select()");
-		fflush(stderr);
-	} else {
+	unsigned numFds = osaf_poll(rfds, socketSize, -1);
+	if (numFds > 0) {
 		selectedSockets = (*jniEnv)->NewIntArray(jniEnv, numFds);
-		int a = 0;
-		for (i = 0; i < socketSize; i++) {
-			if (FD_ISSET(fds[i], &rfds)) {
+		unsigned a = 0;
+		for (i = 0; i < socketSize && a < numFds; i++) {
+			if (rfds[i].revents != 0) {
 				(*jniEnv)->SetIntArrayRegion(jniEnv,
 							     selectedSockets, a,
 							     1, &fds[i]);
@@ -179,6 +176,7 @@ Java_org_opensaf_ais_SelectionObjectMediator_00024Worker_doSelect(JNIEnv
 		}
 	}
 
+	free(rfds);
 	_TRACE2
 		("NATIVE: Finishing Java_org_opensaf_ais_SelectionObjectMediator_00024Worker_doSelect\n");
 

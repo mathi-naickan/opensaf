@@ -29,11 +29,12 @@
 #include <stdlib.h>
 #include "j_utilsPrint.h"
 #include <errno.h>
-#include <sys/select.h>
 #include <jni.h>
 #include "j_utils.h"
 #include "j_ais.h"
 #include "jni_ais.h"
+#include "osaf_poll.h"
+#include "osaf_time.h"
 
 /**************************************************************************
  * Constants
@@ -72,7 +73,7 @@ static jboolean JNU_Handle_initIDs_FromClass_OK(JNIEnv *jniEnv,
 						jclass classHandle);
 static jint JNU_invokeSelect(JNIEnv *jniEnv,
 			     jobjectArray libraryHandleArray,
-			     struct timeval *lxTimeout_Ptr);
+			     struct timespec *lxTimeout_Ptr);
 
 /**************************************************************************
  * Function definitions
@@ -169,9 +170,9 @@ Java_org_opensaf_ais_HandleImpl_checkSelectionObject(JNIEnv *jniEnv,
 	// ais
 	SaSelectionObjectT _saSelectionObject;
 	// linux
-	fd_set _readFDs;
-	struct timeval _lxTimeout;
-	int _selectStatus;
+	struct pollfd _readFDs;
+	struct timespec _lxTimeout;
+	unsigned _pollStatus;
 
 	// BODY
 	assert(thisLibraryHandle != NULL);
@@ -183,75 +184,20 @@ Java_org_opensaf_ais_HandleImpl_checkSelectionObject(JNIEnv *jniEnv,
 									 thisLibraryHandle,
 									 FID_selectionObject);
 
-	// call select(2)
-	FD_ZERO(&_readFDs);
-	FD_SET(_saSelectionObject, &_readFDs);
-	U_convertTimeout(&_lxTimeout, timeout);
+	// call osaf_ppoll()
+	_readFDs.fd = _saSelectionObject;
+	_readFDs.events = POLLIN;
+	osaf_nanos_to_timespec(timeout >= 0 ? timeout : 0, &_lxTimeout);
 
-	_TRACE2("NATIVE: timout is { %ld seconds, %ld microseconds } \n",
-		_lxTimeout.tv_sec, _lxTimeout.tv_usec);
+	_TRACE2("NATIVE: timout is { %ld seconds, %ld nanoseconds } \n",
+		_lxTimeout.tv_sec, _lxTimeout.tv_nsec);
 
-	_selectStatus = select((_saSelectionObject + 1),
-			       &_readFDs, NULL, NULL, &_lxTimeout);
+	_pollStatus = osaf_ppoll(&_readFDs, 1, &_lxTimeout, NULL);
 
-	_TRACE2("NATIVE: select(...) has returned with %d...\n", _selectStatus);
+	_TRACE2("NATIVE: osaf_ppoll(...) has returned with %u...\n",
+		_pollStatus);
 
-	// error handling
-	if (_selectStatus == -1) {
-		switch (errno) {
-		case EBADF:	// invalid file descriptor
-
-			// this should not happen here!
-			_TRACE2
-				("NATIVE ERROR : select(EBADF): invalid file descriptor\n");
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case EINTR:	// non blocked signal caught
-
-			_TRACE2
-				("NATIVE ERROR : select(EINTR): non blocked signal caught\n");
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case EINVAL:	// n is negative or the value within timeout is invalid
-
-			// this should not happen here!
-			_TRACE2
-				("NATIVE ERROR : select(EINVAL): n is negative or the value within timeout is invalid\n");
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case ENOMEM:	// select was unable to allocate memory for internal tables
-
-			_TRACE2
-				("NATIVE ERROR : select(ENOMEM): select was unable to allocate memory for internal tables\n");
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisNoMemoryException",
-					   AIS_ERR_NO_MEMORY_MSG);
-			break;
-		default:
-			// this should not happen here!
-
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		}
-		return JNI_FALSE;	// EXIT POINT!!! return value is in fact ignored
-	}
-	if (_selectStatus == 1) {
+	if (_pollStatus == 1) {
 
 		_TRACE2
 			("NATIVE: Java_org_opensaf_ais_HandleImpl_checkSelectionObject() returning true\n");
@@ -312,7 +258,7 @@ Java_org_opensaf_ais_HandleImpl_s_1invokeSelect___3JJ(JNIEnv *jniEnv,
 	// VARIABLES
 	// ais
 	// linux
-	struct timeval _lxTimeout;
+	struct timespec _lxTimeout;
 
 	// BODY
 
@@ -323,7 +269,7 @@ Java_org_opensaf_ais_HandleImpl_s_1invokeSelect___3JJ(JNIEnv *jniEnv,
 		("NATIVE: Executing Java_org_opensaf_ais_HandleImpl_s_1invokeSelect___3JJ(...)\n");
 
 	// convert timeout
-	U_convertTimeout(&_lxTimeout, timeout);
+	osaf_nanos_to_timespec(timeout >= 0 ? timeout : 0, &_lxTimeout);
 
 	// invoke select
 	return JNU_invokeSelect(jniEnv, selectionObjectArray, &_lxTimeout);
@@ -341,7 +287,7 @@ Java_org_opensaf_ais_HandleImpl_s_1invokeSelect___3JJ(JNIEnv *jniEnv,
  *************************************************************************/
 static jint JNU_invokeSelect(JNIEnv *jniEnv,
 			     jlongArray selectionObjectArray,
-			     struct timeval *lxTimeoutPtr)
+			     struct timespec *lxTimeoutPtr)
 {
 	// VARIABLES
 	// JNI
@@ -349,16 +295,13 @@ static jint JNU_invokeSelect(JNIEnv *jniEnv,
 	unsigned int _idx;
 	// ais
 	SaSelectionObjectT _saSelectionObjectArray[J_AIS_LIBHANDLE_SELECT_MAX];
-	SaSelectionObjectT _saSelectionObjectMax;
 	// linux
-	fd_set _readFDs;
-	int _selectStatus;
+	struct pollfd *_readFDs;
+	unsigned _pollStatus;
 
 	// BODY
 	_TRACE2("NATIVE: Executing JNU_invokeSelect(...)\n");
 
-	FD_ZERO(&_readFDs);
-	_saSelectionObjectMax = 0;
 	// copy  native selection objects from the Java array to a native array
 	_len = (*jniEnv)->GetArrayLength(jniEnv, selectionObjectArray);
 
@@ -382,121 +325,60 @@ static jint JNU_invokeSelect(JNIEnv *jniEnv,
 				      selectionObjectArray,
 				      (jsize)0,
 				      _len, (jlong *)_saSelectionObjectArray);
-	// call select(2)
+	// call osaf_ppoll()
+	_readFDs = malloc(_len * sizeof(struct pollfd));
+	if (_readFDs == NULL) {
+		_TRACE2
+			("NATIVE ERROR : unable to allocate memory for osaf_ppoll()\n");
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisNoMemoryException",
+				   AIS_ERR_NO_MEMORY_MSG);
+		return JNI_FALSE;	// EXIT POINT!!! return value is in fact ignored
+	}
+
 	for (_idx = 0; _idx < _len; _idx++) {
 		// get selection object
 
-		_TRACE2("NATIVE: %d. selection object is: %lu\n", _idx,
+		_TRACE2("NATIVE: %u. selection object is: %lu\n", _idx,
 			(unsigned long)_saSelectionObjectArray[_idx]);
 
-		FD_SET(_saSelectionObjectArray[_idx], &_readFDs);
-		if (_saSelectionObjectArray[_idx] > _saSelectionObjectMax) {
-			_saSelectionObjectMax = _saSelectionObjectArray[_idx];
-		}
+		_readFDs[_idx].fd = _saSelectionObjectArray[_idx];
+		_readFDs[_idx].events = POLLIN;
 	}
 
-	_TRACE2("NATIVE: nfds is: %lu\n",
-		(((unsigned long)_saSelectionObjectMax) + 1));
-	_TRACE2("NATIVE: timout is { %ld seconds, %ld microseconds } \n",
-		lxTimeoutPtr->tv_sec, lxTimeoutPtr->tv_usec);
+	_TRACE2("NATIVE: nfds is: %lu\n", (unsigned long)_len);
+	_TRACE2("NATIVE: timout is { %ld seconds, %ld nanoseconds } \n",
+		lxTimeoutPtr->tv_sec, lxTimeoutPtr->tv_nsec);
 
-	_selectStatus = select((_saSelectionObjectMax + 1),
-			       &_readFDs, NULL, NULL, lxTimeoutPtr);
+	_pollStatus = osaf_ppoll(_readFDs, _len, lxTimeoutPtr, NULL);
 
-	_TRACE2("NATIVE: select(...) has returned with %d...\n", _selectStatus);
+	_TRACE2("NATIVE: osaf_ppoll(...) has returned with %u...\n",
+		_pollStatus);
 
-	// error handling
-	if (_selectStatus == -1) {
-		switch (errno) {
-		case EBADF:	// invalid file descriptor
-
-			// this should not happen here!
-			_TRACE2
-				("NATIVE ERROR : select(EBADF): invalid file descriptor\n");
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case EINTR:	// non blocked signal caught
-
-			_TRACE2
-				("NATIVE ERROR : select(EINTR): non blocked signal caught\n");
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case EINVAL:	// n is negative or the value within timeout is invalid
-
-			// this should not happen here!
-			_TRACE2
-				("NATIVE ERROR : select(EINVAL): n is negative or the value within timeout is invalid\n");
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case ENOMEM:	// select was unable to allocate memory for internal tables
-
-			_TRACE2
-				("NATIVE ERROR : select(ENOMEM): select was unable to allocate memory for internal tables\n");
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisNoMemoryException",
-					   AIS_ERR_NO_MEMORY_MSG);
-			break;
-		default:
-			// this should not happen here!
-
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		}
-		return JNI_FALSE;	// EXIT POINT!!! return value is in fact ignored
-	}
-	if (_selectStatus == 0) {
+	if (_pollStatus == 0) {
 
 		_TRACE2("NATIVE: JNU_invokeSelect() returning 0\n");
 
+		free(_readFDs);
 		return 0;	// EXIT POINT!!!
 	}
-	if (_selectStatus > 0) {
-		// mark unselected selection objects
-		for (_idx = 0; _idx < _len; _idx++) {
-			if (!FD_ISSET(_saSelectionObjectArray[_idx], &_readFDs)) {
-				_saSelectionObjectArray[_idx] =
-					0xFFFFFFFFFFFFFFFFULL;
-			}
-
-			_TRACE2("NATIVE: %d. selection object is: %lu\n", _idx,
-				(unsigned long)_saSelectionObjectArray[_idx]);
-
+	// mark unselected selection objects
+	for (_idx = 0; _idx < _len; _idx++) {
+		if (_readFDs[_idx].revents == 0) {
+			_saSelectionObjectArray[_idx] = 0xFFFFFFFFFFFFFFFFULL;
 		}
-		(*jniEnv)->SetLongArrayRegion(jniEnv,
-					      selectionObjectArray,
-					      (jsize)0,
-					      _len,
-					      (jlong *)_saSelectionObjectArray);
 
-		_TRACE2("NATIVE: JNU_invokeSelect() returning %d\n",
-			_selectStatus);
+		_TRACE2("NATIVE: %u. selection object is: %lu\n", _idx,
+			(unsigned long)_saSelectionObjectArray[_idx]);
 
-		return _selectStatus;	// EXIT POINT!!!
 	}
-	// All legal casesof select return calues covered by now, so:
-	// this should not happen here!
+	(*jniEnv)->SetLongArrayRegion(jniEnv,
+				      selectionObjectArray,
+				      (jsize)0,
+				      _len, (jlong *)_saSelectionObjectArray);
 
-	assert(JNI_FALSE);
+	_TRACE2("NATIVE: JNU_invokeSelect() returning %u\n", _pollStatus);
 
-	JNU_throwNewByName(jniEnv,
-			   "org/saforum/ais/AisLibraryException",
-			   AIS_ERR_LIBRARY_MSG);
-	return 0;
-
+	free(_readFDs);
+	return _pollStatus;	// EXIT POINT!!!
 }

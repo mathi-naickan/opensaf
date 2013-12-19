@@ -22,7 +22,6 @@
  *************************************************************************/
 
 #include <jni.h>
-#include <sys/select.h>
 #include <saAis.h>
 #include <saClm.h>
 #include <saCkpt.h>
@@ -74,7 +73,5 @@ extern void JNU_jByteArray_unlink(JNIEnv *jniEnv, jbyteArray byteArray,
 				  void *saBuffer);
 extern jint JNU_GetEnvForCallback(JavaVM *vmPtr, JNIEnv **envPtrPtr);
 jclass JNU_GetGlobalClassRef(JNIEnv *jniEnv, const char *className);
-extern void U_convertTimeout(struct timeval *to_timeout,
-			     const jlong from_timeout);
 
 #endif				//J_UTILS_H_

@@ -31,13 +31,13 @@
 #include "j_utilsPrint.h"
 
 #include <errno.h>
-#include <sys/select.h>
 #include <saAmf.h>
 #include <jni.h>
 #include "j_utils.h"
 #include "j_ais.h"
 #include "j_ais_amf.h"
 #include "jni_ais_amf.h"
+#include "osaf_poll.h"
 
 /**************************************************************************
  * Constants
@@ -809,120 +809,6 @@ Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfSelectionObjectGet(JNIEnv
 }
 
 /**************************************************************************
- * FUNCTION:  Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject
- * TYPE:      native method
- *  Class:     ais_amf_AmfLHandle
- *  Method:    checkSelectionObject
- *  Signature: (J)Z
- *************************************************************************/
-/*
-  JNIEXPORT jboolean JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject(
-  JNIEnv* jniEnv,
-  jobject thisAmfHandle,
-  jlong timeout )
-  {
-
-  // VARIABLES
-  // ais
-  SaSelectionObjectT _saSelectionObject;
-  // linux
-  fd_set _readFDs;
-  struct timeval _lxTimeout;
-  int _selectStatus;
-
-  // BODY
-
-  assert( thisAmfHandle != NULL );
-  // TODO assert for timeout
-  _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject(...)\n" );
-
-  // get selection object
-  _saSelectionObject = (SaSelectionObjectT) (*jniEnv)->GetLongField(
-  jniEnv,
-  thisAmfHandle,
-  FID_selectionObject );
-  // call select(2)
-  FD_ZERO( &_readFDs );
-  FD_SET( _saSelectionObject, &_readFDs );
-  U_convertTimeout( &_lxTimeout, timeout );
-
-  _TRACE2( "NATIVE: timout is { %ld seconds, %ld microseconds } \n", _lxTimeout.tv_sec, _lxTimeout.tv_usec );
-
-  _selectStatus = select( (_saSelectionObject + 1 ),
-  &_readFDs,
-  NULL,
-  NULL,
-  &_lxTimeout );
-
-  _TRACE2( "NATIVE: select(...) has returned with %d...\n", _selectStatus );
-
-  // error handling
-  if ( _selectStatus == -1 ) {
-  switch ( errno ) {
-  case EBADF: // invalid file descriptor
-
-  // this should not happen here!
-  _TRACE2( "NATIVE ERROR : select(EBADF): invalid file descriptor\n" );
-  assert( JNI_FALSE );
-
-  JNU_throwNewByName( jniEnv,
-  "org/saforum/ais/AisLibraryException",
-  AIS_ERR_LIBRARY_MSG );
-  break;
-  case EINTR: // non blocked signal caught
-
-  _TRACE2( "NATIVE ERROR : select(EINTR): non blocked signal caught\n" );
-
-  JNU_throwNewByName( jniEnv,
-  "org/saforum/ais/AisLibraryException",
-  AIS_ERR_LIBRARY_MSG );
-  break;
-  case EINVAL: // n is negative or the value within timeout is invalid
-
-  // this should not happen here!
-  _TRACE2( "NATIVE ERROR : select(EINVAL): n is negative or the value within timeout is invalid\n" );
-  assert( JNI_FALSE );
-
-  JNU_throwNewByName( jniEnv,
-  "org/saforum/ais/AisLibraryException",
-  AIS_ERR_LIBRARY_MSG );
-  break;
-  case ENOMEM: // select was unable to allocate memory for internal tables
-
-  _TRACE2( "NATIVE ERROR : select(ENOMEM): select was unable to allocate memory for internal tables\n" );
-
-  JNU_throwNewByName( jniEnv,
-  "org/saforum/ais/AisNoMemoryException",
-  AIS_ERR_NO_MEMORY_MSG );
-  break;
-  default:
-  // this should not happen here!
-
-  assert( JNI_FALSE );
-
-  JNU_throwNewByName( jniEnv,
-  "org/saforum/ais/AisLibraryException",
-  AIS_ERR_LIBRARY_MSG );
-  break;
-  }
-  return JNI_FALSE; // EXIT POINT!!! return value is in fact ignored
-  }
-  if ( _selectStatus == 1 ) {
-
-  _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject() returning true\n" );
-
-  return JNI_TRUE;
-  }
-  else {
-
-  _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject() returning false\n" );
-
-  return JNI_FALSE;
-  }
-
-  } */
-
-/**************************************************************************
  * FUNCTION:  Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatch
  * TYPE:      native method
  *  Class:     ais_amf_AmfHandle
@@ -1034,8 +920,8 @@ Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatchWhenReady(JNIEnv
 	SaAisErrorT _saStatus;
 	SaSelectionObjectT _saSelectionObject;
 	// linux
-	fd_set _readFDs;
-	int _selectStatus;
+	struct pollfd _readFDs;
+	unsigned _pollStatus;
 
 	// BODY
 
@@ -1052,72 +938,17 @@ Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatchWhenReady(JNIEnv
 									 thisAmfHandle,
 									 FID_selectionObject);
 	// wait until there is a pending callback
-	// call select(2)
-	FD_ZERO(&_readFDs);
-	FD_SET(_saSelectionObject, &_readFDs);
-	_selectStatus = select((_saSelectionObject + 1),
-			       &_readFDs, NULL, NULL, NULL);
+	// call osaf_poll()
+	_readFDs.fd = _saSelectionObject;
+	_readFDs.events = POLLIN;
+	_pollStatus = osaf_poll(&_readFDs, 1, -1);
 
-	_TRACE2("NATIVE: select(...) has returned with %d...\n", _selectStatus);
+	_TRACE2("NATIVE: osaf_poll(...) has returned with %u...\n",
+		_pollStatus);
 
 	// error handling
-	if (_selectStatus == -1) {
-		switch (errno) {
-		case EBADF:	// invalid file descriptor
-
-			// this should not happen here!
-			_TRACE2
-				("NATIVE ERROR : select(EBADF): invalid file descriptor\n");
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case EINTR:	// non blocked signal caught
-
-			_TRACE2
-				("NATIVE ERROR : select(EINTR): non blocked signal caught\n");
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case EINVAL:	// n is negative or the value within timeout is invalid
-
-			// this should not happen here!
-			_TRACE2
-				("NATIVE ERROR : select(EINVAL): n is negative or the value within timeout is invalid\n");
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		case ENOMEM:	// select was unable to allocate memory for internal tables
-
-			_TRACE2
-				("NATIVE ERROR : select(ENOMEM): select was unable to allocate memory for internal tables\n");
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisNoMemoryException",
-					   AIS_ERR_NO_MEMORY_MSG);
-			break;
-		default:
-			// this should not happen here!
-
-			assert(JNI_FALSE);
-
-			JNU_throwNewByName(jniEnv,
-					   "org/saforum/ais/AisLibraryException",
-					   AIS_ERR_LIBRARY_MSG);
-			break;
-		}
-		return;		// EXIT POINT!!!
-	}
-	if (_selectStatus != 1) {
-
-		_TRACE2("NATIVE ERROR : unexpected select return value!\n");
+	if (_pollStatus != 1) {
+		_TRACE2("NATIVE ERROR : unexpected osaf_poll return value!\n");
 
 		JNU_throwNewByName(jniEnv,
 				   "org/saforum/ais/AisLibraryException",
