@@ -325,30 +325,32 @@ int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
 		str = strdup((char*)objectNames[i]->value);
 		if ((delim = strchr(str, ',')) != NULL) {
 			/* a parent exist */
-			while (*(delim - 1) == 0x5c) {
+			while (delim && *(delim - 1) == 0x5c) {
 				/* comma delimiter is escaped, search again */
 				delim += 2;
 				delim = strchr(delim, ',');
 			}
 
-			*delim = '\0';
-			parent = delim + 1;
-			if (!parent) {
-				fprintf(stderr, "error - malformed object DN\n");
-				goto done;
-			}
-
-			dn.length = sprintf((char*)dn.value, "%s", parent);
-			parentName = &dn;
-			parentNames[0] = parentName;
-
-			VERBOSE_INFO("call saImmOmAdminOwnerSet for parent: %s\n", parent);
-			if ((error = immutil_saImmOmAdminOwnerSet(ownerHandle, parentNames, SA_IMM_SUBTREE)) != SA_AIS_OK) {
-				if (error == SA_AIS_ERR_NOT_EXIST)
-					fprintf(stderr, "error - parent '%s' does not exist\n", dn.value);
-				else {
-					fprintf(stderr, "error - saImmOmAdminOwnerSet FAILED: %s\n", saf_error(error));
+			if(delim) {
+				*delim = '\0';
+				parent = delim + 1;
+				if (!parent) {
+					fprintf(stderr, "error - malformed object DN\n");
 					goto done;
+				}
+
+				dn.length = sprintf((char*)dn.value, "%s", parent);
+				parentName = &dn;
+				parentNames[0] = parentName;
+
+				VERBOSE_INFO("call saImmOmAdminOwnerSet for parent: %s\n", parent);
+				if ((error = immutil_saImmOmAdminOwnerSet(ownerHandle, parentNames, SA_IMM_SUBTREE)) != SA_AIS_OK) {
+					if (error == SA_AIS_ERR_NOT_EXIST)
+						fprintf(stderr, "error - parent '%s' does not exist\n", dn.value);
+					else {
+						fprintf(stderr, "error - saImmOmAdminOwnerSet FAILED: %s\n", saf_error(error));
+						goto done;
+					}
 				}
 			}
 		}
