@@ -114,22 +114,10 @@ SmfStepTypeSwInstall::execute()
                 return false;
         }
 
-#if 0
-//Moved to the procedure
-	/* Online uninstallation of old software */
-	LOG_NO("STEP: Online uninstallation of old software");
-	if (m_step->onlineRemoveOldBundles() == false) {
-		LOG_ER("Failed to online remove bundles");
-		return false;
-	}
+        //The following actions are executed in the procedure:
+        //-Online uninstallation of old software
+        //-Delete SaAmfNodeSwBundle objects
 
-        /* Delete SaAmfNodeSwBundle object */
-        LOG_NO("STEP: Delete old SaAmfNodeSwBundle objects");
-        if (m_step->deleteSaAmfNodeSwBundlesOld() == false) {
-                LOG_ER("Failed to delete old SaAmfNodeSwBundle objects");
-                return false;
-        }
-#endif
 	LOG_NO("STEP: Upgrade SW install step completed %s", m_step->getDn().c_str());
 
 	TRACE_LEAVE();
@@ -173,22 +161,9 @@ SmfStepTypeSwInstall::rollback()
 		return false;
 	}
 
-#if 0
-//Moved to the procedure
-	/* Online uninstallation of new software */
-	LOG_NO("STEP: Online uninstallation of new software");
-	if (m_step->onlineRemoveNewBundles() == false) {
-	        LOG_ER("Failed to online uninstall new bundles");
-	        return false;
-	}
-
-	/* Delete new SaAmfNodeSwBundle objects */
-	LOG_NO("STEP: Delete new SaAmfNodeSwBundle objects");
-	if (m_step->deleteSaAmfNodeSwBundlesNew() == false) {
-	        LOG_ER("Failed to delete new SaAmfNodeSwBundle objects");
-	        return false;
-	}
-#endif
+        //The following actions are executed in the procedure:
+        //-Online uninstallation of new software
+        //-Delete new SaAmfNodeSwBundle objects
 
 	LOG_NO("STEP: Rolling back SW install step completed %s", m_step->getDn().c_str());
 
@@ -449,22 +424,9 @@ SmfStepTypeAuLock::execute()
                 return false;
 	}
 
-#if 0
-//Moved to the procedure
-	/* Online uninstallation of old software */
-	LOG_NO("STEP: Online uninstallation of old software");
-	if (m_step->onlineRemoveOldBundles() == false) {
-		LOG_ER("Failed to online remove bundles in step=%s",m_step->getRdn().c_str());
-		return false;
-	}
-
-        /* Delete old SaAmfNodeSwBundle object */
-        LOG_NO("STEP: Delete old SaAmfNodeSwBundle objects");
-        if (m_step->deleteSaAmfNodeSwBundlesOld() == false) {
-                LOG_ER("Failed to delete old SaAmfNodeSwBundle objects in step=%s",m_step->getRdn().c_str());
-                return false;
-        }
-#endif
+        //The following actions are executed in the procedure:
+        //-Online uninstallation of old software
+        //-Delete old SaAmfNodeSwBundle objects
 
 	LOG_NO("STEP: Upgrade AU lock step completed %s", m_step->getDn().c_str());
 
@@ -584,22 +546,9 @@ SmfStepTypeAuLock::rollback()
                 return false;
 	}
 
-#if 0
-//Moved to the procedure
-	/* Online uninstallation of new software */
-	LOG_NO("STEP: Online uninstallation of new software");
-	if (m_step->onlineRemoveNewBundles() == false) {
-		LOG_ER("Failed to online uninstall new bundles");
-		return false;
-	}
-
-        /* Delete new SaAmfNodeSwBundle objects */
-        LOG_NO("STEP: Delete new SaAmfNodeSwBundle objects");
-        if (m_step->deleteSaAmfNodeSwBundlesNew() == false) {
-                LOG_ER("Failed to delete new SaAmfNodeSwBundle objects");
-                return false;
-        }
-#endif
+        //The following actions are executed in the procedure:
+        //-Online uninstallation of new software
+        //-Delete new SaAmfNodeSwBundle objects
 
 	LOG_NO("STEP: Rolling back SW AU lock step completed %s", m_step->getDn().c_str());
 
@@ -939,7 +888,11 @@ SmfStepTypeAuRestart::execute()
                 return false;
 	}
 
-//TODO: Shall maintenance status be set here for restartable units ??
+        /* Set maintenance status */
+	if (m_step->setMaintenanceStateActUnits() == false) {
+                LOG_ER("Failed to set maintenance state in step=%s",m_step->getRdn().c_str());
+                return false;
+	}
 
         /* Restartable activation units, restart them */
         LOG_NO("STEP: Restart activation units");
@@ -955,22 +908,9 @@ SmfStepTypeAuRestart::execute()
                 return false;
 	}
 
-#if 0
-//Moved to the procedure
-        /* Online uninstallation of old software */
-        LOG_NO("STEP: Online uninstallation of old software");
-        if (m_step->onlineRemoveOldBundles() == false) {
-                LOG_ER("Failed to online remove bundles");
-                return false;
-        }
-
-        /* Delete old SaAmfNodeSwBundle objects */
-        LOG_NO("STEP: Delete old SaAmfNodeSwBundle objects");
-        if (m_step->deleteSaAmfNodeSwBundlesOld() == false) {
-                LOG_ER("Failed to delete old SaAmfNodeSwBundle objects");
-                return false;
-        }
-#endif
+        //The following actions are executed in the procedure:
+        //-Online uninstallation of old software
+        //-Delete old SaAmfNodeSwBundle objects
 
 	LOG_NO("STEP: Upgrade AU restart step completed %s", m_step->getDn().c_str());
 
@@ -1016,7 +956,11 @@ SmfStepTypeAuRestart::rollback()
                 return false;
 	}
 
-//TODO: Shall maintenance status be set here for restartable units ??
+        /* Set maintenance status */
+	if (m_step->setMaintenanceStateActUnits() == false) {
+                LOG_ER("Failed to set maintenance state in step=%s",m_step->getRdn().c_str());
+                return false;
+	}
 
         /* Restartable activation units, restart them */
         LOG_NO("STEP: Restart activation units");
@@ -1032,22 +976,9 @@ SmfStepTypeAuRestart::rollback()
                 return false;
 	}
 
-#if 0
-//Moved to the procedure
-	/* Online uninstallation of new software */
-	LOG_NO("STEP: Online uninstallation of new software");
-	if (m_step->onlineRemoveNewBundles() == false) {
-		LOG_ER("Failed to online uninstall new bundles");
-		return false;
-	}
-
-        /* Delete new SaAmfNodeSwBundle objects */
-        LOG_NO("STEP: Delete new SaAmfNodeSwBundle objects");
-        if (m_step->deleteSaAmfNodeSwBundlesNew() == false) {
-                LOG_ER("Failed to delete new SaAmfNodeSwBundle objects");
-                return false;
-        }
-#endif
+        //The following actions are executed in the procedure:
+        //-Online uninstallation of new software
+        //-Delete new SaAmfNodeSwBundle objects
 
 	LOG_NO("STEP: Rolling back AU restart step completed %s", m_step->getDn().c_str());
 
@@ -1124,7 +1055,11 @@ SmfStepTypeAuRestartAct::execute()
                 return false;
 	}
 
-//TODO: Shall maintenance status be set here for restartable units ??
+        /* Set maintenance status */
+	if (m_step->setMaintenanceStateActUnits() == false) {
+                LOG_ER("Failed to set maintenance state in step=%s",m_step->getRdn().c_str());
+                return false;
+	}
 
         /* Restartable activation units, restart them */
         LOG_NO("STEP: Restart activation units");
@@ -1185,8 +1120,6 @@ SmfStepTypeAuRestartAct::rollback()
                 return false;
 	}
 
-//TODO: Shall maintenance status be set here for restartable units ??
-
 	/* Online uninstallation of new software */
 	LOG_NO("STEP: Online uninstallation of new software");
 	if (m_step->onlineRemoveNewBundles() == false) {
@@ -1205,6 +1138,12 @@ SmfStepTypeAuRestartAct::rollback()
         LOG_NO("STEP: Activate installed software on node %s",m_step->getSwNode().c_str());
 	if (m_step->callActivationCmd() == false){
                 LOG_ER("Failed to execute SW activate command");
+                return false;
+	}
+
+        /* Set maintenance status */
+	if (m_step->setMaintenanceStateActUnits() == false) {
+                LOG_ER("Failed to set maintenance state in step=%s",m_step->getRdn().c_str());
                 return false;
 	}
 
@@ -1449,23 +1388,9 @@ SmfStepTypeNodeReboot::execute()
                 return false;
 	}
 
-#if 0
-//Moved to the procedure
-
-        /* Online uninstallation of old software (no reboot required) */
-        LOG_NO("STEP: Online uninstallation of old software");
-        if (m_step->onlineRemoveOldBundles() == false) {
-                LOG_ER("Failed to online remove bundles in step=%s",m_step->getRdn().c_str());
-                return false;
-        }
-
-        /* Delete old SaAmfNodeSwBundle objects */
-        LOG_NO("STEP: Delete old SaAmfNodeSwBundle objects");
-        if (m_step->deleteSaAmfNodeSwBundlesOld() == false) {
-                LOG_ER("Failed to delete old SaAmfNodeSwBundle objects in step=%s",m_step->getRdn().c_str());
-                return false;
-        }
-#endif
+        //The following actions are executed in the procedure:
+        //-Online uninstallation of old software (no reboot required)
+        //-Delete old SaAmfNodeSwBundle objects
 
 	LOG_NO("STEP: Upgrade node reboot step completed %s", m_step->getDn().c_str());
 
@@ -1680,22 +1605,9 @@ SmfStepTypeNodeReboot::rollback()
                 return false;
 	}
 
-#if 0
-//Moved to the procedure
-	/* Online uninstallation of new software */
-	LOG_NO("STEP: Online uninstallation of new software");
-	if (m_step->onlineRemoveNewBundles() == false) {
-		LOG_ER("Failed to online uninstall new bundles");
-		return false;
-	}
-
-        /* Delete new SaAmfNodeSwBundle objects */
-        LOG_NO("STEP: Delete new SaAmfNodeSwBundle objects");
-        if (m_step->deleteSaAmfNodeSwBundlesNew() == false) {
-                LOG_ER("Failed to delete new SaAmfNodeSwBundle objects");
-                return false;
-        }
-#endif
+        //The following actions are executed in the procedure:
+        //-Online uninstallation of new software
+        //-Delete new SaAmfNodeSwBundle objects
 
 	LOG_NO("STEP: Rolling back node reboot step completed %s", m_step->getDn().c_str());
 
@@ -2290,23 +2202,10 @@ SmfStepTypeClusterReboot::execute()
 
 		break;
 
-#if 0
-//Moved to the procedure
+                //The following actions are executed in the procedure:
+                //-Online uninstallation of old software (no reboot required)
+                //-Delete old SaAmfNodeSwBundle objects
 
-		/* Online uninstallation of old software (no reboot required) */
-		LOG_NO("STEP: Online uninstallation of old software");
-		if (m_step->onlineRemoveOldBundles() == false) {
-			LOG_ER("SmfStepTypeClusterReboot::execute, fail to online remove bundles in step=%s",m_step->getRdn().c_str());
-			return false;
-		}
-
-		/* Delete old SaAmfNodeSwBundle objects */
-		LOG_NO("STEP: Delete old SaAmfNodeSwBundle objects");
-		if (m_step->deleteSaAmfNodeSwBundlesOld() == false) {
-			LOG_ER("Failed to delete old SaAmfNodeSwBundle objects in step=%s",m_step->getRdn().c_str());
-			return false;
-		}
-#endif
 	default:
                 LOG_ER("SmfStepTypeClusterReboot::execute, unknown reboot info %d", singleStepRebootInfo);
                 return false;
