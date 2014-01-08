@@ -44,23 +44,20 @@
  *************************************************************************/
 
 // CLASS ais.amf.ProtectionGroupManager
-extern jboolean JNU_ProtectionGroupManager_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ProtectionGroupManager_initIDs_OK(JNIEnv *jniEnv);
 
 // CLASS ais.amf.SProtectionGroupNotification
-extern jboolean JNU_ProtectionGroupNotification_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ProtectionGroupNotification_initIDs_OK(JNIEnv *jniEnv);
 
 // CLASS ais.amf.SProtectionGroupMember
-extern jboolean JNU_ProtectionGroupMember_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ProtectionGroupMember_initIDs_OK(JNIEnv *jniEnv);
 
 // ENUM ais.amf.SProtectionGroupNotification$ProtectionGroupChanges
-extern jboolean JNU_ProtectionGroupChanges_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ProtectionGroupChanges_initIDs_OK(JNIEnv *jniEnv);
 
-extern jobjectArray JNU_ProtectionGroupNotificationArray_create(
-    JNIEnv* jniEnv,
-    const SaAmfProtectionGroupNotificationBufferT* saNotificationBufferPtr );
+extern jobjectArray JNU_ProtectionGroupNotificationArray_create(JNIEnv *jniEnv,
+								const
+								SaAmfProtectionGroupNotificationBufferT
+								*saNotificationBufferPtr);
 
-#endif // J_AIS_AMF_PG_MANAGER_H_
+#endif				// J_AIS_AMF_PG_MANAGER_H_

@@ -83,11 +83,9 @@ static jfieldID FID_selectionObject = NULL;
  *************************************************************************/
 
 // CLASS ais.amf.AmfHandle
-jboolean JNU_AmfHandle_initIDs_OK(
-    JNIEnv* jniEnv );
-static jboolean JNU_AmfHandle_initIDs_FromClass_OK(
-    JNIEnv* jniEnv,
-    jclass classAmfHandle );
+jboolean JNU_AmfHandle_initIDs_OK(JNIEnv *jniEnv);
+static jboolean JNU_AmfHandle_initIDs_FromClass_OK(JNIEnv *jniEnv,
+						   jclass classAmfHandle);
 
 /**************************************************************************
  * Function definitions
@@ -106,32 +104,30 @@ static jboolean JNU_AmfHandle_initIDs_FromClass_OK(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-jboolean JNU_AmfHandle_initIDs_OK(
-    JNIEnv* jniEnv )
+jboolean JNU_AmfHandle_initIDs_OK(JNIEnv *jniEnv)
 {
 
-    // BODY
+	// BODY
 
-    _TRACE2( "NATIVE: Executing JNU_AmfHandle_initIDs_OK(...)\n" );
+	_TRACE2("NATIVE: Executing JNU_AmfHandle_initIDs_OK(...)\n");
 
-    // get AmfHandle class & create a global reference right away
-    /*
-    ClassAmfHandle =
-        (*jniEnv)->NewGlobalRef( jniEnv,
-                                 (*jniEnv)->FindClass( jniEnv,
-                                                       "org/opensaf/ais/amf/AmfHandleImpl" )
-                               );*/
-    ClassAmfHandle = JNU_GetGlobalClassRef(	jniEnv,
-                                                	"org/opensaf/ais/amf/AmfHandleImpl" );
-    if( ClassAmfHandle == NULL ){
+	// get AmfHandle class & create a global reference right away
+	/*
+	  ClassAmfHandle =
+	  (*jniEnv)->NewGlobalRef( jniEnv,
+	  (*jniEnv)->FindClass( jniEnv,
+	  "org/opensaf/ais/amf/AmfHandleImpl" )
+	  ); */
+	ClassAmfHandle = JNU_GetGlobalClassRef(jniEnv,
+					       "org/opensaf/ais/amf/AmfHandleImpl");
+	if (ClassAmfHandle == NULL) {
 
-        _TRACE2( "NATIVE ERROR: ClassAmfHandle is NULL\n" );
+		_TRACE2("NATIVE ERROR: ClassAmfHandle is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-
-    // get IDs
-    return JNU_AmfHandle_initIDs_FromClass_OK( jniEnv, ClassAmfHandle );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	// get IDs
+	return JNU_AmfHandle_initIDs_FromClass_OK(jniEnv, ClassAmfHandle);
 
 }
 
@@ -144,206 +140,202 @@ jboolean JNU_AmfHandle_initIDs_OK(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_AmfHandle_initIDs_FromClass_OK(
-    JNIEnv* jniEnv,
-    jclass classAmfHandle )
+static jboolean JNU_AmfHandle_initIDs_FromClass_OK(JNIEnv *jniEnv,
+						   jclass classAmfHandle)
 {
 
-    // BODY
+	// BODY
 
-    _TRACE2( "NATIVE: Executing JNU_AmfHandle_initIDs_FromClass_OK(...)\n" );
+	_TRACE2("NATIVE: Executing JNU_AmfHandle_initIDs_FromClass_OK(...)\n");
 
+	// get method IDs
+	MID_s_invokeHealthcheckCallback = (*jniEnv)->GetStaticMethodID(jniEnv,
+								       classAmfHandle,
+								       "s_invokeHealthcheckCallback",
+								       "(JLjava/lang/String;[B)V");
+	if (MID_s_invokeHealthcheckCallback == NULL) {
 
-    // get method IDs
-    MID_s_invokeHealthcheckCallback = (*jniEnv)->GetStaticMethodID( jniEnv,
-                                                            classAmfHandle,
-                                                            "s_invokeHealthcheckCallback",
-                                                            "(JLjava/lang/String;[B)V" );
-    if( MID_s_invokeHealthcheckCallback == NULL ){
+		_TRACE2
+			("NATIVE ERROR: MID_s_invokeHealthcheckCallback is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: MID_s_invokeHealthcheckCallback is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	MID_s_invokeSetCsiCallback = (*jniEnv)->GetStaticMethodID(jniEnv,
+								  classAmfHandle,
+								  "s_invokeSetCsiCallback",
+								  "(JLjava/lang/String;Lorg/saforum/ais/amf/HaState;Lorg/saforum/ais/amf/CsiDescriptor;)V");
+	if (MID_s_invokeSetCsiCallback == NULL) {
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    MID_s_invokeSetCsiCallback = (*jniEnv)->GetStaticMethodID( jniEnv,
-                                                            classAmfHandle,
-                                                            "s_invokeSetCsiCallback",
-                                                            "(JLjava/lang/String;Lorg/saforum/ais/amf/HaState;Lorg/saforum/ais/amf/CsiDescriptor;)V" );
-    if( MID_s_invokeSetCsiCallback == NULL ){
+		_TRACE2("NATIVE ERROR: MID_s_invokeSetCsiCallback is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: MID_s_invokeSetCsiCallback is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	MID_s_invokeRemoveCsiCallback = (*jniEnv)->GetStaticMethodID(jniEnv,
+								     classAmfHandle,
+								     "s_invokeRemoveCsiCallback",
+								     "(JLjava/lang/String;Ljava/lang/String;Lorg/saforum/ais/amf/CsiDescriptor$CsiFlags;)V");
+	if (MID_s_invokeRemoveCsiCallback == NULL) {
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    MID_s_invokeRemoveCsiCallback = (*jniEnv)->GetStaticMethodID( jniEnv,
-                                                            classAmfHandle,
-                                                            "s_invokeRemoveCsiCallback",
-                                                            "(JLjava/lang/String;Ljava/lang/String;Lorg/saforum/ais/amf/CsiDescriptor$CsiFlags;)V" );
-    if( MID_s_invokeRemoveCsiCallback == NULL ){
+		_TRACE2
+			("NATIVE ERROR: MID_s_invokeRemoveCsiCallback is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: MID_s_invokeRemoveCsiCallback is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	MID_s_invokeTerminateComponentCallback =
+		(*jniEnv)->GetStaticMethodID(jniEnv, classAmfHandle,
+					     "s_invokeTerminateComponentCallback",
+					     "(JLjava/lang/String;)V");
+	if (MID_s_invokeTerminateComponentCallback == NULL) {
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    MID_s_invokeTerminateComponentCallback = (*jniEnv)->GetStaticMethodID( jniEnv,
-                                                            classAmfHandle,
-                                                            "s_invokeTerminateComponentCallback",
-                                                            "(JLjava/lang/String;)V" );
-    if( MID_s_invokeTerminateComponentCallback == NULL ){
+		_TRACE2
+			("NATIVE ERROR: MID_s_invokeTerminateComponentCallback is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: MID_s_invokeTerminateComponentCallback is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	MID_s_invokeInstantiateProxiedComponentCallback =
+		(*jniEnv)->GetStaticMethodID(jniEnv, classAmfHandle,
+					     "s_invokeInstantiateProxiedComponentCallback",
+					     "(JLjava/lang/String;)V");
+	if (MID_s_invokeInstantiateProxiedComponentCallback == NULL) {
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    MID_s_invokeInstantiateProxiedComponentCallback = (*jniEnv)->GetStaticMethodID( jniEnv,
-                                                            classAmfHandle,
-                                                            "s_invokeInstantiateProxiedComponentCallback",
-                                                            "(JLjava/lang/String;)V" );
-    if( MID_s_invokeInstantiateProxiedComponentCallback == NULL ){
+		_TRACE2
+			("NATIVE ERROR: MID_s_invokeInstantiateProxiedComponentCallback is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: MID_s_invokeInstantiateProxiedComponentCallback is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	MID_s_invokeCleanupProxiedComponentCallback =
+		(*jniEnv)->GetStaticMethodID(jniEnv, classAmfHandle,
+					     "s_invokeCleanupProxiedComponentCallback",
+					     "(JLjava/lang/String;)V");
+	if (MID_s_invokeCleanupProxiedComponentCallback == NULL) {
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    MID_s_invokeCleanupProxiedComponentCallback = (*jniEnv)->GetStaticMethodID( jniEnv,
-                                                            classAmfHandle,
-                                                            "s_invokeCleanupProxiedComponentCallback",
-                                                            "(JLjava/lang/String;)V" );
-    if( MID_s_invokeCleanupProxiedComponentCallback == NULL ){
+		_TRACE2
+			("NATIVE ERROR: MID_s_invokeCleanupProxiedComponentCallback is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: MID_s_invokeCleanupProxiedComponentCallback is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	MID_s_invokeTrackProtectionGroupCallback =
+		(*jniEnv)->GetStaticMethodID(jniEnv, classAmfHandle,
+					     "s_invokeTrackProtectionGroupCallback",
+					     "(Ljava/lang/String;[Lorg/saforum/ais/amf/ProtectionGroupNotification;II)V");
+	if (MID_s_invokeTrackProtectionGroupCallback == NULL) {
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    MID_s_invokeTrackProtectionGroupCallback = (*jniEnv)->GetStaticMethodID( jniEnv,
-                                                            classAmfHandle,
-                                                            "s_invokeTrackProtectionGroupCallback",
-                                                            "(Ljava/lang/String;[Lorg/saforum/ais/amf/ProtectionGroupNotification;II)V" );
-    if( MID_s_invokeTrackProtectionGroupCallback == NULL ){
+		_TRACE2
+			("NATIVE ERROR: MID_s_invokeTrackProtectionGroupCallback is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: MID_s_invokeTrackProtectionGroupCallback is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	// get field IDs
+	FID_healthcheckCallback = (*jniEnv)->GetFieldID(jniEnv,
+							classAmfHandle,
+							"healthcheckCallback",
+							"Lorg/saforum/ais/amf/HealthcheckCallback;");
+	if (FID_healthcheckCallback == NULL) {
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
+		_TRACE2("NATIVE ERROR: FID_healthcheckCallback is NULL\n");
 
-    // get field IDs
-    FID_healthcheckCallback = (*jniEnv)->GetFieldID(
-                                            jniEnv,
-                                            classAmfHandle,
-                                            "healthcheckCallback",
-                                            "Lorg/saforum/ais/amf/HealthcheckCallback;" );
-    if( FID_healthcheckCallback == NULL ){
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	FID_setCsiCallback = (*jniEnv)->GetFieldID(jniEnv,
+						   classAmfHandle,
+						   "setCsiCallback",
+						   "Lorg/saforum/ais/amf/SetCsiCallback;");
+	if (FID_setCsiCallback == NULL) {
 
-        _TRACE2( "NATIVE ERROR: FID_healthcheckCallback is NULL\n" );
+		_TRACE2("NATIVE ERROR: FID_setCsiCallback is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    FID_setCsiCallback = (*jniEnv)->GetFieldID(
-                                            jniEnv,
-                                            classAmfHandle,
-                                            "setCsiCallback",
-                                            "Lorg/saforum/ais/amf/SetCsiCallback;" );
-    if( FID_setCsiCallback == NULL ){
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	FID_removeCsiCallback = (*jniEnv)->GetFieldID(jniEnv,
+						      classAmfHandle,
+						      "removeCsiCallback",
+						      "Lorg/saforum/ais/amf/RemoveCsiCallback;");
+	if (FID_removeCsiCallback == NULL) {
 
-        _TRACE2( "NATIVE ERROR: FID_setCsiCallback is NULL\n" );
+		_TRACE2("NATIVE ERROR: FID_removeCsiCallback is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    FID_removeCsiCallback = (*jniEnv)->GetFieldID(
-                                            jniEnv,
-                                            classAmfHandle,
-                                            "removeCsiCallback",
-                                            "Lorg/saforum/ais/amf/RemoveCsiCallback;" );
-    if( FID_removeCsiCallback == NULL ){
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	FID_terminateComponentCallback = (*jniEnv)->GetFieldID(jniEnv,
+							       classAmfHandle,
+							       "terminateComponentCallback",
+							       "Lorg/saforum/ais/amf/TerminateComponentCallback;");
+	if (FID_terminateComponentCallback == NULL) {
 
-        _TRACE2( "NATIVE ERROR: FID_removeCsiCallback is NULL\n" );
+		_TRACE2
+			("NATIVE ERROR: FID_terminateComponentCallback is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    FID_terminateComponentCallback = (*jniEnv)->GetFieldID(
-                                            jniEnv,
-                                            classAmfHandle,
-                                            "terminateComponentCallback",
-                                            "Lorg/saforum/ais/amf/TerminateComponentCallback;" );
-    if( FID_terminateComponentCallback == NULL ){
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	FID_instantiateProxiedComponentCallback = (*jniEnv)->GetFieldID(jniEnv,
+									classAmfHandle,
+									"instantiateProxiedComponentCallback",
+									"Lorg/saforum/ais/amf/InstantiateProxiedComponentCallback;");
+	if (FID_instantiateProxiedComponentCallback == NULL) {
 
-        _TRACE2( "NATIVE ERROR: FID_terminateComponentCallback is NULL\n" );
+		_TRACE2
+			("NATIVE ERROR: FID_instantiateProxiedCallback is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    FID_instantiateProxiedComponentCallback = (*jniEnv)->GetFieldID(
-                                            jniEnv,
-                                            classAmfHandle,
-                                            "instantiateProxiedComponentCallback",
-                                            "Lorg/saforum/ais/amf/InstantiateProxiedComponentCallback;" );
-    if( FID_instantiateProxiedComponentCallback == NULL ){
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	FID_cleanupProxiedComponentCallback = (*jniEnv)->GetFieldID(jniEnv,
+								    classAmfHandle,
+								    "cleanupProxiedComponentCallback",
+								    "Lorg/saforum/ais/amf/CleanupProxiedComponentCallback;");
+	if (FID_cleanupProxiedComponentCallback == NULL) {
 
-        _TRACE2( "NATIVE ERROR: FID_instantiateProxiedCallback is NULL\n" );
+		_TRACE2("NATIVE ERROR: FID_cleanupProxiedCallback is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    FID_cleanupProxiedComponentCallback = (*jniEnv)->GetFieldID(
-                                            jniEnv,
-                                            classAmfHandle,
-                                            "cleanupProxiedComponentCallback",
-                                            "Lorg/saforum/ais/amf/CleanupProxiedComponentCallback;" );
-    if( FID_cleanupProxiedComponentCallback == NULL ){
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	FID_trackProtectionGroupCallback = (*jniEnv)->GetFieldID(jniEnv,
+								 classAmfHandle,
+								 "trackProtectionGroupCallback",
+								 "Lorg/saforum/ais/amf/TrackProtectionGroupCallback;");
+	if (FID_trackProtectionGroupCallback == NULL) {
 
-        _TRACE2( "NATIVE ERROR: FID_cleanupProxiedCallback is NULL\n" );
+		_TRACE2
+			("NATIVE ERROR: FID_trackProtectionGroupCallback is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    FID_trackProtectionGroupCallback = (*jniEnv)->GetFieldID(
-                                            jniEnv,
-                                            classAmfHandle,
-                                            "trackProtectionGroupCallback",
-                                            "Lorg/saforum/ais/amf/TrackProtectionGroupCallback;" );
-    if( FID_trackProtectionGroupCallback == NULL ){
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	FID_saAmfHandle = (*jniEnv)->GetFieldID(jniEnv,
+						classAmfHandle,
+						"saAmfHandle", "J");
+	if (FID_saAmfHandle == NULL) {
 
-        _TRACE2( "NATIVE ERROR: FID_trackProtectionGroupCallback is NULL\n" );
+		_TRACE2("NATIVE ERROR: FID_saAmfHandle is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	//
+	FID_selectionObject = (*jniEnv)->GetFieldID(jniEnv,
+						    classAmfHandle,
+						    "selectionObject", "J");
+	if (FID_selectionObject == NULL) {
 
-    //
-    FID_saAmfHandle = (*jniEnv)->GetFieldID( jniEnv,
-                                           classAmfHandle,
-                                           "saAmfHandle",
-                                            "J" );
-    if( FID_saAmfHandle == NULL ){
+		_TRACE2("NATIVE ERROR: FID_selectionObject is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: FID_saAmfHandle is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-    //
-    FID_selectionObject = (*jniEnv)->GetFieldID( jniEnv,
-                                           classAmfHandle,
-                                           "selectionObject",
-                                            "J" );
-    if( FID_selectionObject == NULL ){
+	_TRACE2
+		("NATIVE: JNU_AmfHandle_initIDs_FromClass_OK(...) returning normally\n");
 
-        _TRACE2( "NATIVE ERROR: FID_selectionObject is NULL\n" );
-
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-
-
-    _TRACE2( "NATIVE: JNU_AmfHandle_initIDs_FromClass_OK(...) returning normally\n" );
-
-        return JNI_TRUE;
+	return JNI_TRUE;
 }
 
 /**************************************************************************
@@ -353,10 +345,11 @@ static jboolean JNU_AmfHandle_initIDs_FromClass_OK(
  *  Method:    invokeSaAmfInitialize
  *  Signature: (Lorg/saforum/ais/Version;)V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfInitialize(
-	JNIEnv* jniEnv,
-	jobject thisAmfHandle,
-	jobject sVersion )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfInitialize(JNIEnv *jniEnv,
+							     jobject
+							     thisAmfHandle,
+							     jobject sVersion)
 {
 	// VARIABLES
 	// ais
@@ -365,344 +358,341 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfInitial
 	SaVersionT _saVersion;
 	SaAisErrorT _saStatus;
 	// jni
-    jobject _healthcheckCallback;
-    jobject _setCsiCallback;
-    jobject _removeCsiCallback;
-    jobject _terminateComponentCallback;
-    jobject _instantiateProxiedComponentCallback;
-    jobject _cleanupProxiedComponentCallback;
-    jobject _trackProtectionGroupCallback;
-    jchar _releaseCode;
-    jshort _majorVersion;
-    jshort _minorVersion;
-    jclass _classSystem;
-    jstring _componentName;
-    jstring _componentNameProperty;
-    jmethodID MID_getSystemProperty;
+	jobject _healthcheckCallback;
+	jobject _setCsiCallback;
+	jobject _removeCsiCallback;
+	jobject _terminateComponentCallback;
+	jobject _instantiateProxiedComponentCallback;
+	jobject _cleanupProxiedComponentCallback;
+	jobject _trackProtectionGroupCallback;
+	jchar _releaseCode;
+	jshort _majorVersion;
+	jshort _minorVersion;
+	jclass _classSystem;
+	jstring _componentName;
+	jstring _componentNameProperty;
+	jmethodID MID_getSystemProperty;
 
 	// BODY
 
-    assert( thisAmfHandle != NULL );
-    // TODO assert for sVersion
-	_TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfInitialize(...)\n" );
+	assert(thisAmfHandle != NULL);
+	// TODO assert for sVersion
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfInitialize(...)\n");
 
-    // check if the java system property org.saforum.ais.amf.component-name is set
+	// check if the java system property org.saforum.ais.amf.component-name is set
 
-    // get the java.lang.System class
-    _classSystem = (*jniEnv)->FindClass(jniEnv, "java/lang/System");
-    if( _classSystem == NULL ){
+	// get the java.lang.System class
+	_classSystem = (*jniEnv)->FindClass(jniEnv, "java/lang/System");
+	if (_classSystem == NULL) {
 
-        _TRACE2( "NATIVE ERROR: _classSystem is NULL\n" );
+		_TRACE2("NATIVE ERROR: _classSystem is NULL\n");
 
-        return; // EXIT POINT! Exception pending...
-    }
+		return;		// EXIT POINT! Exception pending...
+	}
+	// Get a jstring with the name of the component name property
+	_componentNameProperty =
+		JNU_NewStringNative(jniEnv, "org.saforum.ais.amf.component-name");
+	if (_componentNameProperty == NULL) {
 
-    // Get a jstring with the name of the component name property
-    _componentNameProperty = JNU_NewStringNative( jniEnv, "org.saforum.ais.amf.component-name" );
-    if( _componentNameProperty == NULL ){
+		_TRACE2("NATIVE ERROR: _componentNameProperty is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: _componentNameProperty is NULL\n" );
+		return;		// EXIT POINT! Exception pending...
+	}
+	// Get the getProperty method
+	MID_getSystemProperty = (*jniEnv)->GetStaticMethodID(jniEnv,
+							     _classSystem,
+							     "getProperty",
+							     "(Ljava/lang/String;)Ljava/lang/String;");
+	if (MID_getSystemProperty == NULL) {
 
-        return; // EXIT POINT! Exception pending...
-    }
+		_TRACE2("NATIVE ERROR: MID_getSystemProperty is NULL\n");
 
-    // Get the getProperty method
-    MID_getSystemProperty = (*jniEnv)->GetStaticMethodID(
-                                                         jniEnv,
-                                                         _classSystem,
-                                                         "getProperty",
-                                                         "(Ljava/lang/String;)Ljava/lang/String;" );
-    if( MID_getSystemProperty == NULL ){
+		return;		// EXIT POINT! Exception pending...
+	}
+	// Invoke the getProperty method
+	_componentName = (*jniEnv)->CallStaticObjectMethod(jniEnv,
+							   _classSystem,
+							   MID_getSystemProperty,
+							   _componentNameProperty);
 
-        _TRACE2( "NATIVE ERROR: MID_getSystemProperty is NULL\n" );
+	// If the property was set, set the component name environment variable to its value
+	if (_componentName != NULL) {
+		int result;
+		char *componentNameChars;
 
-        return; // EXIT POINT! Exception pending...
-    }
+		componentNameChars =
+			JNU_GetStringNativeChars(jniEnv, _componentName);
 
-    // Invoke the getProperty method
-    _componentName = (*jniEnv)->CallStaticObjectMethod(
-                                                       jniEnv,
-                                                       _classSystem,
-                                                       MID_getSystemProperty,
-                                                       _componentNameProperty );
+		result = setenv("SA_AMF_COMPONENT_NAME", componentNameChars, 1);
 
-    // If the property was set, set the component name environment variable to its value
-    if ( _componentName != NULL ) {
-        int result;
-        char* componentNameChars;
+		// Return and throw an exception if the setenv call failed
+		if (-1 == result) {
+			_TRACE2
+				("NATIVE ERROR: failed to set the SA_AMF_COMPONENT_NAME env variable to %s. Error %i\n",
+				 _componentName, errno);
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisErrorLibraryException",
+					   AIS_ERR_TRY_AGAIN_MSG);
+			return;	// EXIT POINT! Exception thrown...
+		}
 
-        componentNameChars = JNU_GetStringNativeChars( jniEnv, _componentName );
-
-        result = setenv( "SA_AMF_COMPONENT_NAME", componentNameChars, 1 );
-
-        // Return and throw an exception if the setenv call failed
-        if ( -1 == result ) {
-            _TRACE2( 
-                    "NATIVE ERROR: failed to set the SA_AMF_COMPONENT_NAME env variable to %s. Error %i\n", 
-                     _componentName,
-                    errno );
-            JNU_throwNewByName( jniEnv,
-                                "org/saforum/ais/AisErrorLibraryException",
-                                AIS_ERR_TRY_AGAIN_MSG );
-            return; // EXIT POINT! Exception thrown...
-        }
-
-        free( componentNameChars );
-    }
-
+		free(componentNameChars);
+	}
 	// create callback struct
-    //  healthcheck cb
-    _healthcheckCallback = (*jniEnv)->GetObjectField(
-                                            jniEnv,
-                                            thisAmfHandle,
-                                            FID_healthcheckCallback );
-    if( _healthcheckCallback != NULL ){
+	//  healthcheck cb
+	_healthcheckCallback = (*jniEnv)->GetObjectField(jniEnv,
+							 thisAmfHandle,
+							 FID_healthcheckCallback);
+	if (_healthcheckCallback != NULL) {
 
-        _TRACE2( "NATIVE: SaAmfHealthcheckCallback assigned as callback!\n" );
+		_TRACE2
+			("NATIVE: SaAmfHealthcheckCallback assigned as callback!\n");
 
-        _saAmfCallbacks.saAmfHealthcheckCallback = SaAmfHealthcheckCallback;
-    }
-    else{
+		_saAmfCallbacks.saAmfHealthcheckCallback =
+			SaAmfHealthcheckCallback;
+	} else {
 
-        _TRACE2( "NATIVE: NO SaAmfHealthcheckCallback assigned!\n" );
+		_TRACE2("NATIVE: NO SaAmfHealthcheckCallback assigned!\n");
 
-        _saAmfCallbacks.saAmfHealthcheckCallback = NULL;
-    }
-    // set CSI cb
-    _setCsiCallback = (*jniEnv)->GetObjectField(
-                                            jniEnv,
-                                            thisAmfHandle,
-                                            FID_setCsiCallback );
-    if( _setCsiCallback != NULL ){
+		_saAmfCallbacks.saAmfHealthcheckCallback = NULL;
+	}
+	// set CSI cb
+	_setCsiCallback = (*jniEnv)->GetObjectField(jniEnv,
+						    thisAmfHandle,
+						    FID_setCsiCallback);
+	if (_setCsiCallback != NULL) {
 
-        _TRACE2( "NATIVE: SaAmfCSISetCallback assigned as callback!\n" );
+		_TRACE2("NATIVE: SaAmfCSISetCallback assigned as callback!\n");
 
-        _saAmfCallbacks.saAmfCSISetCallback = SaAmfCSISetCallback;
-    }
-    else{
+		_saAmfCallbacks.saAmfCSISetCallback = SaAmfCSISetCallback;
+	} else {
 
-        _TRACE2( "NATIVE: NO SaAmfCSISetCallback assigned!\n" );
+		_TRACE2("NATIVE: NO SaAmfCSISetCallback assigned!\n");
 
-        _saAmfCallbacks.saAmfCSISetCallback = NULL;
-    }
-    // remove CSI cb
-    _removeCsiCallback = (*jniEnv)->GetObjectField(
-                                            jniEnv,
-                                            thisAmfHandle,
-                                            FID_removeCsiCallback );
-    if( _removeCsiCallback != NULL ){
+		_saAmfCallbacks.saAmfCSISetCallback = NULL;
+	}
+	// remove CSI cb
+	_removeCsiCallback = (*jniEnv)->GetObjectField(jniEnv,
+						       thisAmfHandle,
+						       FID_removeCsiCallback);
+	if (_removeCsiCallback != NULL) {
 
-        _TRACE2( "NATIVE: SaAmfCSIRemoveCallback assigned as callback!\n" );
+		_TRACE2
+			("NATIVE: SaAmfCSIRemoveCallback assigned as callback!\n");
 
-        _saAmfCallbacks.saAmfCSIRemoveCallback = SaAmfCSIRemoveCallback;
-    }
-    else{
+		_saAmfCallbacks.saAmfCSIRemoveCallback = SaAmfCSIRemoveCallback;
+	} else {
 
-        _TRACE2( "NATIVE: NO SaAmfCSIRemoveCallback assigned!\n" );
+		_TRACE2("NATIVE: NO SaAmfCSIRemoveCallback assigned!\n");
 
-        _saAmfCallbacks.saAmfCSIRemoveCallback = NULL;
-    }
-    // terminate component cb
-    _terminateComponentCallback = (*jniEnv)->GetObjectField(
-                                            jniEnv,
-                                            thisAmfHandle,
-                                            FID_terminateComponentCallback );
-    if( _terminateComponentCallback != NULL ){
+		_saAmfCallbacks.saAmfCSIRemoveCallback = NULL;
+	}
+	// terminate component cb
+	_terminateComponentCallback = (*jniEnv)->GetObjectField(jniEnv,
+								thisAmfHandle,
+								FID_terminateComponentCallback);
+	if (_terminateComponentCallback != NULL) {
 
-        _TRACE2( "NATIVE: SaAmfComponentTerminateCallback assigned as callback!\n" );
+		_TRACE2
+			("NATIVE: SaAmfComponentTerminateCallback assigned as callback!\n");
 
-        _saAmfCallbacks.saAmfComponentTerminateCallback = SaAmfComponentTerminateCallback;
-    }
-    else{
+		_saAmfCallbacks.saAmfComponentTerminateCallback =
+			SaAmfComponentTerminateCallback;
+	} else {
 
-        _TRACE2( "NATIVE: NO SaAmfComponentTerminateCallback assigned!\n" );
+		_TRACE2
+			("NATIVE: NO SaAmfComponentTerminateCallback assigned!\n");
 
-        _saAmfCallbacks.saAmfComponentTerminateCallback = NULL;
-    }
-    // instantiate proxied component cb
-    _instantiateProxiedComponentCallback = (*jniEnv)->GetObjectField(
-                                            jniEnv,
-                                            thisAmfHandle,
-                                            FID_instantiateProxiedComponentCallback );
-    if( _instantiateProxiedComponentCallback != NULL ){
+		_saAmfCallbacks.saAmfComponentTerminateCallback = NULL;
+	}
+	// instantiate proxied component cb
+	_instantiateProxiedComponentCallback = (*jniEnv)->GetObjectField(jniEnv,
+									 thisAmfHandle,
+									 FID_instantiateProxiedComponentCallback);
+	if (_instantiateProxiedComponentCallback != NULL) {
 
-        _TRACE2( "NATIVE: SaAmfProxiedComponentInstantiateCallback assigned as callback!\n" );
+		_TRACE2
+			("NATIVE: SaAmfProxiedComponentInstantiateCallback assigned as callback!\n");
 
-        _saAmfCallbacks.saAmfProxiedComponentInstantiateCallback = SaAmfProxiedComponentInstantiateCallback;
-    }
-    else{
+		_saAmfCallbacks.saAmfProxiedComponentInstantiateCallback =
+			SaAmfProxiedComponentInstantiateCallback;
+	} else {
 
-        _TRACE2( "NATIVE: NO saAmfProxiedComponentInstantiateCallback assigned!\n" );
+		_TRACE2
+			("NATIVE: NO saAmfProxiedComponentInstantiateCallback assigned!\n");
 
-        _saAmfCallbacks.saAmfProxiedComponentInstantiateCallback = NULL;
-    }
-    // cleanup proxied component cb
-    _cleanupProxiedComponentCallback = (*jniEnv)->GetObjectField(
-                                            jniEnv,
-                                            thisAmfHandle,
-                                            FID_cleanupProxiedComponentCallback );
-    if( _cleanupProxiedComponentCallback != NULL ){
+		_saAmfCallbacks.saAmfProxiedComponentInstantiateCallback = NULL;
+	}
+	// cleanup proxied component cb
+	_cleanupProxiedComponentCallback = (*jniEnv)->GetObjectField(jniEnv,
+								     thisAmfHandle,
+								     FID_cleanupProxiedComponentCallback);
+	if (_cleanupProxiedComponentCallback != NULL) {
 
-        _TRACE2( "NATIVE: SaAmfProxiedComponentCleanupCallback assigned as callback!\n" );
+		_TRACE2
+			("NATIVE: SaAmfProxiedComponentCleanupCallback assigned as callback!\n");
 
-        _saAmfCallbacks.saAmfProxiedComponentCleanupCallback = SaAmfProxiedComponentCleanupCallback;
-    }
-    else{
+		_saAmfCallbacks.saAmfProxiedComponentCleanupCallback =
+			SaAmfProxiedComponentCleanupCallback;
+	} else {
 
-        _TRACE2( "NATIVE: NO saAmfProxiedComponentCleanupCallback assigned!\n" );
+		_TRACE2
+			("NATIVE: NO saAmfProxiedComponentCleanupCallback assigned!\n");
 
-        _saAmfCallbacks.saAmfProxiedComponentCleanupCallback = NULL;
-    }
-    //  track protection group cb
-    _trackProtectionGroupCallback = (*jniEnv)->GetObjectField(
-                                            jniEnv,
-                                            thisAmfHandle,
-                                            FID_trackProtectionGroupCallback );
-    if( _trackProtectionGroupCallback != NULL ){
+		_saAmfCallbacks.saAmfProxiedComponentCleanupCallback = NULL;
+	}
+	//  track protection group cb
+	_trackProtectionGroupCallback = (*jniEnv)->GetObjectField(jniEnv,
+								  thisAmfHandle,
+								  FID_trackProtectionGroupCallback);
+	if (_trackProtectionGroupCallback != NULL) {
 
-        _TRACE2( "NATIVE: SaAmfProtectionGroupTrackCallback assigned as callback!\n" );
+		_TRACE2
+			("NATIVE: SaAmfProtectionGroupTrackCallback assigned as callback!\n");
 
-        _saAmfCallbacks.saAmfProtectionGroupTrackCallback = SaAmfProtectionGroupTrackCallback;
-    }
-    else{
+		_saAmfCallbacks.saAmfProtectionGroupTrackCallback =
+			SaAmfProtectionGroupTrackCallback;
+	} else {
 
-        _TRACE2( "NATIVE: NO SaAmfProtectionGroupTrackCallback assigned!\n" );
+		_TRACE2
+			("NATIVE: NO SaAmfProtectionGroupTrackCallback assigned!\n");
 
-        _saAmfCallbacks.saAmfProtectionGroupTrackCallback = NULL;
-    }
+		_saAmfCallbacks.saAmfProtectionGroupTrackCallback = NULL;
+	}
 
 	// create version struct
-    if( sVersion == NULL ){
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisInvalidParamException",
-                            AIS_ERR_INVALID_PARAM_MSG );
-        return; // EXIT POINT!
-    }
-    // release code
-    _releaseCode = (*jniEnv)->GetCharField( jniEnv,
-                                            sVersion,
-                                            FID_releaseCode );
-    _saVersion.releaseCode = (SaUint8T) _releaseCode;
-    // major version
-    _majorVersion = (*jniEnv)->GetShortField( jniEnv,
-                                             sVersion,
-                                             FID_majorVersion );
-    _saVersion.majorVersion = (SaUint16T) _majorVersion;
-    // minor version
-    _minorVersion = (*jniEnv)->GetShortField( jniEnv,
-                                             sVersion,
-                                             FID_minorVersion );
-    _saVersion.minorVersion = (SaUint16T) _minorVersion;
+	if (sVersion == NULL) {
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisInvalidParamException",
+				   AIS_ERR_INVALID_PARAM_MSG);
+		return;		// EXIT POINT!
+	}
+	// release code
+	_releaseCode = (*jniEnv)->GetCharField(jniEnv,
+					       sVersion, FID_releaseCode);
+	_saVersion.releaseCode = (SaUint8T)_releaseCode;
+	// major version
+	_majorVersion = (*jniEnv)->GetShortField(jniEnv,
+						 sVersion, FID_majorVersion);
+	_saVersion.majorVersion = (SaUint16T)_majorVersion;
+	// minor version
+	_minorVersion = (*jniEnv)->GetShortField(jniEnv,
+						 sVersion, FID_minorVersion);
+	_saVersion.minorVersion = (SaUint16T)_minorVersion;
 
 	// call saAmfInitialize
-	_saStatus = saAmfInitialize( &_saAmfHandle,
-								 &_saAmfCallbacks,
-								 &_saVersion );
+	_saStatus = saAmfInitialize(&_saAmfHandle,
+				    &_saAmfCallbacks, &_saVersion);
 
-	_TRACE2( "NATIVE: saAmfInitialize(...) has returned with %d...\n", _saStatus );
-
+	_TRACE2("NATIVE: saAmfInitialize(...) has returned with %d...\n",
+		_saStatus);
 
 	// error handling
-  	if( _saStatus != SA_AIS_OK ){
-		switch( _saStatus ){
-			case SA_AIS_ERR_LIBRARY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-				break;
-			case SA_AIS_ERR_TIMEOUT:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTimeoutException",
-                                    AIS_ERR_TIMEOUT_MSG );
-				break;
-			case SA_AIS_ERR_TRY_AGAIN:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTryAgainException",
-                                    AIS_ERR_TRY_AGAIN_MSG );
-				break;
-			case SA_AIS_ERR_INVALID_PARAM:
-                // TODO unclear whether this can happen here or not:
-                // probably not, but native API declares this, so leave it for now
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisInvalidParamException",
-                                    AIS_ERR_INVALID_PARAM_MSG );
-				break;
-			case SA_AIS_ERR_NO_MEMORY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoMemoryException",
-                                    AIS_ERR_NO_MEMORY_MSG );
-				break;
-			case SA_AIS_ERR_NO_RESOURCES:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoResourcesException",
-                                    AIS_ERR_NO_RESOURCES_MSG );
-				break;
-			case SA_AIS_ERR_VERSION:
-                /* set version param:
-                    see page 20 of the Cluster Membership Service spec B.01.01! */
-                // major version
-                if( _saVersion.releaseCode != _releaseCode ) {
-                    (*jniEnv)->SetCharField( jniEnv,
-                                             sVersion,
-                                             FID_releaseCode,
-                                             (jchar) _saVersion.releaseCode );
-                }
-                if( _saVersion.majorVersion != _majorVersion ) {
-                    (*jniEnv)->SetShortField( jniEnv,
-                                             sVersion,
-                                             FID_majorVersion,
-                                             (jshort) _saVersion.majorVersion );
-                }
-                // minor version
-                if( _saVersion.minorVersion != _minorVersion ) {
-                    (*jniEnv)->SetShortField( jniEnv,
-                                             sVersion,
-                                             FID_minorVersion,
-                                             (jshort) _saVersion.minorVersion );
-                }
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisVersionException",
-                                    AIS_ERR_VERSION_MSG );
-				break;
-			default:
-                // this should not happen here!
+	if (_saStatus != SA_AIS_OK) {
+		switch (_saStatus) {
+		case SA_AIS_ERR_LIBRARY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case SA_AIS_ERR_TIMEOUT:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTimeoutException",
+					   AIS_ERR_TIMEOUT_MSG);
+			break;
+		case SA_AIS_ERR_TRY_AGAIN:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTryAgainException",
+					   AIS_ERR_TRY_AGAIN_MSG);
+			break;
+		case SA_AIS_ERR_INVALID_PARAM:
+			// TODO unclear whether this can happen here or not:
+			// probably not, but native API declares this, so leave it for now
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisInvalidParamException",
+					   AIS_ERR_INVALID_PARAM_MSG);
+			break;
+		case SA_AIS_ERR_NO_MEMORY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisNoMemoryException",
+					   AIS_ERR_NO_MEMORY_MSG);
+			break;
+		case SA_AIS_ERR_NO_RESOURCES:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisNoResourcesException",
+					   AIS_ERR_NO_RESOURCES_MSG);
+			break;
+		case SA_AIS_ERR_VERSION:
+			/* set version param:
+			   see page 20 of the Cluster Membership Service spec B.01.01! */
+			// major version
+			if (_saVersion.releaseCode != _releaseCode) {
+				(*jniEnv)->SetCharField(jniEnv,
+							sVersion,
+							FID_releaseCode,
+							(jchar)_saVersion.
+							releaseCode);
+			}
+			if (_saVersion.majorVersion != _majorVersion) {
+				(*jniEnv)->SetShortField(jniEnv,
+							 sVersion,
+							 FID_majorVersion,
+							 (jshort)_saVersion.
+							 majorVersion);
+			}
+			// minor version
+			if (_saVersion.minorVersion != _minorVersion) {
+				(*jniEnv)->SetShortField(jniEnv,
+							 sVersion,
+							 FID_minorVersion,
+							 (jshort)_saVersion.
+							 minorVersion);
+			}
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisVersionException",
+					   AIS_ERR_VERSION_MSG);
+			break;
+		default:
+			// this should not happen here!
 
-                assert( JNI_FALSE );
+			assert(JNI_FALSE);
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-				break;
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
 		}
-		return; // EXIT POINT!!!
-  	}
-    // set library handle
+		return;		// EXIT POINT!!!
+	}
+	// set library handle
 
-    _TRACE2( "NATIVE: Retreived amfHandle is: %lu \n", (unsigned long) _saAmfHandle );
+	_TRACE2("NATIVE: Retreived amfHandle is: %lu \n",
+		(unsigned long)_saAmfHandle);
 
-    (*jniEnv)->SetLongField( jniEnv,
-                             thisAmfHandle,
-                             FID_saAmfHandle,
-                             (jlong) _saAmfHandle );
-    /* set version param:
-        see page 19 of the Cluster Membership Service spec B.01.01! */
-    // major version
-    if( _saVersion.majorVersion != _majorVersion ) {
-        (*jniEnv)->SetShortField( jniEnv,
-                                 sVersion,
-                                 FID_majorVersion,
-                                 (jshort) _saVersion.majorVersion );
-    }
-    // minor version
-    if( _saVersion.minorVersion != _minorVersion ) {
-        (*jniEnv)->SetShortField( jniEnv,
-                                 sVersion,
-                                 FID_minorVersion,
-                                 (jshort) _saVersion.minorVersion );
-    }
-    // normal exit
+	(*jniEnv)->SetLongField(jniEnv,
+				thisAmfHandle,
+				FID_saAmfHandle, (jlong)_saAmfHandle);
+	/* set version param:
+	   see page 19 of the Cluster Membership Service spec B.01.01! */
+	// major version
+	if (_saVersion.majorVersion != _majorVersion) {
+		(*jniEnv)->SetShortField(jniEnv,
+					 sVersion,
+					 FID_majorVersion,
+					 (jshort)_saVersion.majorVersion);
+	}
+	// minor version
+	if (_saVersion.minorVersion != _minorVersion) {
+		(*jniEnv)->SetShortField(jniEnv,
+					 sVersion,
+					 FID_minorVersion,
+					 (jshort)_saVersion.minorVersion);
+	}
+	// normal exit
 
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfInitialize(...) returning normally\n" );
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfInitialize(...) returning normally\n");
 
 }
 
@@ -713,104 +703,108 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfInitial
  *  Method:    invokeSaAmfSelectionObjectGet
  *  Signature: ()V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfSelectionObjectGet(
-	JNIEnv* jniEnv,
-	jobject thisAmfHandle )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfSelectionObjectGet(JNIEnv
+								     *jniEnv,
+								     jobject
+								     thisAmfHandle)
 {
-    // VARIABLES
-    // ais
-    SaAmfHandleT _saAmfHandle;
-    SaAisErrorT _saStatus;
-    SaSelectionObjectT _saSelectionObject;
-    // jni
+	// VARIABLES
+	// ais
+	SaAmfHandleT _saAmfHandle;
+	SaAisErrorT _saStatus;
+	SaSelectionObjectT _saSelectionObject;
+	// jni
 
-    // BODY
+	// BODY
 
-    assert( thisAmfHandle != NULL );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfSelectionObjectGet(...)\n" );
+	assert(thisAmfHandle != NULL);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfSelectionObjectGet(...)\n");
 
-    // get library handle
-    _saAmfHandle = (SaAmfHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           thisAmfHandle,
-                                                           FID_saAmfHandle );
-    // call saAmfSelectionObjectGet
-    _saStatus = saAmfSelectionObjectGet( _saAmfHandle,
-                                         &_saSelectionObject );
+	// get library handle
+	_saAmfHandle = (SaAmfHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     thisAmfHandle,
+							     FID_saAmfHandle);
+	// call saAmfSelectionObjectGet
+	_saStatus = saAmfSelectionObjectGet(_saAmfHandle, &_saSelectionObject);
 
-    _TRACE2( "NATIVE: saAmfSelectionObjectGet(...) has returned with %d...\n", _saStatus );
+	_TRACE2
+		("NATIVE: saAmfSelectionObjectGet(...) has returned with %d...\n",
+		 _saStatus);
 
+	// error handling
+	if (_saStatus != SA_AIS_OK) {
+		switch (_saStatus) {
+		case SA_AIS_ERR_LIBRARY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case SA_AIS_ERR_TIMEOUT:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTimeoutException",
+					   AIS_ERR_TIMEOUT_MSG);
+			break;
+		case SA_AIS_ERR_TRY_AGAIN:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTryAgainException",
+					   AIS_ERR_TRY_AGAIN_MSG);
+			break;
+		case SA_AIS_ERR_BAD_HANDLE:
+			// TODO library handle invalid (e.g finalized): this check could be done at Java level!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisBadHandleException",
+					   AIS_ERR_BAD_HANDLE_MSG);
+			break;
+		case SA_AIS_ERR_INVALID_PARAM:
+			// this should not happen here!
 
-    // error handling
-    if( _saStatus != SA_AIS_OK ){
-        switch( _saStatus ){
-            case SA_AIS_ERR_LIBRARY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case SA_AIS_ERR_TIMEOUT:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTimeoutException",
-                                    AIS_ERR_TIMEOUT_MSG );
-                break;
-            case SA_AIS_ERR_TRY_AGAIN:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTryAgainException",
-                                    AIS_ERR_TRY_AGAIN_MSG );
-                break;
-            case SA_AIS_ERR_BAD_HANDLE:
-                // TODO library handle invalid (e.g finalized): this check could be done at Java level!
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisBadHandleException",
-                                    AIS_ERR_BAD_HANDLE_MSG );
-                break;
-            case SA_AIS_ERR_INVALID_PARAM:
-                // this should not happen here!
+			assert(JNI_FALSE);
 
-                assert( JNI_FALSE );
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			// unclear whether this can happen here or not: probably not...
+			// TODO remove this from Java method declaration!
+			//JNU_throwNewByName( jniEnv,
+			//                    "org/saforum/ais/AisInvalidParamException",
+			//                    AIS_ERR_INVALID_PARAM_MSG );
+			break;
+		case SA_AIS_ERR_NO_MEMORY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisNoMemoryException",
+					   AIS_ERR_NO_MEMORY_MSG);
+			break;
+		case SA_AIS_ERR_NO_RESOURCES:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisNoResourcesException",
+					   AIS_ERR_NO_RESOURCES_MSG);
+			break;
+		default:
+			// this should not happen here!
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                // unclear whether this can happen here or not: probably not...
-                // TODO remove this from Java method declaration!
-                //JNU_throwNewByName( jniEnv,
-                //                    "org/saforum/ais/AisInvalidParamException",
-                //                    AIS_ERR_INVALID_PARAM_MSG );
-                break;
-            case SA_AIS_ERR_NO_MEMORY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoMemoryException",
-                                    AIS_ERR_NO_MEMORY_MSG );
-                break;
-            case SA_AIS_ERR_NO_RESOURCES:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoResourcesException",
-                                    AIS_ERR_NO_RESOURCES_MSG );
-                break;
-            default:
-                // this should not happen here!
+			assert(JNI_FALSE);
 
-                assert( JNI_FALSE );
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		}
+		return;		// EXIT POINT!!!
+	}
+	// set selection object
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-        }
-        return; // EXIT POINT!!!
-    }
-    // set selection object
+	_TRACE2("NATIVE: Retreived selectionObject is: %lu \n",
+		(unsigned long)_saSelectionObject);
 
-    _TRACE2( "NATIVE: Retreived selectionObject is: %lu \n", (unsigned long) _saSelectionObject );
+	(*jniEnv)->SetLongField(jniEnv,
+				thisAmfHandle,
+				FID_selectionObject, (jlong)_saSelectionObject);
+	// normal exit
 
-    (*jniEnv)->SetLongField( jniEnv,
-                             thisAmfHandle,
-                             FID_selectionObject,
-                             (jlong) _saSelectionObject );
-    // normal exit
-
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfSelectionObjectGet(...) returning normally\n" );
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfSelectionObjectGet(...) returning normally\n");
 
 }
 
@@ -822,113 +816,111 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfSelecti
  *  Signature: (J)Z
  *************************************************************************/
 /*
-JNIEXPORT jboolean JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject(
-	JNIEnv* jniEnv,
-	jobject thisAmfHandle,
-    jlong timeout )
-{
+  JNIEXPORT jboolean JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject(
+  JNIEnv* jniEnv,
+  jobject thisAmfHandle,
+  jlong timeout )
+  {
 
+  // VARIABLES
+  // ais
+  SaSelectionObjectT _saSelectionObject;
+  // linux
+  fd_set _readFDs;
+  struct timeval _lxTimeout;
+  int _selectStatus;
 
-	// VARIABLES
-    // ais
-    SaSelectionObjectT _saSelectionObject;
-    // linux
-    fd_set _readFDs;
-    struct timeval _lxTimeout;
-    int _selectStatus;
+  // BODY
 
-    // BODY
+  assert( thisAmfHandle != NULL );
+  // TODO assert for timeout
+  _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject(...)\n" );
 
-    assert( thisAmfHandle != NULL );
-    // TODO assert for timeout
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject(...)\n" );
+  // get selection object
+  _saSelectionObject = (SaSelectionObjectT) (*jniEnv)->GetLongField(
+  jniEnv,
+  thisAmfHandle,
+  FID_selectionObject );
+  // call select(2)
+  FD_ZERO( &_readFDs );
+  FD_SET( _saSelectionObject, &_readFDs );
+  U_convertTimeout( &_lxTimeout, timeout );
 
-    // get selection object
-    _saSelectionObject = (SaSelectionObjectT) (*jniEnv)->GetLongField(
-                                                            jniEnv,
-                                                            thisAmfHandle,
-                                                            FID_selectionObject );
-    // call select(2)
-    FD_ZERO( &_readFDs );
-    FD_SET( _saSelectionObject, &_readFDs );
-    U_convertTimeout( &_lxTimeout, timeout );
+  _TRACE2( "NATIVE: timout is { %ld seconds, %ld microseconds } \n", _lxTimeout.tv_sec, _lxTimeout.tv_usec );
 
-    _TRACE2( "NATIVE: timout is { %ld seconds, %ld microseconds }\n", _lxTimeout.tv_sec, _lxTimeout.tv_usec );
+  _selectStatus = select( (_saSelectionObject + 1 ),
+  &_readFDs,
+  NULL,
+  NULL,
+  &_lxTimeout );
 
-    _selectStatus = select( (_saSelectionObject + 1 ),
-                            &_readFDs,
-                            NULL,
-                            NULL,
-                            &_lxTimeout );
+  _TRACE2( "NATIVE: select(...) has returned with %d...\n", _selectStatus );
 
-    _TRACE2( "NATIVE: select(...) has returned with %d...\n", _selectStatus );
+  // error handling
+  if ( _selectStatus == -1 ) {
+  switch ( errno ) {
+  case EBADF: // invalid file descriptor
 
+  // this should not happen here!
+  _TRACE2( "NATIVE ERROR : select(EBADF): invalid file descriptor\n" );
+  assert( JNI_FALSE );
 
-    // error handling
-    if( _selectStatus == -1 ){
-        switch( errno ){
-            case EBADF: // invalid file descriptor
+  JNU_throwNewByName( jniEnv,
+  "org/saforum/ais/AisLibraryException",
+  AIS_ERR_LIBRARY_MSG );
+  break;
+  case EINTR: // non blocked signal caught
 
-                // this should not happen here!
-                _TRACE2( "NATIVE ERROR : select(EBADF): invalid file descriptor\n" );
-                assert( JNI_FALSE );
+  _TRACE2( "NATIVE ERROR : select(EINTR): non blocked signal caught\n" );
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case EINTR: // non blocked signal caught
+  JNU_throwNewByName( jniEnv,
+  "org/saforum/ais/AisLibraryException",
+  AIS_ERR_LIBRARY_MSG );
+  break;
+  case EINVAL: // n is negative or the value within timeout is invalid
 
-                _TRACE2( "NATIVE ERROR : select(EINTR): non blocked signal caught\n" );
+  // this should not happen here!
+  _TRACE2( "NATIVE ERROR : select(EINVAL): n is negative or the value within timeout is invalid\n" );
+  assert( JNI_FALSE );
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case EINVAL: // n is negative or the value within timeout is invalid
+  JNU_throwNewByName( jniEnv,
+  "org/saforum/ais/AisLibraryException",
+  AIS_ERR_LIBRARY_MSG );
+  break;
+  case ENOMEM: // select was unable to allocate memory for internal tables
 
-                // this should not happen here!
-                _TRACE2( "NATIVE ERROR : select(EINVAL): n is negative or the value within timeout is invalid\n" );
-                assert( JNI_FALSE );
+  _TRACE2( "NATIVE ERROR : select(ENOMEM): select was unable to allocate memory for internal tables\n" );
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case ENOMEM: // select was unable to allocate memory for internal tables
+  JNU_throwNewByName( jniEnv,
+  "org/saforum/ais/AisNoMemoryException",
+  AIS_ERR_NO_MEMORY_MSG );
+  break;
+  default:
+  // this should not happen here!
 
-                _TRACE2( "NATIVE ERROR : select(ENOMEM): select was unable to allocate memory for internal tables\n" );
+  assert( JNI_FALSE );
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoMemoryException",
-                                    AIS_ERR_NO_MEMORY_MSG );
-                break;
-            default:
-                // this should not happen here!
+  JNU_throwNewByName( jniEnv,
+  "org/saforum/ais/AisLibraryException",
+  AIS_ERR_LIBRARY_MSG );
+  break;
+  }
+  return JNI_FALSE; // EXIT POINT!!! return value is in fact ignored
+  }
+  if ( _selectStatus == 1 ) {
 
-                assert( JNI_FALSE );
+  _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject() returning true\n" );
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-        }
-        return JNI_FALSE; // EXIT POINT!!! return value is in fact ignored
-    }
-    if( _selectStatus == 1 ){
+  return JNI_TRUE;
+  }
+  else {
 
-        _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject() returning true\n" );
+  _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject() returning false\n" );
 
-        return JNI_TRUE;
-    }
-    else{
+  return JNI_FALSE;
+  }
 
-        _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelectionObject() returning false\n" );
-
-        return JNI_FALSE;
-    }
-
-}*/
+  } */
 
 /**************************************************************************
  * FUNCTION:  Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatch
@@ -937,10 +929,11 @@ JNIEXPORT jboolean JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_checkSelection
  *  Method:    invokeSaAmfDispatch
  *  Signature: (I)V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatch(
-	JNIEnv* jniEnv,
-	jobject thisAmfHandle,
-	jint dispatchFlags )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatch(JNIEnv *jniEnv,
+							   jobject
+							   thisAmfHandle,
+							   jint dispatchFlags)
 {
 	// VARIABLES
 	SaAmfHandleT _saAmfHandle;
@@ -948,74 +941,77 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatc
 
 	// BODY
 
-    assert( thisAmfHandle != NULL );
-    assert( ( dispatchFlags == SA_DISPATCH_ONE ) || ( dispatchFlags == SA_DISPATCH_ALL ) || ( dispatchFlags == SA_DISPATCH_BLOCKING ) );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatch(...)\n" );
+	assert(thisAmfHandle != NULL);
+	assert((dispatchFlags == SA_DISPATCH_ONE)
+	       || (dispatchFlags == SA_DISPATCH_ALL)
+	       || (dispatchFlags == SA_DISPATCH_BLOCKING));
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatch(...)\n");
 
-    // get library handle
-    _saAmfHandle = (SaAmfHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           thisAmfHandle,
-                                                           FID_saAmfHandle );
+	// get library handle
+	_saAmfHandle = (SaAmfHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     thisAmfHandle,
+							     FID_saAmfHandle);
 	// call saAmfDispatch
-	_saStatus = saAmfDispatch( _saAmfHandle,
-							   (SaDispatchFlagsT) dispatchFlags );
+	_saStatus = saAmfDispatch(_saAmfHandle,
+				  (SaDispatchFlagsT)dispatchFlags);
 
-    _TRACE2( "NATIVE: saAmfDispatch(...) has returned with %d...\n", _saStatus );
-
+	_TRACE2("NATIVE: saAmfDispatch(...) has returned with %d...\n",
+		_saStatus);
 
 	// error handling
-  	if( _saStatus != SA_AIS_OK ){
-		switch( _saStatus ){
-            case SA_AIS_ERR_LIBRARY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case SA_AIS_ERR_TIMEOUT:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTimeoutException",
-                                    AIS_ERR_TIMEOUT_MSG );
-                break;
-            case SA_AIS_ERR_TRY_AGAIN:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTryAgainException",
-                                    AIS_ERR_TRY_AGAIN_MSG );
-                break;
-            case SA_AIS_ERR_BAD_HANDLE:
-                // TODO library handle invalid (e.g finalized): this check could be done at Java level!
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisBadHandleException",
-                                    AIS_ERR_BAD_HANDLE_MSG );
-                break;
-			case SA_AIS_ERR_INVALID_PARAM:
-                // this should not happen here!
+	if (_saStatus != SA_AIS_OK) {
+		switch (_saStatus) {
+		case SA_AIS_ERR_LIBRARY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case SA_AIS_ERR_TIMEOUT:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTimeoutException",
+					   AIS_ERR_TIMEOUT_MSG);
+			break;
+		case SA_AIS_ERR_TRY_AGAIN:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTryAgainException",
+					   AIS_ERR_TRY_AGAIN_MSG);
+			break;
+		case SA_AIS_ERR_BAD_HANDLE:
+			// TODO library handle invalid (e.g finalized): this check could be done at Java level!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisBadHandleException",
+					   AIS_ERR_BAD_HANDLE_MSG);
+			break;
+		case SA_AIS_ERR_INVALID_PARAM:
+			// this should not happen here!
 
-                assert( JNI_FALSE );
+			assert(JNI_FALSE);
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                // TODO dispatch flags are invalid: this check could be done at Java level!
-                //JNU_throwNewByName( jniEnv,
-                //                    "org/saforum/ais/AisInvalidparamException",
-                //                    AIS_ERR_INVALID_PARAM_MSG );
-				break;
-			default:
-                // this should not happen here!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			// TODO dispatch flags are invalid: this check could be done at Java level!
+			//JNU_throwNewByName( jniEnv,
+			//                    "org/saforum/ais/AisInvalidparamException",
+			//                    AIS_ERR_INVALID_PARAM_MSG );
+			break;
+		default:
+			// this should not happen here!
 
-                assert( JNI_FALSE );
+			assert(JNI_FALSE);
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-				break;
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
 		}
-        return; // EXIT POINT!!!
-  	}
-    // normal exit
+		return;		// EXIT POINT!!!
+	}
+	// normal exit
 
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatch() returning normally\n" );
-
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatch() returning normally\n");
 
 }
 
@@ -1026,162 +1022,163 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatc
  *  Method:    invokeSaAmfDispatchWhenReady
  *  Signature: ()V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatchWhenReady(
-    JNIEnv* jniEnv,
-    jobject thisAmfHandle )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatchWhenReady(JNIEnv
+								    *jniEnv,
+								    jobject
+								    thisAmfHandle)
 {
-    // VARIABLES
-    // ais
-    SaAmfHandleT _saAmfHandle;
-    SaAisErrorT _saStatus;
-    SaSelectionObjectT _saSelectionObject;
-    // linux
-    fd_set _readFDs;
-    int _selectStatus;
+	// VARIABLES
+	// ais
+	SaAmfHandleT _saAmfHandle;
+	SaAisErrorT _saStatus;
+	SaSelectionObjectT _saSelectionObject;
+	// linux
+	fd_set _readFDs;
+	int _selectStatus;
 
-    // BODY
+	// BODY
 
-    assert( thisAmfHandle != NULL );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatchWhenReady(...)\n" );
+	assert(thisAmfHandle != NULL);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatchWhenReady(...)\n");
 
-    // get library handle
-    _saAmfHandle = (SaAmfHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           thisAmfHandle,
-                                                           FID_saAmfHandle );
-    // get selection object
-    _saSelectionObject = (SaSelectionObjectT) (*jniEnv)->GetLongField(
-                                                            jniEnv,
-                                                            thisAmfHandle,
-                                                            FID_selectionObject );
-    // wait until there is a pending callback
-    // call select(2)
-    FD_ZERO( &_readFDs );
-    FD_SET( _saSelectionObject, &_readFDs );
-    _selectStatus = select( ( _saSelectionObject + 1 ),
-                            &_readFDs,
-                            NULL,
-                            NULL,
-                            NULL );
+	// get library handle
+	_saAmfHandle = (SaAmfHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     thisAmfHandle,
+							     FID_saAmfHandle);
+	// get selection object
+	_saSelectionObject = (SaSelectionObjectT)(*jniEnv)->GetLongField(jniEnv,
+									 thisAmfHandle,
+									 FID_selectionObject);
+	// wait until there is a pending callback
+	// call select(2)
+	FD_ZERO(&_readFDs);
+	FD_SET(_saSelectionObject, &_readFDs);
+	_selectStatus = select((_saSelectionObject + 1),
+			       &_readFDs, NULL, NULL, NULL);
 
-    _TRACE2( "NATIVE: select(...) has returned with %d...\n", _selectStatus );
+	_TRACE2("NATIVE: select(...) has returned with %d...\n", _selectStatus);
 
-    // error handling
-    if( _selectStatus == -1 ){
-        switch( errno ){
-            case EBADF: // invalid file descriptor
+	// error handling
+	if (_selectStatus == -1) {
+		switch (errno) {
+		case EBADF:	// invalid file descriptor
 
-                // this should not happen here!
-                _TRACE2( "NATIVE ERROR : select(EBADF): invalid file descriptor\n" );
-                assert( JNI_FALSE );
+			// this should not happen here!
+			_TRACE2
+				("NATIVE ERROR : select(EBADF): invalid file descriptor\n");
+			assert(JNI_FALSE);
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case EINTR: // non blocked signal caught
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case EINTR:	// non blocked signal caught
 
-                _TRACE2( "NATIVE ERROR : select(EINTR): non blocked signal caught\n" );
+			_TRACE2
+				("NATIVE ERROR : select(EINTR): non blocked signal caught\n");
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case EINVAL: // n is negative or the value within timeout is invalid
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case EINVAL:	// n is negative or the value within timeout is invalid
 
-                // this should not happen here!
-                _TRACE2( "NATIVE ERROR : select(EINVAL): n is negative or the value within timeout is invalid\n" );
-                assert( JNI_FALSE );
+			// this should not happen here!
+			_TRACE2
+				("NATIVE ERROR : select(EINVAL): n is negative or the value within timeout is invalid\n");
+			assert(JNI_FALSE);
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case ENOMEM: // select was unable to allocate memory for internal tables
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case ENOMEM:	// select was unable to allocate memory for internal tables
 
-                _TRACE2( "NATIVE ERROR : select(ENOMEM): select was unable to allocate memory for internal tables\n" );
+			_TRACE2
+				("NATIVE ERROR : select(ENOMEM): select was unable to allocate memory for internal tables\n");
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoMemoryException",
-                                    AIS_ERR_NO_MEMORY_MSG );
-                break;
-            default:
-                // this should not happen here!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisNoMemoryException",
+					   AIS_ERR_NO_MEMORY_MSG);
+			break;
+		default:
+			// this should not happen here!
 
-                assert( JNI_FALSE );
+			assert(JNI_FALSE);
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-        }
-        return; // EXIT POINT!!!
-    }
-    if( _selectStatus != 1 ){
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		}
+		return;		// EXIT POINT!!!
+	}
+	if (_selectStatus != 1) {
 
-                _TRACE2( "NATIVE ERROR : unexpected select return value!\n" );
+		_TRACE2("NATIVE ERROR : unexpected select return value!\n");
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-        return; // EXIT POINT!!!
-    }
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisLibraryException",
+				   AIS_ERR_LIBRARY_MSG);
+		return;		// EXIT POINT!!!
+	}
+	// call saAmfDispatch
+	_saStatus = saAmfDispatch(_saAmfHandle, SA_DISPATCH_ONE);
 
-    // call saAmfDispatch
-    _saStatus = saAmfDispatch( _saAmfHandle,
-                               SA_DISPATCH_ONE );
+	_TRACE2("NATIVE: saAmfDispatch(...) has returned with %d...\n",
+		_saStatus);
 
-    _TRACE2( "NATIVE: saAmfDispatch(...) has returned with %d...\n", _saStatus );
+	// error handling
+	if (_saStatus != SA_AIS_OK) {
+		switch (_saStatus) {
+		case SA_AIS_ERR_LIBRARY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case SA_AIS_ERR_TIMEOUT:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTimeoutException",
+					   AIS_ERR_TIMEOUT_MSG);
+			break;
+		case SA_AIS_ERR_TRY_AGAIN:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTryAgainException",
+					   AIS_ERR_TRY_AGAIN_MSG);
+			break;
+		case SA_AIS_ERR_BAD_HANDLE:
+			// TODO library handle invalid (e.g finalized): this check could be done at Java level!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisBadHandleException",
+					   AIS_ERR_BAD_HANDLE_MSG);
+			break;
+		case SA_AIS_ERR_INVALID_PARAM:
+			// this should not happen here!
 
+			assert(JNI_FALSE);
 
-    // error handling
-    if( _saStatus != SA_AIS_OK ){
-        switch( _saStatus ){
-            case SA_AIS_ERR_LIBRARY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case SA_AIS_ERR_TIMEOUT:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTimeoutException",
-                                    AIS_ERR_TIMEOUT_MSG );
-                break;
-            case SA_AIS_ERR_TRY_AGAIN:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTryAgainException",
-                                    AIS_ERR_TRY_AGAIN_MSG );
-                break;
-            case SA_AIS_ERR_BAD_HANDLE:
-                // TODO library handle invalid (e.g finalized): this check could be done at Java level!
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisBadHandleException",
-                                    AIS_ERR_BAD_HANDLE_MSG );
-                break;
-            case SA_AIS_ERR_INVALID_PARAM:
-                // this should not happen here!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisInvalidparamException",
+					   AIS_ERR_INVALID_PARAM_MSG);
+			break;
+		default:
+			// this should not happen here!
 
-                assert( JNI_FALSE );
+			assert(JNI_FALSE);
 
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisInvalidparamException",
-                                    AIS_ERR_INVALID_PARAM_MSG );
-                break;
-            default:
-                // this should not happen here!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		}
+		return;		// EXIT POINT!!!
+	}
+	// normal exit
 
-                assert( JNI_FALSE );
-
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-        }
-        return; // EXIT POINT!!!
-    }
-    // normal exit
-
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatchWhenReady() returning normally\n" );
-
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatchWhenReady() returning normally\n");
 
 }
 
@@ -1192,9 +1189,9 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_invokeSaAmfDispatc
  *  Method:    finalizeAmfHandle
  *  Signature: ()V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_finalizeAmfHandle(
-    JNIEnv * jniEnv,
-    jobject thisAmfHandle )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_amf_AmfHandleImpl_finalizeAmfHandle(JNIEnv *jniEnv,
+							 jobject thisAmfHandle)
 {
 	// VARIABLES
 	SaAmfHandleT _saAmfHandle;
@@ -1202,61 +1199,61 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_finalizeAmfHandle(
 
 	// BODY
 
-    assert( thisAmfHandle != NULL );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_finalizeAmfHandle()\n" );
+	assert(thisAmfHandle != NULL);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_finalizeAmfHandle()\n");
 
-
-    // get library handle
-    _saAmfHandle = (SaAmfHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           thisAmfHandle,
-                                                           FID_saAmfHandle );
+	// get library handle
+	_saAmfHandle = (SaAmfHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     thisAmfHandle,
+							     FID_saAmfHandle);
 
 	// call saAmfFinalize
-	_saStatus = saAmfFinalize( _saAmfHandle );
+	_saStatus = saAmfFinalize(_saAmfHandle);
 
-    _TRACE2( "NATIVE: saAmfFinalize(...) has returned with %d...\n", _saStatus );
+	_TRACE2("NATIVE: saAmfFinalize(...) has returned with %d...\n",
+		_saStatus);
 
+	// error handling
+	if (_saStatus != SA_AIS_OK) {
+		switch (_saStatus) {
+		case SA_AIS_ERR_LIBRARY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case SA_AIS_ERR_TIMEOUT:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTimeoutException",
+					   AIS_ERR_TIMEOUT_MSG);
+			break;
+		case SA_AIS_ERR_TRY_AGAIN:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTryAgainException",
+					   AIS_ERR_TRY_AGAIN_MSG);
+			break;
+		case SA_AIS_ERR_BAD_HANDLE:
+			// TODO library handle invalid (e.g finalized): this check could be done at Java level!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisBadHandleException",
+					   AIS_ERR_BAD_HANDLE_MSG);
+			break;
+		default:
+			// this should not happen here!
 
-    // error handling
-  	if( _saStatus != SA_AIS_OK ){
-		switch( _saStatus ){
-			case SA_AIS_ERR_LIBRARY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-				break;
-			case SA_AIS_ERR_TIMEOUT:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTimeoutException",
-                                    AIS_ERR_TIMEOUT_MSG );
-				break;
-			case SA_AIS_ERR_TRY_AGAIN:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTryAgainException",
-                                    AIS_ERR_TRY_AGAIN_MSG );
-				break;
-			case SA_AIS_ERR_BAD_HANDLE:
-                // TODO library handle invalid (e.g finalized): this check could be done at Java level!
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisBadHandleException",
-                                    AIS_ERR_BAD_HANDLE_MSG );
-				break;
-			default:
-                // this should not happen here!
+			assert(JNI_FALSE);
 
-                assert( JNI_FALSE );
-
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-				break;
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
 		}
-        return; // EXIT POINT!!!
-  	}
+		return;		// EXIT POINT!!!
+	}
+	// normal exit
 
-    // normal exit
-
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_finalizeAmfHandle() returning normally\n" );
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_finalizeAmfHandle() returning normally\n");
 
 }
 
@@ -1267,104 +1264,103 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_finalizeAmfHandle(
  *  Method:    response
  *  Signature: (JI)V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_response(
-    JNIEnv * jniEnv,
-    jobject thisAmfHandle,
-    jlong invocation,
-    jobject error )
+JNIEXPORT void JNICALL Java_org_opensaf_ais_amf_AmfHandleImpl_response(JNIEnv
+								       *jniEnv,
+								       jobject
+								       thisAmfHandle,
+								       jlong
+								       invocation,
+								       jobject
+								       error)
 {
-    // VARIABLES
-    SaAmfHandleT _saAmfHandle;
-    SaAisErrorT _saStatus;
+	// VARIABLES
+	SaAmfHandleT _saAmfHandle;
+	SaAisErrorT _saStatus;
 
-    SaAisErrorT _error;
+	SaAisErrorT _error;
 
-    // BODY
+	// BODY
 
-    assert( thisAmfHandle != NULL );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_response()\n" );
+	assert(thisAmfHandle != NULL);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_amf_AmfHandleImpl_response()\n");
 
+	// get library handle
+	_saAmfHandle = (SaAmfHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     thisAmfHandle,
+							     FID_saAmfHandle);
 
-    // get library handle
-    _saAmfHandle = (SaAmfHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           thisAmfHandle,
-                                                           FID_saAmfHandle );
+	// convert AisStatus -> int
+	jclass aisStatusClass = JNU_GetGlobalClassRef(jniEnv,
+						      "org/saforum/ais/AisStatus");
+	jmethodID _MID_AisStatus_getValue = (*jniEnv)->GetMethodID(jniEnv,
+								   aisStatusClass,
+								   "getValue",
+								   "()I");
+	_error = (*jniEnv)->CallIntMethod(jniEnv,
+					  error, _MID_AisStatus_getValue);
 
-    // convert AisStatus -> int
-    jclass aisStatusClass = JNU_GetGlobalClassRef(  jniEnv,
-                                       				"org/saforum/ais/AisStatus" );
-    jmethodID _MID_AisStatus_getValue = (*jniEnv)->GetMethodID( jniEnv,
-                                                            aisStatusClass,
-                                                            "getValue",
-                                                            "()I" );
-    _error = (*jniEnv)->CallIntMethod( jniEnv,
-    								error,
-    								_MID_AisStatus_getValue);
+	// call saAmfResponse
+	_saStatus = saAmfResponse(_saAmfHandle,
+				  (SaInvocationT)invocation, _error);
 
-    // call saAmfResponse
-    _saStatus = saAmfResponse(  _saAmfHandle,
-                                (SaInvocationT) invocation,
-                                _error );
+	_TRACE2("NATIVE: saAmfResponse(...) has returned with %d...\n",
+		_saStatus);
 
+	// error handling
+	if (_saStatus != SA_AIS_OK) {
+		switch (_saStatus) {
+		case SA_AIS_ERR_LIBRARY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		case SA_AIS_ERR_TIMEOUT:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTimeoutException",
+					   AIS_ERR_TIMEOUT_MSG);
+			break;
+		case SA_AIS_ERR_TRY_AGAIN:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisTryAgainException",
+					   AIS_ERR_TRY_AGAIN_MSG);
+			break;
+		case SA_AIS_ERR_BAD_HANDLE:
+			// TODO library handle invalid (e.g finalized): this check could be done at Java level!
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisBadHandleException",
+					   AIS_ERR_BAD_HANDLE_MSG);
+			break;
+		case SA_AIS_ERR_INVALID_PARAM:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisInvalidParamException",
+					   AIS_ERR_INVALID_PARAM_MSG);
+			break;
+		case SA_AIS_ERR_NO_MEMORY:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisNoMemoryException",
+					   AIS_ERR_NO_MEMORY_MSG);
+			break;
+		case SA_AIS_ERR_NO_RESOURCES:
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisNoResourcesException",
+					   AIS_ERR_NO_RESOURCES_MSG);
+			break;
+		default:
+			// this should not happen here!
 
-    _TRACE2( "NATIVE: saAmfResponse(...) has returned with %d...\n", _saStatus );
+			assert(JNI_FALSE);
 
+			JNU_throwNewByName(jniEnv,
+					   "org/saforum/ais/AisLibraryException",
+					   AIS_ERR_LIBRARY_MSG);
+			break;
+		}
+		return;		// EXIT POINT!!!
+	}
+	// normal exit
 
-    // error handling
-    if( _saStatus != SA_AIS_OK ){
-        switch( _saStatus ){
-            case SA_AIS_ERR_LIBRARY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-            case SA_AIS_ERR_TIMEOUT:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTimeoutException",
-                                    AIS_ERR_TIMEOUT_MSG );
-                break;
-            case SA_AIS_ERR_TRY_AGAIN:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisTryAgainException",
-                                    AIS_ERR_TRY_AGAIN_MSG );
-                break;
-            case SA_AIS_ERR_BAD_HANDLE:
-                // TODO library handle invalid (e.g finalized): this check could be done at Java level!
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisBadHandleException",
-                                    AIS_ERR_BAD_HANDLE_MSG );
-                break;
-            case SA_AIS_ERR_INVALID_PARAM:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisInvalidParamException",
-                                    AIS_ERR_INVALID_PARAM_MSG );
-                break;
-            case SA_AIS_ERR_NO_MEMORY:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoMemoryException",
-                                    AIS_ERR_NO_MEMORY_MSG );
-                break;
-            case SA_AIS_ERR_NO_RESOURCES:
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoResourcesException",
-                                    AIS_ERR_NO_RESOURCES_MSG );
-                break;
-            default:
-                // this should not happen here!
-
-                assert( JNI_FALSE );
-
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisLibraryException",
-                                    AIS_ERR_LIBRARY_MSG );
-                break;
-        }
-        return; // EXIT POINT!!!
-    }
-
-    // normal exit
-
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_response() returning normally\n" );
-
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_amf_AmfHandleImpl_response() returning normally\n");
 
 }

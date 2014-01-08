@@ -44,12 +44,9 @@
  *************************************************************************/
 
 // CLASS ais.amf.Healthcheck
-extern jboolean JNU_Healthcheck_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_Healthcheck_initIDs_OK(JNIEnv *jniEnv);
 
 // ENUM ais.amf.Healthcheck$HealthcheckInvocation
-jboolean JNU_HealthcheckInvocation_initIDs_OK(
-    JNIEnv* jniEnv );
+jboolean JNU_HealthcheckInvocation_initIDs_OK(JNIEnv *jniEnv);
 
-
-#endif // J_AIS_AMF_HEALTHCHECK_H_
+#endif				// J_AIS_AMF_HEALTHCHECK_H_

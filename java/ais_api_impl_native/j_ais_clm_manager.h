@@ -44,8 +44,6 @@
  *************************************************************************/
 
 // CLASS ais.clm.ClmHandle
-extern jboolean JNU_ClusterMembershipManager_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ClusterMembershipManager_initIDs_OK(JNIEnv *jniEnv);
 
-
-#endif // J_AIS_CLM_MANAGER_H_
+#endif				// J_AIS_CLM_MANAGER_H_

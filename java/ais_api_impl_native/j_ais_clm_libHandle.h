@@ -49,12 +49,10 @@ extern jfieldID FID_saVersion;
 // MODIFICATION: Added to return ClusterChange instance
 extern jmethodID MID_s_getClusterChange;
 
-
 /*************************************************************************
  * Function declarations
  *************************************************************************/
 
-extern jboolean JNU_ClmHandle_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ClmHandle_initIDs_OK(JNIEnv *jniEnv);
 
-#endif // J_AIS_CLM_LIBHANDLE_H_
+#endif				// J_AIS_CLM_LIBHANDLE_H_
