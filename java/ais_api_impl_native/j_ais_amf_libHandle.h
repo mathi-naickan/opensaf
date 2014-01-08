@@ -50,13 +50,11 @@ extern jmethodID MID_s_invokeCleanupProxiedComponentCallback;
 extern jmethodID MID_s_invokeTrackProtectionGroupCallback;
 extern jfieldID FID_saAmfHandle;
 
-
 /**************************************************************************
  * Function declarations
  *************************************************************************/
 
 // CLASS ais.amf.AmfLibraryHandle
-extern jboolean JNU_AmfHandle_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_AmfHandle_initIDs_OK(JNIEnv *jniEnv);
 
-#endif // J_AIS_AMF_LIBHANDLE_H_
+#endif				// J_AIS_AMF_LIBHANDLE_H_

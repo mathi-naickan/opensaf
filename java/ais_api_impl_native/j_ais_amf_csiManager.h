@@ -44,8 +44,6 @@
  *************************************************************************/
 
 // CLASS ais.amf.CsiManager
-extern jboolean JNU_CsiManager_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_CsiManager_initIDs_OK(JNIEnv *jniEnv);
 
-
-#endif // J_AIS_AMF_CSI_MANAGER_H_
+#endif				// J_AIS_AMF_CSI_MANAGER_H_

@@ -44,8 +44,6 @@
  *************************************************************************/
 
 // CLASS ais.amf.ProcessMonitoring
-extern jboolean JNU_ProcessMonitoring_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ProcessMonitoring_initIDs_OK(JNIEnv *jniEnv);
 
-
-#endif // J_AIS_AMF_PM_H_
+#endif				// J_AIS_AMF_PM_H_

@@ -36,7 +36,7 @@
 #include "j_ais_clm.h"
 #include "j_ais_clm_libHandle.h"
 #include "j_ais_clm_manager.h"
-#include "jni_ais_clm.h" // not really needed, but good for syntax checking!
+#include "jni_ais_clm.h"	// not really needed, but good for syntax checking!
 
 /**************************************************************************
  * Constants
@@ -49,7 +49,7 @@
  * Macros
  *************************************************************************/
 
- // #define IMPL_CLIENT_ALLOC 0 //
+// #define IMPL_CLIENT_ALLOC 0 //
 
 /**************************************************************************
  * Data types and structures
@@ -58,7 +58,6 @@
 /**************************************************************************
  * Variable declarations
  *************************************************************************/
-
 
 /**************************************************************************
  * Variable definitions
@@ -71,66 +70,85 @@ static jfieldID FID_clmLibraryHandle = NULL;
 /**************************************************************************
  * Function declarations
  *************************************************************************/
-/* this function throws appropriate Exception based on the errorcode */  
-void JNU_Exception_Throw(JNIEnv* jniEnv, SaAisErrorT _saStatus);
+/* this function throws appropriate Exception based on the errorcode */
+void JNU_Exception_Throw(JNIEnv *jniEnv, SaAisErrorT _saStatus);
 // CLASS ais.clm.ClusterMembershipManager
-jboolean JNU_ClusterMembershipManager_initIDs_OK(
-    JNIEnv* jniEnv );
-static jboolean JNU_ClusterMembershipManager_initIDs_FromClass_OK(
-    JNIEnv* jniEnv,
-    jclass classClmHandle );
-static void JNU_invokeSaClmClusterTrack_Async(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    const SaUint8T saTrackFlags );
-static jobject JNU_invokeSaClmClusterTrack_Sync(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    const SaUint8T saTrackFlags );
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    const SaUint8T saTrackFlags,
-    jobject sNotificationBuffer );
+jboolean JNU_ClusterMembershipManager_initIDs_OK(JNIEnv *jniEnv);
+static jboolean JNU_ClusterMembershipManager_initIDs_FromClass_OK(JNIEnv
+								  *jniEnv,
+								  jclass
+								  classClmHandle);
+static void JNU_invokeSaClmClusterTrack_Async(JNIEnv *jniEnv,
+					      jobject
+					      thisClusterMembershipManager,
+					      const SaUint8T saTrackFlags);
+static jobject JNU_invokeSaClmClusterTrack_Sync(JNIEnv *jniEnv,
+						jobject
+						thisClusterMembershipManager,
+						const SaUint8T saTrackFlags);
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf(JNIEnv *jniEnv,
+						       jobject
+						       thisClusterMembershipManager,
+						       const SaUint8T
+						       saTrackFlags,
+						       jobject
+						       sNotificationBuffer);
 #ifndef IMPL_CLIENT_ALLOC
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT* saNotificationBufferPtr );
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT_4* saNotificationBufferPtr );
-#else // IMPL_CLIENT_ALLOC
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT* saNotificationBufferPtr,
-    SaClmClusterNotificationT* saNotifications,
-    jboolean* bufferOnStack );
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient_4(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT_4* saNotificationBufferPtr,
-    SaClmClusterNotificationT_4* saNotifications,
-    jboolean* bufferOnStack );
-#endif // IMPL_CLIENT_ALLOC
-static jboolean JNU_callSaClmClusterTrack_Sync(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT* saNotificationBufferPtr,
-    SaAisErrorT* saStatusPtr );
-static jboolean JNU_callSaClmClusterTrack_Sync_4(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT_4* saNotificationBufferPtr,
-    SaAisErrorT* saStatusPtr );
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(JNIEnv *jniEnv,
+								SaClmHandleT
+								saClmHandle,
+								const SaUint8T
+								saTrackFlags,
+								SaClmClusterNotificationBufferT
+								*saNotificationBufferPtr);
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(JNIEnv
+								  *jniEnv,
+								  SaClmHandleT
+								  saClmHandle,
+								  const SaUint8T
+								  saTrackFlags,
+								  SaClmClusterNotificationBufferT_4
+								  *saNotificationBufferPtr);
+#else				// IMPL_CLIENT_ALLOC
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(JNIEnv
+								   *jniEnv,
+								   SaClmHandleT
+								   saClmHandle,
+								   const
+								   SaUint8T
+								   saTrackFlags,
+								   SaClmClusterNotificationBufferT
+								   *saNotificationBufferPtr,
+								   SaClmClusterNotificationT
+								   *saNotifications,
+								   jboolean
+								   *bufferOnStack);
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient_4(JNIEnv
+								     *jniEnv,
+								     SaClmHandleT
+								     saClmHandle,
+								     const
+								     SaUint8T
+								     saTrackFlags,
+								     SaClmClusterNotificationBufferT_4
+								     *saNotificationBufferPtr,
+								     SaClmClusterNotificationT_4
+								     *saNotifications,
+								     jboolean
+								     *bufferOnStack);
+#endif				// IMPL_CLIENT_ALLOC
+static jboolean JNU_callSaClmClusterTrack_Sync(JNIEnv *jniEnv,
+					       SaClmHandleT saClmHandle,
+					       const SaUint8T saTrackFlags,
+					       SaClmClusterNotificationBufferT
+					       *saNotificationBufferPtr,
+					       SaAisErrorT *saStatusPtr);
+static jboolean JNU_callSaClmClusterTrack_Sync_4(JNIEnv *jniEnv,
+						 SaClmHandleT saClmHandle,
+						 const SaUint8T saTrackFlags,
+						 SaClmClusterNotificationBufferT_4
+						 *saNotificationBufferPtr,
+						 SaAisErrorT *saStatusPtr);
 
 /**************************************************************************
  * Function definitions
@@ -149,32 +167,33 @@ static jboolean JNU_callSaClmClusterTrack_Sync_4(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-jboolean JNU_ClusterMembershipManager_initIDs_OK(
-    JNIEnv* jniEnv )
+jboolean JNU_ClusterMembershipManager_initIDs_OK(JNIEnv *jniEnv)
 {
 
-    // BODY
+	// BODY
 
-    _TRACE2( "NATIVE: Executing JNU_ClusterMembershipManager_initIDs_OK(...)\n" );
+	_TRACE2
+		("NATIVE: Executing JNU_ClusterMembershipManager_initIDs_OK(...)\n");
 
-    // get ClusterMembershipManager class & create a global reference right away
-    /*
-    ClassClusterMembershipManager =
-        (*jniEnv)->NewGlobalRef( jniEnv,
-                                 (*jniEnv)->FindClass( jniEnv,
-                                                       "org/opensaf/ais/clm/ClusterMembershipManagerImpl" )
-                               );*/
-    ClassClusterMembershipManager = JNU_GetGlobalClassRef(  jniEnv,
-                                                   			"org/opensaf/ais/clm/ClusterMembershipManagerImpl" );
-    if( ClassClusterMembershipManager == NULL ){
+	// get ClusterMembershipManager class & create a global reference right away
+	/*
+	  ClassClusterMembershipManager =
+	  (*jniEnv)->NewGlobalRef( jniEnv,
+	  (*jniEnv)->FindClass( jniEnv,
+	  "org/opensaf/ais/clm/ClusterMembershipManagerImpl" )
+	  ); */
+	ClassClusterMembershipManager = JNU_GetGlobalClassRef(jniEnv,
+							      "org/opensaf/ais/clm/ClusterMembershipManagerImpl");
+	if (ClassClusterMembershipManager == NULL) {
 
-        _TRACE2( "NATIVE ERROR: ClassClusterMembershipManager is NULL\n" );
+		_TRACE2
+			("NATIVE ERROR: ClassClusterMembershipManager is NULL\n");
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
-
-    // get IDs
-    return JNU_ClusterMembershipManager_initIDs_FromClass_OK( jniEnv, ClassClusterMembershipManager );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
+	// get IDs
+	return JNU_ClusterMembershipManager_initIDs_FromClass_OK(jniEnv,
+								 ClassClusterMembershipManager);
 
 }
 
@@ -187,33 +206,33 @@ jboolean JNU_ClusterMembershipManager_initIDs_OK(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_ClusterMembershipManager_initIDs_FromClass_OK(
-    JNIEnv* jniEnv,
-    jclass classClusterMembershipManager )
+static jboolean JNU_ClusterMembershipManager_initIDs_FromClass_OK(JNIEnv
+								  *jniEnv,
+								  jclass
+								  classClusterMembershipManager)
 {
 
-    // BODY
+	// BODY
 
-    _TRACE2( "NATIVE: Executing JNU_ClusterMembershipManager_initIDs_FromClass_OK(...)\n" );
+	_TRACE2
+		("NATIVE: Executing JNU_ClusterMembershipManager_initIDs_FromClass_OK(...)\n");
 
+	// get field IDs
+	FID_clmLibraryHandle = (*jniEnv)->GetFieldID(jniEnv,
+						     classClusterMembershipManager,
+						     "clmLibraryHandle",
+						     "Lorg/saforum/ais/clm/ClmHandle;");
+	if (FID_clmLibraryHandle == NULL) {
 
-    // get field IDs
-    FID_clmLibraryHandle = (*jniEnv)->GetFieldID(
-                                            jniEnv,
-                                            classClusterMembershipManager,
-                                            "clmLibraryHandle",
-                                            "Lorg/saforum/ais/clm/ClmHandle;" );
-    if( FID_clmLibraryHandle == NULL ){
+		_TRACE2("NATIVE ERROR: FID_clmLibraryHandle is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: FID_clmLibraryHandle is NULL\n" );
+		return JNI_FALSE;	// EXIT POINT! Exception pending...
+	}
 
-        return JNI_FALSE; // EXIT POINT! Exception pending...
-    }
+	_TRACE2
+		("NATIVE: JNU_ClusterMembershipManager_initIDs_FromClass_OK(...) returning normally\n");
 
-
-    _TRACE2( "NATIVE: JNU_ClusterMembershipManager_initIDs_FromClass_OK(...) returning normally\n" );
-
-    return JNI_TRUE;
+	return JNI_TRUE;
 }
 
 /**************************************************************************
@@ -223,18 +242,21 @@ static jboolean JNU_ClusterMembershipManager_initIDs_FromClass_OK(
  *  Method:    getCluster
  *  Signature: ()Lorg/saforum/ais/clm/ClusterNotificationBuffer;
  *************************************************************************/
-JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getCluster__(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager )
+JNIEXPORT jobject JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getCluster__(JNIEnv
+								   *jniEnv,
+								   jobject
+								   thisClusterMembershipManager)
 {
-    // BODY
+	// BODY
 
-    assert( thisClusterMembershipManager != NULL );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getCluster(...)\n" );
-  
-   return JNU_invokeSaClmClusterTrack_Sync( jniEnv,
-                                            thisClusterMembershipManager,
-                                            SA_TRACK_CURRENT );
+	assert(thisClusterMembershipManager != NULL);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getCluster(...)\n");
+
+	return JNU_invokeSaClmClusterTrack_Sync(jniEnv,
+						thisClusterMembershipManager,
+						SA_TRACK_CURRENT);
 }
 
 /**************************************************************************
@@ -244,18 +266,21 @@ JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_
  *  Method:    getClusterAsync
  *  Signature: ()V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync__(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync__(JNIEnv
+									*jniEnv,
+									jobject
+									thisClusterMembershipManager)
 {
 
-    assert( thisClusterMembershipManager != NULL );
-	
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync(...)\n" );
+	assert(thisClusterMembershipManager != NULL);
 
-    JNU_invokeSaClmClusterTrack_Async( jniEnv,
-                                       thisClusterMembershipManager,
-                                       SA_TRACK_CURRENT);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync(...)\n");
+
+	JNU_invokeSaClmClusterTrack_Async(jniEnv,
+					  thisClusterMembershipManager,
+					  SA_TRACK_CURRENT);
 }
 
 /**************************************************************************
@@ -265,46 +290,44 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_get
  *  Method:    getClusterAsyncThenStartTracking
  *  Signature: (Lorg/saforum/ais/TrackFlags;)V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking__Lorg_saforum_ais_TrackFlags_2(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    jobject trackFlags)
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking__Lorg_saforum_ais_TrackFlags_2
+(JNIEnv *jniEnv, jobject thisClusterMembershipManager, jobject trackFlags)
 {
-    // VARIABLES 
-    SaUint8T _saTrackFlags;
+	// VARIABLES
+	SaUint8T _saTrackFlags;
 
-    // BODY
-    
-    assert( thisClusterMembershipManager != NULL );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking(...)\n" );
+	// BODY
 
-    // get track flag 
+	assert(thisClusterMembershipManager != NULL);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking(...)\n");
 
-    if( trackFlags == NULL ){
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisInvalidParamException",
-                            AIS_ERR_INVALID_PARAM_MSG );
-        return; // EXIT POINT! 
-    }
+	// get track flag
 
-    _saTrackFlags = (SaUint8T)
-                    (*jniEnv)->GetIntField( jniEnv,
-                                            trackFlags,
-                                            FID_TF_value );
-   
-    _saTrackFlags |= SA_TRACK_CURRENT;
+	if (trackFlags == NULL) {
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisInvalidParamException",
+				   AIS_ERR_INVALID_PARAM_MSG);
+		return;		// EXIT POINT!
+	}
 
-    // check track flags
-    /*
-    if( JNU_TrackFlagsForChanges_OK( jniEnv, trackFlags ) != JNI_TRUE ) {
-        return; // EXIT POINT! Exception pending...
-    }
-    */
+	_saTrackFlags = (SaUint8T)
+		(*jniEnv)->GetIntField(jniEnv, trackFlags, FID_TF_value);
 
-    // invoke saClmClusterTrack() 
-    JNU_invokeSaClmClusterTrack_Async( jniEnv,
-                                       thisClusterMembershipManager,
-                                       _saTrackFlags );
+	_saTrackFlags |= SA_TRACK_CURRENT;
+
+	// check track flags
+	/*
+	  if ( JNU_TrackFlagsForChanges_OK( jniEnv, trackFlags ) != JNI_TRUE ) {
+	  return; // EXIT POINT! Exception pending...
+	  }
+	*/
+
+	// invoke saClmClusterTrack()
+	JNU_invokeSaClmClusterTrack_Async(jniEnv,
+					  thisClusterMembershipManager,
+					  _saTrackFlags);
 }
 
 /**************************************************************************
@@ -314,45 +337,46 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_get
  *  Method:    startClusterTracking
  *  Signature: (Lorg/saforum/ais/TrackFlags;)V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking__Lorg_saforum_ais_TrackFlags_2(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    jobject trackFlags)
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking__Lorg_saforum_ais_TrackFlags_2
+(JNIEnv *jniEnv, jobject thisClusterMembershipManager, jobject trackFlags)
 {
-    //  VARIABLES 
-    SaUint8T _saTrackFlags;
+	//  VARIABLES
+	SaUint8T _saTrackFlags;
 
-    // BODY
-    assert( thisClusterMembershipManager != NULL );
+	// BODY
+	assert(thisClusterMembershipManager != NULL);
 
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking(...)\n" );
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking(...)\n");
 
-    // get track flag 
-	
-    if( trackFlags == NULL ){
-         JNU_throwNewByName( jniEnv,
-                             "org/saforum/ais/AisInvalidParamException",
-                             AIS_ERR_INVALID_PARAM_MSG );
-   	 return; // EXIT POINT! 
-     }
-	
-     _saTrackFlags = (SaUint8T)(*jniEnv)->GetIntField( jniEnv,
-                                                       trackFlags,
-                                                       FID_TF_value );
-    
-    // check track flags
-    /*
-    if( JNU_TrackFlagsForChanges_OK( jniEnv, trackFlags ) != JNI_TRUE ) {
-        return; // EXIT POINT! Exception pending...
-    }
-    */
+	// get track flag
 
-     // invoke saClmClusterTrack() 
-	
-     JNU_invokeSaClmClusterTrack_Async( jniEnv,
-                                        thisClusterMembershipManager,
-                                        _saTrackFlags );
+	if (trackFlags == NULL) {
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisInvalidParamException",
+				   AIS_ERR_INVALID_PARAM_MSG);
+		return;		// EXIT POINT!
+	}
+
+	_saTrackFlags = (SaUint8T)(*jniEnv)->GetIntField(jniEnv,
+							 trackFlags,
+							 FID_TF_value);
+
+	// check track flags
+	/*
+	  if ( JNU_TrackFlagsForChanges_OK( jniEnv, trackFlags ) != JNI_TRUE ) {
+	  return; // EXIT POINT! Exception pending...
+	  }
+	*/
+
+	// invoke saClmClusterTrack()
+
+	JNU_invokeSaClmClusterTrack_Async(jniEnv,
+					  thisClusterMembershipManager,
+					  _saTrackFlags);
 }
+
 /**************************************************************************
  * FUNCTION:  Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking
  * TYPE:      native method
@@ -360,40 +384,43 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_sta
  *  Method:    getClusterThenStartTracking
  * Signature: (Lorg/saforum/ais/TrackFlags;)Lorg/saforum/ais/clm/ClusterNotificationBuffer;
  *************************************************************************/
-JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking__Lorg_saforum_ais_TrackFlags_2(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    jobject trackFlags )
+JNIEXPORT jobject JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking__Lorg_saforum_ais_TrackFlags_2
+(JNIEnv *jniEnv, jobject thisClusterMembershipManager, jobject trackFlags)
 {
-    // VARIABLES 
-    SaUint8T _saTrackFlags;
+	// VARIABLES
+	SaUint8T _saTrackFlags;
 
-    assert( thisClusterMembershipManager != NULL );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking(...)\n" );
+	assert(thisClusterMembershipManager != NULL);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking(...)\n");
 
-    // get track flag 
+	// get track flag
 
-    if( trackFlags == NULL ){
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisInvalidParamException",
-                            AIS_ERR_INVALID_PARAM_MSG );
-                return NULL; // EXIT POINT! 
-    }
-	
-    _saTrackFlags = (SaUint8T)(*jniEnv)->GetIntField( jniEnv,
-                                                      trackFlags,
-                                                      FID_TF_value );
-    
-    // check track flags
-    /*
-    if( JNU_TrackFlagsForChanges_OK( jniEnv, trackFlags ) != JNI_TRUE ) {
-        return NULL; // EXIT POINT! Exception pending...
-    }
-    */
+	if (trackFlags == NULL) {
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisInvalidParamException",
+				   AIS_ERR_INVALID_PARAM_MSG);
+		return NULL;	// EXIT POINT!
+	}
 
-    return JNU_invokeSaClmClusterTrack_Sync(jniEnv, thisClusterMembershipManager,
-				_saTrackFlags | SA_TRACK_CURRENT );
+	_saTrackFlags = (SaUint8T)(*jniEnv)->GetIntField(jniEnv,
+							 trackFlags,
+							 FID_TF_value);
+
+	// check track flags
+	/*
+	  if ( JNU_TrackFlagsForChanges_OK( jniEnv, trackFlags ) != JNI_TRUE ) {
+	  return NULL; // EXIT POINT! Exception pending...
+	  }
+	*/
+
+	return JNU_invokeSaClmClusterTrack_Sync(jniEnv,
+						thisClusterMembershipManager,
+						_saTrackFlags |
+						SA_TRACK_CURRENT);
 }
+
 /**************************************************************************
  * FUNCTION:  Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_stopClusterTracking
  * TYPE:      native method
@@ -401,45 +428,51 @@ JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_
  *  Method:    stopClusterTracking
  *  Signature: ()V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_stopClusterTracking(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_stopClusterTracking(JNIEnv
+									  *jniEnv,
+									  jobject
+									  thisClusterMembershipManager)
 {
-    // VARIABLES 
-    SaClmHandleT _saClmHandle;
-    SaAisErrorT _saStatus;
+	// VARIABLES
+	SaClmHandleT _saClmHandle;
+	SaAisErrorT _saStatus;
 
-    //JNI
-    jobject _clmLibraryHandle;
+	//JNI
+	jobject _clmLibraryHandle;
 
-    //BODY	
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_stopClusterTracking(...)\n" );
+	//BODY
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_stopClusterTracking(...)\n");
 
-    // get Java library handle 
+	// get Java library handle
 
-    _clmLibraryHandle = (*jniEnv)->GetObjectField( jniEnv,
-                                                   thisClusterMembershipManager,
-                                                   FID_clmLibraryHandle );
-    // get native library handle 
-	
-    _saClmHandle = (SaClmHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           _clmLibraryHandle,
-                                                           FID_saClmHandle );
-     // call saClmClusterTrack 
-     _saStatus = saClmClusterTrackStop( _saClmHandle );
+	_clmLibraryHandle = (*jniEnv)->GetObjectField(jniEnv,
+						      thisClusterMembershipManager,
+						      FID_clmLibraryHandle);
+	// get native library handle
 
-     _TRACE2( "NATIVE: saClmClusterTrackStop(...) has returned with %d...\n", _saStatus );
+	_saClmHandle = (SaClmHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     _clmLibraryHandle,
+							     FID_saClmHandle);
+	// call saClmClusterTrack
+	_saStatus = saClmClusterTrackStop(_saClmHandle);
 
-     // error handling 
-     if( _saStatus != SA_AIS_OK ){
-         JNU_Exception_Throw( jniEnv, _saStatus );       
-         return; // EXIT POINT 
-     }
-     // normal exit
+	_TRACE2("NATIVE: saClmClusterTrackStop(...) has returned with %d...\n",
+		_saStatus);
 
-     _TRACE2( "NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_stopClusterTracking(...) returning normally\n" );
+	// error handling
+	if (_saStatus != SA_AIS_OK) {
+		JNU_Exception_Throw(jniEnv, _saStatus);
+		return;		// EXIT POINT
+	}
+	// normal exit
+
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_stopClusterTracking(...) returning normally\n");
 
 }
+
 /**************************************************************************
  * FUNCTION:  Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNode
  * TYPE:      native method
@@ -447,100 +480,111 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_sto
  *  Method:    getClusterNode
  *  Signature: (IJ)Lorg/saforum/ais/clm/ClusterNode;
  *************************************************************************/
-JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNode(   
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    jint nodeId,
-    jlong timeout )
+JNIEXPORT jobject JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNode(JNIEnv
+								     *jniEnv,
+								     jobject
+								     thisClusterMembershipManager,
+								     jint
+								     nodeId,
+								     jlong
+								     timeout)
 {
 
-    // VARIABLES
-    SaClmHandleT _saClmHandle;
-    SaClmClusterNodeT _saClusterNode;
-    SaClmClusterNodeT_4 _saClusterNode4;
-    SaAisErrorT _saStatus;
-    // JNI
-    jobject _clmLibraryHandle;
-    jobject _saVersion;
-    jshort _majorVersion;
-    jshort _minorVersion; 
+	// VARIABLES
+	SaClmHandleT _saClmHandle;
+	SaClmClusterNodeT _saClusterNode;
+	SaClmClusterNodeT_4 _saClusterNode4;
+	SaAisErrorT _saStatus;
+	// JNI
+	jobject _clmLibraryHandle;
+	jobject _saVersion;
+	jshort _majorVersion;
+	jshort _minorVersion;
 
-    // BODY
+	// BODY
 
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNode(...)\n" );
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNode(...)\n");
 
+	// get Java library handle
+	_clmLibraryHandle = (*jniEnv)->GetObjectField(jniEnv,
+						      thisClusterMembershipManager,
+						      FID_clmLibraryHandle);
+	// get native library handle
+	_saClmHandle = (SaClmHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     _clmLibraryHandle,
+							     FID_saClmHandle);
 
-    // get Java library handle
-    _clmLibraryHandle = (*jniEnv)->GetObjectField( jniEnv,
-                                                   thisClusterMembershipManager,
-                                                   FID_clmLibraryHandle );
-    // get native library handle
-    _saClmHandle = (SaClmHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           _clmLibraryHandle,
-                                                           FID_saClmHandle );
+	// get Version
+	_saVersion = (*jniEnv)->GetObjectField(jniEnv,
+					       _clmLibraryHandle,
+					       FID_saVersion);
 
-   // get Version
-   _saVersion = (*jniEnv)->GetObjectField( jniEnv,
-                                           _clmLibraryHandle,
-                                           FID_saVersion );								
-    
-    _majorVersion = (*jniEnv)->GetShortField( jniEnv,
-                                           _saVersion,
-                                           FID_majorVersion );
+	_majorVersion = (*jniEnv)->GetShortField(jniEnv,
+						 _saVersion, FID_majorVersion);
 
-    _minorVersion = (*jniEnv)->GetShortField( jniEnv,
-                                           _saVersion,
-                                           FID_minorVersion );
+	_minorVersion = (*jniEnv)->GetShortField(jniEnv,
+						 _saVersion, FID_minorVersion);
 
-    if( _majorVersion == 1 && _minorVersion == 1 ) 
-        U_printSaClusterNode( "NATIVE: Native Cluster Node info BEFORE calling saClmClusterNodeGet: \n", &_saClusterNode );
-    else
-        U_printSaClusterNode_4( "NATIVE: Native Cluster Node info BEFORE calling saClmClusterNodeGet: \n", &_saClusterNode4 ); 
+	if (_majorVersion == 1 && _minorVersion == 1)
+		U_printSaClusterNode
+			("NATIVE: Native Cluster Node info BEFORE calling saClmClusterNodeGet: \n",
+			 &_saClusterNode);
+	else
+		U_printSaClusterNode_4
+			("NATIVE: Native Cluster Node info BEFORE calling saClmClusterNodeGet: \n",
+			 &_saClusterNode4);
 
-    // call saClmClusterNodeGet
+	// call saClmClusterNodeGet
 
-    if( _majorVersion == 1 && _minorVersion == 1 ){
+	if (_majorVersion == 1 && _minorVersion == 1) {
 
-             _saStatus = saClmClusterNodeGet( _saClmHandle,
-                                             (SaClmNodeIdT) nodeId,
-                                             (SaTimeT) timeout,
-                                             &_saClusterNode );
+		_saStatus = saClmClusterNodeGet(_saClmHandle,
+						(SaClmNodeIdT)nodeId,
+						(SaTimeT)timeout,
+						&_saClusterNode);
 
-             _TRACE2( "NATIVE: saClmClusterNodeGet(...) has returned with %d...\n", _saStatus );
+		_TRACE2
+			("NATIVE: saClmClusterNodeGet(...) has returned with %d...\n",
+			 _saStatus);
 
+		U_printSaClusterNode
+			("NATIVE: Native Cluster Node info AFTER calling saClmClusterNodeGet: \n",
+			 &_saClusterNode);
+	} else {
 
-             U_printSaClusterNode( "NATIVE: Native Cluster Node info AFTER calling saClmClusterNodeGet: \n", &_saClusterNode );
-    }
-    else{
-    
-              _saStatus = saClmClusterNodeGet_4( _saClmHandle,
-                                                (SaClmNodeIdT) nodeId,
-                                                (SaTimeT) timeout,
-                                                &_saClusterNode4 );
+		_saStatus = saClmClusterNodeGet_4(_saClmHandle,
+						  (SaClmNodeIdT)nodeId,
+						  (SaTimeT)timeout,
+						  &_saClusterNode4);
 
-              _TRACE2( "NATIVE: saClmClusterNodeGet(...) has returned with %d...\n", _saStatus );
+		_TRACE2
+			("NATIVE: saClmClusterNodeGet(...) has returned with %d...\n",
+			 _saStatus);
 
+		U_printSaClusterNode_4
+			("NATIVE: Native Cluster Node info AFTER calling saClmClusterNodeGet_4: \n",
+			 &_saClusterNode4);
+	}
 
-              U_printSaClusterNode_4( "NATIVE: Native Cluster Node info AFTER calling saClmClusterNodeGet_4: \n", &_saClusterNode4 );
-    }
+	// error handling
+	if (_saStatus != SA_AIS_OK) {
+		JNU_Exception_Throw(jniEnv, _saStatus);
+		return NULL;	// EXIT POINT!!!
+	}
 
-    // error handling
-    if( _saStatus != SA_AIS_OK ){
-        JNU_Exception_Throw( jniEnv, _saStatus );
-        return NULL; // EXIT POINT!!!
-    }
+	// normal exit, at least so it seems...
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNode(...) returning normally\n");
 
+	// create cluster node
+	if (_majorVersion == 1 && _minorVersion == 1)
 
-    // normal exit, at least so it seems...
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNode(...) returning normally\n" );
+		return JNU_ClusterNode_create(jniEnv, &_saClusterNode);
+	else
 
-    // create cluster node
-    if( _majorVersion ==1 && _minorVersion ==1 )
-         
-        return JNU_ClusterNode_create( jniEnv, &_saClusterNode );
-    else
-
-        return JNU_ClusterNode_create_4( jniEnv, &_saClusterNode4 );
+		return JNU_ClusterNode_create_4(jniEnv, &_saClusterNode4);
 }
 
 /**************************************************************************
@@ -550,51 +594,57 @@ JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_
  *  Method:    getClusterNodeAsync
  *  Signature: (JI)V
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNodeAsync(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    jlong saInvocation,
-    jint nodeId )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNodeAsync(JNIEnv
+									  *jniEnv,
+									  jobject
+									  thisClusterMembershipManager,
+									  jlong
+									  saInvocation,
+									  jint
+									  nodeId)
 {
 
-    // VARIABLES
-    //
-    SaClmHandleT _saClmHandle;
-    SaAisErrorT _saStatus;
-    // JNI
-    jobject _clmLibraryHandle;
+	// VARIABLES
+	//
+	SaClmHandleT _saClmHandle;
+	SaAisErrorT _saStatus;
+	// JNI
+	jobject _clmLibraryHandle;
 
-    // BODY
+	// BODY
 
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNodeAsync(...)\n" );
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNodeAsync(...)\n");
 
-    // get Java library handle
-    _clmLibraryHandle = (*jniEnv)->GetObjectField( jniEnv,
-                                                   thisClusterMembershipManager,
-                                                   FID_clmLibraryHandle );
-    // get native library handle
-    _saClmHandle = (SaClmHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           _clmLibraryHandle,
-                                                           FID_saClmHandle );
-    // call saClmClusterNodeGetAsync
-    _saStatus = saClmClusterNodeGetAsync( _saClmHandle,
-                                         (SaInvocationT) saInvocation,
-                                         (SaClmNodeIdT) nodeId );
+	// get Java library handle
+	_clmLibraryHandle = (*jniEnv)->GetObjectField(jniEnv,
+						      thisClusterMembershipManager,
+						      FID_clmLibraryHandle);
+	// get native library handle
+	_saClmHandle = (SaClmHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     _clmLibraryHandle,
+							     FID_saClmHandle);
+	// call saClmClusterNodeGetAsync
+	_saStatus = saClmClusterNodeGetAsync(_saClmHandle,
+					     (SaInvocationT)saInvocation,
+					     (SaClmNodeIdT)nodeId);
 
-    _TRACE2( "NATIVE: saClmClusterNodeGetAsync(...) has returned with %d...\n", _saStatus );
+	_TRACE2
+		("NATIVE: saClmClusterNodeGetAsync(...) has returned with %d...\n",
+		 _saStatus);
 
+	// error handling
+	if (_saStatus != SA_AIS_OK) {
+		JNU_Exception_Throw(jniEnv, _saStatus);
+		return;		// EXIT POINT!!!
+	}
+	// normal exit
 
-    // error handling
-    if( _saStatus != SA_AIS_OK ){
-        JNU_Exception_Throw( jniEnv, _saStatus );        
-        return; // EXIT POINT!!!
-    }
-    // normal exit
-
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNodeAsync(...) returning normally\n" );
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterNodeAsync(...) returning normally\n");
 
 }
-
 
 /**************************************************************************
  * FUNCTION:      JNU_invokeSaClmClusterTrack_Async
@@ -605,76 +655,79 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_get
  *   returns:     none
  * NOTE:
  *************************************************************************/
-static void JNU_invokeSaClmClusterTrack_Async(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    const SaUint8T saTrackFlags )
+static void JNU_invokeSaClmClusterTrack_Async(JNIEnv *jniEnv,
+					      jobject
+					      thisClusterMembershipManager,
+					      const SaUint8T saTrackFlags)
 {
-    // VARIABLES
-    SaClmHandleT _saClmHandle;
-    SaAisErrorT _saStatus;
-    // JNI
-    jobject _clmLibraryHandle;
-    jobject _saVersion;
-    jshort _majorversion;
-    jshort _minorversion;
+	// VARIABLES
+	SaClmHandleT _saClmHandle;
+	SaAisErrorT _saStatus;
+	// JNI
+	jobject _clmLibraryHandle;
+	jobject _saVersion;
+	jshort _majorversion;
+	jshort _minorversion;
 
-    // BODY
+	// BODY
 
-    assert( thisClusterMembershipManager != NULL );
-    assert( ( saTrackFlags & ( ~ ( SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY | SA_TRACK_LOCAL | SA_TRACK_START_STEP | SA_TRACK_VALIDATE_STEP ))) == 0 );
-    _TRACE2( "NATIVE: Executing JNU_invokeSaClmClusterTrack_Async(.TrackFlags %d..)\n", saTrackFlags );
+	assert(thisClusterMembershipManager != NULL);
+	assert((saTrackFlags &
+		(~
+		 (SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY |
+		  SA_TRACK_LOCAL | SA_TRACK_START_STEP |
+		  SA_TRACK_VALIDATE_STEP))) == 0);
+	_TRACE2
+		("NATIVE: Executing JNU_invokeSaClmClusterTrack_Async(.TrackFlags %d..)\n",
+		 saTrackFlags);
 
+	// get Java library handle
+	_clmLibraryHandle = (*jniEnv)->GetObjectField(jniEnv,
+						      thisClusterMembershipManager,
+						      FID_clmLibraryHandle);
+	// get native library handle
+	_saClmHandle = (SaClmHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     _clmLibraryHandle,
+							     FID_saClmHandle);
 
-    // get Java library handle
-    _clmLibraryHandle = (*jniEnv)->GetObjectField( jniEnv,
-                                                   thisClusterMembershipManager,
-                                                   FID_clmLibraryHandle );
-    // get native library handle
-    _saClmHandle = (SaClmHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           _clmLibraryHandle,
-                                                           FID_saClmHandle );
+	//get Version
+	_saVersion = (*jniEnv)->GetObjectField(jniEnv,
+					       _clmLibraryHandle,
+					       FID_saVersion);
 
-    //get Version
-    _saVersion = (*jniEnv)->GetObjectField( jniEnv,
-                                            _clmLibraryHandle,
-                                            FID_saVersion );					   		
+	_majorversion = (*jniEnv)->GetShortField(jniEnv,
+						 _saVersion, FID_majorVersion);
 
-    _majorversion = (*jniEnv)->GetShortField( jniEnv,
-                                              _saVersion,
-                                              FID_majorVersion );
+	_minorversion = (*jniEnv)->GetShortField(jniEnv,
+						 _saVersion, FID_minorVersion);
+	// call saClmClusterTrack based on version
 
-    _minorversion = (*jniEnv)->GetShortField( jniEnv,
-                                              _saVersion,
-                                              FID_minorVersion );										
-    // call saClmClusterTrack based on version
+	if (_majorversion == 1 && _minorversion == 1) {
 
-    if( _majorversion == 1 && _minorversion == 1 ){
-   
-    _saStatus = saClmClusterTrack( _saClmHandle,
-                                     saTrackFlags,
-                                     NULL );
+		_saStatus = saClmClusterTrack(_saClmHandle, saTrackFlags, NULL);
 
-    _TRACE2( "NATIVE: saClmClusterTrack(...) has returned with %d...\n", _saStatus );
-    }
-    else{
+		_TRACE2
+			("NATIVE: saClmClusterTrack(...) has returned with %d...\n",
+			 _saStatus);
+	} else {
 
-    _saStatus = saClmClusterTrack_4( _saClmHandle,
-                                     saTrackFlags,
-                                     NULL );
+		_saStatus = saClmClusterTrack_4(_saClmHandle,
+						saTrackFlags, NULL);
 
-    _TRACE2( "NATIVE: saClmClusterTrack_4(...) has returned with %d...\n", _saStatus );
-    }
+		_TRACE2
+			("NATIVE: saClmClusterTrack_4(...) has returned with %d...\n",
+			 _saStatus);
+	}
 
-    // error handling
-    if( _saStatus != SA_AIS_OK ){
-        JNU_Exception_Throw( jniEnv, _saStatus );
-        return; // EXIT POINT! Exception pending...
-    }
+	// error handling
+	if (_saStatus != SA_AIS_OK) {
+		JNU_Exception_Throw(jniEnv, _saStatus);
+		return;		// EXIT POINT! Exception pending...
+	}
+	// normal exit
 
-    // normal exit
-
-    _TRACE2( "NATIVE: JNU_invokeSaClmClusterTrack_Async(...) returning normally\n" );
+	_TRACE2
+		("NATIVE: JNU_invokeSaClmClusterTrack_Async(...) returning normally\n");
 
 }
 
@@ -686,44 +739,44 @@ static void JNU_invokeSaClmClusterTrack_Async(
  *   parameters:  TODO
  *   returns:     TODO
  *************************************************************************/
-static jobject JNU_invokeSaClmClusterTrack_Sync(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    const SaUint8T saTrackFlags )
+static jobject JNU_invokeSaClmClusterTrack_Sync(JNIEnv *jniEnv,
+						jobject
+						thisClusterMembershipManager,
+						const SaUint8T saTrackFlags)
 {
-    // VARIABLES
-    // JNI
-    jobject _sClusterNotificationBuffer;
+	// VARIABLES
+	// JNI
+	jobject _sClusterNotificationBuffer;
 
-    // BODY
+	// BODY
 
-    assert( thisClusterMembershipManager != NULL );
-    _TRACE2( "NATIVE: Executing JNU_getClusterNotificationBuffer(...)\n" );
+	assert(thisClusterMembershipManager != NULL);
+	_TRACE2("NATIVE: Executing JNU_getClusterNotificationBuffer(...)\n");
 
+	// create new ClusterNotificationBuffer object
+	_sClusterNotificationBuffer = (*jniEnv)->NewObject(jniEnv,
+							   ClassClusterNotificationBuffer,
+							   CID_ClusterNotificationBuffer_constructor);
+	if (_sClusterNotificationBuffer == NULL) {
 
-    // create new ClusterNotificationBuffer object
-    _sClusterNotificationBuffer = (*jniEnv)->NewObject( jniEnv,
-                                           ClassClusterNotificationBuffer,
-                                           CID_ClusterNotificationBuffer_constructor );
-    if( _sClusterNotificationBuffer == NULL ){
+		_TRACE2("NATIVE ERROR: _sClusterNotificationBuffer is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: _sClusterNotificationBuffer is NULL\n" );
+		return NULL;	// EXIT POINT! Exception pending...
+	}
+	// invoke saClmClusterTrack
+	if (JNU_invokeSaClmClusterTrack_SyncNtfBuf(jniEnv,
+						   thisClusterMembershipManager,
+						   saTrackFlags,
+						   _sClusterNotificationBuffer)
+	    != JNI_TRUE) {
+		return NULL;	// EXIT POINT! Exception pending...
+	}
+	// normal exit
 
-        return NULL; // EXIT POINT! Exception pending...
-    }
-    // invoke saClmClusterTrack
-    if( JNU_invokeSaClmClusterTrack_SyncNtfBuf( jniEnv,
-                                          thisClusterMembershipManager,
-                                          saTrackFlags,
-                                          _sClusterNotificationBuffer ) != JNI_TRUE ){
-        return NULL; // EXIT POINT! Exception pending...
-    }
+	_TRACE2
+		("NATIVE: JNU_getClusterNotificationBuffer(...) returning normally\n");
 
-    // normal exit
-
-    _TRACE2( "NATIVE: JNU_getClusterNotificationBuffer(...) returning normally\n" );
-
-    return _sClusterNotificationBuffer;
+	return _sClusterNotificationBuffer;
 }
 
 /**************************************************************************
@@ -735,156 +788,157 @@ static jobject JNU_invokeSaClmClusterTrack_Sync(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    const SaUint8T saTrackFlags,
-    jobject sNotificationBuffer )
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf(JNIEnv *jniEnv,
+						       jobject
+						       thisClusterMembershipManager,
+						       const SaUint8T
+						       saTrackFlags,
+						       jobject
+						       sNotificationBuffer)
 {
-    // VARIABLES
-    SaClmHandleT _saClmHandle;
-    SaClmClusterNotificationBufferT_4 _saNotificationBuffer4;
-    SaClmClusterNotificationBufferT _saNotificationBuffer;
-    // JNI
-    jobject _clmLibraryHandle;
-    jobject _saVersion;
-    jshort _majorversion;
-    jshort _minorversion;
-    jboolean _ok = JNI_TRUE;
+	// VARIABLES
+	SaClmHandleT _saClmHandle;
+	SaClmClusterNotificationBufferT_4 _saNotificationBuffer4;
+	SaClmClusterNotificationBufferT _saNotificationBuffer;
+	// JNI
+	jobject _clmLibraryHandle;
+	jobject _saVersion;
+	jshort _majorversion;
+	jshort _minorversion;
+	jboolean _ok = JNI_TRUE;
 #ifndef IMPL_CLIENT_ALLOC
-    // if we use JNU_invokeSaClmClusterTrack_SyncAllocAPI, then the API reserves
-    // the buffer from the heap
-    jboolean _bufferOnStack = JNI_FALSE;
-#else // IMPL_CLIENT_ALLOC
-    // if we use JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient, then initially we try to
-    // create the buffer on the stack (if the default size for the buffer is not enough,
-    // we will then allocate the buffer from the heap and then we change thi initial
-    // value.
-    jboolean _bufferOnStack = JNI_TRUE;
-    SaClmClusterNotificationT _saNotifications[DEFAULT_NUMBER_OF_ITEMS];
-    SaClmClusterNotificationT_4 _saNotifications4[DEFAULT_NUMBER_OF_ITEMS];
-    // this is not really necessary, but may be useful to catch bugs...
-    memset( _saNotifications,
-            0,
-            ( DEFAULT_NUMBER_OF_ITEMS * sizeof(SaClmClusterNotificationT) ) );
-    memset( _saNotifications4,
-            0,
-            ( DEFAULT_NUMBER_OF_ITEMS * sizeof(SaClmClusterNotificationT_4) ) );
-#endif // IMPL_CLIENT_ALLOC
+	// if we use JNU_invokeSaClmClusterTrack_SyncAllocAPI, then the API reserves
+	// the buffer from the heap
+	jboolean _bufferOnStack = JNI_FALSE;
+#else				// IMPL_CLIENT_ALLOC
+	// if we use JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient, then initially we try to
+	// create the buffer on the stack (if the default size for the buffer is not enough,
+	// we will then allocate the buffer from the heap and then we change thi initial
+	// value.
+	jboolean _bufferOnStack = JNI_TRUE;
+	SaClmClusterNotificationT _saNotifications[DEFAULT_NUMBER_OF_ITEMS];
+	SaClmClusterNotificationT_4 _saNotifications4[DEFAULT_NUMBER_OF_ITEMS];
+	// this is not really necessary, but may be useful to catch bugs...
+	memset(_saNotifications,
+	       0,
+	       (DEFAULT_NUMBER_OF_ITEMS * sizeof(SaClmClusterNotificationT)));
+	memset(_saNotifications4,
+	       0,
+	       (DEFAULT_NUMBER_OF_ITEMS * sizeof(SaClmClusterNotificationT_4)));
+#endif				// IMPL_CLIENT_ALLOC
 
+	// BODY
 
-    // BODY
+	assert(thisClusterMembershipManager != NULL);
 
-    assert( thisClusterMembershipManager != NULL );
-    
-    assert( (saTrackFlags & ( ~ ( SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY | SA_TRACK_LOCAL | SA_TRACK_START_STEP | SA_TRACK_VALIDATE_STEP ))) == 0);
-    assert( sNotificationBuffer != NULL );
-    _TRACE2( "NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf(...)\n" );
-    _TRACE2( "NATIVE: _saNotificationBuffer: %p\n", &_saNotificationBuffer );
+	assert((saTrackFlags &
+		(~
+		 (SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY |
+		  SA_TRACK_LOCAL | SA_TRACK_START_STEP |
+		  SA_TRACK_VALIDATE_STEP))) == 0);
+	assert(sNotificationBuffer != NULL);
+	_TRACE2
+		("NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf(...)\n");
+	_TRACE2("NATIVE: _saNotificationBuffer: %p\n", &_saNotificationBuffer);
 
+	// get Java library handle
+	_clmLibraryHandle = (*jniEnv)->GetObjectField(jniEnv,
+						      thisClusterMembershipManager,
+						      FID_clmLibraryHandle);
+	// get native library handle
+	_saClmHandle = (SaClmHandleT)(*jniEnv)->GetLongField(jniEnv,
+							     _clmLibraryHandle,
+							     FID_saClmHandle);
 
-    // get Java library handle
-    _clmLibraryHandle = (*jniEnv)->GetObjectField( jniEnv,
-                                                   thisClusterMembershipManager,
-                                                   FID_clmLibraryHandle );
-    // get native library handle
-    _saClmHandle = (SaClmHandleT) (*jniEnv)->GetLongField( jniEnv,
-                                                           _clmLibraryHandle,
-                                                           FID_saClmHandle );
+	// get version
+	_saVersion = (*jniEnv)->GetObjectField(jniEnv,
+					       _clmLibraryHandle,
+					       FID_saVersion);
 
-    // get version 
-    _saVersion = (*jniEnv)->GetObjectField( jniEnv,
-                                            _clmLibraryHandle,
-                                            FID_saVersion ); 
+	_majorversion = (*jniEnv)->GetShortField(jniEnv,
+						 _saVersion, FID_majorVersion);
 
-    _majorversion = (*jniEnv)->GetShortField( jniEnv,
-                                            _saVersion,
-                                            FID_majorVersion );
+	_minorversion = (*jniEnv)->GetShortField(jniEnv,
+						 _saVersion, FID_minorVersion);
 
-    _minorversion = (*jniEnv)->GetShortField( jniEnv,
-                                            _saVersion,
-                                            FID_minorVersion );   
-   	
-    if( _majorversion == 1 && _minorversion == 1 ){ 
-         // call saClmClusterTrack
-         #ifndef IMPL_CLIENT_ALLOC
-            if( JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(
-                                                                jniEnv,
-                                                                _saClmHandle,
-                                                                saTrackFlags,
-                                                                &_saNotificationBuffer ) != JNI_TRUE ){
-                    // error, some exception has been thrown already!
-                     return JNI_FALSE; // EXIT POINT!!!
-            }
-         #else // IMPL_CLIENT_ALLOC
-            if( JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(
-                                                                   jniEnv,
-                                                                   _saClmHandle,
-                                                                   saTrackFlags,
-                                                                   &_saNotificationBuffer,
-                                                                   _saNotifications,
-                                                                   &_bufferOnStack ) != JNI_TRUE ){
-        // error, some exception has been thrown already!
-                      return JNI_FALSE; // EXIT POINT!!!
-            }
-         #endif // IMPL_CLIENT_ALLOC
-     }
-    else{
+	if (_majorversion == 1 && _minorversion == 1) {
+		// call saClmClusterTrack
+#ifndef IMPL_CLIENT_ALLOC
+		if (JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(jniEnv,
+								    _saClmHandle,
+								    saTrackFlags,
+								    &_saNotificationBuffer)
+		    != JNI_TRUE) {
+			// error, some exception has been thrown already!
+			return JNI_FALSE;	// EXIT POINT!!!
+		}
+#else				// IMPL_CLIENT_ALLOC
+		if (JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(jniEnv,
+								       _saClmHandle,
+								       saTrackFlags,
+								       &_saNotificationBuffer,
+								       _saNotifications,
+								       &_bufferOnStack)
+		    != JNI_TRUE) {
+			// error, some exception has been thrown already!
+			return JNI_FALSE;	// EXIT POINT!!!
+		}
+#endif				// IMPL_CLIENT_ALLOC
+	} else {
 
-         #ifndef IMPL_CLIENT_ALLOC
-            if( JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(
-                                                                  jniEnv,
-                                                                  _saClmHandle,
-                                                                  saTrackFlags,
-                                                                  &_saNotificationBuffer4 ) != JNI_TRUE ){
-                 // error, some exception has been thrown already!
-                    return JNI_FALSE; // EXIT POINT!!!
-            }
-         #else // IMPL_CLIENT_ALLOC
-         if( JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient_4(
-                                                                  jniEnv,
-                                                                  _saClmHandle,
-                                                                  saTrackFlags,
-                                                                  &_saNotificationBuffer4,
-                                                                  _saNotifications4,
-                                                                  &_bufferOnStack ) != JNI_TRUE ){
-                  // error, some exception has been thrown already!
-                    return JNI_FALSE; // EXIT POINT!!!
-         }
-         #endif // IMPL_CLIENT_ALLOC
-    }
-         if( _majorversion == 1 && _minorversion == 1 ){
-                 // process results
-               if( JNU_ClusterNotificationBuffer_set( jniEnv,
-                                                      sNotificationBuffer,
-                                                      &_saNotificationBuffer ) != JNI_TRUE ){
-                    _ok = JNI_FALSE;
-               }
+#ifndef IMPL_CLIENT_ALLOC
+		if (JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(jniEnv,
+								      _saClmHandle,
+								      saTrackFlags,
+								      &_saNotificationBuffer4)
+		    != JNI_TRUE) {
+			// error, some exception has been thrown already!
+			return JNI_FALSE;	// EXIT POINT!!!
+		}
+#else				// IMPL_CLIENT_ALLOC
+		if (JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient_4(jniEnv,
+									 _saClmHandle,
+									 saTrackFlags,
+									 &_saNotificationBuffer4,
+									 _saNotifications4,
+									 &_bufferOnStack)
+		    != JNI_TRUE) {
+			// error, some exception has been thrown already!
+			return JNI_FALSE;	// EXIT POINT!!!
+		}
+#endif				// IMPL_CLIENT_ALLOC
+	}
+	if (_majorversion == 1 && _minorversion == 1) {
+		// process results
+		if (JNU_ClusterNotificationBuffer_set(jniEnv,
+						      sNotificationBuffer,
+						      &_saNotificationBuffer) !=
+		    JNI_TRUE) {
+			_ok = JNI_FALSE;
+		}
+		// free notification buffer
+		if ((_saNotificationBuffer.notification != NULL)
+		    && (_bufferOnStack == JNI_FALSE)) {
+			free(_saNotificationBuffer.notification);
+		}
+	} else {
 
-                 // free notification buffer
-          if( ( _saNotificationBuffer.notification != NULL ) && ( _bufferOnStack == JNI_FALSE ) ){
-                     free( _saNotificationBuffer.notification );
-               }
-         }
-         else{
-         
-               if( JNU_ClusterNotificationBuffer_set_4( jniEnv,
-                                                        sNotificationBuffer,
-                                                        &_saNotificationBuffer4 ) != JNI_TRUE ){
-                    _ok = JNI_FALSE;
-               }
+		if (JNU_ClusterNotificationBuffer_set_4(jniEnv,
+							sNotificationBuffer,
+							&_saNotificationBuffer4)
+		    != JNI_TRUE) {
+			_ok = JNI_FALSE;
+		}
+		// free notification buffer
+		if ((_saNotificationBuffer4.notification != NULL) &&
+		    (_bufferOnStack == JNI_FALSE)) {
+			free(_saNotificationBuffer4.notification);
+		}
 
-            // free notification buffer
-               if( ( _saNotificationBuffer4.notification != NULL ) &&
-                   ( _bufferOnStack == JNI_FALSE ) ){
-                       free( _saNotificationBuffer4.notification );
-               }
+	}
 
-         }
- 
-       return _ok;
+	return _ok;
 }
-
 
 #ifndef IMPL_CLIENT_ALLOC
 
@@ -897,44 +951,50 @@ static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT* saNotificationBufferPtr )
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(JNIEnv *jniEnv,
+								SaClmHandleT
+								saClmHandle,
+								const SaUint8T
+								saTrackFlags,
+								SaClmClusterNotificationBufferT
+								*saNotificationBufferPtr)
 {
-    // VARIABLES
-    SaAisErrorT _saStatus;
+	// VARIABLES
+	SaAisErrorT _saStatus;
 
-    // BODY
+	// BODY
 
-    // assert( saClmHandle != (SaClmHandleT) NULL );
-    assert( (saTrackFlags & ( ~ ( SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY | SA_TRACK_LOCAL ))) == 0);
-    assert( saNotificationBufferPtr != NULL );
-    _TRACE2( "NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(...)\n" );
+	// assert( saClmHandle != (SaClmHandleT) NULL );
+	assert((saTrackFlags &
+		(~
+		 (SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY |
+		  SA_TRACK_LOCAL))) == 0);
+	assert(saNotificationBufferPtr != NULL);
+	_TRACE2
+		("NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(...)\n");
 
+	// init notification buffer
+	saNotificationBufferPtr->viewNumber = 0;
+	saNotificationBufferPtr->numberOfItems = 0;
+	saNotificationBufferPtr->notification = NULL;	// let AIS to reserve the memory
+	// call saClmClusterTrack
+	if (JNU_callSaClmClusterTrack_Sync(jniEnv,
+					   saClmHandle,
+					   saTrackFlags,
+					   saNotificationBufferPtr,
+					   &_saStatus) != JNI_TRUE) {
+		// error, some exception has been thrown already!
+		// TODO handle NO_SPACE case!!
+		return JNI_FALSE;	// EXIT POINT!!!
+	}
+	// normal exit
 
-    // init notification buffer
-    saNotificationBufferPtr->viewNumber = 0;
-    saNotificationBufferPtr->numberOfItems = 0;
-    saNotificationBufferPtr->notification = NULL; // let AIS to reserve the memory
-    // call saClmClusterTrack
-    if( JNU_callSaClmClusterTrack_Sync( jniEnv,
-                                        saClmHandle,
-                                        saTrackFlags,
-                                        saNotificationBufferPtr,
-                                        &_saStatus ) != JNI_TRUE ){
-        // error, some exception has been thrown already!
-        // TODO handle NO_SPACE case!!
-        return JNI_FALSE; // EXIT POINT!!!
-    }
-    // normal exit
+	_TRACE2
+		("NATIVE: JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(...) returning normally\n");
 
-    _TRACE2( "NATIVE: JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(...) returning normally\n" );
-
-    return JNI_TRUE;
+	return JNI_TRUE;
 }
-#else // IMPL_CLIENT_ALLOC
+#else				// IMPL_CLIENT_ALLOC
 /**************************************************************************
  * FUNCTION:  JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient
  * TYPE:          internal function
@@ -944,88 +1004,101 @@ static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT* saNotificationBufferPtr,
-    SaClmClusterNotificationT* saNotifications,
-    jboolean* bufferOnStackPtr )
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(JNIEnv
+								   *jniEnv,
+								   SaClmHandleT
+								   saClmHandle,
+								   const
+								   SaUint8T
+								   saTrackFlags,
+								   SaClmClusterNotificationBufferT
+								   *saNotificationBufferPtr,
+								   SaClmClusterNotificationT
+								   *saNotifications,
+								   jboolean
+								   *bufferOnStackPtr)
 {
-    // VARIABLES
-    SaAisErrorT _saStatus;
-    SaClmClusterNotificationT* _saNotificationsPtr = NULL;
+	// VARIABLES
+	SaAisErrorT _saStatus;
+	SaClmClusterNotificationT *_saNotificationsPtr = NULL;
 
-    // BODY
+	// BODY
 
-    // assert( saClmHandle != (SaClmHandleT) NULL );
-    assert( ( saTrackFlags & ( ~ ( SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY | SA_TRACK_LOCAL ))) == 0 );
-    assert( saNotificationBufferPtr != NULL );
-    assert( bufferOnStackPtr != NULL );
-    _TRACE2( "NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(...)\n" );
+	// assert( saClmHandle != (SaClmHandleT) NULL );
+	assert((saTrackFlags &
+		(~
+		 (SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY |
+		  SA_TRACK_LOCAL))) == 0);
+	assert(saNotificationBufferPtr != NULL);
+	assert(bufferOnStackPtr != NULL);
+	_TRACE2
+		("NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(...)\n");
 
+	// init notification buffer
+	saNotificationBufferPtr->viewNumber = 0;
+	saNotificationBufferPtr->numberOfItems = DEFAULT_NUMBER_OF_ITEMS;
+	saNotificationBufferPtr->notification = saNotifications;
+	*bufferOnStackPtr = JNI_TRUE;
+	// call saClmClusterTrack
 
-    // init notification buffer
-    saNotificationBufferPtr->viewNumber = 0;
-    saNotificationBufferPtr->numberOfItems = DEFAULT_NUMBER_OF_ITEMS;
-    saNotificationBufferPtr->notification = saNotifications;
-    *bufferOnStackPtr = JNI_TRUE;
-    // call saClmClusterTrack
+	_TRACE2
+		("NATIVE: 1st try: calling saClmClusterTrack with buffer on the stack...\n");
 
-    _TRACE2( "NATIVE: 1st try: calling saClmClusterTrack with buffer on the stack...\n" );
+	if (JNU_callSaClmClusterTrack_Sync(jniEnv,
+					   saClmHandle,
+					   saTrackFlags,
+					   saNotificationBufferPtr,
+					   &_saStatus) != JNI_TRUE) {
+		// error handling (some exception has been thrown already!)
+		if (_saStatus == SA_AIS_ERR_NO_SPACE) {
 
-    if( JNU_callSaClmClusterTrack_Sync( jniEnv,
-                                            saClmHandle,
-                                            saTrackFlags,
-                                            saNotificationBufferPtr,
-                                            &_saStatus ) != JNI_TRUE ){
-        // error handling (some exception has been thrown already!)
-        if( _saStatus == SA_AIS_ERR_NO_SPACE ){
+			_TRACE2
+				("NATIVE: 1st try failed: SA_AIS_ERR_NO_SPACE\n");
 
-            _TRACE2( "NATIVE: 1st try failed: SA_AIS_ERR_NO_SPACE\n" );
+			// clear exception
+			(*jniEnv)->ExceptionClear(jniEnv);
+			// reserve enough memory for notification buffer
+			saNotificationBufferPtr->notification =
+				calloc(saNotificationBufferPtr->numberOfItems,
+				       sizeof(SaClmClusterNotificationT));
+			if (saNotificationBufferPtr->notification == NULL) {
+				JNU_throwNewByName(jniEnv,
+						   "org/saforum/ais/AisNoMemoryException",
+						   AIS_ERR_NO_MEMORY_MSG);
+				return JNI_FALSE;	// EXIT POINT!!!
+			}
+			// record ptr for free()
+			_saNotificationsPtr =
+				saNotificationBufferPtr->notification;
+			*bufferOnStackPtr = JNI_FALSE;
+			// try again
 
-            // clear exception
-            (*jniEnv)->ExceptionClear( jniEnv );
-            // reserve enough memory for notification buffer
-            saNotificationBufferPtr->notification =
-                            calloc( saNotificationBufferPtr->numberOfItems,
-                                    sizeof( SaClmClusterNotificationT ) );
-            if( saNotificationBufferPtr->notification == NULL ){
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoMemoryException",
-                                    AIS_ERR_NO_MEMORY_MSG );
-                return JNI_FALSE; // EXIT POINT!!!
-            }
-            // record ptr for free()
-            _saNotificationsPtr = saNotificationBufferPtr->notification;
-            *bufferOnStackPtr = JNI_FALSE;
-            // try again
+			_TRACE2
+				("NATIVE: 2nd try: calling saClmClusterTrack with a bigger buffer on the heap...\n");
 
-            _TRACE2( "NATIVE: 2nd try: calling saClmClusterTrack with a bigger buffer on the heap...\n" );
+			if (JNU_callSaClmClusterTrack_Sync(jniEnv,
+							   saClmHandle,
+							   saTrackFlags,
+							   saNotificationBufferPtr,
+							   &_saStatus) !=
+			    JNI_TRUE) {
+				// error handling (some exception has been thrown already!)
+				return JNI_FALSE;	// EXIT POINT!!!
+			}
+		} else {
 
-            if( JNU_callSaClmClusterTrack_Sync( jniEnv,
-                                                saClmHandle,
-                                                saTrackFlags,
-                                                saNotificationBufferPtr,
-                                                &_saStatus ) != JNI_TRUE ){
-                // error handling (some exception has been thrown already!)
-                return JNI_FALSE; // EXIT POINT!!!
-            }
-        }
-        else{
+			_TRACE2("NATIVE: 1st try failed, no more tries\n");
 
-            _TRACE2( "NATIVE: 1st try failed, no more tries\n" );
+			return JNI_FALSE;	// EXIT POINT!!!
+		}
+	}
 
-            return JNI_FALSE; // EXIT POINT!!!
-        }
-    }
+	_TRACE2
+		("NATIVE: JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(...) returning normally\n");
 
-
-    _TRACE2( "NATIVE: JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(...) returning normally\n" );
-
-    return JNI_TRUE;
+	return JNI_TRUE;
 }
-#endif // IMPL_CLIENT_ALLOC
+#endif				// IMPL_CLIENT_ALLOC
 #ifndef IMPL_CLIENT_ALLOC
 /**************************************************************************
  * FUNCTION:  JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4
@@ -1036,45 +1109,53 @@ static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT_4* saNotificationBufferPtr )
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(JNIEnv
+								  *jniEnv,
+								  SaClmHandleT
+								  saClmHandle,
+								  const SaUint8T
+								  saTrackFlags,
+								  SaClmClusterNotificationBufferT_4
+								  *saNotificationBufferPtr)
 {
-    // VARIABLES
-    SaAisErrorT _saStatus;
+	// VARIABLES
+	SaAisErrorT _saStatus;
 
-    // BODY
+	// BODY
 
-    // assert( saClmHandle != (SaClmHandleT) NULL );
-    assert( (saTrackFlags & ( ~ ( SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY | SA_TRACK_LOCAL | SA_TRACK_START_STEP | SA_TRACK_VALIDATE_STEP ))) == 0);
-    assert( saNotificationBufferPtr != NULL );
-    _TRACE2( "NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(...)\n" );
+	// assert( saClmHandle != (SaClmHandleT) NULL );
+	assert((saTrackFlags &
+		(~
+		 (SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY |
+		  SA_TRACK_LOCAL | SA_TRACK_START_STEP |
+		  SA_TRACK_VALIDATE_STEP))) == 0);
+	assert(saNotificationBufferPtr != NULL);
+	_TRACE2
+		("NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI(...)\n");
 
+	// init notification buffer
+	saNotificationBufferPtr->viewNumber = 0;
+	saNotificationBufferPtr->numberOfItems = 0;
+	saNotificationBufferPtr->notification = NULL;	// let AIS to reserve the memory
+	// call saClmClusterTrack
+	if (JNU_callSaClmClusterTrack_Sync_4(jniEnv,
+					     saClmHandle,
+					     saTrackFlags,
+					     saNotificationBufferPtr,
+					     &_saStatus) != JNI_TRUE) {
+		// error, some exception has been thrown already!
+		// TODO handle NO_SPACE case!!
+		return JNI_FALSE;	// EXIT POINT!!!
+	}
+	// normal exit
 
-    // init notification buffer
-    saNotificationBufferPtr->viewNumber = 0;
-    saNotificationBufferPtr->numberOfItems = 0;
-    saNotificationBufferPtr->notification = NULL; // let AIS to reserve the memory
-    // call saClmClusterTrack
-    if( JNU_callSaClmClusterTrack_Sync_4( jniEnv,
-                                        saClmHandle,
-                                        saTrackFlags,
-                                        saNotificationBufferPtr,
-                                        &_saStatus ) != JNI_TRUE ){
-        // error, some exception has been thrown already!
-        // TODO handle NO_SPACE case!!
-        return JNI_FALSE; // EXIT POINT!!!
-    }
-    // normal exit
+	_TRACE2
+		("NATIVE: JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(...) returning normally\n");
 
-    _TRACE2( "NATIVE: JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(...) returning normally\n" );
-
-    return JNI_TRUE;
+	return JNI_TRUE;
 }
 
-#else // IMPL_CLIENT_ALLOC
+#else				// IMPL_CLIENT_ALLOC
 
 /**************************************************************************
  * FUNCTION:  JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient_4
@@ -1085,89 +1166,103 @@ static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocAPI_4(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient_4(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT_4* saNotificationBufferPtr,
-    SaClmClusterNotificationT_4* saNotifications,
-    jboolean* bufferOnStackPtr )
+static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient_4(JNIEnv
+								     *jniEnv,
+								     SaClmHandleT
+								     saClmHandle,
+								     const
+								     SaUint8T
+								     saTrackFlags,
+								     SaClmClusterNotificationBufferT_4
+								     *saNotificationBufferPtr,
+								     SaClmClusterNotificationT_4
+								     *saNotifications,
+								     jboolean
+								     *bufferOnStackPtr)
 {
-    // VARIABLES
-    SaAisErrorT _saStatus;
-    SaClmClusterNotificationT_4* _saNotificationsPtr = NULL;
+	// VARIABLES
+	SaAisErrorT _saStatus;
+	SaClmClusterNotificationT_4 *_saNotificationsPtr = NULL;
 
-    // BODY
+	// BODY
 
-    // assert( saClmHandle != (SaClmHandleT) NULL );
-    assert( ( saTrackFlags & ( ~ ( SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY | SA_TRACK_LOCAL | SA_TRACK_START_STEP | SA_TRACK_VALIDATE_STEP ))) == 0 );
-    assert( saNotificationBufferPtr != NULL );
-    assert( bufferOnStackPtr != NULL );
-    _TRACE2( "NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(...)\n" );
+	// assert( saClmHandle != (SaClmHandleT) NULL );
+	assert((saTrackFlags &
+		(~
+		 (SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY |
+		  SA_TRACK_LOCAL | SA_TRACK_START_STEP |
+		  SA_TRACK_VALIDATE_STEP))) == 0);
+	assert(saNotificationBufferPtr != NULL);
+	assert(bufferOnStackPtr != NULL);
+	_TRACE2
+		("NATIVE: Executing JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(...)\n");
 
+	// init notification buffer
+	saNotificationBufferPtr->viewNumber = 0;
+	saNotificationBufferPtr->numberOfItems = DEFAULT_NUMBER_OF_ITEMS;
+	saNotificationBufferPtr->notification = saNotifications;
+	*bufferOnStackPtr = JNI_TRUE;
+	// call saClmClusterTrack
 
-    // init notification buffer
-    saNotificationBufferPtr->viewNumber = 0;
-    saNotificationBufferPtr->numberOfItems = DEFAULT_NUMBER_OF_ITEMS;
-    saNotificationBufferPtr->notification = saNotifications;
-    *bufferOnStackPtr = JNI_TRUE;
-    // call saClmClusterTrack
+	_TRACE2
+		("NATIVE: 1st try: calling saClmClusterTrack with buffer on the stack...\n");
 
-    _TRACE2( "NATIVE: 1st try: calling saClmClusterTrack with buffer on the stack...\n" );
+	if (JNU_callSaClmClusterTrack_Sync_4(jniEnv,
+					     saClmHandle,
+					     saTrackFlags,
+					     saNotificationBufferPtr,
+					     &_saStatus) != JNI_TRUE) {
+		// error handling (some exception has been thrown already!)
+		if (_saStatus == SA_AIS_ERR_NO_SPACE) {
 
-    if( JNU_callSaClmClusterTrack_Sync_4( jniEnv,
-                                            saClmHandle,
-                                            saTrackFlags,
-                                            saNotificationBufferPtr,
-                                            &_saStatus ) != JNI_TRUE ){
-        // error handling (some exception has been thrown already!)
-        if( _saStatus == SA_AIS_ERR_NO_SPACE ){
+			_TRACE2
+				("NATIVE: 1st try failed: SA_AIS_ERR_NO_SPACE\n");
 
-            _TRACE2( "NATIVE: 1st try failed: SA_AIS_ERR_NO_SPACE\n" );
+			// clear exception
+			(*jniEnv)->ExceptionClear(jniEnv);
+			// reserve enough memory for notification buffer
+			saNotificationBufferPtr->notification =
+				calloc(saNotificationBufferPtr->numberOfItems,
+				       sizeof(SaClmClusterNotificationT_4));
+			if (saNotificationBufferPtr->notification == NULL) {
+				JNU_throwNewByName(jniEnv,
+						   "org/saforum/ais/AisNoMemoryException",
+						   AIS_ERR_NO_MEMORY_MSG);
+				return JNI_FALSE;	// EXIT POINT!!!
+			}
+			// record ptr for free()
+			_saNotificationsPtr =
+				saNotificationBufferPtr->notification;
+			*bufferOnStackPtr = JNI_FALSE;
+			// try again
 
-            // clear exception
-            (*jniEnv)->ExceptionClear( jniEnv );
-            // reserve enough memory for notification buffer
-            saNotificationBufferPtr->notification =
-                            calloc( saNotificationBufferPtr->numberOfItems,
-                                    sizeof( SaClmClusterNotificationT_4 ) );
-            if( saNotificationBufferPtr->notification == NULL ){
-                JNU_throwNewByName( jniEnv,
-                                    "org/saforum/ais/AisNoMemoryException",
-                                    AIS_ERR_NO_MEMORY_MSG );
-                return JNI_FALSE; // EXIT POINT!!!
-            }
-            // record ptr for free()
-            _saNotificationsPtr = saNotificationBufferPtr->notification;
-            *bufferOnStackPtr = JNI_FALSE;
-            // try again
+			_TRACE2
+				("NATIVE: 2nd try: calling saClmClusterTrack with a bigger buffer on the heap...\n");
 
-            _TRACE2( "NATIVE: 2nd try: calling saClmClusterTrack with a bigger buffer on the heap...\n" );
+			if (JNU_callSaClmClusterTrack_Sync_4(jniEnv,
+							     saClmHandle,
+							     saTrackFlags,
+							     saNotificationBufferPtr,
+							     &_saStatus) !=
+			    JNI_TRUE) {
+				// error handling (some exception has been thrown already!)
+				return JNI_FALSE;	// EXIT POINT!!!
+			}
+		} else {
 
-            if( JNU_callSaClmClusterTrack_Sync_4( jniEnv,
-                                                  saClmHandle,
-                                                  saTrackFlags,
-                                                  saNotificationBufferPtr,
-                                                  &_saStatus ) != JNI_TRUE ){
-                // error handling (some exception has been thrown already!)
-                return JNI_FALSE; // EXIT POINT!!!
-            }
-        }
-        else{
+			_TRACE2("NATIVE: 1st try failed, no more tries\n");
 
-            _TRACE2( "NATIVE: 1st try failed, no more tries\n" );
+			return JNI_FALSE;	// EXIT POINT!!!
+		}
+	}
 
-            return JNI_FALSE; // EXIT POINT!!!
-        }
-    }
+	_TRACE2
+		("NATIVE: JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(...) returning normally\n");
 
-
-    _TRACE2( "NATIVE: JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient(...) returning normally\n" );
-
-    return JNI_TRUE;
+	return JNI_TRUE;
 }
 
-#endif // IMPL_CLIENT_ALLOC
+#endif				// IMPL_CLIENT_ALLOC
 
 /**************************************************************************
  * FUNCTION:      JNU_callSaClmClusterTrack_Sync
@@ -1178,64 +1273,72 @@ static jboolean JNU_invokeSaClmClusterTrack_SyncNtfBuf_AllocClient_4(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_callSaClmClusterTrack_Sync(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT* saNotificationBufferPtr,
-    SaAisErrorT* saStatusPtr )
+static jboolean JNU_callSaClmClusterTrack_Sync(JNIEnv *jniEnv,
+					       SaClmHandleT saClmHandle,
+					       const SaUint8T saTrackFlags,
+					       SaClmClusterNotificationBufferT
+					       *saNotificationBufferPtr,
+					       SaAisErrorT *saStatusPtr)
 {
-    // BODY
+	// BODY
 
-    // assert( saClmHandle != (SaClmHandleT) NULL );
-    assert( (saTrackFlags & ( ~ ( SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY | SA_TRACK_LOCAL ))) == 0);
-    assert( saNotificationBufferPtr != NULL );
-    assert( saStatusPtr != NULL );
-    _TRACE2( "NATIVE: Executing JNU_callSaClmClusterTrack_Sync(...)\n" );
+	// assert( saClmHandle != (SaClmHandleT) NULL );
+	assert((saTrackFlags &
+		(~
+		 (SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY |
+		  SA_TRACK_LOCAL))) == 0);
+	assert(saNotificationBufferPtr != NULL);
+	assert(saStatusPtr != NULL);
+	_TRACE2("NATIVE: Executing JNU_callSaClmClusterTrack_Sync(...)\n");
 
-    // call saClmClusterTrack
+	// call saClmClusterTrack
 
-    U_printSaClusterNotificationBuffer( "Values of saNotificationBuffer BEFORE calling saClmClusterTrack: \n", saNotificationBufferPtr );
+	U_printSaClusterNotificationBuffer
+		("Values of saNotificationBuffer BEFORE calling saClmClusterTrack: \n",
+		 saNotificationBufferPtr);
 
-    *saStatusPtr = saClmClusterTrack( saClmHandle,
-                                        saTrackFlags,
-                                        saNotificationBufferPtr );
+	*saStatusPtr = saClmClusterTrack(saClmHandle,
+					 saTrackFlags, saNotificationBufferPtr);
 
-    _TRACE2( "NATIVE: saClmClusterTrack(...) has returned with %d...\n", *saStatusPtr );
-    U_printSaClusterNotificationBuffer( "Values of saNotificationBuffer AFTER calling saClmClusterTrack: \n", saNotificationBufferPtr );
+	_TRACE2("NATIVE: saClmClusterTrack(...) has returned with %d...\n",
+		*saStatusPtr);
+	U_printSaClusterNotificationBuffer
+		("Values of saNotificationBuffer AFTER calling saClmClusterTrack: \n",
+		 saNotificationBufferPtr);
 
+	// error handling
+	if ((*saStatusPtr) != SA_AIS_OK) {
+		JNU_Exception_Throw(jniEnv, *saStatusPtr);
+		return JNI_FALSE;	// EXIT POINT!!!
+	}
+	// check numberOfItems
+	if (saNotificationBufferPtr->numberOfItems == 0) {
 
-    // error handling
-    if( ( *saStatusPtr ) != SA_AIS_OK ){
-        JNU_Exception_Throw( jniEnv, *saStatusPtr );
-        return JNI_FALSE; // EXIT POINT!!!
-    }
-    // check numberOfItems
-    if( saNotificationBufferPtr->numberOfItems == 0 ){
+		_TRACE2
+			("NATIVE ERROR: saNotificationBufferptr->numberOfItems is 0\n");
 
-        _TRACE2( "NATIVE ERROR: saNotificationBufferptr->numberOfItems is 0\n" );
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisLibraryException",
+				   AIS_ERR_LIBRARY_MSG);
+		return JNI_FALSE;
+	}
+	// check notification
+	if (saNotificationBufferPtr->notification == NULL) {
 
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisLibraryException",
-                            AIS_ERR_LIBRARY_MSG );
-        return JNI_FALSE;
-    }
-    // check notification
-    if( saNotificationBufferPtr->notification == NULL ){
+		_TRACE2
+			("NATIVE ERROR: saNotificationBufferPtr->notification is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: saNotificationBufferPtr->notification is NULL\n" );
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisLibraryException",
+				   AIS_ERR_LIBRARY_MSG);
+		return JNI_FALSE;
+	}
+	// normal exit
 
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisLibraryException",
-                            AIS_ERR_LIBRARY_MSG );
-        return JNI_FALSE;
-    }
+	_TRACE2
+		("NATIVE: JNU_callSaClmClusterTrack_Sync(...) returning normally\n");
 
-    // normal exit
-
-    _TRACE2( "NATIVE: JNU_callSaClmClusterTrack_Sync(...) returning normally\n" );
-
-    return JNI_TRUE;
+	return JNI_TRUE;
 }
 
 /**************************************************************************
@@ -1247,64 +1350,74 @@ static jboolean JNU_callSaClmClusterTrack_Sync(
  *   returns:     JNI_FALSE if an error occured, JNI_TRUE otherwise
  * NOTE: If JNI_FALSE is returned, then an exception is already pending!
  *************************************************************************/
-static jboolean JNU_callSaClmClusterTrack_Sync_4(
-    JNIEnv* jniEnv,
-    SaClmHandleT saClmHandle,
-    const SaUint8T saTrackFlags,
-    SaClmClusterNotificationBufferT_4* saNotificationBufferPtr,
-    SaAisErrorT* saStatusPtr )
+static jboolean JNU_callSaClmClusterTrack_Sync_4(JNIEnv *jniEnv,
+						 SaClmHandleT saClmHandle,
+						 const SaUint8T saTrackFlags,
+						 SaClmClusterNotificationBufferT_4
+						 *saNotificationBufferPtr,
+						 SaAisErrorT *saStatusPtr)
 {
-    // BODY
+	// BODY
 
-    // assert( saClmHandle != (SaClmHandleT) NULL );
-    assert( (saTrackFlags & ( ~ ( SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY | SA_TRACK_LOCAL | SA_TRACK_START_STEP | SA_TRACK_VALIDATE_STEP ))) == 0);
-    assert( saNotificationBufferPtr != NULL );
-    assert( saStatusPtr != NULL );
-    _TRACE2( "NATIVE: Executing JNU_callSaClmClusterTrack_Sync(...)\n" );
+	// assert( saClmHandle != (SaClmHandleT) NULL );
+	assert((saTrackFlags &
+		(~
+		 (SA_TRACK_CURRENT | SA_TRACK_CHANGES | SA_TRACK_CHANGES_ONLY |
+		  SA_TRACK_LOCAL | SA_TRACK_START_STEP |
+		  SA_TRACK_VALIDATE_STEP))) == 0);
+	assert(saNotificationBufferPtr != NULL);
+	assert(saStatusPtr != NULL);
+	_TRACE2("NATIVE: Executing JNU_callSaClmClusterTrack_Sync(...)\n");
 
-    // call saClmClusterTrack
+	// call saClmClusterTrack
 
-    U_printSaClusterNotificationBuffer_4( "Values of saNotificationBuffer BEFORE calling saClmClusterTrack: \n", saNotificationBufferPtr );
+	U_printSaClusterNotificationBuffer_4
+		("Values of saNotificationBuffer BEFORE calling saClmClusterTrack: \n",
+		 saNotificationBufferPtr);
 
-    *saStatusPtr = saClmClusterTrack_4( saClmHandle,
-                                        saTrackFlags,
-                                        saNotificationBufferPtr );
+	*saStatusPtr = saClmClusterTrack_4(saClmHandle,
+					   saTrackFlags,
+					   saNotificationBufferPtr);
 
-    _TRACE2( "NATIVE: saClmClusterTrack(...) has returned with %d...\n", *saStatusPtr );
-    U_printSaClusterNotificationBuffer_4( "Values of saNotificationBuffer AFTER calling saClmClusterTrack: \n", saNotificationBufferPtr );
+	_TRACE2("NATIVE: saClmClusterTrack(...) has returned with %d...\n",
+		*saStatusPtr);
+	U_printSaClusterNotificationBuffer_4
+		("Values of saNotificationBuffer AFTER calling saClmClusterTrack: \n",
+		 saNotificationBufferPtr);
 
+	// error handling
+	if ((*saStatusPtr) != SA_AIS_OK) {
+		JNU_Exception_Throw(jniEnv, *saStatusPtr);
+		return JNI_FALSE;	// EXIT POINT!!!
+	}
+	// check numberOfItems
+	if (saNotificationBufferPtr->numberOfItems == 0) {
 
-    // error handling
-    if( ( *saStatusPtr ) != SA_AIS_OK ){
-        JNU_Exception_Throw( jniEnv, *saStatusPtr );
-        return JNI_FALSE; // EXIT POINT!!!
-    }
-    // check numberOfItems
-    if( saNotificationBufferPtr->numberOfItems == 0 ){
+		_TRACE2
+			("NATIVE ERROR: saNotificationBufferptr->numberOfItems is 0\n");
 
-        _TRACE2( "NATIVE ERROR: saNotificationBufferptr->numberOfItems is 0\n" );
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisLibraryException",
+				   AIS_ERR_LIBRARY_MSG);
+		return JNI_FALSE;
+	}
+	// check notification
+	if (saNotificationBufferPtr->notification == NULL) {
 
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisLibraryException",
-                            AIS_ERR_LIBRARY_MSG );
-        return JNI_FALSE;
-    }
-    // check notification
-    if( saNotificationBufferPtr->notification == NULL ){
+		_TRACE2
+			("NATIVE ERROR: saNotificationBufferPtr->notification is NULL\n");
 
-        _TRACE2( "NATIVE ERROR: saNotificationBufferPtr->notification is NULL\n" );
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisLibraryException",
+				   AIS_ERR_LIBRARY_MSG);
+		return JNI_FALSE;
+	}
+	// normal exit
 
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisLibraryException",
-                            AIS_ERR_LIBRARY_MSG );
-        return JNI_FALSE;
-    }
+	_TRACE2
+		("NATIVE: JNU_callSaClmClusterTrack_Sync_4(...) returning normally\n");
 
-    // normal exit
-
-    _TRACE2( "NATIVE: JNU_callSaClmClusterTrack_Sync_4(...) returning normally\n" );
-
-    return JNI_TRUE;
+	return JNI_TRUE;
 }
 
 /**************************************************************************
@@ -1314,28 +1427,33 @@ static jboolean JNU_callSaClmClusterTrack_Sync_4(
  * Method:    getCluster
  * Signature: (Z)Lorg/saforum/ais/clm/ClusterNotificationBuffer;
  *************************************************************************/
-JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getCluster__Z(
-    JNIEnv *jniEnv, 
-    jobject thisClusterMembershipManager,
-    jboolean local )
+JNIEXPORT jobject JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getCluster__Z(JNIEnv
+								    *jniEnv,
+								    jobject
+								    thisClusterMembershipManager,
+								    jboolean
+								    local)
 {
-    SaUint8T localflag = (SaUint8T)local;
-    SaUint8T _saTrackFlags;    
+	SaUint8T localflag = (SaUint8T)local;
+	SaUint8T _saTrackFlags;
 
-    assert( thisClusterMembershipManager != NULL );
+	assert(thisClusterMembershipManager != NULL);
 
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getCluster( %d )\n",localflag );
-            
-    if( localflag == JNI_TRUE )
-        _saTrackFlags = SA_TRACK_CURRENT | SA_TRACK_LOCAL;
-    else if( localflag == JNI_FALSE )
-        _saTrackFlags = SA_TRACK_CURRENT;  
-    else
-        _saTrackFlags = SA_TRACK_CURRENT;
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getCluster( %d )\n",
+		 localflag);
 
-    return JNU_invokeSaClmClusterTrack_Sync( jniEnv,
-                                             thisClusterMembershipManager,
-                                             _saTrackFlags );       
+	if (localflag == JNI_TRUE)
+		_saTrackFlags = SA_TRACK_CURRENT | SA_TRACK_LOCAL;
+	else if (localflag == JNI_FALSE)
+		_saTrackFlags = SA_TRACK_CURRENT;
+	else
+		_saTrackFlags = SA_TRACK_CURRENT;
+
+	return JNU_invokeSaClmClusterTrack_Sync(jniEnv,
+						thisClusterMembershipManager,
+						_saTrackFlags);
 }
 
 /**************************************************************************
@@ -1345,28 +1463,35 @@ JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_
  *  Method:    getClusterAsync
  *  Signature: (Z)V;
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync__Z(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    jboolean local )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync__Z(JNIEnv
+									 *jniEnv,
+									 jobject
+									 thisClusterMembershipManager,
+									 jboolean
+									 local)
 {
 
-    SaUint8T localflag = (SaUint8T)local;
-    SaUint8T _saTrackFlags;
+	SaUint8T localflag = (SaUint8T)local;
+	SaUint8T _saTrackFlags;
 
-    assert( thisClusterMembershipManager != NULL );
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync( %d )\n",localflag );
+	assert(thisClusterMembershipManager != NULL);
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync( %d )\n",
+		 localflag);
 
-    if( localflag == JNI_TRUE )
-        _saTrackFlags = SA_TRACK_CURRENT | SA_TRACK_LOCAL;
-    else if( localflag == JNI_FALSE )
-        _saTrackFlags = SA_TRACK_CURRENT;
-    else
-        _saTrackFlags = SA_TRACK_CURRENT;
+	if (localflag == JNI_TRUE)
+		_saTrackFlags = SA_TRACK_CURRENT | SA_TRACK_LOCAL;
+	else if (localflag == JNI_FALSE)
+		_saTrackFlags = SA_TRACK_CURRENT;
+	else
+		_saTrackFlags = SA_TRACK_CURRENT;
 
-    JNU_invokeSaClmClusterTrack_Async( jniEnv, thisClusterMembershipManager, _saTrackFlags);
+	JNU_invokeSaClmClusterTrack_Async(jniEnv, thisClusterMembershipManager,
+					  _saTrackFlags);
 
-    _TRACE2(" NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync__Z returning normally" );		
+	_TRACE2
+		(" NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsync__Z returning normally");
 }
 
 /**************************************************************************
@@ -1376,39 +1501,41 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_get
  *  Method:    getClusterThenStartTracking
  *  Signature: (Lorg/saforum/ais/TrackFlags;ZI)Lorg/saforum/ais/clm/ClusterNotificationBuffer;
  *************************************************************************/
-JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking__Lorg_saforum_ais_TrackFlags_2ZI(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    jobject trackFlags,
-    jboolean local,
-    jint trackStep )
+JNIEXPORT jobject JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking__Lorg_saforum_ais_TrackFlags_2ZI
+(JNIEnv *jniEnv, jobject thisClusterMembershipManager, jobject trackFlags, jboolean local,
+ jint trackStep)
 {
 
-    SaUint8T localflag = (SaUint8T)local;
-    SaUint8T _saTrackFlags;
+	SaUint8T localflag = (SaUint8T)local;
+	SaUint8T _saTrackFlags;
 
-    assert( thisClusterMembershipManager != NULL );
-    
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking( %d )\n",localflag );
-		
-    if( trackFlags == NULL ){
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisInvalidParamException",
-                            AIS_ERR_INVALID_PARAM_MSG );
-        return NULL; /* EXIT POINT! */
-    }
+	assert(thisClusterMembershipManager != NULL);
 
-    _saTrackFlags=(SaUint8T)(*jniEnv)->GetIntField(
-                                            jniEnv, 
-                                            trackFlags,
-                                            FID_TF_value );
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterThenStartTracking( %d )\n",
+		 localflag);
 
-    if( localflag == JNI_TRUE )
-        _saTrackFlags = _saTrackFlags | SA_TRACK_LOCAL | SA_TRACK_CURRENT;
-    else if( localflag == JNI_FALSE )
-        _saTrackFlags = _saTrackFlags | SA_TRACK_CURRENT;	
- 
-    return JNU_invokeSaClmClusterTrack_Sync( jniEnv, thisClusterMembershipManager, _saTrackFlags | trackStep );            	
+	if (trackFlags == NULL) {
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisInvalidParamException",
+				   AIS_ERR_INVALID_PARAM_MSG);
+		return NULL;	/* EXIT POINT! */
+	}
+
+	_saTrackFlags = (SaUint8T)(*jniEnv)->GetIntField(jniEnv,
+							 trackFlags,
+							 FID_TF_value);
+
+	if (localflag == JNI_TRUE)
+		_saTrackFlags =
+			_saTrackFlags | SA_TRACK_LOCAL | SA_TRACK_CURRENT;
+	else if (localflag == JNI_FALSE)
+		_saTrackFlags = _saTrackFlags | SA_TRACK_CURRENT;
+
+	return JNU_invokeSaClmClusterTrack_Sync(jniEnv,
+						thisClusterMembershipManager,
+						_saTrackFlags | trackStep);
 }
 
 /**************************************************************************
@@ -1418,43 +1545,46 @@ JNIEXPORT jobject JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_
  *  Method:    getClusterAsyncThenStartTracking
  *  Signature: (Lorg/saforum/ais/TrackFlags;ZI)V;
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking__Lorg_saforum_ais_TrackFlags_2ZI(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager,
-    jobject trackFlags,
-    jboolean local,
-    jint trackStep )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking__Lorg_saforum_ais_TrackFlags_2ZI
+(JNIEnv *jniEnv, jobject thisClusterMembershipManager, jobject trackFlags, jboolean local,
+ jint trackStep)
 {
 
-    SaUint8T localflag = (SaUint8T) local;
-    SaUint8T _saTrackFlags;
+	SaUint8T localflag = (SaUint8T)local;
+	SaUint8T _saTrackFlags;
 
-    assert( thisClusterMembershipManager != NULL );
-    
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking( %d )\n", localflag );
-	
-    if( trackFlags == NULL ){
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisInvalidParamException",
-                            AIS_ERR_INVALID_PARAM_MSG );
-        return; /* EXIT POINT! */
-    }
-        
-    _saTrackFlags = (SaUint8T) (*jniEnv)->GetIntField(
-                                              jniEnv,
-                                              trackFlags,
-                                              FID_TF_value );
+	assert(thisClusterMembershipManager != NULL);
 
-    _TRACE2( "NATIVE: TrackFlags %d TrackStep %d \n", _saTrackFlags, trackStep );
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking( %d )\n",
+		 localflag);
 
-    if( localflag == JNI_TRUE )
-        _saTrackFlags = _saTrackFlags | SA_TRACK_LOCAL | SA_TRACK_CURRENT;
-    else if(localflag == JNI_FALSE )
-        _saTrackFlags = _saTrackFlags | SA_TRACK_CURRENT;
-            
-    JNU_invokeSaClmClusterTrack_Async(jniEnv, thisClusterMembershipManager, _saTrackFlags | trackStep);        
+	if (trackFlags == NULL) {
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisInvalidParamException",
+				   AIS_ERR_INVALID_PARAM_MSG);
+		return;		/* EXIT POINT! */
+	}
 
-    _TRACE2( "Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking(..) returning normally" );       
+	_saTrackFlags = (SaUint8T)(*jniEnv)->GetIntField(jniEnv,
+							 trackFlags,
+							 FID_TF_value);
+
+	_TRACE2("NATIVE: TrackFlags %d TrackStep %d \n", _saTrackFlags,
+		trackStep);
+
+	if (localflag == JNI_TRUE)
+		_saTrackFlags =
+			_saTrackFlags | SA_TRACK_LOCAL | SA_TRACK_CURRENT;
+	else if (localflag == JNI_FALSE)
+		_saTrackFlags = _saTrackFlags | SA_TRACK_CURRENT;
+
+	JNU_invokeSaClmClusterTrack_Async(jniEnv, thisClusterMembershipManager,
+					  _saTrackFlags | trackStep);
+
+	_TRACE2
+		("Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_getClusterAsyncThenStartTracking(..) returning normally");
 }
 
 /**************************************************************************
@@ -1464,37 +1594,38 @@ JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_get
  * Method:    startClusterTracking
  * Signature: (Lorg/saforum/ais/TrackFlags;ZI)V;
  *************************************************************************/
-JNIEXPORT void JNICALL Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking__Lorg_saforum_ais_TrackFlags_2ZI(
-    JNIEnv* jniEnv,
-    jobject thisClusterMembershipManager, 
-    jobject trackFlags, 
-    jboolean local, 
-    jint trackStep )
+JNIEXPORT void JNICALL
+Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking__Lorg_saforum_ais_TrackFlags_2ZI
+(JNIEnv *jniEnv, jobject thisClusterMembershipManager, jobject trackFlags, jboolean local,
+ jint trackStep)
 {
 
-    SaUint8T localflag=(SaUint8T)local;
-    SaUint8T _saTrackFlags;
+	SaUint8T localflag = (SaUint8T)local;
+	SaUint8T _saTrackFlags;
 
-    assert( thisClusterMembershipManager != NULL );
+	assert(thisClusterMembershipManager != NULL);
 
-    _TRACE2( "NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking( %d )\n",localflag );
+	_TRACE2
+		("NATIVE: Executing Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking( %d )\n",
+		 localflag);
 
-    if( trackFlags == NULL ){
-        JNU_throwNewByName( jniEnv,
-                            "org/saforum/ais/AisInvalidParamException",
-                            AIS_ERR_INVALID_PARAM_MSG );
-        return; /* EXIT POINT! */
-    }
+	if (trackFlags == NULL) {
+		JNU_throwNewByName(jniEnv,
+				   "org/saforum/ais/AisInvalidParamException",
+				   AIS_ERR_INVALID_PARAM_MSG);
+		return;		/* EXIT POINT! */
+	}
 
-    _saTrackFlags = (SaUint8T) (*jniEnv)->GetIntField(
-                                              jniEnv,
-                                              trackFlags,
-                                              FID_TF_value );
-         
-    if( localflag == JNI_TRUE )
-        _saTrackFlags = _saTrackFlags | SA_TRACK_LOCAL;
+	_saTrackFlags = (SaUint8T)(*jniEnv)->GetIntField(jniEnv,
+							 trackFlags,
+							 FID_TF_value);
 
-    JNU_invokeSaClmClusterTrack_Async(jniEnv,thisClusterMembershipManager, _saTrackFlags|trackStep);
-    
-    _TRACE2( "NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking returning normally\n" );
+	if (localflag == JNI_TRUE)
+		_saTrackFlags = _saTrackFlags | SA_TRACK_LOCAL;
+
+	JNU_invokeSaClmClusterTrack_Async(jniEnv, thisClusterMembershipManager,
+					  _saTrackFlags | trackStep);
+
+	_TRACE2
+		("NATIVE: Java_org_opensaf_ais_clm_ClusterMembershipManagerImpl_startClusterTracking returning normally\n");
 }

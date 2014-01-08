@@ -44,8 +44,6 @@
  *************************************************************************/
 
 // CLASS ais.amf.ErrorReporting
-extern jboolean JNU_ErrorReporting_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ErrorReporting_initIDs_OK(JNIEnv *jniEnv);
 
-
-#endif // J_AIS_AMF_ERR_REPORTING_H_
+#endif				// J_AIS_AMF_ERR_REPORTING_H_

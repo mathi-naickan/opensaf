@@ -27,33 +27,33 @@
  * Constants
  *************************************************************************/
 
-extern const char* AIS_ERR_LIBRARY_MSG;
-extern const char* AIS_ERR_VERSION_MSG;
-extern const char* AIS_ERR_INIT_MSG;
-extern const char* AIS_ERR_TIMEOUT_MSG;
-extern const char* AIS_ERR_TRY_AGAIN_MSG;
-extern const char* AIS_ERR_INVALID_PARAM_MSG;
-extern const char* AIS_ERR_NO_MEMORY_MSG;
-extern const char* AIS_ERR_BAD_HANDLE_MSG;
-extern const char* AIS_ERR_BUSY_MSG;
-extern const char* AIS_ERR_ACCESS_MSG;
-extern const char* AIS_ERR_NOT_EXIST_MSG;
-extern const char* AIS_ERR_NAME_TOO_LONG_MSG;
-extern const char* AIS_ERR_EXIST_MSG;
-extern const char* AIS_ERR_NO_SPACE_MSG;
-extern const char* AIS_ERR_INTERRUPT_MSG;
-extern const char* AIS_ERR_NAME_NOT_FOUND_MSG;
-extern const char* AIS_ERR_NOT_SUPPORTED_MSG;
-extern const char* AIS_ERR_BAD_OPERATION_MSG;
-extern const char* AIS_ERR_FAILED_OPERATION_MSG;
-extern const char* AIS_ERR_NO_RESOURCES_MSG;
-extern const char* AIS_ERR_MESSAGE_ERROR_MSG;
-extern const char* AIS_ERR_QUEUE_FULL_MSG;
-extern const char* AIS_ERR_QUEUE_NOT_AVAILABLE_MSG;
-extern const char* AIS_ERR_BAD_FLAGS_MSG;
-extern const char* AIS_ERR_TOO_BIG_MSG;
-extern const char* AIS_ERR_NO_SECTIONS_MSG;
-extern const char* AIS_ERR_UNAVAILABLE_MSG;
+extern const char *AIS_ERR_LIBRARY_MSG;
+extern const char *AIS_ERR_VERSION_MSG;
+extern const char *AIS_ERR_INIT_MSG;
+extern const char *AIS_ERR_TIMEOUT_MSG;
+extern const char *AIS_ERR_TRY_AGAIN_MSG;
+extern const char *AIS_ERR_INVALID_PARAM_MSG;
+extern const char *AIS_ERR_NO_MEMORY_MSG;
+extern const char *AIS_ERR_BAD_HANDLE_MSG;
+extern const char *AIS_ERR_BUSY_MSG;
+extern const char *AIS_ERR_ACCESS_MSG;
+extern const char *AIS_ERR_NOT_EXIST_MSG;
+extern const char *AIS_ERR_NAME_TOO_LONG_MSG;
+extern const char *AIS_ERR_EXIST_MSG;
+extern const char *AIS_ERR_NO_SPACE_MSG;
+extern const char *AIS_ERR_INTERRUPT_MSG;
+extern const char *AIS_ERR_NAME_NOT_FOUND_MSG;
+extern const char *AIS_ERR_NOT_SUPPORTED_MSG;
+extern const char *AIS_ERR_BAD_OPERATION_MSG;
+extern const char *AIS_ERR_FAILED_OPERATION_MSG;
+extern const char *AIS_ERR_NO_RESOURCES_MSG;
+extern const char *AIS_ERR_MESSAGE_ERROR_MSG;
+extern const char *AIS_ERR_QUEUE_FULL_MSG;
+extern const char *AIS_ERR_QUEUE_NOT_AVAILABLE_MSG;
+extern const char *AIS_ERR_BAD_FLAGS_MSG;
+extern const char *AIS_ERR_TOO_BIG_MSG;
+extern const char *AIS_ERR_NO_SECTIONS_MSG;
+extern const char *AIS_ERR_UNAVAILABLE_MSG;
 
 /**************************************************************************
  * Macros
@@ -84,24 +84,19 @@ extern jfieldID FID_CR_value;
  *************************************************************************/
 
 // CLASS ais.SVersion
-extern jboolean JNU_Version_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_Version_initIDs_OK(JNIEnv *jniEnv);
 
 // ENUM ais.TrackFlags
-extern jboolean JNU_TrackFlags_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_TrackFlags_initIDs_OK(JNIEnv *jniEnv);
 /* ENUM ais.CallbackResponse */
-extern jboolean JNU_CallbackResponse_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_CallbackResponse_initIDs_OK(JNIEnv *jniEnv);
 // MISC
 /*
-extern jboolean JNU_TrackFlagsForChanges_OK(
-    JNIEnv* jniEnv,
-    jbyte trackFlags );
+  extern jboolean JNU_TrackFlagsForChanges_OK(
+  JNIEnv* jniEnv,
+  jbyte trackFlags );
 */
 /* this method will throw appropriate Exception based on errorcode recevied when Lifecycle methods are invoked */
-extern void JNU_Exception_Throw(
-    JNIEnv* jniEnv, 
-    SaAisErrorT _saStatus);
+extern void JNU_Exception_Throw(JNIEnv *jniEnv, SaAisErrorT _saStatus);
 
-#endif //J_AIS_H_
+#endif				//J_AIS_H_

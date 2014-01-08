@@ -42,12 +42,10 @@
 // CLASS ais.Handle
 extern jclass ClassHandle;
 
-
 /**************************************************************************
  * Function declarations
  *************************************************************************/
 
-extern jboolean JNU_Handle_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_Handle_initIDs_OK(JNIEnv *jniEnv);
 
-#endif // J_AIS_LIBHANDLE_H_
+#endif				// J_AIS_LIBHANDLE_H_

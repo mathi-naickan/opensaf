@@ -44,8 +44,6 @@
  *************************************************************************/
 
 // CLASS ais.amf.ComponentRegistry
-extern jboolean JNU_ComponentRegistry_initIDs_OK(
-    JNIEnv* jniEnv );
+extern jboolean JNU_ComponentRegistry_initIDs_OK(JNIEnv *jniEnv);
 
-
-#endif // J_AIS_AMF_COMP_REGISTRY_H_
+#endif				// J_AIS_AMF_COMP_REGISTRY_H_
