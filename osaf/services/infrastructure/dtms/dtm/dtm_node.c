@@ -619,7 +619,7 @@ void node_discovery_process(void *arg)
 
 			/*********************************************************/
 			/* Loop through to find the descriptors that returned */
-			/* POLLIN and determine whether it’s the listening */
+			/* POLLIN and determine whether it's the listening */
 			/* or the active connection. */
 			/*********************************************************/
 			if (POLLIN & fds[i].revents) {
