@@ -340,6 +340,7 @@ uint32_t mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send, CKP
 	NCS_UBAID *uba = NULL;
 	USRBUF *dup_ub = NULL;
 	MBCSV_EVT evt_msg;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
 	if (NULL == ckpt_inst->peer_list) {
@@ -460,7 +461,7 @@ uint32_t mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send, CKP
 				switch (msg_to_send->i_send_type) {
 				case NCS_MBCSV_SND_SYNC:
 					{
-						m_NCS_MBCSV_MDS_SYNC_SEND(&evt_msg,
+						rc = m_NCS_MBCSV_MDS_SYNC_SEND(&evt_msg,
 									  tmp_ptr->my_ckpt_inst, tmp_ptr->peer_anchor);
 					}
 					break;
@@ -468,15 +469,22 @@ uint32_t mbcsv_send_ckpt_data_to_all_peers(NCS_MBCSV_SEND_CKPT *msg_to_send, CKP
 				case NCS_MBCSV_SND_USR_ASYNC:
 				case NCS_MBCSV_SND_MBC_ASYNC:
 					{
-						m_NCS_MBCSV_MDS_ASYNC_SEND(&evt_msg,
+						rc = m_NCS_MBCSV_MDS_ASYNC_SEND(&evt_msg,
 									   tmp_ptr->my_ckpt_inst, tmp_ptr->peer_anchor);
 					}
 					break;
 				default:
+					m_MMGR_FREE_BUFR_LIST(dup_ub);
 					TRACE_LEAVE2("unsupported send type");
 					return NCSCC_RC_FAILURE;
 				}
 				tmp_ptr->ckpt_msg_sent = true;
+	                       /* In failure scenario, there is a chance that MDS may  not free dup_ub */
+				if (rc != NCSCC_RC_SUCCESS)
+				{
+					TRACE_LEAVE2("MBCSv SEND Failed");
+					m_MMGR_FREE_BUFR_LIST(dup_ub);
+				}
 			}
 			tmp_ptr = tmp_ptr->next;
 		}
