@@ -1718,7 +1718,7 @@ uint32_t avnd_su_pres_insting_suterm_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *
 	 * If pi su, pick all the instantiated/instantiating pi comps & 
 	 * trigger their FSM with TermEv.
 	 */
-	if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(su)){
+	if (m_AVND_SU_IS_PREINSTANTIABLE(su)){
 		for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
 				curr_comp; curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_comp->su_dll_node))) {
 			/* 
