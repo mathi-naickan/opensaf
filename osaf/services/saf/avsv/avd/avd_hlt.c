@@ -23,6 +23,7 @@
 
 #include <avsv_util.h>
 #include <avd_imm.h>
+#include <avd_csi.h>
 #include <avd_hlt.h>
 #include <avd_comp.h>
 
@@ -58,6 +59,9 @@ static SaAisErrorT ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 {
 	AVD_COMP *comp;
 	SaNameT comp_name;
+	AVD_SU_SI_REL *curr_susi;
+	AVD_COMP_CSI_REL *compcsi;
+
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
 
 	TRACE_ENTER();
@@ -65,11 +69,15 @@ static SaAisErrorT ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 
 	comp = avd_comp_get(&comp_name);
 
-	if (comp->su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
-		LOG_ER("Rejecting deletion of '%s'", opdata->objectName.value);
-		LOG_ER("SU admin state is not locked instantiation required for deletion");
-		goto done;
-	}
+	for (curr_susi = comp->su->list_of_susi; curr_susi != NULL; curr_susi = curr_susi->su_next)
+		for (compcsi = curr_susi->list_of_csicomp; compcsi; compcsi = compcsi->susi_csicomp_next) {
+			if (compcsi->comp == comp) {
+				LOG_ER("Deletion of SaAmfHealthcheck requires"
+						" comp without any csi assignment; Ideally su should be locked-in");
+				goto done;
+			}
+		}
+
 
 	opdata->userData = comp->su->su_on_node;
 	rc = SA_AIS_OK;

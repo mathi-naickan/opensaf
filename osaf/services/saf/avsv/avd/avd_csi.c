@@ -663,15 +663,20 @@ static SaAisErrorT csi_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 	return rc;
 }
 
-static void ccb_apply_delete_hdlr(AVD_CSI *csi)
+static void ccb_apply_delete_hdlr(CcbUtilOperationData_t *opdata)
 {
 	AVD_SU_SI_REL *t_sisu;
 	AVD_COMP_CSI_REL *t_csicomp;
 	SaBoolT first_sisu = true;
+	AVD_CSI *csi = opdata->userData;
+	AVD_CSI *csi_db;
 
-        TRACE_ENTER2("'%s'", csi ? csi->name.value : NULL);
+
 	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) { 
-		if (csi == NULL) {
+		/* A double check whether csi has been deleted from DB or not and whether pointer stored userData
+		   is still valid. */
+		csi_db =  avd_csi_get(&opdata->objectName);
+		if ((csi == NULL) || (csi_db == NULL)) {	
 			/* This means that csi has been deleted during checkpointing at STDBY and delete callback
 			   has arrived delayed.*/
 			LOG_WA("CSI delete apply (STDBY): csi does not exist");
@@ -686,6 +691,8 @@ static void ccb_apply_delete_hdlr(AVD_CSI *csi)
 		}
 		goto done;
 	}
+
+        TRACE_ENTER2("'%s'", csi ? csi->name.value : NULL);
 
 	/* Check whether si has been assigned to any SU. */
 	if ((NULL != csi->si->list_of_sisu) && 
@@ -918,7 +925,7 @@ static void csi_ccb_apply_cb(CcbUtilOperationData_t *opdata)
                 csi_ccb_apply_modify_hdlr(opdata);
                 break;
 	case CCBUTIL_DELETE:
-		ccb_apply_delete_hdlr(opdata->userData);
+		ccb_apply_delete_hdlr(opdata);
 		break;
 	default:
 		osafassert(0);

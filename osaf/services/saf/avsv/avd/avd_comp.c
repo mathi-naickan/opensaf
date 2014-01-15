@@ -1001,28 +1001,6 @@ done:
 	return rc;
 }
 
-static SaAisErrorT comp_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
-{
-	AVD_COMP *comp;
-	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
-
-	TRACE_ENTER();
-
-	comp = avd_comp_get(&opdata->objectName);
-
-	if (comp->su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
-		LOG_ER("Rejecting deletion of '%s'", opdata->objectName.value);
-		LOG_ER("SU admin state is not locked instantiation required for deletion");
-		goto done;
-	}
-
-	rc = SA_AIS_OK;
-
-done:
-	TRACE_LEAVE();
-	return rc;
-}
-
 static SaAisErrorT comp_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
@@ -1038,7 +1016,7 @@ static SaAisErrorT comp_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 		rc = ccb_completed_modify_hdlr(opdata);
 		break;
 	case CCBUTIL_DELETE:
-		rc = comp_ccb_completed_delete_hdlr(opdata);
+		rc = SA_AIS_OK;
 		break;
 	default:
 		osafassert(0);
