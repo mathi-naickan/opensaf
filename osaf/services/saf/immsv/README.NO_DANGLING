@@ -65,7 +65,7 @@ of ccbApply:
 -          CCB Object Create:
 
 o   If the created object has a NO_DANGLING reference to a non-persistent
-    runtime object, return BAD_OPERATION.
+    runtime object, return INVALID_PARAM.
 
 o   If the created object has a NO_DANGLING reference to an object deleted
     within the same CCB, return BAD_OPERATION.
@@ -79,7 +79,7 @@ o   If the created object has a NO_DANGLING reference to an object that is
 -          CCB Object Modify (Add or Replace attribute value):
 
 o   If an updated attribute value has a NO_DANGLING reference to a
-    non-persistent runtime object, return BAD_OPERATION.
+    non-persistent runtime object, return INVALID_PARAM.
 
 o   If an updated attribute value has a NO_DANGLING reference to an object that
     is deleted within the same CCB, return BAD_OPERATION.
