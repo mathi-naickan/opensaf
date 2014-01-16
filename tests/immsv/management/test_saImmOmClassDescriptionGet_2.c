@@ -105,3 +105,38 @@ void saImmOmClassDescriptionGet_2_04(void)
     safassert(saImmOmClassDelete(immOmHandle, className), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
+
+void saImmOmClassDescriptionGet_2_05(void)
+{
+    const SaImmClassNameT className = (SaImmClassNameT) __FUNCTION__;
+    SaImmAttrDefinitionT_2 attr1 =
+        {"rdn", SA_IMM_ATTR_SANAMET, SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_RDN, NULL};
+    SaImmAttrDefinitionT_2 attr2 =
+        {"attr1",  SA_IMM_ATTR_SANAMET, SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_WRITABLE | SA_IMM_ATTR_NO_DANGLING, NULL};
+    const SaImmAttrDefinitionT_2 *attrDefinitionsIn[] = {&attr1, &attr2, NULL};
+    SaImmClassCategoryT classCategory;
+    SaImmAttrDefinitionT_2** attrDefinitionsOut;
+    SaImmAttrDefinitionT_2** attrDOut;
+
+    safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
+    safassert(saImmOmClassCreate_2(immOmHandle, className, SA_IMM_CLASS_CONFIG, attrDefinitionsIn), SA_AIS_OK);
+    safassert(saImmOmClassDescriptionGet_2(immOmHandle, className, &classCategory, &attrDefinitionsOut),
+	    SA_AIS_OK);
+    assert(classCategory == SA_IMM_CLASS_CONFIG);
+    rc = SA_AIS_ERR_LIBRARY;
+    attrDOut = attrDefinitionsOut;
+    while(attrDOut) {
+	    SaImmAttrDefinitionT_2* attr = attrDOut[0];
+	    if(strcmp(attr->attrName, attr2.attrName)==0) {
+		    if(attr->attrFlags & SA_IMM_ATTR_NO_DANGLING) {
+			    rc = SA_AIS_OK;
+		    }
+		    break;
+	    }
+	    ++attrDOut;
+    }
+    test_validate(rc, SA_AIS_OK);
+    safassert(saImmOmClassDescriptionMemoryFree_2(immOmHandle, attrDefinitionsOut), SA_AIS_OK);
+    safassert(saImmOmClassDelete(immOmHandle, className), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}

@@ -24,12 +24,16 @@ static char *objects[] = {
 		"Obj1,opensafImm=opensafImm,safApp=safImmService",
 		"saImmOmCcbObjectCreate_06",
 		"safLgStrCfg=saLogAlarm\\,safApp=safLogService\\,safApp=safImmService",
+		"id=1",
+		"id=2",
+		"id=3",
 		NULL
 };
 
 static char *classes[] = {
 		"TestClassConfig",
 		"TestClassRuntime",
+		"TestClassNoDangling",
 		"saImmOmCcbObjectCreate_07",
 		"saImmOmClassCreate_2_01",
 		"saImmOmClassCreate_2_02",
@@ -78,7 +82,7 @@ static void cleanup() {
 		objectName.length = (len > SA_MAX_NAME_LENGTH) ? SA_MAX_NAME_LENGTH : len;
 		strncpy((char *)objectName.value, *obj, objectName.length);
 
-		rc = saImmOmAdminOwnerSet(ownerHandle, (const SaNameT **)objectNames, SA_IMM_ONE);
+		rc = saImmOmAdminOwnerSet(ownerHandle, (const SaNameT **)objectNames, SA_IMM_SUBTREE);
 		if(rc == SA_AIS_ERR_NOT_EXIST) {
 			obj++;
 			continue;

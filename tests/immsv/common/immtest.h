@@ -41,6 +41,7 @@ extern SaImmCallbacksT immOmCallbacks;
 extern SaImmCallbacksT_o2 immOmA2bCallbacks;
 extern const SaImmClassNameT configClassName;
 extern const SaImmClassNameT runtimeClassName;
+extern const SaImmClassNameT nodanglingClassName;
 
 /* Implementer globals */
 extern SaImmHandleT immOiHandle;
@@ -51,6 +52,28 @@ SaAisErrorT config_class_create(SaImmHandleT immHandle);
 SaAisErrorT config_class_delete(SaImmHandleT immHandle);
 SaAisErrorT runtime_class_create(SaImmHandleT immHandle);
 SaAisErrorT runtime_class_delete(SaImmHandleT immHandle);
+SaAisErrorT nodangling_class_create(SaImmHandleT immHandle);
+SaAisErrorT nodangling_class_delete(SaImmHandleT immHandle);
+
+SaAisErrorT object_create(SaImmHandleT immHandle,
+		SaImmAdminOwnerHandleT ownerHandle,
+        const SaImmClassNameT className,
+        const SaNameT *rdnObj,
+        const SaNameT *parentName,
+        const SaImmAttrValuesT_2 *value);
+SaAisErrorT object_delete(SaImmAdminOwnerHandleT ownerHandle,
+        const SaNameT *dnObj,
+        int strict);
+SaAisErrorT object_create_2(SaImmHandleT immHandle,
+        SaImmCcbHandleT ccbHandle,
+        const SaImmClassNameT className,
+        const SaNameT *rdnObj,
+        const SaNameT *parentName,
+        const SaImmAttrValuesT_2 *value);
+SaAisErrorT object_delete_2(SaImmCcbHandleT ccbHandle,
+        const SaNameT *dnObj,
+        int strict);
+
 
 /* Setup and cleanup functions */
 extern void (*test_setup)(void);

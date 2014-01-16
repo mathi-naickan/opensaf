@@ -236,7 +236,7 @@ static SaAisErrorT saImmOiAugCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
     return rc;
 }
 
-static SaAisErrorT object_create(
+static SaAisErrorT config_object_create(
     SaImmCcbHandleT ccbHandle,
     const SaNameT *pName,
     const SaNameT *rdn)
@@ -259,7 +259,7 @@ static SaAisErrorT object_create(
     return rc;
 }
 
-static SaAisErrorT object_modify(
+static SaAisErrorT config_object_modify(
     SaImmCcbHandleT ccbHandle,
     const SaNameT *rdn)
 {
@@ -420,13 +420,13 @@ static void saImmOiCcbAugmentInitialize_01(void)
 
     /* create objects */
     callbackCounter = 0;	/* reset callback counter */
-    if ((rc = object_create(ccbHandle, NULL, &rdnObj1)) != SA_AIS_OK)
+    if ((rc = config_object_create(ccbHandle, NULL, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
     assert(callbackCounter == 1);
 
     callbackCounter = 0;	/* reset callback counter */
-    if ((rc = object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
+    if ((rc = config_object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
     assert(callbackCounter == 1);
@@ -485,10 +485,10 @@ static void saImmOiCcbAugmentInitialize_02(void)
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
     /* Create Obj1 and Obj2 */
-    if ((rc = object_create(ccbHandle, NULL, &rdnObj1)) != SA_AIS_OK)
+    if ((rc = config_object_create(ccbHandle, NULL, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
-    if ((rc = object_create(ccbHandle, NULL, &rdnObj2)) != SA_AIS_OK)
+    if ((rc = config_object_create(ccbHandle, NULL, &rdnObj2)) != SA_AIS_OK)
         goto done;
 
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -510,7 +510,7 @@ static void saImmOiCcbAugmentInitialize_02(void)
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
     callbackCounter = 0;	/* reset callback counter */
-    if ((rc = object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
+    if ((rc = config_object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
     assert(callbackCounter == 1);
@@ -571,8 +571,8 @@ static void saImmOiCcbAugmentInitialize_03(void)
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
     /* Create Obj1 and Obj2 */
-    safassert(object_create(ccbHandle, NULL, &rdnObj1), SA_AIS_OK);
-    safassert(object_create(ccbHandle, NULL, &rdnObj2), SA_AIS_OK);
+    safassert(config_object_create(ccbHandle, NULL, &rdnObj1), SA_AIS_OK);
+    safassert(config_object_create(ccbHandle, NULL, &rdnObj2), SA_AIS_OK);
 
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
@@ -602,7 +602,7 @@ static void saImmOiCcbAugmentInitialize_03(void)
 
     /* Modify objects */
     callbackCounter = 0;	/* reset callback counter */
-    if ((rc = object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
+    if ((rc = config_object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
     /* Check that there were 2 callbacks */
@@ -666,8 +666,8 @@ static void saImmOiCcbAugmentInitialize_04(void)
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
     /* Create Obj1 and Obj2 */
-    safassert(object_create(ccbHandle, NULL, &rdnObj1), SA_AIS_OK);
-    safassert(object_create(ccbHandle, NULL, &rdnObj2), SA_AIS_OK);
+    safassert(config_object_create(ccbHandle, NULL, &rdnObj1), SA_AIS_OK);
+    safassert(config_object_create(ccbHandle, NULL, &rdnObj2), SA_AIS_OK);
 
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
@@ -699,7 +699,7 @@ static void saImmOiCcbAugmentInitialize_04(void)
 
     /* Modify objects */
     callbackCounter = 0;	/* reset callback counter */
-    if ((rc = object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
+    if ((rc = config_object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
     /* Check that there were 2 callbacks */
