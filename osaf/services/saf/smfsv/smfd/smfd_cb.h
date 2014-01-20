@@ -36,7 +36,7 @@ typedef struct smfd_cb {
 	SaNameT comp_name;	                    /* Components's name SMFD                 */
 	SaAmfHandleT amf_hdl;	                    /* AMF handle, obtained thru AMF init     */
 	SaInvocationT amf_invocation_id;            /* AMF InvocationID - needed to handle Quiesed state */
-	bool is_quisced_set;
+	bool is_quiesced_set;
 	SaSelectionObjectT amfSelectionObject;      /* Selection Object to wait for amf events          */
 	SaImmOiHandleT campaignOiHandle;            /* IMM Campaign OI handle                           */
 	SaSelectionObjectT campaignSelectionObject; /* Selection Object to wait for campaign IMM events */

@@ -124,26 +124,33 @@ static SaAisErrorT amf_quiescing_state_handler(smfd_cb_t * cb,
 static SaAisErrorT amf_quiesced_state_handler(smfd_cb_t * cb,
 					      SaInvocationT invocation)
 {
-	TRACE_ENTER2("HA AMF QUIESCED STATE request");
+	TRACE_ENTER();
+	V_DEST_RL mds_role;
+	SaAisErrorT rc = SA_AIS_OK;
+
+	/* Give up our IMM OI implementer role */
+	if (campaign_oi_deactivate(cb) != NCSCC_RC_SUCCESS) {
+		LOG_ER("amf_quiesced_state_handler oi deactivate FAILED");
+	}
 
 	/*
 	 ** Change the MDS VDSET role to Quiesced. Wait for MDS callback with type
 	 ** MDS_CALLBACK_QUIESCED_ACK. Don't change cb->ha_state now.
 	 */
-
-	if (campaign_oi_deactivate(cb) != NCSCC_RC_SUCCESS) {
-		LOG_ER("amf_quiesced_state_handler oi deactivate FAILED");
-	}
-
+	mds_role = cb->mds_role;
 	cb->mds_role = V_DEST_RL_QUIESCED;
-
-	if (smfd_mds_change_role(cb) != NCSCC_RC_SUCCESS) {
-		TRACE("smfd_mds_change_role FAILED");
+	if ((rc = smfd_mds_change_role(cb)) != NCSCC_RC_SUCCESS) {
+		LOG_ER("smfd_mds_change_role [V_DEST_RL_QUIESCED] FAILED");
+		rc = SA_AIS_ERR_FAILED_OPERATION;
+		cb->mds_role = mds_role;
+		goto done;
 	}
 
 	cb->amf_invocation_id = invocation;
-	cb->is_quisced_set = true;
-	return SA_AIS_OK;
+	cb->is_quiesced_set = true;
+done:
+	TRACE_LEAVE();
+	return rc;
 }
 
 /****************************************************************************
@@ -233,7 +240,7 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 	}
 
 	if (result != SA_AIS_OK)
-		goto done;
+		goto response;
 
 	if (new_haState == SA_AMF_HA_QUIESCED)
  	        /* AMF response will be done later when MDS quiesced ack has been received */
@@ -254,11 +261,12 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 		if ((rc = smfd_mds_change_role(smfd_cb)) != NCSCC_RC_SUCCESS) {
 			TRACE("smfd_mds_change_role FAILED");
 			result = SA_AIS_ERR_FAILED_OPERATION;
+			goto response;
 		}
 	}
-
- done:
+ response:
 	saAmfResponse(smfd_cb->amf_hdl, invocation, result);
+ done:
 	TRACE_LEAVE();
 }
 

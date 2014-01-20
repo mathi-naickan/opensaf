@@ -213,27 +213,29 @@ static uint32_t mds_rcv(struct ncsmds_callback_info *mds_info)
 
 static uint32_t mds_quiesced_ack(struct ncsmds_callback_info *mds_info)
 {
-	SMFSV_EVT *smfsv_evt;
+        SMFSV_EVT *smfsv_evt;
+	if (smfd_cb->is_quiesced_set == true) {
+                /** allocate an SMFSV_EVT **/
+                if (NULL == (smfsv_evt = calloc(1, sizeof(SMFSV_EVT)))) {
+                        LOG_NO("calloc FAILED");
+                        goto err;
+                }
+                /** Initialize the Event **/
+		smfsv_evt->type = SMFSV_EVT_TYPE_SMFD;
+		smfsv_evt->info.smfd.type = SMFD_EVT_QUIESCED_ACK;
+		smfsv_evt->cb_hdl = (uint32_t)mds_info->i_yr_svc_hdl;
 
-    /** allocate an SMFSV_EVT now **/
-	if (NULL == (smfsv_evt = calloc(1, sizeof(SMFSV_EVT)))) {
-		LOG_WA("calloc FAILED");
-		goto err;
-	}
-
-	if (smfd_cb->is_quisced_set == true) {
-		{
+                /* Push the event and we are done */
+		if (NCSCC_RC_FAILURE == m_NCS_IPC_SEND(&smfd_cb->mbx, smfsv_evt, NCS_IPC_PRIORITY_VERY_HIGH)) {
 			TRACE("ipc send failed");
 			smfsv_evt_destroy(smfsv_evt);
 			goto err;
 		}
-	} else {
-		smfsv_evt_destroy(smfsv_evt);
 	}
 
 	return NCSCC_RC_SUCCESS;
 
- err:
+err:
 	return NCSCC_RC_FAILURE;
 }
 

@@ -30,6 +30,7 @@
 #include "smfsv_evt.h"
 
 void proc_callback_rsp(smfd_cb_t *, SMFSV_EVT *);
+void proc_quiesced_ack(smfd_cb_t *, SMFSV_EVT *);
 
 /****************************************************************************
  * Name          : proc_mds_info
@@ -125,6 +126,11 @@ void smfd_process_mbx(SYSF_MBX * mbx)
 				proc_callback_rsp(smfd_cb, evt);
 				break;
 			}
+		case SMFD_EVT_QUIESCED_ACK:
+			{
+				proc_quiesced_ack(smfd_cb, evt);
+				break;
+			}
 		default:
 			{
 				LOG_ER("SMFND received unknown event %d",
@@ -201,4 +207,35 @@ void proc_callback_rsp(smfd_cb_t *cb, SMFSV_EVT *evt)
 	}
 	TRACE_LEAVE();
 	return;
+}
+
+/****************************************************************************
+ * Name          : proc_quiesced_ack
+ *
+ * Description   : This is the function which is called when smfd receives an
+ *                 quiesced ack event from MDS 
+ *
+ * Arguments     : evt  - Message that was posted to the SMFSV Mail box.
+ *
+ * Return Values : None
+ *
+ * Notes         : None.
+ *****************************************************************************/
+void proc_quiesced_ack(smfd_cb_t *cb, SMFSV_EVT *evt)
+{
+	TRACE_ENTER();
+
+	if (cb->is_quiesced_set == true) {
+		/* Update control block */
+		cb->is_quiesced_set = false;
+		cb->ha_state = SA_AMF_HA_QUIESCED;
+
+		/* Respond to AMF */
+                if (saAmfResponse(cb->amf_hdl, cb->amf_invocation_id, SA_AIS_OK) != SA_AIS_OK) {
+                        LOG_ER("saAmfResponse failed");
+                }
+	} else
+		LOG_ER("Received SMFD_EVT_QUIESCED_ACK message but is_quiesced_set==false");
+
+	TRACE_LEAVE();
 }
