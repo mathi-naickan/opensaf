@@ -432,7 +432,6 @@ USRBUF *sysf_alloc_pkt(unsigned char pool_id, unsigned char priority, int num, u
 		m_PMGR_LK(&gl_ub_pool_mgr.lock);
 
 		if (pool_id >= UB_MAX_POOLS) {
-			m_NCS_MEM_FREE(ub, NCS_MEM_REGION_IO_DATA_HDR, NCS_SERVICE_ID_OS_SVCS, 2);
 			m_PMGR_UNLK(&gl_ub_pool_mgr.lock);
 			m_LEAP_DBG_SINK(0);
 			return NULL;
