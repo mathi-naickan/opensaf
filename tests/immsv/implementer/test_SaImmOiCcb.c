@@ -20,9 +20,6 @@
 #include <pthread.h>
 #include "immtest.h"
 
-static const SaNameT parentName = 
-    {sizeof("opensafImm=opensafImm,safApp=safImmService"), 
-     "opensafImm=opensafImm,safApp=safImmService"};
 static const SaNameT rdnObj1 = {sizeof("Obj1"), "Obj1"};
 static const SaNameT rdnObj2 = {sizeof("Obj2"), "Obj2"};
 static const SaNameT rdnObj3 = {sizeof("Obj3"), "Obj3"};
@@ -270,7 +267,7 @@ static SaAisErrorT om_ccb_exec(void)
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmCcbHandleT ccbHandle;
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
     const SaNameT* nameValues[] = {&rdnObj3, NULL};
     SaImmAttrValuesT_2 v2 = {"rdn",  SA_IMM_ATTR_SANAMET, 1, (void**)nameValues};
     SaUint32T  int1Value1 = __LINE__;
@@ -293,7 +290,7 @@ static SaAisErrorT om_ccb_exec(void)
     if ((rc = saImmOmCcbObjectModify_2(ccbHandle, &dnObj2, attrMods)) != SA_AIS_OK)
         goto done;
 
-    if ((rc = saImmOmCcbObjectCreate_2(ccbHandle, configClassName, &parentName, attrValues)) != SA_AIS_OK)
+    if ((rc = saImmOmCcbObjectCreate_2(ccbHandle, configClassName, &rootObj, attrValues)) != SA_AIS_OK)
         goto done;
 
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -339,7 +336,7 @@ done:
  */
 static void om_setup(void)
 {
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
 
@@ -347,10 +344,8 @@ static void om_setup(void)
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_SUBTREE), SA_AIS_OK);
-    if (config_class_create(immOmHandle) != SA_AIS_OK)
-        TRACE("Class '%s' cannot be created\n", configClassName);
-    safassert(config_object_create(ownerHandle, &parentName, &rdnObj1), SA_AIS_OK);
-    safassert(config_object_create(ownerHandle, &parentName, &rdnObj2), SA_AIS_OK);
+    safassert(config_object_create(ownerHandle, &rootObj, &rdnObj1), SA_AIS_OK);
+    safassert(config_object_create(ownerHandle, &rootObj, &rdnObj2), SA_AIS_OK);
     safassert(saImmOmAdminOwnerRelease(ownerHandle, objectNames, SA_IMM_SUBTREE), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
@@ -363,7 +358,7 @@ static void om_setup(void)
  */
 static void om_teardown(void)
 {
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
 
@@ -377,7 +372,6 @@ static void om_teardown(void)
         TRACE("Object '%s' cannot be deleted\n", dnObj3.value);
     if (config_object_delete(ownerHandle, &dnObj3) != SA_AIS_OK)
         TRACE("Object '%s' cannot be deleted\n", dnObj3.value);
-    safassert(saImmOmClassDelete(immOmHandle, configClassName), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     TRACE_LEAVE();
@@ -557,9 +551,9 @@ static void saImmOiCcb_05(void)
 
 __attribute__ ((constructor)) static void saImmOiCcb_constructor(void)
 {
-    dnObj1.length = (SaUint16T) sprintf((char*) dnObj1.value, "%s,%s", rdnObj1.value, parentName.value);
-    dnObj2.length = (SaUint16T) sprintf((char*) dnObj2.value, "%s,%s", rdnObj2.value, parentName.value);
-    dnObj3.length = (SaUint16T) sprintf((char*) dnObj3.value, "%s,%s", rdnObj3.value, parentName.value);
+    dnObj1.length = (SaUint16T) sprintf((char*) dnObj1.value, "%s,%s", rdnObj1.value, rootObj.value);
+    dnObj2.length = (SaUint16T) sprintf((char*) dnObj2.value, "%s,%s", rdnObj2.value, rootObj.value);
+    dnObj3.length = (SaUint16T) sprintf((char*) dnObj3.value, "%s,%s", rdnObj3.value, rootObj.value);
 
     test_suite_add(4, "Configuration Objects Implementer");
     test_case_add(4, saImmOiCcb_01, "saImmOiCcb - SA_AIS_OK - 2 objectImplementer threads");

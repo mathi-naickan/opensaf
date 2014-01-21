@@ -23,7 +23,6 @@
 void saImmOmAdminOperationContinue_01(void)
 {
     TRACE_ENTER();
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmContinuationIdT continuationId = 666;
@@ -32,7 +31,7 @@ void saImmOmAdminOperationContinue_01(void)
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     test_validate(saImmOmAdminOperationContinue(
                                                 ownerHandle,
-                                                &objectName,
+                                                &rootObj,
                                                 continuationId,
                                                 &operationReturnValue),
         SA_AIS_ERR_NOT_SUPPORTED);
@@ -44,7 +43,6 @@ void saImmOmAdminOperationContinue_01(void)
 void saImmOmAdminOperationContinue_02(void)
 {
     TRACE_ENTER();
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmContinuationIdT continuationId = 666;
@@ -54,7 +52,7 @@ void saImmOmAdminOperationContinue_02(void)
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     test_validate(saImmOmAdminOperationContinue_o2(
                                                 ownerHandle,
-                                                &objectName,
+                                                &rootObj,
                                                 continuationId,
                                                 &operationReturnValue,
                                                 &returnParams),
@@ -67,7 +65,6 @@ void saImmOmAdminOperationContinue_02(void)
 void saImmOmAdminOperationContinueAsync_01(void)
 {
     TRACE_ENTER();
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaInvocationT invocation=999;
@@ -77,7 +74,7 @@ void saImmOmAdminOperationContinueAsync_01(void)
     test_validate(saImmOmAdminOperationContinueAsync(
                                                      ownerHandle,
                                                      invocation,
-                                                     &objectName,
+                                                     &rootObj,
                                                      continuationId), 
         SA_AIS_ERR_NOT_SUPPORTED);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
@@ -88,7 +85,6 @@ void saImmOmAdminOperationContinueAsync_01(void)
 void saImmOmAdminOperationContinuationClear_01(void)
 {
     TRACE_ENTER();
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmContinuationIdT continuationId = 666;
@@ -96,7 +92,7 @@ void saImmOmAdminOperationContinuationClear_01(void)
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
 
     test_validate(saImmOmAdminOperationContinuationClear(ownerHandle,
-                                                         &objectName,
+                                                         &rootObj,
                                                          continuationId),
                   SA_AIS_ERR_NOT_SUPPORTED);
 

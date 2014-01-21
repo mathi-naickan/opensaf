@@ -19,20 +19,14 @@
 
 static SaNameT dn = 
 {
-    .value = "Test,opensafImm=opensafImm,safApp=safImmService",
-    .length = sizeof("Test,opensafImm=opensafImm,safApp=safImmService")
+    .value = "Test,rdn=root",
+    .length = sizeof("Test,rdn=root")
 };
 
 static SaNameT dn2 = 
 {
-    .value = "XXX,opensafImm=opensafImm,safApp=safImmService",
-    .length = sizeof("XXX,opensafImm=opensafImm,safApp=safImmService")
-};
-
-static SaNameT config_obj_dn = 
-{
-    .value = "opensafImm=opensafImm,safApp=safImmService",
-    .length = sizeof("opensafImm=opensafImm,safApp=safImmService")
+    .value = "XXX,rdn=root",
+    .length = sizeof("XXX,rdn=root")
 };
 
 const char *str123="Test";
@@ -69,7 +63,7 @@ void saImmOiRtObjectDelete_01(void)
 
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
-    safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &config_obj_dn, attrValues), SA_AIS_OK);
+    safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &rootObj, attrValues), SA_AIS_OK);
 
     rc = saImmOiRtObjectDelete(immOiHandle, &dn);
     test_validate(rc, SA_AIS_OK);
@@ -83,7 +77,7 @@ void saImmOiRtObjectDelete_03(void)
 
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
-    safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &config_obj_dn, attrValues), SA_AIS_OK);
+    safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &rootObj, attrValues), SA_AIS_OK);
 
     rc = saImmOiRtObjectDelete(-1, &dn);
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
@@ -98,7 +92,7 @@ void saImmOiRtObjectDelete_04(void)
 
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
-    safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &config_obj_dn, attrValues), SA_AIS_OK);
+    safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &rootObj, attrValues), SA_AIS_OK);
     safassert(saImmOiImplementerClear(immOiHandle), SA_AIS_OK);
 
     rc = saImmOiRtObjectDelete(immOiHandle, &dn);
@@ -129,7 +123,7 @@ void saImmOiRtObjectDelete_06(void)
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
-    rc = saImmOiRtObjectDelete(immOiHandle, &config_obj_dn);
+    rc = saImmOiRtObjectDelete(immOiHandle, &rootObj);
     test_validate(rc, SA_AIS_ERR_BAD_OPERATION);
 
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);

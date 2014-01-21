@@ -109,7 +109,6 @@ void saImmOmThreadInterference_01(void) {
 
 	/* management */
 	safassert(saImmOmInitialize(&immHandle, NULL, &immVersion), SA_AIS_OK);
-	safassert(config_class_create(immHandle), SA_AIS_OK);
 	safassert(saImmOmAdminOwnerInitialize(immHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
 	/* create test object */
 	safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
@@ -176,7 +175,6 @@ done:
 	/* Remove test object and test class */
 	safassert(saImmOmCcbObjectDelete(ccbHandle, &objectName), SA_AIS_OK);
 	safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
-	safassert(config_class_delete(immHandle), SA_AIS_OK);
 
 	/* Finalize OM handles */
 	saImmOmCcbFinalize(ccbHandle);

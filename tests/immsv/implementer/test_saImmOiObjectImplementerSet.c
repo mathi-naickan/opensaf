@@ -37,7 +37,6 @@ void saImmOiObjectImplementerSet_01(void)
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     /* Create test object under root */
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -51,7 +50,6 @@ void saImmOiObjectImplementerSet_01(void)
     safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
     test_validate(rc, SA_AIS_OK);
@@ -72,7 +70,6 @@ void saImmOiObjectImplementerSet_02(void)
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     /* Create test object under root */
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -84,7 +81,6 @@ void saImmOiObjectImplementerSet_02(void)
     safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
@@ -105,7 +101,6 @@ void saImmOiObjectImplementerSet_03(void)
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     /* Create test object under root */
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -116,7 +111,6 @@ void saImmOiObjectImplementerSet_03(void)
     safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
@@ -156,7 +150,6 @@ void saImmOiObjectImplementerSet_05(void)
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     /* Create test object under root */
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -176,7 +169,6 @@ void saImmOiObjectImplementerSet_05(void)
     safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
     test_validate(rc, SA_AIS_ERR_EXIST);
@@ -200,7 +192,6 @@ void saImmOiObjectImplementerSet_06(void)
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     /* Create test object under root */
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
@@ -222,7 +213,6 @@ void saImmOiObjectImplementerSet_06(void)
     safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
     test_validate(rc, SA_AIS_ERR_EXIST);

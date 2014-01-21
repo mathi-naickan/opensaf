@@ -35,6 +35,11 @@ const SaImmClassNameT configClassName = (SaImmClassNameT) "TestClassConfig";
 const SaImmClassNameT runtimeClassName = "TestClassRuntime";
 const SaImmClassNameT nodanglingClassName = (SaImmClassNameT) "TestClassNoDangling";
 
+const SaNameT rootObj = {
+		.length = sizeof("rdn=root"),
+		.value = "rdn=root"
+};
+
 void (*test_setup)(void) = NULL;
 void (*test_cleanup)(void) = NULL;
 

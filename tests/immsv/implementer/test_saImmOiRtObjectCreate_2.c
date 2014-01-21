@@ -17,8 +17,6 @@
 
 #include "immtest.h"
 
-static const SaNameT parentName = {sizeof("opensafImm=opensafImm,safApp=safImmService"), 
-                                   "opensafImm=opensafImm,safApp=safImmService"};
 static const SaNameT rdnObj1 = {sizeof("Obj1"), "Obj1"};
 static const SaNameT rdnObj2 = {sizeof("Obj2"), "Obj2"};
 static SaNameT dnObj1;
@@ -64,7 +62,7 @@ void saImmOiRtObjectCreate_2_01(void)
     safassert(saImmOiRtObjectDelete(immOiHandle, &rdnObj1), SA_AIS_OK);
 
     /* Create under parent */
-    if ((rc = saImmOiRtObjectCreate_2(immOiHandle, className, &parentName, attrValues)) != SA_AIS_OK)
+    if ((rc = saImmOiRtObjectCreate_2(immOiHandle, className, &rootObj, attrValues)) != SA_AIS_OK)
         goto done;
 
     safassert(saImmOiRtObjectDelete(immOiHandle, &dnObj1), SA_AIS_OK);
@@ -81,7 +79,7 @@ void saImmOiRtObjectCreate_2_03(void)
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
-    rc = saImmOiRtObjectCreate_2(-1, className, &parentName, attrValues);
+    rc = saImmOiRtObjectCreate_2(-1, className, &rootObj, attrValues);
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
 
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
@@ -91,7 +89,7 @@ void saImmOiRtObjectCreate_2_04(void)
 {
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
 
-    rc = saImmOiRtObjectCreate_2(immOiHandle, className, &parentName, attrValues);
+    rc = saImmOiRtObjectCreate_2(immOiHandle, className, &rootObj, attrValues);
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
 
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
@@ -104,7 +102,7 @@ void saImmOiRtObjectCreate_2_05(void)
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
-    rc = saImmOiRtObjectCreate_2(immOiHandle, "XXX", &parentName, attrValues);
+    rc = saImmOiRtObjectCreate_2(immOiHandle, "XXX", &rootObj, attrValues);
     test_validate(rc, SA_AIS_ERR_NOT_EXIST);
 
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
@@ -118,13 +116,13 @@ void saImmOiRtObjectCreate_2_06(void)
 
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
-    safassert(saImmOiRtObjectCreate_2(immOiHandle, "SaLogStream", &parentName, attrValues), SA_AIS_OK);
+    safassert(saImmOiRtObjectCreate_2(immOiHandle, "SaLogStream", &rootObj, attrValues), SA_AIS_OK);
 
     /* try create the same object again using a new handle */
     safassert(saImmOiInitialize_2(&newhandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(newhandle, implementerName2), SA_AIS_OK);
 
-    rc = saImmOiRtObjectCreate_2(newhandle, "SaLogStream", &parentName, attrValues);
+    rc = saImmOiRtObjectCreate_2(newhandle, "SaLogStream", &rootObj, attrValues);
     test_validate(rc, SA_AIS_ERR_EXIST);
 
     safassert(saImmOiRtObjectDelete(immOiHandle, &dnObj1), SA_AIS_OK);
@@ -154,18 +152,18 @@ void saImmOiRtObjectCreate_2_07(void)
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
     /*Create first rt object. */
-    safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &parentName, attrValues27), SA_AIS_OK);/*107  (63+44)*/
+    safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &rootObj, attrValues27), SA_AIS_OK);/*107  (63+44)*/
 
     tmpName.length = 107;
     strncpy((char *) tmpName.value, 
-        "123456789012345678901234567890123456789012345678901234567890123,opensafImm=opensafImm,safApp=safImmService", 107);
+        "123456789012345678901234567890123456789012345678901234567890123,rdn=root", 107);
     /*Create second rt object. */
     safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &tmpName, attrValues27), SA_AIS_OK);/* 171 (63 + 108)*/
 
     tmpName.length = 171;
     strncpy((char *) tmpName.value, 
         "123456789012345678901234567890123456789012345678901234567890123,"
-        "123456789012345678901234567890123456789012345678901234567890123,opensafImm=opensafImm,safApp=safImmService", 171);
+        "123456789012345678901234567890123456789012345678901234567890123,rdn=root", 171);
     /*Create third rt object. */
     safassert(saImmOiRtObjectCreate_2(immOiHandle, className, &tmpName, attrValues27), SA_AIS_OK);/* 235  (63 + 172) */
 
@@ -173,7 +171,7 @@ void saImmOiRtObjectCreate_2_07(void)
     strncpy((char *) tmpName.value, 
         "123456789012345678901234567890123456789012345678901234567890123,"
         "123456789012345678901234567890123456789012345678901234567890123,"
-        "123456789012345678901234567890123456789012345678901234567890123,opensafImm=opensafImm,safApp=safImmService", 235);
+        "123456789012345678901234567890123456789012345678901234567890123,rdn=root", 235);
     /*Create of fourth rt object should fail. */
     rc = saImmOiRtObjectCreate_2(immOiHandle, className, &tmpName, attrValues27);/*299!!   (63 + 236)*/
 
@@ -183,7 +181,7 @@ void saImmOiRtObjectCreate_2_07(void)
 
     tmpName.length = 107;
     strncpy((char *) tmpName.value, 
-        "123456789012345678901234567890123456789012345678901234567890123,opensafImm=opensafImm,safApp=safImmService", 107);
+        "123456789012345678901234567890123456789012345678901234567890123,rdn=root", 107);
     /* Delete first rt object and all its subobjects! */
     safassert(saImmOiRtObjectDelete(immOiHandle, &tmpName), SA_AIS_OK);
 
@@ -205,8 +203,8 @@ extern void SaImmOiRtAttrUpdateCallbackT_01(void);
 
 __attribute__ ((constructor)) static void saImmOiRtObjectCreate_2_constructor(void)
 {
-    dnObj1.length = (SaUint16T) sprintf((char*) dnObj1.value, "%s,%s", rdnObj1.value, parentName.value);
-    dnObj2.length = (SaUint16T) sprintf((char*) dnObj2.value, "%s,%s", rdnObj2.value, parentName.value);
+    dnObj1.length = (SaUint16T) sprintf((char*) dnObj1.value, "%s,%s", rdnObj1.value, rootObj.value);
+    dnObj2.length = (SaUint16T) sprintf((char*) dnObj2.value, "%s,%s", rdnObj2.value, rootObj.value);
 
     test_suite_add(3, "Runtime Objects Management");
     test_case_add(3, saImmOiRtObjectCreate_2_01, "saImmOiRtObjectCreate_2 - SA_AIS_OK");

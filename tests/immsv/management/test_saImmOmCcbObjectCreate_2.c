@@ -31,13 +31,11 @@ void saImmOmCcbObjectCreate_01(void)
     SaUint32T* int1Values[] = {&int1Value1};
     SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
     const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
-    const SaNameT parentName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     /* Create object under root */
     if ((rc = saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues)) != SA_AIS_OK)
@@ -45,13 +43,12 @@ void saImmOmCcbObjectCreate_01(void)
 
     /* Create object under parent, must be owner */
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
-    safassert(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, &parentName, NULL), SA_AIS_ERR_INVALID_PARAM);
-    rc = saImmOmCcbObjectCreate_2(ccbHandle, configClassName, &parentName, attrValues);
+    safassert(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, &rootObj, NULL), SA_AIS_ERR_INVALID_PARAM);
+    rc = saImmOmCcbObjectCreate_2(ccbHandle, configClassName, &rootObj, attrValues);
 
 done:
     test_validate(rc, SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -72,7 +69,6 @@ void saImmOmCcbObjectCreate_02(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 
     /* already finalized ccbHandle */
@@ -85,7 +81,6 @@ void saImmOmCcbObjectCreate_02(void)
 
 done:
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
@@ -110,7 +105,6 @@ void saImmOmCcbObjectCreate_03(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     safassert(runtime_class_create(immOmHandle), SA_AIS_OK);
 
     /* the className parameter specifies a runtime object class */
@@ -183,7 +177,6 @@ void saImmOmCcbObjectCreate_03(void)
 done:
     test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(runtime_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
@@ -201,19 +194,16 @@ void saImmOmCcbObjectCreate_04(void)
     SaUint32T* int1Values[] = {&int1Value1};
     SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
     const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
-    const SaNameT parentName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     /* Create object under a non owned parent */
     test_validate(saImmOmCcbObjectCreate_2(ccbHandle, configClassName,
-        &parentName, attrValues), SA_AIS_ERR_BAD_OPERATION);
+        &rootObj, attrValues), SA_AIS_ERR_BAD_OPERATION);
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -237,7 +227,6 @@ void saImmOmCcbObjectCreate_05(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     /*
     ** The name to which the parentName parameter points is not the name of an
@@ -266,7 +255,6 @@ void saImmOmCcbObjectCreate_05(void)
 done:
     test_validate(rc, SA_AIS_ERR_NOT_EXIST);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -287,14 +275,12 @@ void saImmOmCcbObjectCreate_06(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues), SA_AIS_OK);
     /* Create same object again */
     test_validate(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues), SA_AIS_ERR_EXIST);
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -359,13 +345,11 @@ void saImmOmCcbObjectCreate_08(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     test_validate(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues), SA_AIS_OK);
 
     saImmOmCcbObjectDelete(ccbHandle, &rdn);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -383,12 +367,10 @@ void saImmOmCcbObjectCreate_09(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     test_validate(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues), SA_AIS_ERR_INVALID_PARAM);
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -406,12 +388,10 @@ void saImmOmCcbObjectCreate_10(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     test_validate(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues), SA_AIS_ERR_INVALID_PARAM);
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -429,12 +409,10 @@ void saImmOmCcbObjectCreate_11(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     test_validate(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues), SA_AIS_ERR_INVALID_PARAM);
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -452,12 +430,10 @@ void saImmOmCcbObjectCreate_12(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     test_validate(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues), SA_AIS_ERR_INVALID_PARAM);
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -482,7 +458,6 @@ void saImmOmCcbObjectCreate_13(void)
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, configClassName, NULL, attrValues), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
@@ -526,7 +501,6 @@ void saImmOmCcbObjectCreate_13(void)
     safassert(saImmOmCcbObjectDelete(ccbHandle, &rdn), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }

@@ -21,20 +21,17 @@ void saImmOiClassImplementerSet_01(void)
 {
     SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
     test_validate(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
     safassert(saImmOiClassImplementerRelease(immOiHandle, configClassName), SA_AIS_OK);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
 void saImmOiClassImplementerSet_02(void)
 {
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
 
     /* invalid */
@@ -47,7 +44,6 @@ void saImmOiClassImplementerSet_02(void)
 done:
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
@@ -80,7 +76,6 @@ void saImmOiClassImplementerSet_05(void)
 {
     SaImmOiHandleT newhandle;
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
     SaImmOiImplementerNameT implementerName2 = (SaImmOiImplementerNameT) __FILE__;
 
@@ -96,7 +91,6 @@ void saImmOiClassImplementerSet_05(void)
     safassert(saImmOiImplementerClear(immOiHandle), SA_AIS_OK);
     safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
     safassert(saImmOiFinalize(newhandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
@@ -121,7 +115,6 @@ void saImmOiClassImplementerSet_06(void)
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
 
     /* Create test object under root */
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, "TestClassConfig", NULL, attrValues), SA_AIS_OK);
@@ -147,7 +140,6 @@ void saImmOiClassImplementerSet_06(void)
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     test_validate(rc, SA_AIS_ERR_EXIST);
 }

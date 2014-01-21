@@ -32,27 +32,24 @@ void saImmOmCcbApply_01(void)
     SaImmAttrValuesT_2 v1 =
         {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
     const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
-    const SaNameT parentName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
     const SaNameT objectName =
-        {strlen("Obj1,opensafImm=opensafImm,safApp=safImmService"), "Obj1,opensafImm=opensafImm,safApp=safImmService"};
+        {strlen("Obj1,rdn=root"), "Obj1,rdn=root"};
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion),
         SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName,
 				  /*SA_TRUE*/SA_FALSE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), 
         SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, configClassName,
-        &parentName, attrValues), SA_AIS_OK);
+        &rootObj, attrValues), SA_AIS_OK);
 
     test_validate(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
     safassert(saImmOmCcbObjectDelete(ccbHandle, &objectName), SA_AIS_OK);
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerRelease(ownerHandle, objectNames, SA_IMM_ONE),
 		SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
@@ -71,17 +68,15 @@ void saImmOmCcbApply_02(void)
     SaUint32T* int1Values[] = {&int1Value1};
     SaImmAttrValuesT_2 v1 = {"attr1", SA_IMM_ATTR_SAUINT32T, 1, (void**)int1Values};
     const SaImmAttrValuesT_2 * attrValues[] = {&v1, &v2, NULL};
-    const SaNameT parentName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName,
         SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbObjectCreate_2(ccbHandle, configClassName,
-        &parentName, attrValues), SA_AIS_OK);
+        &rootObj, attrValues), SA_AIS_OK);
 
     /* ccbHandle is invalid */
     if ((rc = saImmOmCcbApply(-1)) != SA_AIS_ERR_BAD_HANDLE)
@@ -95,7 +90,6 @@ void saImmOmCcbApply_02(void)
 
 done:
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }

@@ -56,8 +56,7 @@ void saImmOmAdminOwnerFinalize_03(void)
     const SaImmAdminOwnerNameT adminOwnerName2 = (SaImmAdminOwnerNameT) "RudeGuyAdminOwner";
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmAdminOwnerHandleT rudeGuyHandle;
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT *objectNames[] = {&objectName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     /* setup */
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);

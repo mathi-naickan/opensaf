@@ -405,8 +405,6 @@ static void saImmOiCcbAugmentInitialize_01(void)
     safassert(saImmOmAdminOwnerInitialize(handle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
-    safassert(config_class_create(handle), SA_AIS_OK);
-
     arg.name = (void *)configClassName;
     arg.callbacks = (SaImmOiCallbacksT_2 *)&augCallbacks;
     arg.implementerName = (SaImmOiImplementerNameT)__FUNCTION__;
@@ -454,10 +452,6 @@ done:
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
-
-    /* Delete class */
-    safassert(config_class_delete(handle), SA_AIS_OK);
-
     safassert(saImmOmFinalize(handle), SA_AIS_OK);
 
     TRACE_LEAVE();
@@ -477,10 +471,6 @@ static void saImmOiCcbAugmentInitialize_02(void)
     TRACE_ENTER();
 
     safassert(saImmOmInitialize(&handle, NULL, &immVersion), SA_AIS_OK);
-
-    /* Create class */
-    safassert(config_class_create(handle), SA_AIS_OK);
-
     safassert(saImmOmAdminOwnerInitialize(handle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
@@ -537,10 +527,6 @@ done:
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
-
-    /* Delete class */
-    safassert(config_class_delete(handle), SA_AIS_OK);
-
     safassert(saImmOmFinalize(handle), SA_AIS_OK);
 
     TRACE_LEAVE();
@@ -563,10 +549,6 @@ static void saImmOiCcbAugmentInitialize_03(void)
     TRACE_ENTER();
 
     safassert(saImmOmInitialize(&handle, NULL, &immVersion), SA_AIS_OK);
-
-    /* Create class */
-    safassert(config_class_create(handle), SA_AIS_OK);
-
     safassert(saImmOmAdminOwnerInitialize(handle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
@@ -633,10 +615,6 @@ done:
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
-
-    /* Delete class */
-    safassert(config_class_delete(handle), SA_AIS_OK);
-
     safassert(saImmOmFinalize(handle), SA_AIS_OK);
 
     TRACE_LEAVE();
@@ -658,10 +636,6 @@ static void saImmOiCcbAugmentInitialize_04(void)
     TRACE_ENTER();
 
     safassert(saImmOmInitialize(&handle, NULL, &immVersion), SA_AIS_OK);
-
-    /* Create class */
-    safassert(config_class_create(handle), SA_AIS_OK);
-
     safassert(saImmOmAdminOwnerInitialize(handle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
@@ -732,10 +706,6 @@ done:
 
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
-
-    /* Delete class */
-    safassert(config_class_delete(handle), SA_AIS_OK);
-
     safassert(saImmOmFinalize(handle), SA_AIS_OK);
 
     TRACE_LEAVE();

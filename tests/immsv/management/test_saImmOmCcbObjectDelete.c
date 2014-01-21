@@ -17,7 +17,6 @@
 
 #include "immtest.h"
 
-static const SaNameT parentName = {sizeof("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
 static const SaNameT rdnObj1 = {sizeof("Obj1"), "Obj1"};
 static const SaNameT rdnObj2 = {sizeof("Obj2"), "Obj2"};
 
@@ -113,13 +112,12 @@ void saImmOmCcbObjectDelete_01(void)
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmCcbHandleT ccbHandle;
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
-    safassert(config_object_create(immOmHandle, ownerHandle, &parentName), SA_AIS_OK);
+    safassert(config_object_create(immOmHandle, ownerHandle, &rootObj), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, dnObjs, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
@@ -127,7 +125,6 @@ void saImmOmCcbObjectDelete_01(void)
 
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
     safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -137,13 +134,12 @@ void saImmOmCcbObjectDelete_02(void)
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmCcbHandleT ccbHandle;
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
-    safassert(config_object_create(immOmHandle, ownerHandle, &parentName), SA_AIS_OK);
+    safassert(config_object_create(immOmHandle, ownerHandle, &rootObj), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
     /* invalid ccbHandle */
@@ -158,7 +154,6 @@ void saImmOmCcbObjectDelete_02(void)
 done:
     test_validate(rc, SA_AIS_ERR_BAD_HANDLE);
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
@@ -168,13 +163,12 @@ void saImmOmCcbObjectDelete_03(void)
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmCcbHandleT ccbHandle;
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
-    safassert(config_object_create(immOmHandle, ownerHandle, &parentName), SA_AIS_OK);
+    safassert(config_object_create(immOmHandle, ownerHandle, &rootObj), SA_AIS_OK);
     safassert(saImmOmAdminOwnerRelease(ownerHandle, objectNames, SA_IMM_SUBTREE), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
@@ -200,7 +194,6 @@ void saImmOmCcbObjectDelete_03(void)
 done:
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_SUBTREE), SA_AIS_OK);
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
     test_validate(rc, SA_AIS_ERR_BAD_OPERATION);
@@ -211,13 +204,12 @@ void saImmOmCcbObjectDelete_04(void)
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmCcbHandleT ccbHandle;
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
-    safassert(config_object_create(immOmHandle, ownerHandle, &parentName), SA_AIS_OK);
+    safassert(config_object_create(immOmHandle, ownerHandle, &rootObj), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, SA_IMM_CCB_REGISTERED_OI, &ccbHandle), SA_AIS_OK);
 
     /* 
@@ -243,7 +235,6 @@ void saImmOmCcbObjectDelete_04(void)
 
 done:
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
@@ -256,13 +247,12 @@ void saImmOmCcbObjectDelete_05(void)
     SaImmAdminOwnerHandleT ownerHandle;
     SaImmCcbHandleT ccbHandle1;
     SaImmCcbHandleT ccbHandle2;
-    const SaNameT *objectNames[] = {&parentName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
-    safassert(config_class_create(immOmHandle), SA_AIS_OK);
-    safassert(config_object_create(immOmHandle, ownerHandle, &parentName), SA_AIS_OK);
+    safassert(config_object_create(immOmHandle, ownerHandle, &rootObj), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle1), SA_AIS_OK);
     safassert(saImmOmCcbObjectDelete(ccbHandle1, &dnObj1), SA_AIS_OK);
 
@@ -275,7 +265,6 @@ void saImmOmCcbObjectDelete_05(void)
 
     safassert(saImmOmCcbFinalize(ccbHandle1), SA_AIS_OK);
     safassert(config_object_delete(immOmHandle, ownerHandle), SA_AIS_OK);
-    safassert(config_class_delete(immOmHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
@@ -492,7 +481,7 @@ void saImmOmCcbObjectDelete_10(void)
 
 __attribute__ ((constructor)) static void saImmOmCcbObjectDelete_constructor(void)
 {
-    dnObj1.length = (SaUint16T) sprintf((char*) dnObj1.value, "%s,%s", rdnObj1.value, parentName.value);
-    dnObj2.length = (SaUint16T) sprintf((char*) dnObj2.value, "%s,%s", rdnObj2.value, parentName.value);
+    dnObj1.length = (SaUint16T) sprintf((char*) dnObj1.value, "%s,%s", rdnObj1.value, rootObj.value);
+    dnObj2.length = (SaUint16T) sprintf((char*) dnObj2.value, "%s,%s", rdnObj2.value, rootObj.value);
 }
 

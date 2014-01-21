@@ -21,8 +21,7 @@ void saImmOmAdminOwnerSet_01(void)
 {
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT *objectNames[] = {&objectName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
@@ -35,8 +34,7 @@ void saImmOmAdminOwnerSet_02(void)
 {
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT *objectNames[] = {&objectName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
@@ -49,8 +47,7 @@ void saImmOmAdminOwnerSet_03(void)
 {
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT *objectNames[] = {&objectName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
@@ -78,11 +75,10 @@ void saImmOmAdminOwnerSet_05(void)
 {
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
-    const SaNameT objectName1 = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT objectName2 = {strlen("nonExistingObject"), "nonExistingObject"};
-    const SaNameT *objectNames1[] = {&objectName2, NULL};
-    const SaNameT *objectNames2[] = {&objectName1, &objectName2, NULL};
-    const SaNameT *objectNames3[] = {&objectName2, &objectName1, NULL};
+    const SaNameT objectName = {strlen("nonExistingObject"), "nonExistingObject"};
+    const SaNameT *objectNames1[] = {&objectName, NULL};
+    const SaNameT *objectNames2[] = {&rootObj, &objectName, NULL};
+    const SaNameT *objectNames3[] = {&objectName, &rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
@@ -116,11 +112,10 @@ void saImmOmAdminOwnerSet_06(void)
     SaImmAdminOwnerHandleT ownerHandle1;
     const SaImmAdminOwnerNameT adminOwnerName2 = (SaImmAdminOwnerNameT) "adminOwnerName2";
     SaImmAdminOwnerHandleT ownerHandle2;
-    const SaNameT objectName1 = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT objectName2 = {strlen("safApp=safLogService"), "safApp=safLogService"};
-    const SaNameT *objectNames1[] = {&objectName1, NULL};
-    const SaNameT *objectNames2[] = {&objectName1, &objectName2, NULL};
-    const SaNameT *objectNames3[] = {&objectName2, &objectName1, NULL};
+    const SaNameT objectName = {strlen("safApp=safLogService"), "safApp=safLogService"};
+    const SaNameT *objectNames1[] = {&rootObj, NULL};
+    const SaNameT *objectNames2[] = {&rootObj, &objectName, NULL};
+    const SaNameT *objectNames3[] = {&objectName, &rootObj, NULL};
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName1, SA_TRUE, &ownerHandle1), SA_AIS_OK);
@@ -155,8 +150,7 @@ void saImmOmAdminOwnerSet_07(void)
 {
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
     SaImmAdminOwnerHandleT ownerHandle;
-    const SaNameT objectName = {strlen("opensafImm=opensafImm,safApp=safImmService"), "opensafImm=opensafImm,safApp=safImmService"};
-    const SaNameT *objectNames[] = {&objectName, NULL};
+    const SaNameT *objectNames[] = {&rootObj, NULL};
     SaInvocationT inv = 4711;
     SaImmContinuationIdT cont = 0;
     SaImmAdminOperationIdT opId = 1;
@@ -166,7 +160,7 @@ void saImmOmAdminOwnerSet_07(void)
     safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
 
-    rc = saImmOmAdminOperationInvokeAsync_2(ownerHandle, inv, &objectName, cont, opId, params);
+    rc = saImmOmAdminOperationInvokeAsync_2(ownerHandle, inv, &rootObj, cont, opId, params);
 
     test_validate(rc, SA_AIS_ERR_INIT);
 

@@ -42,6 +42,7 @@ extern SaImmCallbacksT_o2 immOmA2bCallbacks;
 extern const SaImmClassNameT configClassName;
 extern const SaImmClassNameT runtimeClassName;
 extern const SaImmClassNameT nodanglingClassName;
+extern const SaNameT rootObj;
 
 /* Implementer globals */
 extern SaImmHandleT immOiHandle;

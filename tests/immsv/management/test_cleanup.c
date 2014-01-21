@@ -21,12 +21,13 @@
 static char *objects[] = {
 		"Obj1",
 		"Obj3",
-		"Obj1,opensafImm=opensafImm,safApp=safImmService",
+		"Obj1,rdn=root",
 		"saImmOmCcbObjectCreate_06",
 		"safLgStrCfg=saLogAlarm\\,safApp=safLogService\\,safApp=safImmService",
 		"id=1",
 		"id=2",
 		"id=3",
+		"rdn=root",
 		NULL
 };
 
@@ -127,12 +128,27 @@ static void cleanup() {
 	TRACE_LEAVE();
 }
 
+static void startup() {
+	/* First, remove all objects */
+	cleanup();
+
+	/* Create root object */
+	const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
+	SaImmAdminOwnerHandleT ownerHandle;
+
+	safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+	safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+	safassert(config_class_create(immOmHandle), SA_AIS_OK);
+	safassert(object_create(immOmHandle, ownerHandle, configClassName, &rootObj, NULL, NULL), SA_AIS_OK);
+	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+	safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+}
 
 __attribute__ ((constructor)) static void cleanup_constructor(void)
 {
 	/* If an earlier test is aborted, then remained test objects and
 	   test classes in IMM need to be cleaned up */
-	test_setup = cleanup;
+	test_setup = startup;
 
 	/* On successful finished test, clean up IMM */
 	test_cleanup = cleanup;
