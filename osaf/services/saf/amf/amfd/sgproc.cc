@@ -256,6 +256,25 @@ static void su_try_repair(const AVD_SU *su)
 }
 
 /**
+ * @brief	Completes admin operation on node. 
+ *		If node is undergoing some admin operation, this function 
+ *		will respond to imm with the provided result. Also all admin
+ *		operation related parameters will be cleared in node ptr.  
+ * @param 	ptr to node 
+ * @param 	result
+ * 
+ */
+static void node_complete_admin_op(AVD_AVND *node, SaAisErrorT result)
+{
+	if (node->admin_node_pend_cbk.invocation != 0) {
+		avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
+				node->admin_node_pend_cbk.invocation, result);
+		node->admin_node_pend_cbk.invocation = 0;
+		node->admin_node_pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+	}
+}
+
+/**
  * @brief	Perform failover of SU as a single entity and free all SUSIs associated with this SU.
  * @param 	su 
  * 
@@ -275,8 +294,24 @@ static uint32_t sg_su_failover_func(AVD_SU *su)
 
 	avd_su_oper_state_set(su, SA_AMF_OPERATIONAL_DISABLED);
 	avd_su_readiness_state_set(su, SA_AMF_READINESS_OUT_OF_SERVICE);
-	su_complete_admin_op(su, SA_AIS_ERR_TIMEOUT);
+	if (su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED)
+		su_complete_admin_op(su, SA_AIS_OK);
+	else
+		su_complete_admin_op(su, SA_AIS_ERR_TIMEOUT);
 	su_disable_comps(su, SA_AIS_ERR_TIMEOUT);
+	if (su->su_on_node->admin_node_pend_cbk.invocation != 0) {
+		/* Node level operation is going on the node hosting the SU for which 
+		   sufailover got escalated. Sufailover event will always come after the 
+		   initiation of node level operation on the list of SUs. So if this SU has 
+		   list of SUSIs, AMF would have sent assignment as a part of node level operation.
+		   Now SUSIs in this SU are going to be deleted so we can decrement the counter in node.
+		 */ 
+		su->su_on_node->su_cnt_admin_oper--;
+
+		/* If node level operation is finished on all the SUs, reply to imm.*/
+		if (su->su_on_node->su_cnt_admin_oper == 0)
+			node_complete_admin_op(su->su_on_node, SA_AIS_OK);
+	}
 
 	/*If the AvD is in AVD_APP_STATE then reassign all the SUSI assignments for this SU */
 	if (avd_cb->init_state == AVD_APP_STATE) {
