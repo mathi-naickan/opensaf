@@ -205,15 +205,16 @@ unsigned int ncs_os_task(NCS_OS_TASK *task, NCS_OS_TASK_REQUEST request)
 			min_prio = sched_get_priority_min(policy);
 			max_prio = sched_get_priority_max(policy);
 			
-			if((sp.sched_priority < min_prio) || (sp.sched_priority  > max_prio)) {
+			if ((sp.sched_priority < min_prio) || (sp.sched_priority > max_prio) ||
+			    pthread_attr_setschedpolicy(&attr, policy) != 0) {
                			/* Set to defaults */
-				syslog(LOG_NOTICE, "scheduling priority %d for given policy %d to the task %s is not \
-									within the range, setting to default \
-							values ", sp.sched_priority, policy, task->info.create.i_name);
+				syslog(LOG_NOTICE, "scheduling priority %d or policy %d for the "
+				       "task %s is invalid, setting to default values",
+				       sp.sched_priority, policy, task->info.create.i_name);
 				policy = task->info.create.i_policy;
 				sp.sched_priority = task->info.create.i_priority;
-				syslog(LOG_INFO, "%s task default policy is %d, \
-				priority is %d", task->info.create.i_name, policy, sp.sched_priority);
+				syslog(LOG_INFO, "%s task default policy is %d, priority is %d",
+				       task->info.create.i_name, policy, sp.sched_priority);
 			}
 				
 #ifdef RLIMIT_RTPRIO
