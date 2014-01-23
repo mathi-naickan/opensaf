@@ -777,8 +777,9 @@ static AVND_COMP_HC_REC *find_hc_rec(const AVND_COMP *comp)
 void avnd_comp_hc_cmd_restart(AVND_COMP *comp)
 {
 	AVND_COMP_HC_REC *rec = find_hc_rec(comp);
-
-	osafassert(rec);
+	/* This may come because of script responding after component was terminated by lock-in. */
+	if(rec == NULL)
+		return;
 
 	if (rec->status == AVND_COMP_HC_STATUS_SND_TMR_EXPD) {
 		uint32_t rc = avnd_start_tmr(avnd_cb, &rec->tmr, AVND_TMR_HC, rec->period, rec->opq_hdl);
