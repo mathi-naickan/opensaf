@@ -532,9 +532,9 @@ uint32_t avd_gen_su_ha_state_changed_ntf(AVD_CL_CB *avd_cb, AVD_SU_SI_REL *susi)
 {
 	uint32_t status = NCSCC_RC_FAILURE;
 
-	TRACE_ENTER2("'%s' assigned to '%s' HA state UNKNOWN => %s", susi->si->name.value, 
+	TRACE_ENTER2("'%s' assigned to '%s' HA state '%s'", susi->si->name.value, 
 			susi->su->name.value, avd_ha_state[susi->state]);
-	saflog(LOG_NOTICE, amfSvcUsrName, "%s assigned to %s HA State UNKNOWN => %s", 
+	saflog(LOG_NOTICE, amfSvcUsrName, "%s assigned to %s HA State '%s'", 
 			susi->si->name.value, susi->su->name.value, avd_ha_state[susi->state]);
 
 	/* alarm & notifications */
