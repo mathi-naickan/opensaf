@@ -328,6 +328,14 @@ static uint32_t sg_su_failover_func(AVD_SU *su)
 				avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_MOD,
 						SA_AMF_HA_QUIESCING, SA_AMF_HA_QUIESCED);
 			}
+			else if ((susi->fsm == AVD_SU_SI_STATE_MODIFY) &&
+					(susi->state == SA_AMF_HA_ACTIVE)) {
+				/* SUSI is undergoing active modification. For active state 
+				   saAmfSINumCurrActiveAssignments was increased when active  
+				   assignment had been sent. So decrement the count in SI before 
+				   deleting the SUSI. */
+				avd_si_dec_curr_act_ass(susi->si);
+			}
 		}
 		su->sg_of_su->node_fail(avd_cb, su);
 		avd_sg_su_asgn_del_util(avd_cb, su, true, false);
