@@ -493,14 +493,15 @@ uint32_t avnd_evt_su_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 			avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompOperState_ID, &comp->name, comp->oper);
 		}
 
+		if ((su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED) &&
+				(comp_in_term_failed_state() == false))
+			avnd_failed_state_file_delete();
+
 		m_AVND_SU_STATE_RESET(su);
 		m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_ENABLED);
 		avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSUOperState_ID, &su->name, su->oper);
 		avnd_su_pres_state_set(su, SA_AMF_PRESENCE_UNINSTANTIATED);
 		rc = avnd_di_oper_send(cb, su, 0);
-
-		if (!comp_in_term_failed_state())
-			avnd_failed_state_file_delete();
 
 		break;
 	}
