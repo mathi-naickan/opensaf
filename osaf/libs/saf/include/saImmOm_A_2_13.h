@@ -46,11 +46,12 @@ extern "C" {
 #define SA_IMM_ATTR_PERSISTENT    0x00020000
 #define SA_IMM_ATTR_CACHED        0x00040000
 #define SA_IMM_ATTR_NO_DUPLICATES 0x0000000001000000 / * See: http://devel.opensaf.org/ticket/1545
-							Not yet supported. * /
+							Supported in OpenSaf 4.3 * /
 #define SA_IMM_ATTR_NOTIFY        0x0000000002000000 / * See: http://devel.opensaf.org/ticket/2883
-							Not yet supported. * /
+							Supported in OpenSaf 4.3 * /
 	*/
-#define SA_IMM_ATTR_NO_DANGLING   0x0000000004000000    /* See: https://sourceforge.net/p/opensaf/tickets/49/ */
+#define SA_IMM_ATTR_NO_DANGLING   0x0000000004000000    /* See: https://sourceforge.net/p/opensaf/tickets/49/
+                                                         Supported in OpenSaf 4.4 */
 
 
     /* 4.2.12 SaImmSearchOptionsT */
