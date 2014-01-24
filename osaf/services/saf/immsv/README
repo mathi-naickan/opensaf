@@ -318,7 +318,7 @@ is generated. This timeout is currently hard-coded to 6 seconds.
 There is an enhancement planned to allow this global timeout value
 to be configured (http://devel.opensaf.org/ticket/2021).
 If the OI does not reply in time, the server will reply with error to the
-client, without waiting for the reply on the upcall. Exactly which error is
+client, without waiting for the reply on the callback. Exactly which error is
 generated depends on the type of call. Ccb related calls tend to generate
 FAILED_OPERATION, i.e. an abort of the CCB/transaction by the server.
 But with PBE enabled and congestion at the PBE, the server can not abort
@@ -568,13 +568,24 @@ service/application to use the imm to disseminate the changes.
 An applier OI registers the same way as the main OI and receives exactly
 the same CCB related callbacks as the primary OI. The difference is that an
 applier OI does not participate in CCB validation. The imm-service ignores
-any reply on the create,delete,modify and completed callbacks, from applier OIs.
-An applier OI does not get uppcalls for admin-operations or for updating
-runtime attributes. This should be obvious since admin-ops or updates
-to runtime attributes should only be handled by the main-oi.
+any reply on the create,delete,modify and completed callbacks, from applier
+OIs. An applier OI does not get callbacks for updating runtime attributes.
+This should be obvious since admin-ops or updates to runtime attributes
+should only be handled by the primary OI. An applier OI is not allowed to
+create or delete runtime objects, or to update cached runtime attributes.
 
-An applier OI is not allowed to create or delete runtime objects,
-or to update runtime attributes.
+The completed callback really has no meaning for the applier interface.
+For regular Ois, the completed callback has the purpose of allowing the OI
+to validate the changes it received for the CCB. But appliers have no validation
+rights. Any error code Returned by an applier from a completed callback is
+discarded by the imm service. Note also that the immsv does not wait for
+replies from the completed callback on appliers, which means that the CCB is
+usually already applied in the imm ram database by the time an applier receives
+and processes the completed callback. Thus an applier can not use the completed
+callback as a trigger to read the pre-apply version of the objects involved in
+the CCB. To acheive that requires the primary OI to communicate with the applier
+Oi through some alternate mechanism, before the primary OI returns from the
+completed callback. 
 
 The applier OI is thus informed of the same changes as the primary OI
 and will be able to apply the changes if the CCB commits and discard them
@@ -657,7 +668,7 @@ applier data that is synced (after a node restart) is the existence of
 the applier name and whether ot not any client is currently attached as
 that applier.
 
-The most efficient and simplest and normal way to bind an implementer
+The most efficient, simplest and normal way to bind an implementer
 or applier to objects is by using the saImmOiClassImplementerSet call.
 This ensures that the implementer-name is always bound to all instances
 of that class. It ensures that the OI will get the saImmOiObjectCreate
