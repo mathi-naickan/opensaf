@@ -894,4 +894,6 @@ extern void avnd_comp_pres_state_set(AVND_COMP *comp, SaAmfPresenceStateT newsta
  */
 extern uint32_t comp_restart_initiate(AVND_COMP *comp);
 
+bool comp_has_quiesced_assignment(const AVND_COMP *comp);
+
 #endif   /* !AVND_COMP_H */

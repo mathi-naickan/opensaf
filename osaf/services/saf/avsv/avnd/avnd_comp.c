@@ -2780,3 +2780,24 @@ void avnd_comp_pres_state_set(AVND_COMP *comp, SaAmfPresenceStateT newstate)
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_PRES_STATE);
 }
 
+/**
+ * Returns true if the HA state for any CSI assignment is QUIESCED/QUIESCING
+ * @param su
+ */
+bool comp_has_quiesced_assignment(const AVND_COMP *comp)
+{
+       const AVND_COMP_CSI_REC *csi;
+
+       for (csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
+                       m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+               csi != NULL;
+               csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(
+                       m_NCS_DBLIST_FIND_NEXT(&csi->comp_dll_node))) {
+
+               if ((csi->si->curr_state == SA_AMF_HA_QUIESCED) ||
+                               (csi->si->curr_state == SA_AMF_HA_QUIESCING))
+                       return true;
+       }
+
+       return false;
+}
