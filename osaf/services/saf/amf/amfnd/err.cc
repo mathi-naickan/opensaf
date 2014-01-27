@@ -411,10 +411,17 @@ uint32_t avnd_err_escalate(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, uint32_t *
 	if (*io_esc_rcvr == SA_AMF_NO_RECOMMENDATION)
 		*io_esc_rcvr = comp->err_info.def_rec;
 
-	/* disallow comp-restart if it's disabled */
-	if ((SA_AMF_COMPONENT_RESTART == *io_esc_rcvr) && m_AVND_COMP_IS_RESTART_DIS(comp) && (!su->is_ncs)) {
-		LOG_NO("saAmfCompDisableRestart is true for '%s'",comp->name.value);
-		*io_esc_rcvr = SA_AMF_COMPONENT_FAILOVER;
+	if (*io_esc_rcvr == SA_AMF_COMPONENT_RESTART) {
+		if (m_AVND_COMP_IS_RESTART_DIS(comp) && (!su->is_ncs)) {
+			LOG_NO("saAmfCompDisableRestart is true for '%s'",comp->name.value);
+			LOG_NO("recovery action 'comp restart' escalated to 'comp failover'");
+			*io_esc_rcvr = SA_AMF_COMPONENT_FAILOVER;
+		} else if (comp_has_quiesced_assignment(comp) == true) {
+			/* Cannot re-assign QUIESCED, escalate to failover */
+			LOG_NO("component with QUIESCED/QUIESCING assignment failed");
+			LOG_NO("recovery action 'comp restart' escalated to 'comp failover'");
+			*io_esc_rcvr = SA_AMF_COMPONENT_FAILOVER;
+		}
 	}
 
 	if ((SA_AMF_COMPONENT_FAILOVER== *io_esc_rcvr) && (su->sufailover) && (!su->is_ncs)) {

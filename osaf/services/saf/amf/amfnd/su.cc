@@ -481,6 +481,7 @@ uint32_t avnd_evt_su_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 		AVND_COMP *comp;
 
 		/* SU has been repaired. Reset states and update AMF director accordingly. */
+		LOG_NO("Repair request for '%s'", su->name.value);
 
 		for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
 		      comp;

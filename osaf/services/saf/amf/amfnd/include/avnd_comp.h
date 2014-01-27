@@ -876,6 +876,7 @@ extern unsigned int avnd_comp_config_get_su(struct avnd_su_tag *su);
 extern int avnd_comp_config_reinit(AVND_COMP *comp);
 extern void avnd_comp_delete(AVND_COMP *comp);
 extern void avnd_comp_pres_state_set(AVND_COMP *comp, SaAmfPresenceStateT newstate);
+bool comp_has_quiesced_assignment(const AVND_COMP *comp);
 
 /**
  * Initiate restart of a component.
