@@ -284,6 +284,9 @@ static void free_parserState(ParserState *state) {
 	state->classAttrTypeMap.clear();
 	state->adminOwnerSetSet.clear();
 
+	free(state->attrDefaultValueBuffer);
+	state->attrDefaultValueBuffer = NULL;
+
 	{
 		std::list<SaImmAttrDefinitionT_2>::iterator it;
 		it = state->attrDefinitions.begin();
@@ -2246,6 +2249,7 @@ static void addClassAttributeDefinition(ParserState* state)
 			LOG_ER("Failed to parse default value of attribute %s", state->attrName);
 			stopParser(state);
 			state->parsingStatus = 1;
+			return;
 		}
 	} else {
 		attrDefinition.attrDefaultValue = NULL;
@@ -2281,31 +2285,26 @@ static int charsToValueHelper(SaImmAttrValueT* value,
 		*value = malloc(sizeof(SaInt32T));
 		*((SaInt32T*)*value) = (SaInt32T)strtol(str, &endMark, 0);
 		rc = *endMark != 0;
-		if(rc) free(*value);
 		break;
 	case SA_IMM_ATTR_SAUINT32T:
 		*value = malloc(sizeof(SaUint32T));
 		*((SaUint32T*)*value) = (SaUint32T)strtoul(str, &endMark, 0);
 		rc = *endMark != 0;
-		if(rc) free(*value);
 		break;
 	case SA_IMM_ATTR_SAINT64T:
 		*value = malloc(sizeof(SaInt64T));
 		*((SaInt64T*)*value) = (SaInt64T)strtoll(str, &endMark, 0);
 		rc = *endMark != 0;
-		if(rc) free(*value);
 		break;
 	case SA_IMM_ATTR_SAUINT64T:
 		*value = malloc(sizeof(SaUint64T));
 		*((SaUint64T*)*value) = (SaUint64T)strtoull(str, &endMark, 0);
 		rc = *endMark != 0;
-		if(rc) free(*value);
 		break;
 	case SA_IMM_ATTR_SATIMET: // Int64T
 		*value = malloc(sizeof(SaInt64T));
 		*((SaTimeT*)*value) = (SaTimeT)strtoll(str, &endMark, 0);
 		rc = *endMark != 0;
-		if(rc) free(*value);
 		break;
 	case SA_IMM_ATTR_SANAMET:
 		len = strlen(str);
@@ -2322,13 +2321,11 @@ static int charsToValueHelper(SaImmAttrValueT* value,
 		*value = malloc(sizeof(SaFloatT));
 		*((SaFloatT*)*value) = (SaFloatT)strtof(str, &endMark);
 		rc = *endMark != 0;
-		if(rc) free(*value);
 		break;
 	case SA_IMM_ATTR_SADOUBLET:
 		*value = malloc(sizeof(SaDoubleT));
 		*((SaDoubleT*)*value) = (SaDoubleT)strtod(str, &endMark);
 		rc = *endMark != 0;
-		if(rc) free(*value);
 		break;
 	case SA_IMM_ATTR_SASTRINGT:
 		len = strlen(str);
@@ -2363,6 +2360,11 @@ static int charsToValueHelper(SaImmAttrValueT* value,
 	default:
 		LOG_ER("BAD VALUE TYPE");
 		return -1;
+	}
+
+	if(rc) {
+		free(*value);
+		*value = NULL;
 	}
 
 	return rc;
