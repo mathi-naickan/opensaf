@@ -375,6 +375,14 @@ void avd_si_delete(AVD_SI *si)
 	avd_svctype_remove_si(si);
 	avd_app_remove_si(si->app, si);
 	avd_sg_remove_si(si->sg_of_si, si);
+
+	// clear any pending alarms for this SI
+	if ((si->alarm_sent == true) &&
+			(avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE)) {
+		avd_alarm_clear(&si->name, SA_AMF_NTFID_SI_UNASSIGNED,
+				SA_NTF_SOFTWARE_ERROR);
+	}
+
 	rc = ncs_patricia_tree_del(&si_db, &si->tree_node);
 	osafassert(rc == NCSCC_RC_SUCCESS);
 	delete si;
