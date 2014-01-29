@@ -807,11 +807,11 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
         }
 
         /* Avoid if any single Csi assignment is undergoing on SG. */
-        if (csi_assignment_validate(si->sg_of_si) == true) {
-                rc = SA_AIS_ERR_TRY_AGAIN;
-                LOG_WA("Single Csi assignment undergoing on (sg'%s')", si->sg_of_si->name.value);
-                goto done;
-        }
+	if (csi_assignment_validate(si->sg_of_si) == true) {
+		report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN, NULL,
+				"Single Csi assignment undergoing on (sg'%s')", si->sg_of_si->name.value);
+		goto done;
+	}
 
 	switch (operationId) {
 	case SA_AMF_ADMIN_UNLOCK:
@@ -871,6 +871,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			/* This may happen when SUs are locked before SI is locked. */
 			LOG_WA("SI lock of %s, has no assignments", objectName->value);
 			rc = SA_AIS_OK;
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 			goto done;
 		}
 
