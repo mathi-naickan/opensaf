@@ -837,15 +837,42 @@ uint32_t avnd_comp_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 
 	case AVSV_OBJ_OPR_DEL:
 		{
-			AVND_COMP *comp = 0;
+			/* This request comes when any component is being
+			   deleted. When this request comes from Amfd,
+			   component can be in instantiated or uninstantiated
+			   state and in that case, Amfnd will uninstantiate the
+			   component and delete the record from its data base.
+			   This is kind of automatic termination of a component
+			   when comp is getting deleted. */
+			AVND_COMP *comp = 
+				m_AVND_COMPDB_REC_GET(cb->compdb, param->name);
+			if (comp == NULL) {
+				LOG_ER("%s: Comp '%s' not found", __FUNCTION__,
+						param->name.value);
+				goto done;
+			}
 
-			/* get the record */
-			comp = m_AVND_COMPDB_REC_GET(cb->compdb, param->name);
-			if (comp) {
-				/* delete the record */
+			/* Terminate the pi comp. It will terminate the
+			   component and delete the comp record. */
+			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) && (comp->pres == SA_AMF_PRESENCE_INSTANTIATED)) {
+				comp->pending_delete = true;
+				rc = avnd_comp_clc_fsm_run(cb, comp,
+						AVND_COMP_CLC_PRES_FSM_EV_TERM);
+				goto done;
+			}
+
+			/* Terminate the Npi comp. After deleting the csi, comp
+			   will be already terminated, so we just want to delete
+			   the comp record.*/
+			if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
 				m_AVND_SEND_CKPT_UPDT_ASYNC_RMV(cb, comp, AVND_CKPT_COMP_CONFIG);
 				rc = avnd_compdb_rec_del(cb, &param->name);
+				goto done;
 			}
+			/* Delete the component in case, it is in term failed or so. */
+			m_AVND_SEND_CKPT_UPDT_ASYNC_RMV(cb, comp, AVND_CKPT_COMP_CONFIG);
+			rc = avnd_compdb_rec_del(cb, &param->name);
+
 		}
 		break;
 

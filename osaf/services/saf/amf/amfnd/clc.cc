@@ -1306,6 +1306,16 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 		}
 	}
 
+	/* This is a case of 'component delete' when su is in intantiated
+	   state. Component can go into uninstantiated state or termination
+	   failed state, but the component information needs to be deleted from
+	   data base. */
+	if ((comp->pending_delete == true) &&
+			((comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED) ||
+			 (comp->pres == SA_AMF_PRESENCE_TERMINATION_FAILED)) &&
+			(comp->su->pres == SA_AMF_PRESENCE_INSTANTIATED))
+		rc = avnd_compdb_rec_del(cb, &comp->name);
+
  done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;

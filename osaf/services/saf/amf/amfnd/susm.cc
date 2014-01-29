@@ -1709,7 +1709,9 @@ uint32_t avnd_su_pres_uninst_suinst_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *c
 		     curr_comp;
 		     curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_comp->su_dll_node))) {
 			/* instantiate the pi comp */
-			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp)) {
+			TRACE("%s", curr_comp->name.value);
+			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp) &&
+					(curr_comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED)) {
 				TRACE("Running the component CLC FSM ");
 				rc = avnd_comp_clc_fsm_run(cb, curr_comp, AVND_COMP_CLC_PRES_FSM_EV_INST);
 				if (NCSCC_RC_SUCCESS != rc)

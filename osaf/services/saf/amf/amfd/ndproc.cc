@@ -608,9 +608,13 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	case AVSV_SA_AMF_COMP:{
 			/* Find the component record in the database, specified in the message. */
 			if ((comp = avd_comp_get(&n2d_msg->msg_info.n2d_data_req.param_info.name)) == NULL) {
-				LOG_ER("%s: Invalid Comp '%s' (%u)", __FUNCTION__,
-					n2d_msg->msg_info.n2d_data_req.param_info.name.value,
-					n2d_msg->msg_info.n2d_data_req.param_info.name.length);
+				/* In case of component delete, component gets
+				   deleted at Amfd first and then it gets
+				   uninstantiated and then deleted at Amfnd.
+				   So, when update for presence state comes from
+				   Amfnd, the component doesn't exists in Amfd*/
+				LOG_IN("%s: Invalid Comp '%s'", __FUNCTION__,
+						n2d_msg->msg_info.n2d_data_req.param_info.name.value);
 				goto done;
 			}
 

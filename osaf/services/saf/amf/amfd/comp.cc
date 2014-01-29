@@ -173,17 +173,18 @@ void avd_comp_delete(AVD_COMP *comp)
 static void comp_add_to_model(AVD_COMP *comp)
 {
 	SaNameT dn;
+	AVD_SU *su = comp->su;
 
 	TRACE_ENTER2("%s", comp->comp_info.name.value);
 
 	/* Check parent link to see if it has been added already */
-	if (comp->su != NULL) {
+	if (su != NULL) {
 		TRACE("already added");
 		goto done;
 	}
 
 	avsv_sanamet_init(&comp->comp_info.name, &dn, "safSu");
-	comp->su = avd_su_get(&dn);
+	su = comp->su = avd_su_get(&dn);
 
 	avd_comp_db_add(comp);
 	comp->comp_type = avd_comptype_get(&comp->saAmfCompType);
@@ -195,7 +196,7 @@ static void comp_add_to_model(AVD_COMP *comp)
 	 * corresponding node is UP send the component information
 	 * to the Node.
 	 */
-	if (comp->su->su_is_external) {
+	if (su->su_is_external) {
 		/* This is an external SU, so there is no node assigned to it.
 		   For some purpose of validations and sending SU/Comps info to
 		   hosting node (Controllers), we can take use of the hosting
@@ -219,12 +220,32 @@ static void comp_add_to_model(AVD_COMP *comp)
 	if ((comp->comp_info.category == AVSV_COMP_TYPE_SA_AWARE) ||
 	    (comp->comp_info.category == AVSV_COMP_TYPE_PROXIED_LOCAL_PRE_INSTANTIABLE) ||
 	    (comp->comp_info.category == AVSV_COMP_TYPE_EXTERNAL_PRE_INSTANTIABLE)) {
-		comp->su->saAmfSUPreInstantiable = static_cast<SaBoolT>(true);
+		su->saAmfSUPreInstantiable = static_cast<SaBoolT>(true);
+	}
+
+	/* This is a case of adding a component in SU which is instantiated
+	   state. This could be used in upgrade scenarios. When components
+	   are added, it is sent to Amfnd for instantiation and Amfnd
+	   instantiates it. Amfnd has capability for finding which component
+	   has been added newly. */
+	if ((su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+			(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) && 
+			(avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE)) {
+		AVD_AVND *node = su->su_on_node;
+		if ((node->node_state == AVD_AVND_STATE_PRESENT) ||
+				(node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
+				(node->node_state == AVD_AVND_STATE_NCS_INIT)) {
+			if (avd_snd_su_msg(avd_cb, su) != NCSCC_RC_SUCCESS) {
+				LOG_ER("SU '%s', Comp '%s': avd_snd_su_msg failed %s", __FUNCTION__,
+						su->name.value, comp->comp_info.name.value);
+				goto done;
+			}
+		}
 	}
 
 	/* Set runtime cached attributes. */
-	avd_saImmOiRtObjectUpdate(&comp->su->name, const_cast<SaImmAttrNameT>("saAmfSUPreInstantiable"),
-		SA_IMM_ATTR_SAUINT32T, &comp->su->saAmfSUPreInstantiable);
+	avd_saImmOiRtObjectUpdate(&su->name, const_cast<SaImmAttrNameT>("saAmfSUPreInstantiable"),
+		SA_IMM_ATTR_SAUINT32T, &su->saAmfSUPreInstantiable);
 
 	avd_saImmOiRtObjectUpdate(&comp->comp_info.name, const_cast<SaImmAttrNameT>("saAmfCompReadinessState"),
 		SA_IMM_ATTR_SAUINT32T, &comp->saAmfCompReadinessState);

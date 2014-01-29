@@ -79,9 +79,13 @@ uint32_t avnd_evt_avd_reg_su_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	/* scan the su list & add each su to su-db */
 	for (su_info = info->su_list; su_info; su = 0, su_info = su_info->next) {
-		su = avnd_sudb_rec_add(cb, su_info, &rc);
-		if (!su)
-			break;
+		su = m_AVND_SUDB_REC_GET(cb->sudb, su_info->name);
+		/* This function is common
+		   1. for adding new SU in the data base
+		   2. for adding a new component in the existing su.
+		   So, check whether the SU exists or not. */
+		if (su == NULL)
+			su = avnd_sudb_rec_add(cb, su_info, &rc);
 
 		m_AVND_SEND_CKPT_UPDT_ASYNC_ADD(cb, su, AVND_CKPT_SU_CONFIG);
 
@@ -93,10 +97,25 @@ uint32_t avnd_evt_avd_reg_su_evh(AVND_CB *cb, AVND_EVT *evt)
 			rc = NCSCC_RC_FAILURE;
 			break;
 		}
+
+		/* When NPI comp is added into PI SU(that is UNINSTANTIATED),
+		   we don't have to run SU FSM as anyway, we are not
+		   instantiating NPI component. In this case, anyway, SU will
+		   remain in instantiated state. NPI comp will get instantiated
+		   when corresponding csi is added. */
+		bool su_is_instantiated;
+		m_AVND_SU_IS_INSTANTIATED(su, su_is_instantiated);
+
+		if ((su->pres == SA_AMF_PRESENCE_INSTANTIATED) &&
+				(su_is_instantiated == false)) {
+			avnd_su_pres_state_set(su, SA_AMF_PRESENCE_UNINSTANTIATED);
+			rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_INST);
+		}
 	}
 
 	/*** send the response to AvD ***/
 	rc = avnd_di_reg_su_rsp_snd(cb, &info->su_list->name, rc);
+
 
 done:
 	TRACE_LEAVE();
