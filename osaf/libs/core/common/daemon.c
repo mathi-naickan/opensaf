@@ -369,7 +369,7 @@ static void sigterm_handler(int sig)
  */
 void daemon_exit(void)
 {
-	syslog(LOG_NOTICE, "exiting on signal %d", SIGTERM);
+	syslog(LOG_NOTICE, "exiting for shutdown");
 
 	if (__gcov_flush) {
 		__gcov_flush();

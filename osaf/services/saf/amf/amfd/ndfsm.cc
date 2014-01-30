@@ -27,6 +27,7 @@
 
 #include <amfd.h>
 #include <cluster.h>
+#include <daemon.h>
 
 /*****************************************************************************
  * Function: avd_node_up_func
@@ -321,8 +322,7 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		// Do nothing if the local node goes down. Most likely due to system shutdown.
 		// If node director goes down due to a bug, the AMF watchdog will restart the node.
 		if (node->node_info.nodeId == cb->node_id_avd) {
-			TRACE("Ignoring down event for local node director");
-			goto done;
+			daemon_exit();
 		}
 
 		if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
@@ -356,7 +356,6 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 			delete node_fovr;
 		}
 	}
-done:
 	TRACE_LEAVE();
 }
 
