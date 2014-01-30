@@ -199,12 +199,6 @@ static uint32_t initialize_smfd(void)
 		return rc;
 	}
 
-	/* Init campaign OI */
-	if ((rc = campaign_oi_init(smfd_cb)) != NCSCC_RC_SUCCESS) {
-		TRACE("campaign_oi_init FAILED %d", rc);
-		return rc;
-	}
-
 	/* Init with AMF */
 	if ((rc = smfd_amf_init(smfd_cb)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("init amf failed");

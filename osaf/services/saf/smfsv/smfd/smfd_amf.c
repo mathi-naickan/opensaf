@@ -20,6 +20,7 @@
  */
 
 #include "smfd.h"
+#include "immutil.h"
 
 /****************************************************************************
  * Name          : amf_active_state_handler
@@ -37,26 +38,30 @@
 static SaAisErrorT amf_active_state_handler(smfd_cb_t * cb,
 					    SaInvocationT invocation)
 {
-	SaAisErrorT result = SA_AIS_OK;
-
+	SaAisErrorT rc = SA_AIS_OK;
 	TRACE_ENTER2("HA ACTIVE request");
-
 	cb->mds_role = V_DEST_RL_ACTIVE;
 
-        //Read the SMF config object in case it was changed after SMF start
-        //If changed after start, only the active side was notified
-        read_config_and_set_control_block(smfd_cb);
+        //Initialize the OI handle and get the selection object
+        if (campaign_oi_init(cb) != NCSCC_RC_SUCCESS) {
+                LOG_ER("campaign_oi_init FAIL");
+		rc = SA_AIS_ERR_FAILED_OPERATION;
+        }
 
-	if (campaign_oi_activate(cb) != NCSCC_RC_SUCCESS) {
-		LOG_ER("amf_active_state_handler oi activate FAILED");
-		result = SA_AIS_ERR_FAILED_OPERATION;
+	//Read SMF configuration data and set cb data structure
+	if (read_config_and_set_control_block(cb) != NCSCC_RC_SUCCESS) {
+		LOG_ER("read_config_and_set_control_block FAIL");
+		rc = SA_AIS_ERR_FAILED_OPERATION;
 	}
 
-	goto done;
+        //Set class implementers, recreate campaign objects and start callbackUtil thread
+	if (campaign_oi_activate(cb) != NCSCC_RC_SUCCESS) {
+		LOG_ER("amf_active_state_handler oi activate FAIL");
+		rc = SA_AIS_ERR_FAILED_OPERATION;
+	}
 
- done:
 	TRACE_LEAVE();
-	return result;
+	return rc;
 }
 
 /****************************************************************************
@@ -128,9 +133,9 @@ static SaAisErrorT amf_quiesced_state_handler(smfd_cb_t * cb,
 	V_DEST_RL mds_role;
 	SaAisErrorT rc = SA_AIS_OK;
 
-	/* Give up our IMM OI implementer role */
+	/* Terminate threads and finalize the OI handle */
 	if (campaign_oi_deactivate(cb) != NCSCC_RC_SUCCESS) {
-		LOG_ER("amf_quiesced_state_handler oi deactivate FAILED");
+		LOG_NO("amf_quiesced_state_handler oi deactivate FAILED, continue");
 	}
 
 	/*

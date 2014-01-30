@@ -650,30 +650,6 @@ uint32_t campaign_oi_deactivate(smfd_cb_t * cb)
 	SaAisErrorT rc = SA_AIS_OK;
 	TRACE_ENTER();
 
-	rc = immutil_saImmOiClassImplementerRelease(cb->campaignOiHandle, campaignClassName);
-	if (rc != SA_AIS_OK) {
-		TRACE("immutil_saImmOiClassImplementerRelease fail, rc = %d, classname=%s", rc, (char*)campaignClassName);
-		return NCSCC_RC_FAILURE;
-	}
-
-	rc = immutil_saImmOiClassImplementerRelease(cb->campaignOiHandle, smfConfigClassName);
-	if (rc != SA_AIS_OK) {
-		TRACE("immutil_saImmOiClassImplementerRelease fail, rc = %d, classname=%s", rc, (char*)smfConfigClassName);
-		return NCSCC_RC_FAILURE;
-	}
-
-	rc = immutil_saImmOiClassImplementerRelease(cb->campaignOiHandle, smfSwBundleClassName);
-	if (rc != SA_AIS_OK) {
-		TRACE("immutil_saImmOiClassImplementerRelease fail, rc = %d, classname=%s", rc, (char*)smfSwBundleClassName);
-		return NCSCC_RC_FAILURE;
-	}
-
-	rc = immutil_saImmOiImplementerClear(cb->campaignOiHandle);
-	if (rc != SA_AIS_OK) {
-		TRACE("immutil_saImmOiImplementerClear fail, rc = %d", rc);
-		return NCSCC_RC_FAILURE;
-	}
-
 	/* We should terminate all threads (if exists) */
 	/* and remove all local Campaign objects */
 	SmfCampaignThread::terminate();
@@ -683,6 +659,20 @@ uint32_t campaign_oi_deactivate(smfd_cb_t * cb)
 
 	/* Stop the callback util thread */
 	SmfCbkUtilThread::terminate();
+
+        /* 
+        The SMF OI class implementer information is not released. This is to avoid unneccessary fault situation during switchover
+        which may increase the possibility for SMF to cause the campaign to fail.
+        The drawback is the difficulty to reorganize the class implementers, if needed in the future.
+        */
+
+        /* Finalize the OI handle. This will also clear the implementer (saImmOiImplementerClear)*/
+	rc = immutil_saImmOiFinalize(cb->campaignOiHandle);
+	if (rc != SA_AIS_OK) {
+		LOG_NO("immutil_saImmOmFinalize fail, rc = %d, continue", rc);
+	} else {
+                cb->campaignOiHandle = 0;
+        }
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
@@ -695,7 +685,6 @@ uint32_t campaign_oi_deactivate(smfd_cb_t * cb)
 uint32_t campaign_oi_init(smfd_cb_t * cb)
 {
 	SaAisErrorT rc;
-	SmfImmUtils immutil;
 
 	TRACE_ENTER();
 	rc = immutil_saImmOiInitialize_2(&cb->campaignOiHandle, &callbacks, &immVersion);
@@ -710,10 +699,8 @@ uint32_t campaign_oi_init(smfd_cb_t * cb)
 		return NCSCC_RC_FAILURE;
 	}
 
-	/* Read SMF configuration data and set cb data structure */
-	uint32_t ret = read_config_and_set_control_block(cb);
 	TRACE_LEAVE();
-	return ret;
+	return NCSCC_RC_SUCCESS;
 }
 
 /**
