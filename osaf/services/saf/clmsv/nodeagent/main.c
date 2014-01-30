@@ -504,6 +504,7 @@ void clmna_process_mbx(SYSF_MBX *mbx)
 				/* NID will anyway stop and retry */
 				LOG_ER("Exiting");
 				free(msg);
+				msg = NULL;
 			} else
 				goto done;
 		}
@@ -513,7 +514,8 @@ void clmna_process_mbx(SYSF_MBX *mbx)
 		break;
 	}
 done:
-free(msg);
+if (msg)
+	free(msg);
 	TRACE_LEAVE();
 }
 
