@@ -59,10 +59,10 @@ no "undo" callback for indiviudal operations. To undo any operation towards an
 OI can only be done by aborting the entire CCB.
 
 Here is a summary of the interference/operation checks performed in relaion
-to NO_DANGLING. Again, these are performed before the validation done as part
-of ccbApply:
+to NO_DANGLING in relation to each operation.
 
--          CCB Object Create:
+
+*******  CCB Object Create:
 
 o   If the created object has a NO_DANGLING reference to a non-persistent
     runtime object, return INVALID_PARAM.
@@ -76,7 +76,8 @@ o   If the created object has a NO_DANGLING reference to an object that is
 o   If the created object has a NO_DANGLING reference to an object that is
     flagged for creation by another CCB, return BUSY.
 
--          CCB Object Modify (Add or Replace attribute value):
+
+******* CCB Object Modify (Add or Replace attribute value):
 
 o   If an updated attribute value has a NO_DANGLING reference to a
     non-persistent runtime object, return INVALID_PARAM.
@@ -90,7 +91,8 @@ o   If an updated attribute value has a NO_DANGLING reference to an object that
 o   If an updated attribute value has a NO_DANGLING reference to an object that
     is flagged for creation by another CCB, return BUSY.
 
--          CCB Object Delete:
+
+******* CCB Object Delete:
 
 o   If an object is flagged for deletion or creation by another CCB with a
     NO_DANGLING reference to the object that will be deleted, then return BUSY.
@@ -98,11 +100,33 @@ o   If an object is flagged for deletion or creation by another CCB with a
 o   If an object is flagged for creation by the same CCB, and has a NO_DANGLING
     reference to the object proposed for delete, then return BAD_OPERATION.
 
--          Deleting persistent runtime object:
+
+******* Persistent Runtime Object Delete:
+
 
 o   Check if there is a NO_DANGLING reference to the PRTO, if there is the
-    delete operation returns BAD_OPERATION.
+    PRTO delete operation returns BAD_OPERATION.
 
+
+*******  CCB Apply.
+
+
+o   If the apply would cause any NO_DANGLING reference attribute in
+    any object created or modifyed by the ccb to become dangling, then
+    return FAILED_OPERATION(abort). 
+
+o  If a NO_DANGLING reference attribute points to a non persistent RTO then
+   return FAILED_OPERATION(abort).
+
+o  If a NO_DANGLING reference attribute points to an an object scheduled for
+   delete in another ccb then return FAILED_OPERATION(abort).
+
+o  If a NO_DANGLING reference attribute points to an an object scheduled for
+   create in another ccb then return FAILED_OPERATION(abort).
+
+o  If an object scheduled for delete in this CCB is pointed to by some
+   NO_DANGLING reference in another object and the other object is not also
+   scheduled for delete by this ccb then return FAILED_OPERATION(abort).
 
 
 Support search for objects having NO_DANGLING refrence to a target (4.4)
