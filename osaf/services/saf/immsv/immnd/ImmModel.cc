@@ -5242,14 +5242,14 @@ ImmModel::ccbTerminate(SaUint32T ccbId)
                 LOG_ER("Illegal state %u in ccb %u", ccb->mState, ccbId);
                 abort();
         }
-        
+        SaUint32T trailingAdmoIdAbortCreate=0; /* only for abort create */
+        AdminOwnerVector::iterator admoIterAbortCreate = sOwnerVector.end(); /* only for abort create */
         ObjectMutationMap::iterator omit;
         ObjectSet createsAbortedInCcb;
         for(omit=ccb->mMutations.begin(); omit!=ccb->mMutations.end(); ++omit){
             ObjectMutation *omut = omit->second;
             ObjectInfo* afim = omut->mAfterImage;
             omut->mAfterImage = NULL;
-            AdminOwnerVector::iterator i2;
             switch(omut->mOpType) {
                 case IMM_DELETE:
                     TRACE_2("Aborting Delete of %s", omit->first.c_str());
@@ -5260,7 +5260,7 @@ ImmModel::ccbTerminate(SaUint32T ccbId)
                     TRACE_5("Flags after remove delete lock:%u", 
                         oi->second->mObjFlags);
                     break;
-                    
+
                 case IMM_CREATE: {
                     const std::string& dn = omit->first;
                     oi = sObjectMap.find(dn);
@@ -5274,23 +5274,26 @@ ImmModel::ccbTerminate(SaUint32T ccbId)
                     TRACE_2("Aborting Create of %s admo:%u", omit->first.c_str(), adminOwnerId);
                     osafassert(!afim->mClassInfo->mExtent.empty());
                     osafassert(afim->mClassInfo->mExtent.erase(afim)==1);
-                    
-                    //Aborting create => ensure no dangling references to
-                    //object. Only possible dangling reference for a create is 
-                    //from the admin owner of the ccb being terminated, in case
-                    //this is an abort.
-                    i2 = std::find_if(sOwnerVector.begin(), sOwnerVector.end(),
-                        IdIs(adminOwnerId));
-                    if(i2 == sOwnerVector.end()) {
-                        LOG_WA("Admin owner id %u does not exist", adminOwnerId);
-                    } else {
-                        (*i2)->mTouchedObjects.erase(afim);
+                    //Aborting create => ensure no references to the object from the
+                    //admin owner for the object. Typically the admo is the same for
+                    //all objects created in one ccb. The exception would be creates
+                    //that are augmented to the ccb by an OI.
+                    if(adminOwnerId != trailingAdmoIdAbortCreate) {
+                        trailingAdmoIdAbortCreate = adminOwnerId;
+                        admoIterAbortCreate = std::find_if(sOwnerVector.begin(), sOwnerVector.end(), IdIs(adminOwnerId));
+                        if(admoIterAbortCreate == sOwnerVector.end()) {
+                            LOG_WA("Admin owner id %u does not exist", adminOwnerId);
+                        }
+                    }
+
+                    if(admoIterAbortCreate != sOwnerVector.end()) {
+                        (*admoIterAbortCreate)->mTouchedObjects.erase(afim);
                         //Note that on STL sets, the erase operation is
                         //polymorphic. Here we are erasing based on value, not
                         //iterator position. See commitDelete, which is similar
                         //in nature to abortCreate. One difference is that
                         //abortCreate can only have references in from the
-                        //adminOwner of the cccb that creaed it. No other
+                        //adminOwner of the ccb that creaed it. No other
                         //ccb/admin-owner can have seen the object. 
                     }
 
