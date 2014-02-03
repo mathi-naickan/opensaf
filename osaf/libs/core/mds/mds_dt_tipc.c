@@ -1306,9 +1306,6 @@ uint32_t mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_S
 		int imp = 0;
 		imp = TIPC_HIGH_IMPORTANCE;
 
-		if (TIPCIMPORTANCE == TIPC_HIGH_IMPORTANCE)
-			LOG_WA("Default TIPC importance set to same level as AVND (TIPC_HIGH_IMPORTANCE). A non preferred and untested option");
-
 		if (setsockopt(tipc_cb.BSRsock, SOL_TIPC, TIPC_IMPORTANCE, &imp, sizeof(imp)) != 0) {
 			m_MDS_LOG_ERR("MDTM: Can't set socket option TIPC_IMP err :%s\n", strerror(errno));
 			assert(0);
