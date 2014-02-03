@@ -62,7 +62,7 @@ cd $dir
 archive=${ARCHIVE:-$dir/archive}
 configd=${CONFIGD:-$dir/config}
 
-kver=${KVER:-3.9.5}
+kver=${KVER:-3.13.1}
 if [ `echo $kver | cut -d. -f1` -ge 3 ]
 then
     kbasedir=`echo $kver | cut -d. -f1`.x
@@ -71,11 +71,18 @@ else
 fi
 #kurlbase=${KURLBASE:-"https://www.kernel.org/pub/linux/kernel/v$kbasedir"}
 kurlbase=${KURLBASE:-"http://ftp.sunet.se/pub/Linux/kernel.org/linux/kernel/v$kbasedir"}
-kurl="$kurlbase/linux-$kver.tar.bz2"
+if [ -n "$(type xz 2> /dev/null)" ]; then
+    kernel_decompress=xz
+    kurl="$kurlbase/linux-$kver.tar.xz"
+else
+    kernel_decompress=gzip
+    kurl="$kurlbase/linux-$kver.tar.gz"
+fi
+
 tipcutilsver=${TIPCUTILSVER:-2.0.3}
 tipcutilsurl="http://prdownloads.sourceforge.net/tipc/tipcutils-$tipcutilsver.tar.gz"
 
-bbver=${BBVER:-1.21.0}
+bbver=${BBVER:-1.21.1}
 bburl="http://busybox.net/downloads/busybox-$bbver.tar.bz2"
 umlutilsver=20070815
 umlutilsurl="http://user-mode-linux.sourceforge.net/uml_utilities_$umlutilsver.tar.bz2"
@@ -148,7 +155,7 @@ cmd_extract_kernel() {
     echo "Extracting [linux-$kver]..."
     rm -rf linux-extract-dir linux-$kver
     mkdir linux-extract-dir
-    tar -C linux-extract-dir -xjf "$f" && mv linux-extract-dir/* .
+    $kernel_decompress -cd "$f" | tar -C linux-extract-dir -xf - && mv linux-extract-dir/* .
     rm -rf linux-extract-dir
 }
 
