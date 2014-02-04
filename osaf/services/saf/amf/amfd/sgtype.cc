@@ -77,7 +77,7 @@ AVD_AMF_SG_TYPE *avd_sgtype_get(const SaNameT *dn)
 static void sgtype_delete(AVD_AMF_SG_TYPE *sg_type)
 {
 	(void)ncs_patricia_tree_del(&sgtype_db, &sg_type->tree_node);
-	delete sg_type->saAmfStgValidSuTypes;
+	delete [] sg_type->saAmfSGtValidSuTypes;
 	delete sg_type;
 }
 
@@ -257,6 +257,7 @@ static AVD_AMF_SG_TYPE *sgtype_create(SaNameT *dn, const SaImmAttrValuesT_2 **at
 
  done:
 	if (rc != 0) {
+		delete [] sgt->saAmfSGtValidSuTypes;
 		delete sgt;
 		sgt = NULL;
 	}

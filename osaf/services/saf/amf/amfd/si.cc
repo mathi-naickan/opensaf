@@ -338,6 +338,8 @@ AVD_SI *avd_si_new(const SaNameT *dn)
 	si->alarm_sent = false;
 	si->num_dependents = 0;
 	si->tol_timer_count = 0;
+	si->saAmfSIActiveWeight = NULL;
+	si->saAmfSIStandbyWeight = NULL;
 
 	return si;
 }
@@ -385,6 +387,25 @@ void avd_si_delete(AVD_SI *si)
 
 	rc = ncs_patricia_tree_del(&si_db, &si->tree_node);
 	osafassert(rc == NCSCC_RC_SUCCESS);
+	
+	if (si->saAmfSIActiveWeight != NULL) {
+		unsigned int i = 0;
+		while (si->saAmfSIActiveWeight[i] != NULL) {
+			delete [] si->saAmfSIActiveWeight[i];
+			++i;
+		}
+		delete [] si->saAmfSIActiveWeight;
+	}
+	
+	if (si->saAmfSIStandbyWeight != NULL) {
+		unsigned int i = 0;
+		while (si->saAmfSIStandbyWeight[i] != NULL) {
+			delete [] si->saAmfSIStandbyWeight[i];
+			++i;
+		}
+		delete [] si->saAmfSIStandbyWeight;	
+	}
+	
 	delete si;
 }
 /**
@@ -603,22 +624,24 @@ static AVD_SI *si_create(SaNameT *si_name, const SaImmAttrValuesT_2 **attributes
 
 	/* Optional, [0..*] */
 	if (immutil_getAttrValuesNumber(const_cast<SaImmAttrNameT>("saAmfSIActiveWeight"), attributes, &attrValuesNumber) == SA_AIS_OK) {
-		si->saAmfSIActiveWeight = new char*[attrValuesNumber];
+		si->saAmfSIActiveWeight = new char*[attrValuesNumber + 1];
 		for (i = 0; i < attrValuesNumber; i++) {
 			si->saAmfSIActiveWeight[i] =
 			    StrDup(immutil_getStringAttr(attributes, "saAmfSIActiveWeight", i));
 		}
+		si->saAmfSIActiveWeight[i] = NULL;
 	} else {
 		/*  TODO */
 	}
 
 	/* Optional, [0..*] */
 	if (immutil_getAttrValuesNumber(const_cast<SaImmAttrNameT>("saAmfSIStandbyWeight"), attributes, &attrValuesNumber) == SA_AIS_OK) {
-		si->saAmfSIStandbyWeight = new char*[attrValuesNumber];
+		si->saAmfSIStandbyWeight = new char*[attrValuesNumber + 1];
 		for (i = 0; i < attrValuesNumber; i++) {
 			si->saAmfSIStandbyWeight[i] =
 			    StrDup(immutil_getStringAttr(attributes, "saAmfSIStandbyWeight", i));
 		}
+		si->saAmfSIStandbyWeight[i] = NULL;
 	} else {
 		/*  TODO */
 	}

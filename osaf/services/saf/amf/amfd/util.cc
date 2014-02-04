@@ -1655,7 +1655,7 @@ static void free_d2n_susi_msg_info(AVSV_DND_MSG *susi_msg)
 		compcsi_info = susi_msg->msg_info.d2n_su_si_assign.list;
 		susi_msg->msg_info.d2n_su_si_assign.list = compcsi_info->next;
 		if (compcsi_info->attrs.list != NULL) {
-			delete(compcsi_info->attrs.list);
+			delete [] (compcsi_info->attrs.list);
 			compcsi_info->attrs.list = NULL;
 		}
 		delete compcsi_info;
@@ -1681,7 +1681,7 @@ static void free_d2n_pg_msg_info(AVSV_DND_MSG *pg_msg)
 	AVSV_D2N_PG_TRACK_ACT_RSP_MSG_INFO *info = &pg_msg->msg_info.d2n_pg_track_act_rsp;
 
 	if (info->mem_list.numberOfItems)
-		delete info->mem_list.notification;
+		delete [] info->mem_list.notification;
 
 	info->mem_list.notification = 0;
 	info->mem_list.numberOfItems = 0;
