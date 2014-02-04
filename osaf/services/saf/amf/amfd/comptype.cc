@@ -108,11 +108,6 @@ static AVD_COMP_TYPE *comptype_create(const SaNameT *dn, const SaImmAttrValuesT_
 
 	(void)immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtSwBundle"), attributes, 0, &compt->saAmfCtSwBundle);
 
-	if (!IS_COMP_PROXIED(compt->saAmfCtCompCategory) && IS_COMP_LOCAL(compt->saAmfCtCompCategory)) {
-	   error = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtSwBundle"), attributes, 0, &compt->saAmfCtSwBundle);
-		osafassert(error == SA_AIS_OK);
-	}
-
 	if ((str = immutil_getStringAttr(attributes, "saAmfCtDefCmdEnv", 0)) != NULL)
 		strcpy(compt->saAmfCtDefCmdEnv, str);
 	(void)immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtDefClcCliTimeout"), attributes, 0, &compt->saAmfCtDefClcCliTimeout);
@@ -162,24 +157,47 @@ static AVD_COMP_TYPE *comptype_create(const SaNameT *dn, const SaImmAttrValuesT_
 	return compt;
 }
 
-static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attributes, CcbUtilOperationData_t *opdata)
+/**
+ * reports path validation errors
+ * @param opdata
+ * @param attr_name
+ */
+static inline void report_path_validation_err(CcbUtilOperationData_t *opdata,
+                                              const char *attr_name) {
+	report_ccb_validation_error(opdata,
+		"%s does not contain an absolute path and "
+		"attribute saAmfCtSwBundle is not configured for '%s'",
+		attr_name, opdata->objectName.value);
+}
+
+/**
+ * Validates new component type in CCB
+ * @param dn
+ * @param attributes
+ * @param opdata
+ * @return true if valid
+ */
+static bool config_is_valid(const SaNameT *dn,
+                            const SaImmAttrValuesT_2 **attributes,
+                            CcbUtilOperationData_t *opdata)
 {
 	SaUint32T category;
 	SaUint32T value;
 	char *parent;
-	SaNameT name;
 	SaTimeT time;
 	SaAisErrorT rc;
+	const char *cmd;
+	const char *attr_name;
 
 	if ((parent = strchr((char*)dn->value, ',')) == NULL) {
 		report_ccb_validation_error(opdata, "No parent to '%s' ", dn->value);
-		return 0;
+		return false;
 	}
 
 	/* Should be children to the Comp Base type */
 	if (strncmp(++parent, "safCompType=", 12) != 0) {
 		report_ccb_validation_error(opdata, "Wrong parent '%s' to '%s' ", parent, dn->value);
-		return 0;
+		return false;
 	}
 
 	rc = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtCompCategory"), attributes, 0, &category);
@@ -189,7 +207,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	if (IS_COMP_PROXY(category) || IS_COMP_CONTAINER(category)|| IS_COMP_CONTAINED(category)) {
 		report_ccb_validation_error(opdata, "Unsupported saAmfCtCompCategory value '%u' for '%s'",
 				category, dn->value);
-		return 0;
+		return false;
 	}
 
 	/*
@@ -200,7 +218,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	    (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtDefClcCliTimeout"), attributes, 0, &time) != SA_AIS_OK)) {
 		report_ccb_validation_error(opdata, "Required attribute saAmfCtDefClcCliTimeout not configured for '%s'",
 				dn->value);
-		return 0;
+		return false;
 	}
 
 	/*
@@ -211,7 +229,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	    (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtDefCallbackTimeout"), attributes, 0, &time) != SA_AIS_OK)) {
 		report_ccb_validation_error(opdata, "Required attribute saAmfCtDefCallbackTimeout not configured for '%s'",
 				dn->value);
-		return 0;
+		return false;
 	}
 
 	/*
@@ -226,45 +244,93 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 		// this is OK for backwards compatibility reasons
 	}
 
+	SaNameT bundle_name = {0, 0};
+	bool bundle_configured = false;
+	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtSwBundle"),
+			attributes, 0, &bundle_name) == SA_AIS_OK) {
+		bundle_configured = true;
+	}
+
 	/* 
-	** The saAmfCtSwBundle/saAmfCtRelPathInstantiateCmd "attribute is mandatory for all
+	** The saAmfCtRelPathInstantiateCmd "attribute is mandatory for all
 	** non-proxied local components".
 	*/
 	if (!(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category)) && IS_COMP_LOCAL(category)) {
+		attr_name = "saAmfCtRelPathInstantiateCmd";
 
-		if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtSwBundle"), attributes, 0, &name) != SA_AIS_OK) {
-			report_ccb_validation_error(opdata, "Required attribute saAmfCtSwBundle not configured for '%s'",
-					dn->value);
-			return 0;
+		cmd = immutil_getStringAttr(attributes, attr_name, 0);
+		if (cmd == NULL) {
+			report_ccb_validation_error(opdata,
+				"Required attribute %s not configured for '%s'",
+				attr_name, opdata->objectName.value);
+			return false;
 		}
 
-		if (immutil_getStringAttr(attributes, "saAmfCtRelPathInstantiateCmd", 0) == NULL) {
-			report_ccb_validation_error(opdata, "Required attribute saAmfCtRelPathInstantiateCmd not configured"
-					" for '%s'", dn->value);
-			return 0;
+		if ((cmd[0] != '/') && (bundle_configured == false)) {
+			report_path_validation_err(opdata, attr_name);
+			return false;
 		}
 	}
 
 	/*
-	** The saAmfCtRelPathTerminateCmd "attribute is mandatory for local non-proxied,
-	** non-SA-aware components".
+	** The saAmfCtRelPathTerminateCmd "attribute is mandatory for local
+	** non-proxied, non-SA-aware components".
 	*/
-	if (IS_COMP_LOCAL(category) && !(IS_COMP_PROXIED(category) || IS_COMP_PROXIED_NPI(category)) && !IS_COMP_SAAWARE(category) &&
-	    (immutil_getStringAttr(attributes, "saAmfCtRelPathTerminateCmd", 0) == NULL)) {
-		report_ccb_validation_error(opdata, "Required attribute saAmfCtRelPathTerminateCmd not configured for '%s',"
-				" cat=%x", dn->value, category);
-		return 0;
+	if (IS_COMP_LOCAL(category) && !(IS_COMP_PROXIED(category) ||
+			IS_COMP_PROXIED_NPI(category)) && !IS_COMP_SAAWARE(category)) {
+		attr_name = "saAmfCtRelPathTerminateCmd";
+
+		cmd = immutil_getStringAttr(attributes, attr_name, 0);
+		if (cmd == NULL) {
+			report_ccb_validation_error(opdata,
+				"Required attribute %s not configured for '%s'",
+				attr_name, opdata->objectName.value);
+			return false;
+		}
+
+		if ((cmd[0] != '/') && (bundle_configured == false)) {
+			report_path_validation_err(opdata, attr_name);
+			return false;
+		}
 	}
 
 	/*
-	** The saAmfCtRelPathCleanupCmd "attribute is mandatory for all local components (proxied or
-	** non-proxied)"
+	** The saAmfCtRelPathCleanupCmd "attribute is mandatory for all local
+	** components (proxied or non-proxied)"
 	*/
-	if (IS_COMP_LOCAL(category) && 
-			(immutil_getStringAttr(attributes, "saAmfCtRelPathCleanupCmd", 0) == NULL)) {
-		report_ccb_validation_error(opdata, "Required attribute saAmfCtRelPathCleanupCmd not configured for '%s'",
-				dn->value);
-		return 0;
+	if (IS_COMP_LOCAL(category)) {
+		attr_name = "saAmfCtRelPathCleanupCmd";
+
+		cmd = immutil_getStringAttr(attributes, attr_name, 0);
+		if (cmd == NULL) {
+			report_ccb_validation_error(opdata,
+				"Required attribute %s not configured for '%s'",
+				attr_name, opdata->objectName.value);
+			return false;
+		}
+
+		if ((cmd[0] != '/') && (bundle_configured == false)) {
+			report_path_validation_err(opdata, attr_name);
+			return false;
+		}
+	}
+
+	attr_name = "saAmfCtRelPathAmStartCmd";
+	cmd = immutil_getStringAttr(attributes, attr_name, 0);
+	if (cmd != NULL) {
+		if ((cmd[0] != '/') && (bundle_configured == false)) {
+			report_path_validation_err(opdata, attr_name);
+			return false;
+		}
+	}
+
+	attr_name = "saAmfCtRelPathAmStopCmd";
+	cmd = immutil_getStringAttr(attributes, attr_name, 0);
+	if (cmd != NULL) {
+		if ((cmd[0] != '/') && (bundle_configured == false)) {
+			report_path_validation_err(opdata, attr_name);
+			return false;
+		}
 	}
 
 	rc = immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtDefRecoveryOnError"), attributes, 0, &value);
@@ -273,7 +339,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	if ((value < SA_AMF_NO_RECOMMENDATION) || (value > SA_AMF_NODE_FAILFAST)) {
 		report_ccb_validation_error(opdata, "Illegal/unsupported saAmfCtDefRecoveryOnError value %u for '%s'",
 				value, dn->value);
-		return 0;
+		return false;
 	}
 
 	if (value == SA_AMF_NO_RECOMMENDATION)
@@ -284,10 +350,10 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	if ((rc == SA_AIS_OK) && (value > SA_TRUE)) {
 		report_ccb_validation_error(opdata, "Illegal saAmfCtDefDisableRestart value %u for '%s'",
 			   value, dn->value);
-		return 0;
+		return false;
 	}
 
-	return 1;
+	return true;
 }
 
 /**
@@ -323,7 +389,7 @@ SaAisErrorT avd_comptype_config_get(void)
 	}
 
 	while (immutil_saImmOmSearchNext_2(searchHandle, &dn, (SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
-		if (!is_config_valid(&dn, attributes, NULL))
+		if (config_is_valid(&dn, attributes, NULL) == false)
 			goto done2;
 		if ((comp_type = avd_comptype_get(&dn)) == NULL) {
 			if ((comp_type = comptype_create(&dn, attributes)) == NULL)
@@ -381,7 +447,8 @@ static SaAisErrorT comptype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 
 	switch (opdata->operationType) {
 	case CCBUTIL_CREATE:
-		if (is_config_valid(&opdata->objectName, opdata->param.create.attrValues, opdata))
+		if (config_is_valid(&opdata->objectName,
+				opdata->param.create.attrValues, opdata) == true)
 			rc = SA_AIS_OK;
 		break;
 	case CCBUTIL_MODIFY:
