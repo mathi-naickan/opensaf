@@ -1030,10 +1030,11 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 			}
 		}
 		osafassert(t_csi);
-		/* free the csi attributes */
-		if (t_csi->attrs.list)
-			delete t_csi->attrs.list;
-
+		// free the csi attributes
+		// AVSV_ATTR_NAME_VAL variables
+		// are malloc'ed, use free()
+		free(t_csi->attrs.list);
+		
 		m_AVND_SU_SI_CSI_REC_REM(*si, *t_csi);
 		m_AVND_COMPDB_REC_CSI_REM(*(t_csi->comp), *t_csi);
 		delete t_csi;

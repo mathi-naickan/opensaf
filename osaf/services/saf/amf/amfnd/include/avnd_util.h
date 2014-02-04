@@ -51,7 +51,9 @@ const char *avnd_failed_state_file_location(void);
 void dnd_msg_free(AVSV_DND_MSG *msg);
 void nda_ava_msg_free(AVSV_NDA_AVA_MSG *msg);
 void nda_ava_msg_content_free(AVSV_NDA_AVA_MSG *msg);
+void amf_csi_attr_list_copy(SaAmfCSIAttributeListT *dattr, const SaAmfCSIAttributeListT *sattr);
 void amf_csi_attr_list_free(SaAmfCSIAttributeListT *attrs);
+uint32_t amf_cbk_copy(AVSV_AMF_CBK_INFO **o_dcbk, const AVSV_AMF_CBK_INFO *scbk);
 void amf_cbk_free(AVSV_AMF_CBK_INFO* cbk_info);
 void nd2nd_avnd_msg_free(AVSV_ND2ND_AVND_MSG *msg);
 

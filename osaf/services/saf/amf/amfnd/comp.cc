@@ -1890,10 +1890,7 @@ uint32_t avnd_comp_cbk_send(AVND_CB *cb,
 		goto done;
 
 	/* allocate cbk-info memory */
-	if ((0 == (cbk_info = static_cast<AVSV_AMF_CBK_INFO*>(calloc(1, sizeof(AVSV_AMF_CBK_INFO)))))) {
-		rc = NCSCC_RC_FAILURE;
-		goto done;
-	}
+	cbk_info = new AVSV_AMF_CBK_INFO();
 
 	/* fill the callback params */
 	switch (type) {
@@ -1958,7 +1955,9 @@ uint32_t avnd_comp_cbk_send(AVND_CB *cb,
 			/* copy the attributes */
 			memset(&attr, 0, sizeof(AVSV_CSI_ATTRS));
 			if ((SA_AMF_CSI_ADD_ONE == csi_desc.csiFlags) && (curr_csi->attrs.number != 0)) {
-				attr.list = new AVSV_ATTR_NAME_VAL[curr_csi->attrs.number];
+				attr.list = static_cast<AVSV_ATTR_NAME_VAL*>
+					(calloc(curr_csi->attrs.number, sizeof(AVSV_ATTR_NAME_VAL)));
+				osafassert(attr.list != NULL);
 
 				memcpy(attr.list, curr_csi->attrs.list,
 				       sizeof(AVSV_ATTR_NAME_VAL) * curr_csi->attrs.number);
@@ -2020,7 +2019,7 @@ uint32_t avnd_comp_cbk_send(AVND_CB *cb,
 
  done:
 	if ((NCSCC_RC_SUCCESS != rc) && cbk_info)
-		avsv_amf_cbk_free(cbk_info);
+		amf_cbk_free(cbk_info);
 
 	TRACE_LEAVE2("%u", rc);
 	return rc;

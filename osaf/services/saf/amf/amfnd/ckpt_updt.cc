@@ -218,10 +218,11 @@ uint32_t avnd_ckpt_add_rmv_updt_su_si_rec(AVND_CB *cb, AVND_SU_SI_REC *su_si_ckp
 					if (rc != NCSCC_RC_SUCCESS) {
 						return NCSCC_RC_FAILURE;
 					}
-					/* free the csi attributes */
-					if (csi_rec->attrs.list)
-						delete csi_rec->attrs.list;
-
+					// free the csi attributes
+					// AVSV_ATTR_NAME_VAL variables
+					// are malloc'ed, use free()
+					free(csi_rec->attrs.list);
+					
 					/* finally free this record */
 					delete csi_rec;
 				}	/* while ( 0 != csi_rec) */
@@ -992,10 +993,11 @@ uint32_t avnd_ext_comp_data_clean_up(AVND_CB *cb, bool avnd_shut_down)
 						if (rc != NCSCC_RC_SUCCESS) {
 							return NCSCC_RC_FAILURE;
 						}
-						/* free the csi attributes */
-						if (csi_rec->attrs.list)
-							delete csi_rec->attrs.list;
-
+						// free the csi attributes
+						// AVSV_ATTR_NAME_VAL variables
+						// are malloc'ed, use free()
+						free(csi_rec->attrs.list);
+						
 						/* finally free this record */
 						delete csi_rec;
 					}	/* while ( 0 != csi_rec) */

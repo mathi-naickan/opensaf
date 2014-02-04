@@ -297,7 +297,7 @@ uint32_t avnd_evt_avnd_avnd_cbk_msg_hdl(AVND_CB *cb, AVND_EVT *evt)
 	TRACE_ENTER2("Type:%u, Hdl:%llu, Inv:%llu", cbk_info->type, cbk_info->hdl, cbk_info->inv);
 
 	/* Create a callback record for storing purpose. */
-	rc = avsv_amf_cbk_copy(&cbk_rec, cbk_info);
+	rc = amf_cbk_copy(&cbk_rec, cbk_info);
 
 	if (NCSCC_RC_SUCCESS != rc)
 		goto done;
@@ -317,7 +317,7 @@ uint32_t avnd_evt_avnd_avnd_cbk_msg_hdl(AVND_CB *cb, AVND_EVT *evt)
 		LOG_ER("Couldn't find comp %s in Inter/Ext Comp DB",cbk_info->param.hc.comp_name.value);
 		/* free the callback info */
 		if (cbk_rec)
-			avsv_amf_cbk_free(cbk_rec);
+			amf_cbk_free(cbk_rec);
 
 		goto done;
 	}

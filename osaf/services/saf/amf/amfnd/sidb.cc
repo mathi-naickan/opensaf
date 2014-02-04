@@ -851,10 +851,11 @@ uint32_t avnd_su_si_csi_rec_del(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si_rec
 	/* 
 	 * Free the memory alloced for this record.
 	 */
-	/* free the csi attributes */
-	if (csi_rec->attrs.list)
-		delete csi_rec->attrs.list;
-
+	// free the csi attributes
+	// use of free() is required as it was
+	// malloc'ed (eg. in avsv_edp_susi_asgn())
+	free(csi_rec->attrs.list);
+	
 	/* free the pg list TBD */
 	TRACE_1("Comp-CSI record deletion success, Comp=%s : CSI=%s",csi_rec->comp->name.value,csi_rec->name.value);
 
@@ -973,10 +974,13 @@ void avnd_su_siq_rec_del(AVND_CB *cb, AVND_SU *su, AVND_SU_SIQ_REC *siq)
 	/* delete the comp-csi info */
 	while ((curr = siq->info.list) != 0) {
 		siq->info.list = curr->next;
-		if (curr->attrs.list)
-			delete curr->attrs.list;
-
-		delete curr;
+		// AVSV_ATTR_NAME_VAL variables
+		// are malloc'ed, use free()
+		free(curr->attrs.list);
+		
+		// use of free() is required as it was
+		// malloc'ed in avsv_edp_susi_asgn()
+		free(curr);
 	}
 
 	/* free the rec */

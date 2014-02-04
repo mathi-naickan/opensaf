@@ -704,7 +704,7 @@ uint32_t avnd_comp_cbq_rec_send(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CBK *rec
 	/* populate the msg */
 	msg.type = AVND_MSG_AVA;
 	msg.info.ava->type = AVSV_AVND_AMF_CBK_MSG;
-	rc = avsv_amf_cbk_copy(&msg.info.ava->info.cbk_info, rec->cbk_info);
+	rc = amf_cbk_copy(&msg.info.ava->info.cbk_info, rec->cbk_info);
 	if (NCSCC_RC_SUCCESS != rc)
 		goto done;
 
@@ -930,7 +930,7 @@ void avnd_comp_cbq_rec_del(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CBK *rec)
 
 	/* free the callback info */
 	if (rec->cbk_info)
-		avsv_amf_cbk_free(rec->cbk_info);
+		amf_cbk_free(rec->cbk_info);
 
 	/* free the record */
 	delete rec;

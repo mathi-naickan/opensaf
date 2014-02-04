@@ -769,7 +769,7 @@ uint32_t avnd_pg_cbk_send(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *trk, AVND_PG_ME
 
 		if (chg_mem && m_AVND_PG_TRK_IS_CHANGES_ONLY(trk)) {
 	 /*** include only the modified member ***/
-			pg_param->buf.notification = new SaAmfProtectionGroupNotificationT;
+			pg_param->buf.notification = new SaAmfProtectionGroupNotificationT[1];
 
 			*pg_param->buf.notification = chg_mem->info;
 			pg_param->buf.numberOfItems = 1;
@@ -780,14 +780,12 @@ uint32_t avnd_pg_cbk_send(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *trk, AVND_PG_ME
 
 	/* now send the cbk msg */
 	rc = avnd_pg_cbk_msg_send(cb, trk, cbk_info);
-	/* we will free the ckb info both in success/failure case */
-	cbk_info = NULL;
 
 	/* reset the is_syn flag */
 	trk->info.is_syn = false;
 
  	if ((NCSCC_RC_SUCCESS != rc) && cbk_info)
-		avsv_amf_cbk_free(cbk_info);
+		amf_cbk_free(cbk_info);
 
 	TRACE_LEAVE2("rc '%u'", rc);
 	return rc;

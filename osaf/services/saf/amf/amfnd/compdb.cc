@@ -930,21 +930,21 @@ static void avnd_comptype_delete(amf_comp_type_t *compt)
 		delete [] argv;
 	delete [] compt->saAmfCtDefCleanupCmdArgv;
 
-	delete compt->saAmfCtRelPathAmStartCmd;
+	delete [] compt->saAmfCtRelPathAmStartCmd;
 	/* Free saAmfCtDefAmStartCmdArgv[i] before freeing saAmfCtDefAmStartCmdArgv */
 	arg_counter = 0;
 	while ((argv = compt->saAmfCtDefAmStartCmdArgv[arg_counter++]) != NULL)
 		delete [] argv;
 	delete [] compt->saAmfCtDefAmStartCmdArgv;
 
-	delete compt->saAmfCtRelPathAmStopCmd;
+	delete [] compt->saAmfCtRelPathAmStopCmd;
 	/* Free saAmfCtDefAmStopCmdArgv[i] before freeing saAmfCtDefAmStopCmdArgv */
 	arg_counter = 0;
 	while ((argv = compt->saAmfCtDefAmStopCmdArgv[arg_counter++]) != NULL)
 		delete [] argv;
 	delete [] compt->saAmfCtDefAmStopCmdArgv;
 
-	delete compt->osafAmfCtRelPathHcCmd;
+	delete [] compt->osafAmfCtRelPathHcCmd;
 	arg_counter = 0;
 	while ((argv = compt->osafAmfCtDefHcCmdArgv[arg_counter++]) != NULL)
 		delete [] argv;

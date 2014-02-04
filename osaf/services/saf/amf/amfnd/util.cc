@@ -298,7 +298,9 @@ static void free_d2n_susi_msg_info(AVSV_DND_MSG *susi_msg)
 		compcsi_info = susi_msg->msg_info.d2n_su_si_assign.list;
 		susi_msg->msg_info.d2n_su_si_assign.list = compcsi_info->next;
 		if (compcsi_info->attrs.list != NULL) {
-			delete(compcsi_info->attrs.list);
+			// AVSV_ATTR_NAME_VAL variables
+			// are malloc'ed, use free()
+			free(compcsi_info->attrs.list);
 			compcsi_info->attrs.list = NULL;
 		}
 		delete compcsi_info;
@@ -323,8 +325,8 @@ static void free_d2n_pg_msg_info(AVSV_DND_MSG *pg_msg)
 {
 	AVSV_D2N_PG_TRACK_ACT_RSP_MSG_INFO *info = &pg_msg->msg_info.d2n_pg_track_act_rsp;
 
-	if (info->mem_list.numberOfItems)
-		delete info->mem_list.notification;
+	if (info->mem_list.numberOfItems > 0)
+		delete [] info->mem_list.notification;
 
 	info->mem_list.notification = 0;
 	info->mem_list.numberOfItems = 0;
@@ -420,7 +422,7 @@ void nda_ava_msg_content_free(AVSV_NDA_AVA_MSG *msg)
 
 	case AVSV_AVND_AMF_CBK_MSG:
 		if (msg->info.cbk_info) {
-			avsv_amf_cbk_free(msg->info.cbk_info);
+			amf_cbk_free(msg->info.cbk_info);
 			msg->info.cbk_info = 0;
 		}
 		break;
@@ -429,6 +431,50 @@ void nda_ava_msg_content_free(AVSV_NDA_AVA_MSG *msg)
 		break;
 	}
 
+	return;
+}
+
+/****************************************************************************
+  Name          : amf_csi_attr_list_copy
+ 
+  Description   : This routine copies the csi attribute list.
+ 
+  Arguments     : dattr - ptr to the destination csi-attr list
+                  sattr - ptr to the src csi-attr list
+ 
+  Return Values : NCSCC_RC_SUCCESS / NCSCC_RC_FAILURE
+ 
+  Notes         : None.
+******************************************************************************/
+void amf_csi_attr_list_copy(SaAmfCSIAttributeListT *dattr,
+	const SaAmfCSIAttributeListT *sattr)
+{
+	uint32_t cnt;
+
+	if (dattr == NULL || sattr == NULL)
+		goto done;
+
+	dattr->attr = new SaAmfCSIAttributeT[sattr->number];
+
+	for (cnt = 0; cnt < sattr->number; cnt++) {
+		/* alloc memory for attr name & value */
+		size_t attrNameSize = strlen((char*)sattr->attr[cnt].attrName) + 1;
+		dattr->attr[cnt].attrName = new SaUint8T[attrNameSize];
+
+		size_t attrValueSize = strlen((char*)sattr->attr[cnt].attrValue) + 1;
+		dattr->attr[cnt].attrValue = new SaUint8T[attrNameSize];
+
+		/* copy the attr name & value */
+		strncpy((char*)dattr->attr[cnt].attrName,
+			(char*)sattr->attr[cnt].attrName, attrNameSize);
+		strncpy((char*)dattr->attr[cnt].attrValue,
+			(char*)sattr->attr[cnt].attrValue, attrValueSize);
+
+		/* increment the attr name-val pair cnt that is copied */
+		dattr->number++;
+	}
+	
+done:
 	return;
 }
 
@@ -447,20 +493,101 @@ void amf_csi_attr_list_free(SaAmfCSIAttributeListT *attrs)
 {
 	uint32_t cnt;
 
-	if (!attrs)
+	if (attrs == NULL)
 		return;
 
 	/* free the attr name-val pair */
 	for (cnt = 0; cnt < attrs->number; cnt++) {
-		delete attrs->attr[cnt].attrName;
-		delete attrs->attr[cnt].attrValue;
+		delete [] attrs->attr[cnt].attrName;
+		delete [] attrs->attr[cnt].attrValue;
 	}			/* for */
 
 	/* finally free the attr list ptr */
-	if (attrs->attr)
-		delete attrs->attr;
+	delete [] attrs->attr;
 
 	return;
+}
+
+/****************************************************************************
+  Name          : amf_cbk_copy
+ 
+  Description   : This routine copies the AMF callback info message.
+ 
+  Arguments     : o_dcbk - double ptr to the dest cbk-info (o/p)
+                  scbk   - ptr to the source cbk-info
+ 
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ 
+  Notes         : None
+******************************************************************************/
+uint32_t amf_cbk_copy(AVSV_AMF_CBK_INFO **o_dcbk, const AVSV_AMF_CBK_INFO *scbk)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+
+	if (o_dcbk == NULL || scbk == NULL)
+		return NCSCC_RC_FAILURE;
+
+	/* allocate the dest cbk-info */
+	*o_dcbk = new AVSV_AMF_CBK_INFO();
+
+	/* copy the common fields */
+	memcpy(*o_dcbk, scbk, sizeof(AVSV_AMF_CBK_INFO));
+
+	switch (scbk->type) {
+	case AVSV_AMF_HC:
+	case AVSV_AMF_COMP_TERM:
+	case AVSV_AMF_CSI_REM:
+	case AVSV_AMF_PXIED_COMP_INST:
+	case AVSV_AMF_PXIED_COMP_CLEAN:
+		break;
+
+	case AVSV_AMF_PG_TRACK:
+		/* memset notify buffer */
+		memset(&(*o_dcbk)->param.pg_track.buf, 0, sizeof(SaAmfProtectionGroupNotificationBufferT));
+
+		/* copy the notify buffer, if any */
+		if (scbk->param.pg_track.buf.numberOfItems > 0) {
+			(*o_dcbk)->param.pg_track.buf.notification =
+				new SaAmfProtectionGroupNotificationT[scbk->param.pg_track.buf.numberOfItems];
+	
+			for (SaUint32T i = 0; i < scbk->param.pg_track.buf.numberOfItems; ++i) {
+				(*o_dcbk)->param.pg_track.buf.notification[i] =
+					scbk->param.pg_track.buf.notification[i];	
+			}
+			(*o_dcbk)->param.pg_track.buf.numberOfItems = scbk->param.pg_track.buf.numberOfItems;
+		}
+		break;
+
+	case AVSV_AMF_CSI_SET:
+		/* memset avsv & amf csi attr lists */
+		memset(&(*o_dcbk)->param.csi_set.attrs, 0, sizeof(AVSV_CSI_ATTRS));
+		memset(&(*o_dcbk)->param.csi_set.csi_desc.csiAttr, 0, sizeof(SaAmfCSIAttributeListT));
+
+		/* copy the avsv csi attr list */
+		if (scbk->param.csi_set.attrs.number > 0) {
+			(*o_dcbk)->param.csi_set.attrs.list = static_cast<AVSV_ATTR_NAME_VAL*>
+				(calloc(scbk->param.csi_set.attrs.number, sizeof(AVSV_ATTR_NAME_VAL)));
+			osafassert((*o_dcbk)->param.csi_set.attrs.list != NULL);
+
+			for (uint32_t i = 0; i < scbk->param.csi_set.attrs.number; ++i) {
+				(*o_dcbk)->param.csi_set.attrs.list[i] =
+					scbk->param.csi_set.attrs.list[i];
+			}
+			(*o_dcbk)->param.csi_set.attrs.number = scbk->param.csi_set.attrs.number;
+		}
+
+		/* copy the amf csi attr list */
+		if (scbk->param.csi_set.csi_desc.csiAttr.number > 0) {
+			amf_csi_attr_list_copy(&(*o_dcbk)->param.csi_set.csi_desc.csiAttr,
+				&scbk->param.csi_set.csi_desc.csiAttr);
+		}
+		break;
+
+	default:
+		osafassert(0);
+	}
+
+	return rc;
 }
 
 /****************************************************************************
@@ -476,7 +603,7 @@ void amf_csi_attr_list_free(SaAmfCSIAttributeListT *attrs)
 ******************************************************************************/
 void amf_cbk_free(AVSV_AMF_CBK_INFO *cbk_info)
 {
-	if (!cbk_info)
+	if (cbk_info == NULL)
 		return;
 
 	switch (cbk_info->type) {
@@ -489,15 +616,18 @@ void amf_cbk_free(AVSV_AMF_CBK_INFO *cbk_info)
 
 	case AVSV_AMF_PG_TRACK:
 		/* free the notify buffer */
-		if (cbk_info->param.pg_track.buf.numberOfItems)
-			delete cbk_info->param.pg_track.buf.notification;
+		if (cbk_info->param.pg_track.buf.numberOfItems > 0)
+			delete [] cbk_info->param.pg_track.buf.notification;
 		break;
 
 	case AVSV_AMF_CSI_SET:
 		/* free the avsv csi attr list */
-		if (cbk_info->param.csi_set.attrs.number)
-			delete cbk_info->param.csi_set.attrs.list;
-
+		if (cbk_info->param.csi_set.attrs.number > 0) {
+			// AVSV_ATTR_NAME_VAL variables
+			// are malloc'ed, use free()
+			free(cbk_info->param.csi_set.attrs.list);
+		}
+		
 		/* free the amf csi attr list */
 		amf_csi_attr_list_free(&cbk_info->param.csi_set.csi_desc.csiAttr);
 		break;
