@@ -209,6 +209,7 @@ extern void node_reset_su_try_inst_counter(const AVD_AVND *node);
 extern SaAisErrorT avd_ng_config_get(void);
 extern AVD_AMF_NG *avd_ng_get(const SaNameT *dn);
 extern void avd_ng_constructor(void);
+extern bool node_in_nodegroup(const SaNameT *node, const AVD_AMF_NG *ng);
 
 /* AMF Node SW Bundle */
 extern void avd_nodeswbundle_constructor(void);
