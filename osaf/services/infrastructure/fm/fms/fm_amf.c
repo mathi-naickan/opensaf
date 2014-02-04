@@ -45,6 +45,25 @@ static char *ha_role_string[] = { "ACTIVE", "STANDBY", "QUIESCED",
 	"QUIESCING"
 };
 
+
+void amfnd_down_callback(void)
+{
+	if (!fm_cb->control_tipc) {
+		/* OpenSAF is not controlling TIPC, Wait till OS terminates the process
+		 * Peer(STANDBY) FM will trigger failover only after it receives FM down on this node.
+		 */
+		LOG_AL("AMF Node Director is down, waiting for the OS to terminate this process");
+		while (1) {
+			m_NCS_TASK_SLEEP(0xfffffff0);
+		}
+	} else {
+		/* OpenSAF is controlling TIPC, peer(STANDBY) FM will receive/act on NODE_DOWN */
+		LOG_AL("AMF Node Director is down, terminate this process");
+		raise(SIGTERM);
+	}
+}
+
+
 /****************************************************************************
  * Name          : fm_amf_take_hdl
  *
@@ -315,6 +334,7 @@ uint32_t fm_amf_init(FM_AMF_CB *fm_amf_cb)
 	if (rc != NCSCC_RC_SUCCESS) {
 		 return NCSCC_RC_FAILURE;
 	}
+	ava_install_amf_down_cb(&amfnd_down_callback);
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }

@@ -71,4 +71,6 @@
 #include "fm_mds.h"
 #include "fm_evt.h"
 
+extern void amfnd_down_callback(void);
+extern void ava_install_amf_down_cb(void (*cb) (void));
 #endif

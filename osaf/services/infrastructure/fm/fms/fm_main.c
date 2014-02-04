@@ -401,6 +401,10 @@ void fm_proc_svc_down(FM_CB *cb, FM_EVT *fm_mbx_evt)
 			cb->amfd_down = true;
 			LOG_NO("AVD down on: %x", cb->peer_node_id);
 			break;
+		case NCSMDS_SVC_ID_GFM:
+			cb->fm_down = true;
+			LOG_NO("FM down on: %x", cb->peer_node_id);
+			break;
 		default:
 			break;
 	}
@@ -412,7 +416,7 @@ void fm_proc_svc_down(FM_CB *cb, FM_EVT *fm_mbx_evt)
 	* Process service downs only if OpenSAF is not controlling TIPC.
 	* If OpenSAF is controlling TIPC, just wait for NODE_DOWN to trigger failover.
 	*/
-	if (cb->immd_down && cb->immnd_down && cb->amfnd_down && cb->amfd_down) {
+	if (cb->immd_down && cb->immnd_down && cb->amfnd_down && cb->amfd_down && cb->fm_down) {
 		LOG_NO("Core services went down on node_id: %x", fm_mbx_evt->node_id);
 		fm_send_node_down_to_mbx(cb, fm_mbx_evt->node_id);
 		/* Reset peer downs, because we've made MDS RED subscriptions */
@@ -420,6 +424,7 @@ void fm_proc_svc_down(FM_CB *cb, FM_EVT *fm_mbx_evt)
 		cb->immnd_down = false;
 		cb->amfnd_down = false;
 		cb->amfd_down = false;
+		cb->fm_down = false;
 	}
 }
 
@@ -439,7 +444,7 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt)
 	TRACE_ENTER();
 	switch (fm_mbx_evt->evt_code) {
 	case FM_EVT_NODE_DOWN:
-		LOG_NO("current role: %s", role_string[fm_cb->role]);
+		LOG_NO("Current role: %s", role_string[fm_cb->role]);
 		if ((fm_mbx_evt->node_id == fm_cb->peer_node_id)) {
 			/* Check whether node(AMF) initialization is done */
 			if (fm_cb->csi_assigned == false) {

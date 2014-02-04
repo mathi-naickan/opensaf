@@ -78,6 +78,7 @@ typedef struct fm_cb {
 	bool immnd_down;
 	bool amfnd_down;
 	bool amfd_down;
+	bool fm_down;
 } FM_CB;
 
 extern char *role_string[];

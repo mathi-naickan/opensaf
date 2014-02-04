@@ -366,8 +366,9 @@ static uint32_t fm_mds_svc_evt(FM_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 			case NCSMDS_SVC_ID_GFM:
 				if (svc_evt->i_node_id == cb->peer_node_id) {
 					cb->peer_adest = 0;
-					if (!cb->control_tipc)
-						TRACE("FM down on: %x", cb->peer_node_id);
+					if (!cb->control_tipc) {
+						fm_send_svc_down_to_mbx(cb, svc_evt->i_node_id, svc_evt->i_svc_id);
+					}
 				}
 				break;
 			case NCSMDS_SVC_ID_IMMND:
