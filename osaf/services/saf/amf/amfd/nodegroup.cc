@@ -260,6 +260,24 @@ static bool su_is_mapped_to_node_via_nodegroup(const AVD_SU *su, const AVD_AMF_N
 }
 
 /**
+ * Determine if a node is in a node group
+ * @param node node
+ * @param ng nodegroup
+ * 
+ * @return true if found, otherwise false
+ */
+bool node_in_nodegroup(const SaNameT *node, const AVD_AMF_NG *ng)
+{
+	for (unsigned int i = 0; i < ng->number_nodes; i++) {
+		if ((ng->saAmfNGNodeList[i].length == node->length) &&
+			memcmp(&ng->saAmfNGNodeList[i].value, node->value, node->length) == 0)
+			return true;
+	}
+	
+	return false;
+}
+
+/**
  * Validate modification of node group
  * @param opdata
  * 
@@ -275,6 +293,7 @@ static SaAisErrorT ng_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 	AVD_SU *su;
 	int delete_found = 0;
 	int add_found = 0;
+	int nodes_deleted = 0;
 	AVD_AMF_NG *ng;
 
 	TRACE_ENTER();
@@ -305,6 +324,12 @@ static SaAisErrorT ng_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 
 				TRACE("DEL %s", ((SaNameT *)mod->modAttr.attrValues[j])->value);
 
+				if (node_in_nodegroup((SaNameT *)mod->modAttr.attrValues[j], ng) == false) {
+					report_ccb_validation_error(opdata, "ng modify: node '%s' does not exist in node group",
+						((SaNameT *)mod->modAttr.attrValues[j])->value);
+					goto done;
+				}
+				
 				/* Ensure no SU is mapped to this node via the node group */
 
 				/* for all OpenSAF SUs hosted by this node */
@@ -326,6 +351,14 @@ static SaAisErrorT ng_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 								node->name.value, ng->ng_name.value);
 						goto done;
 					}
+				}
+				
+				++nodes_deleted;
+				/* currently, we don't support multiple node deletions from a group in a CCB */
+				if (nodes_deleted > 1) {
+					report_ccb_validation_error(opdata,
+						"ng modify: cannot delete more than one node from a node group in a CCB");
+					goto done;
 				}
 			}
 		}
@@ -509,7 +542,7 @@ static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 
 			TRACE("found node %s", ng->saAmfNGNodeList[j].value);
 
-			for (; j < ng->number_nodes; j++)
+			for (; j < (ng->number_nodes - 1); j++)
 				ng->saAmfNGNodeList[j] = ng->saAmfNGNodeList[j + 1];
 
 			ng->number_nodes -= mod->modAttr.attrValuesNumber;

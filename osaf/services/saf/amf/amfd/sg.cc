@@ -479,23 +479,6 @@ done1:
 }
 
 /**
- * Check if the node represented by nodename is a member of node group ng
- * @param nodename
- * @param ng
- * @return
- */
-static bool node_in_ng(const SaNameT *nodename, const AVD_AMF_NG *ng)
-{
-	for (unsigned i = 0; i < ng->number_nodes; i++) {
-		if (strncmp((char*)nodename->value,
-				(char*)ng->saAmfNGNodeList[i].value, SA_MAX_NAME_LENGTH) == 0)
-			return true;
-	}
-
-	return false;
-}
-
-/**
  * Check if the node group represented by ngname is a subset of the node group
  * represented by supername
  * @param ngname
@@ -513,7 +496,7 @@ static bool ng_is_subset(const SaNameT *ngname, const AVD_AMF_NG *superng)
 	for (unsigned i = 0; i < ng->number_nodes; i++) {
 		nodename = &ng->saAmfNGNodeList[i];
 
-		if (node_in_ng(nodename, superng) == false)
+		if (node_in_nodegroup(nodename, superng) == false)
 			return false;
 	}
 
