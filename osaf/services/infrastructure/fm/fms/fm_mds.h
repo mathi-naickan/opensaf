@@ -49,4 +49,5 @@ uint32_t fm_mds_async_send(FM_CB *fm_cb, NCSCONTEXT msg,
 				 MDS_SEND_PRIORITY_TYPE priority,
 				 MDS_SENDTYPES send_type, MDS_DEST i_to_dest, NCSMDS_SCOPE_TYPE bcast_scope);
 
+extern uint32_t fm_send_node_down_to_mbx(FM_CB *cb, uint32_t node_id);
 #endif

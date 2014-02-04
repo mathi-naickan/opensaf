@@ -57,7 +57,8 @@ fm_mds_async_send(FM_CB *fm_cb, NCSCONTEXT msg,
 uint32_t fm_mds_init(FM_CB *cb)
 {
 	NCSMDS_INFO arg;
-	MDS_SVC_ID svc_id[] = { NCSMDS_SVC_ID_GFM, NCSMDS_SVC_ID_AVND };
+	MDS_SVC_ID svc_id[] = { NCSMDS_SVC_ID_GFM, NCSMDS_SVC_ID_AVND, NCSMDS_SVC_ID_IMMND };
+	MDS_SVC_ID immd_id[2] = { NCSMDS_SVC_ID_IMMD, NCSMDS_SVC_ID_AVD };
 
 /* Get the MDS handles to be used. */
 	if (fm_mds_get_adest_hdls(cb) != NCSCC_RC_SUCCESS) {
@@ -88,7 +89,7 @@ uint32_t fm_mds_init(FM_CB *cb)
 /* Subcribe to AVND and FMSV MDS UP/DOWN events. */
 	arg.i_op = MDS_SUBSCRIBE;
 	arg.info.svc_subscribe.i_scope = NCSMDS_SCOPE_NONE;
-	arg.info.svc_subscribe.i_num_svcs = 2;
+	arg.info.svc_subscribe.i_num_svcs = 3;
 	arg.info.svc_subscribe.i_svc_ids = svc_id;
 
 	if (ncsmds_api(&arg) != NCSCC_RC_SUCCESS) {
@@ -98,6 +99,21 @@ uint32_t fm_mds_init(FM_CB *cb)
 		ncsmds_api(&arg);
 		return NCSCC_RC_FAILURE;
 	}
+
+/* Subscribe to IMMD redundant down event */
+        memset(&arg, 0, sizeof(NCSMDS_INFO));
+        arg.i_mds_hdl = cb->adest_pwe1_hdl;
+        arg.i_svc_id = NCSMDS_SVC_ID_GFM;
+        arg.i_op = MDS_RED_SUBSCRIBE;
+        arg.info.svc_subscribe.i_num_svcs = 2;
+        arg.info.svc_subscribe.i_scope = NCSMDS_SCOPE_NONE;
+        arg.info.svc_subscribe.i_svc_ids = immd_id;
+        if (ncsmds_api(&arg) == NCSCC_RC_FAILURE) {
+		syslog(LOG_ERR, "MDS_RED_SUBSCRIBE failed");
+		arg.i_op = MDS_UNINSTALL;
+		ncsmds_api(&arg);
+                return NCSCC_RC_FAILURE;
+        }
 
 	memset(&arg, 0, sizeof(NCSMDS_INFO));
 	arg.i_op = MDS_NODE_SUBSCRIBE;
@@ -247,6 +263,43 @@ static uint32_t fm_mds_callback(NCSMDS_CALLBACK_INFO *info)
 	return return_val;
 }
 
+uint32_t fm_send_node_down_to_mbx(FM_CB *cb, uint32_t node_id)
+{
+	FM_EVT *fm_evt = NULL;
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	fm_evt = m_MMGR_ALLOC_FM_EVT;
+	if (NULL == fm_evt) {
+		syslog(LOG_INFO, "fm_mds_rcv_evt: fm_evt allocation FAILED.");
+		return NCSCC_RC_FAILURE;
+	}
+	rc = fm_fill_mds_evt_post_fm_mbx(cb, fm_evt, node_id, FM_EVT_NODE_DOWN);
+	if (rc == NCSCC_RC_FAILURE) {
+		m_MMGR_FREE_FM_EVT(fm_evt);
+		fm_evt = NULL;
+		LOG_IN("node down event post to mailbox failed");
+	}
+	return rc;
+}
+
+static void fm_send_svc_down_to_mbx(FM_CB *cb, uint32_t node_id, NCSMDS_SVC_ID svc_id)
+{
+	FM_EVT *fm_evt = NULL;
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	fm_evt = m_MMGR_ALLOC_FM_EVT;
+	if (NULL == fm_evt) {
+		syslog(LOG_INFO, "fm_mds_rcv_evt: fm_evt allocation FAILED.");
+		return;
+	}
+	fm_evt->svc_id = svc_id;
+	rc = fm_fill_mds_evt_post_fm_mbx(cb, fm_evt, node_id, FM_EVT_SVC_DOWN);
+	if (rc == NCSCC_RC_FAILURE) {
+		m_MMGR_FREE_FM_EVT(fm_evt);
+		LOG_IN("service down event post to mailbox failed");
+		fm_evt = NULL;
+	}
+	return;
+}
+
 /****************************************************************************
 * Name          : fm_mds_node_evt
 *
@@ -261,29 +314,14 @@ static uint32_t fm_mds_callback(NCSMDS_CALLBACK_INFO *info)
 static uint32_t fm_mds_node_evt(FM_CB *cb, MDS_CALLBACK_NODE_EVENT_INFO * node_evt)
 {
 	uint32_t return_val = NCSCC_RC_SUCCESS;
-	FM_EVT *fm_evt;
 	TRACE_ENTER();
-	if (NULL == node_evt) {
-		syslog(LOG_INFO, "fm_mds_node_evt: node_evt NULL.");
-		return NCSCC_RC_FAILURE;
-	}
 
 	switch (node_evt->node_chg) {
 	case NCSMDS_NODE_DOWN:
-		if (node_evt->node_id == cb->peer_node_id) {
-
-			fm_evt = m_MMGR_ALLOC_FM_EVT;
-			if (NULL == fm_evt) {
-				syslog(LOG_INFO, "fm_mds_rcv_evt: fm_evt allocation FAILED.");
-				return NCSCC_RC_FAILURE;
-			}
-
-			LOG_IN("Node Down for %u  ", node_evt->node_id);
-			return_val = fm_fill_mds_evt_post_fm_mbx(cb, fm_evt, node_evt->node_id, FM_EVT_NODE_DOWN);
-			if (NCSCC_RC_FAILURE == return_val) {
-				m_MMGR_FREE_FM_EVT(fm_evt);
-				fm_evt = NULL;
-			}
+		if (node_evt->node_id == cb->peer_node_id && cb->control_tipc) {
+			/* Process NODE_DOWN only if OpenSAF is controling TIPC */
+			LOG_NO("Node Down event for node id %x:", node_evt->node_id);
+			return_val = fm_send_node_down_to_mbx(cb, node_evt->node_id);
 		}
 		break;
 
@@ -323,35 +361,52 @@ static uint32_t fm_mds_svc_evt(FM_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 
 	switch (svc_evt->i_change) {
 	case NCSMDS_DOWN:
+		switch(svc_evt->i_svc_id) {
+			/* Depend on service downs if OpenSAF is not controling TIPC */
+			case NCSMDS_SVC_ID_GFM:
+				if (svc_evt->i_node_id == cb->peer_node_id) {
+					cb->peer_adest = 0;
+					if (!cb->control_tipc)
+						TRACE("FM down on: %x", cb->peer_node_id);
+				}
+				break;
+			case NCSMDS_SVC_ID_IMMND:
+				if (svc_evt->i_node_id == cb->peer_node_id
+							&& !cb->control_tipc) {
+					fm_send_svc_down_to_mbx(cb, svc_evt->i_node_id, svc_evt->i_svc_id);
+				}
+				break;
+			case NCSMDS_SVC_ID_AVND:
+				if (svc_evt->i_node_id == cb->peer_node_id
+							&& !cb->control_tipc) {
+					fm_send_svc_down_to_mbx(cb, svc_evt->i_node_id, svc_evt->i_svc_id);
+				}
+				break;
+			default:
+				TRACE("Not interested in service down of other services");
+				break;
+		}
+
+		break;
+
+	case NCSMDS_RED_DOWN:
 		switch (svc_evt->i_svc_id) {
-		case NCSMDS_SVC_ID_GFM:
-			if (svc_evt->i_node_id == cb->peer_node_id)
-				cb->peer_adest = 0;
-			break;
-		case NCSMDS_SVC_ID_AVND:
-			/* Processing only for alternate node.
-			 * FM down is the same as NODE_DOWN from 4.4 onwards.
-			 * This is required to handle the usecase involving
-			 * '/etc/init.d/opensafd stop' without an OS reboot cycle
-			 */
-
-			if (svc_evt->i_node_id == cb->peer_node_id) {
-				fm_evt = m_MMGR_ALLOC_FM_EVT;
-				if (NULL == fm_evt) {
-					syslog(LOG_INFO, "fm_mds_rcv_evt: fm_evt allocation FAILED.");
-					return NCSCC_RC_FAILURE;
+			/* Depend on service downs if OpenSAF is not controling TIPC */
+			case NCSMDS_SVC_ID_IMMD:
+				if (svc_evt->i_node_id == cb->peer_node_id
+							&& !cb->control_tipc) {
+					fm_send_svc_down_to_mbx(cb, svc_evt->i_node_id, svc_evt->i_svc_id);
 				}
-				LOG_NO("Peer FM down on node_id: %u", svc_evt->i_node_id);
-				return_val = fm_fill_mds_evt_post_fm_mbx(cb, fm_evt, svc_evt->i_node_id, FM_EVT_NODE_DOWN);
-				if (return_val == NCSCC_RC_FAILURE) {
-					m_MMGR_FREE_FM_EVT(fm_evt);
-					fm_evt = NULL;
+				break;
+			case NCSMDS_SVC_ID_AVD:
+				if (svc_evt->i_node_id == cb->peer_node_id
+							&& !cb->control_tipc) {
+					fm_send_svc_down_to_mbx(cb, svc_evt->i_node_id, svc_evt->i_svc_id);
 				}
-			}
-			break;
-
-		default:
-			syslog(LOG_INFO, "Wrong MDS DOWN event type");
+				break;
+			default:
+				TRACE("Not interested in service down of other services");
+				break;
 		}
 		break;
 
@@ -374,6 +429,11 @@ static uint32_t fm_mds_svc_evt(FM_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 					fm_evt = NULL;
 				}
 			}
+			break;
+		case NCSMDS_SVC_ID_IMMND:
+				if (svc_evt->i_node_id == cb->peer_node_id
+							&& !cb->control_tipc)
+					cb->immnd_down = false; /* Only IMMND is restartable */
 			break;
 		default:
 			break;

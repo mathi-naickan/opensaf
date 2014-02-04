@@ -60,6 +60,7 @@ void handle_mbx_event(void);
 extern uint32_t fm_amf_init(FM_AMF_CB *fm_amf_cb);
 uint32_t gl_fm_hdl;
 static NCS_SEL_OBJ usr1_sel_obj;
+void fm_proc_svc_down(FM_CB *cb, FM_EVT *fm_mbx_evt);
 
 /**
  * USR1 signal is used when AMF wants instantiate us as a
@@ -124,6 +125,7 @@ int main(int argc, char *argv[])
 	int rc = NCSCC_RC_FAILURE;
 	int term_fd;
 	bool nid_started = false;
+	char *control_tipc = NULL;
 
 	opensaf_reboot_prepare();
 
@@ -146,6 +148,19 @@ int main(int argc, char *argv[])
 
 	memset(fm_cb, 0, sizeof(FM_CB));
 	fm_cb->fm_amf_cb.nid_started = nid_started;
+
+	/* Variable to control whether FM will trigger failover immediately
+	 * upon recieving down event of critical services or will wait
+	 * for node_downevent. By default, OPENSAF_MANAGE_TIPC = yes,
+	 * If this variable is set to yes, OpenSAF will rmmod tipc which means
+	 * NODE_down will happen immediately and there is no need to act on service down.
+	 * If this variable is set to no, user will only do /etc/init.d/opensafd stop
+	 * and no rmmod is done, which means no NODE_DOWN event will arrive, and
+	 * therefore FM has to act on service down events of critical service,
+	 * In the short term, FM will use service down events of AMFND, IMMD and IMMND
+	 * to trigger failover.
+	 */
+	fm_cb->control_tipc = true; /* Default behaviour */
 
 	/* Create CB handle */
 	gl_fm_hdl = ncshm_create_hdl(NCS_HM_POOL_ID_COMMON, NCS_SERVICE_ID_GFM, (NCSCONTEXT)fm_cb);
@@ -180,6 +195,13 @@ int main(int argc, char *argv[])
 	if (fm_rda_init(fm_cb) != NCSCC_RC_SUCCESS) {
 		goto fm_init_failed;
 	}
+
+	if ((control_tipc = getenv("OPENSAF_MANAGE_TIPC")) == NULL)
+		fm_cb->control_tipc = false;
+	else if (strncmp(control_tipc, "yes", 3) == 0)
+		fm_cb->control_tipc = true;
+	else
+		fm_cb->control_tipc = false;
 
 	if ((rc = rda_register_callback(0, rda_cb)) != NCSCC_RC_SUCCESS) {
 		syslog(LOG_ERR, "rda_register_callback FAILED %u", rc);
@@ -291,9 +313,9 @@ void handle_mbx_event(void)
 	TRACE_ENTER();     
 	ncshm_take_hdl(NCS_SERVICE_ID_GFM, gl_fm_hdl);
 	fm_mbx_evt = (FM_EVT *)m_NCS_IPC_NON_BLK_RECEIVE(&fm_cb->mbx, msg);
-	if (fm_mbx_evt) {
+	if (fm_mbx_evt)
 		fm_mbx_msg_handler(fm_cb, fm_mbx_evt);
-	}
+
 	ncshm_give_hdl(gl_fm_hdl);
 	TRACE_LEAVE();
 }
@@ -360,6 +382,47 @@ static uint32_t fm_get_args(FM_CB *fm_cb)
 	return NCSCC_RC_SUCCESS;
 }
 
+void fm_proc_svc_down(FM_CB *cb, FM_EVT *fm_mbx_evt)
+{
+	switch (fm_mbx_evt->svc_id) {
+		case NCSMDS_SVC_ID_IMMND:
+			cb->immnd_down = true;
+			LOG_NO("IMMND down on: %x", cb->peer_node_id);
+			break;
+		case NCSMDS_SVC_ID_AVND:
+			cb->amfnd_down = true;
+			LOG_NO("AMFND down on: %x", cb->peer_node_id);
+			break;
+		case NCSMDS_SVC_ID_IMMD:
+			cb->immd_down = true;
+			LOG_NO("IMMD down on: %x", cb->peer_node_id);
+			break;
+		case NCSMDS_SVC_ID_AVD:
+			cb->amfd_down = true;
+			LOG_NO("AVD down on: %x", cb->peer_node_id);
+			break;
+		default:
+			break;
+	}
+
+	/* Processing only for alternate node.
+	* Service downs of AMFND, IMMD, IMMND is the same as NODE_DOWN from 4.4 onwards.
+	* This is required to handle the usecase involving
+	* '/etc/init.d/opensafd stop' without an OS reboot cycle
+	* Process service downs only if OpenSAF is not controlling TIPC.
+	* If OpenSAF is controlling TIPC, just wait for NODE_DOWN to trigger failover.
+	*/
+	if (cb->immd_down && cb->immnd_down && cb->amfnd_down && cb->amfd_down) {
+		LOG_NO("Core services went down on node_id: %x", fm_mbx_evt->node_id);
+		fm_send_node_down_to_mbx(cb, fm_mbx_evt->node_id);
+		/* Reset peer downs, because we've made MDS RED subscriptions */
+		cb->immd_down = false;
+		cb->immnd_down = false;
+		cb->amfnd_down = false;
+		cb->amfd_down = false;
+	}
+}
+
 /****************************************************************************
 * Name          : fm_mbx_msg_handler
 *
@@ -376,7 +439,7 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt)
 	TRACE_ENTER();
 	switch (fm_mbx_evt->evt_code) {
 	case FM_EVT_NODE_DOWN:
-		LOG_NO("Role: %s, Node Down for node id: %x", role_string[fm_cb->role], fm_mbx_evt->node_id);
+		LOG_NO("current role: %s", role_string[fm_cb->role]);
 		if ((fm_mbx_evt->node_id == fm_cb->peer_node_id)) {
 			/* Check whether node(AMF) initialization is done */
 			if (fm_cb->csi_assigned == false) {
@@ -397,15 +460,25 @@ static void fm_mbx_msg_handler(FM_CB *fm_cb, FM_EVT *fm_mbx_evt)
 				 *       In both the cases, this node should be set to ACTIVE.
 				 */
 				if ((SaAmfHAStateT)fm_cb->role != fm_cb->amf_state )
-					LOG_NO("Failover occurred in the middle of switchover");
+					TRACE("Failover processing trigerred in the middle of role change");
+					/* The previous log message in the above has been changed 
+					 * because the log "Failover occurred in the middle of switchover" can
+					 * be misleading in the case when it is not a switchover
+					 * but just that failover has been trigerred quicker than the
+					 * node_down event has been received.
+					 */
 				opensaf_reboot(fm_cb->peer_node_id, (char *)fm_cb->peer_node_name.value,
 						"Received Node Down for peer controller");
 				if (!((fm_cb->role == PCS_RDA_ACTIVE) && (fm_cb->amf_state == (SaAmfHAStateT)PCS_RDA_ACTIVE))) {
 					fm_cb->role = PCS_RDA_ACTIVE;
+					LOG_NO("Controller Failover: Setting role to ACTIVE");
 					fm_rda_set_role(fm_cb, PCS_RDA_ACTIVE);
 				}
 			}
 		}
+		break;
+	case FM_EVT_SVC_DOWN:
+		fm_proc_svc_down(fm_cb, fm_mbx_evt);
 		break;
 	case FM_EVT_PEER_UP:
 /* Peer fm came up so sending ee_id of this node */

@@ -71,6 +71,13 @@ typedef struct fm_cb {
 /* Time in terms of one hundredth of seconds (500 for 5 secs.) */
 	uint32_t active_promote_tmr_val;
 	bool csi_assigned;
+/* Variable to indicate OpenSAF control of TIPC transport */
+	bool control_tipc;
+/* Booleans to mark service down events of critical Osaf Services */
+	bool immd_down;
+	bool immnd_down;
+	bool amfnd_down;
+	bool amfd_down;
 } FM_CB;
 
 extern char *role_string[];

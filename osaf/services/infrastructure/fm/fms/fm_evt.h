@@ -48,6 +48,7 @@ typedef enum {
 	FM_EVT_NODE_DOWN,
 	FM_EVT_PEER_UP,
 	FM_EVT_RDA_ROLE,
+	FM_EVT_SVC_DOWN,
 	FM_FSM_EVT_MAX
 } FM_FSM_EVT_CODE;
 
@@ -58,6 +59,7 @@ typedef struct fm_evt {
 	NCS_IPC_PRIORITY priority;
 	MDS_SYNC_SND_CTXT mds_ctxt;
 	MDS_DEST fr_dest;
+	NCSMDS_SVC_ID svc_id;
 	union {
 		FM_TMR *fm_tmr;
 		GFM_GFM_MSG gfm_msg;
