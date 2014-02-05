@@ -1129,7 +1129,7 @@ void logRootDirectory_filemove(const char *new_logRootDirectory, time_t *cur_tim
 	}
 
 	/* Create new files at new path */
-	strcpy((char *) lgs_cb->logsv_root_dir, new_logRootDirectory);
+	lgs_imm_rootpathconf_set(new_logRootDirectory);
 	stream = log_stream_getnext_by_name(NULL);
 	while (stream != NULL) {
 		if (lgs_create_config_file_h(stream) != 0) {
@@ -2075,6 +2075,7 @@ void lgs_imm_rootpathconf_set(const char *root_path_str)
 		osafassert(0);
 	
 	strcpy(lgs_conf->logRootDirectory, root_path_str);
+	strcpy((char *) lgs_cb->logsv_root_dir, root_path_str);
 	LOG_NO("lgsv root path is changed to \"%s\"",lgs_conf->logRootDirectory);
 }
 
