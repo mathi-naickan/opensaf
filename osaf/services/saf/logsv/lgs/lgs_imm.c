@@ -205,7 +205,8 @@ static uint32_t ckpt_lgs_cfg(lgs_conf_t *lgs_conf)
 	TRACE_ENTER();
 	
 	if (!lgs_is_peer_v2()) {
-		LOG_ER("%s ERROR: Called when check-pointing version 1",__FUNCTION__);
+		/* Can be called only if we are OI. This is not the case if Standby */
+		TRACE("%s Called when check-pointing version 1",__FUNCTION__);
 		return NCSCC_RC_FAILURE;
 	}
 

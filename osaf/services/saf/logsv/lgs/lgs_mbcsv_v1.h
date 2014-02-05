@@ -76,9 +76,6 @@ typedef struct {
 /* Variant for check pointing ver 1 */
 uint32_t edp_ed_write_rec_v1(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 			      NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
-uint32_t edp_ed_open_stream_rec_v1(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				    NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				    EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
 uint32_t edp_ed_close_stream_rec_v1(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 				     NCSCONTEXT ptr, uint32_t *ptr_data_len,
 				     EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);

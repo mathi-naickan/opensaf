@@ -394,7 +394,7 @@ static uint32_t proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt)
 					ckpt_v1.header.ckpt_rec_type = LGS_CKPT_CLIENT_DOWN;
 					ckpt_v1.header.num_ckpt_records = 1;
 					ckpt_v1.header.data_len = 1;
-					ckpt_v1.ckpt_rec.agent_dest = evt->fr_dest;					
+					ckpt_v1.ckpt_rec.agent_dest = evt->fr_dest;
 					ckpt_ptr = &ckpt_v1;
 				}
 				async_rc = lgs_ckpt_send_async(lgs_cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);

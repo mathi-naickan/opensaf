@@ -23,7 +23,13 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
-	
+
+/* Version 1: Logservice check-point version older versions than OpenSAF 4.4.
+ *            Cannot be configured for split filesystem.
+ * Version 2: Check-pointing version used in OpenSAF version 4.4 after
+ *            enhancement for handling split file system was added. See #112 and
+ *            #688. Can handle version 1 on other node.
+ */	
 #define LGS_MBCSV_VERSION 2
 #define LGS_MBCSV_VERSION_MIN 1
 	
@@ -98,6 +104,9 @@ uint32_t edp_ed_reg_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 			    NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env,
 		EDP_OP_TYPE op, EDU_ERR *o_err);
 uint32_t lgs_ckpt_send_async(lgs_cb_t *cb, void *ckpt_rec, uint32_t action);
+uint32_t edp_ed_open_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
+				    NCSCONTEXT ptr, uint32_t *ptr_data_len,
+				    EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
 
 
 #ifdef	__cplusplus

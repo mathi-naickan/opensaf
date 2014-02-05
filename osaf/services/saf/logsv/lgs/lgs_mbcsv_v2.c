@@ -16,6 +16,11 @@
  *
  */
 
+/*
+ * Contains functions for encoding/decoding check-point structures for
+ * version 2 check-pointing. See also lgs_mbcsv_v2.h
+ */
+
 #include "lgs_mbcsv_v2.h"
 #include "lgs_mbcsv.h"
 
@@ -123,72 +128,6 @@ uint32_t edp_ed_write_rec_v2(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 	return rc;
 
 }	/* End edp_ed_write_rec */
-
-/****************************************************************************
- * Name          : edp_ed_open_stream_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint open_stream log rec.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-uint32_t edp_ed_open_stream_rec_v2(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				    NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				    EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgs_ckpt_stream_open_t *ckpt_open_stream_msg_ptr = NULL, **ckpt_open_stream_msg_dec_ptr;
-
-	EDU_INST_SET ckpt_open_stream_rec_ed_rules[] = {
-		{EDU_START, edp_ed_open_stream_rec_v2, 0, 0, 0, sizeof(lgs_ckpt_stream_open_t), 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->streamId, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->clientId, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logFile, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logPath, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logFileCurrent, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->maxFileSize, 0, NULL},
-		{EDU_EXEC, ncs_edp_int32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->maxLogRecordSize, 0, NULL},
-		{EDU_EXEC, ncs_edp_int32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logFileFullAction, 0, NULL},
-		{EDU_EXEC, ncs_edp_int32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->maxFilesRotated, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->fileFmt, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logStreamName, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->creationTimeStamp, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->numOpeners, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->streamType, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logRecordId, 0, NULL},
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_open_stream_msg_ptr = (lgs_ckpt_stream_open_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_open_stream_msg_dec_ptr = (lgs_ckpt_stream_open_t **)ptr;
-		if (*ckpt_open_stream_msg_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_open_stream_msg_dec_ptr, '\0', sizeof(lgs_ckpt_stream_open_t));
-		ckpt_open_stream_msg_ptr = *ckpt_open_stream_msg_dec_ptr;
-	} else {
-		ckpt_open_stream_msg_ptr = ptr;
-	}
-
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_open_stream_rec_ed_rules, ckpt_open_stream_msg_ptr,
-				 ptr_data_len, buf_env, op, o_err);
-	return rc;
-
-}	/* End edp_ed_open_stream_rec */
 
 /****************************************************************************
  * Name          : edp_ed_close_stream_rec
@@ -518,7 +457,7 @@ uint32_t edp_ed_ckpt_msg_v2(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 		 (long)&((lgsv_ckpt_msg_v2_t *)0)->ckpt_rec.write_log, 0, NULL},
 
 		/* Open stream */
-		{EDU_EXEC, edp_ed_open_stream_rec_v2, 0, 0, EDU_EXIT,
+		{EDU_EXEC, edp_ed_open_stream_rec, 0, 0, EDU_EXIT,
 		 (long)&((lgsv_ckpt_msg_v2_t *)0)->ckpt_rec.stream_open, 0, NULL},
 
 		/* Close stream */
