@@ -244,7 +244,7 @@ static bool config_is_valid(const SaNameT *dn,
 		// this is OK for backwards compatibility reasons
 	}
 
-	SaNameT bundle_name = {0, 0};
+	SaNameT bundle_name = {0};
 	bool bundle_configured = false;
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtSwBundle"),
 			attributes, 0, &bundle_name) == SA_AIS_OK) {
