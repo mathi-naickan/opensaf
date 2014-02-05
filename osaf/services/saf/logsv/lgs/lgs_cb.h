@@ -81,6 +81,7 @@ typedef struct lgs_cb {
 	NCS_MBCSV_HDL mbcsv_hdl;	/* Handle obtained during mbcsv init */
 	SaSelectionObjectT mbcsv_sel_obj;	/* Selection object to wait for MBCSv events */
 	NCS_MBCSV_CKPT_HDL mbcsv_ckpt_hdl;	/* MBCSv handle obtained during checkpoint open */
+	uint16_t mbcsv_peer_version;		/* Checkpoint peer version */
 	EDU_HDL edu_hdl;	/* Handle from EDU for encode/decode operations */
 	bool csi_assigned;
 	LGA_DOWN_LIST *lga_down_list_head;      /* LGA down reccords - Fix for Failover missed 

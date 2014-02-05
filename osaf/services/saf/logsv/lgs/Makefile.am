@@ -25,6 +25,8 @@ noinst_HEADERS = \
 	lgs_cb.h \
 	lgs_fmt.h \
 	lgs_mbcsv.h \
+	lgs_mbcsv_v1.h \
+	lgs_mbcsv_v2.h \
 	lgs_util.h \
 	lgs_evt.h \
 	lgs.h \
@@ -48,6 +50,8 @@ osaflogd_SOURCES = \
 	lgs_imm.c \
 	lgs_main.c \
 	lgs_mbcsv.c \
+	lgs_mbcsv_v1.c \
+	lgs_mbcsv_v2.c \
 	lgs_mds.c \
 	lgs_stream.c \
 	lgs_util.c \

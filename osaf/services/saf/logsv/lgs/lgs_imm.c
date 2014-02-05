@@ -41,6 +41,9 @@
 #include "lgs_util.h"
 #include "lgs_file.h"
 
+#include "lgs_mbcsv_v1.h"
+#include "lgs_mbcsv_v2.h"
+
 /* TYPE DEFINITIONS
  * ----------------
  */
@@ -196,10 +199,15 @@ static void report_om_error(SaImmOiHandleT immOiHandle, SaInvocationT invocation
  */
 static uint32_t ckpt_lgs_cfg(lgs_conf_t *lgs_conf)
 {
-	lgsv_ckpt_msg_t ckpt;
+	lgsv_ckpt_msg_v2_t ckpt;
 	uint32_t rc;
 
 	TRACE_ENTER();
+	
+	if (!lgs_is_peer_v2()) {
+		LOG_ER("%s ERROR: Called when check-pointing version 1",__FUNCTION__);
+		return NCSCC_RC_FAILURE;
+	}
 
 	memset(&ckpt, 0, sizeof(ckpt));
 	ckpt.header.ckpt_rec_type = LGS_CKPT_LGS_CFG;
@@ -221,32 +229,55 @@ static uint32_t ckpt_lgs_cfg(lgs_conf_t *lgs_conf)
  * 
  * @return NCSCC_RC_... error code
  */
-static uint32_t ckpt_stream(log_stream_t *stream)
+static uint32_t ckpt_stream_config(log_stream_t *stream)
 {
-	lgsv_ckpt_msg_t ckpt;
 	uint32_t rc;
+	lgsv_ckpt_msg_v1_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
 
 	TRACE_ENTER();
 
-	memset(&ckpt, 0, sizeof(ckpt));
-	ckpt.header.ckpt_rec_type = LGS_CKPT_CFG_STREAM;
-	ckpt.header.num_ckpt_records = 1;
-	ckpt.header.data_len = 1;
+	if (lgs_is_peer_v2()) {
+		memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+		ckpt_v2.header.ckpt_rec_type = LGS_CKPT_CFG_STREAM;
+		ckpt_v2.header.num_ckpt_records = 1;
+		ckpt_v2.header.data_len = 1;
 
-	ckpt.ckpt_rec.stream_cfg.name = (char *)stream->name;
-	ckpt.ckpt_rec.stream_cfg.fileName = stream->fileName;
-	ckpt.ckpt_rec.stream_cfg.pathName = stream->pathName;
-	ckpt.ckpt_rec.stream_cfg.maxLogFileSize = stream->maxLogFileSize;
-	ckpt.ckpt_rec.stream_cfg.fixedLogRecordSize = stream->fixedLogRecordSize;
-	ckpt.ckpt_rec.stream_cfg.logFullAction = stream->logFullAction;
-	ckpt.ckpt_rec.stream_cfg.logFullHaltThreshold = stream->logFullHaltThreshold;
-	ckpt.ckpt_rec.stream_cfg.maxFilesRotated = stream->maxFilesRotated;
-	ckpt.ckpt_rec.stream_cfg.logFileFormat = stream->logFileFormat;
-	ckpt.ckpt_rec.stream_cfg.severityFilter = stream->severityFilter;
-	ckpt.ckpt_rec.stream_cfg.logFileCurrent = stream->logFileCurrent;
-	ckpt.ckpt_rec.stream_cfg.c_file_close_time_stamp = stream->act_last_close_timestamp;
+		ckpt_v2.ckpt_rec.stream_cfg.name = (char *)stream->name;
+		ckpt_v2.ckpt_rec.stream_cfg.fileName = stream->fileName;
+		ckpt_v2.ckpt_rec.stream_cfg.pathName = stream->pathName;
+		ckpt_v2.ckpt_rec.stream_cfg.maxLogFileSize = stream->maxLogFileSize;
+		ckpt_v2.ckpt_rec.stream_cfg.fixedLogRecordSize = stream->fixedLogRecordSize;
+		ckpt_v2.ckpt_rec.stream_cfg.logFullAction = stream->logFullAction;
+		ckpt_v2.ckpt_rec.stream_cfg.logFullHaltThreshold = stream->logFullHaltThreshold;
+		ckpt_v2.ckpt_rec.stream_cfg.maxFilesRotated = stream->maxFilesRotated;
+		ckpt_v2.ckpt_rec.stream_cfg.logFileFormat = stream->logFileFormat;
+		ckpt_v2.ckpt_rec.stream_cfg.severityFilter = stream->severityFilter;
+		ckpt_v2.ckpt_rec.stream_cfg.logFileCurrent = stream->logFileCurrent;
+		ckpt_v2.ckpt_rec.stream_cfg.c_file_close_time_stamp = stream->act_last_close_timestamp;
+		ckpt_ptr = &ckpt_v2;
+	} else {
+		memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+		ckpt_v1.header.ckpt_rec_type = LGS_CKPT_CFG_STREAM;
+		ckpt_v1.header.num_ckpt_records = 1;
+		ckpt_v1.header.data_len = 1;
 
-	rc = lgs_ckpt_send_async(lgs_cb, &ckpt, NCS_MBCSV_ACT_ADD);
+		ckpt_v1.ckpt_rec.stream_cfg.name = (char *)stream->name;
+		ckpt_v1.ckpt_rec.stream_cfg.fileName = stream->fileName;
+		ckpt_v1.ckpt_rec.stream_cfg.pathName = stream->pathName;
+		ckpt_v1.ckpt_rec.stream_cfg.maxLogFileSize = stream->maxLogFileSize;
+		ckpt_v1.ckpt_rec.stream_cfg.fixedLogRecordSize = stream->fixedLogRecordSize;
+		ckpt_v1.ckpt_rec.stream_cfg.logFullAction = stream->logFullAction;
+		ckpt_v1.ckpt_rec.stream_cfg.logFullHaltThreshold = stream->logFullHaltThreshold;
+		ckpt_v1.ckpt_rec.stream_cfg.maxFilesRotated = stream->maxFilesRotated;
+		ckpt_v1.ckpt_rec.stream_cfg.logFileFormat = stream->logFileFormat;
+		ckpt_v1.ckpt_rec.stream_cfg.severityFilter = stream->severityFilter;
+		ckpt_v1.ckpt_rec.stream_cfg.logFileCurrent = stream->logFileCurrent;
+		ckpt_ptr = &ckpt_v1;
+	}
+
+	rc = lgs_ckpt_send_async(lgs_cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);
 
 	TRACE_LEAVE();
 	return rc;
@@ -261,18 +292,32 @@ static uint32_t ckpt_stream(log_stream_t *stream)
  */
 static uint32_t ckpt_stream_open(log_stream_t *stream)
 {
-	lgsv_ckpt_msg_t ckpt;
 	uint32_t rc;
+	lgsv_ckpt_msg_v1_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
+	lgs_ckpt_stream_open_t *stream_open_ptr;
+	lgsv_ckpt_header_t *header_ptr;
 
 	TRACE_ENTER();
 
-	memset(&ckpt, 0, sizeof(ckpt));
-	ckpt.header.ckpt_rec_type = LGS_CKPT_OPEN_STREAM;
-	ckpt.header.num_ckpt_records = 1;
-	ckpt.header.data_len = 1;
+	if (lgs_is_peer_v2()) {
+		memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+		header_ptr = &ckpt_v2.header;
+		stream_open_ptr = &ckpt_v2.ckpt_rec.stream_open;
+		ckpt_ptr = &ckpt_v2;
+	} else {
+		memset(&ckpt_v1, 0, sizeof(ckpt_v1));
+		header_ptr = &ckpt_v1.header;
+		stream_open_ptr = &ckpt_v1.ckpt_rec.stream_open;
+		ckpt_ptr = &ckpt_v1;
+	}
+	header_ptr->ckpt_rec_type = LGS_CKPT_OPEN_STREAM;
+	header_ptr->num_ckpt_records = 1;
+	header_ptr->data_len = 1;
 
-	lgs_ckpt_stream_open_set(stream, &ckpt.ckpt_rec.stream_open);
-	rc = lgs_ckpt_send_async(lgs_cb, &ckpt, NCS_MBCSV_ACT_ADD);
+	lgs_ckpt_stream_open_set(stream, stream_open_ptr);
+	rc = lgs_ckpt_send_async(lgs_cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);
 
 	TRACE_LEAVE();
 	return rc;
@@ -287,21 +332,37 @@ static uint32_t ckpt_stream_open(log_stream_t *stream)
  */
 static uint32_t ckpt_stream_close(log_stream_t *stream, time_t closetime)
 {
-	lgsv_ckpt_msg_t ckpt;
 	uint32_t rc;
+	lgsv_ckpt_msg_v1_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
 
 	TRACE_ENTER();
 
-	memset(&ckpt, 0, sizeof(ckpt));
-	ckpt.header.ckpt_rec_type = LGS_CKPT_CLOSE_STREAM;
-	ckpt.header.num_ckpt_records = 1;
-	ckpt.header.data_len = 1;
+	if (lgs_is_peer_v2()) {
+		memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+		ckpt_v2.header.ckpt_rec_type = LGS_CKPT_CLOSE_STREAM;
+		ckpt_v2.header.num_ckpt_records = 1;
+		ckpt_v2.header.data_len = 1;
 
-	/* No client. Logservice itself has opened stream */
-	ckpt.ckpt_rec.stream_close.clientId = -1;
-    ckpt.ckpt_rec.stream_close.streamId = stream->streamId;
-	ckpt.ckpt_rec.stream_close.c_file_close_time_stamp = closetime;
-	rc = lgs_ckpt_send_async(lgs_cb, &ckpt, NCS_MBCSV_ACT_ADD);
+		/* No client. Logservice itself has opened stream */
+		ckpt_v2.ckpt_rec.stream_close.clientId = -1;
+		ckpt_v2.ckpt_rec.stream_close.streamId = stream->streamId;
+		ckpt_v2.ckpt_rec.stream_close.c_file_close_time_stamp = closetime;
+		ckpt_ptr = &ckpt_v2;
+	} else {
+		memset(&ckpt_v1, 0, sizeof(ckpt_v1));
+		ckpt_v1.header.ckpt_rec_type = LGS_CKPT_CLOSE_STREAM;
+		ckpt_v1.header.num_ckpt_records = 1;
+		ckpt_v1.header.data_len = 1;
+
+		/* No client. Logservice itself has opened stream */
+		ckpt_v1.ckpt_rec.stream_close.clientId = -1;
+		ckpt_v1.ckpt_rec.stream_close.streamId = stream->streamId;
+		ckpt_ptr = &ckpt_v1;
+	}
+
+	rc = lgs_ckpt_send_async(lgs_cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);
 
 	TRACE_LEAVE();
 	return rc;
@@ -439,7 +500,7 @@ static void adminOperationCallback(SaImmOiHandleT immOiHandle,
 		(void)immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 
 		/* Checkpoint to standby LOG server */
-		ckpt_stream(stream);
+		ckpt_stream_config(stream);
 	} else {
 		report_om_error(immOiHandle, invocation,
 				"Invalid operation ID, should be %d (one) for change filter",
@@ -1130,10 +1191,6 @@ static void config_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 			 */
 			logRootDirectory_filemove(new_logRootDirectory, &cur_time);
 
-#if 0 /* This must be din inside logRootDirectory_filemove() */
-			/* Set the new root path */
-			lgs_imm_rootpathconf_set(new_logRootDirectory);
-#endif			
 			lgs_conf->chkp_file_close_time = cur_time;
 		
 			LOG_NO("Log root directory changed to: %s", lgs_cb->logsv_root_dir);
@@ -1386,7 +1443,7 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 	/* Checkpoint to standby LOG server */
 	/* Save time change was done for standby */
 	stream->act_last_close_timestamp = cur_time;
-	ckpt_stream(stream);
+	ckpt_stream_config(stream);
 
 	TRACE_LEAVE();
 }

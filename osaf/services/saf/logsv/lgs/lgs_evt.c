@@ -25,6 +25,9 @@
 #include "lgs_util.h"
 #include "lgs_fmt.h"
 
+#include "lgs_mbcsv_v1.h"
+#include "lgs_mbcsv_v2.h"
+
 /* used when fixed log record size is zero */
 #define LOG_MAX_LOGRECSIZE 1024
 
@@ -143,12 +146,16 @@ int lgs_client_delete(uint32_t client_id, time_t *closetime_ptr)
 	log_client_t *client;
 	uint32_t status = 0;
 	lgs_stream_list_t *cur_rec;
+	time_t closetime = 0;
 
 	TRACE_ENTER2("client_id %u", client_id);
 	
 	/* Initiate close time value if not provided via closetime_ptr */
-	if (closetime_ptr == NULL)
-		*closetime_ptr = time(NULL);
+	if (closetime_ptr == NULL) {
+		closetime = time(NULL);
+	} else {
+		closetime = *closetime_ptr;
+	}
 
 	/* Get client data */
 	if ((client = lgs_client_get_by_id(client_id)) == NULL) {
@@ -161,7 +168,7 @@ int lgs_client_delete(uint32_t client_id, time_t *closetime_ptr)
 		lgs_stream_list_t *tmp_rec;
 		log_stream_t *stream = log_stream_get_by_id(cur_rec->stream_id);
 		TRACE_4("client_id: %u, REMOVE stream id: %u", client->client_id, cur_rec->stream_id);
-		log_stream_close(&stream, closetime_ptr);
+		log_stream_close(&stream, &closetime);
 		tmp_rec = cur_rec->next;
 		free(cur_rec);
 		cur_rec = tmp_rec;
@@ -356,10 +363,13 @@ uint32_t lgs_remove_lga_down_rec(lgs_cb_t *cb, MDS_DEST mds_dest)
 
 static uint32_t proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt)
 {
-	TRACE_ENTER();
-	lgsv_ckpt_msg_t ckpt;
+	lgsv_ckpt_msg_v1_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
 	uint32_t async_rc = NCSCC_RC_SUCCESS;
 
+	TRACE_ENTER();
+	
 	switch (evt->evt_type) {
 	case LGSV_LGS_EVT_LGA_UP:
 		break;
@@ -371,13 +381,23 @@ static uint32_t proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt)
 
 			/*Send an async checkpoint update to STANDBY EDS peer */
 			if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) {
-				memset(&ckpt, 0, sizeof(ckpt));
-				ckpt.header.ckpt_rec_type = LGS_CKPT_CLIENT_DOWN;
-				ckpt.header.num_ckpt_records = 1;
-				ckpt.header.data_len = 1;
-				ckpt.ckpt_rec.agent_down.agent_dest = evt->fr_dest;
-				ckpt.ckpt_rec.agent_down.c_file_close_time_stamp = closetime;
-				async_rc = lgs_ckpt_send_async(lgs_cb, &ckpt, NCS_MBCSV_ACT_ADD);
+				if (lgs_is_peer_v2()) {
+					memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+					ckpt_v2.header.ckpt_rec_type = LGS_CKPT_CLIENT_DOWN;
+					ckpt_v2.header.num_ckpt_records = 1;
+					ckpt_v2.header.data_len = 1;
+					ckpt_v2.ckpt_rec.agent_down.agent_dest = evt->fr_dest;
+					ckpt_v2.ckpt_rec.agent_down.c_file_close_time_stamp = closetime;
+					ckpt_ptr = &ckpt_v2;
+				} else {
+					memset(&ckpt_v1, 0, sizeof(ckpt_v1));
+					ckpt_v1.header.ckpt_rec_type = LGS_CKPT_CLIENT_DOWN;
+					ckpt_v1.header.num_ckpt_records = 1;
+					ckpt_v1.header.data_len = 1;
+					ckpt_v1.ckpt_rec.agent_dest = evt->fr_dest;					
+					ckpt_ptr = &ckpt_v1;
+				}
+				async_rc = lgs_ckpt_send_async(lgs_cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);
 				if (async_rc == NCSCC_RC_SUCCESS) {
 					TRACE("ASYNC UPDATE SEND SUCCESS for LGA_DOWN event..");
 				}
@@ -583,10 +603,28 @@ static uint32_t proc_initialize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	SaAisErrorT ais_rc = SA_AIS_OK;
 	SaVersionT *version;
 	lgsv_msg_t msg;
-	lgsv_ckpt_msg_t ckpt;
 	log_client_t *client = NULL;
-
+	lgsv_ckpt_msg_v1_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
+	lgsv_ckpt_header_t *header_ptr;
+	lgs_ckpt_initialize_msg_t *ckpt_rec_ptr;
+	
 	TRACE_ENTER2("dest %" PRIx64, evt->fr_dest);
+
+	if (lgs_is_peer_v2()) {
+		memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+		header_ptr = &ckpt_v2.header;
+		ckpt_rec_ptr = &ckpt_v2.ckpt_rec.initialize_client;
+		ckpt_ptr = &ckpt_v2;
+		TRACE("peer_version is V2");
+	} else {
+		memset(&ckpt_v1, 0, sizeof(ckpt_v1));
+		header_ptr = &ckpt_v1.header;
+		ckpt_rec_ptr = &ckpt_v1.ckpt_rec.initialize_client;
+		ckpt_ptr = &ckpt_v1;
+		TRACE("peer_version is V1");
+	}
 
 	/* Validate the version */
 	version = &(evt->info.msg.info.api_info.param.init.version);
@@ -601,14 +639,14 @@ static uint32_t proc_initialize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 		goto snd_rsp;
 	}
 
+	/* Checkpoint */
 	if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-		memset(&ckpt, 0, sizeof(ckpt));
-		ckpt.header.ckpt_rec_type = LGS_CKPT_CLIENT_INITIALIZE;
-		ckpt.header.num_ckpt_records = 1;
-		ckpt.header.data_len = 1;
-		ckpt.ckpt_rec.initialize_client.client_id = cb->last_client_id;
-		ckpt.ckpt_rec.initialize_client.mds_dest = evt->fr_dest;
-		(void)lgs_ckpt_send_async(cb, &ckpt, NCS_MBCSV_ACT_ADD);
+		header_ptr->ckpt_rec_type = LGS_CKPT_CLIENT_INITIALIZE;
+		header_ptr->num_ckpt_records = 1;
+		header_ptr->data_len = 1;
+		ckpt_rec_ptr->client_id = cb->last_client_id;
+		ckpt_rec_ptr->mds_dest = evt->fr_dest;
+		(void)lgs_ckpt_send_async(cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);
 	}
 
  snd_rsp:
@@ -623,7 +661,7 @@ static uint32_t proc_initialize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 }
 
 /**
- * Handle an finalize message
+ * Handle a finalize message
  * @param cb
  * @param evt
  * 
@@ -632,10 +670,12 @@ static uint32_t proc_initialize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 static uint32_t proc_finalize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 {
 	int rc;
-	lgsv_ckpt_msg_t ckpt;
 	uint32_t client_id = evt->info.msg.info.api_info.param.finalize.client_id;
 	lgsv_msg_t msg;
 	SaAisErrorT ais_rc = SA_AIS_OK;
+	lgsv_ckpt_msg_v1_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
 
 	TRACE_ENTER2("client_id %u", client_id);
 
@@ -647,12 +687,23 @@ static uint32_t proc_finalize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 		goto snd_rsp;
 	}
 
-	ckpt.header.ckpt_rec_type = LGS_CKPT_CLIENT_FINALIZE;
-	ckpt.header.num_ckpt_records = 1;
-	ckpt.header.data_len = 1;
-	ckpt.ckpt_rec.finalize_client.client_id = client_id;
-	ckpt.ckpt_rec.finalize_client.c_file_close_time_stamp = (SaTimeT) closetime;
-	(void)lgs_ckpt_send_async(lgs_cb, &ckpt, NCS_MBCSV_ACT_RMV);
+	if (lgs_is_peer_v2()) {
+		memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+		ckpt_v2.header.ckpt_rec_type = LGS_CKPT_CLIENT_FINALIZE;
+		ckpt_v2.header.num_ckpt_records = 1;
+		ckpt_v2.header.data_len = 1;
+		ckpt_v2.ckpt_rec.finalize_client.client_id = client_id;
+		ckpt_v2.ckpt_rec.finalize_client.c_file_close_time_stamp = (SaTimeT) closetime;
+		ckpt_ptr = &ckpt_v2;
+	} else {
+		memset(&ckpt_v1, 0, sizeof(ckpt_v1));
+		ckpt_v1.header.ckpt_rec_type = LGS_CKPT_CLIENT_FINALIZE;
+		ckpt_v1.header.num_ckpt_records = 1;
+		ckpt_v1.header.data_len = 1;
+		ckpt_v1.ckpt_rec.finalize_client.client_id = client_id;
+		ckpt_ptr = &ckpt_v1;
+	}
+	(void)lgs_ckpt_send_async(lgs_cb, ckpt_ptr, NCS_MBCSV_ACT_RMV);
 
  snd_rsp:
 	msg.type = LGSV_LGA_API_RESP_MSG;
@@ -665,36 +716,61 @@ static uint32_t proc_finalize_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	return rc;
 }
 
-static uint32_t lgs_ckpt_stream_open(lgs_cb_t *cb, log_stream_t *logStream, lgsv_stream_open_req_t *open_sync_param)
+/**
+ * Stream open checkpointing
+ * @param cb
+ * @param logStream
+ * @param open_sync_param
+ * @return 
+ */
+static uint32_t lgs_ckpt_stream_open(lgs_cb_t *cb, log_stream_t *logStream,
+		lgsv_stream_open_req_t *open_sync_param)
 {
-	lgsv_ckpt_msg_t ckpt;
 	uint32_t async_rc = NCSCC_RC_SUCCESS;
+	lgsv_ckpt_msg_v1_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
+	lgsv_ckpt_header_t *header_ptr;
+	lgs_ckpt_stream_open_t *ckpt_rec_open_ptr;
+	
 	TRACE_ENTER();
+	
+	if (lgs_is_peer_v2()) {
+		memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+		header_ptr = &ckpt_v2.header;
+		ckpt_rec_open_ptr = &ckpt_v2.ckpt_rec.stream_open;
+		ckpt_ptr = &ckpt_v2;
+	} else {
+		memset(&ckpt_v1, 0, sizeof(ckpt_v1));
+		header_ptr = &ckpt_v1.header;
+		ckpt_rec_open_ptr = &ckpt_v1.ckpt_rec.stream_open;
+		ckpt_ptr = &ckpt_v1;
+	}
+
 	if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-		memset(&ckpt, 0, sizeof(ckpt));
-		ckpt.header.ckpt_rec_type = LGS_CKPT_OPEN_STREAM;
-		ckpt.header.num_ckpt_records = 1;
-		ckpt.header.data_len = 1;
-		ckpt.ckpt_rec.stream_open.clientId = open_sync_param->client_id;
-		ckpt.ckpt_rec.stream_open.streamId = logStream->streamId;
+		header_ptr->ckpt_rec_type = LGS_CKPT_OPEN_STREAM;
+		header_ptr->num_ckpt_records = 1;
+		header_ptr->data_len = 1;
+		ckpt_rec_open_ptr->clientId = open_sync_param->client_id;
+		ckpt_rec_open_ptr->streamId = logStream->streamId;
 
-		ckpt.ckpt_rec.stream_open.logFile = logStream->fileName;
-		ckpt.ckpt_rec.stream_open.logPath = logStream->pathName;
-		ckpt.ckpt_rec.stream_open.logFileCurrent = logStream->logFileCurrent;
-		ckpt.ckpt_rec.stream_open.fileFmt = logStream->logFileFormat;
-		ckpt.ckpt_rec.stream_open.logStreamName = (char *)logStream->name;
+		ckpt_rec_open_ptr->logFile = logStream->fileName;
+		ckpt_rec_open_ptr->logPath = logStream->pathName;
+		ckpt_rec_open_ptr->logFileCurrent = logStream->logFileCurrent;
+		ckpt_rec_open_ptr->fileFmt = logStream->logFileFormat;
+		ckpt_rec_open_ptr->logStreamName = (char *)logStream->name;
 
-		ckpt.ckpt_rec.stream_open.maxFileSize = logStream->maxLogFileSize;
-		ckpt.ckpt_rec.stream_open.maxLogRecordSize = logStream->fixedLogRecordSize;
-		ckpt.ckpt_rec.stream_open.logFileFullAction = logStream->logFullAction;
-		ckpt.ckpt_rec.stream_open.maxFilesRotated = logStream->maxFilesRotated;
-		ckpt.ckpt_rec.stream_open.creationTimeStamp = logStream->creationTimeStamp;
-		ckpt.ckpt_rec.stream_open.numOpeners = logStream->numOpeners;
+		ckpt_rec_open_ptr->maxFileSize = logStream->maxLogFileSize;
+		ckpt_rec_open_ptr->maxLogRecordSize = logStream->fixedLogRecordSize;
+		ckpt_rec_open_ptr->logFileFullAction = logStream->logFullAction;
+		ckpt_rec_open_ptr->maxFilesRotated = logStream->maxFilesRotated;
+		ckpt_rec_open_ptr->creationTimeStamp = logStream->creationTimeStamp;
+		ckpt_rec_open_ptr->numOpeners = logStream->numOpeners;
 
-		ckpt.ckpt_rec.stream_open.streamType = logStream->streamType;
-		ckpt.ckpt_rec.stream_open.logRecordId = logStream->logRecordId;
+		ckpt_rec_open_ptr->streamType = logStream->streamType;
+		ckpt_rec_open_ptr->logRecordId = logStream->logRecordId;
 
-		async_rc = lgs_ckpt_send_async(cb, &ckpt, NCS_MBCSV_ACT_ADD);
+		async_rc = lgs_ckpt_send_async(cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);
 		if (async_rc == NCSCC_RC_SUCCESS) {
 			TRACE_4("REG_REC ASYNC UPDATE SEND SUCCESS...");
 		}
@@ -703,6 +779,12 @@ static uint32_t lgs_ckpt_stream_open(lgs_cb_t *cb, log_stream_t *logStream, lgsv
 	return async_rc;
 }
 
+/**
+ * Create a new application stream
+ * @param open_sync_param
+ * @param o_stream
+ * @return 
+ */
 static SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param, log_stream_t **o_stream)
 {
 	SaAisErrorT rc = SA_AIS_OK;
@@ -775,6 +857,12 @@ static SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param
 	return rc;
 }
 
+/**
+ * Compare existing stream attributes with open request
+ * @param open_sync_param
+ * @param applicationStream
+ * @return 
+ */
 static SaAisErrorT file_attribute_cmp(lgsv_stream_open_req_t *open_sync_param, log_stream_t *applicationStream)
 {
 	SaAisErrorT rs = SA_AIS_OK;
@@ -940,12 +1028,14 @@ static uint32_t proc_stream_close_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_stream_close_req_t *close_param = &(evt->info.msg.info.api_info.param.lstr_close);
-	lgsv_ckpt_msg_t ckpt;
 	log_stream_t *stream;
 	lgsv_msg_t msg;
 	SaAisErrorT ais_rc = SA_AIS_OK;
 	uint32_t streamId;
 	time_t closetime = 0;
+	lgsv_ckpt_msg_v2_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
 
 	TRACE_ENTER2("client_id %u, stream ID %u", close_param->client_id, close_param->lstr_id);
 
@@ -973,14 +1063,27 @@ static uint32_t proc_stream_close_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 		goto snd_rsp;
 	}
 	
-	ckpt.header.ckpt_rec_type = LGS_CKPT_CLOSE_STREAM;
-	ckpt.header.num_ckpt_records = 1;
-	ckpt.header.data_len = 1;
-	ckpt.ckpt_rec.stream_close.clientId = close_param->client_id;
-	ckpt.ckpt_rec.stream_close.streamId = streamId;
-	ckpt.ckpt_rec.stream_close.c_file_close_time_stamp = closetime;
+	/* Checkpointing */
+	if (lgs_is_peer_v2()) {
+		memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+		ckpt_v2.header.ckpt_rec_type = LGS_CKPT_CLOSE_STREAM;
+		ckpt_v2.header.num_ckpt_records = 1;
+		ckpt_v2.header.data_len = 1;
+		ckpt_v2.ckpt_rec.stream_close.clientId = close_param->client_id;
+		ckpt_v2.ckpt_rec.stream_close.streamId = streamId;
+		ckpt_v2.ckpt_rec.stream_close.c_file_close_time_stamp = closetime;
+		ckpt_ptr = &ckpt_v2;
+	} else {
+		memset(&ckpt_v1, 0, sizeof(ckpt_v1));
+		ckpt_v1.header.ckpt_rec_type = LGS_CKPT_CLOSE_STREAM;
+		ckpt_v1.header.num_ckpt_records = 1;
+		ckpt_v1.header.data_len = 1;
+		ckpt_v1.ckpt_rec.stream_close.clientId = close_param->client_id;
+		ckpt_v1.ckpt_rec.stream_close.streamId = streamId;		
+		ckpt_ptr = &ckpt_v1;
+	}
 	
-	(void)lgs_ckpt_send_async(cb, &ckpt, NCS_MBCSV_ACT_RMV);
+	(void)lgs_ckpt_send_async(cb, ckpt_ptr, NCS_MBCSV_ACT_RMV);
 
  snd_rsp:
 	msg.type = LGSV_LGA_API_RESP_MSG;
@@ -1013,6 +1116,9 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	SaStringT logOutputString = NULL;
 	SaUint32T buf_size;
 	int n, rc;
+	lgsv_ckpt_msg_v1_t ckpt_v1;
+	lgsv_ckpt_msg_v2_t ckpt_v2;
+	void *ckpt_ptr;
 
 	TRACE_ENTER2("client_id %u, stream ID %u", param->client_id, param->lstr_id);
 
@@ -1069,19 +1175,31 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 
 	/* TODO: send fail back if ack is wanted, Fix counter for application stream!! */
 	if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-		lgsv_ckpt_msg_t ckpt;
-		memset(&ckpt, 0, sizeof(ckpt));
-		ckpt.header.ckpt_rec_type = LGS_CKPT_LOG_WRITE;
-		ckpt.header.num_ckpt_records = 1;
-		ckpt.header.data_len = 1;
-		ckpt.ckpt_rec.write_log.recordId = stream->logRecordId;
-		ckpt.ckpt_rec.write_log.streamId = stream->streamId;
-		ckpt.ckpt_rec.write_log.curFileSize = stream->curFileSize;
-		ckpt.ckpt_rec.write_log.logFileCurrent = stream->logFileCurrent;
-		ckpt.ckpt_rec.write_log.logRecord = logOutputString;
-		ckpt.ckpt_rec.write_log.c_file_close_time_stamp = stream->act_last_close_timestamp;
+		if (lgs_is_peer_v2()) {
+			memset(&ckpt_v2, 0, sizeof(ckpt_v2));
+			ckpt_v2.header.ckpt_rec_type = LGS_CKPT_LOG_WRITE;
+			ckpt_v2.header.num_ckpt_records = 1;
+			ckpt_v2.header.data_len = 1;
+			ckpt_v2.ckpt_rec.write_log.recordId = stream->logRecordId;
+			ckpt_v2.ckpt_rec.write_log.streamId = stream->streamId;
+			ckpt_v2.ckpt_rec.write_log.curFileSize = stream->curFileSize;
+			ckpt_v2.ckpt_rec.write_log.logFileCurrent = stream->logFileCurrent;
+			ckpt_v2.ckpt_rec.write_log.logRecord = logOutputString;
+			ckpt_v2.ckpt_rec.write_log.c_file_close_time_stamp = stream->act_last_close_timestamp;
+			ckpt_ptr = &ckpt_v2;
+		} else {
+			memset(&ckpt_v1, 0, sizeof(ckpt_v1));
+			ckpt_v1.header.ckpt_rec_type = LGS_CKPT_LOG_WRITE;
+			ckpt_v1.header.num_ckpt_records = 1;
+			ckpt_v1.header.data_len = 1;
+			ckpt_v1.ckpt_rec.write_log.recordId = stream->logRecordId;
+			ckpt_v1.ckpt_rec.write_log.streamId = stream->streamId;
+			ckpt_v1.ckpt_rec.write_log.curFileSize = stream->curFileSize;
+			ckpt_v1.ckpt_rec.write_log.logFileCurrent = stream->logFileCurrent;
+			ckpt_ptr = &ckpt_v1;
+		}
 
-		(void)lgs_ckpt_send_async(cb, &ckpt, NCS_MBCSV_ACT_ADD);
+		(void)lgs_ckpt_send_async(cb, ckpt_ptr, NCS_MBCSV_ACT_ADD);
 	}
 	
 	/* Save stb_recordId. Used by standby if configured for split file system.

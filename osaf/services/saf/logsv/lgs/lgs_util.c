@@ -226,11 +226,10 @@ SaTimeT lgs_get_SaTime(void)
  * @param path[in]
  * @param old_name[in]
  * @param time_stamp[in] 
- *        String formatted with lgs_get_time(). LLDTEST XXX Not used so far! Remove???
  *        Can be set to NULL but then new_name must be the complete new name
  *        including time stamps but without suffix
  * @param suffix[in]
- * @param new_name[in/out] LLDTEST XXX Remove ?? Not used for now!
+ * @param new_name[in/out] 
  *        Pointer to char string of NAME_MAX size
  *        Filename of renamed file. Can be set to NULL
  * 

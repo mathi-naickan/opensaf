@@ -19,6 +19,10 @@
 #include "ncssysf_def.h"
 #include "ncssysf_mem.h"
 #include "lgs_fmt.h"
+
+#include "lgs_mbcsv_v2.h"
+#include "lgs_mbcsv_v1.h"
+//#include "lgs_mbcsv_v1.h"
 /*
 LGS_CKPT_DATA_HEADER
        4                4               4                 2            
@@ -35,44 +39,18 @@ LGSV_CKPT_COLD_SYNC_MSG
 static uint32_t edp_ed_stream_list(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 				NCSCONTEXT ptr, uint32_t *ptr_data_len,
 				EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
-static uint32_t edp_ed_reg_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-			    NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
-static uint32_t edp_ed_write_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-			      NCSCONTEXT ptr, uint32_t *ptr_data_len,
-			      EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
 static uint32_t edp_ed_open_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 				    NCSCONTEXT ptr, uint32_t *ptr_data_len,
 				    EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
-static uint32_t edp_ed_close_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				     NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				     EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
-static uint32_t edp_ed_finalize_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				 NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				 EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
-static uint32_t edp_ed_cfg_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				   NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env, EDP_OP_TYPE op,
-				   EDU_ERR *o_err);
-static uint32_t edp_ed_lgs_cfg_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				   NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				   EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
-static uint32_t edp_ed_agent_down_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				   NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				   EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
 
-static uint32_t edp_ed_header_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-			       NCSCONTEXT ptr, uint32_t *ptr_data_len,
-			       EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
-static uint32_t edp_ed_ckpt_msg(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-			     NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
+static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, void *data);
+static uint32_t ckpt_proc_finalize_client(lgs_cb_t *cb, void *data);
+static uint32_t ckpt_proc_agent_down(lgs_cb_t *cb, void *data);
+static uint32_t ckpt_proc_log_write(lgs_cb_t *cb, void *data);
+static uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, void *data);
+static uint32_t ckpt_proc_close_stream(lgs_cb_t *cb, void *data);
+static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, void *data);
 
-static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
-static uint32_t ckpt_proc_finalize_client(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
-static uint32_t ckpt_proc_agent_down(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
-static uint32_t ckpt_proc_log_write(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
-static uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
-static uint32_t ckpt_proc_close_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
-static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
-static uint32_t ckpt_proc_lgs_cfg(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
 static void enc_ckpt_header(uint8_t *pdata, lgsv_ckpt_header_t header);
 static uint32_t dec_ckpt_header(NCS_UBAID *uba, lgsv_ckpt_header_t *header);
 static uint32_t ckpt_decode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg);
@@ -86,11 +64,12 @@ static uint32_t ckpt_decode_cold_sync(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg);
 static uint32_t ckpt_peer_info_cbk_handler(NCS_MBCSV_CB_ARG *arg);
 static uint32_t ckpt_notify_cbk_handler(NCS_MBCSV_CB_ARG *arg);
 static uint32_t ckpt_err_ind_cbk_handler(NCS_MBCSV_CB_ARG *arg);
-static int32_t ckpt_msg_test_type(NCSCONTEXT arg);
 
 static uint32_t edu_enc_reg_list(lgs_cb_t *cb, NCS_UBAID *uba);
 static uint32_t edu_enc_streams(lgs_cb_t *cb, NCS_UBAID *uba);
-static uint32_t process_ckpt_data(lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
+static uint32_t process_ckpt_data(lgs_cb_t *cb, void *data);
+
+typedef uint32_t (*LGS_CKPT_HDLR) (lgs_cb_t *cb, void *data);
 
 static LGS_CKPT_HDLR ckpt_data_handler[] = {
 	ckpt_proc_initialize_client,
@@ -100,10 +79,43 @@ static LGS_CKPT_HDLR ckpt_data_handler[] = {
 	ckpt_proc_open_stream,
 	ckpt_proc_close_stream,
 	ckpt_proc_cfg_stream,
-	ckpt_proc_lgs_cfg
+	ckpt_proc_lgs_cfg_v2
 };
 
-static void free_edu_mem(char *ptr)
+/**
+ * EDU encode/decode functions. Handles check point versions.
+ * See also functions for respective version
+ * 
+ * @param edu_hdl
+ * @param edu_tkn
+ * @param ptr
+ * @param ptr_data_len
+ * @param buf_env
+ * @param op
+ * @param o_err
+ * @return NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ */
+static uint32_t edp_ed_open_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
+				    NCSCONTEXT ptr, uint32_t *ptr_data_len,
+				    EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
+{
+	uint32_t rc = 0;
+	
+	if (lgs_is_peer_v2()) {
+		rc = edp_ed_open_stream_rec_v2(edu_hdl, edu_tkn, ptr, ptr_data_len, buf_env,
+				op, o_err);
+	} else {
+		rc = edp_ed_open_stream_rec_v1(edu_hdl, edu_tkn, ptr, ptr_data_len, buf_env,
+				op, o_err);
+	}
+	return rc;
+}
+/* End of EDU encode/decode functions */
+
+/**
+ * @param ptr
+ */
+void lgs_free_edu_mem(char *ptr)
 {
 	m_NCS_MEM_FREE(ptr, NCS_MEM_REGION_PERSISTENT, NCS_SERVICE_ID_OS_SVCS, 0);
 }
@@ -132,6 +144,7 @@ uint32_t lgs_mbcsv_init(lgs_cb_t *cb)
 	arg.info.initialize.i_mbcsv_cb = mbcsv_callback;
 	arg.info.initialize.i_version = LGS_MBCSV_VERSION;
 	arg.info.initialize.i_service = NCS_SERVICE_ID_LGS;
+	LOG_NO("LGS_MBCSV_VERSION = %d",LGS_MBCSV_VERSION);
 
 	if ((rc = ncs_mbcsv_svc(&arg)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("NCS_MBCSV_OP_INITIALIZE FAILED");
@@ -218,7 +231,7 @@ uint32_t lgs_mbcsv_change_HA_state(lgs_cb_t *cb)
 	/* If configured for split file system and becoming active some
 	 * stb stream parameters has to be copied to corresponding active. The
 	 * reason is that standby may have for example another current file in a
-	 * stream than the active and checkpointing is not done from standby to
+	 * stream than the active and check-pointing is not done from standby to
 	 * active.
 	 */
 	log_stream_t *stream;
@@ -245,20 +258,11 @@ uint32_t lgs_mbcsv_change_HA_state(lgs_cb_t *cb)
 
 }	/*End lgs_mbcsv_change_HA_state */
 
-/****************************************************************************
- * Name          : lgs_mbcsv_change_HA_state 
- *
- * Description   : This function inform mbcsv of our HA state. 
- *                 All checkpointing operations are triggered based on the 
- *                 state.
- *
- * Arguments     : NCS_MBCSV_HDL - Handle provided by MBCSV during op_init. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : This function should be ideally called only once, i.e.
- *                 during the first CSI assignment from AVSv  .
- *****************************************************************************/
+/**
+ * Mbcsv dispatcher
+ * @param mbcsv_hdl
+ * @return 
+ */
 uint32_t lgs_mbcsv_dispatch(NCS_MBCSV_HDL mbcsv_hdl)
 {
 	NCS_MBCSV_ARG mbcsv_arg;
@@ -271,11 +275,30 @@ uint32_t lgs_mbcsv_dispatch(NCS_MBCSV_HDL mbcsv_hdl)
 	return ncs_mbcsv_svc(&mbcsv_arg);
 }
 
+/**
+ * Check if peer is version 2 (or later)
+ * @return bool
+ */
+bool lgs_is_peer_v2(void)
+{
+	if (lgs_cb->mbcsv_peer_version >= LGS_MBCSV_VERSION) {
+		return true;
+	} else {
+		return false;
+	}
+}
+/**
+ * Check if configured for split file system.
+ * If other node is version 1 split file system mode is not applicable.
+ * 
+ * @return bool
+ */
 bool lgs_is_split_file_system(void)
 {
 	SaUint32T lgs_file_config = *(SaUint32T*) lgs_imm_logconf_get(
 									LGS_IMM_LOG_FILESYS_CFG, NULL);
-	if (lgs_file_config == LGS_LOG_SPLIT_FILESYSTEM) {
+
+	if ((lgs_file_config == LGS_LOG_SPLIT_FILESYSTEM) && lgs_is_peer_v2()) {
 		return true;
 	} else {
 		return false;
@@ -413,6 +436,7 @@ static uint32_t ckpt_encode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg)
 }	/*End ckpt_encode_cbk_handler() */
 
 /****************************************************************************
+ *                 Add logserv config (log root path)?
  * Name          : ckpt_enc_cold_sync_data
  *
  * Description   : This function encodes cold sync data., viz
@@ -449,6 +473,7 @@ static uint32_t ckpt_enc_cold_sync_data(lgs_cb_t *lgs_cb, NCS_MBCSV_CB_ARG *cbk_
 		TRACE("  edu_enc_reg_list FAILED");
 		return NCSCC_RC_FAILURE;
 	}
+	
 	rc = edu_enc_streams(lgs_cb, &cbk_arg->info.encode.io_uba);
 	if (rc != NCSCC_RC_SUCCESS) {
 		TRACE("  edu_enc_streams FAILED");
@@ -477,6 +502,13 @@ static uint32_t ckpt_enc_cold_sync_data(lgs_cb_t *lgs_cb, NCS_MBCSV_CB_ARG *cbk_
 	return rc;
 }	/*End  ckpt_enc_cold_sync_data() */
 
+/**
+ * Set parameters for open stream
+ * 
+ * @param logStream
+ * @param stream_open
+ * @return 
+ */
 uint32_t lgs_ckpt_stream_open_set(log_stream_t *logStream, lgs_ckpt_stream_open_t *stream_open)
 {
 	memset(stream_open, 0, sizeof(lgs_ckpt_stream_open_t));
@@ -499,6 +531,12 @@ uint32_t lgs_ckpt_stream_open_set(log_stream_t *logStream, lgs_ckpt_stream_open_
 	return NCSCC_RC_SUCCESS;
 }
 
+/**
+ * Encode all existing streams. Used for cold sync
+ * @param cb
+ * @param uba
+ * @return 
+ */
 static uint32_t edu_enc_streams(lgs_cb_t *cb, NCS_UBAID *uba)
 {
 	log_stream_t *log_stream_rec = NULL;
@@ -549,6 +587,7 @@ static uint32_t edu_enc_streams(lgs_cb_t *cb, NCS_UBAID *uba)
 	enc_ckpt_header(pheader, ckpt_hdr);
 
 	free(ckpt_stream_rec);
+	
 	return NCSCC_RC_SUCCESS;
 
 }
@@ -647,19 +686,33 @@ static uint32_t edu_enc_reg_list(lgs_cb_t *cb, NCS_UBAID *uba)
 
 static uint32_t ckpt_encode_async_update(lgs_cb_t *lgs_cb, EDU_HDL edu_hdl, NCS_MBCSV_CB_ARG *cbk_arg)
 {
-	lgsv_ckpt_msg_t *data = NULL;
+	lgsv_ckpt_msg_v2_t *data_v2 = NULL;
+	lgsv_ckpt_msg_v1_t *data_v1 = NULL;
+	void * vdata = NULL;
 	EDU_ERR ederror = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	EDU_PROG_HANDLER edp_function;
+	
 	TRACE_ENTER();
 	/* Set reo_hdl from callback arg to ckpt_rec */
-	data = (lgsv_ckpt_msg_t *)(long)cbk_arg->info.encode.io_reo_hdl;
-	if (data == NULL) {
+	if (lgs_is_peer_v2()) {
+		data_v2 = (lgsv_ckpt_msg_v2_t *)(long)cbk_arg->info.encode.io_reo_hdl;
+		vdata = data_v2;
+		edp_function = edp_ed_ckpt_msg_v2;
+	} else {
+		data_v1 = (lgsv_ckpt_msg_v1_t *)(long)cbk_arg->info.encode.io_reo_hdl;
+		vdata = data_v1;
+		edp_function = edp_ed_ckpt_msg_v1;		
+	}
+	
+	if (vdata == NULL) {
 		TRACE("   data == NULL, FAILED");
 		TRACE_LEAVE();
 		return NCSCC_RC_FAILURE;
 	}
 	/* Encode async record,except publish & subscribe */
-	rc = m_NCS_EDU_EXEC(&edu_hdl, edp_ed_ckpt_msg, &cbk_arg->info.encode.io_uba, EDP_OP_TYPE_ENC, data, &ederror);
+	rc = m_NCS_EDU_EXEC(&edu_hdl, edp_function, &cbk_arg->info.encode.io_uba,
+			EDP_OP_TYPE_ENC, vdata, &ederror);
 
 	if (rc != NCSCC_RC_SUCCESS) {
 		m_NCS_EDU_PRINT_ERROR_STRING(ederror);
@@ -757,8 +810,8 @@ static uint32_t ckpt_decode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg)
 /****************************************************************************
  * Name          : ckpt_decode_async_update 
  *
- * Description   : This function decodes async update data, based on the 
- *                 record type contained in the header. 
+ * Description   : This function with helper functions decodes async update
+ *                 data, based on the record type contained in the header.
  *
  * Arguments     : arg - Pointer to NCS_MBCSV_CB_ARG with decode info
  *                 cb - pointer to lgs cb.
@@ -767,150 +820,301 @@ static uint32_t ckpt_decode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg)
  *
  * Notes         : None.
  *****************************************************************************/
+/* START ckpt_decode_async_update helper functions */
+/**
+ * Fill in the structure pointed to by "struct_ptr" with decoded data using
+ * the "edp_function"
+ * @param cb[in]
+ * @param cbk_arg[in]
+ * @param ckpt_msg[in]
+ * @param struct_ptr[out]
+ * @param edp_function[in]
+ * @return 
+ */
+static uint32_t ckpt_decode_log_struct(
+					lgs_cb_t *cb,				/* lgs cb data */
+					NCS_MBCSV_CB_ARG *cbk_arg,	/* Mbcsv callback data */
+					void *ckpt_msg,				/* Checkpointed message */
+					void *struct_ptr,			/* Checkpointed structure */
+					EDU_PROG_HANDLER edp_function)		/* EDP function for decoding */
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	EDU_ERR ederror;
+	
+	rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_function, &cbk_arg->info.decode.i_uba,
+				EDP_OP_TYPE_DEC, &struct_ptr, &ederror);
+
+	if (rc != NCSCC_RC_SUCCESS) {
+		m_NCS_EDU_PRINT_ERROR_STRING(ederror);
+		TRACE("%s - ERROR m_NCS_EDU_EXEC rc = %d",__FUNCTION__, rc);
+	}
+
+	rc = process_ckpt_data(cb, ckpt_msg);
+	return rc;	
+}
+
+static uint32_t ckpt_decode_log_write(lgs_cb_t *cb, void *ckpt_msg,
+		NCS_MBCSV_CB_ARG *cbk_arg)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	void *write_log;
+	EDU_PROG_HANDLER edp_function;
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *ckpt_msg_v2 = ckpt_msg;
+		write_log = &ckpt_msg_v2->ckpt_rec.write_log;
+		edp_function = edp_ed_write_rec_v2;
+	} else {
+		lgsv_ckpt_msg_v1_t *ckpt_msg_v1 = ckpt_msg;
+		write_log = &ckpt_msg_v1->ckpt_rec.write_log;
+		edp_function = edp_ed_write_rec_v1;
+	}
+	
+	rc = ckpt_decode_log_struct(cb, cbk_arg, ckpt_msg, write_log, edp_function);
+	if (rc != NCSCC_RC_SUCCESS) {
+		TRACE("%s - ckpt_decode_log_struct Fail",__FUNCTION__);
+	}
+	return rc;
+}
+
+static uint32_t ckpt_decode_log_close(lgs_cb_t *cb, void *ckpt_msg,
+		NCS_MBCSV_CB_ARG *cbk_arg)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	void *stream_close;
+	EDU_PROG_HANDLER edp_function;
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *ckpt_msg_v2 = ckpt_msg;
+		stream_close = &ckpt_msg_v2->ckpt_rec.stream_close;
+		edp_function = edp_ed_close_stream_rec_v2;
+	} else {
+		lgsv_ckpt_msg_v1_t *ckpt_msg_v1 = ckpt_msg;
+		stream_close = &ckpt_msg_v1->ckpt_rec.stream_close;
+		edp_function = edp_ed_close_stream_rec_v1;
+	}
+	
+	rc = ckpt_decode_log_struct(cb, cbk_arg, ckpt_msg, stream_close, edp_function);
+	if (rc != NCSCC_RC_SUCCESS) {
+		TRACE("%s - ckpt_decode_log_struct Fail",__FUNCTION__);
+	}
+	return rc;
+}
+
+static uint32_t ckpt_decode_log_client_finalize(lgs_cb_t *cb, void *ckpt_msg,
+		NCS_MBCSV_CB_ARG *cbk_arg)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	void *finalize_client;
+	EDU_PROG_HANDLER edp_function;
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *ckpt_msg_v2 = ckpt_msg;
+		finalize_client = &ckpt_msg_v2->ckpt_rec.finalize_client;
+		edp_function = edp_ed_finalize_rec_v2;
+	} else {
+		lgsv_ckpt_msg_v1_t *ckpt_msg_v1 = ckpt_msg;
+		finalize_client = &ckpt_msg_v1->ckpt_rec.finalize_client;
+		edp_function = edp_ed_finalize_rec_v1;
+	}
+	
+	rc = ckpt_decode_log_struct(cb, cbk_arg, ckpt_msg, finalize_client, edp_function);
+	if (rc != NCSCC_RC_SUCCESS) {
+		TRACE("%s - ckpt_decode_log_struct Fail",__FUNCTION__);
+	}
+	return rc;
+}
+
+static uint32_t ckpt_decode_log_client_down(lgs_cb_t *cb, void *ckpt_msg,
+		NCS_MBCSV_CB_ARG *cbk_arg)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	void *client_down;
+	EDU_PROG_HANDLER edp_function;
+		
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *ckpt_msg_v2 = ckpt_msg;
+		client_down = &ckpt_msg_v2->ckpt_rec.agent_down;
+		edp_function = edp_ed_agent_down_rec_v2;
+	} else {
+		lgsv_ckpt_msg_v1_t *ckpt_msg_v1 = ckpt_msg;
+		client_down = &ckpt_msg_v1->ckpt_rec.agent_dest;
+		edp_function = ncs_edp_mds_dest;
+	}
+	
+	rc = ckpt_decode_log_struct(cb, cbk_arg, ckpt_msg, client_down, edp_function);
+	if (rc != NCSCC_RC_SUCCESS) {
+		TRACE("%s - ckpt_decode_log_struct Fail",__FUNCTION__);
+	}
+	return rc;
+}
+
+static uint32_t ckpt_decode_log_cfg_stream(lgs_cb_t *cb, void *ckpt_msg,
+		NCS_MBCSV_CB_ARG *cbk_arg)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	void *stream_cfg;
+	EDU_PROG_HANDLER edp_function;
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *ckpt_msg_v2 = ckpt_msg;
+		stream_cfg = &ckpt_msg_v2->ckpt_rec.stream_cfg;
+		edp_function = edp_ed_cfg_stream_rec_v2;
+	} else {
+		lgsv_ckpt_msg_v1_t *ckpt_msg_v1 = ckpt_msg;
+		stream_cfg = &ckpt_msg_v1->ckpt_rec.stream_cfg;
+		edp_function = edp_ed_cfg_stream_rec_v1;
+	}
+	
+	rc = ckpt_decode_log_struct(cb, cbk_arg, ckpt_msg, stream_cfg, edp_function);
+	if (rc != NCSCC_RC_SUCCESS) {
+		TRACE("%s - ckpt_decode_log_struct Fail",__FUNCTION__);
+	}
+	return rc;
+}
+
+static uint32_t ckpt_decode_log_cfg(lgs_cb_t *cb, void *ckpt_msg,
+		NCS_MBCSV_CB_ARG *cbk_arg)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	void *lgs_cfg = NULL;
+	EDU_PROG_HANDLER edp_function;
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *ckpt_msg_v2 = ckpt_msg;
+		lgs_cfg = &ckpt_msg_v2->ckpt_rec.lgs_cfg;
+		edp_function = edp_ed_lgs_cfg_rec_v2;
+	} else {
+		LOG_ER("%s - log config shall not be checkpointed in checkpoint ver 1!",
+				__FUNCTION__);
+		osafassert(0);
+	}
+	
+	rc = ckpt_decode_log_struct(cb, cbk_arg, ckpt_msg, lgs_cfg, edp_function);
+	if (rc != NCSCC_RC_SUCCESS) {
+		TRACE("%s - ckpt_decode_log_struct Fail",__FUNCTION__);
+	}
+	return rc;
+}
+/* END ckpt_decode_async_update helper functions */
 
 static uint32_t ckpt_decode_async_update(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	EDU_ERR ederror;
-	lgsv_ckpt_msg_t msg;
-	lgsv_ckpt_msg_t *ckpt_msg = &msg;
+	lgsv_ckpt_msg_v1_t msg_v1;
+	lgsv_ckpt_msg_v1_t *ckpt_msg_v1 = &msg_v1;
+	lgsv_ckpt_msg_v2_t msg_v2;
+	lgsv_ckpt_msg_v2_t *ckpt_msg_v2 = &msg_v2;
+	void *ckpt_msg;
 	lgsv_ckpt_header_t *hdr;
+	
+	/* Same in both V1 and V2 */
 	lgs_ckpt_initialize_msg_t *reg_rec;
-	lgs_ckpt_write_log_t *writelog;
-	lgs_ckpt_stream_open_t *stream;
-	lgs_ckpt_finalize_msg_t *finalize;
-	lgs_ckpt_stream_cfg_t *stream_cfg;
-	lgs_ckpt_lgs_cfg_t *lgs_cfg;
-	lgs_ckpt_agent_down_t *agent_down;
-
+	lgs_ckpt_stream_open_t *stream_open;
+	
 	TRACE_ENTER();
 
+	if (lgs_is_peer_v2()) {
+		hdr = &ckpt_msg_v2->header;
+		ckpt_msg = ckpt_msg_v2;
+	} else {
+		hdr = &ckpt_msg_v1->header;
+		ckpt_msg = ckpt_msg_v1;
+	}
+	
 	/* Decode the message header */
-	hdr = &ckpt_msg->header;
 	rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_header_rec, &cbk_arg->info.decode.i_uba,
-			    EDP_OP_TYPE_DEC, &hdr, &ederror);
+				EDP_OP_TYPE_DEC, &hdr, &ederror);
 	if (rc != NCSCC_RC_SUCCESS) {
-		TRACE("m_NCS_EDU_EXEC FAILED");
 		m_NCS_EDU_PRINT_ERROR_STRING(ederror);
-		goto done;
+		TRACE("\tFail decode header");
 	}
 
-	ederror = 0;
-	TRACE_2("ckpt_rec_type: %d ", (int)hdr->ckpt_rec_type);
+	TRACE_2("\tckpt_rec_type: %d ", (int)hdr->ckpt_rec_type);
 	/* Call decode routines appropriately */
 	switch (hdr->ckpt_rec_type) {
 	case LGS_CKPT_CLIENT_INITIALIZE:
-		TRACE_2("INITIALIZE REC: UPDATE");
-		reg_rec = &ckpt_msg->ckpt_rec.initialize_client;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_reg_rec, &cbk_arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &reg_rec, &ederror);
-
+		TRACE_2("\tINITIALIZE REC: UPDATE");
+		if (lgs_is_peer_v2()) {
+			reg_rec = &ckpt_msg_v2->ckpt_rec.initialize_client;
+		} else {
+			reg_rec = &ckpt_msg_v1->ckpt_rec.initialize_client;
+		}
+		rc = ckpt_decode_log_struct(cb, cbk_arg, ckpt_msg, reg_rec, edp_ed_reg_rec);
 		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("   FAILED");
-			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
 			goto done;
 		}
 		break;
 	case LGS_CKPT_LOG_WRITE:
-		TRACE_2("WRITE LOG: UPDATE");
-		writelog = &ckpt_msg->ckpt_rec.write_log;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_write_rec, &cbk_arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &writelog, &ederror);
-
+		TRACE_2("\tWRITE LOG: UPDATE");
+		rc = ckpt_decode_log_write(cb, ckpt_msg, cbk_arg);
 		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("   write log FAILED");
-			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
 			goto done;
 		}
 		break;
 
-	case LGS_CKPT_OPEN_STREAM:
-		TRACE_2("STREAM OPEN: UPDATE");
-		stream = &ckpt_msg->ckpt_rec.stream_open;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_open_stream_rec, &cbk_arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &stream, &ederror);
-
+	case LGS_CKPT_OPEN_STREAM: /* 4 */
+		TRACE_2("\tSTREAM OPEN: UPDATE");
+		if (lgs_is_peer_v2()) {
+			stream_open = &ckpt_msg_v2->ckpt_rec.stream_open;
+		} else {
+			stream_open = &ckpt_msg_v1->ckpt_rec.stream_open;
+		}
+		rc = ckpt_decode_log_struct(cb, cbk_arg, ckpt_msg, stream_open,
+				edp_ed_open_stream_rec);
 		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("STREAM OPEN FAILED");
-			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
 			goto done;
 		}
 		break;
 
 	case LGS_CKPT_CLOSE_STREAM:
-		TRACE_2("STREAM CLOSE: UPDATE");
-		stream = &ckpt_msg->ckpt_rec.stream_open;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_close_stream_rec, &cbk_arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &stream, &ederror);
-
+		TRACE_2("\tSTREAM CLOSE: UPDATE");
+		rc = ckpt_decode_log_close(cb, ckpt_msg, cbk_arg);
 		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("STREAM CLOSE FAILED");
-			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
 			goto done;
 		}
 		break;
 
 	case LGS_CKPT_CLIENT_FINALIZE:
-		TRACE_2("FINALIZE REC: UPDATE");
-		reg_rec = &ckpt_msg->ckpt_rec.initialize_client;
-		finalize = &ckpt_msg->ckpt_rec.finalize_client;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_finalize_rec, &cbk_arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &finalize, &ederror);
-
+		TRACE_2("\tFINALIZE REC: UPDATE");
+		rc = ckpt_decode_log_client_finalize(cb, ckpt_msg, cbk_arg);
 		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("FINALIZE UPDTAE FAILED");
-			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
 			goto done;
 		}
 		break;
 	case LGS_CKPT_CLIENT_DOWN:
-		TRACE_2("AGENT DOWN REC: UPDATE");
-		agent_down = &ckpt_msg->ckpt_rec.agent_down;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_agent_down_rec, &cbk_arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &agent_down, &ederror);
-
+		TRACE_2("\tAGENT DOWN REC: UPDATE");
+		rc = ckpt_decode_log_client_down(cb, ckpt_msg, cbk_arg);
 		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("AGENT DOWN FAILED");
-			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
 			goto done;
 		}
 		break;
 	case LGS_CKPT_CFG_STREAM:
-		TRACE_2("CFG STREAM REC: UPDATE");
-		stream_cfg = &ckpt_msg->ckpt_rec.stream_cfg;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_cfg_stream_rec, &cbk_arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &stream_cfg, &ederror);
-
+		TRACE_2("\tCFG STREAM REC: UPDATE");
+		rc = ckpt_decode_log_cfg_stream(cb, ckpt_msg, cbk_arg);
 		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("CFG UPDATE FAILED");
-			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
 			goto done;
 		}
 		break;
 	case LGS_CKPT_LGS_CFG:
-		TRACE_2("LGS CFG REC: UPDATE");
-		lgs_cfg = &ckpt_msg->ckpt_rec.lgs_cfg;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_lgs_cfg_rec, &cbk_arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &lgs_cfg, &ederror);
-
+		TRACE_2("\tLGS CFG REC: UPDATE");
+		rc = ckpt_decode_log_cfg(cb, ckpt_msg, cbk_arg);
 		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE("CFG UPDATE FAILED");
-			m_NCS_EDU_PRINT_ERROR_STRING(ederror);
 			goto done;
 		}
 		break;
 	default:
 		rc = NCSCC_RC_FAILURE;
-		TRACE("   FAILED");
+		TRACE("\tFAILED Unknown ckpt record type");
 		goto done;
 		break;
 	}			/*end switch */
 
-	rc = process_ckpt_data(cb, ckpt_msg);
 	/* Update the Async Update Count at standby */
 	cb->async_upd_cnt++;
  done:
-	TRACE_LEAVE();
+	TRACE_LEAVE2("rc = %d (1 = SUCCESS)",rc);
 	return rc;
 	/* if failure, should an indication be sent to active ? */
 }
@@ -918,8 +1122,7 @@ static uint32_t ckpt_decode_async_update(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg
 /****************************************************************************
  * Name          : ckpt_decode_cold_sync 
  *
- * Description   : This function decodes async update data, based on the 
- *                 record type contained in the header. 
+ * Description   : This function decodes cold-sync data. 
  *
  * Arguments     : arg - Pointer to NCS_MBCSV_CB_ARG with decode info
  *                 cb - pointer to lgs cb.
@@ -935,45 +1138,69 @@ static uint32_t ckpt_decode_async_update(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg
  *                     b) decode individual records for 
  *                        header->num_records times, 
  *****************************************************************************/
-
 static uint32_t ckpt_decode_cold_sync(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	EDU_ERR ederror = 0;
-	lgsv_ckpt_msg_t msg;
-	lgsv_ckpt_msg_t *data = &msg;
+	lgsv_ckpt_msg_v1_t msg_v1;
+	lgsv_ckpt_msg_v2_t msg_v2;
 	uint32_t num_rec = 0;
 	lgs_ckpt_initialize_msg_t *reg_rec = NULL;
 	lgs_ckpt_stream_open_t *stream_rec = NULL;
 	uint32_t num_of_async_upd;
 	uint8_t *ptr;
 	uint8_t data_cnt[16];
+	
+	lgsv_ckpt_header_t *header;
+	lgs_ckpt_initialize_msg_t *initialize_client_rec_ptr;
+	lgs_ckpt_stream_open_t *stream_open_rec_ptr;
+	void *vckpt_rec;
+	size_t ckpt_rec_size;
+	void *vdata;
+	
 	TRACE_ENTER();
-
 	/* 
 	   -------------------------------------------------
 	   | Header|RegRecords1..n|Header|streamRecords1..n|
 	   -------------------------------------------------
 	 */
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *data_v2 = &msg_v2;
+		header = &data_v2->header;
+		initialize_client_rec_ptr = &data_v2->ckpt_rec.initialize_client;
+		stream_open_rec_ptr = &data_v2->ckpt_rec.stream_open;
+		vdata = data_v2;
+		vckpt_rec = &data_v2->ckpt_rec;
+		ckpt_rec_size = sizeof(data_v2->ckpt_rec);
+	} else {
+		lgsv_ckpt_msg_v1_t *data_v1 = &msg_v1;
+		header = &data_v1->header;
+		initialize_client_rec_ptr = &data_v1->ckpt_rec.initialize_client;
+		stream_open_rec_ptr = &data_v1->ckpt_rec.stream_open;
+		vdata = data_v1;
+		vckpt_rec = &data_v1->ckpt_rec;
+		ckpt_rec_size = sizeof(data_v1->ckpt_rec);
+	}
 
 	TRACE_2("COLD SYNC DECODE START........");
 
 	/* Decode the current message header */
-	if ((rc = dec_ckpt_header(&cbk_arg->info.decode.i_uba, &data->header)) != NCSCC_RC_SUCCESS) {
+	if ((rc = dec_ckpt_header(&cbk_arg->info.decode.i_uba, header)) != NCSCC_RC_SUCCESS) {
 		goto done;
 	}
 	/* Check if the first in the order of records is reg record */
-	if (data->header.ckpt_rec_type != LGS_CKPT_CLIENT_INITIALIZE) {
+	if (header->ckpt_rec_type != LGS_CKPT_CLIENT_INITIALIZE) {
 		TRACE("FAILED data->header.ckpt_rec_type != LGS_CKPT_INITIALIZE_REC");
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
 	/* Process the reg_records */
-	num_rec = data->header.num_ckpt_records;
+	num_rec = header->num_ckpt_records;
 	TRACE("regid: num_rec = %u", num_rec);
 	while (num_rec) {
-		reg_rec = &data->ckpt_rec.initialize_client;
+		reg_rec = initialize_client_rec_ptr;
 		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_reg_rec, &cbk_arg->info.decode.i_uba,
 				    EDP_OP_TYPE_DEC, &reg_rec, &ederror);
 
@@ -983,32 +1210,32 @@ static uint32_t ckpt_decode_cold_sync(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg)
 			goto done;
 		}
 		/* Update our database */
-		rc = process_ckpt_data(cb, data);
+		rc = process_ckpt_data(cb, vdata);
 		if (rc != NCSCC_RC_SUCCESS) {
 			goto done;
 		}
-		memset(&data->ckpt_rec, 0, sizeof(data->ckpt_rec));
+		memset(vckpt_rec, 0, ckpt_rec_size);
 		--num_rec;
 	}			/*End while, reg records */
 
-	if ((rc = dec_ckpt_header(&cbk_arg->info.decode.i_uba, &data->header)) != NCSCC_RC_SUCCESS) {
+	if ((rc = dec_ckpt_header(&cbk_arg->info.decode.i_uba, header)) != NCSCC_RC_SUCCESS) {
 		rc = NCSCC_RC_FAILURE;
 		TRACE("lgs_dec_ckpt_header FAILED");
 		goto done;
 	}
 
 	/* Check if record type is open_stream */
-	if (data->header.ckpt_rec_type != LGS_CKPT_OPEN_STREAM) {
+	if (header->ckpt_rec_type != LGS_CKPT_OPEN_STREAM) {
 		rc = NCSCC_RC_FAILURE;
-		TRACE("FAILED: LGS_CKPT_OPEN_STREAM type is expected, got %u", data->header.ckpt_rec_type);
+		TRACE("FAILED: LGS_CKPT_OPEN_STREAM type is expected, got %u", header->ckpt_rec_type);
 		goto done;
 	}
 
 	/* Process the stream records */
-	num_rec = data->header.num_ckpt_records;
+	num_rec = header->num_ckpt_records;
 	TRACE("opens_streams: num_rec = %u", num_rec);
 	while (num_rec) {
-		stream_rec = &data->ckpt_rec.stream_open;
+		stream_rec = stream_open_rec_ptr;
 		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, edp_ed_open_stream_rec, &cbk_arg->info.decode.i_uba,
 				    EDP_OP_TYPE_DEC, &stream_rec, &ederror);
 
@@ -1018,12 +1245,12 @@ static uint32_t ckpt_decode_cold_sync(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg)
 			goto done;
 		}
 		/* Update our database */
-		rc = process_ckpt_data(cb, data);
+		rc = process_ckpt_data(cb, vdata);
 
 		if (rc != NCSCC_RC_SUCCESS) {
 			goto done;
 		}
-		memset(&data->ckpt_rec, 0, sizeof(data->ckpt_rec));
+		memset(vckpt_rec, 0, ckpt_rec_size);
 		--num_rec;
 	}			/*End while, stream records */
 
@@ -1048,8 +1275,8 @@ static uint32_t ckpt_decode_cold_sync(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg)
 /****************************************************************************
  * Name          : process_ckpt_data
  *
- * Description   : This function updates the lgs internal databases
- *                 based on the data type. 
+ * Description   : Call the a data handling process that corresponds to the
+ *                 check-point record type
  *
  * Arguments     : cb - pointer to LGS ControlBlock. 
  *                 data - pointer to  LGS_CHECKPOINT_DATA. 
@@ -1060,26 +1287,40 @@ static uint32_t ckpt_decode_cold_sync(lgs_cb_t *cb, NCS_MBCSV_CB_ARG *cbk_arg)
  * Notes         : None.
  *****************************************************************************/
 
-static uint32_t process_ckpt_data(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
+static uint32_t process_ckpt_data(lgs_cb_t *cb, void *data)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	lgsv_ckpt_msg_type_t lgsv_ckpt_msg_type;
+	lgsv_ckpt_msg_v2_t *data_v1;
+	lgsv_ckpt_msg_v2_t *data_v2;
+	
 	if ((!cb) || (data == NULL)) {
-		TRACE("FAILED: (!cb) || (data == NULL)");
+		TRACE("%s - FAILED: (!cb) || (data == NULL)",__FUNCTION__);
 		return (rc = NCSCC_RC_FAILURE);
 	}
-
+	
+	if (lgs_is_peer_v2()) {
+		data_v2 = data;
+		lgsv_ckpt_msg_type = data_v2->header.ckpt_rec_type;
+	} else {
+		data_v1 = data;
+		lgsv_ckpt_msg_type = data_v1->header.ckpt_rec_type;
+	}
+	
 	if ((cb->ha_state == SA_AMF_HA_STANDBY) || (cb->ha_state == SA_AMF_HA_QUIESCED)) {
-		if (data->header.ckpt_rec_type >= LGS_CKPT_MSG_MAX) {
-			TRACE("FAILED: data->header.ckpt_rec_type >= LGS_CKPT_MSG_MAX");
+		if (lgsv_ckpt_msg_type >= LGS_CKPT_MSG_MAX) {
+			TRACE("%s - FAILED: data->header.ckpt_rec_type >= LGS_CKPT_MSG_MAX",
+					__FUNCTION__);
 			return NCSCC_RC_FAILURE;
 		}
 		/* Update the internal database */
-		rc = ckpt_data_handler[data->header.ckpt_rec_type] (cb, data);
-		return rc;
+		rc = ckpt_data_handler[lgsv_ckpt_msg_type] (cb, data);
 	} else {
-		return (rc = NCSCC_RC_FAILURE);
+		TRACE("%s - ERROR Called in ACTIVE state",__FUNCTION__);
+		rc = NCSCC_RC_FAILURE;
 	}
-}	/*End lgs_process_ckpt_data() */
+	return rc;
+}
 
 /****************************************************************************
  * Name          : ckpt_proc_initialize_client
@@ -1096,10 +1337,18 @@ static uint32_t process_ckpt_data(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
  * Notes         : None.
  ****************************************************************************/
 
-static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
+static uint32_t ckpt_proc_initialize_client(lgs_cb_t *cb, void *data)
 {
-	lgs_ckpt_initialize_msg_t *param = &data->ckpt_rec.initialize_client;
 	log_client_t *client;
+	lgs_ckpt_initialize_msg_t *param;
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *data_v2 = data;
+		param = &data_v2->ckpt_rec.initialize_client;
+	} else {
+		lgsv_ckpt_msg_v1_t *data_v1 = data;
+		param = &data_v1->ckpt_rec.initialize_client;
+	}
 
 	TRACE_ENTER2("client ID: %d", param->client_id);
 
@@ -1139,6 +1388,11 @@ static SaTimeT setLogTime(void)
 	return logTime;
 }
 
+/**
+ * Helper function for creating local info message in log stream
+ * @param stream
+ * @param message
+ */
 static void insert_localmsg_in_stream(log_stream_t *stream, char *message)
 {
 	int n = 0;
@@ -1242,37 +1496,60 @@ static void insert_localmsg_in_stream(log_stream_t *stream, char *message)
  * Notes         : None.
  ****************************************************************************/
 
-static uint32_t ckpt_proc_log_write(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
+static uint32_t ckpt_proc_log_write(lgs_cb_t *cb, void *data)
 {
-	lgs_ckpt_write_log_t *param = &data->ckpt_rec.write_log;
 	log_stream_t *stream;
 	const int sleep_delay_ms = 10;
 	const int max_waiting_time_ms = 100;
+	
+	uint32_t streamId;
+	uint32_t recordId;
+	uint32_t curFileSize;
+	char *logFileCurrent;
+	char *logRecord = NULL;
+	uint64_t c_file_close_time_stamp = 0;
+	
 
 	TRACE_ENTER();
 
-	stream = log_stream_get_by_id(param->streamId);
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *data_v2 = data;
+		streamId = data_v2->ckpt_rec.write_log.streamId;
+		recordId = data_v2->ckpt_rec.write_log.recordId;
+		curFileSize = data_v2->ckpt_rec.write_log.curFileSize;
+		logFileCurrent = data_v2->ckpt_rec.write_log.logFileCurrent;
+		logRecord = data_v2->ckpt_rec.write_log.logRecord;
+		c_file_close_time_stamp = data_v2->ckpt_rec.write_log.c_file_close_time_stamp;
+	} else {
+		lgsv_ckpt_msg_v1_t *data_v1 = data;
+		streamId = data_v1->ckpt_rec.write_log.streamId;
+		recordId = data_v1->ckpt_rec.write_log.recordId;
+		curFileSize = data_v1->ckpt_rec.write_log.curFileSize;
+		logFileCurrent = data_v1->ckpt_rec.write_log.logFileCurrent;
+	}
+	
+	stream = log_stream_get_by_id(streamId);
 	if (stream == NULL) {
-		TRACE("Could not lookup stream: %u", param->streamId);
+		TRACE("Could not lookup stream: %u", streamId);
 		goto done;
 	}
 
-	stream->logRecordId = param->recordId;
-	stream->curFileSize = param->curFileSize;
-	strcpy(stream->logFileCurrent, param->logFileCurrent);
-	stream->act_last_close_timestamp = param->c_file_close_time_stamp;
+	stream->logRecordId = recordId;
+	stream->curFileSize = curFileSize;
+	strcpy(stream->logFileCurrent, logFileCurrent);
 	
 	/* If configured for split file system log records shall be written also if
 	 * we are standby.
 	 */
 	if (lgs_is_split_file_system()) {
-		size_t rec_len = strlen(param->logRecord);
+		size_t rec_len = strlen(logRecord);
+		stream->act_last_close_timestamp = c_file_close_time_stamp;
 		
 		/* Check if record id numbering is inconsistent. If so there are
 		 * possible missed log records and a notification shall be inserted
 		 * in log file.
 		 */
-		if ((stream->stb_logRecordId + 1) != param->recordId) {
+		if ((stream->stb_logRecordId + 1) != recordId) {
 			insert_localmsg_in_stream(stream, "Possible loss of log record");
 		}
 		
@@ -1280,24 +1557,24 @@ static uint32_t ckpt_proc_log_write(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
 		 * trying to write the log record.
 		 */
 		int msecs_waited = 0;		
-		int rc = log_stream_write_h(stream, param->logRecord, rec_len);
+		int rc = log_stream_write_h(stream, logRecord, rec_len);
 		while ((rc == -2) && (msecs_waited < max_waiting_time_ms)) {
 			usleep(sleep_delay_ms * 1000);
 			msecs_waited += sleep_delay_ms;
-			rc = log_stream_write_h(stream, param->logRecord, rec_len);
+			rc = log_stream_write_h(stream, logRecord, rec_len);
 		}
 		if (rc != 0) {
-			TRACE("Error %d when writing log record",rc);
+			TRACE("\tError %d when writing log record",rc);
 		}
 		
-		stream->stb_logRecordId = param->recordId;
-	}
+		stream->stb_logRecordId = recordId;
+	} /* END lgs_is_split_file_system */
 	
  done:
-	if (lgs_is_split_file_system()) {
-		free_edu_mem(param->logRecord);
+	if (logRecord != NULL) {
+		lgs_free_edu_mem(logRecord);
 	}
-	free_edu_mem(param->logFileCurrent);
+	lgs_free_edu_mem(logFileCurrent);
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
@@ -1316,32 +1593,44 @@ static uint32_t ckpt_proc_log_write(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
  * Notes         : None.
  ****************************************************************************/
 
-static uint32_t ckpt_proc_close_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
+static uint32_t ckpt_proc_close_stream(lgs_cb_t *cb, void *data)
 {
-	lgs_ckpt_stream_close_t *param = &data->ckpt_rec.stream_close;
 	log_stream_t *stream;
-	time_t closetime;
+	time_t *closetime_ptr;
 
+	uint32_t streamId;
+	uint32_t clientId;
+	
 	TRACE_ENTER();
 
-	if ((stream = log_stream_get_by_id(param->streamId)) == NULL) {
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *data_v2 = data;
+		streamId = data_v2->ckpt_rec.stream_close.streamId;
+		clientId = data_v2->ckpt_rec.stream_close.clientId;
+		/* Set time for closing. Used for renaming */
+		closetime_ptr = (time_t *) &data_v2->ckpt_rec.stream_close.c_file_close_time_stamp;
+	} else {
+		lgsv_ckpt_msg_v1_t *data_v1 = data;
+		streamId = data_v1->ckpt_rec.stream_close.streamId;
+		clientId = data_v1->ckpt_rec.stream_close.clientId;
+		closetime_ptr = NULL;
+	}
+
+	if ((stream = log_stream_get_by_id(streamId)) == NULL) {
 		TRACE("Could not lookup stream");
 		goto done;
 	}
-
-	/* Set time for closing. Used for renaming */
-	closetime = param->c_file_close_time_stamp;
 	
 	TRACE("close stream %s, id: %u", stream->name, stream->streamId);
 
-	if ((stream->numOpeners > 0) || (param->clientId < 0)){
+	if ((stream->numOpeners > 0) || (clientId < 0)){
 		/* No clients to remove if no openers or if closing a stream opened
 		 * by log service itself
 		 */
-		(void)lgs_client_stream_rmv(param->clientId, param->streamId);
+		(void)lgs_client_stream_rmv(clientId, streamId);
 	}
 
-	if (log_stream_close(&stream, &closetime) != 0) {
+	if (log_stream_close(&stream, closetime_ptr) != 0) {
 		/* Do not allow standby to get out of sync */
 		lgs_exit("Client attributes differ", SA_AMF_COMPONENT_RESTART);
 	}
@@ -1365,22 +1654,30 @@ static uint32_t ckpt_proc_close_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
  * Notes         : None.
  ****************************************************************************/
 
-uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
+uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, void *data)
 {
-	lgs_ckpt_stream_open_t *param = &data->ckpt_rec.stream_open;
+	lgs_ckpt_stream_open_t *param;
 	log_stream_t *stream;
 
 	TRACE_ENTER();
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *data_v2 = data;
+		param = &data_v2->ckpt_rec.stream_open;
+	} else {
+		lgsv_ckpt_msg_v1_t *data_v1 = data;
+		param = &data_v1->ckpt_rec.stream_open;
+	}	
 
 	/* Check that client still exist */
 	if ((param->clientId != -1) && (lgs_client_get_by_id(param->clientId) == NULL)) {
-		LOG_WA("Client %u does not exist, failed to create stream '%s'", param->clientId, param->logStreamName);
+		LOG_WA("\tClient %u does not exist, failed to create stream '%s'", param->clientId, param->logStreamName);
 		goto done;
 	}
 
 	stream = log_stream_get_by_name(param->logStreamName);
 	if (stream != NULL) {
-		TRACE("existing stream - id %u", stream->streamId);
+		TRACE("\tExisting stream - id %u", stream->streamId);
 		/*
 		 ** Update stream attributes that might change when a stream is 
 		 ** opened a second time.
@@ -1389,7 +1686,7 @@ uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
 	} else {
 		SaNameT name;
 
-		TRACE("New stream %s, id %u", param->logStreamName, param->streamId);
+		TRACE("\tNew stream %s, id %u", param->logStreamName, param->streamId);
 		strcpy((char *)name.value, param->logStreamName);
 		name.length = strlen(param->logStreamName);
 
@@ -1408,7 +1705,8 @@ uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
 
 		if (stream == NULL) {
 			/* Do not allow standby to get out of sync */
-			LOG_ER("Failed to create stream '%s'", param->logStreamName);
+			LOG_ER("%s - Failed to create stream '%s'",__FUNCTION__,
+					param->logStreamName);
 			goto done;
 		}
 
@@ -1436,17 +1734,19 @@ uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
 	 */
 	if ((param->clientId != -1) && lgs_client_stream_add(param->clientId, stream->streamId) != 0) {
 		/* Do not allow standby to get out of sync */
-		LOG_ER("Failed to add stream '%s' to client %u", param->logStreamName, param->clientId);
+		LOG_ER("%s - Failed to add stream '%s' to client %u",__FUNCTION__,
+				param->logStreamName, param->clientId);
 		lgs_exit("Could not add stream to client", SA_AMF_COMPONENT_RESTART);
 	}
 
  done:
 	/* Free strings allocated by the EDU encoder */
-	free_edu_mem(param->logFile);
-	free_edu_mem(param->logPath);
-	free_edu_mem(param->fileFmt);
-	free_edu_mem(param->logFileCurrent);
-	free_edu_mem(param->logStreamName);
+	lgs_free_edu_mem(param->logFile);
+	lgs_free_edu_mem(param->logPath);
+	lgs_free_edu_mem(param->fileFmt);
+	lgs_free_edu_mem(param->logFileCurrent);
+	lgs_free_edu_mem(param->logStreamName);
+	
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
@@ -1466,15 +1766,27 @@ uint32_t ckpt_proc_open_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
  * Notes         : None.
  ****************************************************************************/
 
-static uint32_t ckpt_proc_finalize_client(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
+static uint32_t ckpt_proc_finalize_client(lgs_cb_t *cb, void *data)
 {
-	lgs_ckpt_finalize_msg_t *param = &data->ckpt_rec.finalize_client;
-	time_t closetime = param->c_file_close_time_stamp;
+	uint32_t client_id;
+	time_t *closetime_ptr;
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *data_v2 = data;
+		lgs_ckpt_finalize_msg_v2_t *param = &data_v2->ckpt_rec.finalize_client;
+		closetime_ptr = (time_t *) &param->c_file_close_time_stamp;
+		client_id = param->client_id;
+	} else {
+		lgsv_ckpt_msg_v1_t *data_v1 = data;
+		lgs_ckpt_finalize_msg_v1_t *param = &data_v1->ckpt_rec.finalize_client;
+		closetime_ptr = NULL;
+		client_id = param->client_id;
+	}
 
 	TRACE_ENTER();
 
 	/* Ensure all resources allocated by this registration are freed. */
-	(void)lgs_client_delete(param->client_id, &closetime);
+	(void)lgs_client_delete(client_id, closetime_ptr);
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
@@ -1495,13 +1807,24 @@ static uint32_t ckpt_proc_finalize_client(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
  * Notes         : None 
  ****************************************************************************/
 
-static uint32_t ckpt_proc_agent_down(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
+uint32_t ckpt_proc_agent_down(lgs_cb_t *cb, void *data)
 {
-	TRACE_ENTER();
-
-	time_t closetime = (time_t) data->ckpt_rec.agent_down.c_file_close_time_stamp;
-	MDS_DEST agent_dest = (MDS_DEST) data->ckpt_rec.agent_down.agent_dest;
+	MDS_DEST agent_dest;
+	time_t *closetime_ptr;
 	
+	TRACE_ENTER();
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *data_v2 = data;
+		closetime_ptr = (time_t *) &data_v2->ckpt_rec.agent_down.c_file_close_time_stamp;
+		agent_dest = (MDS_DEST) data_v2->ckpt_rec.agent_down.agent_dest;
+		
+	} else {
+		lgsv_ckpt_msg_v1_t *data_v1 = data;
+		closetime_ptr = NULL;
+		agent_dest = data_v1->ckpt_rec.agent_dest;
+	}
+
 	/*Remove the  LGA DOWN REC from the LGA_DOWN_LIST */
 	/* Search for matching LGA in the LGA_DOWN_LIST  */
 	lgs_remove_lga_down_rec(cb, agent_dest);
@@ -1510,7 +1833,7 @@ static uint32_t ckpt_proc_agent_down(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
 	/* Files are closed if there is a fd in stream that's not -1
 	 * but time must be checkpointed and checkpointed time used here
 	 */
-	(void)lgs_client_delete_by_mds_dest(agent_dest, &closetime);
+	(void)lgs_client_delete_by_mds_dest(agent_dest, closetime_ptr);
 	
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
@@ -1530,39 +1853,81 @@ static uint32_t ckpt_proc_agent_down(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
  * Notes         : None.
  ****************************************************************************/
 
-static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
+static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, void *data)
 {
-	lgs_ckpt_stream_cfg_t *param = &data->ckpt_rec.stream_cfg;
 	log_stream_t *stream;
+	time_t closetime;
+	
+	char *name;
+	char *fileName;
+	char *pathName;
+	SaUint64T maxLogFileSize;
+	SaUint32T fixedLogRecordSize;
+	SaLogFileFullActionT logFullAction;
+	SaUint32T logFullHaltThreshold;	/* !app log stream */
+	SaUint32T maxFilesRotated;
+	char *logFileFormat;
+	SaUint32T severityFilter;
+	char *logFileCurrent;
 
 	TRACE_ENTER();
-
-	if ((stream = log_stream_get_by_name(param->name)) == NULL) {
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *data_v2 = data;
+		name = data_v2->ckpt_rec.stream_cfg.name;
+		fileName = data_v2->ckpt_rec.stream_cfg.fileName;
+		pathName = data_v2->ckpt_rec.stream_cfg.pathName; 
+		maxLogFileSize = data_v2->ckpt_rec.stream_cfg.maxLogFileSize;
+		fixedLogRecordSize = data_v2->ckpt_rec.stream_cfg.fixedLogRecordSize;
+		logFullAction = data_v2->ckpt_rec.stream_cfg.logFullAction;
+		logFullHaltThreshold = data_v2->ckpt_rec.stream_cfg.logFullHaltThreshold;
+		maxFilesRotated = data_v2->ckpt_rec.stream_cfg.maxFilesRotated;
+		logFileFormat = data_v2->ckpt_rec.stream_cfg.logFileFormat;
+		severityFilter = data_v2->ckpt_rec.stream_cfg.severityFilter;
+		logFileCurrent = data_v2->ckpt_rec.stream_cfg.logFileCurrent;
+		closetime = data_v2->ckpt_rec.stream_cfg.c_file_close_time_stamp;
+	} else {
+		lgsv_ckpt_msg_v1_t *data_v1 = data;
+		name = data_v1->ckpt_rec.stream_cfg.name;
+		fileName = data_v1->ckpt_rec.stream_cfg.fileName;
+		pathName = data_v1->ckpt_rec.stream_cfg.pathName; 
+		maxLogFileSize = data_v1->ckpt_rec.stream_cfg.maxLogFileSize;
+		fixedLogRecordSize = data_v1->ckpt_rec.stream_cfg.fixedLogRecordSize;
+		logFullAction = data_v1->ckpt_rec.stream_cfg.logFullAction;
+		logFullHaltThreshold = data_v1->ckpt_rec.stream_cfg.logFullHaltThreshold;
+		maxFilesRotated = data_v1->ckpt_rec.stream_cfg.maxFilesRotated;
+		logFileFormat = data_v1->ckpt_rec.stream_cfg.logFileFormat;
+		severityFilter = data_v1->ckpt_rec.stream_cfg.severityFilter;
+		logFileCurrent = data_v1->ckpt_rec.stream_cfg.logFileCurrent;
+		closetime = time(NULL);
+	}
+	
+	if ((stream = log_stream_get_by_name(name)) == NULL) {
 		LOG_ER("Could not lookup stream");
 		goto done;
 	}
 
 	TRACE("config stream %s, id: %u", stream->name, stream->streamId);
-	strcpy(stream->fileName, param->fileName);
-	stream->maxLogFileSize = param->maxLogFileSize;
-	stream->fixedLogRecordSize = param->fixedLogRecordSize;
-	stream->logFullAction = param->logFullAction;
-	stream->logFullHaltThreshold = param->logFullHaltThreshold;
-	stream->maxFilesRotated = param->maxFilesRotated;
+	stream->act_last_close_timestamp = closetime; /* Not used if ver 1 */
+	strcpy(stream->fileName, fileName);
+	stream->maxLogFileSize = maxLogFileSize;
+	stream->fixedLogRecordSize = fixedLogRecordSize;
+	stream->logFullAction = logFullAction;
+	stream->logFullHaltThreshold = logFullHaltThreshold;
+	stream->maxFilesRotated = maxFilesRotated;
 	if (stream->logFileFormat != NULL) {
 		free(stream->logFileFormat);
-		stream->logFileFormat = strdup(param->logFileFormat);
+		stream->logFileFormat = strdup(logFileFormat);
 	}        
-	strcpy(stream->logFileFormat, param->logFileFormat);
-	stream->severityFilter = param->severityFilter;
-	strcpy(stream->logFileCurrent, param->logFileCurrent);
-	stream->act_last_close_timestamp = param->c_file_close_time_stamp;
+	strcpy(stream->logFileFormat, logFileFormat);
+	stream->severityFilter = severityFilter;
+	strcpy(stream->logFileCurrent, logFileCurrent);
 		
 	/* If split file mode, update standby files */
 	if (lgs_is_split_file_system()) {
 		int rc=0;
 		if ((rc = log_stream_config_change(LGS_STREAM_CREATE_FILES, stream,
-				stream->stb_logFileCurrent, &stream->act_last_close_timestamp))
+				stream->stb_logFileCurrent, &closetime))
 				!= 0) {
 			LOG_ER("log_stream_config_change failed: %d", rc);
 		}
@@ -1576,50 +1941,12 @@ static uint32_t ckpt_proc_cfg_stream(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
 	
  done:
 	/* Free strings allocated by the EDU encoder */
-	free_edu_mem(param->fileName);
-	free_edu_mem(param->pathName);
-	free_edu_mem(param->logFileFormat);
-	free_edu_mem(param->logFileCurrent);
-	free_edu_mem(param->name);
+	lgs_free_edu_mem(fileName);
+	lgs_free_edu_mem(pathName);
+	lgs_free_edu_mem(logFileFormat);
+	lgs_free_edu_mem(logFileCurrent);
+	lgs_free_edu_mem(name);
 
-	TRACE_LEAVE();
-	return NCSCC_RC_SUCCESS;
-}
-
-/****************************************************************************
- * Name          : ckpt_proc_lgs_cfg
- *
- * Description   : This function configures updates log service configuration.
- *
- * Arguments     : cb - pointer to LGS  ControlBlock.
- *                 data - pointer to  LGS_CHECKPOINT_DATA. 
- * 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- ****************************************************************************/
-
-static uint32_t ckpt_proc_lgs_cfg(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
-{
-	TRACE_ENTER();
-	lgs_ckpt_lgs_cfg_t *param = &data->ckpt_rec.lgs_cfg;
-	
-	/* Handle log files for new directory if configured for split file system */
-	if (lgs_is_split_file_system()) {
-		/* Setting new root directory is done in logRootDirectory_filemove() */
-		logRootDirectory_filemove(param->logRootDirectory,
-				(time_t *) &param->c_file_close_time_stamp);
-	} else {
-		/* Save new root path */
-		lgs_imm_rootpathconf_set(param->logRootDirectory);		
-	}
-	
-	TRACE("Setting new rootpath on standby \"%s\"",param->logRootDirectory);
-	
-	/* Free strings allocated by the EDU encoder */
-	free_edu_mem(param->logRootDirectory);
-	
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
@@ -1645,11 +1972,23 @@ static uint32_t ckpt_proc_lgs_cfg(lgs_cb_t *cb, lgsv_ckpt_msg_t *data)
  *                 retrieve the record for encoding the same.
  *****************************************************************************/
 
-uint32_t lgs_ckpt_send_async(lgs_cb_t *cb, lgsv_ckpt_msg_t *ckpt_rec, uint32_t action)
+uint32_t lgs_ckpt_send_async(lgs_cb_t *cb, void *ckpt_rec, uint32_t action)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	NCS_MBCSV_ARG mbcsv_arg;
+	lgsv_ckpt_msg_type_t ckpt_rec_type;
+	
 	TRACE_ENTER();
+	
+	if (lgs_is_peer_v2()) {
+		lgsv_ckpt_msg_v2_t *ckpt_rec_v2 = ckpt_rec;
+		ckpt_rec_type = ckpt_rec_v2->header.ckpt_rec_type;
+	} else {
+		lgsv_ckpt_msg_v1_t *ckpt_rec_v1 = ckpt_rec;
+		ckpt_rec_type = ckpt_rec_v1->header.ckpt_rec_type;
+	}
+	
+	
 	/* Fill mbcsv specific data */
 	memset(&mbcsv_arg, '\0', sizeof(NCS_MBCSV_ARG));
 	mbcsv_arg.i_op = NCS_MBCSV_OP_SEND_CKPT;
@@ -1662,7 +2001,7 @@ uint32_t lgs_ckpt_send_async(lgs_cb_t *cb, lgsv_ckpt_msg_t *ckpt_rec, uint32_t a
 	 * async update record in reo_hdl. The same shall then be 
 	 *dereferenced during encode callback */
 
-	mbcsv_arg.info.send_ckpt.i_reo_type = ckpt_rec->header.ckpt_rec_type;
+	mbcsv_arg.info.send_ckpt.i_reo_type = ckpt_rec_type;
 	mbcsv_arg.info.send_ckpt.i_send_type = NCS_MBCSV_SND_USR_ASYNC;
 
 	/* Send async update */
@@ -1689,14 +2028,14 @@ uint32_t lgs_ckpt_send_async(lgs_cb_t *cb, lgsv_ckpt_msg_t *ckpt_rec, uint32_t a
  ***************************************************************************/
 static uint32_t ckpt_peer_info_cbk_handler(NCS_MBCSV_CB_ARG *arg)
 {
-	uint16_t peer_version;
 	osafassert(arg != NULL);
 
-	peer_version = arg->info.peer.i_peer_version;
-	if (peer_version < LGS_MBCSV_VERSION_MIN) {
+	lgs_cb->mbcsv_peer_version = arg->info.peer.i_peer_version;
+	if (lgs_cb->mbcsv_peer_version < LGS_MBCSV_VERSION_MIN) {
 		TRACE("peer_version not correct!!\n");
 		return NCSCC_RC_FAILURE;
 	}
+	TRACE("%s - peer_version = %d",__FUNCTION__, lgs_cb->mbcsv_peer_version);
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -1737,7 +2076,37 @@ static uint32_t ckpt_err_ind_cbk_handler(NCS_MBCSV_CB_ARG *arg)
 	return NCSCC_RC_SUCCESS;
 }
 
-uint32_t edp_ed_stream_list(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
+/****************************************************************************
+ * Name          : edp_ed_reg_rec
+ *
+ * Description   : This function is an EDU program for encoding/decoding
+ *                 lgsv checkpoint registration rec.
+ * 
+ * Arguments     : EDU_HDL - pointer to edu handle,
+ *                 EDU_TKN - internal edu token to help encode/decode,
+ *                 POINTER to the structure to encode/decode from/to,
+ *                 data length specifying number of structures,
+ *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
+ *                 op - operation type being encode/decode. 
+ *                 EDU_ERR - out param to indicate errors in processing. 
+ *
+ * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ *
+ * Notes         : None.
+ *****************************************************************************/
+/**
+ * Helper function for encoding/decoding a stream list used by edp_ed_reg_rec()
+ * 
+ * @param edu_hdl
+ * @param edu_tkn
+ * @param ptr
+ * @param ptr_data_len
+ * @param buf_env
+ * @param op
+ * @param o_err
+ * @return 
+ */
+static uint32_t edp_ed_stream_list(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 			 NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -1773,26 +2142,7 @@ uint32_t edp_ed_stream_list(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 	return rc;
 }
 
-/****************************************************************************
- * Name          : edp_ed_reg_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint registration rec.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_reg_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
+uint32_t edp_ed_reg_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 			    NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -1829,409 +2179,6 @@ static uint32_t edp_ed_reg_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 }	/* End edp_ed_reg_rec */
 
 /****************************************************************************
- * Name          : edp_ed_write_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint write log rec.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_write_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-			      NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgs_ckpt_write_log_t *ckpt_write_msg_ptr = NULL, **ckpt_write_msg_dec_ptr;
-	
-	/* XXX Fix. Handle logRecord when different log server versions on SC nodes */
-	
-
-	EDU_INST_SET ckpt_write_rec_ed_rules[] = {
-		{EDU_START, edp_ed_write_rec, 0, 0, 0, sizeof(lgs_ckpt_write_log_t), 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_write_log_t *)0)->recordId, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_write_log_t *)0)->streamId, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_write_log_t *)0)->curFileSize, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_write_log_t *)0)->logFileCurrent, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_write_log_t *)0)->logRecord, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_write_log_t *)0)->c_file_close_time_stamp, 0, NULL},
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-	
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_write_msg_ptr = (lgs_ckpt_write_log_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_write_msg_dec_ptr = (lgs_ckpt_write_log_t **)ptr;
-		if (*ckpt_write_msg_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_write_msg_dec_ptr, '\0', sizeof(lgs_ckpt_write_log_t));
-		ckpt_write_msg_ptr = *ckpt_write_msg_dec_ptr;
-	} else {
-		ckpt_write_msg_ptr = ptr;
-	}
-
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_write_rec_ed_rules, ckpt_write_msg_ptr, ptr_data_len,
-				 buf_env, op, o_err);
-	return rc;
-
-}	/* End edp_ed_write_rec */
-
-/****************************************************************************
- * Name          : edp_ed_open_stream_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint open_stream log rec.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_open_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				    NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				    EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgs_ckpt_stream_open_t *ckpt_open_stream_msg_ptr = NULL, **ckpt_open_stream_msg_dec_ptr;
-
-	EDU_INST_SET ckpt_open_stream_rec_ed_rules[] = {
-		{EDU_START, edp_ed_open_stream_rec, 0, 0, 0, sizeof(lgs_ckpt_stream_open_t), 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->streamId, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->clientId, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logFile, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logPath, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logFileCurrent, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->maxFileSize, 0, NULL},
-		{EDU_EXEC, ncs_edp_int32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->maxLogRecordSize, 0, NULL},
-		{EDU_EXEC, ncs_edp_int32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logFileFullAction, 0, NULL},
-		{EDU_EXEC, ncs_edp_int32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->maxFilesRotated, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->fileFmt, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logStreamName, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->creationTimeStamp, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->numOpeners, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->streamType, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_open_t *)0)->logRecordId, 0, NULL},
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_open_stream_msg_ptr = (lgs_ckpt_stream_open_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_open_stream_msg_dec_ptr = (lgs_ckpt_stream_open_t **)ptr;
-		if (*ckpt_open_stream_msg_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_open_stream_msg_dec_ptr, '\0', sizeof(lgs_ckpt_stream_open_t));
-		ckpt_open_stream_msg_ptr = *ckpt_open_stream_msg_dec_ptr;
-	} else {
-		ckpt_open_stream_msg_ptr = ptr;
-	}
-
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_open_stream_rec_ed_rules, ckpt_open_stream_msg_ptr,
-				 ptr_data_len, buf_env, op, o_err);
-	return rc;
-
-}	/* End edp_ed_open_stream_rec */
-
-/****************************************************************************
- * Name          : edp_ed_close_stream_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint close_stream log rec.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_close_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				     NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				     EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgs_ckpt_stream_close_t *ckpt_close_stream_msg_ptr = NULL, **ckpt_close_stream_msg_dec_ptr;
-	
-	EDU_INST_SET ckpt_close_stream_rec_ed_rules[] = {
-		{EDU_START, edp_ed_close_stream_rec, 0, 0, 0, sizeof(lgs_ckpt_stream_close_t), 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_close_t *)0)->streamId, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_close_t *)0)->clientId, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_stream_close_t *)0)->c_file_close_time_stamp, 0, NULL},
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_close_stream_msg_ptr = (lgs_ckpt_stream_close_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_close_stream_msg_dec_ptr = (lgs_ckpt_stream_close_t **)ptr;
-		if (*ckpt_close_stream_msg_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_close_stream_msg_dec_ptr, '\0', sizeof(lgs_ckpt_stream_close_t));
-		ckpt_close_stream_msg_ptr = *ckpt_close_stream_msg_dec_ptr;
-	} else {
-		ckpt_close_stream_msg_ptr = ptr;
-	}
-
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_close_stream_rec_ed_rules,
-				 ckpt_close_stream_msg_ptr, ptr_data_len, buf_env, op, o_err);
-	
-	return rc;
-
-}	/* End edp_ed_close_stream_rec */
-
-/****************************************************************************
- * Name          : edp_ed_finalize_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint finalize async updates record.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_finalize_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				 NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				 EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgs_ckpt_finalize_msg_t *ckpt_final_msg_ptr = NULL, **ckpt_final_msg_dec_ptr;
-
-	EDU_INST_SET ckpt_final_rec_ed_rules[] = {
-		{EDU_START, edp_ed_finalize_rec, 0, 0, 0, sizeof(lgs_ckpt_finalize_msg_t), 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_finalize_msg_t *)0)->client_id, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_finalize_msg_t *)0)->c_file_close_time_stamp, 0, NULL},
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_final_msg_ptr = (lgs_ckpt_finalize_msg_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_final_msg_dec_ptr = (lgs_ckpt_finalize_msg_t **)ptr;
-		if (*ckpt_final_msg_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_final_msg_dec_ptr, '\0', sizeof(lgs_ckpt_finalize_msg_t));
-		ckpt_final_msg_ptr = *ckpt_final_msg_dec_ptr;
-	} else {
-		ckpt_final_msg_ptr = ptr;
-	}
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_final_rec_ed_rules, ckpt_final_msg_ptr, ptr_data_len,
-				 buf_env, op, o_err);
-	return rc;
-
-}	/* End edp_ed_finalize_rec() */
-
-/****************************************************************************
- * Name          : edp_ed_cfg_stream_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint cfg_update_stream log rec.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_cfg_stream_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				   NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				   EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgs_ckpt_stream_cfg_t *ckpt_stream_cfg_msg_ptr = NULL, **ckpt_stream_cfg_msg_dec_ptr;
-
-	EDU_INST_SET ckpt_stream_cfg_rec_ed_rules[] = {
-		{EDU_START, edp_ed_cfg_stream_rec, 0, 0, 0, sizeof(lgs_ckpt_stream_cfg_t), 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->name, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->fileName, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->pathName, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->maxLogFileSize, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->fixedLogRecordSize, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->haProperty, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->logFullAction, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->logFullHaltThreshold, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->maxFilesRotated, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->logFileFormat, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->severityFilter, 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->logFileCurrent, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_stream_cfg_t *)0)->c_file_close_time_stamp, 0, NULL},
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_stream_cfg_msg_ptr = (lgs_ckpt_stream_cfg_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_stream_cfg_msg_dec_ptr = (lgs_ckpt_stream_cfg_t **)ptr;
-		if (*ckpt_stream_cfg_msg_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_stream_cfg_msg_dec_ptr, '\0', sizeof(lgs_ckpt_stream_cfg_t));
-		ckpt_stream_cfg_msg_ptr = *ckpt_stream_cfg_msg_dec_ptr;
-	} else {
-		ckpt_stream_cfg_msg_ptr = ptr;
-	}
-
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_stream_cfg_rec_ed_rules, ckpt_stream_cfg_msg_ptr, ptr_data_len,
-				 buf_env, op, o_err);
-	return rc;
-
-}
-
-/****************************************************************************
- * Name          : edp_ed_lgs_cfg_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint log service configuration update.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_lgs_cfg_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				   NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				   EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgs_ckpt_lgs_cfg_t *ckpt_lgs_cfg_msg_ptr = NULL, **ckpt_lgs_cfg_msg_dec_ptr;
-
-	EDU_INST_SET ckpt_lgs_cfg_rec_ed_rules[] = {
-		{EDU_START, edp_ed_lgs_cfg_rec, 0, 0, 0, sizeof(lgs_ckpt_lgs_cfg_t), 0, NULL},
-		{EDU_EXEC, ncs_edp_string, 0, 0, 0, (long)&((lgs_ckpt_lgs_cfg_t *)0)->logRootDirectory, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_lgs_cfg_t *)0)->c_file_close_time_stamp, 0, NULL},
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_lgs_cfg_msg_ptr = (lgs_ckpt_lgs_cfg_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_lgs_cfg_msg_dec_ptr = (lgs_ckpt_lgs_cfg_t **)ptr;
-		if (*ckpt_lgs_cfg_msg_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_lgs_cfg_msg_dec_ptr, '\0', sizeof(lgs_ckpt_lgs_cfg_t));
-		ckpt_lgs_cfg_msg_ptr = *ckpt_lgs_cfg_msg_dec_ptr;
-	} else {
-		ckpt_lgs_cfg_msg_ptr = ptr;
-	}
-
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_lgs_cfg_rec_ed_rules, ckpt_lgs_cfg_msg_ptr, ptr_data_len,
-				 buf_env, op, o_err);
-	return rc;
-
-}
-
-/****************************************************************************
- * Name          : edp_ed_agent_down_rec
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint client down.
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_agent_down_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-				   NCSCONTEXT ptr, uint32_t *ptr_data_len,
-				   EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgs_ckpt_agent_down_t *ckpt_agent_down_msg_ptr = NULL, **ckpt_agent_down_dec_ptr;
-	 
-
-	EDU_INST_SET ckpt_lgs_agent_down_ed_rules[] = {
-		{EDU_START, edp_ed_lgs_cfg_rec, 0, 0, 0, sizeof(lgs_ckpt_agent_down_t), 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_agent_down_t *)0)->agent_dest, 0, NULL},
-		{EDU_EXEC, ncs_edp_uns64, 0, 0, 0, (long)&((lgs_ckpt_agent_down_t *)0)->c_file_close_time_stamp, 0, NULL},
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_agent_down_msg_ptr = (lgs_ckpt_agent_down_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_agent_down_dec_ptr = (lgs_ckpt_agent_down_t **)ptr;
-		if (*ckpt_agent_down_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_agent_down_dec_ptr, '\0', sizeof(lgs_ckpt_agent_down_t));
-		ckpt_agent_down_msg_ptr = *ckpt_agent_down_dec_ptr;
-	} else {
-		ckpt_agent_down_msg_ptr = ptr;
-	}
-
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_lgs_agent_down_ed_rules, ckpt_agent_down_msg_ptr, ptr_data_len,
-				 buf_env, op, o_err);
-	return rc;
-
-}
-
-/****************************************************************************
  * Name          : edp_ed_header_rec 
  *
  * Description   : This function is an EDU program for encoding/decoding
@@ -2250,7 +2197,7 @@ static uint32_t edp_ed_agent_down_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
  * Notes         : None.
  *****************************************************************************/
 
-static uint32_t edp_ed_header_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
+uint32_t edp_ed_header_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 			       NCSCONTEXT ptr, uint32_t *ptr_data_len,
 			       EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
 {
@@ -2280,6 +2227,7 @@ static uint32_t edp_ed_header_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
 	}
 	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_header_rec_ed_rules, ckpt_header_ptr, ptr_data_len,
 				 buf_env, op, o_err);
+
 	return rc;
 
 }	/* End edp_ed_header_rec() */
@@ -2305,7 +2253,7 @@ static uint32_t edp_ed_header_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
  * Notes         : None.
  *****************************************************************************/
 
-static int32_t ckpt_msg_test_type(NCSCONTEXT arg)
+int32_t ckpt_msg_test_type(NCSCONTEXT arg)
 {
 	enum {
 		LCL_TEST_JUMP_OFFSET_LGS_CKPT_REG = 1,
@@ -2345,99 +2293,7 @@ static int32_t ckpt_msg_test_type(NCSCONTEXT arg)
 		break;
 	}
 	return EDU_FAIL;
-
 }
-
-/****************************************************************************
- * Name          : edp_ed_ckpt_msg 
- *
- * Description   : This function is an EDU program for encoding/decoding
- *                 lgsv checkpoint messages. This program runs the 
- *                 edp_ed_hdr_rec program first to decide the
- *                 checkpoint message type based on which it will call the
- *                 appropriate EDU programs for the different checkpoint 
- *                 messages. 
- * 
- * Arguments     : EDU_HDL - pointer to edu handle,
- *                 EDU_TKN - internal edu token to help encode/decode,
- *                 POINTER to the structure to encode/decode from/to,
- *                 data length specifying number of structures,
- *                 EDU_BUF_ENV - pointer to buffer for encoding/decoding.
- *                 op - operation type being encode/decode. 
- *                 EDU_ERR - out param to indicate errors in processing. 
- *
- * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- *
- * Notes         : None.
- *****************************************************************************/
-
-static uint32_t edp_ed_ckpt_msg(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
-			     NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	lgsv_ckpt_msg_t *ckpt_msg_ptr = NULL, **ckpt_msg_dec_ptr;
-
-	EDU_INST_SET ckpt_msg_ed_rules[] = {
-		{EDU_START, edp_ed_ckpt_msg, 0, 0, 0, sizeof(lgsv_ckpt_msg_t), 0, NULL},
-		{EDU_EXEC, edp_ed_header_rec, 0, 0, 0, (long)&((lgsv_ckpt_msg_t *)0)->header, 0, NULL},
-
-		{EDU_TEST, ncs_edp_uns32, 0, 0, 0, (long)&((lgsv_ckpt_msg_t *)0)->header, 0,
-		 (EDU_EXEC_RTINE)ckpt_msg_test_type},
-
-		/* Reg Record */
-		{EDU_EXEC, edp_ed_reg_rec, 0, 0, EDU_EXIT,
-		 (long)&((lgsv_ckpt_msg_t *)0)->ckpt_rec.initialize_client, 0, NULL},
-
-		/* Finalize record */
-		{EDU_EXEC, edp_ed_finalize_rec, 0, 0, EDU_EXIT,
-		 (long)&((lgsv_ckpt_msg_t *)0)->ckpt_rec.finalize_client, 0, NULL},
-
-		/* write log Record */
-		{EDU_EXEC, edp_ed_write_rec, 0, 0, EDU_EXIT,
-		 (long)&((lgsv_ckpt_msg_t *)0)->ckpt_rec.write_log, 0, NULL},
-
-		/* Open stream */
-		{EDU_EXEC, edp_ed_open_stream_rec, 0, 0, EDU_EXIT,
-		 (long)&((lgsv_ckpt_msg_t *)0)->ckpt_rec.stream_open, 0, NULL},
-
-		/* Close stream */
-		{EDU_EXEC, edp_ed_close_stream_rec, 0, 0, EDU_EXIT,
-		 (long)&((lgsv_ckpt_msg_t *)0)->ckpt_rec.stream_close, 0, NULL},
-
-		/* Agent dest */
-		{EDU_EXEC, edp_ed_agent_down_rec, 0, 0, EDU_EXIT,
-		 (long)&((lgsv_ckpt_msg_t *)0)->ckpt_rec.stream_cfg, 0, NULL},
-
-
-		/* Cfg stream */
-		{EDU_EXEC, edp_ed_cfg_stream_rec, 0, 0, EDU_EXIT,
-		 (long)&((lgsv_ckpt_msg_t *)0)->ckpt_rec.stream_cfg, 0, NULL},
-
-		/* Lgs cfg */
-		{EDU_EXEC, edp_ed_lgs_cfg_rec, 0, 0, EDU_EXIT,
-		 (long)&((lgsv_ckpt_msg_t *)0)->ckpt_rec.lgs_cfg, 0, NULL},
-
-		{EDU_END, 0, 0, 0, 0, 0, 0, NULL},
-	};
-
-	if (op == EDP_OP_TYPE_ENC) {
-		ckpt_msg_ptr = (lgsv_ckpt_msg_t *)ptr;
-	} else if (op == EDP_OP_TYPE_DEC) {
-		ckpt_msg_dec_ptr = (lgsv_ckpt_msg_t **)ptr;
-		if (*ckpt_msg_dec_ptr == NULL) {
-			*o_err = EDU_ERR_MEM_FAIL;
-			return NCSCC_RC_FAILURE;
-		}
-		memset(*ckpt_msg_dec_ptr, '\0', sizeof(lgsv_ckpt_msg_t));
-		ckpt_msg_ptr = *ckpt_msg_dec_ptr;
-	} else {
-		ckpt_msg_ptr = ptr;
-	}
-
-	rc = m_NCS_EDU_RUN_RULES(edu_hdl, edu_tkn, ckpt_msg_ed_rules, ckpt_msg_ptr, ptr_data_len, buf_env, op, o_err);
-	return rc;
-
-}	/* End edu_enc_dec_ckpt_msg() */
 
 /* Non EDU routines */
 /****************************************************************************

@@ -1,4 +1,5 @@
 /*      -*- OpenSAF  -*-
+ * File:   lgs_mbcsv.h
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  *
@@ -15,14 +16,17 @@
  *
  */
 
-#ifndef LGS_CKPT_H
-#define LGS_CKPT_H
 
-#include "lgs.h"
+#ifndef LGS_MBCSV_H
+#define	LGS_MBCSV_H
 
-#define LGS_MBCSV_VERSION 1
+#ifdef	__cplusplus
+extern "C" {
+#endif
+	
+#define LGS_MBCSV_VERSION 2
 #define LGS_MBCSV_VERSION_MIN 1
-
+	
 /* Checkpoint message types(Used as 'reotype' w.r.t mbcsv)  */
 
 /* Checkpoint update messages are processed similar to lgsv internal
@@ -42,7 +46,14 @@ typedef enum {
 	LGS_CKPT_MSG_MAX
 } lgsv_ckpt_msg_type_t;
 
-/* Structures for Checkpoint data(to be replicated at the standby) */
+/* Checkpoint message containing lgs data of a particular type.
+ * Used during cold and async updates.
+ */
+typedef struct {
+	lgsv_ckpt_msg_type_t ckpt_rec_type;	/* Type of lgs data carried in this checkpoint */
+	uint32_t num_ckpt_records;	/* =1 for async updates,>=1 for cold sync */
+	uint32_t data_len;		/* Total length of encoded checkpoint data of this type */
+} lgsv_ckpt_header_t;
 
 /* Initialize checkpoint record, used in cold/async checkpoint updates */
 typedef struct {
@@ -50,21 +61,6 @@ typedef struct {
 	MDS_DEST mds_dest;	/* Handy when an LGA instance goes away */
 	lgs_stream_list_t *stream_list;
 } lgs_ckpt_initialize_msg_t;
-
-/* Finalize checkpoint record, used in cold/async checkpoint updates */
-typedef struct {
-	uint32_t client_id;	/* Client Id at Active */
-	uint64_t c_file_close_time_stamp; /* Time in sec for file rename */
-} lgs_ckpt_finalize_msg_t;
-
-typedef struct {
-	uint32_t streamId;
-	uint32_t recordId;
-	uint32_t curFileSize;
-	char *logFileCurrent;
-	char *logRecord;
-	uint64_t c_file_close_time_stamp; /* Time in sec for file rename on Active */
-} lgs_ckpt_write_log_t;
 
 typedef struct {
 	uint32_t streamId;
@@ -86,68 +82,27 @@ typedef struct {
 	uint32_t logRecordId;	/* log record identifier increased for each record */
 } lgs_ckpt_stream_open_t;
 
-typedef struct {
-	uint32_t streamId;
-	uint32_t clientId;
-	uint64_t c_file_close_time_stamp; /* Time in sec for file rename on Active */
-} lgs_ckpt_stream_close_t;
-
-/* Checkpoint message containing lgs data of a particular type.
- * Used during cold and async updates.
- */
-typedef struct {
-	lgsv_ckpt_msg_type_t ckpt_rec_type;	/* Type of lgs data carried in this checkpoint */
-	uint32_t num_ckpt_records;	/* =1 for async updates,>=1 for cold sync */
-	uint32_t data_len;		/* Total length of encoded checkpoint data of this type */
-} lgsv_ckpt_header_t;
-
-typedef struct {
-	char *name;
-	char *fileName;
-	char *pathName;
-	SaUint64T maxLogFileSize;
-	SaUint32T fixedLogRecordSize;
-	SaBoolT haProperty;	/* app log stream only */
-	SaLogFileFullActionT logFullAction;
-	SaUint32T logFullHaltThreshold;	/* !app log stream */
-	SaUint32T maxFilesRotated;
-	char *logFileFormat;
-	SaUint32T severityFilter;
-	char *logFileCurrent;
-	uint64_t c_file_close_time_stamp; /* Time in sec for file rename on Active */
-} lgs_ckpt_stream_cfg_t;
-
-typedef struct {
-	/* Only attribute that can be updated */
-	char *logRootDirectory;
-	uint64_t c_file_close_time_stamp; /* Time in sec for file rename */
-} lgs_ckpt_lgs_cfg_t;
-
-typedef struct {
-	MDS_DEST agent_dest; /* uint64_t */
-	uint64_t c_file_close_time_stamp; /* Time in sec for file rename (int64_t) */
-} lgs_ckpt_agent_down_t;
-
-typedef struct {
-	lgsv_ckpt_header_t header;
-	union {
-		lgs_ckpt_initialize_msg_t initialize_client;
-		lgs_ckpt_finalize_msg_t finalize_client;
-		lgs_ckpt_write_log_t write_log;
-		lgs_ckpt_agent_down_t agent_down;
-		lgs_ckpt_stream_open_t stream_open;
-		lgs_ckpt_stream_close_t stream_close;
-		lgs_ckpt_stream_cfg_t stream_cfg;
-		lgs_ckpt_lgs_cfg_t lgs_cfg;
-	} ckpt_rec;
-} lgsv_ckpt_msg_t;
-
-typedef uint32_t (*LGS_CKPT_HDLR) (lgs_cb_t *cb, lgsv_ckpt_msg_t *data);
 uint32_t lgs_mbcsv_init(lgs_cb_t *lgs_cb);
 uint32_t lgs_mbcsv_change_HA_state(lgs_cb_t *cb);
+bool lgs_is_peer_v2(void);
 bool lgs_is_split_file_system(void);
 uint32_t lgs_mbcsv_dispatch(NCS_MBCSV_HDL mbcsv_hdl);
-uint32_t lgs_ckpt_send_async(lgs_cb_t *cb, lgsv_ckpt_msg_t *ckpt_rec, uint32_t action);
-uint32_t lgs_ckpt_stream_open_set(log_stream_t *logStream, lgs_ckpt_stream_open_t *stream_open);
+void lgs_free_edu_mem(char *ptr);
+uint32_t lgs_ckpt_stream_open_set(log_stream_t *logStream,
+		lgs_ckpt_stream_open_t *stream_open);
+uint32_t edp_ed_header_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
+			       NCSCONTEXT ptr, uint32_t *ptr_data_len,
+			       EDU_BUF_ENV *buf_env, EDP_OP_TYPE op, EDU_ERR *o_err);
+int32_t ckpt_msg_test_type(NCSCONTEXT arg);
+uint32_t edp_ed_reg_rec(EDU_HDL *edu_hdl, EDU_TKN *edu_tkn,
+			    NCSCONTEXT ptr, uint32_t *ptr_data_len, EDU_BUF_ENV *buf_env,
+		EDP_OP_TYPE op, EDU_ERR *o_err);
+uint32_t lgs_ckpt_send_async(lgs_cb_t *cb, void *ckpt_rec, uint32_t action);
 
-#endif   /* !LGSV_CKPT_H */
+
+#ifdef	__cplusplus
+}
+#endif
+
+#endif	/* LGS_MBCSV_H */
+
