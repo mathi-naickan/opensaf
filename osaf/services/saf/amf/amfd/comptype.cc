@@ -427,12 +427,110 @@ static void comptype_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 	case CCBUTIL_DELETE:
 		comptype_delete(static_cast<AVD_COMP_TYPE*>(opdata->userData));
 		break;
+	case CCBUTIL_MODIFY:
+		// values not used, no need to reinitialize type
+		break;
 	default:
 		osafassert(0);
 		break;
 	}
 
 	TRACE_LEAVE();
+}
+
+/**
+ * Validates proposed change in comptype
+ */
+static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdata)
+{
+	SaAisErrorT rc = SA_AIS_OK;
+	const SaImmAttrModificationT_2 *mod;
+	int i = 0;
+	const char *dn = (char*)opdata->objectName.value;
+
+	while ((mod = opdata->param.modify.attrMods[i++]) != NULL) {
+		if (strcmp(mod->modAttr.attrName, "saAmfCtDefClcCliTimeout") == 0) {
+			// if it exist it cannot be removed, just changed
+			if ((mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
+					(mod->modAttr.attrValues == NULL)) {
+				report_ccb_validation_error(opdata,
+					"Value deletion for '%s' is not supported", mod->modAttr.attrName);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+
+			SaTimeT value = *((SaTimeT *)mod->modAttr.attrValues[0]);
+			if (value < SA_TIME_ONE_SECOND) {
+				report_ccb_validation_error(opdata,
+					"Invalid saAmfCtDefClcCliTimeout for '%s'", dn);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefCallbackTimeout") == 0) {
+			// if it exist it cannot be removed, just changed
+			if ((mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
+					(mod->modAttr.attrValues == NULL)) {
+				report_ccb_validation_error(opdata,
+					"Value deletion for '%s' is not supported", mod->modAttr.attrName);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+
+			SaTimeT value = *((SaTimeT *)mod->modAttr.attrValues[0]);
+			if (value < 100 * SA_TIME_ONE_MILLISECOND) {
+				report_ccb_validation_error(opdata,
+					"Invalid saAmfCtDefCallbackTimeout for '%s'", dn);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefInstantiateCmdArgv") == 0) {
+			; // Allow modification, no validation can be done
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefTerminateCmdArgv") == 0) {
+			; // Allow modification, no validation can be done
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefCleanupCmdArgv") == 0) {
+			; // Allow modification, no validation can be done
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefAmStartCmdArgv") == 0) {
+			; // Allow modification, no validation can be done
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefAmStopCmdArgv") == 0) {
+			; // Allow modification, no validation can be done
+		} else if (strcmp(mod->modAttr.attrName, "osafAmfCtDefHcCmdArgv") == 0) {
+			; // Allow modification, no validation can be done
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefQuiescingCompleteTimeout") == 0) {
+			SaTimeT value = *((SaTimeT *)mod->modAttr.attrValues[0]);
+			if (value < 100 * SA_TIME_ONE_MILLISECOND) {
+				report_ccb_validation_error(opdata,
+					"Invalid saAmfCtDefQuiescingCompleteTimeout for '%s'", dn);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefRecoveryOnError") == 0) {
+			uint32_t value = *((SaUint32T *)mod->modAttr.attrValues[0]);
+			if ((value < SA_AMF_COMPONENT_RESTART) || (value > SA_AMF_NODE_FAILFAST)) {
+				report_ccb_validation_error(opdata,
+					"Invalid saAmfCtDefRecoveryOnError for '%s'", dn);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefDisableRestart") == 0) {
+			uint32_t value = *((SaUint32T *)mod->modAttr.attrValues[0]);
+			if (value > SA_TRUE) {
+				report_ccb_validation_error(opdata,
+					"Invalid saAmfCtDefDisableRestart for '%s'", dn);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+		} else {
+			// catch all for non supported changes
+			report_ccb_validation_error(opdata,
+				"Modification of attribute '%s' not supported",
+				mod->modAttr.attrName);
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		}
+	}
+
+done:
+	return rc;
 }
 
 static SaAisErrorT comptype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
@@ -452,7 +550,7 @@ static SaAisErrorT comptype_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 			rc = SA_AIS_OK;
 		break;
 	case CCBUTIL_MODIFY:
-		report_ccb_validation_error(opdata, "Modification of SaAmfCompType not supported");
+		rc = ccb_completed_modify_hdlr(opdata);
 		break;
 	case CCBUTIL_DELETE:
 		comp_type = avd_comptype_get(&opdata->objectName);
