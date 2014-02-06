@@ -246,7 +246,6 @@ typedef struct avd_amf_sg_type_tag {
    /******************** B.04 model *************************************************/
 	SaNameT *saAmfSGtValidSuTypes;	/* array of DNs, size in number_su_type */
 	SaAmfRedundancyModelT saAmfSgtRedundancyModel;
-	SaNameT *saAmfStgValidSuTypes;
 	SaBoolT saAmfSgtDefAutoRepair;
 	SaBoolT saAmfSgtDefAutoAdjust;
 	SaTimeT saAmfSgtDefAutoAdjustProb;

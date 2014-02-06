@@ -50,6 +50,25 @@ static void svctype_delete(AVD_SVC_TYPE *svc_type)
 {
 	unsigned int rc = ncs_patricia_tree_del(&svctype_db, &svc_type->tree_node);
 	osafassert(rc == NCSCC_RC_SUCCESS);
+
+	if (svc_type->saAmfSvcDefActiveWeight != NULL) {
+		unsigned int i = 0;
+		while (svc_type->saAmfSvcDefActiveWeight[i] != NULL) {
+			free(svc_type->saAmfSvcDefActiveWeight[i]);
+			++i;
+		}
+		free(svc_type->saAmfSvcDefActiveWeight);
+	}
+
+	if (svc_type->saAmfSvcDefStandbyWeight != NULL) {
+		unsigned int i = 0;
+		while (svc_type->saAmfSvcDefStandbyWeight[i] != NULL) {
+			free(svc_type->saAmfSvcDefStandbyWeight[i]);
+			++i;
+		}
+		free(svc_type->saAmfSvcDefStandbyWeight);
+	}
+
 	free(svc_type);
 }
 
@@ -69,6 +88,8 @@ static AVD_SVC_TYPE *svctype_create(const SaNameT *dn, const SaImmAttrValuesT_2 
 	memcpy(svct->name.value, dn->value, dn->length);
 	svct->name.length = dn->length;
 	svct->tree_node.key_info = (uint8_t *)&svct->name;
+	svct->saAmfSvcDefActiveWeight = NULL;
+	svct->saAmfSvcDefStandbyWeight = NULL;
 
 	/* Optional, [0..*] */
 	if (immutil_getAttrValuesNumber("saAmfSvcDefActiveWeight", attributes, &attrValuesNumber) == SA_AIS_OK) {
