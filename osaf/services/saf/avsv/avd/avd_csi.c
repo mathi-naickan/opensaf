@@ -44,6 +44,19 @@ void avd_csi_delete(AVD_CSI *csi)
 
 	rc = ncs_patricia_tree_del(&csi_db, &csi->tree_node);
 	osafassert(rc == NCSCC_RC_SUCCESS);
+
+	if (csi->saAmfCSIDependencies != NULL) {
+		AVD_CSI_DEPS *csi_dep;
+		AVD_CSI_DEPS *next_csi_dep;
+
+		csi_dep = csi->saAmfCSIDependencies;
+		while (csi_dep != NULL) {
+			next_csi_dep = csi_dep->csi_dep_next;
+			free(csi_dep);
+			csi_dep = next_csi_dep;
+		}
+	}
+
 	free(csi);
 	TRACE_LEAVE2();
 }
@@ -292,21 +305,21 @@ static void csi_get_attr_and_add_to_model(AVD_CSI *csi, const SaImmAttrValuesT_2
 		} else {
 			/* Dependency Configured. Decide rank when adding it in si list.*/
 			int i;
-			bool found = false;
+			bool found;
 			AVD_CSI_DEPS *new_csi_dep = NULL;
 
 			for (i = 0; i < values_number; i++) {
-				if (!found)
-					new_csi_dep  =  calloc(1, sizeof(*new_csi_dep));
+				new_csi_dep = calloc(1, sizeof(*new_csi_dep));
 				if (immutil_getAttr("saAmfCSIDependencies", attributes, i,
 					&new_csi_dep->csi_dep_name_value) != SA_AIS_OK) {
 					LOG_ER("Get saAmfCSIDependencies FAILED for '%s'", csi->name.value);
+					free(new_csi_dep);
 					goto done;
 				}
 				found = csi_add_csidep(csi,new_csi_dep);
+				if (found == true)
+					free(new_csi_dep);
 			}
-			if (found == true)
-				free (new_csi_dep);
 		}
 	} else {
 		csi->rank = 1;
