@@ -627,46 +627,75 @@ SaAisErrorT log_stream_open(log_stream_t *stream)
  * stream object.
  * @param stream
  * 
- * @return int
  */
-int log_stream_close(log_stream_t **s)
+void log_stream_close(log_stream_t **s)
 {
 	int rc = 0;
 	log_stream_t *stream = *s;
+	int msecs_waited = 0;
+	const unsigned int max_waiting_time = 8 * 1000;	/* 8 secs */
+	const unsigned int sleep_delay_ms = 500;
+	SaUint32T trace_num_openers;
 
 	osafassert(stream != NULL);
-	TRACE_ENTER2("%s, numOpeners=%u", stream->name, stream->numOpeners);
+	TRACE_ENTER2("%s", stream->name);
 
 	osafassert(stream->numOpeners > 0);
 	stream->numOpeners--;
+	trace_num_openers = stream->numOpeners;
 
 	if (stream->numOpeners == 0) {
-		/* standard streams can never be deleted */
+		/* Delete stream if last opener
+		 * Note: standard streams can never be deleted
+		 */
 		osafassert(stream->streamType == STREAM_TYPE_APPLICATION);
 		if (stream->fd != -1) {
 			char *timeString = lgs_get_time();
-			if ((rc = fileclose(stream->fd)) == -1) {
-				LOG_ER("log_stream_close FAILED: %s", strerror(errno));
-				goto done;
+			rc = fileclose(stream->fd);
+			while ((rc == -1) && (msecs_waited < max_waiting_time)) {
+				usleep(sleep_delay_ms * 1000);
+				msecs_waited += sleep_delay_ms;
+				rc = fileclose(stream->fd);
+			}
+			if (rc == -1) {
+				LOG_ER("Could not close log files: %s", strerror(errno));
+				goto done_files;
+ 			}
+
+			rc = lgs_file_rename(stream->pathName, stream->logFileCurrent,
+					timeString, LGS_LOG_FILE_EXT);
+			while ((rc == -1) && (msecs_waited < max_waiting_time)) {
+				usleep(sleep_delay_ms * 1000);
+				msecs_waited += sleep_delay_ms;
+				rc = lgs_file_rename(stream->pathName, stream->logFileCurrent,
+						timeString, LGS_LOG_FILE_EXT);
+			}
+			if (rc == -1) {
+				LOG_ER("Could not rename log file: %s", strerror(errno));
+				goto done_files;
 			}
 
-			rc = lgs_file_rename(stream->pathName, stream->logFileCurrent, timeString, LGS_LOG_FILE_EXT);
-			if (rc == -1)
-				goto done;
-
-			rc = lgs_file_rename(stream->pathName, stream->fileName, timeString, LGS_LOG_FILE_CONFIG_EXT);
-			if (rc == -1)
-				goto done;
+			rc = lgs_file_rename(stream->pathName, stream->fileName,
+					timeString, LGS_LOG_FILE_CONFIG_EXT);
+			while ((rc == -1) && (msecs_waited < max_waiting_time)) {
+				usleep(sleep_delay_ms * 1000);
+				msecs_waited += sleep_delay_ms;
+				rc = lgs_file_rename(stream->pathName, stream->fileName,
+						timeString, LGS_LOG_FILE_CONFIG_EXT);
+			}
+			if (rc == -1) {
+				LOG_ER("Could not rename config file: %s", strerror(errno));
+				goto done_files;
+			}
 		}
 
-
-		log_stream_delete(s);
-		stream = NULL;
+		done_files:
+			log_stream_delete(s);
+			TRACE("\tApplication stream deleted");
+			stream = NULL;
 	}
 
- done:
-	TRACE_LEAVE2("rc=%d, numOpeners=%u", rc, stream ? stream->numOpeners : 0);
-	return rc;
+	TRACE_LEAVE2("rc=%d, numOpeners=%u", rc, trace_num_openers);
 }
 
 /**

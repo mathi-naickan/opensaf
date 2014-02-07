@@ -958,10 +958,7 @@ static uint32_t proc_stream_close_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	}
 
 	streamId = stream->streamId;
-	if (log_stream_close(&stream) != 0) {
-		ais_rc = SA_AIS_ERR_TRY_AGAIN;
-		goto snd_rsp;
-	}
+	log_stream_close(&stream);
 	ckpt.header.ckpt_rec_type = LGS_CKPT_CLOSE_STREAM;
 	ckpt.header.num_ckpt_records = 1;
 	ckpt.header.data_len = 1;
