@@ -2377,10 +2377,7 @@ static uint32_t avsv_decode_ckpt_comp_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC
 		return status;
 	}
 
-	if (NULL == (comp_struct = avd_comp_get(&comp_ptr->comp_info.name))) {
-		LOG_ER("%s: comp not found, %s", __FUNCTION__, comp_ptr->comp_info.name.value);
-		return NCSCC_RC_FAILURE;
-	}
+	comp_struct = avd_comp_get_or_create(&comp_ptr->comp_info.name);
 
 	/* Update the fields received in this checkpoint message */
 	comp_struct->saAmfCompOperState = comp_ptr->saAmfCompOperState;
