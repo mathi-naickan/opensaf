@@ -94,7 +94,7 @@ extern log_stream_t *log_stream_new_2(SaNameT *name, int stream_id);
 extern void log_stream_open_fileinit(log_stream_t *stream);
 extern void log_initiate_stream_files(log_stream_t *stream);
 
-extern int log_stream_close(log_stream_t **stream, time_t *close_time);
+extern void log_stream_close(log_stream_t **stream, time_t *close_time);
 extern int log_stream_file_close(log_stream_t *stream);
 extern int log_stream_write_h(log_stream_t *stream, const char *buf, size_t count);
 extern void log_stream_id_print(void);

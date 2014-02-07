@@ -1663,10 +1663,7 @@ static uint32_t ckpt_proc_close_stream(lgs_cb_t *cb, void *data)
 		(void)lgs_client_stream_rmv(clientId, streamId);
 	}
 
-	if (log_stream_close(&stream, closetime_ptr) != 0) {
-		/* Do not allow standby to get out of sync */
-		lgs_exit("Client attributes differ", SA_AMF_COMPONENT_RESTART);
-	}
+	log_stream_close(&stream, closetime_ptr);
 	
  done:
 	TRACE_LEAVE();

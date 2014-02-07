@@ -1058,10 +1058,7 @@ static uint32_t proc_stream_close_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 	}
 
 	streamId = stream->streamId;
-	if (log_stream_close(&stream, &closetime) != 0) {
-		ais_rc = SA_AIS_ERR_TRY_AGAIN;
-		goto snd_rsp;
-	}
+	log_stream_close(&stream, &closetime);
 	
 	/* Checkpointing */
 	if (lgs_is_peer_v2()) {
