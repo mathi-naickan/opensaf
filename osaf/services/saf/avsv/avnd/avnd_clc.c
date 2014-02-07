@@ -2014,7 +2014,8 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		 * we end up here. comp is terminated, indicate that all its CSIs are
 		 * removed so we can proceed with the next step in the shutdown sequence.
 		 */
-		if (!comp->su->is_ncs && comp->csi_list.n_nodes > 0) {
+		/* This is only for PI SU. */
+		if ((!comp->su->is_ncs) && (comp->csi_list.n_nodes > 0) && (m_AVND_SU_IS_PREINSTANTIABLE(comp->su))) {
 			AVND_COMP_CSI_REC *csi;
 			int csis_removed = 0; // for sanity checking number of loops
 
