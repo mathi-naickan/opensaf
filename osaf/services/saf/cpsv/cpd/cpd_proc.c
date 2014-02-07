@@ -812,7 +812,15 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 		                /* This is to delete the node from reploc_tree */
                 		cpd_ckpt_reploc_get(&cb->ckpt_reploc_tree, &key_info, &rep_info);
                 		if (rep_info) {
-                        		cpd_ckpt_reploc_node_delete(cb, rep_info, ckpt_node->is_unlink_set);
+					cpd_ckpt_reploc_node_delete(cb, rep_info, ckpt_node->is_unlink_set);
+					memset(&send_evt, 0, sizeof(CPSV_EVT));
+					send_evt.type = CPSV_EVT_TYPE_CPND;
+					send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_REP_DEL;
+					send_evt.info.cpnd.info.ckpt_del.ckpt_id = ckpt_node->ckpt_id;
+					send_evt.info.cpnd.info.ckpt_del.mds_dest = *cpnd_dest;
+					/* Broadcast the info to all CPNDs to delete the  existing/down remote cpnd details
+					   from cpnd dest list of cp_node */
+					(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
                 		}
 
 				m_MMGR_FREE_CPD_CKPT_REF_INFO(cref_info);
