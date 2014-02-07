@@ -63,7 +63,7 @@ extern "C" {
 #define SA_IMM_SEARCH_GET_CONFIG_ATTR 0x0000000000010000   / * See: http://devel.opensaf.org/ticket/1897
                           Supported in OpenSaf 4.3 * /
     */
-#define SA_IMM_SEARCH_NO_DANGLING_DEPENDENTS  0x0000000100000000    /* See: https://sourceforge.net/p/opensaf/tickets/50/
+#define SA_IMM_SEARCH_NO_DANGLING_DEPENDENTS  0x0000000100000000ull    /* See: https://sourceforge.net/p/opensaf/tickets/50/
                                                                        Supported in OpenSaf 4.4 */
 
 
