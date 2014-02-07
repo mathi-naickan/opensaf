@@ -1476,6 +1476,27 @@ static void comp_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 	TRACE_LEAVE();
 }
 
+/**
+ * Return an Comp object if it exist, otherwise create it and
+ * return a reference to the new object.
+ * @param dn
+ *
+ * @return AVD_COMP*
+ */
+AVD_COMP *avd_comp_get_or_create(const SaNameT *dn)
+{
+	AVD_COMP *comp = avd_comp_get(dn);
+
+	if (!comp) {
+		TRACE("'%s' does not exist, creating it", dn->value);
+		comp = avd_comp_new(dn);
+		osafassert(comp != NULL);
+		avd_comp_db_add(comp);
+	}
+
+	return comp;
+}
+
 void avd_comp_constructor(void)
 {
 	NCS_PATRICIA_PARAMS patricia_params;
