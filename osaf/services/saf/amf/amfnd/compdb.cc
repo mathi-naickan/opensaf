@@ -1219,8 +1219,8 @@ static void init_clc_cli_command(AVND_COMP_CLC_CMD_PARAM *cmd,
 	int i, j;
 	const char *argv;
 
-	// prepend with path prefix (from saAmfNodeSwBundlePathPrefix) if needed
-	if (clc_cmd[0] == '/')
+	// prepend with path prefix if available
+	if (path_prefix == NULL)
 		i = snprintf(buf, sizeof(cmd->cmd), "%s", clc_cmd);
 	else
 		i = snprintf(buf, sizeof(cmd->cmd), "%s/%s",	path_prefix, clc_cmd);
