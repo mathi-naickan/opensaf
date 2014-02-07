@@ -75,7 +75,7 @@ extern log_stream_t *log_stream_new_2(SaNameT *name, int stream_id);
 
 extern SaAisErrorT log_stream_open(log_stream_t *stream);
 
-extern int log_stream_close(log_stream_t **stream);
+extern void log_stream_close(log_stream_t **stream);
 extern int log_stream_file_close(log_stream_t *stream);
 extern int log_stream_write(log_stream_t *stream, const char *buf, size_t count);
 extern void log_stream_id_print(void);
