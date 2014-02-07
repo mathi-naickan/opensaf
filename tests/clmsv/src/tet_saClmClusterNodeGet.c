@@ -20,7 +20,7 @@
 SaClmClusterNodeT clusterNode_1;
 SaClmClusterNodeT_4 clusterNode_4;
 SaClmNodeIdT nodeId;
-SaTimeT timeout = 10000000000;
+SaTimeT timeout = 10000000000ll;
 
 void saClmClusterNodeGet_01(void)
 {	
