@@ -2017,12 +2017,26 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		/* This is only for PI SU. */
 		if ((!comp->su->is_ncs) && (comp->csi_list.n_nodes > 0) && (m_AVND_SU_IS_PREINSTANTIABLE(comp->su))) {
 			AVND_COMP_CSI_REC *csi;
-			int csis_removed = 0; // for sanity checking number of loops
 
-			while ((csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list))) != NULL) {
-				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVED);
-				rc = avnd_comp_csi_remove_done(cb, comp, csi);
-				osafassert(++csis_removed < 1000);
+			for (csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+				csi != NULL;
+				csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&csi->comp_dll_node))) {
+				/* In shutdown phase SIs are removed honoring saAmfSIRank in reverse
+				   order. A component which is having a CSI from a higher rank assigned 
+				   SI can fault while removal of lower rank SIs is going on. In such 
+				   case CSIs of this component will be in assigned state only, so remove 
+				   done indication cannot be generated for assigned CSIs. 
+				 */
+				if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(csi))
+					rc = avnd_comp_csi_remove_done(cb, comp, csi); 
+
+				/* Removal of last CSI from this component may lead to SUSI assign/remove 
+				   done indication, which eventually deletes all COMP-CSI record.
+				   In such a case there will not be any CSI in comp->csi_list, so come 
+				   out of the loop.
+				 */
+				if (comp->csi_list.n_nodes == 0)
+					break;
 			}
 		}
 
