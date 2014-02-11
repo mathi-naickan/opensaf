@@ -335,6 +335,14 @@ SmfCampaign::adminOperation(const SaImmAdminOperationIdT opId, const SaImmAdminO
 				}
 			}
 
+                        if (m_adminOpBusy == true) {
+                                LOG_ER("Campaign temporary busy handling another admin op");
+                                return SA_AIS_ERR_BUSY;
+                        }
+                        /*Clear error string here to not interfere with the error string handling
+                          in the campaign thread started below.*/
+			setError("");
+  
 			if (SmfCampaignThread::instance() == NULL) {
 				TRACE("Starting campaign thread %s", this->getDn().c_str());
 				if (SmfCampaignThread::start(this) != 0) {
@@ -343,13 +351,7 @@ SmfCampaign::adminOperation(const SaImmAdminOperationIdT opId, const SaImmAdminO
 				}
 			}
 
-                        if (m_adminOpBusy == true) {
-                                LOG_ER("Campaign temporary busy handling another admin op");
-                                return SA_AIS_ERR_BUSY;
-                        }
-
-			SmfCampaignThread::instance()->campaign()->setError("");
-            m_adminOpBusy = true; /* reset by campaign thread when admin op taken care of */
+                        m_adminOpBusy = true; /* reset by campaign thread when admin op taken care of */
 
 			TRACE("Sending execute event to thread");
 			CAMPAIGN_EVT *evt = new CAMPAIGN_EVT();
@@ -475,6 +477,10 @@ SmfCampaign::adminOperation(const SaImmAdminOperationIdT opId, const SaImmAdminO
 					return SA_AIS_ERR_BUSY;
 				}
 
+                                /*Clear error string here to not interfere with the error string handling
+                                  in the campaign thread started below.*/
+                                setError("");
+ 
 				if (SmfCampaignThread::instance() == NULL) {
 					if (SmfCampaignThread::start(this) != 0) {
 						return SA_AIS_ERR_CAMPAIGN_ERROR_DETECTED;
@@ -484,7 +490,6 @@ SmfCampaign::adminOperation(const SaImmAdminOperationIdT opId, const SaImmAdminO
 					return SA_AIS_ERR_BAD_OPERATION;
 				}
 
-				SmfCampaignThread::instance()->campaign()->setError("");
 				m_adminOpBusy = true; /* reset by campaign thread when admin op taken care of */
 
 				CAMPAIGN_EVT *evt = new CAMPAIGN_EVT();
