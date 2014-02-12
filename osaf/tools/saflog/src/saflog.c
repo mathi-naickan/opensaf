@@ -19,14 +19,40 @@
 #include <syslog.h>
 #include <stdarg.h>
 #include <unistd.h>
-#include <saLog.h>
 #include <saflog.h>
+
+static int initialized;
+static SaLogStreamHandleT logStreamHandle;
+static SaLogHandleT logHandle;
+
+void saflog_init(void)
+{
+	SaAisErrorT error;
+
+	if (!initialized) {
+		SaVersionT logVersion = { 'A', 2, 1 };
+		SaNameT stream_name = {.value = SA_LOG_STREAM_SYSTEM, .length = sizeof(SA_LOG_STREAM_SYSTEM)};
+
+		error = saLogInitialize(&logHandle, NULL, &logVersion);
+		if (error != SA_AIS_OK) {
+			syslog(LOG_INFO, "saflogInit: saLogInitialize FAILED: %u", error);
+			return;
+		}
+
+		error = saLogStreamOpen_2(logHandle, &stream_name, NULL, 0, SA_TIME_ONE_SECOND, &logStreamHandle);
+		if (error != SA_AIS_OK) {
+			syslog(LOG_INFO, "saflogInit: saLogStreamOpen_2 FAILED: %u", error);
+			if (saLogFinalize(logHandle) != SA_AIS_OK)
+				syslog(LOG_INFO, "saflogInit: saLogFinalize FAILED: %u", error);
+			return;
+		}
+		initialized = 1;
+	}
+}
 
 void saflog(int priority, const SaNameT *logSvcUsrName, const char *format, ...)
 {
 	SaAisErrorT error;
-	static int initialized;
-	static SaLogStreamHandleT logStreamHandle;
 	SaLogRecordT logRecord;
 	SaLogBufferT logBuffer;
 	va_list ap;
@@ -39,7 +65,6 @@ void saflog(int priority, const SaNameT *logSvcUsrName, const char *format, ...)
 	if (!initialized) {
 		SaVersionT logVersion = { 'A', 2, 1 };
 		SaNameT stream_name = {.value = SA_LOG_STREAM_SYSTEM, .length = sizeof(SA_LOG_STREAM_SYSTEM)};
-		SaLogHandleT logHandle;
 
 		error = saLogInitialize(&logHandle, NULL, &logVersion);
 		if (error != SA_AIS_OK) {
