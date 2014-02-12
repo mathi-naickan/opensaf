@@ -121,7 +121,7 @@ static SaAisErrorT sqlite_prepare_ccb(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT 
 				/* Note: it is important that the code in this MODIFY case follow
 				   the same logic as performed by ImmModel::ccbObjectModify()
 				   We DO NOT want the PBE repository to diverge from the main memory
-				   represenation of the immsv data. 
+				   representation of the immsv data. 
 				   This is not the only way to solve this. In fact the current solution is
 				   very unoptimal since it generates possibly several sql commands for what
 				   could be one. The advantage with the current solution is that it follows
@@ -185,6 +185,7 @@ static SaAisErrorT sqlite_prepare_ccb(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT 
 		}
 		ccbUtilOperationData = ccbUtilOperationData->next;
 	}
+	pbeClosePrepareTrans();
  ccb_abort:
 	return rc;
 }
@@ -205,7 +206,7 @@ static SaAisErrorT sqlite_prepare_ccb(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT 
 
    The entire prepare processing (start transaction and buildup) is done by the RTO thread at the slave.
    CCB is committed at primary, then in imm-ram. Finally the sqlite commit of a ccb at the slave is done
-   by the slave only when it receives the applier ##########
+   by the slave only when it receives the completed & apply callbacks in the applier thread.
 */
 
 static bool pbe2_start_prepare_ccb_A_to_B(SaImmOiCcbIdT ccbId, SaUint32T numOps)
@@ -234,6 +235,8 @@ static bool pbe2_start_prepare_ccb_A_to_B(SaImmOiCcbIdT ccbId, SaUint32T numOps)
 	};
 
 	const SaImmAdminOperationParamsT_2 *params[] = {&param0, &param1, NULL};
+
+	osafassert(sPbe2 && !sPbe2B); /* Must be 2PBE and NOT at slave. */
 
 	do{
 		rc2B = saImmOmAdminOperationInvoke_2(sOwnerHandle, &slavePbeRtObjName, 0, OPENSAF_IMM_PBE_CCB_PREPARE,
@@ -273,6 +276,7 @@ static SaAisErrorT pbe2_ok_to_prepare_ccb_at_B(SaImmOiCcbIdT ccbId, SaUint32T ex
 	SaAisErrorT rc = SA_AIS_OK;
 	SaUint64T numReceivedOps = 0LL;
 
+	osafassert(sPbe2 && sPbe2B); /* Must be at slave PBE. */
 	if(s2PbeBCcbToCompleteAtB == 0) { 
 		TRACE("First try at prepare for ccb: %llu at slave PBE", ccbId);
 		s2PbeBCcbUtilCcbData = ccbutil_findCcbData(ccbId);
@@ -337,7 +341,7 @@ static SaAisErrorT pbe2_ok_to_prepare_ccb_at_B(SaImmOiCcbIdT ccbId, SaUint32T ex
 
 	osafassert(s2PbeBCcbOpCountToExpectAtB == s2PbeBCcbOpCountNowAtB);
 	/* Assert is redundant but keep it here just in case code is changed.
-	   We never want to accidentally reply ok on prepare if we a re not 
+	   We never want to accidentally reply ok on prepare if we are not
 	   really ready at slave.
 	 */
 
@@ -541,7 +545,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		}
 
 		LOG_IN("Create of class %s committing with ccbId:%llx", className.c_str(), ccbId);
-
+		pbeClosePrepareTrans();
 		rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
 		if(rc != SA_AIS_OK) {
 			LOG_WA("PBE failed to commit transaction %llx for class create", ccbId);
@@ -699,6 +703,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 
 		LOG_IN("Delete of class %s committing with ccbId:%llx", className.c_str(), ccbId);
 
+		pbeClosePrepareTrans();
 		rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
 		if(rc != SA_AIS_OK) {
 			LOG_WA("PBE failed to commit transaction (ccb:%llx) for class delete", ccbId);
@@ -814,6 +819,7 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 		purgeCcbCommitsFromPbe(sDbHandle, sEpoch);
 		
 		LOG_NO("Update epoch %u committing with ccbId:%llx/%llu", sEpoch, ccbId, ccbId);
+		pbeClosePrepareTrans();
 		rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
 		if(rc != SA_AIS_OK) {
 			LOG_WA("PBE failed to commit sqlite transaction for update epoch");
@@ -1183,7 +1189,7 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 
 
 		ccbutil_deleteCcbData(ccbutil_findCcbData(ccbId));
-
+		pbeClosePrepareTrans();
 		rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
 		if(rc != SA_AIS_OK) {
 			LOG_WA("PBE failed to commit sqlite transaction (ccb:%llx) for PRT attr update", ccbId);
@@ -1273,7 +1279,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 	}
 
 	if(sPbe2) {
-		/* Primary PBE requests slave PBE to start preparing. If slave replies Ok
+		/* Primary PBE has requested slave PBE to start preparing. If slave replied Ok
 		   then slave was ready to start prepare and has started its prepare.
 		   Reply sent from slave before slave prepare was completed, so both 
 		   primary and slave will do the prepare in parallell, more or less.
@@ -1549,7 +1555,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 			operation->param.create.className, ccbId);
 
 		ccbutil_deleteCcbData(ccbutil_findCcbData(0));
-
+		pbeClosePrepareTrans();
 		rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
 		if(rc != SA_AIS_OK) {
 			LOG_WA("PBE failed to commit sqlite transaction (ccbId:%llx) for PRTO create", ccbId);
@@ -1962,9 +1968,9 @@ static void *pbeRtObjThread(void*)
 	SaAisErrorT rc;
 
 	while(immOiRtSelectionObject) {
-		TRACE("PBE Rt Thread entering poll");
+		TRACE("##@-PBE RUNTIME thread entering poll");
 		int ret = poll(rtfds, nrtfds, -1);
-		TRACE("PBE Rt Thread returned from poll ret: %d", ret);
+		TRACE("##@-PBE RUNTIME thread continues after poll ret: %d", ret);
 
 		if (ret == -1) {
 			if (errno == EINTR)
@@ -2085,9 +2091,9 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, SaImmAdminOwnerHandleT ow
 	   contains a copy of the descriptor. 
 	 */
 	while(immOiSelectionObject) { 
-		TRACE("PBE Daemon entering poll");
+		TRACE("##@-PBE MAIN thread entering poll");
 		int ret = poll(fds, nfds, -1);
-		TRACE("PBE Daemon returned from poll ret: %d", ret);
+		TRACE("##@-PBE MAIN thead continues after poll ret: %d", ret);
 		if (ret == -1) {
 			if (errno == EINTR)
 				continue;
@@ -2099,7 +2105,8 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, SaImmAdminOwnerHandleT ow
 		if (fds[FD_IMM_PBE_TERM].revents & POLLIN) {
 			ncs_sel_obj_rmv_ind(term_sel_obj, true, true);
 			if (sDbHandle != NULL) {
-				LOG_NO("PBE received SIG_TERM, closing db handle");
+				LOG_NO("IMM %s received SIG_TERM, closing db handle", 
+					sPbe2 ? (sPbe2B?"PBE SLAVE":"PBE PRIMARY"):"PBE");
 				pbeRepositoryClose(sDbHandle);
 				sDbHandle = NULL;
 			}
@@ -2148,7 +2155,7 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, SaImmAdminOwnerHandleT ow
 
 	}
 
-	LOG_IN("IMM PBE process EXITING...");
+		LOG_IN("IMM %s process EXITING...", sPbe2 ? (sPbe2B?"PBE SLAVE":"PBE PRIMARY"):"PBE");
 	TRACE_LEAVE();
 	exit(1);
 }

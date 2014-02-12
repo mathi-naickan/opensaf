@@ -39,6 +39,7 @@
 /* Spinlock for sqlite access see pbeBeginTrans.
    The lock will only be aquired in pbeBeginTrans().
    It is relased in either pbeCommitTrans() or pbeAbortTrans().
+   PbeCommitTrans() is only accepted after pbeClosePrepareTrans()
 */
 static volatile unsigned int sqliteTransLock=0;
 
@@ -47,6 +48,20 @@ bool pbeTransStarted()
 	return sqliteTransLock!=0;
 }
 
+bool pbeTransIsPrepared()
+{
+	return sqliteTransLock==2;
+}
+
+void pbeClosePrepareTrans()
+{
+    if(sqliteTransLock != 1) {
+        LOG_ER("pbePrepareTrans was called when sqliteTransLock(%u)!=1",
+               sqliteTransLock);
+        abort();
+    }
+    assert((++sqliteTransLock) == 2);
+}
 
 #include <sqlite3.h> 
 #define STRINT_BSZ 32
@@ -2683,9 +2698,13 @@ SaAisErrorT pbeBeginTrans(void* db_handle)
 			LOG_ER("Sqlite db appears blocked on other transaction");
 			return SA_AIS_ERR_FAILED_OPERATION;
 		}
-	} 
+	}
 
 	++sqliteTransLock; /* Lock is set. */
+        if(sqliteTransLock != 1) { /* i.e. not 2 or 3 */
+            LOG_ER("Failure in obtaining sqliteTransLock: %u", sqliteTransLock);
+            return SA_AIS_ERR_FAILED_OPERATION;
+        }
 
 	rc = sqlite3_exec(dbHandle, "BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
@@ -2706,10 +2725,13 @@ SaAisErrorT pbeCommitTrans(void* db_handle, SaUint64T ccbId, SaUint32T currentEp
 	time_t now = time(NULL);
 	SaAisErrorT err = SA_AIS_OK;
 
-	if(sqliteTransLock != 1) {
-		LOG_ER("pbeCommitTrans was called when sqliteTransLock(%u)!=1", sqliteTransLock);
+	if(sqliteTransLock != 2) {
+		LOG_ER("pbeCommitTrans was called when sqliteTransLock(%u)!=2", sqliteTransLock);
 		abort();
 	}
+
+	assert((++sqliteTransLock) == 3);
+
 
 	if(ccbId) {
 		sqlite3_stmt *stmt = preparedStmt[SQL_INS_CCB_COMMITS];
@@ -2753,6 +2775,8 @@ SaAisErrorT pbeCommitTrans(void* db_handle, SaUint64T ccbId, SaUint32T currentEp
 	}
 
  done:
+	--sqliteTransLock; 
+	--sqliteTransLock; 
 	--sqliteTransLock; /* Lock is released. */
 	fsyncPbeJournalFile(); /* This should not be needed. sqlite does double fsync itself */
 	return err;
@@ -2806,12 +2830,22 @@ void pbeAbortTrans(void* db_handle)
 
 	if(sqliteTransLock == 0) {
 		LOG_WA("pbeAbortTrans was called when sqliteTransLock==0");
-	} else if(sqliteTransLock == 1) {
-		--sqliteTransLock;
-	} else {
-		LOG_ER("Illegal value on sqliteTransLock:%u", sqliteTransLock);
-		abort();
 	}
+
+        switch(sqliteTransLock) {
+            case 3:
+                --sqliteTransLock;
+            case 2:
+                --sqliteTransLock;
+            case 1:
+                --sqliteTransLock;
+                break;
+
+            default:
+                LOG_ER("Illegal value on sqliteTransLock:%u", sqliteTransLock);
+                abort();
+
+        }
 }
 
 SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T currentEpoch)
@@ -2896,6 +2930,11 @@ bool pbeTransStarted()
 	return false;
 }
 
+bool pbeTransIsPrepared()
+{
+	return false;
+}
+
 
 void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmpFilename)
 {
@@ -2972,6 +3011,11 @@ SaAisErrorT pbeCommitTrans(void* db_handle, SaUint64T ccbId, SaUint32T epoch, Sa
 void pbeAbortTrans(void* db_handle)
 {
 	abort();
+}
+
+void pbeClosePrepareTrans()
+{
+    abort();
 }
 
 void objectDeleteToPBE(std::string objectNameString, void* db_handle)

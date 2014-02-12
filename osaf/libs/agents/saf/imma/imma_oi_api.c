@@ -1252,14 +1252,16 @@ SaAisErrorT saImmOiImplementerSet(SaImmOiHandleT immOiHandle, const SaImmOiImple
 		   If error is returned by implementerSet then isApplier is reset to 0 below.
 		 */
 		cl_node->isApplier = 0x1;
-	} else if((strncmp(implementerName, OPENSAF_IMM_PBE_IMPL_NAME, nameLen) == 0) ||
-		(strncmp(implementerName, OPENSAF_IMM_PBE_RT_IMPL_NAME_B, nameLen) == 0))
-		{
+	}
+
+	if((strncmp(implementerName, OPENSAF_IMM_PBE_IMPL_NAME, nameLen) == 0) ||
+	   (strncmp(implementerName, OPENSAF_IMM_2PBE_APPL_NAME, nameLen) == 0))
+	{
 		/* Optimistically turn on cl-node->isPbe since callbacks may arrive to the mds
 		   thread before reply on the implementerSet request arrives back here. 
 		   If error is returned by implementerSet then isPbe is reset to 0 below.
 		 */
-		TRACE("Special implementer %s detected and noted.", OPENSAF_IMM_PBE_IMPL_NAME);
+		TRACE("Special PBE implementer %s detected and noted.", implementerName);
 		cl_node->isPbe = 0x1;
 	}
 

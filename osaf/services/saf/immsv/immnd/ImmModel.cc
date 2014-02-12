@@ -435,7 +435,7 @@ static const std::string immAttrEpoch(OPENSAF_IMM_ATTR_EPOCH);
 static const std::string immClassName(OPENSAF_IMM_CLASS_NAME);
 static const std::string immAttrNostFlags(OPENSAF_IMM_ATTR_NOSTD_FLAGS);
 static const std::string immSyncBatchSize(OPENSAF_IMM_SYNC_BATCH_SIZE);
-static const std::string immPbeBSlaveName(OPENSAF_IMM_PBE_RT_IMPL_NAME_B);
+static const std::string immPbeBSlaveName(OPENSAF_IMM_2PBE_APPL_NAME);
 
 static const std::string immManagementDn("safRdn=immManagement,safApp=safImmService");
 static const std::string saImmRepositoryInit("saImmRepositoryInit");

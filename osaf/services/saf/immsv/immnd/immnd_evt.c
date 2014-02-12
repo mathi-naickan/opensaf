@@ -4761,7 +4761,6 @@ static void immnd_evt_proc_admop(IMMND_CB *cb,
 			return;
 		}
 
-		TRACE_2("Send immediate reply to client");
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 

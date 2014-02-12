@@ -2044,7 +2044,11 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 					}
 				}
 
-				if(!(cl_node->isApplier)) {
+				if(!(cl_node->isApplier) || (isPbeOp && cl_node->isPbe)) {
+					/* Appliers dont reply on completed except PBE slave replying on completed
+					   for PRTO- delete. PRTO-delete means ccb-id is in the high rannge.
+					   So PBE slave does NOT reply on completed for regular CCBs. 
+					*/
 					localEr = imma_evt_fake_evs(cb, &ccbCompletedRpl, NULL, 0, cl_node->handle, &locked, false);
 					if (localEr != NCSCC_RC_SUCCESS) {
 						/*Cant do anything but log error and drop this reply. */
