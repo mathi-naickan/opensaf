@@ -19,6 +19,7 @@
 #define SAFLOG_H
 
 #include <saAis.h>
+#include <saLog.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,6 +33,8 @@ extern "C" {
  */
 extern void saflog(int priority, const SaNameT *logSvcUsrName,
 	const char *format, ...) __attribute__ ((format(printf, 3, 4)));
+
+extern void saflog_init(void);
 
 #ifdef __cplusplus
 }
