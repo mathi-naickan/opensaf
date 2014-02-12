@@ -33,6 +33,7 @@
 
 #include <nid_api.h>
 #include "clms.h"
+#include "saflog.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -353,6 +354,11 @@ static uint32_t clms_init(void)
 		LOG_ER("signal USR1 failed: %s", strerror(errno));
 		goto done;
 	}
+
+	/* Initialize with saflog. This is necessary to avoid
+	 *  getting blocked by LOG during role change (switchover/failover)
+	 */
+	saflog_init();
 
 	rc = NCSCC_RC_SUCCESS;
 
