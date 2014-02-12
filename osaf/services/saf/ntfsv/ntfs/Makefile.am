@@ -40,9 +40,11 @@ osaf_execbin_PROGRAMS = osafntfd
 
 osafntfd_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-I$(top_srcdir)/osaf/libs/common/ntfsv/include
+	-I$(top_srcdir)/osaf/libs/common/ntfsv/include \
+	-I$(top_srcdir)/osaf/tools/saflog/include
 
 osafntfd_SOURCES = \
+	$(top_srcdir)/osaf/tools/saflog/src/saflog.c \
 	ntfs_amf.c \
 	ntfs_evt.c \
 	ntfs_mbcsv.c \
