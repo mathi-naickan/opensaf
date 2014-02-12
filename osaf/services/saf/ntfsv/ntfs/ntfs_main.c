@@ -38,6 +38,7 @@
 
 #include "ntfs.h"
 #include "ntfs_imcnutil.h"
+#include "saflog.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -249,6 +250,11 @@ static uint32_t initialize()
 	if (!ntfs_cb->nid_started && ntfs_amf_init() != SA_AIS_OK) {
 		goto done;
 	}
+
+	/* Initialize with saflog. This is necessary to avoid
+	 *  getting blocked by LOG during role change (switchover/failover)
+	 */
+	saflog_init();
 
 done:
 	if (ntfs_cb->nid_started &&
