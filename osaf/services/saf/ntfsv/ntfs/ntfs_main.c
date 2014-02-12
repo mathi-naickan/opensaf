@@ -36,6 +36,7 @@
 #include <ncs_main_papi.h>
 
 #include "ntfs.h"
+#include "saflog.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -302,6 +303,11 @@ int main(int argc, char *argv[])
 		if (fds[FD_LOG].revents & POLLIN)
 			logEvent();
 	}
+
+	/* Initialize with saflog. This is necessary to avoid
+	 *  getting blocked by LOG during role change (switchover/failover)
+	 */
+	saflog_init();
 
 done:
 	LOG_ER("Failed, exiting...");
