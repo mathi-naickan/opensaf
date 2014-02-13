@@ -1076,8 +1076,8 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	struct CcbUtilCcbData *ccbUtilCcbData = NULL;
-	struct CcbUtilOperationData  *operation = NULL;
-        long long unsigned int opCount=0;
+	SaUint64T numOps=0LL;
+	unsigned int msecs_waited = 0;
 
 	TRACE_ENTER2("Modify callback for CCB:%llu object:%s", ccbId, objectName->value);
 	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) == NULL) {
@@ -1088,7 +1088,7 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		}
 	}
 
-	opCount = (long long unsigned int) ccbUtilCcbData->userData;
+	numOps = (SaUint64T) ccbUtilCcbData->userData;
 
 	if(strncmp((char *) objectName->value, (char *) OPENSAF_IMM_OBJECT_DN, objectName->length) ==0) {
 		char buf[sBufsize];
@@ -1100,121 +1100,119 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		/* We will actually get invoked twice on this object, both as normal implementer and as PBE
 		   the response on the modify upcall from PBE is discarded, but not for the regular implemener.
 		 */
-	} else {
-		/* "memorize the modification request" */
-		if(ccbutil_ccbAddModifyOperation(ccbUtilCcbData, objectName, attrMods) != 0) {
-			LOG_ER("ccbutil_ccbAddModifyOperation did NOT return zero");
+		goto done;
+	}
+
+	/* memorize the modification request */
+	if(ccbutil_ccbAddModifyOperation(ccbUtilCcbData, objectName, attrMods) != 0) {
+		LOG_ER("ccbutil_ccbAddModifyOperation did NOT return zero");
+		rc = SA_AIS_ERR_BAD_OPERATION;
+		goto done;
+	}
+
+	ccbUtilCcbData->userData = (void *) ++numOps;
+
+	if(ccbId < 0x100000000LL) {
+		/* Regular CCB only records the modify */
+		goto done;
+	}
+
+	/* PRTA update operation. */
+	if(sPbe2B) {
+		/* Slave PBE waits for prepare for PRTA update (weak ccb) as admop invoked from primary PBE.*/
+
+		while((msecs_waited < max_waiting_time_ms) &&
+			( (s2PbeBCcbToCompleteAtB != ccbId) ||
+				(s2PbeBCcbOpCountNowAtB == 0) ||
+				(!pbeTransIsPrepared())
+			  )) {
+			LOG_IN("PBE slave waiting for prepare from primary on PRTA update ccb:%llx", ccbId);
+			usleep(sleep_delay_ms * 1000);
+			msecs_waited += sleep_delay_ms;
+		}
+
+		if((s2PbeBCcbToCompleteAtB != ccbId) ||
+			(s2PbeBCcbOpCountNowAtB == 0) ||
+			(!pbeTransIsPrepared())) {
+			LOG_NO("Slave PBE time-out in waiting on porepare for PRTA update ccb:%llx dn:%s", ccbId,
+				(const char *) objectName->value);
+			rc = SA_AIS_ERR_FAILED_OPERATION;
+			goto abort_prta_trans;
+		}
+		goto commit_prta_trans;
+
+	} else if(sPbe2) {
+		/* 2PBE at primary requests PBE slave to prepare this weak ccb. If prepare at slave
+		   fails, then the weak ccb (PRTA update) is aborted also here at primary. */
+
+		LOG_IN("Starting distributed PBE commit for PRTA update Ccb:%llx/%llu", ccbId, ccbId);
+		if(!pbe2_start_prepare_ccb_A_to_B(ccbId, (SaUint32T) numOps)) { /* Order slave to prepare */
+			LOG_WA("PBE-A failed to prepare PRTA update Ccb:%llx/%llu towards PBE-B", ccbId, ccbId);
 			rc = SA_AIS_ERR_BAD_OPERATION;
 			goto done;
 		}
 	}
 
-	ccbUtilCcbData->userData = (void *) (opCount +1);
+	/* PRTA update at 1PBE or 2PBE primary, i.e. not at 2PBE-slave. */
+	osafassert((numOps == 1) && (!sPbe2B));
 
-	if(ccbId > 0x100000000LL) { /* PRTA update operation. */
-		const SaImmAttrModificationT_2 *attMod = NULL;
-		int ix=0;
-		std::string objName;
-		operation = ccbutil_getNextCcbOp(ccbId, NULL);
-		if(operation == NULL) {
-			LOG_ER("ccbutil_getNextCcbOp(%llx, NULL) returned NULL", ccbId);
-			rc = SA_AIS_ERR_BAD_OPERATION;
-			goto done;
-		}
-		
-		TRACE("Update of PERSISTENT runtime attributes in object with DN: %s",
-			operation->objectName.value);
+	TRACE("Update of PERSISTENT runtime attributes in object with DN: %s",
+		(const char *) objectName->value);
 
-		rc = pbeBeginTrans(sDbHandle);
-		if(rc != SA_AIS_OK) {
-			LOG_WA("PBE failed to start sqlite transaction for PRT attr update");
-			rc = SA_AIS_ERR_NO_RESOURCES;
-			goto done;
-		}
-		TRACE("Begin PBE transaction for rt obj update OK");
-
-
-		/* Note: it is important that the code in this update case follow
-		   the same logic as performed by ImmModel::rtObjectUpdate()
-		   We DO NOT want the PBE repository to diverge from the main memory
-		   represenation of the immsv data. 
-		   This is not the only way to solve this. In fact the current solution is
-		   very unoptimal since it generates possibly several sql commands for what
-		   could be one. The advantage with the current solution is that it follows
-		   the logic of the ImmModel and can do so using the data provided by the
-		   unmodified rtObjectUpdate upcall.
-		*/
-		TRACE("Update of object with DN: %s", operation->param.modify.objectName->value);
-		objName.append((const char *) operation->param.modify.objectName->value);		
-		attrMods = operation->param.modify.attrMods;
-		while((attMod = attrMods[ix++]) != NULL) {
-			switch(attMod->modType) {
-				case SA_IMM_ATTR_VALUES_REPLACE:
-					objectModifyDiscardAllValuesOfAttrToPBE(sDbHandle, objName,
-						&(attMod->modAttr), ccbId);
-
-					if(attMod->modAttr.attrValuesNumber == 0) {
-						continue; //Ok to replace with nothing
-					}
-					//else intentional fall through
-
-				case SA_IMM_ATTR_VALUES_ADD:
-					if(attMod->modAttr.attrValuesNumber == 0) {
-						LOG_ER("Empty value used for adding to attribute %s",
-							attMod->modAttr.attrName);
-						rc = SA_AIS_ERR_BAD_OPERATION;
-						goto abort_trans;
-					}
-					
-					objectModifyAddValuesOfAttrToPBE(sDbHandle, objName,
-						&(attMod->modAttr), ccbId);
-							
-					break;
-
-				case SA_IMM_ATTR_VALUES_DELETE:
-					if(attMod->modAttr.attrValuesNumber == 0) {
-						LOG_ER("Empty value used for deleting from attribute %s",
-							attMod->modAttr.attrName);
-						rc = SA_AIS_ERR_BAD_OPERATION;
-						goto abort_trans;
-					}
-
-					objectModifyDiscardMatchingValuesOfAttrToPBE(sDbHandle, objName,
-						&(attMod->modAttr), ccbId);
-					
-					break;
-				default: abort();
-			}
-		}
-
-
-		ccbutil_deleteCcbData(ccbutil_findCcbData(ccbId));
-		pbeClosePrepareTrans();
-		rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
-		if(rc != SA_AIS_OK) {
-			LOG_WA("PBE failed to commit sqlite transaction (ccb:%llx) for PRT attr update", ccbId);
-			rc = SA_AIS_ERR_NO_RESOURCES;
-			goto done;
-		}
-		TRACE("Commit PBE transaction %llx for rt attr update OK", ccbId);
+	rc = pbeBeginTrans(sDbHandle);
+	if(rc != SA_AIS_OK) {
+		LOG_WA("PBE failed to start sqlite transaction (ccbId:%llx) for PRT attr update", ccbId);
+		rc = SA_AIS_ERR_NO_RESOURCES;
+		goto done;
 	}
 
+	TRACE("Build PBE transaction for rt obj update");
+
+	rc = sqlite_prepare_ccb(immOiHandle, ccbId, ccbUtilCcbData->operationListHead);
+	if(rc != SA_AIS_OK) {
+		goto abort_prta_trans;
+	}
+
+ commit_prta_trans:
+	rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
+
+	/* Reset 2pbe-ccb-syncronization variables at slave. */
+	if(sPbe2B) {
+		s2PbeBCcbToCompleteAtB=0; 
+		s2PbeBCcbOpCountToExpectAtB=0;
+		s2PbeBCcbOpCountNowAtB=0;
+		s2PbeBCcbUtilCcbData = NULL;
+	}
+
+	if(rc != SA_AIS_OK) {
+		LOG_WA("PBE failed to commit sqlite transaction (ccb:%llx) for PRT attr update", ccbId);
+		rc = SA_AIS_ERR_NO_RESOURCES;
+		goto done;
+	}
+	TRACE("Commit PBE transaction %llx for rt attr update OK", ccbId);
 
 	goto done;
- abort_trans:
+
+ abort_prta_trans:
 	pbeAbortTrans(sDbHandle);
+
+	/* Reset 2pbe-ccb-syncronization variables at slave. */
+	if(sPbe2B) {
+		s2PbeBCcbToCompleteAtB=0; 
+		s2PbeBCcbOpCountToExpectAtB=0;
+		s2PbeBCcbOpCountNowAtB=0;
+		s2PbeBCcbUtilCcbData = NULL;
+	}
+
  done:
 	if((rc != SA_AIS_OK) && sPbe2 && (ccbId > 0x100000000LL)) {
-		/* For 2PBE, PRTA update is done in parallell at primary and slave. 
-		   This means four possible outcommes:
-		   i) Ok at primary & Ok at slave => normal case.
-		   ii) Ok at primary _& failure at slave.
-		   iii) Failure at primary & Ok at slave.
-		   iv) Failure at primary and failure at slave.
-		   Current PBE implementation can not distinguish cases (11) - (iv).
-		 */
-		LOG_ER("2PBE can not tolerate error (%u) in PRTA update (ccbId:%llx) - exiting", rc, ccbId);
-		exit(1);
+		LOG_NO("2PBE Error (%u) in PRTA update (ccbId:%llx)", rc, ccbId);
+	}
+
+	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
+		/* Remove any PRTA update. */
+		ccbutil_deleteCcbData(ccbUtilCcbData);
+		ccbUtilCcbData = NULL;
 	}
 	TRACE_LEAVE();
 	return rc;
@@ -1417,14 +1415,16 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	char buf[sBufsize];
-	struct CcbUtilCcbData *ccbUtilCcbData;
+	struct CcbUtilCcbData *ccbUtilCcbData=NULL;
 	bool rdnFound=false;
 	const SaImmAttrValuesT_2 *attrValue;
 	int i = 0;
 	std::string classNameString(className);
 	struct CcbUtilOperationData  *operation = NULL;
 	ClassInfo* classInfo = (*sClassIdMap)[classNameString];
-	long long unsigned int opCount=0;
+	SaUint64T numOps=0LL;
+	unsigned int msecs_waited = 0;
+	
 
 	if(parentName && parentName->length) {
 		TRACE_ENTER2("CREATE CALLBACK CCB:%llu class:%s parent:%s", ccbId, className, parentName->value);
@@ -1449,7 +1449,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 		}
 	}
 
-	opCount = (long long unsigned int) ccbUtilCcbData->userData;
+	numOps = (SaUint64T) ccbUtilCcbData->userData;
 
 	if(strncmp((char *) className, (char *) OPENSAF_IMM_CLASS_NAME, strlen(className)) == 0) {
 		snprintf(buf, sBufsize,
@@ -1463,8 +1463,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 		goto done;
 	} 
 
-	/* "memorize the creation request" */
-
+	/* memorize the creation request */
 	operation = ccbutil_ccbAddCreateOperation(ccbUtilCcbData, className, parentName, attr);
 	if(operation == NULL) {
 		LOG_ER("ccbutil_ccbAddCreateOperation returned NULL");
@@ -1535,49 +1534,113 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 		goto done;		
 	}
 
-	ccbUtilCcbData->userData = (void *) (opCount +1);
+	ccbUtilCcbData->userData = (void *) ++numOps;
 
-	if(ccbId > 0x100000000LL) {
-		TRACE("Create of PERSISTENT runtime object with DN: %s",
-			operation->objectName.value);
-		rc = pbeBeginTrans(sDbHandle);
-		if(rc != SA_AIS_OK) {
-			LOG_WA("PBE failed to start sqlite transaction (ccbId:%llx)for PRTO create", ccbId);
-			rc = SA_AIS_ERR_NO_RESOURCES;
-			goto done;
+	if(ccbId < 0x100000000LL) {
+		/* Regular CCB only records the create */
+		goto done;
+	}
+
+	/* PRTO create operation */
+	if(sPbe2B) {
+		/* Slave PBE waits for prepare for PRTO create (weak ccb) as admop invoked from primary PBE.*/
+
+		while((msecs_waited < max_waiting_time_ms) &&
+			( (s2PbeBCcbToCompleteAtB != ccbId) ||
+				(s2PbeBCcbOpCountNowAtB == 0) ||
+				(!pbeTransIsPrepared())))
+		{
+			LOG_IN("PBE slave waiting for prepare from primary on PRTO create ccb:%llx", ccbId);
+			usleep(sleep_delay_ms * 1000);
+			msecs_waited += sleep_delay_ms;
 		}
 
-		TRACE("Begin PBE transaction for rt obj create OK");
+		if((s2PbeBCcbToCompleteAtB != ccbId) ||
+			(s2PbeBCcbOpCountNowAtB == 0) ||
+			(!pbeTransIsPrepared()))
+		{
+			LOG_NO("Slave PBE time-out in waiting on porepare for PRTO create ccb:%llx dn:%s", ccbId,
+				(const char *) operation->objectName.value);
+			rc = SA_AIS_ERR_FAILED_OPERATION;
+			goto abort_prto_trans;
+		}
+		goto commit_prto_trans;
 
-		objectToPBE(std::string((const char *) operation->objectName.value), 
-			operation->param.create.attrValues,
-			sClassIdMap, sDbHandle, ++sObjCount,
-			operation->param.create.className, ccbId);
+	} else if(sPbe2) {
+		/* 2PBE at primary requests PBE slave to prepare this weak ccb. If prepare at slave
+		   fails, then the weak ccb (PRTO create) is aborted also here at primary  */
 
-		ccbutil_deleteCcbData(ccbutil_findCcbData(0));
-		pbeClosePrepareTrans();
-		rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
-		if(rc != SA_AIS_OK) {
-			LOG_WA("PBE failed to commit sqlite transaction (ccbId:%llx) for PRTO create", ccbId);
-			rc = SA_AIS_ERR_NO_RESOURCES;
+		LOG_IN("Starting distributed PBE commit for PRTO create Ccb:%llx/%llu", ccbId, ccbId);
+		if(!pbe2_start_prepare_ccb_A_to_B(ccbId, (SaUint32T) numOps)) { /* Order slave to prepare */
+			LOG_WA("PBE-A failed to prepare PRTO create Ccb:%llx/%llu towards PBE-B", ccbId, ccbId);
+			rc = SA_AIS_ERR_BAD_OPERATION;
 			goto done;
 		}
-		TRACE("Commit PBE transaction for rt obj create OK");
+	}
+
+	/* PRTO create at 1PBE or 2PBE primary, i.e. not at 2PBE-slave. */
+	osafassert((numOps == 1) && (!sPbe2B));
+
+	TRACE("Create of PERSISTENT runtime object with DN: %s",
+		(const char *) operation->objectName.value);
+
+	rc = pbeBeginTrans(sDbHandle);
+	if(rc != SA_AIS_OK) {
+		LOG_WA("PBE failed to start sqlite transaction (ccbId:%llx)for PRTO create", ccbId);
+		rc = SA_AIS_ERR_NO_RESOURCES;
+		goto done;
+	}
+	TRACE("Build PBE transaction for rt obj create");
+
+	rc = sqlite_prepare_ccb(immOiHandle, ccbId, ccbUtilCcbData->operationListHead);
+	if(rc != SA_AIS_OK) {
+		goto abort_prto_trans;
+	}
+
+ commit_prto_trans:
+	rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
+
+	/* Reset 2pbe-ccb-syncronization variables at slave. */
+	if(sPbe2B) {
+		s2PbeBCcbToCompleteAtB=0; 
+		s2PbeBCcbOpCountToExpectAtB=0;
+		s2PbeBCcbOpCountNowAtB=0;
+		s2PbeBCcbUtilCcbData = NULL;
+	}
+
+	if(rc != SA_AIS_OK) {
+		LOG_WA("PBE failed to commit sqlite transaction (ccbId:%llx) for PRTO create", ccbId);
+		rc = SA_AIS_ERR_NO_RESOURCES;
+		goto done;
+	}
+	TRACE("Commit PBE transaction %llx for rt obj create OK", ccbId);
+
+
+	goto done;
+
+ abort_prto_trans:
+	pbeAbortTrans(sDbHandle);
+
+	/* Reset 2pbe-ccb-syncronization variables at slave. */
+	if(sPbe2B) {
+		s2PbeBCcbToCompleteAtB=0; 
+		s2PbeBCcbOpCountToExpectAtB=0;
+		s2PbeBCcbOpCountNowAtB=0;
+		s2PbeBCcbUtilCcbData = NULL;
 	}
 
  done:
 	if((rc != SA_AIS_OK) && sPbe2 && (ccbId > 0x100000000LL)) {
-		/* For 2PBE, PRTA update is done in parallell at primary and slave. 
-		   This means four possible outcommes:
-		   i) Ok at primary & Ok at slave => normal case.
-		   ii) Ok at primary _& failure at slave.
-		   iii) Failure at primary & Ok at slave.
-		   iv) Failure at primary and failure at slave.
-		   Current PBE implementation can not distinguish cases (11) - (iv).
-		 */
-		LOG_ER("2PBE can not tolerate error (%u) in PRTA update - exiting", rc);
-		exit(1);
+		LOG_NO("2PBE Error (%u) in PRTO create (ccbId:%llx)", rc, ccbId);
 	}
+
+	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
+		/* Remove any PRTO create */
+		ccbutil_deleteCcbData(ccbUtilCcbData);
+		ccbUtilCcbData = NULL;
+	}
+
+
 	TRACE_LEAVE();
 	return rc;
 }
