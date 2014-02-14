@@ -1385,8 +1385,6 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes)
 		const_cast<SaImmAttrNameT>("saAmfNodeSwBundlePathPrefix"),
 		&nodeswbundle_name, &path_prefix);
 
-	init_clc_cli_attributes(comp, comptype, path_prefix, attributes);
-
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompInstantiationLevel"), attributes, 0, &comp->inst_level) != SA_AIS_OK)
 		comp->inst_level = comptype->saAmfCtDefInstantiationLevel;
 
@@ -1441,6 +1439,7 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes)
 	comp->is_restart_en = (disable_restart == SA_TRUE) ? false : true;
 
 	init_comp_category(comp, comptype->saAmfCtCompCategory);
+	init_clc_cli_attributes(comp, comptype, path_prefix, attributes);
 
 	if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))
 		m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
