@@ -5073,26 +5073,25 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
         case IMM_CCB_READY:
             break; //OK
         case IMM_CCB_CREATE_OP:
-            LOG_WA("Aborting ccb %u while waiting for "
+            LOG_NO("Aborting ccb %u while waiting for "
                 "reply from implementer on CREATE-OP", ccbId);
             *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_MODIFY_OP:
-            LOG_WA("Aborting ccb %u while waiting for "
+            LOG_NO("Aborting ccb %u while waiting for "
                 "reply from implementers on MODIFY-OP", ccbId);
             *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_DELETE_OP:
-            LOG_WA("Aborting ccb %u while waiting for "
+            LOG_NO("Aborting ccb %u while waiting for "
                 "replies from implementers on DELETE-OP", ccbId);
             *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_PREPARE:
-            LOG_WA("Aborting ccb %u while waiting for "
-                "replies from implementers on COMPLETED", ccbId);
+            LOG_NO("Ccb %u aborted in COMPLETED processing", ccbId);
             *client = ccb->mOriginatingConn;
             break;
             
@@ -8730,8 +8729,22 @@ ImmModel::ccbCompletedContinuation(immsv_oi_ccb_upcall_rsp* rsp,
 
         if(rsp->result != SA_AIS_OK) {
             if(ccb->mVeto == SA_AIS_OK) {
-                LOG_IN("implementer returned error, Ccb aborted with error: %u",
-                    rsp->result);
+                switch(rsp->result) {
+                    case SA_AIS_ERR_BAD_OPERATION:
+                        LOG_NO("Validation error (BAD_OPERATION) reported by implementer '%s', "
+                               "Ccb %u will be aborted", ix->second->mImplementer->mImplementerName.c_str(), ccbId);
+                        break;
+
+                    case SA_AIS_ERR_NO_MEMORY:
+                    case SA_AIS_ERR_NO_RESOURCES:
+                           LOG_NO("Resource error %u reported by implementer '%s', Ccb %u will be aborted",
+                               rsp->result, ix->second->mImplementer->mImplementerName.c_str(), ccbId);
+                        break;
+
+                   default:
+                           LOG_NO("Invalid error reported implementer '%s', Ccb %u will be aborted",
+                               ix->second->mImplementer->mImplementerName.c_str(), ccbId);
+                }
                 ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
             }
 
