@@ -199,7 +199,7 @@ uint32_t immd_process_node_accept(IMMD_CB *cb, IMMSV_D2ND_CONTROL *ctrl)
 			cb->mRim = (ctrl->pbeEnabled==4)?SA_IMM_KEEP_REPOSITORY:SA_IMM_INIT_FROM_FILE;
 			if(cb->mRim != oldRim) {
 				LOG_NO("SBY: SaImmRepositoryInitModeT changed and noted as '%s'",
-					(ctrl->pbeEnabled)?
+					(cb->mRim == SA_IMM_KEEP_REPOSITORY)?
 					"SA_IMM_KEEP_REPOSITORY":"SA_IMM_INIT_FROM_FILE");
 			} else {
 				TRACE("SBY: SaImmRepositoryInitModeT stable as %u ctrl->pbeEnabled:%u", 
