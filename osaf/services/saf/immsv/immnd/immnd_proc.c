@@ -1777,7 +1777,11 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 			if (cb->pbePid > 0) {
 				int status = 0;
 				if (waitpid(cb->pbePid, &status, WNOHANG) > 0) {
-					LOG_WA("Persistent back-end process has apparently died.");
+					if(cb->mRim == SA_IMM_KEEP_REPOSITORY) {
+						LOG_WA("Persistent back-end process has apparently died.");
+					} else {
+						LOG_NO("Persistent back-end process terminated.");
+					}
 					cb->pbePid = 0;
 					cb->mPbeKills = 0;
 					if(!immModel_pbeIsInSync(cb, false)) {
@@ -1856,7 +1860,11 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 		if (cb->pbePid > 0) {
 			int status = 0;
 			if (waitpid(cb->pbePid, &status, WNOHANG) > 0) {
-				LOG_WA("Persistent back-end process has apparently died.");
+				if(cb->mRim == SA_IMM_KEEP_REPOSITORY) {
+					LOG_WA("Persistent back-end process has apparently died.");
+				} else {
+					LOG_NO("Persistent back-end process terminated.");
+				}
 				cb->pbePid = 0;
 				cb->mPbeKills = 0;
 				if(!immModel_pbeIsInSync(cb, false)) {
