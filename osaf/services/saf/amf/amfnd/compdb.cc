@@ -851,23 +851,25 @@ uint32_t avnd_comp_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 						param->name.value);
 				goto done;
 			}
+			if (comp->su->is_ncs == true) {
+				/* Terminate the pi comp. It will terminate the
+				   component and delete the comp record. */
+				if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) &&
+						(comp->pres == SA_AMF_PRESENCE_INSTANTIATED)) {
+					comp->pending_delete = true;
+					rc = avnd_comp_clc_fsm_run(cb, comp,
+							AVND_COMP_CLC_PRES_FSM_EV_TERM);
+					goto done;
+				}
 
-			/* Terminate the pi comp. It will terminate the
-			   component and delete the comp record. */
-			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) && (comp->pres == SA_AMF_PRESENCE_INSTANTIATED)) {
-				comp->pending_delete = true;
-				rc = avnd_comp_clc_fsm_run(cb, comp,
-						AVND_COMP_CLC_PRES_FSM_EV_TERM);
-				goto done;
-			}
-
-			/* Terminate the Npi comp. After deleting the csi, comp
-			   will be already terminated, so we just want to delete
-			   the comp record.*/
-			if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
-				m_AVND_SEND_CKPT_UPDT_ASYNC_RMV(cb, comp, AVND_CKPT_COMP_CONFIG);
-				rc = avnd_compdb_rec_del(cb, &param->name);
-				goto done;
+				/* Terminate the Npi comp. After deleting the csi, comp
+				   will be already terminated, so we just want to delete
+				   the comp record.*/
+				if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
+					m_AVND_SEND_CKPT_UPDT_ASYNC_RMV(cb, comp, AVND_CKPT_COMP_CONFIG);
+					rc = avnd_compdb_rec_del(cb, &param->name);
+					goto done;
+				}
 			}
 			/* Delete the component in case, it is in term failed or so. */
 			m_AVND_SEND_CKPT_UPDT_ASYNC_RMV(cb, comp, AVND_CKPT_COMP_CONFIG);

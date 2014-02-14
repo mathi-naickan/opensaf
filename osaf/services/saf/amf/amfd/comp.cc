@@ -227,8 +227,11 @@ static void comp_add_to_model(AVD_COMP *comp)
 	   state. This could be used in upgrade scenarios. When components
 	   are added, it is sent to Amfnd for instantiation and Amfnd
 	   instantiates it. Amfnd has capability for finding which component
-	   has been added newly. */
-	if ((su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+	   has been added newly. Allow live component instantiation only for
+	   middleware component to support older campaign to work for
+	   application in compatible manner.*/
+	if ((su->sg_of_su->sg_ncs_spec == true) &&
+			(su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
 			(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) && 
 			(avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE)) {
 		AVD_AVND *node = su->su_on_node;
