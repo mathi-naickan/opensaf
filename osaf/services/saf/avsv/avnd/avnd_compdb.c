@@ -1525,11 +1525,8 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes,
 		else
 			cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
 	}
-
-	if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))
-		m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
-	else
-		m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_ENABLED);
+	/* Set oper status to enable irrespective of comp category PI or NPI. */
+	m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_ENABLED);
 
         /* Remove any previous environment variables */
         if (comp->saAmfCompCmdEnv != NULL) {
