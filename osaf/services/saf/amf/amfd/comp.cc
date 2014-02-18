@@ -246,6 +246,11 @@ static void comp_add_to_model(AVD_COMP *comp)
 		}
 	}
 
+	if ((comp->su->su_on_node->node_state == AVD_AVND_STATE_PRESENT) ||
+			(comp->su->su_on_node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
+			(comp->su->su_on_node->node_state == AVD_AVND_STATE_NCS_INIT))
+		avd_comp_oper_state_set(comp, SA_AMF_OPERATIONAL_ENABLED);
+
 	/* Set runtime cached attributes. */
 	avd_saImmOiRtObjectUpdate(&su->name, const_cast<SaImmAttrNameT>("saAmfSUPreInstantiable"),
 		SA_IMM_ATTR_SAUINT32T, &su->saAmfSUPreInstantiable);
