@@ -1761,6 +1761,13 @@ uint32_t avnd_comp_csi_remove_done(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_R
 					break;
 				}
 			}
+
+			/* When AMFND responds to AMFD for removal of assignments for the SIs in any SU,
+			   it also deletes all the SUSI and COMPCSI records. In such a case component will 
+			   not have any CSI in its csi_list. If removal is completed break the loop.
+			 */
+			if (comp->csi_list.n_nodes == 0)
+				break;
 		}
 
 		/* This is removal with TARGET_ALL. So if all CSIs in all SIs of SU are moved 
