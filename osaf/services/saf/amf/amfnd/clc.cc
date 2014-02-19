@@ -2032,6 +2032,7 @@ uint32_t avnd_comp_clc_terming_termfail_hdler(AVND_CB *cb, AVND_COMP *comp)
 ******************************************************************************/
 uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 {
+	const AVND_SU *su = comp->su;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("'%s': Cleanup success event in the terminating state", comp->name.value);
 
@@ -2082,6 +2083,15 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		m_AVND_COMP_REG_PARAM_RESET(cb, comp);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
 	}
+
+	/* determine if this is a case of component failover */
+	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(su) &&
+			m_AVND_SU_IS_PREINSTANTIABLE(su) && (su->sufailover == false) &&
+			(avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED)) {
+		/* yes, request director to orchestrate component failover */
+		rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
+	}
+
 	TRACE_LEAVE();
 	return rc;
 }

@@ -476,7 +476,7 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
  
   Notes         : None.
 ******************************************************************************/
-uint32_t avnd_di_oper_send(AVND_CB *cb, AVND_SU *su, uint32_t rcvr)
+uint32_t avnd_di_oper_send(AVND_CB *cb, const AVND_SU *su, uint32_t rcvr)
 {
 	AVND_MSG msg;
 	uint32_t rc = NCSCC_RC_SUCCESS;

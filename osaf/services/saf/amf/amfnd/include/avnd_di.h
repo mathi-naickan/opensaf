@@ -68,7 +68,7 @@
 
 struct avnd_cb_tag;
 
-uint32_t avnd_di_oper_send(struct avnd_cb_tag *, AVND_SU *, uint32_t);
+uint32_t avnd_di_oper_send(struct avnd_cb_tag *, const AVND_SU *, uint32_t);
 uint32_t avnd_di_susi_resp_send(struct avnd_cb_tag *, AVND_SU *, AVND_SU_SI_REC *);
 uint32_t avnd_di_object_upd_send(struct avnd_cb_tag *, AVSV_PARAM_INFO *);
 uint32_t avnd_di_pg_act_send(struct avnd_cb_tag *, SaNameT *, AVSV_PG_TRACK_ACT, bool);
