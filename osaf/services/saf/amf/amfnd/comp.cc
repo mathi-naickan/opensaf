@@ -366,12 +366,6 @@ uint32_t avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
-	if (m_AVND_IS_SHUTTING_DOWN(cb)) {
-		/* AVA down should be ignored during SHUTTING DOWN and components should be cleaned up in order when 
-		   SUSI removal is done.*/
-		goto done;
-	}
-
 	memset(&name, 0, sizeof(SaNameT));
 
 	/* get the matching registered comp (if any) */
@@ -395,7 +389,7 @@ uint32_t avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	/* pg tracking may be started by this ava... delete those traces */
 	avnd_pg_finalize(cb, 0, &mds_evt->mds_dest);
-done:
+
 	TRACE_LEAVE();
 	return rc;
 }
