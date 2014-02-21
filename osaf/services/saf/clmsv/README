@@ -46,10 +46,11 @@ i.e. CLM shall not attempt to validate them in 4.4.
 
 - When user chooses TIPC as mode of transport, then the address length will be
 set to 0 and address family shall contain the default value of 
-SA_CLM_AF_INET(i.e. AF_INET).
+SA_CLM_AF_INET.
 This is done for backward compatibility with pre OpenSAF 4.4 libraries
 and also because the CLM spec does not support any value other than 
-SA_CLM_AF_INET(i.e. AF_INET) and SA_CLM_AF_INET6 (i.e. AF_INET6).
+SA_CLM_AF_INET(i.e. for IPv4) and SA_CLM_AF_INET6 
+(i.e. for IPv6).
 
 The CLMA is the clm agent library that user applications shall link with.
 
