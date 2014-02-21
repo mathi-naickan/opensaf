@@ -2676,7 +2676,17 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
             req->classCategory);
         classInfo = new ClassInfo(req->classCategory);
     } else {
-        /* Class name exists, check for schema upgrade.*/
+        /* Class name exists */
+
+        /* First check for prior create of same class in progress. */
+        if(sPbeRtMutations.find(className) != sPbeRtMutations.end()) {
+            LOG_NO("ERR_BUSY: Create of class %s received while class "
+                "with same name is already being mutated", className.c_str());
+            err = SA_AIS_ERR_BUSY;
+            goto done;
+        }
+
+        /* Second, check for schema upgrade.*/
         if(schemaChangeAllowed()) {
             /* New non-standard upgrade behavior. */
             LOG_NO("Class '%s' exist - check implied schema upgrade", className.c_str());
@@ -3061,30 +3071,20 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
             sLastContinuationId = 1;
         }
         (*continuationIdPtr) = sLastContinuationId;
-        /* There is a tiny risk here that there exists a PRTO with DN
-           identical to the classname and that a PRTO operation on THIS
-           object is performed concurrently with this class create!
-        */
-        ObjectMutationMap::iterator i2 = sPbeRtMutations.find(className);
-        if(i2 == sPbeRtMutations.end()) {
-            /* Create an object mutation record to bar pbe restart --recover
-               This is actually a class mutation, but lets keep the name.
-            */
-            ObjectMutation* oMut = new ObjectMutation(IMM_CREATE_CLASS);
-            oMut->mContinuationId = (*continuationIdPtr);
-            oMut->mAfterImage = NULL;
-            sPbeRtMutations[className] = oMut;
 
-            if(reqConn) {
-                SaInvocationT tmp_hdl =
-                    m_IMMSV_PACK_HANDLE((*continuationIdPtr), nodeId);
-                sPbeRtReqContinuationMap[tmp_hdl] =
-                    ContinuationInfo2(reqConn, DEFAULT_TIMEOUT_SEC);
-            }
-        } else {
-            LOG_WA("PBE class create unprotected because of concurrent "
-                "conflicting PRTO operation on same name '%s'",
-                className.c_str());
+        osafassert(sPbeRtMutations.find(className) == sPbeRtMutations.end());
+        /* Create a mutation record to bar pbe restart --recover  */
+
+        ObjectMutation* oMut = new ObjectMutation(IMM_CREATE_CLASS);
+        oMut->mContinuationId = (*continuationIdPtr);
+        oMut->mAfterImage = NULL;
+        sPbeRtMutations[className] = oMut;
+
+        if(reqConn) {
+            SaInvocationT tmp_hdl =
+                m_IMMSV_PACK_HANDLE((*continuationIdPtr), nodeId);
+            sPbeRtReqContinuationMap[tmp_hdl] =
+                ContinuationInfo2(reqConn, DEFAULT_TIMEOUT_SEC);
         }
     }
 
@@ -3693,6 +3693,10 @@ ImmModel::classDelete(const ImmsvOmClassDescr* req,
             LOG_WA("ERR_BUSY: class '%s' busy, refCount:%u", 
                 className.c_str(), (unsigned int) i->second->mExtent.size());
             err = SA_AIS_ERR_BUSY;
+        } else if(sPbeRtMutations.find(className) != sPbeRtMutations.end()) {
+            LOG_NO("ERR_BUSY: Delete of class %s received while class "
+                "with same name is already being mutated", className.c_str());
+            err = SA_AIS_ERR_BUSY;
         } else {
             while(i->second->mAttrMap.size()) {
                 AttrMap::iterator ai = i->second->mAttrMap.begin();
@@ -3716,32 +3720,19 @@ ImmModel::classDelete(const ImmsvOmClassDescr* req,
                         sLastContinuationId = 1;
                 }
                 (*continuationIdPtr) = sLastContinuationId;
-                /* There is a tiny risk here that there exists a PRTO with DN
-                   identical to the classname and that a PRTO operation on THIS
-                   object is performed concurrently with this class delete!
-                */
-                ObjectMutationMap::iterator i2 = sPbeRtMutations.find(className);
-                if(i2 == sPbeRtMutations.end()) {
-                    /* Object mutation to bar pbe restart --recover
-                       This is actually a class mutation, but lets keep the name.
-                    */
-                        ObjectMutation* oMut = new ObjectMutation(IMM_DELETE_CLASS);
-                        oMut->mContinuationId = (*continuationIdPtr);
-                        oMut->mAfterImage = NULL;
-                        sPbeRtMutations[className] = oMut;
 
-                        if(reqConn) {
-                            SaInvocationT tmp_hdl =
-                                m_IMMSV_PACK_HANDLE((*continuationIdPtr), nodeId);
-                            sPbeRtReqContinuationMap[tmp_hdl] =
-                                ContinuationInfo2(reqConn, DEFAULT_TIMEOUT_SEC);
-                        }
-                    } else {
-                        LOG_WA("PBE class delete unprotected because of concurrent "
-                           "conflicting PRTO operation on same name '%s'",
-                           className.c_str());
-                    }
+                osafassert(sPbeRtMutations.find(className) == sPbeRtMutations.end());
+                /* Create a mutation record to bar pbe restart --recover  */
+                ObjectMutation* oMut = new ObjectMutation(IMM_DELETE_CLASS);
+                oMut->mContinuationId = (*continuationIdPtr);
+                oMut->mAfterImage = NULL;
+                sPbeRtMutations[className] = oMut;
+
+                if(reqConn) {
+                    SaInvocationT tmp_hdl = m_IMMSV_PACK_HANDLE((*continuationIdPtr), nodeId);
+                    sPbeRtReqContinuationMap[tmp_hdl] = ContinuationInfo2(reqConn, DEFAULT_TIMEOUT_SEC);
                 }
+            }
         }
     }
     TRACE_LEAVE();
@@ -6315,6 +6306,11 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     if (i3 == sClassMap.end()) {
         TRACE_7("ERR_NOT_EXIST: class '%s' does not exist", className.c_str());
         err = SA_AIS_ERR_NOT_EXIST;
+        goto ccbObjectCreateExit;
+    } else if(sPbeRtMutations.find(className) != sPbeRtMutations.end()) {
+        TRACE_7("ERR_TRY_AGAIN: class '%s' is currently being created (pending PBE reply)",
+            className.c_str());
+        err = SA_AIS_ERR_TRY_AGAIN;
         goto ccbObjectCreateExit;
     }
     
@@ -9464,7 +9460,7 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
         omi = sObjectMap.find(refObjectName);
         if(omi == sObjectMap.end() || (omi->second->mObjFlags & IMM_CREATE_LOCK)) {
             LOG_NO("ERR_INVALID_PARAM: attrValue contains a DN of non-existing object %s",
-            		refObjectName.c_str());
+                refObjectName.c_str());
             err = SA_AIS_ERR_INVALID_PARAM;
             goto searchInitializeExit;
         }
