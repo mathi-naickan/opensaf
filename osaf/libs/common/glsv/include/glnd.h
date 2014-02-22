@@ -74,6 +74,8 @@ G_GLND_MEMFAIL(GLND_RESTART_RSC_LOCK_LIST_ALLOC_FAILED);
 #include "glnd_edu.h"
 
 #include "glsv_mem.h"
+#include <daemon.h>
+
 /*
 #include "cpsv_mem.h"
 #include "cpa_mem.h"

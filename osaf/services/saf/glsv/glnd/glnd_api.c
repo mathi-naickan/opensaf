@@ -34,8 +34,10 @@
 #include "osaf_poll.h"
 
 enum {
+	FD_TERM = 0,
 	FD_AMF,
-	FD_MBX
+	FD_MBX,
+	NUM_FD
 };
 
 void glnd_main_process(SYSF_MBX *mbx);
@@ -193,7 +195,8 @@ void glnd_main_process(SYSF_MBX *mbx)
 	SaSelectionObjectT amf_sel_obj;
 	SaAisErrorT amf_error;
 
-	struct pollfd sel[2];
+	struct pollfd sel[NUM_FD];
+	int term_fd;
 
 	/* take the handle */
 	glnd_cb = (GLND_CB *)m_GLND_TAKE_GLND_CB;
@@ -213,12 +216,21 @@ void glnd_main_process(SYSF_MBX *mbx)
 		goto end;
 	}
 
+	daemon_sigterm_install(&term_fd);
+
+	sel[FD_TERM].fd = term_fd;
+	sel[FD_TERM].events = POLLIN;
 	sel[FD_AMF].fd = amf_sel_obj;
 	sel[FD_AMF].events = POLLIN;
 	sel[FD_MBX].fd = m_GET_FD_FROM_SEL_OBJ(mbx_fd);
 	sel[FD_MBX].events = POLLIN;
 
-	while (osaf_poll(&sel[0], 2, -1) > 0) {
+	while (osaf_poll(&sel[0], NUM_FD, -1) > 0) {
+
+		if (sel[FD_TERM].revents & POLLIN) {
+			daemon_exit();
+		}
+
 		if (((sel[FD_AMF].revents | sel[FD_MBX].revents) &
 			(POLLERR | POLLHUP | POLLNVAL)) != 0) {
 			LOG_ER("GLND poll() failure: %hd %hd",
