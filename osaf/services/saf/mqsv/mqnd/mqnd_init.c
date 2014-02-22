@@ -33,12 +33,17 @@
 #define MQND_CLM_API_TIMEOUT 10000000000LL
 uint32_t gl_mqnd_cb_hdl = 0;
 
-#define FD_AMF 0
-#define FD_CLM 1
-#define FD_MBX 2
-#define FD_IMM 3		/* Must be the last in the fds array */
-static struct pollfd fds[4];
-static nfds_t nfds = 4;
+enum {
+	FD_TERM = 0,
+	FD_AMF,
+	FD_CLM,
+	FD_MBX,
+	FD_IMM,
+	NUM_FD
+};
+
+static struct pollfd fds[NUM_FD];
+static nfds_t nfds = NUM_FD;
 /* Static Function Declerations */
 static uint32_t mqnd_extract_create_info(int argc, char *argv[], MQSV_CREATE_INFO *create_info);
 static uint32_t mqnd_extract_destroy_info(int argc, char *argv[], MQSV_DESTROY_INFO *destroy_info);
@@ -748,6 +753,8 @@ void mqnd_main_process(uint32_t hdl)
 	MQSV_DSEND_EVT *dsend_evt = NULL;
 	SaSelectionObjectT amf_sel_obj, clm_sel_obj;
 	SaAisErrorT clm_error, err;
+	int term_fd;
+
 	TRACE_ENTER();
 
 	cb = ncshm_take_hdl(NCS_SERVICE_ID_MQND, hdl);
@@ -765,11 +772,15 @@ void mqnd_main_process(uint32_t hdl)
 	}
 	TRACE_1("saAmfSelectionObjectGet Successfull");
 
+	daemon_sigterm_install(&term_fd);
+
 	if (saClmSelectionObjectGet(cb->clm_hdl, &clm_sel_obj) != SA_AIS_OK) {
 		LOG_ER("saClmSelectionObjectGet Failed");
 		return;
 	}
 
+	fds[FD_TERM].fd = term_fd;
+	fds[FD_TERM].events = POLLIN;
 	fds[FD_AMF].fd = amf_sel_obj;
 	fds[FD_AMF].events = POLLIN;
 	fds[FD_CLM].fd = clm_sel_obj;
@@ -790,9 +801,9 @@ void mqnd_main_process(uint32_t hdl)
 		if (cb->immOiHandle != 0) {
 			fds[FD_IMM].fd = cb->imm_sel_obj;
 			fds[FD_IMM].events = POLLIN;
-			nfds = FD_IMM + 1;
+			nfds = NUM_FD;
 		} else {
-			nfds = FD_IMM;
+			nfds = NUM_FD - 1;
 		}
 
 		int ret = poll(fds, nfds, -1);
@@ -802,6 +813,10 @@ void mqnd_main_process(uint32_t hdl)
 
 			LOG_ER("poll failed - %s", strerror(errno));
 			break;
+		}
+
+		if (fds[FD_TERM].revents & POLLIN) {
+			daemon_exit();
 		}
 
 		if (fds[FD_AMF].revents & POLLIN) {

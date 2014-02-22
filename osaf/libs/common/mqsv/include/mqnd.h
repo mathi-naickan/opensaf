@@ -46,4 +46,6 @@
 #include "saf_mem.h"
 #include "saClm.h"
 
+#include <daemon.h>
+
 #endif

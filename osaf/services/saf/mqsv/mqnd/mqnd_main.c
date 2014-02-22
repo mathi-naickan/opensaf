@@ -18,7 +18,6 @@
 #include <ncssysf_tsk.h>
 
 #include <logtrace.h>
-#include <daemon.h>
 
 #include "mqnd.h"
 extern void mqnd_main_process(uint32_t hdl);
