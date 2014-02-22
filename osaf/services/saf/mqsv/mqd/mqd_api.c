@@ -51,13 +51,17 @@
 
 MQDLIB_INFO gl_mqdinfo;
 
-#define FD_AMF 0
-#define FD_MBCSV 1
-#define FD_MBX 2
-#define FD_CLM 3
+enum {
+	FD_TERM = 0,
+	FD_AMF,
+	FD_MBCSV,
+	FD_MBX,
+	FD_CLM,
+	NUM_FD
+};
 
-static struct pollfd fds[4];
-static nfds_t nfds = 4;
+static struct pollfd fds[NUM_FD];
+static nfds_t nfds = NUM_FD;
 
 /******************************** LOCAL ROUTINES *****************************/
 static uint32_t mqd_lib_init(void);
@@ -422,6 +426,8 @@ void mqd_main_process(uint32_t hdl)
 	SaAisErrorT err = SA_AIS_OK;
 	NCS_MBCSV_ARG mbcsv_arg;
 	SaSelectionObjectT amfSelObj,clmSelObj;
+	int term_fd;
+
 	TRACE_ENTER();
 	/* Get the controll block */
 	pMqd = ncshm_take_hdl(NCS_SERVICE_ID_MQD, hdl);
@@ -447,6 +453,8 @@ void mqd_main_process(uint32_t hdl)
 	}
 	TRACE_1("saClmSelectionObjectGet success");
 
+	daemon_sigterm_install(&term_fd);
+
 	err = saClmClusterTrack(pMqd->clm_hdl, SA_TRACK_CHANGES_ONLY, NULL);
 	if (SA_AIS_OK != err) {
 		LOG_ER("saClmClusterTrack failed with error %d", err);
@@ -456,6 +464,8 @@ void mqd_main_process(uint32_t hdl)
 	TRACE_1("saClmClusterTrack success");
 
 	/* Set up all file descriptors to listen to */
+	fds[FD_TERM].fd = term_fd;
+	fds[FD_TERM].events = POLLIN;
 	fds[FD_AMF].fd = amfSelObj;
 	fds[FD_AMF].events = POLLIN;
 	fds[FD_CLM].fd = clmSelObj;
@@ -473,6 +483,10 @@ void mqd_main_process(uint32_t hdl)
 
 			LOG_ER("poll failed - %s", strerror(errno));
 			break;
+		}
+
+		if (fds[FD_TERM].revents & POLLIN) {
+			daemon_exit();
 		}
 
 		/* Dispatch all the AMF pending function */

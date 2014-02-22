@@ -45,4 +45,6 @@
 #include "ncssysf_lck.h"
 #include "ncs_mda_pvt.h"
 
+#include <daemon.h>
+
 #endif   /* MQD_H */
