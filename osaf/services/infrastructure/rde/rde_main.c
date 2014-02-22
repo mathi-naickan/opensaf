@@ -31,6 +31,16 @@
 
 #define RDA_MAX_CLIENTS 32
 
+static const char *role_string[] =
+{
+	"Undefined role",
+	"ACTIVE",
+	"STANDBY",
+	"QUIESCED",
+	"QUIESCING",
+	"Invalid"
+};
+
 enum {
 	FD_TERM = 0,
 	FD_AMF = 1,
@@ -78,7 +88,7 @@ static void sigusr1_handler(int sig)
 
 uint32_t rde_set_role(PCS_RDA_ROLE role)
 {
-	LOG_NO("rde_rde_set_role: role set to %d", role);
+	LOG_NO("RDE role set to %s", role_string[role]);
 
 	rde_cb->ha_role = role;
 
@@ -205,7 +215,7 @@ static uint32_t determine_role(int mbx_fd)
 	TRACE_ENTER();
 
 	if (peer_node_id == 0) {
-		LOG_NO("Peer not available => Active role");
+		LOG_NO("No peer available => Setting Active role for this node");
 		rde_cb->ha_role = PCS_RDA_ACTIVE;
 		goto done;
 	}
@@ -236,7 +246,7 @@ static uint32_t determine_role(int mbx_fd)
 			break;
 		case RDE_MSG_PEER_DOWN:
 			TRACE("Received %s", rde_msg_name[msg->type]);
-			LOG_NO("rde@%x down waiting for response => Active role", peer_node_id);
+			LOG_NO("peer rde@%x down waiting for response => Setting Active role", peer_node_id);
 			rde_cb->ha_role = PCS_RDA_ACTIVE;
 			peer_node_id = 0;
 			goto done;
@@ -255,19 +265,19 @@ static uint32_t determine_role(int mbx_fd)
 				TRACE("my=%x, peer=%x", rde_my_node_id, msg->fr_node_id);
 				if (rde_my_node_id < msg->fr_node_id) {
 					rde_cb->ha_role = PCS_RDA_ACTIVE;
-					LOG_NO("rde@%x has no state, my nodeid is less => Active role", msg->fr_node_id);
+					LOG_NO("Peer rde@%x has no state, my nodeid is less => Setting Active role", msg->fr_node_id);
 				} else if (rde_my_node_id > msg->fr_node_id) {
 					rde_cb->ha_role = PCS_RDA_STANDBY;
-					LOG_NO("rde@%x has no state, my nodeid is greater => Standby role", msg->fr_node_id);
+					LOG_NO("Peer rde@%x has no state, my nodeid is greater => Setting Standby role", msg->fr_node_id);
 				} else
 					assert(0);
 				goto done;
 			case PCS_RDA_ACTIVE:
 				rde_cb->ha_role = PCS_RDA_STANDBY;
-				LOG_NO("rde@%x has active state => Standby role", msg->fr_node_id);
+				LOG_NO("Peer rde@%x has active state => Assigning Standby role to this node", msg->fr_node_id);
 				goto done;
 			case PCS_RDA_STANDBY:
-				LOG_NO("rde@%x has standby state => possible fail over, waiting...", msg->fr_node_id);
+				LOG_NO("Peer rde@%x has standby state => possible fail over, waiting...", msg->fr_node_id);
 				sleep(1);
 				
 				/* Send request for peer information */
