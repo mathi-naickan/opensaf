@@ -32,13 +32,17 @@ uint32_t gl_gld_hdl;
 
 void gld_main_process(SYSF_MBX *mbx);
 
-#define FD_AMF 0
-#define FD_MBCSV 1
-#define FD_MBX 2
-#define FD_IMM 3		/* Must be the last in the fds array */
+enum {
+	FD_TERM = 0,
+	FD_AMF,
+	FD_MBCSV,
+	FD_MBX,
+	FD_IMM,
+	NUM_FD
+};
 
-static struct pollfd fds[4];
-static nfds_t nfds = 4;
+static struct pollfd fds[NUM_FD];
+static nfds_t nfds = NUM_FD;
 
 /****************************************************************************
  * Name          : ncs_glsv_gld_lib_req
@@ -475,6 +479,8 @@ void gld_main_process(SYSF_MBX *mbx)
 	GLSV_GLD_CB *gld_cb = NULL;
 	NCS_MBCSV_ARG mbcsv_arg;
 	SaSelectionObjectT amf_sel_obj;
+	int term_fd;
+
 	TRACE_ENTER();
 
 	if ((gld_cb = (GLSV_GLD_CB *)ncshm_take_hdl(NCS_SERVICE_ID_GLD, gl_gld_hdl))
@@ -491,7 +497,11 @@ void gld_main_process(SYSF_MBX *mbx)
 		goto end;
 	}
 
+	daemon_sigterm_install(&term_fd);
+
 	/* Set up all file descriptors to listen to */
+	fds[FD_TERM].fd = term_fd;
+	fds[FD_TERM].events = POLLIN;
 	fds[FD_AMF].fd = amf_sel_obj;
 	fds[FD_AMF].events = POLLIN;
 	fds[FD_MBCSV].fd = gld_cb->mbcsv_sel_obj;
@@ -505,9 +515,9 @@ void gld_main_process(SYSF_MBX *mbx)
 		if ((gld_cb->immOiHandle != 0) && (gld_cb->is_impl_set == true)){
 			fds[FD_IMM].fd = gld_cb->imm_sel_obj;
 			fds[FD_IMM].events = POLLIN;
-			nfds = FD_IMM + 1;
+			nfds = NUM_FD;
 		} else {
-			nfds = FD_IMM;
+			nfds = NUM_FD - 1;
 		}
 
 		int ret = poll(fds, nfds, -1);
@@ -518,6 +528,10 @@ void gld_main_process(SYSF_MBX *mbx)
 
 			LOG_ER("poll failed - %s", strerror(errno));
 			break;
+		}
+
+		if (fds[FD_TERM].revents & POLLIN) {
+			daemon_exit();
 		}
 
 		if (fds[FD_AMF].revents & POLLIN) {

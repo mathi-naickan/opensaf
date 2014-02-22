@@ -78,4 +78,6 @@ typedef enum {
 #include "saImmOi.h"
 #include "immutil.h"
 
+#include <daemon.h>
+
 #endif   /* !GLD_H */

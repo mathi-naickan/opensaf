@@ -18,7 +18,6 @@
 #include <ncssysf_tsk.h>
 
 #include <logtrace.h>
-#include <daemon.h>
 
 #include "gld.h"
 extern void gld_main_process(SYSF_MBX *);
