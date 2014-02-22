@@ -455,7 +455,9 @@ By using `./configure --enable-tipc', you are building OpenSAF to support TIPC
 also as the transport. Upon enabling this option, the OpenSAF binaries
 support both TIPC and TCP as the transport and to use TIPC, you have to 
 change the variable MDS_TRANSPORT to TIPC in the 
-nid.conf file (see nid.conf in 00-README.conf).
+nid.conf file (see nid.conf in 00-README.conf). By choosing this option
+you have the flexibility to change from using tipc to tcp without having
+to rebuild.
 
 By using `./configure --enable-java', you are enabling the Java AIS mapping
 support in the build system. Specials M4 macros will be used to autodetect
@@ -789,6 +791,18 @@ immcfg --ignore-duplicates -f /usr/share/opensaf/immxml/services/smfsv_classes.x
 3) Disable the schema change support in the IMM:  
 immadm -o 2 -p opensafImmNostdFlags:SA_UINT32_T:1 opensafImm=opensafImm,safApp=safImmService
 
+
+Admin Operations on OpenSAF SUs
+===============================
+From OpenSAF release 4.4 onwards, the AMF admin operations lock, lock-in,
+unlock, unlock-in is allowed to be performed on the OpenSAF SUs (i.e.
+safSu=<nodename>,safSg=2N,safApp=OpenSAF
+safSu=<nodename>,safSg=NoRed,safApp=OpenSAF)
+However, these commands should be restrictively used, like running them
+from a SMF campaign.  When running this from an SMF campaign,
+OpenSAF shall support the behaviour only when used under
+the supported usecases of OpenSAF. At this point of time,
+there is no evident usecase to support this.
 
 Linux Distro-Specific Notes
 ===========================
