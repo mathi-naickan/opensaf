@@ -69,6 +69,8 @@
 
 #include "ncssysf_def.h"
 
+#include <daemon.h>
+
 /* EDS CB global handle declaration */
 uint32_t gl_eds_hdl;
 

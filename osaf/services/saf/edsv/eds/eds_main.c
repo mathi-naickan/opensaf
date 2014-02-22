@@ -17,7 +17,6 @@
 
 #include <ncssysf_tsk.h>
 #include <logtrace.h>
-#include <daemon.h>
 
 #include "eds.h"
 
