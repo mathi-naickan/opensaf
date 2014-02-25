@@ -696,7 +696,7 @@ int class_delete(const SaImmClassNameT *classNames, SaImmHandleT immHandle)
 			if (error == SA_AIS_ERR_NOT_EXIST)
 				fprintf(stderr, "error - class does not exist :%s\n", classNames[i]);
 			else
-				fprintf(stderr, "error - saImmOmAdminOwnerSet FAILED: %s\n", saf_error(error));
+				fprintf(stderr, "error - saImmOmClassDelete FAILED: %s\n", saf_error(error));
 
 			goto done;
 		}
