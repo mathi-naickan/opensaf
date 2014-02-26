@@ -80,7 +80,8 @@ typedef enum {
 
 // Interface functions which implement -f and -L options (imm_import.cc)
 int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe,
-		SaImmHandleT *immHandle, SaImmAdminOwnerHandleT *ownerHandle, SaImmCcbHandleT *ccbHandle, int mode);
+		SaImmHandleT *immHandle, SaImmAdminOwnerHandleT *ownerHandle,
+		SaImmCcbHandleT *ccbHandle, int mode, const char *xsdPath);
 int validateImmXML(const char *xmlfile, int verbose, int mode);
 static int imm_operation(int argc, char *argv[]);
 
@@ -129,6 +130,7 @@ static void usage(const char *progname)
 	printf("\t--admin-owner-clear\n");
 	printf("\t--ccb-apply (only in a transaction mode)\n");
 	printf("\t--ccb-abort (only in a transaction mode)\n");
+	printf("\t-X, --xsd <path_to_schema.xsd>\n");
 
 	printf("\nEXAMPLE\n");
 	printf("\timmcfg -a saAmfNodeSuFailoverMax=7 safAmfNode=Node01,safAmfCluster=1\n");
@@ -160,6 +162,10 @@ static void usage(const char *progname)
 	printf("\timmcfg\n");
 	printf("\t\tRunning immcfg in explicit commit mode where immcfg accepts immcfg commands from command line\n");
 	printf("\t\tCtrl+D - commit changes and exit, Ctrl+C - abort CCB and exit\n");
+	printf("\timmcfg -X /etc/opensaf/schema.xsd -f imm.xml\n");
+	printf("\t\timmcfg will load unsupported attribute flags in the current OpenSAF version from /etc/opensaf/schema.xsd, and use them to successfully import imm.xml");
+	printf("\timmcfg -X /etc/opensaf -f imm.xml\n");
+	printf("\t\timmcfg will load unsupported attribute flags in the current OpenSAF version from the schema specified in imm.xml which is stored in /etc/opensaf, and use loaded flags to successfully import imm.xml");
 }
 
 /* signal handler for SIGALRM */
@@ -1093,6 +1099,7 @@ static int imm_operation(int argc, char *argv[])
 		{"admin-owner-clear", no_argument, NULL, 0},
 		{"ccb-apply", no_argument, NULL, 0},
 		{"ccb-abort", no_argument, NULL, 0},
+		{"xsd", required_argument, NULL, 'X'},
 		{0, 0, 0, 0}
 	};
 	SaAisErrorT error;
@@ -1115,9 +1122,11 @@ static int imm_operation(int argc, char *argv[])
 	unsigned long timeoutVal = 60;
 	attr_notify_t attrNotify = NOTIFY_UNDEFINED;
 
+	char *xsdPath = NULL;
+
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "a:c:f:t:dhmvuL:o:", long_options, &option_index);
+		c = getopt_long(argc, argv, "a:c:f:t:dhmvuL:o:X:", long_options, &option_index);
 
 		if (c == -1)	/* have all command-line options have been parsed? */
 			break;
@@ -1225,6 +1234,16 @@ static int imm_operation(int argc, char *argv[])
 			adminOwnerName = (SaImmAdminOwnerNameT)malloc(strlen(optarg) + 1);
 			strcpy(adminOwnerName, optarg);
 			break;
+		case 'X':
+			if(xsdPath) {
+				fprintf(stderr, "XSD path is already set\n");
+				if(transaction_mode)
+					return -1;
+				else
+					exit(EXIT_FAILURE);
+			}
+			xsdPath = strdup(optarg);
+			break;
 		default:
 			fprintf(stderr, "Try '%s --help' for more information\n", argv[0]);
 			if(transaction_mode)
@@ -1270,7 +1289,7 @@ static int imm_operation(int argc, char *argv[])
 	if (op == LOAD_IMMFILE) {
 		VERBOSE_INFO("importImmXML(xmlFilename=%s, verbose=%d)\n", xmlFilename, verbose);
 		rc = importImmXML(xmlFilename, adminOwnerName, verbose, ccb_safe,
-				&immHandle, &ownerHandle, &ccbHandle, transaction_mode);
+				&immHandle, &ownerHandle, &ccbHandle, transaction_mode, xsdPath);
 		if(transaction_mode) {
 			if(rc) {
 				fprintf(stderr, "CCB is aborted\n");
@@ -1477,6 +1496,10 @@ static int imm_operation(int argc, char *argv[])
 				rc = EXIT_FAILURE;
 			}
 		}
+	}
+	if(xsdPath) {
+		free(xsdPath);
+		xsdPath = NULL;
 	}
 
 	return rc;
