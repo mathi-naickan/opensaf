@@ -17,7 +17,9 @@
 
 #include "imm_loader.hh"
 #include <iostream>
+#include <set>
 #include <libxml/parser.h>
+#include <libxml/xpath.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -26,6 +28,7 @@
 #include <configmake.h>
 #include <logtrace.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <ncsgl_defs.h>
 
 #define MAX_DEPTH 10
@@ -113,6 +116,12 @@ typedef struct ParserStateStruct
     SaImmCcbHandleT        ccbHandle;
     SaUint32T* preloadEpochPtr;
 } ParserState;
+
+bool isXsdLoaded;
+std::string xsddir;
+std::string xsd;
+typedef std::set<std::string> AttrFlagSet;
+AttrFlagSet attrFlagSet;
 
 /* Helper functions */
 
@@ -935,6 +944,13 @@ static void startElementHandler(void* userData,
     else if (strcmp((const char*)name, "imm:IMM-contents") == 0)
     {
         state->state[state->depth] = IMM_CONTENTS;
+        char *schema = (char *)getAttributeValue(attrs, (xmlChar *)"noNamespaceSchemaLocation");
+        if(!schema) {
+            schema = (char *)getAttributeValue(attrs, (xmlChar *)"xsi:noNamespaceSchemaLocation");
+        }
+        if(schema) {
+            xsd = schema;
+        }
     }
     else
     {
@@ -1523,6 +1539,106 @@ static xmlEntityPtr
     return xmlGetPredefinedEntity(name);
 }
 
+static inline char *getAttrValue(xmlAttributePtr attr) {
+    if(!attr || !attr->children) {
+        return NULL;
+    }
+
+    return (char *)attr->children->content;
+}
+
+static bool loadXsd(const char *xsdFile) {
+    struct stat st;
+    if(stat(xsdFile, &st)) {
+        if(errno == ENOENT) {
+            LOG_ER("%s does not exist", xsdFile);
+        } else {
+            LOG_ER("stat of %s return error: %d", xsdFile, errno);
+        }
+
+        return false;
+    }
+    // It should be a file or a directory
+    if(!S_ISREG(st.st_mode)) {
+        LOG_ER("%s is not a file", xsdFile);
+        return false;
+    }
+
+    xmlNodePtr xsdDocRoot;
+    xmlDocPtr xsdDoc = xmlParseFile(xsdFile);
+    if(!xsdDoc) {
+        return false;
+    }
+
+    bool rc = true;
+    xmlXPathContextPtr ctx = xmlXPathNewContext(xsdDoc);
+    if(!ctx) {
+        rc = false;
+        goto freedoc;
+    }
+
+    // Add namespace of the first element
+    xsdDocRoot = xmlDocGetRootElement(xsdDoc);
+    if(xsdDocRoot->ns) {
+        ctx->namespaces = (xmlNsPtr *)malloc(sizeof(xmlNsPtr));
+        ctx->namespaces[0] = xsdDocRoot->ns;
+        ctx->nsNr = 1;
+    }
+
+    xmlXPathObjectPtr xpathObj;
+    xpathObj = xmlXPathEval((const xmlChar*)"/xs:schema/xs:simpleType[@name=\"attr-flags\"]/xs:restriction/xs:enumeration", ctx);
+    if(!xpathObj || !xpathObj->nodesetval) {
+        rc = false;
+        goto freectx;
+    }
+
+    xmlElementPtr element;
+    xmlAttributePtr attr;
+    char *value;
+    int size;
+
+    size = xpathObj->nodesetval->nodeNr;
+    for(int i=0; i<size; i++) {
+        value = NULL;
+        element = (xmlElementPtr)xpathObj->nodesetval->nodeTab[i];
+        attr = element->attributes;
+        while(attr) {
+            if(!strcmp((char *)attr->name, "value")) {
+                value = getAttrValue(attr);
+            }
+
+            if(value) {
+                break;
+            }
+
+            attr = (xmlAttributePtr)attr->next;
+        }
+
+        if(value) {
+            if(strcmp(value, "SA_RUNTIME") && strcmp(value, "SA_CONFIG") &&
+                    strcmp(value, "SA_MULTI_VALUE") && strcmp(value, "SA_WRITABLE") &&
+                    strcmp(value, "SA_INITIALIZED") && strcmp(value, "SA_PERSISTENT") &&
+                    strcmp(value, "SA_CACHED") && strcmp(value, "SA_NOTIFY") &&
+                    strcmp(value, "SA_NO_DUPLICATES") && strcmp(value, "SA_NO_DANGLING")) {
+                attrFlagSet.insert(value);
+            }
+        }
+    }
+
+    isXsdLoaded = true;
+
+    xmlXPathFreeObject(xpathObj);
+freectx:
+    if(ctx->nsNr) {
+        free(ctx->namespaces);
+    }
+    xmlXPathFreeContext(ctx);
+freedoc:
+    xmlFreeDoc(xsdDoc);
+
+    return rc;
+}
+
 /**
  * Takes a string and returns the corresponding flag
  */
@@ -1573,7 +1689,24 @@ static SaImmAttrFlagsT charsToFlagsHelper(const xmlChar* str, size_t len)
         return SA_IMM_ATTR_NO_DANGLING;
     }
 
-    LOG_ER("UNKNOWN FLAGS, %s", str);
+    std::string unflag((char *)str, len);
+    if(!isXsdLoaded) {
+        std::string xsdPath = xsddir;
+        if(xsdPath.size() > 0)
+            xsdPath.append("/");
+        xsdPath.append(xsd);
+        LOG_WA("Found unknown flag (%s). Trying to load a schema %s", unflag.c_str(), xsdPath.c_str());
+        loadXsd(xsdPath.c_str());
+    }
+
+    if(isXsdLoaded) {
+        AttrFlagSet::iterator it = attrFlagSet.find(unflag);
+        if(it != attrFlagSet.end()) {
+            return 0;
+        }
+    }
+
+    LOG_ER("UNKNOWN FLAGS, %s", unflag.c_str());
 
     exit(1);
 }
@@ -1983,6 +2116,11 @@ int loadImmXML(std::string xmldir, std::string file, SaUint32T* preloadEpochPtr)
     state.ownerHandle = 0LL;
     state.ccbHandle = 0LL;
     state.preloadEpochPtr=preloadEpochPtr;
+
+    isXsdLoaded = false;
+    xsddir = xmldir;
+    xsd = "";
+    attrFlagSet.clear();
 
     /* Build the filename */
     filename = xmldir;

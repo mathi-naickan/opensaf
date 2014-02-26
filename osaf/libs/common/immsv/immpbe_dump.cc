@@ -900,7 +900,7 @@ ClassInfo* classToPBE(std::string classNameString,
 			LOG_ER("Failed to bind attr_type with error code: %d", rc);
 			goto bailout;
 		}
-		if((rc = sqlite3_bind_int(stmt, 4, (*p)->attrFlags)) != SQLITE_OK) {
+		if((rc = sqlite3_bind_int64(stmt, 4, (*p)->attrFlags)) != SQLITE_OK) {
 			LOG_ER("Failed to bind attr_flags with error code: %d", rc);
 			goto bailout;
 		}
