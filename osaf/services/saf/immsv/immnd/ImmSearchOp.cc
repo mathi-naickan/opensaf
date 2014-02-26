@@ -51,7 +51,7 @@ ImmSearchOp::addObject(
 void
 ImmSearchOp::addAttribute(const std::string& attributeName, 
     SaUint32T valueType,
-    SaUint32T flags)
+    SaImmAttrFlagsT flags)
     
 {
     SearchObject& obj = mResultList.back();

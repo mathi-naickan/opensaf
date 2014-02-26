@@ -72,7 +72,7 @@ struct AttrInfo
 {
     AttrInfo():mValueType(0), mFlags(0), mNtfId(0){}
     SaUint32T       mValueType;
-    SaUint32T       mFlags;
+    SaImmAttrFlagsT mFlags;
     SaUint32T       mNtfId;
     ImmAttrValue    mDefaultValue;
 };
@@ -2219,6 +2219,7 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
     int illegal=0;
     bool persistentRt = false;
     bool persistentRdn = false;
+    bool useUnknownFlag = false;
     ClassInfo* classInfo = NULL;
     ClassInfo* prevClassInfo = NULL;
     ClassInfo dummyClass(req->classCategory);
@@ -2423,7 +2424,10 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
             }
         }
         err = attrCreate(classInfo, attr, attrName);
-        if(err != SA_AIS_OK) {
+        if(err == SA_AIS_ERR_NOT_SUPPORTED) {
+            useUnknownFlag = true;
+            err = SA_AIS_OK;
+        } else if(err != SA_AIS_OK) {
             illegal = 1;
         }
         list = list->next;
@@ -2474,6 +2478,10 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
         }
         classInfo = NULL;
         goto done;
+    }
+
+    if(useUnknownFlag) {
+        LOG_NO("At least one attribute in class %s has unsupported attribute flag", className.c_str());
     }
 
     /* All checks passed, now install the class def. */
@@ -3054,12 +3062,36 @@ ImmModel::attrCreate(ClassInfo* classInfo, const ImmsvAttrDefinition* attr,
             }
         }
 
-        TRACE_5("create attribute '%s'", attrName.c_str());
+        SaImmAttrFlagsT unknownFlags = attr->attrFlags &
+          ~(SA_IMM_ATTR_MULTI_VALUE |
+            SA_IMM_ATTR_RDN |
+            SA_IMM_ATTR_CONFIG |
+            SA_IMM_ATTR_WRITABLE |
+            SA_IMM_ATTR_INITIALIZED |
+            SA_IMM_ATTR_RUNTIME |
+            SA_IMM_ATTR_PERSISTENT |
+            SA_IMM_ATTR_CACHED);
+
+        if(unknownFlags) {
+            /* This error means that at least one attribute flag is not supported by this
+               OpenSAF release. This release will still try to cope with such flags by 
+               ignoring them (e.g. not failing to load the rest of the data). This can only
+               be done if either the XSD pointed at by the file can be loaded and the
+               unsupported flag is confirmed as a valid flag name in that XSD; or if the
+               recognition of the unsupported flag has been hardcoded into this older release.
+               Hardcoding is only done for non-integrity related flags such as SA_IMM_ATTR_NOTIFY
+               and allows the flag to pass through this system (e.g. be included in a dump).
+            */
+
+            err = SA_AIS_ERR_NOT_SUPPORTED;
+            TRACE_5("create attribute '%s' with unknown flag(s), attribute flag: %llu", attrName.c_str(), attr->attrFlags);
+        } else {
+            TRACE_5("create attribute '%s'", attrName.c_str());
+        }
             
         AttrInfo* attrInfo = new AttrInfo;
         attrInfo->mValueType = attr->attrValueType;
-        osafassert(attr->attrFlags < 0xffffffff);
-        attrInfo->mFlags = (SaUint32T) attr->attrFlags;
+        attrInfo->mFlags = attr->attrFlags;
         attrInfo->mNtfId = attr->attrNtfId;
         if(attr->attrDefaultValue) {
             IMMSV_OCTET_STRING tmpos; //temporary octet string
@@ -3142,13 +3174,13 @@ ImmModel::classDescriptionGet(const IMMSV_OCTET_STRING* clName,
 
 struct AttrFlagIncludes
 {
-    AttrFlagIncludes(SaUint32T attrFlag) : mFlag(attrFlag) { }
+    AttrFlagIncludes(SaImmAttrFlagsT attrFlag) : mFlag(attrFlag) { }
     
     bool operator() (AttrMap::value_type& item) const {
         return (item.second->mFlags & mFlag) != 0;
     }
     
-    SaUint32T mFlag;
+    SaImmAttrFlagsT mFlag;
 };
 
 struct IdIs

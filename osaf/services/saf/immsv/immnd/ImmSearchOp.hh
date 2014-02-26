@@ -32,7 +32,7 @@ struct SearchAttribute
     std::string name;
     ImmAttrValue*     valuep;
     SaImmValueTypeT  valueType;
-    SaUint32T flags;
+    SaImmAttrFlagsT flags;
 
     ~SearchAttribute();
 };
@@ -63,7 +63,7 @@ public:
     void          addAttribute(
                                const std::string& attributeName, 
                                SaUint32T valueType,
-                               SaUint32T flags);
+                               SaImmAttrFlagsT flags);
     void          addAttrValue(const ImmAttrValue& value);
     void          setImplementer(
                                  SaUint32T conn, 
