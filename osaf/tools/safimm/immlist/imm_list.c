@@ -324,9 +324,6 @@ static void display_class_definition(const SaImmClassNameT className,
 			if (attrDefinition->attrFlags & SA_IMM_ATTR_NOTIFY)
 				printf(", NOTIFY");
 
-			if (attrDefinition->attrFlags & SA_IMM_ATTR_NO_DUPLICATES)
-				printf(", NO_DUPLICATES");
-
 		} else if (attrDefinition->attrFlags & SA_IMM_ATTR_RUNTIME) {
 			if (attrDefinition->attrDefaultValue != NULL) {
 				printf(" = ");
@@ -348,9 +345,6 @@ static void display_class_definition(const SaImmClassNameT className,
 
 			if (attrDefinition->attrFlags & SA_IMM_ATTR_NOTIFY)
 				printf(", NOTIFY");
-
-			if (attrDefinition->attrFlags & SA_IMM_ATTR_NO_DUPLICATES)
-				printf(", NO_DUPLICATES");
 		}
 
 		printf("}\n");

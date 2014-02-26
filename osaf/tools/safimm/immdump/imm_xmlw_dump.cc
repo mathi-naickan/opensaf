@@ -23,6 +23,9 @@
 #include <osaf_unicode.h>
 
 
+#ifndef SA_IMM_ATTR_NOTIFY
+#define SA_IMM_ATTR_NOTIFY        0x0000000002000000    /* See: http://devel.opensaf.org/ticket/2883 */
+#endif
 
 /* Functions */
 
@@ -490,7 +493,16 @@ void flagsToXMLw(SaImmAttrDefinitionT_2* p, xmlTextWriterPtr writer)
             exit(1);
         }
     }
-    
+
+    if (flags & SA_IMM_ATTR_NOTIFY)
+    {   
+        if(xmlTextWriterWriteElement(writer, (xmlChar*) "flag",
+           (xmlChar*) "SA_NOTIFY") < 0 ) { 
+            std::cout << "Error at xmlTextWriterWriteElement (flag - SA_NOTIFY)" << std::endl;
+            exit(1);
+        }   
+    }
+
 }
 
 void typeToXMLw(SaImmAttrDefinitionT_2* p, xmlTextWriterPtr writer)

@@ -21,6 +21,8 @@
 #include <set>
 #include <string>
 #include <libxml/parser.h>
+#include <libxml/tree.h>
+#include <libxml/xpath.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,15 +30,13 @@
 #include <assert.h>
 #include <syslog.h>
 #include <configmake.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include <saAis.h>
 #include <saImmOm.h>
 #include <immutil.h>
 
-
-#ifndef SA_IMM_ATTR_NO_DUPLICATES
-#define SA_IMM_ATTR_NO_DUPLICATES 0x0000000001000000	/* See: http://devel.opensaf.org/ticket/1545 */
-#endif
 
 #ifndef SA_IMM_ATTR_NOTIFY
 #define SA_IMM_ATTR_NOTIFY        0x0000000002000000	/* See: http://devel.opensaf.org/ticket/2883 */
@@ -68,7 +68,7 @@ static char base64_dec_table[] = {
 
 extern "C"
 {
-	int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe);
+	int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe, const char *xsdPath);
 }
 
 extern ImmutilErrorFnT immutilError;
@@ -140,6 +140,11 @@ typedef struct ParserStateStruct {
 	SaImmHandleT         ownerHandle;
 	SaImmHandleT         ccbHandle;
 } ParserState;
+
+bool isXsdLoaded = false;
+static const char *imm_xsd_file;
+typedef std::set<std::string> AttrFlagSet;
+AttrFlagSet attrFlagSet;
 
 
 /* Prototypes */
@@ -1001,6 +1006,143 @@ static inline bool isBase64Encoded(const xmlChar **attrs) {
 	return isB64;
 }
 
+static inline char *getAttrValue(xmlAttributePtr attr) {
+    if(!attr || !attr->children) {
+        return NULL;
+    }
+
+    return (char *)attr->children->content;
+}
+
+static bool loadXsd(const xmlChar** attrs) {
+    if(!imm_xsd_file) {
+        return true;
+    }
+
+    // Check if schema path exist
+    struct stat st;
+    if(stat(imm_xsd_file, &st)) {
+        if(errno == ENOENT) {
+            LOG_ER("%s does not exist", imm_xsd_file);
+        } else {
+            LOG_ER("stat of %s return error: %d", imm_xsd_file, errno);
+        }
+
+        return false;
+    }
+    // It should be a file or a directory
+    if(!S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode)) {
+        LOG_ER("%s is not a file or directory", imm_xsd_file);
+        return false;
+    }
+
+    std::string xsdFile = imm_xsd_file;
+    if(S_ISDIR(st.st_mode)) {
+        // Schema path is a directory, so we shall add a schema file from XML file
+        if(xsdFile.at(xsdFile.size() - 1) != '/') {
+            xsdFile.append("/");
+        }
+        char *xsd = (char *)getAttributeValue(attrs, (xmlChar *)"noNamespaceSchemaLocation");
+        if(!xsd) {
+            // try with a namespace
+            xsd = (char *)getAttributeValue(attrs, (xmlChar *)"xsi:noNamespaceSchemaLocation");
+            if(!xsd) {
+                LOG_ER("Schema is not defined in XML file");
+                return false;
+            }
+        }
+        xsdFile.append(xsd);
+
+        // Check if schema file exists and that it's a file
+        if(stat(xsdFile.c_str(), &st)) {
+            if(errno == ENOENT) {
+                LOG_ER("XSD file %s does not exist", imm_xsd_file);
+            } else {
+                LOG_ER("Stat of XSD file %s return error: %d", imm_xsd_file, errno);
+            }
+
+            return false;
+        }
+        if(!S_ISREG(st.st_mode)) {
+            LOG_ER("Schema %s is not a file", xsdFile.c_str());
+            return false;
+        }
+    }
+
+    xmlNodePtr xsdDocRoot;
+    xmlDocPtr xsdDoc = xmlParseFile(xsdFile.c_str());
+    if(!xsdDoc) {
+        return false;
+    }
+
+    bool rc = true;
+    xmlXPathContextPtr ctx = xmlXPathNewContext(xsdDoc);
+    if(!ctx) {
+        rc = false;
+        goto freedoc;
+    }
+
+    // Add namespace of the first element
+    xsdDocRoot = xmlDocGetRootElement(xsdDoc);
+    if(xsdDocRoot->ns) {
+        ctx->namespaces = (xmlNsPtr *)malloc(sizeof(xmlNsPtr));
+        ctx->namespaces[0] = xsdDocRoot->ns;
+        ctx->nsNr = 1;
+    }
+
+    xmlXPathObjectPtr xpathObj;
+    xpathObj = xmlXPathEval((const xmlChar*)"/xs:schema/xs:simpleType[@name=\"attr-flags\"]/xs:restriction/xs:enumeration", ctx);
+    if(!xpathObj || !xpathObj->nodesetval) {
+        rc = false;
+        goto freectx;
+    }
+
+    xmlElementPtr element;
+    xmlAttributePtr attr;
+    char *value;
+    int size;
+
+    size = xpathObj->nodesetval->nodeNr;
+    for(int i=0; i<size; i++) {
+        value = NULL;
+        element = (xmlElementPtr)xpathObj->nodesetval->nodeTab[i];
+        attr = element->attributes;
+        while(attr) {
+            if(!strcmp((char *)attr->name, "value")) {
+                value = getAttrValue(attr);
+            }
+
+            if(value) {
+                break;
+            }
+
+            attr = (xmlAttributePtr)attr->next;
+        }
+
+        if(value) {
+            if(strcmp(value, "SA_RUNTIME") && strcmp(value, "SA_CONFIG") &&
+                    strcmp(value, "SA_MULTI_VALUE") && strcmp(value, "SA_WRITABLE") &&
+                    strcmp(value, "SA_INITIALIZED") && strcmp(value, "SA_PERSISTENT") &&
+                    strcmp(value, "SA_CACHED") && strcmp(value, "SA_NOTIFY")) {
+                attrFlagSet.insert(value);
+            }
+        }
+    }
+
+    isXsdLoaded = true;
+
+    xmlXPathFreeObject(xpathObj);
+freectx:
+    if(ctx->nsNr) {
+        free(ctx->namespaces);
+    }
+    xmlXPathFreeContext(ctx);
+freedoc:
+    xmlFreeDoc(xsdDoc);
+
+    return rc;
+}
+
 /**
  * This is the handler for start tags
  */
@@ -1125,6 +1267,12 @@ static void startElementHandler(void* userData,
 		/* <imm:IMM-contents> */
 	} else if (strcmp((const char*)name, "imm:IMM-contents") == 0) {
 		state->state[state->depth] = IMM_CONTENTS;
+		if(imm_xsd_file) {
+			if(!loadXsd(attrs)) {
+				LOG_ER("Failed to load XML schema", name);
+				exit(1);
+			}
+		}
 	} else {
 		LOG_ER("UNKNOWN TAG! (%s)", name);
 		exit(1);
@@ -1562,15 +1710,21 @@ static SaImmAttrFlagsT charsToFlagsHelper(const xmlChar* str, size_t len)
 		return SA_IMM_ATTR_PERSISTENT;
 	} else if (len == strlen("SA_CACHED") && strncmp((const char*)str, "SA_CACHED", len) == 0) {
 		return SA_IMM_ATTR_CACHED;
-	} else if (len == strlen("SA_NO_DUPLICATES") && strncmp((const char*)str, "SA_NO_DUPLICATES", len) == 0) {
-		return SA_IMM_ATTR_NO_DUPLICATES;
 	} else if (len == strlen("SA_NOTIFY") && strncmp((const char*)str, "SA_NOTIFY", len) == 0) {
 		return SA_IMM_ATTR_NOTIFY;
 	}
 
-	LOG_ER("UNKNOWN FLAGS, %s", str);
+    std::string flag((char *)str, len);
+    if(isXsdLoaded) {
+        AttrFlagSet::iterator it = attrFlagSet.find(flag);
+        if(it != attrFlagSet.end()) {
+            return 0;
+        }
+    }
 
-	exit(1);
+    LOG_ER("UNKNOWN FLAGS, %s", flag.c_str());
+
+    exit(1);
 }
 
 /**
@@ -2036,13 +2190,17 @@ int loadImmXML(std::string xmlfile)
 // C and c++ caller wrapper
 //  The objective is to keep the code copied from imm_load.cc as close to original as possible
 //  to ease a future refactoring towards common codebase
-int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe)
+int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe, const char *xsdPath)
 {
 	std::string xmlfile(xmlfileC);
 	imm_import_adminOwnerName = adminOwnerName;
 	imm_import_verbose = verbose;
 	imm_import_ccb_safe = ccb_safe;
 	LOG_IN("file: %s adminOwner: %s", xmlfileC, adminOwnerName);
+
+	imm_xsd_file = xsdPath;
+	isXsdLoaded = false;
+	attrFlagSet.clear();
 
 	// assign own immutil errorhandler (no call to abort())
 	immutilError = imm_importImmutilError;
