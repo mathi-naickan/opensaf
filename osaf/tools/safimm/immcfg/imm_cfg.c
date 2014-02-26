@@ -65,7 +65,7 @@ typedef enum {
 #define VERBOSE_INFO(format, args...) if (verbose) { fprintf(stderr, format, ##args); }
 
 // Interface functions which implement -f and -L options (imm_import.cc)
-int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe);
+int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe, const char *xsdPath);
 int validateImmXML(const char *xmlfile, int verbose);
 
 
@@ -103,6 +103,7 @@ static void usage(const char *progname)
 	printf("\t-L, --validate <imm.xml file>\n");
 	printf("\t-o, --admin-owner <admin owner name>\n");
 	printf("\t--admin-owner-clear\n");
+	printf("\t-X, --xsd <path_to_schema.xsd>\n");
 
 	printf("\nEXAMPLE\n");
 	printf("\timmcfg -a saAmfNodeSuFailoverMax=7 safAmfNode=Node01,safAmfCluster=1\n");
@@ -127,6 +128,10 @@ static void usage(const char *progname)
 	printf("\t\tuse 'myAdminOwnerName' as admin owner name for changing one attribute of one object\n");
 	printf("\timmcfg --admin-owner-clear safAmfNode=Node01,safAmfCluster=1\n");
 	printf("\t\tclear admin owner from one object\n");
+	printf("\timmcfg -X /etc/opensaf/schema.xsd -f imm.xml\n");
+	printf("\t\timmcfg will load unsupported attribute flags in the current OpenSAF version from /etc/opensaf/schema.xsd, and use them to successfully import imm.xml");
+	printf("\timmcfg -X /etc/opensaf -f imm.xml\n");
+	printf("\t\timmcfg will load unsupported attribute flags in the current OpenSAF version from the schema specified in imm.xml which is stored in /etc/opensaf, and use loaded flags to successfully import imm.xml");
 }
 
 /* signal handler for SIGALRM */
@@ -854,6 +859,7 @@ int main(int argc, char *argv[])
 		{"disable-attr-notify", no_argument, NULL, 0},
 		{"admin-owner", required_argument, NULL, 'o'},
 		{"admin-owner-clear", no_argument, NULL, 0},
+		{"xsd", required_argument, NULL, 'X'},
 		{0, 0, 0, 0}
 	};
 	SaAisErrorT error;
@@ -879,9 +885,11 @@ int main(int argc, char *argv[])
 	unsigned long timeoutVal = 60;
 	attr_notify_t attrNotify = NOTIFY_UNDEFINED;
 
+	char *xsdPath = NULL;
+
 	while (1) {
 		int option_index = 0;
-		c = getopt_long(argc, argv, "a:c:f:t:dhmvuL:o:", long_options, &option_index);
+		c = getopt_long(argc, argv, "a:c:f:t:dhmvuL:o:X:", long_options, &option_index);
 
 		if (c == -1)	/* have all command-line options have been parsed? */
 			break;
@@ -963,6 +971,13 @@ int main(int argc, char *argv[])
 			adminOwnerName = (SaImmAdminOwnerNameT)malloc(strlen(optarg) + 1);
 			strcpy(adminOwnerName, optarg);
 			break;
+		case 'X':
+			if(xsdPath) {
+				fprintf(stderr, "XSD path is already set\n");
+				exit(EXIT_FAILURE);
+			}
+			xsdPath = strdup(optarg);
+			break;
 		default:
 			free(adminOwnerName);
 			fprintf(stderr, "Try '%s --help' for more information\n", argv[0]);
@@ -994,7 +1009,7 @@ int main(int argc, char *argv[])
 	
 	if (op == LOAD_IMMFILE) {
 		VERBOSE_INFO("importImmXML(xmlFilename=%s, verbose=%d)\n", xmlFilename, verbose);
-		rc = importImmXML(xmlFilename, adminOwnerName, verbose, ccb_safe);
+		rc = importImmXML(xmlFilename, adminOwnerName, verbose, ccb_safe, xsdPath);
 		free(adminOwnerName);
 		exit(rc);
 	}
@@ -1113,10 +1128,14 @@ int main(int argc, char *argv[])
 		free(attributeNames);
 	error = immutil_saImmOmFinalize(immHandle);
 	if (SA_AIS_OK != error) {
-                fprintf(stderr, "error - saImmOmFinalize FAILED: %s\n", saf_error(error));
-                rc = EXIT_FAILURE;
-        }
+		fprintf(stderr, "error - saImmOmFinalize FAILED: %s\n", saf_error(error));
+		rc = EXIT_FAILURE;
+	}
 
+	if(xsdPath) {
+		free(xsdPath);
+		xsdPath = NULL;
+	}
 
 	exit(rc);
 }
