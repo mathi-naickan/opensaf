@@ -45,11 +45,11 @@
 /* AMF Handle for the proxy */
 static SaAmfHandleT proxy_amf_hdl;
 
+/* AMF Handle for all proxied, allows use of different callbacks for proxy/proxied */
+static SaAmfHandleT proxied_amf_hdl;
+
 /* Proxy healthcheck key */
 static SaAmfHealthcheckKeyT proxy_healthcheck_key = {"default", 7};
-
-/* Current HA state of the proxy */
-static SaAmfHAStateT proxy_ha_state;
 
 /* DN of the proxy component */
 static SaNameT proxy_comp_name;
@@ -65,36 +65,186 @@ static const char *ha_state_name[] =
 };
 
 /**
- * Returns true if comp_name is the same as the proxy's name
- * @param comp_name
+ * Registers all proxied components with AMF
+ * @param amf_hdl
+ * @param proxy_name
  * @return
  */
-static bool is_proxy_comp_name(const SaNameT *comp_name)
+static int register_proxied_comps(SaAmfHandleT amf_hdl,
+								  const SaNameT *proxy_name)
 {
-	if (memcmp(comp_name->value, proxy_comp_name.value, SA_MAX_NAME_LENGTH) == 0)
-		return true;
-	else
-		return false;
+    SaAisErrorT rc;
+   	const char *name = getenv("PROXIED_X_DN");
+   	SaNameT comp_name;
+   	comp_name.length = sprintf((char*)comp_name.value, "%s", name);
+
+   	syslog(LOG_INFO, "registering proxied 'X' with DN '%s'", comp_name.value);
+
+   	rc = saAmfComponentRegister(amf_hdl, &comp_name, proxy_name);
+   	if (rc != SA_AIS_OK) {
+   		syslog(LOG_ERR, "saAmfComponentRegister proxied FAILED %u", rc);
+        return -1;
+   	}
+
+   	name = getenv("PROXIED_Y_DN");
+   	comp_name.length = sprintf((char*)comp_name.value, "%s", name);
+   	syslog(LOG_INFO, "registering proxied 'Y' with DN '%s'", comp_name.value);
+   	rc = saAmfComponentRegister(amf_hdl, &comp_name, proxy_name);
+   	if (rc != SA_AIS_OK) {
+   		syslog(LOG_ERR, "saAmfComponentRegister proxied FAILED %u", rc);
+        return -1;
+   	}
+
+    return 0;
 }
 
 /**
- * Assigns proxy or instantiates proxied component
+ * Unregisters all proxied components from AMF
+ * @param amf_hdl
+ * @param proxy_name
+ * @return
+ */
+static int unregister_proxied_comps(SaAmfHandleT amf_hdl,
+									const SaNameT *proxy_name)
+{
+    SaAisErrorT rc;
+   	const char *name = getenv("PROXIED_X_DN");
+   	SaNameT comp_name;
+   	comp_name.length = sprintf((char*)comp_name.value, "%s", name);
+
+   	syslog(LOG_INFO, "unregistering: 'X' with DN '%s'", comp_name.value);
+
+   	rc = saAmfComponentUnregister(amf_hdl, &comp_name, proxy_name);
+   	if (rc != SA_AIS_OK) {
+   		syslog(LOG_ERR, "saAmfComponentRegister proxied FAILED %u", rc);
+        return -1;
+   	}
+
+   	name = getenv("PROXIED_Y_DN");
+   	comp_name.length = sprintf((char*)comp_name.value, "%s", name);
+   	syslog(LOG_INFO, "unregistering: 'Y' with DN '%s'", comp_name.value);
+   	rc = saAmfComponentUnregister(amf_hdl, &comp_name, proxy_name);
+   	if (rc != SA_AIS_OK) {
+   		syslog(LOG_ERR, "saAmfComponentRegister proxied FAILED %u", rc);
+        return -1;
+   	}
+
+    return 0;
+}
+
+/**
+ * instantiates/starts a proxied component
+ * @param proxied_name
+ * @return
+ */
+static int instantiate_proxied_comp(const SaNameT *proxied_name)
+{
+	syslog(LOG_INFO, "%s '%s'", __FUNCTION__, proxied_name->value);
+
+    /*
+     * instantiate/start the proxied component here!
+     */
+
+    return 0;
+}
+
+/**
+ * terminates/stops a proxied component
+ * @param proxied_name
+ * @return
+ */
+static int terminate_proxied_comp(const SaNameT *proxied_name)
+{
+	syslog(LOG_INFO, "%s '%s'", __FUNCTION__, proxied_name->value);
+
+    /*
+     * terminate/stop the proxied component here!
+     */
+
+    return 0;
+}
+
+/**
+ * start health checks for a proxied component
+ * @param amf_hdl
+ * @param proxied_name
+ * @return
+ */
+static int start_hc_for_proxied_comp(SaAmfHandleT amf_hdl,
+									 const SaNameT *proxied_name)
+{
+    SaAisErrorT rc;
+    SaAmfHealthcheckKeyT key1 = {"shallow", 7};
+
+	syslog(LOG_INFO, "%s '%s'", __FUNCTION__, proxied_name->value);
+
+    rc = saAmfHealthcheckStart(amf_hdl, proxied_name, &key1,
+    		SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_RESTART);
+    if (rc != SA_AIS_OK) {
+    	syslog(LOG_ERR, "saAmfHealthcheckStart proxied FAILED - %u", rc);
+    	return -1;
+    }
+
+    SaAmfHealthcheckKeyT key2 = {"deep", 4};
+    rc = saAmfHealthcheckStart(amf_hdl, proxied_name, &key2,
+    		SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_RESTART);
+    if (rc != SA_AIS_OK) {
+    	syslog(LOG_ERR, "saAmfHealthcheckStart proxied FAILED - %u", rc);
+    	return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * Stop health checks for a proxied component
+ * @param amf_hdl
+ * @param proxied_name
+ * @return
+ */
+static int stop_hc_for_proxied_comp(SaAmfHandleT amf_hdl,
+									const SaNameT *proxied_name)
+{
+    SaAisErrorT rc;
+    SaAmfHealthcheckKeyT key1 = {"shallow", 7};
+
+	syslog(LOG_INFO, "%s '%s'", __FUNCTION__, proxied_name->value);
+
+    rc = saAmfHealthcheckStop(amf_hdl, proxied_name, &key1);
+    if (rc != SA_AIS_OK) {
+    	syslog(LOG_ERR, "saAmfHealthcheckStop proxied FAILED - %u", rc);
+    	return -1;
+    }
+
+    SaAmfHealthcheckKeyT key2 = {"deep", 4};
+    rc = saAmfHealthcheckStop(amf_hdl, proxied_name, &key2);
+    if (rc != SA_AIS_OK) {
+    	syslog(LOG_ERR, "saAmfHealthcheckStop proxied FAILED - %u", rc);
+    	return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * AMF assigns proxy
  * @param invocation
  * @param comp_name
  * @param ha_state
  * @param csi_desc
  */
-static void csiSetCallback(SaInvocationT invocation,
-						   const SaNameT *comp_name,
-						   SaAmfHAStateT ha_state,
-						   SaAmfCSIDescriptorT csi_desc)
+static void proxy_csi_set_callback(SaInvocationT invocation,
+						   	       const SaNameT *comp_name,
+						   	       SaAmfHAStateT ha_state,
+						   	       SaAmfCSIDescriptorT csi_desc)
 {
 	SaAisErrorT rc, error;
 	SaAmfCSIAttributeT *attr;
 	int i, status = 0;
 
 	if (csi_desc.csiFlags == SA_AMF_CSI_ADD_ONE) {
-		syslog(LOG_INFO, "csiSetCallback: '%s' ADD '%s' HAState %s",
+		syslog(LOG_INFO, "%s: '%s' ADD '%s' HAState %s",
+			__FUNCTION__,
 			comp_name->value, csi_desc.csiName.value, ha_state_name[ha_state]);
 
 		/* For debug log the CSI attributes, they could
@@ -106,42 +256,23 @@ static void csiSetCallback(SaInvocationT invocation,
 		}
 
 	} else if (csi_desc.csiFlags == SA_AMF_CSI_TARGET_ALL) {
-		syslog(LOG_INFO, "csiSetCallback: '%s' CHANGE HAState to %s for all assigned CSIs",
+		syslog(LOG_INFO, "%s: '%s' CHANGE HAState to %s for all assigned CSIs",
+			__FUNCTION__,
 			comp_name->value, ha_state_name[ha_state]);
 	} else {
-		syslog(LOG_INFO, "csiSetCallback: '%s' CHANGE HAState to %s for '%s'",
+		syslog(LOG_INFO, "%s: '%s' CHANGE HAState to %s for '%s'",
+			__FUNCTION__,
 			comp_name->value, ha_state_name[ha_state], csi_desc.csiName.value);
 	}
 
 	switch (ha_state) {
 	case SA_AMF_HA_ACTIVE:
-		if (is_proxy_comp_name(comp_name) == false) {
-			// instantiate a proxied component
-			syslog(LOG_INFO, "Instantiating '%s'", comp_name->value);
-
-			// start health checks for proxied component
-			SaAmfHealthcheckKeyT key1 = {"shallow", 7};
-			rc = saAmfHealthcheckStart(proxy_amf_hdl, comp_name, &key1,
-				SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_RESTART);
-			if (rc != SA_AIS_OK) {
-				syslog(LOG_ERR, "saAmfHealthcheckStart proxied FAILED - %u", rc);
-			}
-
-			SaAmfHealthcheckKeyT key2 = {"deep", 4};
-			rc = saAmfHealthcheckStart(proxy_amf_hdl, comp_name, &key2,
-				SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_RESTART);
-			if (rc != SA_AIS_OK) {
-				syslog(LOG_ERR, "saAmfHealthcheckStart proxied FAILED - %u", rc);
-			}
-		}
+		status = register_proxied_comps(proxied_amf_hdl, comp_name);
 		break;
 	case SA_AMF_HA_STANDBY:
 		break;
 	case SA_AMF_HA_QUIESCED:
-		// LOCK of a proxied SU ends up in CSI remove
-		break;
-	case SA_AMF_HA_QUIESCING:
-		// SHUTDOWN of a proxied SU ends up in CSI remove
+		status = unregister_proxied_comps(proxied_amf_hdl, comp_name);
 		break;
 	default:
 		syslog(LOG_ERR, "unhandled HA state %u", ha_state);
@@ -159,39 +290,22 @@ static void csiSetCallback(SaInvocationT invocation,
 		syslog(LOG_ERR, "saAmfResponse FAILED - %u", rc);
 		exit(1);
 	}
-
-	if (ha_state == SA_AMF_HA_QUIESCING) {
-		/* "gracefully quiescing CSI work assignment" */
-		sleep(1);
-		rc = saAmfCSIQuiescingComplete(proxy_amf_hdl, invocation, SA_AIS_OK);
-		if (rc != SA_AIS_OK) {
-			syslog(LOG_ERR, "saAmfCSIQuiescingComplete FAILED - %u", rc);
-			exit(1);
-		}
-	}
 }
 
 /**
- * Removes assignment from proxy or terminates proxied component
+ * AMF removes assignment from proxy
  *
  * @param invocation
  * @param comp_name
  * @param csi_name
  * @param csi_flags
  */
-static void csiRemoveCallback(SaInvocationT invocation,
-							  const SaNameT *comp_name,
-							  const SaNameT *csi_name,
-							  SaAmfCSIFlagsT csi_flags)
+static void proxy_csi_remove_callback(SaInvocationT invocation,
+									  const SaNameT *comp_name,
+									  const SaNameT *csi_name,
+									  SaAmfCSIFlagsT csi_flags)
 {
-	syslog(LOG_INFO, "csiRemoveCallback: '%s'", comp_name->value);
-
-	if (is_proxy_comp_name(comp_name) == true) {
-		/* Reset the HA state */
-		proxy_ha_state = 0;
-	} else {
-		// terminate proxied component here before calling saAmfResponse
-	}
+	syslog(LOG_INFO, "%s: '%s'", __FUNCTION__, comp_name->value);
 
 	SaAisErrorT rc = saAmfResponse(proxy_amf_hdl, invocation, SA_AIS_OK);
 	if (rc != SA_AIS_OK) {
@@ -201,80 +315,207 @@ static void csiRemoveCallback(SaInvocationT invocation,
 }
 
 /**
- * Checks health of proxied component
+ * Checks health of proxy component
  * 
  * @param inv
  * @param comp_name
  * @param health_check_key
  */
-static void healthcheckCallback(SaInvocationT inv,
-								const SaNameT *comp_name,
-								SaAmfHealthcheckKeyT *key)
+static void proxy_healthcheck_callback(SaInvocationT inv,
+									   const SaNameT *comp_name,
+									   SaAmfHealthcheckKeyT *key)
 {
 	SaAisErrorT rc;
 
-	syslog(LOG_DEBUG, "healthcheckCallback '%s', key '%s'", comp_name->value,
+	syslog(LOG_DEBUG, "%s: '%s', key '%s'", __FUNCTION__, comp_name->value,
 		key->key);
 
-	if (is_proxy_comp_name(comp_name) == true) {
-		rc = saAmfResponse(proxy_amf_hdl, inv, SA_AIS_OK);
-	} else {
-		/*
-		 * check health of proxied component and report found errors using
-		 * saAmfComponentErrorReport_4()
-		 *
-		 * SA_AIS_OK - The healthcheck completed successfully.
-		 * SA_AIS_ERR_FAILED_OPERATION - The component failed to successfully
-		 * execute the given healthcheck and has reported an error on the faulty
-		 * component by invoking saAmfComponentErrorReport_4().
-		 */
-		rc = saAmfResponse(proxy_amf_hdl, inv, SA_AIS_OK);
-	}
+	rc = saAmfResponse(proxy_amf_hdl, inv, SA_AIS_OK);
 
 	if (rc != SA_AIS_OK) {
-		syslog(LOG_ERR, "saAmfResponse FAILED - %u", rc);
+		syslog(LOG_ERR, "%s: saAmfResponse FAILED - %u", __FUNCTION__, rc);
 		exit(1);
 	}
 }
 
-static void proxiedComponentInstantiateCallback(
-		SaInvocationT invocation,
-		const SaNameT *proxiedCompName)
-{
-	// proxied comp is non pre instantiable, should not get here
-	syslog(LOG_ERR, "proxiedComponentInstantiateCallback - npi comp");
-}
-
-static void proxiedComponentCleanupCallback(
-    SaInvocationT invocation,
-    const SaNameT *proxiedCompName)
-{
-	// proxied comp is non pre instantiable, should not get here
-	syslog(LOG_ERR, "proxiedComponentCleanupCallback - npi comp");
-}
-
 /**
  * Terminates proxy component
- * 
+ *
  * @param inv
  * @param comp_name
  */
-static void componentTerminateCallback(SaInvocationT inv,
-					  				   const SaNameT *comp_name)
+static void proxy_terminate_callback(SaInvocationT inv,
+					  				 const SaNameT *comp_name)
 {
 	syslog(LOG_INFO, "componentTerminateCallback: '%s'", comp_name->value);
 
-	// proxied are non-pre-instantiable, should only get here for the proxy
-	assert(is_proxy_comp_name(comp_name) == true);
-
 	SaAisErrorT rc = saAmfResponse(proxy_amf_hdl, inv, SA_AIS_OK);
 	if (rc != SA_AIS_OK) {
-		syslog(LOG_ERR, "saAmfResponse FAILED - %u", rc);
+		syslog(LOG_ERR, "%s saAmfResponse FAILED - %u", __FUNCTION__, rc);
 		exit(1);
 	}
 
 	syslog(LOG_NOTICE, "exiting");
 	exit(0);
+}
+
+/**
+ * Instantiates and starts healthcheks for a proxied component
+ * @param invocation
+ * @param comp_name
+ * @param ha_state
+ * @param csi_desc
+ */
+static void proxied_csi_set_callback(SaInvocationT invocation,
+					   	   	       const SaNameT *comp_name,
+						   	       SaAmfHAStateT ha_state,
+						   	       SaAmfCSIDescriptorT csi_desc)
+{
+	SaAisErrorT rc, error;
+	SaAmfCSIAttributeT *attr;
+	int i, status = 0;
+
+	if (csi_desc.csiFlags == SA_AMF_CSI_ADD_ONE) {
+		syslog(LOG_INFO, "%s: '%s' ADD '%s' HAState %s",
+			__FUNCTION__,
+			comp_name->value, csi_desc.csiName.value, ha_state_name[ha_state]);
+
+		/* For debug log the CSI attributes, they could
+		** define the workload characteristics */
+		for (i = 0; i < csi_desc.csiAttr.number; i++) {
+			attr = &csi_desc.csiAttr.attr[i];
+			syslog(LOG_DEBUG, "\tname: %s, value: %s",
+				attr->attrName, attr->attrValue);
+		}
+
+	} else if (csi_desc.csiFlags == SA_AMF_CSI_TARGET_ALL) {
+		syslog(LOG_INFO, "%s: '%s' CHANGE HAState to %s for all assigned CSIs",
+			__FUNCTION__,
+			comp_name->value, ha_state_name[ha_state]);
+	} else {
+		syslog(LOG_INFO, "%s: '%s' CHANGE HAState to %s for '%s'",
+			__FUNCTION__,
+			comp_name->value, ha_state_name[ha_state], csi_desc.csiName.value);
+	}
+
+	switch (ha_state) {
+	case SA_AMF_HA_ACTIVE:
+		status = instantiate_proxied_comp(comp_name);
+		status = start_hc_for_proxied_comp(proxied_amf_hdl, comp_name);
+		break;
+	case SA_AMF_HA_STANDBY:
+		break;
+	case SA_AMF_HA_QUIESCED:
+		status = stop_hc_for_proxied_comp(proxied_amf_hdl, comp_name);
+		status = terminate_proxied_comp(comp_name);
+		break;
+	default:
+		syslog(LOG_ERR, "unhandled HA state %u", ha_state);
+		status = -1;
+		break;
+	}
+
+	if (status == 0)
+		error = SA_AIS_OK;
+	else
+		error = SA_AIS_ERR_FAILED_OPERATION;
+
+	rc = saAmfResponse(proxied_amf_hdl, invocation, error);
+	if (rc != SA_AIS_OK) {
+		syslog(LOG_ERR, "saAmfResponse FAILED - %u", rc);
+		exit(1);
+	}
+}
+
+/**
+ * Stops healthchecks and terminated a proxied component
+ *
+ * @param invocation
+ * @param comp_name
+ * @param csi_name
+ * @param csi_flags
+ */
+static void proxied_csi_remove_callback(SaInvocationT invocation,
+									  const SaNameT *comp_name,
+									  const SaNameT *csi_name,
+									  SaAmfCSIFlagsT csi_flags)
+{
+	syslog(LOG_INFO, "%s: '%s'", __FUNCTION__, comp_name->value);
+
+	stop_hc_for_proxied_comp(proxied_amf_hdl, comp_name);
+	terminate_proxied_comp(comp_name);
+
+	SaAisErrorT rc = saAmfResponse(proxied_amf_hdl, invocation, SA_AIS_OK);
+	if (rc != SA_AIS_OK) {
+		syslog(LOG_ERR, "saAmfResponse FAILED - %u", rc);
+		exit(1);
+	}
+}
+
+/**
+ * Checks health of proxied component
+ *
+ * @param inv
+ * @param comp_name
+ * @param health_check_key
+ */
+static void proxied_healthcheck_callback(SaInvocationT inv,
+									   const SaNameT *comp_name,
+									   SaAmfHealthcheckKeyT *key)
+{
+	SaAisErrorT rc;
+
+	syslog(LOG_DEBUG, "%s: '%s', key '%s'", __FUNCTION__, comp_name->value,
+		key->key);
+
+	/*
+	 * check health of proxied component and report found errors using
+	 * saAmfComponentErrorReport_4()
+	 *
+	 * SA_AIS_OK - The healthcheck completed successfully.
+	 * SA_AIS_ERR_FAILED_OPERATION - The component failed to successfully
+	 * execute the given healthcheck and has reported an error on the faulty
+	 * component by invoking saAmfComponentErrorReport_4().
+	 */
+	rc = saAmfResponse(proxied_amf_hdl, inv, SA_AIS_OK);
+	if (rc != SA_AIS_OK) {
+		syslog(LOG_ERR, "saAmfResponse FAILED - %u", rc);
+		exit(1);
+	}
+}
+
+static void proxied_component_instantiate_callback(
+		SaInvocationT invocation,
+		const SaNameT *proxiedCompName)
+{
+	// proxied comp is non pre instantiable, should not get here
+	syslog(LOG_ERR, "proxied_component_instantiate_callback - npi comp");
+}
+
+static void proxied_component_cleanup_callback(
+    SaInvocationT invocation,
+    const SaNameT *proxiedCompName)
+{
+	// proxied comp is non pre instantiable, should not get here
+	syslog(LOG_ERR, "proxied_component_cleanup_callback - npi comp");
+}
+
+/**
+ * Terminates proxied component
+ * 
+ * @param inv
+ * @param comp_name
+ */
+static void proxied_terminate_callback(SaInvocationT inv,
+					  				 const SaNameT *comp_name)
+{
+	syslog(LOG_INFO, "%s: '%s'", __FUNCTION__, comp_name->value);
+
+	SaAisErrorT rc = saAmfResponse(proxied_amf_hdl, inv, SA_AIS_OK);
+	if (rc != SA_AIS_OK) {
+		syslog(LOG_ERR, "saAmfResponse FAILED - %u", rc);
+		exit(1);
+	}
 }
 
 /**
@@ -311,30 +552,22 @@ static void sigterm_handler(int sig)
 }
 
 /**
- * Initializes with AMF
+ * Initializes proxy with AMF
  * @param amf_sel_obj [out]
  * 
  * @return SaAisErrorT
  */
-static SaAisErrorT amf_initialize(SaSelectionObjectT *amf_sel_obj)
+static SaAisErrorT proxy_amf_initialize(SaSelectionObjectT *amf_sel_obj)
 {
 	SaAisErrorT rc;
 	SaAmfCallbacksT amf_callbacks = {0};
 	SaVersionT api_ver =
 		{.releaseCode = 'B', api_ver.majorVersion = 0x01, api_ver.minorVersion = 0x01};
 
-	/* Initialize our callbacks */
-	amf_callbacks.saAmfCSISetCallback = csiSetCallback;
-	amf_callbacks.saAmfCSIRemoveCallback = csiRemoveCallback;
-	amf_callbacks.saAmfHealthcheckCallback = healthcheckCallback;
-	amf_callbacks.saAmfComponentTerminateCallback = componentTerminateCallback;
-
-	// must provide these even with non-pre-instantiable proxied components
-	// otherwise register for proxied fails
-	amf_callbacks.saAmfProxiedComponentInstantiateCallback =
-			proxiedComponentInstantiateCallback;
-	amf_callbacks.saAmfProxiedComponentCleanupCallback =
-			proxiedComponentCleanupCallback;
+	amf_callbacks.saAmfCSISetCallback = proxy_csi_set_callback;
+	amf_callbacks.saAmfCSIRemoveCallback = proxy_csi_remove_callback;
+	amf_callbacks.saAmfHealthcheckCallback = proxy_healthcheck_callback;
+	amf_callbacks.saAmfComponentTerminateCallback = proxy_terminate_callback;
 
 	rc = saAmfInitialize(&proxy_amf_hdl, &amf_callbacks, &api_ver);
 	if (rc != SA_AIS_OK) {
@@ -344,7 +577,7 @@ static SaAisErrorT amf_initialize(SaSelectionObjectT *amf_sel_obj)
 
 	rc = saAmfSelectionObjectGet(proxy_amf_hdl, amf_sel_obj);
 	if (rc != SA_AIS_OK) {
-		syslog(LOG_ERR, "saAmfSelectionObjectGet FAILED %u", rc);
+		syslog(LOG_ERR, "saAmfSelectionObjectGet proxy FAILED %u", rc);
 		goto done;
 	}
 
@@ -359,24 +592,6 @@ static SaAisErrorT amf_initialize(SaSelectionObjectT *amf_sel_obj)
 		syslog(LOG_ERR, "saAmfComponentRegister FAILED %u", rc);
 		goto done;
 	}
-	
-	// register proxied components
-	const char *name = getenv("PROXIED_X_DN");
-	SaNameT comp_name;
-	comp_name.length = sprintf((char*)comp_name.value, "%s", name);
-	syslog(LOG_INFO, "registering: 'X' with DN '%s'", comp_name.value);
-	rc = saAmfComponentRegister(proxy_amf_hdl, &comp_name, &proxy_comp_name);
-	if (rc != SA_AIS_OK) {
-		syslog(LOG_ERR, "saAmfComponentRegister proxied FAILED %u", rc);
-	}
-
-	name = getenv("PROXIED_Y_DN");
-	comp_name.length = sprintf((char*)comp_name.value, "%s", name);
-	syslog(LOG_INFO, "registering: 'Y' with DN '%s'", comp_name.value);
-	rc = saAmfComponentRegister(proxy_amf_hdl, &comp_name, &proxy_comp_name);
-	if (rc != SA_AIS_OK) {
-		syslog(LOG_ERR, "saAmfComponentRegister proxied FAILED %u", rc);
-	}
 
 	rc = saAmfHealthcheckStart(proxy_amf_hdl, &proxy_comp_name, &proxy_healthcheck_key,
 		SA_AMF_HEALTHCHECK_AMF_INVOKED, SA_AMF_COMPONENT_RESTART);
@@ -388,11 +603,49 @@ done:
 	return rc;
 }
 
+/**
+ * Initializes proxied with AMF
+ * @param amf_sel_obj
+ * @return
+ */
+static SaAisErrorT proxied_amf_initialize(SaSelectionObjectT *amf_sel_obj)
+{
+	SaAisErrorT rc;
+	SaAmfCallbacksT amf_callbacks = {0};
+	SaVersionT api_ver =
+		{.releaseCode = 'B', api_ver.majorVersion = 0x01, api_ver.minorVersion = 0x01};
+
+	amf_callbacks.saAmfCSISetCallback = proxied_csi_set_callback;
+	amf_callbacks.saAmfCSIRemoveCallback = proxied_csi_remove_callback;
+	amf_callbacks.saAmfHealthcheckCallback = proxied_healthcheck_callback;
+	amf_callbacks.saAmfComponentTerminateCallback = proxied_terminate_callback;
+	amf_callbacks.saAmfProxiedComponentInstantiateCallback =
+		proxied_component_instantiate_callback;
+	amf_callbacks.saAmfProxiedComponentCleanupCallback =
+		proxied_component_cleanup_callback;
+
+	rc = saAmfInitialize(&proxied_amf_hdl, &amf_callbacks, &api_ver);
+	if (rc != SA_AIS_OK) {
+		syslog(LOG_ERR, " saAmfInitialize FAILED %u", rc);
+		goto done;
+	}
+
+	rc = saAmfSelectionObjectGet(proxied_amf_hdl, amf_sel_obj);
+	if (rc != SA_AIS_OK) {
+		syslog(LOG_ERR, "saAmfSelectionObjectGet proxied FAILED %u", rc);
+		goto done;
+	}
+
+done:
+	return rc;
+}
+
 int main(int argc, char **argv)
 {
 	SaAisErrorT rc;
-	SaSelectionObjectT amf_sel_obj;
-	struct pollfd fds[1];
+	SaSelectionObjectT proxy_sel_obj;
+	SaSelectionObjectT proxied_sel_obj;
+	struct pollfd fds[2];
 	char *env_comp_name;
 
 	/* Environment variable "SA_AMF_COMPONENT_NAME" exist when started by AMF */
@@ -428,17 +681,22 @@ int main(int argc, char **argv)
 	/* Make a log to associate component name with PID */
 	syslog(LOG_INFO, "'%s' started", env_comp_name);
 
-	if (amf_initialize(&amf_sel_obj) != SA_AIS_OK)
+	if (proxy_amf_initialize(&proxy_sel_obj) != SA_AIS_OK)
+		goto done;
+
+	if (proxied_amf_initialize(&proxied_sel_obj) != SA_AIS_OK)
 		goto done;
 
 	syslog(LOG_INFO, "Registered with AMF and HC started");
 
-	fds[0].fd = amf_sel_obj;
+	fds[0].fd = proxy_sel_obj;
 	fds[0].events = POLLIN;
+	fds[1].fd = proxied_sel_obj;
+	fds[1].events = POLLIN;
 
 	/* Loop forever waiting for events on watched file descriptors */
 	while (1) {
-		int res = poll(fds, 1, -1);
+		int res = poll(fds, 2, -1);
 
 		if (res == -1) {
 			if (errno == EINTR)
@@ -450,10 +708,15 @@ int main(int argc, char **argv)
 		}
 
 		if (fds[0].revents & POLLIN) {
-			/* An AMF event is received, call AMF dispatch which in turn will
-			 * call our installed callbacks. In context of this main thread.
-			 */
 			rc = saAmfDispatch(proxy_amf_hdl, SA_DISPATCH_ONE);
+			if (rc != SA_AIS_OK) {
+				syslog(LOG_ERR, "saAmfDispatch FAILED %u", rc);
+				goto done;
+			}
+		}
+
+		if (fds[1].revents & POLLIN) {
+			rc = saAmfDispatch(proxied_amf_hdl, SA_DISPATCH_ONE);
 			if (rc != SA_AIS_OK) {
 				syslog(LOG_ERR, "saAmfDispatch FAILED %u", rc);
 				goto done;

@@ -26,51 +26,58 @@ press any key to lock proxied and proxy SU
 $
 
 results in syslog:
-Jan  7 10:28:05 Vostro osafimmnd[6245]: NO Ccb 2 COMMITTED (immcfg_Vostro_6445)
-Jan  7 10:28:05 Vostro osafimmnd[6245]: NO Ccb 3 COMMITTED (immcfg_Vostro_6448)
-Jan  7 10:28:05 Vostro osafamfnd[6306]: NO 'safSu=1,safSg=2N,safApp=Proxy' Presence State UNINSTANTIATED => INSTANTIATING
-Jan  7 10:28:05 Vostro proxy[6459]: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy' started
-Jan  7 10:28:05 Vostro proxy[6459]: registering: 'X' with DN 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:05 Vostro osafamfnd[6306]: NO 'safSu=1,safSg=2N,safApp=Proxy' Presence State INSTANTIATING => INSTANTIATED
-Jan  7 10:28:05 Vostro proxy[6459]: registering: 'Y' with DN 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:05 Vostro proxy[6459]: healthcheckCallback 'safComp=1,safSu=1,safSg=2N,safApp=Proxy', key 'default'
-Jan  7 10:28:05 Vostro osafamfnd[6306]: NO Assigning 'safSi=1,safApp=Proxy' ACTIVE to 'safSu=1,safSg=2N,safApp=Proxy'
-Jan  7 10:28:05 Vostro proxy[6459]: csiSetCallback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy' ADD 'safCsi=1,safSi=1,safApp=Proxy' HAState Active
-Jan  7 10:28:05 Vostro osafamfnd[6306]: NO Assigned 'safSi=1,safApp=Proxy' ACTIVE to 'safSu=1,safSg=2N,safApp=Proxy'
-Jan  7 10:28:05 Vostro osafamfnd[6306]: NO Assigning 'safSi=1,safApp=Proxied' ACTIVE to 'safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:05 Vostro proxy[6459]: csiSetCallback: 'safComp=2,safSu=1,safSg=2N,safApp=Proxied' ADD 'safCsi=2,safSi=1,safApp=Proxied' HAState Active
-Jan  7 10:28:05 Vostro proxy[6459]: Instantiating 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:05 Vostro osafamfnd[6306]: NO 'safSu=1,safSg=2N,safApp=Proxied' Presence State UNINSTANTIATED => INSTANTIATING
-Jan  7 10:28:05 Vostro proxy[6459]: healthcheckCallback 'safComp=2,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
-Jan  7 10:28:05 Vostro proxy[6459]: healthcheckCallback 'safComp=2,safSu=1,safSg=2N,safApp=Proxied', key 'deep'
-Jan  7 10:28:05 Vostro proxy[6459]: csiSetCallback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxied' ADD 'safCsi=1,safSi=1,safApp=Proxied' HAState Active
-Jan  7 10:28:05 Vostro proxy[6459]: Instantiating 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:05 Vostro proxy[6459]: healthcheckCallback 'safComp=1,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
-Jan  7 10:28:05 Vostro proxy[6459]: healthcheckCallback 'safComp=1,safSu=1,safSg=2N,safApp=Proxied', key 'deep'
-Jan  7 10:28:05 Vostro osafamfnd[6306]: NO 'safSu=1,safSg=2N,safApp=Proxied' Presence State INSTANTIATING => INSTANTIATED
-Jan  7 10:28:05 Vostro osafamfnd[6306]: NO Assigned 'safSi=1,safApp=Proxied' ACTIVE to 'safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:15 Vostro proxy[6459]: healthcheckCallback 'safComp=2,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
-Jan  7 10:28:15 Vostro proxy[6459]: healthcheckCallback 'safComp=1,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
-Jan  7 10:28:25 Vostro proxy[6459]: healthcheckCallback 'safComp=2,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
-Jan  7 10:28:25 Vostro proxy[6459]: healthcheckCallback 'safComp=1,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
-Jan  7 10:28:35 Vostro proxy[6459]: healthcheckCallback 'safComp=2,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
-Jan  7 10:28:35 Vostro proxy[6459]: healthcheckCallback 'safComp=1,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO Assigning 'safSi=1,safApp=Proxied' QUIESCED to 'safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:36 Vostro proxy[6459]: csiRemoveCallback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO 'safSu=1,safSg=2N,safApp=Proxied' Presence State INSTANTIATED => TERMINATING
-Jan  7 10:28:36 Vostro proxy[6459]: csiRemoveCallback: 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO 'safSu=1,safSg=2N,safApp=Proxied' Presence State TERMINATING => UNINSTANTIATED
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO Assigned 'safSi=1,safApp=Proxied' QUIESCED to 'safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO Removed 'safSi=1,safApp=Proxied' from 'safSu=1,safSg=2N,safApp=Proxied'
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO Assigning 'safSi=1,safApp=Proxy' QUIESCED to 'safSu=1,safSg=2N,safApp=Proxy'
-Jan  7 10:28:36 Vostro proxy[6459]: csiSetCallback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy' CHANGE HAState to Quiesced for all assigned CSIs
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO Assigned 'safSi=1,safApp=Proxy' QUIESCED to 'safSu=1,safSg=2N,safApp=Proxy'
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO Removing 'safSi=1,safApp=Proxy' from 'safSu=1,safSg=2N,safApp=Proxy'
-Jan  7 10:28:36 Vostro proxy[6459]: csiRemoveCallback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy'
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO Removed 'safSi=1,safApp=Proxy' from 'safSu=1,safSg=2N,safApp=Proxy'
-Jan  7 10:28:36 Vostro proxy[6459]: componentTerminateCallback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy'
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO 'safSu=1,safSg=2N,safApp=Proxy' Presence State INSTANTIATED => TERMINATING
-Jan  7 10:28:36 Vostro osafamfnd[6306]: NO 'safSu=1,safSg=2N,safApp=Proxy' Presence State TERMINATING => UNINSTANTIATED
+Feb 27 18:09:42 Vostro opensafd: OpenSAF(4.5.M0 - 4800:31d94f7f0cea) services successfully started
+Feb 27 18:09:47 Vostro osafimmnd[5925]: NO Ccb 2 COMMITTED (immcfg_Vostro_6127)
+Feb 27 18:09:47 Vostro osafimmnd[5925]: NO Ccb 3 COMMITTED (immcfg_Vostro_6130)
+Feb 27 18:09:47 Vostro osafamfnd[5986]: NO 'safSu=1,safSg=2N,safApp=Proxy' Presence State UNINSTANTIATED => INSTANTIATING
+Feb 27 18:09:47 Vostro proxy[6141]: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy' started
+Feb 27 18:09:47 Vostro osafamfnd[5986]: NO 'safSu=1,safSg=2N,safApp=Proxy' Presence State INSTANTIATING => INSTANTIATED
+Feb 27 18:09:47 Vostro proxy[6141]: Registered with AMF and HC started
+Feb 27 18:09:47 Vostro proxy[6141]: proxy_healthcheck_callback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy', key 'default'
+Feb 27 18:09:47 Vostro osafamfnd[5986]: NO Assigning 'safSi=1,safApp=Proxy' ACTIVE to 'safSu=1,safSg=2N,safApp=Proxy'
+Feb 27 18:09:47 Vostro proxy[6141]: proxy_csi_set_callback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy' ADD 'safCsi=1,safSi=1,safApp=Proxy' HAState Active
+Feb 27 18:09:47 Vostro proxy[6141]: registering proxied 'X' with DN 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:47 Vostro proxy[6141]: registering proxied 'Y' with DN 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:47 Vostro osafamfnd[5986]: NO Assigned 'safSi=1,safApp=Proxy' ACTIVE to 'safSu=1,safSg=2N,safApp=Proxy'
+Feb 27 18:09:47 Vostro osafamfnd[5986]: NO Assigning 'safSi=1,safApp=Proxied' ACTIVE to 'safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:47 Vostro proxy[6141]: proxied_csi_set_callback: 'safComp=2,safSu=1,safSg=2N,safApp=Proxied' ADD 'safCsi=2,safSi=1,safApp=Proxied' HAState Active
+Feb 27 18:09:47 Vostro proxy[6141]: instantiate_proxied_comp 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:47 Vostro proxy[6141]: start_hc_for_proxied_comp 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:47 Vostro osafamfnd[5986]: NO 'safSu=1,safSg=2N,safApp=Proxied' Presence State UNINSTANTIATED => INSTANTIATING
+Feb 27 18:09:47 Vostro proxy[6141]: proxied_healthcheck_callback: 'safComp=2,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
+Feb 27 18:09:47 Vostro proxy[6141]: proxied_healthcheck_callback: 'safComp=2,safSu=1,safSg=2N,safApp=Proxied', key 'deep'
+Feb 27 18:09:47 Vostro proxy[6141]: proxied_csi_set_callback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxied' ADD 'safCsi=1,safSi=1,safApp=Proxied' HAState Active
+Feb 27 18:09:47 Vostro proxy[6141]: instantiate_proxied_comp 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:47 Vostro proxy[6141]: start_hc_for_proxied_comp 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:47 Vostro proxy[6141]: proxied_healthcheck_callback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxied', key 'shallow'
+Feb 27 18:09:47 Vostro proxy[6141]: proxied_healthcheck_callback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxied', key 'deep'
+Feb 27 18:09:47 Vostro osafamfnd[5986]: NO 'safSu=1,safSg=2N,safApp=Proxied' Presence State INSTANTIATING => INSTANTIATED
+Feb 27 18:09:47 Vostro osafamfnd[5986]: NO Assigned 'safSi=1,safApp=Proxied' ACTIVE to 'safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO Assigning 'safSi=1,safApp=Proxied' QUIESCED to 'safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro proxy[6141]: proxied_csi_remove_callback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro proxy[6141]: stop_hc_for_proxied_comp 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO 'safSu=1,safSg=2N,safApp=Proxied' Presence State INSTANTIATED => TERMINATING
+Feb 27 18:09:55 Vostro proxy[6141]: terminate_proxied_comp 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro proxy[6141]: proxied_csi_remove_callback: 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro proxy[6141]: stop_hc_for_proxied_comp 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro proxy[6141]: terminate_proxied_comp 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO 'safSu=1,safSg=2N,safApp=Proxied' Presence State TERMINATING => UNINSTANTIATED
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO Assigned 'safSi=1,safApp=Proxied' QUIESCED to 'safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO Removed 'safSi=1,safApp=Proxied' from 'safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO Assigning 'safSi=1,safApp=Proxy' QUIESCED to 'safSu=1,safSg=2N,safApp=Proxy'
+Feb 27 18:09:55 Vostro proxy[6141]: proxy_csi_set_callback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy' CHANGE HAState to Quiesced for all assigned CSIs
+Feb 27 18:09:55 Vostro proxy[6141]: unregistering: 'X' with DN 'safComp=1,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro proxy[6141]: unregistering: 'Y' with DN 'safComp=2,safSu=1,safSg=2N,safApp=Proxied'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO Assigned 'safSi=1,safApp=Proxy' QUIESCED to 'safSu=1,safSg=2N,safApp=Proxy'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO Removing 'safSi=1,safApp=Proxy' from 'safSu=1,safSg=2N,safApp=Proxy'
+Feb 27 18:09:55 Vostro proxy[6141]: proxy_csi_remove_callback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO Removed 'safSi=1,safApp=Proxy' from 'safSu=1,safSg=2N,safApp=Proxy'
+Feb 27 18:09:55 Vostro proxy[6141]: componentTerminateCallback: 'safComp=1,safSu=1,safSg=2N,safApp=Proxy'
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO 'safSu=1,safSg=2N,safApp=Proxy' Presence State INSTANTIATED => TERMINATING
+Feb 27 18:09:55 Vostro osafamfnd[5986]: NO 'safSu=1,safSg=2N,safApp=Proxy' Presence State TERMINATING => UNINSTANTIATED
+Feb 27 18:09:55 Vostro proxy[6141]: exiting
 
 TODO
 - hardcoded healthcheck names in proxy
+- fix redundant 2N proxy (add another SU in proxy.xml)
+
