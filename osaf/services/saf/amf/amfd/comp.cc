@@ -91,6 +91,12 @@ void avd_comp_pres_state_set(AVD_COMP *comp, SaAmfPresenceStateT pres_state)
 		avd_pres_state_name[comp->saAmfCompPresenceState],
 		avd_pres_state_name[pres_state]);
 
+	if ((comp->saAmfCompPresenceState == SA_AMF_PRESENCE_TERMINATION_FAILED) &&
+			(pres_state == SA_AMF_PRESENCE_UNINSTANTIATED)){
+		avd_alarm_clear(&comp->comp_info.name,
+			SA_AMF_NTFID_COMP_CLEANUP_FAILED, SA_NTF_SOFTWARE_ERROR);
+	}
+
 	comp->saAmfCompPresenceState = pres_state;
 	avd_saImmOiRtObjectUpdate(&comp->comp_info.name,
 				  const_cast<SaImmAttrNameT>("saAmfCompPresenceState"),
