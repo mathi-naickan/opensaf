@@ -850,6 +850,8 @@ static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 					sg->saAmfSGAutoRepair_configured = true; 
 				}
 				TRACE("Modified saAmfSGAutoRepair is '%u'", sg->saAmfSGAutoRepair);
+				amflog(LOG_NOTICE, "%s saAmfSGAutoRepair changed to %u",
+					sg->name.value, sg->saAmfSGAutoRepair);
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoAdjust")) {
 				TRACE("Old saAmfSGAutoAdjust is '%u'", sg->saAmfSGAutoAdjust);
 				if (value_is_deleted)
@@ -1004,6 +1006,8 @@ static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 					sg->saAmfSGAutoRepair_configured = true; 
 				}
 				TRACE("Modified saAmfSGAutoRepair is '%u'", sg->saAmfSGAutoRepair);
+				amflog(LOG_NOTICE, "%s saAmfSGAutoRepair changed to %u",
+					sg->name.value, sg->saAmfSGAutoRepair);
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuHostNodeGroup")) {
 				sg->saAmfSGSuHostNodeGroup = *((SaNameT *)value);
 			} else {

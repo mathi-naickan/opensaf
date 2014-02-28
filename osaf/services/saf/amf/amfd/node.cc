@@ -502,6 +502,24 @@ static SaAisErrorT node_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata
 			}
 		} else if (!strcmp(attribute->attrName, "saAmfNodeSuFailoverMax")) {
 			/*  No validation needed, avoiding fall-through to Unknown Attribute error-case */
+		} else if (!strcmp(attribute->attrName, "saAmfNodeAutoRepair")) {
+			uint32_t value = *((SaUint32T *)attribute->attrValues[0]);
+			if (value > SA_TRUE) {
+				report_ccb_validation_error(opdata,
+					"Invalid saAmfNodeAutoRepair '%s'",
+					opdata->objectName.value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+		} else if (!strcmp(attribute->attrName, "saAmfNodeFailfastOnTerminationFailure")) {
+			uint32_t value = *((SaUint32T *)attribute->attrValues[0]);
+			if (value > SA_TRUE) {
+				report_ccb_validation_error(opdata,
+					"Invalid saAmfNodeFailfastOnTerminationFailure '%s'",
+					opdata->objectName.value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
 		} else {
 			report_ccb_validation_error(opdata, "Modification of '%s' failed-attribute '%s' cannot be modified",
 					opdata->objectName.value, attribute->attrName);
@@ -619,6 +637,15 @@ static void node_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 			}
 			TRACE("Modified saAmfNodeSuFailoverMax is '%u'", node->saAmfNodeSuFailoverMax);
 
+		} else if (!strcmp(attribute->attrName, "saAmfNodeAutoRepair")) {
+			node->saAmfNodeAutoRepair = *((SaBoolT *)attribute->attrValues[0]);
+			amflog(LOG_NOTICE, "%s saAmfNodeAutoRepair changed to %u",
+				node->name.value, node->saAmfNodeAutoRepair);
+		} else if (!strcmp(attribute->attrName, "saAmfNodeFailfastOnTerminationFailure")) {
+			node->saAmfNodeFailfastOnTerminationFailure =
+					*((SaBoolT *)attribute->attrValues[0]);
+			amflog(LOG_NOTICE, "%s saAmfNodeFailfastOnTerminationFailure changed to %u",
+				node->name.value, node->saAmfNodeFailfastOnTerminationFailure);
 		} else {
 			osafassert(0);
 		}

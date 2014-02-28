@@ -1727,3 +1727,21 @@ void d2n_msg_free(AVSV_DND_MSG *msg)
 	/* free the message */
 	delete msg;
 }
+
+/**
+ * Logs to saflog if active
+ * @param priority
+ * @param format
+ */
+void amflog(int priority, const char *format, ...)
+{
+	if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+		va_list ap;
+		char str[256];
+
+		va_start(ap, format);
+		vsnprintf(str, sizeof(str), format, ap);
+		va_end(ap);
+		saflog(priority, amfSvcUsrName, "%s", str);
+	}
+}

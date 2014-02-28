@@ -18,6 +18,7 @@
 
 #include <ncspatricia.h>
 #include <logtrace.h>
+#include <util.h>
 #include <cluster.h>
 #include <app.h>
 #include <imm.h>
@@ -445,12 +446,17 @@ static void sgtype_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 				sgt->saAmfSgtDefAutoRepair_configured = true; 
 			}
 			TRACE("Modified saAmfSgtDefAutoRepair is '%u'", sgt->saAmfSgtDefAutoRepair);
+			amflog(LOG_NOTICE, "%s saAmfSgtDefAutoRepair changed to %u",
+				sgt->name.value, sgt->saAmfSgtDefAutoRepair);
+
 			/* Modify saAmfSGAutoRepair for SGs which had inherited saAmfSgtDefAutoRepair.*/
 			if (old_value != sgt->saAmfSgtDefAutoRepair) {
 				for (AVD_SG *sg = sgt->list_of_sg; sg; sg = sg->sg_list_sg_type_next) {  
 					if (!sg->saAmfSGAutoRepair_configured) {
 						sg->saAmfSGAutoRepair = static_cast<SaBoolT>(sgt->saAmfSgtDefAutoRepair);
 						TRACE("Modified saAmfSGAutoRepair is '%u'", sg->saAmfSGAutoRepair);
+						amflog(LOG_NOTICE, "%s inherited saAmfSGAutoRepair value changed to %u",
+							sg->name.value, sg->saAmfSGAutoRepair);
 					}
 				}
 			}
