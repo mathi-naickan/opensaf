@@ -1729,6 +1729,26 @@ void d2n_msg_free(AVSV_DND_MSG *msg)
 }
 
 /**
+ * Sends a reboot command to amfnd
+ * @param node
+ */
+void avd_d2n_reboot_snd(AVD_AVND *node)
+{
+	TRACE("Sending REBOOT MSG to %x", node->node_info.nodeId);
+
+	AVD_DND_MSG *d2n_msg = new AVD_DND_MSG();
+
+	d2n_msg->msg_type = AVSV_D2N_REBOOT_MSG;
+	d2n_msg->msg_info.d2n_reboot_info.node_id = node->node_info.nodeId;
+	d2n_msg->msg_info.d2n_reboot_info.msg_id = ++(node->snd_msg_id);
+
+	if (avd_d2n_msg_snd(avd_cb, node, d2n_msg) != NCSCC_RC_SUCCESS) {
+		LOG_ER("%s: snd to %x failed", __FUNCTION__, node->node_info.nodeId);
+		d2n_msg_free(d2n_msg);
+	}
+}
+
+/**
  * Logs to saflog if active
  * @param priority
  * @param format

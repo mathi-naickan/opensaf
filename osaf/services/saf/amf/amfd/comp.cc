@@ -74,23 +74,47 @@ AVD_COMP *avd_comp_new(const SaNameT *dn)
 	return comp;
 }
 
+/**
+ * Set the presence state of a component. Updates the IMM copy. If newstate is
+ * TERM-FAILED an alarm is sent and possibly a node reboot request is ordered.
+ *
+ * @param comp
+ * @param pres_state
+ */
 void avd_comp_pres_state_set(AVD_COMP *comp, SaAmfPresenceStateT pres_state)
 {
+	AVD_AVND *node = comp->su->su_on_node;
+	SaAmfPresenceStateT old_state = comp->saAmfCompPresenceState;
+
 	osafassert(pres_state <= SA_AMF_PRESENCE_TERMINATION_FAILED);
-	TRACE_ENTER2("'%s' %s => %s",
-		comp->comp_info.name.value, avd_pres_state_name[comp->saAmfCompPresenceState],
+	TRACE_ENTER2("'%s' %s => %s", comp->comp_info.name.value,
+		avd_pres_state_name[comp->saAmfCompPresenceState],
 		avd_pres_state_name[pres_state]);
 
 	comp->saAmfCompPresenceState = pres_state;
 	avd_saImmOiRtObjectUpdate(&comp->comp_info.name,
-				  const_cast<SaImmAttrNameT>("saAmfCompPresenceState"), SA_IMM_ATTR_SAUINT32T, &comp->saAmfCompPresenceState);
+				  const_cast<SaImmAttrNameT>("saAmfCompPresenceState"),
+				  SA_IMM_ATTR_SAUINT32T, &comp->saAmfCompPresenceState);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, comp, AVSV_CKPT_COMP_PRES_STATE);
 
-	/* alarm & notifications */
 	if(comp->saAmfCompPresenceState == SA_AMF_PRESENCE_INSTANTIATION_FAILED)
-		avd_send_comp_inst_failed_alarm(&comp->comp_info.name, &comp->su->su_on_node->name);
-	else if(comp->saAmfCompPresenceState ==  SA_AMF_PRESENCE_TERMINATION_FAILED)
-		avd_send_comp_clean_failed_alarm(&comp->comp_info.name, &comp->su->su_on_node->name);
+		avd_send_comp_inst_failed_alarm(&comp->comp_info.name, &node->name);
+	else if (comp->saAmfCompPresenceState == SA_AMF_PRESENCE_TERMINATION_FAILED) {
+		avd_send_comp_clean_failed_alarm(&comp->comp_info.name, &node->name);
+
+		saflog(LOG_NOTICE, amfSvcUsrName, "%s PresenceState %s => %s",
+			comp->comp_info.name.value, avd_pres_state_name[old_state],
+			avd_pres_state_name[pres_state]);
+
+		if ((comp->su->sg_of_su->saAmfSGAutoRepair == true) &&
+			(node->saAmfNodeAutoRepair == true) &&
+				(node->saAmfNodeFailfastOnTerminationFailure == true)) {
+			saflog(LOG_NOTICE, amfSvcUsrName,
+					"Ordering reboot of '%s' as repair action",
+					node->name.value);
+			avd_d2n_reboot_snd(node);
+		}
+	}
 }
 
 void avd_comp_oper_state_set(AVD_COMP *comp, SaAmfOperationalStateT oper_state)
