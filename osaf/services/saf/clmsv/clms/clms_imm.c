@@ -205,7 +205,8 @@ CLMS_CLUSTER_NODE *clms_node_new(SaNameT *name, const SaImmAttrValuesT_2 **attrs
 	/*Initialize some attributes of the node like */
 	memcpy(node->node_name.value, name->value, name->length);
 	node->node_name.length = name->length;
-	node->node_addr.family = 1;
+	node->node_addr.family = SA_CLM_AF_INET;
+	node->node_addr.length = 0;
 	node->admin_state = SA_CLM_ADMIN_UNLOCKED;
 	node->rtu_pending = false;
 	node->admin_rtu_pending = false;
