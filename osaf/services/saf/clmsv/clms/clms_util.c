@@ -172,6 +172,9 @@ uint32_t clms_node_add(CLMS_CLUSTER_NODE * node, int i)
 			node->pat_node_id.key_info = NULL;
 			goto done;
 		}
+		/* Initialize node address with default values - 4.2.x and 4.3.x */
+		node->node_addr.family = SA_CLM_AF_INET;
+		node->node_addr.length = 0;
 		break;
 	case 1:
 		TRACE("Adding eename to the patricia tree");
@@ -183,6 +186,9 @@ uint32_t clms_node_add(CLMS_CLUSTER_NODE * node, int i)
 			node->pat_node_eename.key_info = NULL;
 			goto done;
 		}
+		/* Initialize node address with default values - 4.2.x and 4.3.x */
+		node->node_addr.family = SA_CLM_AF_INET;
+		node->node_addr.length = 0;
 		break;
 	case 2:
 		TRACE("Adding nodename to the patricia tree");
@@ -194,6 +200,9 @@ uint32_t clms_node_add(CLMS_CLUSTER_NODE * node, int i)
 			node->pat_node_name.key_info = NULL;
 			goto done;
 		}
+		/* Initialize node address with default values - 4.2.x and 4.3.x */
+		node->node_addr.family = SA_CLM_AF_INET;
+		node->node_addr.length = 0;
 		break;
 
 	default:
