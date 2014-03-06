@@ -947,7 +947,7 @@ void sidep_take_action_on_dependents(AVD_SI *si)
 				(dep_si->sg_of_si != si->sg_of_si)) {
 			if ((dep_si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) &&
 					(avd_sidep_all_sponsors_active(dep_si))) {
-				dep_si->si_dep_state = AVD_SI_READY_TO_ASSIGN;
+				avd_sidep_si_dep_state_set(dep_si, AVD_SI_READY_TO_ASSIGN);
 				sidep_dependentsi_role_failover(dep_si);
 			}
 			si_dep_rec = avd_sidep_find_next(avd_cb, &si_dep_rec->indx_imm, true);
@@ -958,7 +958,7 @@ void sidep_take_action_on_dependents(AVD_SI *si)
 			 * update its dep_state to AVD_SI_READY_TO_UNASSIGN
 			 */
 			TRACE("Send an event to start SI unassignment process");
-			dep_si->si_dep_state = AVD_SI_READY_TO_UNASSIGN;
+			avd_sidep_si_dep_state_set(dep_si, AVD_SI_READY_TO_UNASSIGN);
 		}
 
 		if (dep_si->si_dep_state == AVD_SI_READY_TO_UNASSIGN) {
@@ -1764,8 +1764,10 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 
 	TRACE_ENTER2("SI: '%s'",si->name.value);
 
-	/* Role failover triggered because of node going down */
-	if(su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
+	/* Role fail-over triggered because of node going down or role switch-over because 
+	   of node lock.*/
+	if ((su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) || 
+			(su->su_on_node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED)) {
 		assignmemt_status = si_assignment_check_during_failover(si, su, &active_sisu, &valid_stdby_sisu);
 		if (si->spons_si_list == NULL) {
 			/* Check if the susi is in unassigned state
