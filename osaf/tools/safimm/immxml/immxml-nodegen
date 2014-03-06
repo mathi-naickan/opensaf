@@ -81,7 +81,7 @@ imm_file_header()
    local FILE=$1
    cat <<EOF >>$FILE
 <?xml version="1.0" encoding="utf-8"?>
-<imm:IMM-contents xmlns:imm="http://www.saforum.org/IMMSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="SAI-AIS-IMM-XSD-A.01.01.xsd">
+<imm:IMM-contents xmlns:imm="http://www.saforum.org/IMMSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="SAI-AIS-IMM-XSD-A.02.13.xsd">
 EOF
 }
 

@@ -30,7 +30,7 @@ class BaseOptions:
 class BaseImmDocument:
     imm_content_element_name = "imm:IMM-contents"
     imm_content_no_namespace_spec = "<imm:IMM-contents>"
-    imm_content_with_namespace_spec = "<imm:IMM-contents xmlns:imm=\"http://www.saforum.org/IMMSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"SAI-AIS-IMM-XSD-A.01.01.xsd\">"
+    imm_content_with_namespace_spec = "<imm:IMM-contents xmlns:imm=\"http://www.saforum.org/IMMSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"SAI-AIS-IMM-XSD-A.02.13.xsd\">"
     
      # helper function to identify a problem where python/minidom
     # fails to parse some imm.xml files where the imm: namespace is missing
