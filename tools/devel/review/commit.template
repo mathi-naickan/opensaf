@@ -1,6 +1,47 @@
-module: this is a one line short description
+component: short_description [#ticket_number]
 
-Ticket #xxx (delete me if none)
-
-This is a more elaborate description that explains your changes and the
-original problem and how it got solved.
+long_description
+#
+# Enter commit message.  Lines beginning with '#' are removed.
+# An empty message aborts the commit.
+#
+# Edit the different parts of the commit message template above as follows:
+#
+# component
+#       Concatenation of the "Component" and "Part" fields of the ticket in
+#       the OpenSAF ticket system at SourceForge. The "Part" field is
+#       optional. Write in lower case, with no space or other character
+#       between the component and the part. Follow with a colon and then a
+#       space.
+#
+# short_description
+#       A one-line (max 80 characters) description of the changeset, starting
+#       with a verb in present tense (e.g. Add, Fix, Change, ...)
+#
+# ticket_number
+#       The ticket number in the OpenSAF ticket system at SourceForge. The
+#       ticket number shall be preceded with a hash sign and surrounded with
+#       square brackets, so that SourceForge recognizes it as a ticket
+#       reference and inserts a hyperlink when displaying the commit message
+#       on a web page.
+#
+# long_descrption
+#       The long description shall be a more elaborate description of what
+#       has been changed and why. For defect tickets, the long description
+#       should consist of three parts, separated by blank lines:
+#
+#               visible_symptoms_of_the_problem
+#
+#               analysis_of_the_cause
+#
+#               description_of_the_solution
+#
+#       The visible_symptoms_of_the_problem should show how the problem
+#       manifests itself, e.g. actual (and verbatim) log messages taken from
+#       a system where the problem occurred. If the problem happens again, it
+#       should be easy to search for the log messages to find the changeset
+#       containing the fix.
+#
+#       The analysis_of_the_cause shall explain the fault in the program
+#       code. The description_of_the_solution shall explain how the changeset
+#       corrects the fault in the program code.
