@@ -1,79 +1,50 @@
 Commit Message Format
 =====================
 
-The patch review process heavily relies on properly formatted commit message.
-This section will describe how commit message should be formatted and the
-relation it has with the patch review process by email.
-
-A commit message should comply to the following template:
-
-* First line  : 80-chars long one line short description (#ticket). Describe what
-                the patch is doing logically (not the bug description)
-* Second line : Blank
-* Third line+ : 80-chars long lines for a more complete description
+The patch review process heavily relies on properly formatted commit messages.
+Use the file commit.template in this directory as a template when writing
+commit messages. Make sure that your commit message contains all the necessary
+parts, i.e. the component name, a short description, the ticket number and
+a long description. Below is an example commit message for a defect ticket:
 
 -----<-----<-----<-----<-----<-----
-example: this is a one line short description (#2000)
+base: Use default scheduling policy when configured policy is invalid [#690]
 
-This is a more elaborate description that explains your changes and the
-original problem and how it got solved.
+OpenSAF would fail to start when an invalid thread scheduling policy has been
+configured, e.g. using the following configuration options for one of the
+OpenSAF services:
 
- * Blah
- * Blah
+export OSAF_MDS_SCHED_PRIORITY=0
+export OSAF_MDS_SCHED_POLICY=3
 
-Signed-off-by: John Doe <john.doe@example.com>
+The OpenSAF services fail with the following messages:
+
+Dec 24 14:40:02 SLES_NEW2 opensafd[15010]: ER Timed-out for response from RDE
+Dec 24 14:40:02 SLES_NEW2 opensafd[15010]: ER
+Dec 24 14:40:02 SLES_NEW2 opensafd[15010]: ER Going for recovery
+Dec 24 14:40:02 SLES_NEW2 opensafd[15010]: ER Trying To RESPAWN /usr/lib64/opensaf/clc-cli/osaf-rded attempt #1
+Dec 24 14:40:02 SLES_NEW2 opensafd[15010]: ER Sending SIGKILL to RDE, pid=15031
+
+The reason is that scheduling policy 3 (SCHED_BATCH) is not a valid parameter to
+the pthread_attr_setschedpolicy() function, and OpenSAF passes the configured
+policy to this function without whecking that it is valid.
+
+A check for this case has been added, so that we fall back to the default
+scheduling policy when an invalid policy has been configured.
 -----<-----<-----<-----<-----<-----
-
-The first line will be grabbed by the 'hg email' command and added as the
-subject of the patch, hence the why it should be short and precise. Note that it
-also contains the "area/module/feature" of the changes (i.e. example:). If you
-have trouble identifying the unique nature of the patch, your patch is probably
-way to long and should be divided in a series.
-
-The Ticket # in a future integration will be used on the Trac web interface to
-correlate tickets and commits. It will also be used by Mercurial hooks to
-close/fix tickets automatically if needed.
-
-The long description gives more details about the patch/changeset.
-
-The SOB tag is the original patch author.
-
 
 Default Commit Message Template
 ===============================
 
-Apparently Mercurial lacks the support of customizing the default commit message
-based on a template file somewhere in the repository.
+Enter the following set of commands to set up the commit.template as the default
+commit message in Mercurial (you need to log out and log in again for the change
+to take effect):
 
-The Qct extension can be installed and used in your ~/.hgrc profile to point to
-a template file, so that you're nagged every time how to fill the commit
-message properly ;)
-
-For instance under Red Hat/Fedora the package is called 'qct-mercurial'
-
-   % yum install qct-mercurial
-   % yum install qct
-
-http://www.selenic.com/mercurial/wiki/index.cgi/QctExtension
-
-Under './tools/devel/review/commit.template', you'll find a default template that you
-can use with the Qct extension. The extension automatically looks for a template
-file under `hg root`/.commit.template, a copy is already placed in the OpenSAF
-repository for developer that would like to use the Qct extension.
-
------<-----<-----<-----<-----<-----
-[extensions]
-hgext.qct =
-
-[qct]
-signoff = Signed-off-by: John Doe <john.doe@example.com>
------<-----<-----<-----<-----<-----
-
-To use the Qct Extension, you'll have to commit your changes using the 'hg
-commit-tool | hg qct' command. The tool has neat features, like dynamically
-deciding which files will be part of the current commit etc. But it might bug
-some developers since it pops up a GUI.
-
+mkdir ~/bin
+cp hgeditor.sh ~/bin
+chmod 755 ~/bin/hgeditor.sh
+echo "export HGEDITOR=~/bin/hgeditor.sh" >> ~/.bashrc
+echo "setenv HGEDITOR ~/bin/hgeditor.sh" >> ~/.cshrc
 
 Mercurial Settings Needed for Email Review
 ==========================================
