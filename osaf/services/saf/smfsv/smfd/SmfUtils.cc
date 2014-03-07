@@ -238,6 +238,28 @@ SmfImmUtils::classDescriptionMemoryFree(SaImmAttrDefinitionT_2 ** i_attributeDef
 }
 
 // ------------------------------------------------------------------------------
+// getClassNameForObject()
+// ------------------------------------------------------------------------------
+bool
+SmfImmUtils::getClassNameForObject(const std::string& i_dn, std::string& o_className)
+{
+        SaImmAttrValuesT_2 **attributes;
+        if (this->getObject(i_dn, &attributes) == false) {
+                LOG_NO("Failed to get object %s", i_dn.c_str());
+                return false;
+       }
+
+        o_className = immutil_getStringAttr((const SaImmAttrValuesT_2 **)attributes,
+                                            SA_IMM_ATTR_CLASS_NAME, 0);
+        if (o_className.empty()) {
+                LOG_NO("Failed to get class name for object %s", i_dn.c_str());
+                return false;
+        }
+
+	return true;
+}
+
+// ------------------------------------------------------------------------------
 // getObject()
 // ------------------------------------------------------------------------------
 bool 
