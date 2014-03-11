@@ -109,6 +109,14 @@ class SmfImmUtils {
         bool classDescriptionMemoryFree(SaImmAttrDefinitionT_2 ** i_attributeDefs);
 
 ///
+/// Purpose: Get the class name for an IMM object.
+/// @param   i_dn DN of the object to read the class name from.
+/// @param   o_className Resulting class name
+/// @return  True if successful, otherwise false
+///
+        bool getClassNameForObject(const std::string& i_dn, std::string& o_className);
+
+///
 /// Purpose: Get all attributes for an IMM object.
 /// @param   i_dn DN of the object to get.
 /// @param   o_attributes Resulting attribute values
