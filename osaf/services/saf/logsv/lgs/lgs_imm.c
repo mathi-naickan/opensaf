@@ -1239,8 +1239,14 @@ static SaAisErrorT stream_create_and_configure(const char *dn, log_stream_t **in
 	SaImmAttrValuesT_2 **attributes;
 	int i = 0;
 	log_stream_t *stream;
+	
+	int asetting = immutilWrapperProfile.errorsAreFatal;
+	SaAisErrorT om_rc = SA_AIS_OK;
 
 	TRACE_ENTER2("(%s)", dn);
+
+	(void)immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
+	(void)immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
 
 	strncpy((char *)objectName.value, dn, SA_MAX_NAME_LENGTH);
 	objectName.length = strlen((char *)objectName.value);
@@ -1254,9 +1260,6 @@ static SaAisErrorT stream_create_and_configure(const char *dn, log_stream_t **in
 
 	/* Happens to be the same, ugly! FIX */
 	stream->streamType = stream_id;
-
-	(void)immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
-	(void)immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
 
 	/* Get all attributes of the object */
 	if (immutil_saImmOmAccessorGet_2(accessorHandle, &objectName, NULL, &attributes) != SA_AIS_OK) {
@@ -1321,8 +1324,17 @@ static SaAisErrorT stream_create_and_configure(const char *dn, log_stream_t **in
 		stream->logFileFormat = strdup(log_file_format[stream->streamType]);
 
  done:
-	(void)immutil_saImmOmAccessorFinalize(accessorHandle);
-	(void)immutil_saImmOmFinalize(omHandle);
+	/* Do not abort if error when finalizing */
+	immutilWrapperProfile.errorsAreFatal = 0;	/* Disable immutil abort */
+	om_rc = immutil_saImmOmAccessorFinalize(accessorHandle);
+	if (om_rc != SA_AIS_OK) {
+		LOG_NO("%s immutil_saImmOmAccessorFinalize() Fail %d",__FUNCTION__, om_rc);
+	}
+	om_rc = immutil_saImmOmFinalize(omHandle);
+	if (om_rc != SA_AIS_OK) {
+		LOG_NO("%s immutil_saImmOmFinalize() Fail %d",__FUNCTION__, om_rc);
+	}
+	immutilWrapperProfile.errorsAreFatal = asetting; /* Enable again */
 
 	TRACE_LEAVE();
 	return rc;
@@ -1350,12 +1362,15 @@ static SaAisErrorT read_logsv_config_obj(const char *dn, lgs_conf_t *lgsConf) {
 	int i = 0;
 	int param_cnt = 0;
 
+	int iu_setting = immutilWrapperProfile.errorsAreFatal;
+	SaAisErrorT om_rc = SA_AIS_OK;
+	
 	TRACE_ENTER2("(%s)", dn);
 
 	strncpy((char *) objectName.value, dn, SA_MAX_NAME_LENGTH);
 	objectName.length = strlen((char *) objectName.value);
 
-	/* NOTE: immutil init osaf_assert if error */
+	/* NOTE: immutil init will osaf_assert if error */
 	(void) immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
 	(void) immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
 
@@ -1416,8 +1431,17 @@ static SaAisErrorT read_logsv_config_obj(const char *dn, lgs_conf_t *lgsConf) {
 	}
 
 done:
-	(void) immutil_saImmOmAccessorFinalize(accessorHandle);
-	(void) immutil_saImmOmFinalize(omHandle);
+	/* Do not abort if error when finalizing */
+	immutilWrapperProfile.errorsAreFatal = 0;	/* Disable immutil abort */
+	om_rc = immutil_saImmOmAccessorFinalize(accessorHandle);
+	if (om_rc != SA_AIS_OK) {
+		LOG_NO("%s immutil_saImmOmAccessorFinalize() Fail %d",__FUNCTION__, om_rc);
+	}
+	om_rc = immutil_saImmOmFinalize(omHandle);
+	if (om_rc != SA_AIS_OK) {
+		LOG_NO("%s immutil_saImmOmFinalize() Fail %d",__FUNCTION__, om_rc);
+	}
+	immutilWrapperProfile.errorsAreFatal = iu_setting; /* Enable again */
 
 	TRACE_LEAVE();
 	return rc;
