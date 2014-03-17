@@ -132,6 +132,7 @@ char *lgs_get_time(void)
 
 	time(&testTime);
 	timeStampData = localtime(&testTime);
+	osafassert(timeStampData);
 
 	stringSize = 5 * sizeof(char);
 	snprintf(srcString, (size_t)stringSize, "%d", (timeStampData->tm_year + START_YEAR));

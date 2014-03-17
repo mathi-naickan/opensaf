@@ -771,6 +771,7 @@ static int extractNotificationField(char *dest, size_t dest_size,
 
 	/* Split timestamp in timeStampData */
 	eventTimeData = localtime((const time_t *)&totalTime);
+	osafassert(eventTimeData);
 
 	switch (*fmtExpPtr++) {
 	case N_NOTIFICATION_ID_LETTER:
@@ -1176,6 +1177,7 @@ int lgs_format_log_record(SaLogRecordT *logRecord, const SaStringT formatExpress
 
 	/* Split timestamp in timeStampData */
 	timeStampData = localtime((const time_t *)&totalTime);
+	osafassert(timeStampData);
 
 	/* Main formatting loop */
 	for (;;) {
