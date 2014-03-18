@@ -795,31 +795,35 @@ static SaAisErrorT check_attr_validity(SaImmOiHandleT immOiHandle,
 
 			if (!strcmp(attribute->attrName, "saLogStreamFileName")) {
 				char *fileName = *((char **) value);
-				if (lgs_check_path_exists_h(fileName) == 0) {
+				if (fileName == NULL) {
+					rc = SA_AIS_ERR_INVALID_PARAM;
+					report_oi_error(immOiHandle, opdata->ccbId,
+							"NULL pointer to saLogStreamFileName");
+				} else if (lgs_check_path_exists_h(fileName) == 0) {
 					report_oi_error(immOiHandle, opdata->ccbId,
 							"File %s already exist", fileName);
 					rc = SA_AIS_ERR_EXIST;
+					TRACE("fileName: %s", fileName);
 				}
-				TRACE("fileName: %s", fileName);
 			} else if (!strcmp(attribute->attrName, "saLogStreamPathName")) {
-				char fileName[PATH_MAX];
-				n = snprintf(fileName, PATH_MAX, "%s//%s//.",
+				char stream_path[PATH_MAX];
+				n = snprintf(stream_path, PATH_MAX, "%s//%s//.",
 						lgs_cb->logsv_root_dir,
 						*((char **) value));
 				if (n >= PATH_MAX) {
 					report_oi_error(immOiHandle, opdata->ccbId,
 							"Path > PATH_MAX");
 					rc = SA_AIS_ERR_BAD_OPERATION;
-				} else if (lgs_relative_path_check_ts(fileName)) {
+				} else if (lgs_relative_path_check_ts(stream_path)) {
 					report_oi_error(immOiHandle, opdata->ccbId,
-							"Path %s not valid", fileName);
+							"Path %s not valid", stream_path);
 					rc = SA_AIS_ERR_INVALID_PARAM;
 				} else if (lgs_check_path_exists_h(lgs_cb->logsv_root_dir) != 0) {
 					report_oi_error(immOiHandle, opdata->ccbId,
-							"Path %s does not exist", fileName);
+							"Path %s does not exist", stream_path);
 					rc = SA_AIS_ERR_BAD_OPERATION;
 				}
-				TRACE("fileName: %s", fileName);
+				TRACE("Stream path: %s", stream_path);
 			} else if (!strcmp(attribute->attrName, "saLogStreamMaxLogFileSize")) {
 				SaUint64T maxLogFileSize = *((SaUint64T *) value);
 				// maxLogFileSize == 0 is interpreted as "infinite" size.
