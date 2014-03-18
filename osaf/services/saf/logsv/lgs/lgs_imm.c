@@ -527,8 +527,10 @@ static SaAisErrorT check_attr_validity(const struct CcbUtilOperationData *opdata
 			if (!strcmp(attribute->attrName, "saLogStreamFileName")) {
 				struct stat pathstat;
 				char *fileName = *((char **) value);
-				if (stat(fileName, &pathstat) == 0) {
-
+				if (fileName == NULL) {
+					rc = SA_AIS_ERR_INVALID_PARAM;
+					TRACE("Log stream file name is a NULL pointer");
+				} else if (stat(fileName, &pathstat) == 0) {
 					LOG_ER("File %s already exist", fileName);
 					rc = SA_AIS_ERR_EXIST;
 				}
