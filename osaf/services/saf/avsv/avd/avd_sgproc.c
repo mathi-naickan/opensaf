@@ -35,8 +35,6 @@
 #include <avd_clm.h>
 #include <avd_si_dep.h>
 
-static SaAisErrorT avd_d2n_reboot_snd(AVD_AVND *node);
-
 /*****************************************************************************
  * Function: avd_new_assgn_susi
  *
@@ -1998,45 +1996,6 @@ done:
 	return rc;
 }
 
-/****************************************************************************
-  Name          : avd_d2n_reboot_snd
-                        
-  Description   : This is a routine sends reboot command to amfnd. 
- 
-  Arguments     : node:  Node director node to which this message
-                         will be sent.
-                                
-  Return Values : OK/ERROR 
- 
-  Notes         : None.         
-*****************************************************************************/
-static SaAisErrorT avd_d2n_reboot_snd(AVD_AVND *node) 
-{
-	SaAisErrorT rc = SA_AIS_OK;
-
-	TRACE("Sending REBOOT MSG to %x", node->node_info.nodeId);
-
-	/* Send reboot request to amfnd to reboot that node. */
-	AVD_DND_MSG *d2n_msg;
-
-	if ((d2n_msg = calloc(1, sizeof(AVSV_DND_MSG))) == NULL) {
-		LOG_ER("%s: calloc failed", __FUNCTION__);
-		return SA_AIS_ERR_NO_MEMORY;
-	}
-
-	d2n_msg->msg_type = AVSV_D2N_REBOOT_MSG;
-	d2n_msg->msg_info.d2n_reboot_info.node_id = node->node_info.nodeId;
-	d2n_msg->msg_info.d2n_reboot_info.msg_id = ++(node->snd_msg_id);
-
-	/* Now send the message to the node director */
-	if (avd_d2n_msg_snd(avd_cb, node, d2n_msg) != NCSCC_RC_SUCCESS) {
-		LOG_ER("%s: snd to %x failed", __FUNCTION__, node->node_info.nodeId);
-		avsv_dnd_msg_free(d2n_msg);
-		rc = SA_AIS_ERR_FAILED_OPERATION;
-	}
-
-	return rc;
-}
 /**
  * @brief       This routine does the following functionality
  *              a. Checks the dependencies of the SI's to see whether

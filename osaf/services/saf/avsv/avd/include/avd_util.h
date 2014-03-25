@@ -93,6 +93,7 @@ struct avd_comp_tag;
 struct avd_comp_csi_rel_tag;
 struct avd_csi_tag;
 
+void avd_d2n_reboot_snd(struct avd_avnd_tag *node);
 void amflog(int priority, const char *format, ...);
 uint32_t avd_d2n_msg_dequeue(struct cl_cb_tag *cb);
 uint32_t avd_d2n_msg_snd(struct cl_cb_tag *cb, struct avd_avnd_tag *nd_node, AVD_DND_MSG *snd_msg);
