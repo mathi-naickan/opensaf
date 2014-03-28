@@ -2324,6 +2324,34 @@ uint32_t avnd_su_pres_terming_comptermfail_hdler(AVND_CB *cb, AVND_SU *su, AVND_
 	return rc;
 }
 
+/**
+ * @brief       Checks if all csis of all the sis in this su are in removed state
+ *
+ * @param [in]  cmp
+ *
+ * @returns     true/false
+ **/
+static bool all_csis_in_assigned_state(const AVND_SU *su)
+{
+        AVND_COMP_CSI_REC *curr_csi;
+        AVND_SU_SI_REC *curr_si;
+        bool all_csi_removed = true;
+
+        for (curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
+                        curr_si && all_csi_removed;
+                        curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_si->su_dll_node)) {
+                for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&curr_si->csi_list);
+                                curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
+                        if (!m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNED(curr_csi)) {
+                                all_csi_removed= false;
+                                break;
+                        }
+                }
+        }
+
+        return all_csi_removed;
+}
+
 /****************************************************************************
   Name          : avnd_su_pres_terming_compuninst_hdler
  
@@ -2431,7 +2459,9 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su, AVND_CO
 						       AVND_COMP_CLC_PRES_FSM_EV_TERM);
 			if (NCSCC_RC_SUCCESS != rc)
 				goto done;
-		} else {
+		}
+
+		if (all_csis_in_assigned_state(su) || all_csis_in_removed_state(su)) {
 			TRACE("SI Assignment done");
 			avnd_su_pres_state_set(su, SA_AMF_PRESENCE_UNINSTANTIATED);
 		}
