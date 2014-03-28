@@ -406,5 +406,6 @@ extern struct avnd_su_si_rec *avnd_silist_getlast(void);
 extern void su_get_config_attributes(AVND_SU *su);
 extern bool sufailover_in_progress(const AVND_SU *su);
 extern bool sufailover_during_nodeswitchover(const AVND_SU *su);
+extern bool all_csis_in_removed_state(const AVND_SU *su);
 
 #endif

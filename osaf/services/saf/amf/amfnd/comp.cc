@@ -1633,7 +1633,7 @@ done:
  *
  * @returns     true/false
  **/
-static bool all_csis_in_removed_state(const AVND_SU *su)
+bool all_csis_in_removed_state(const AVND_SU *su)
 {
 	AVND_COMP_CSI_REC *curr_csi;
 	AVND_SU_SI_REC *curr_si;
