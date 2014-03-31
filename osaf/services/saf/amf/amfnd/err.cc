@@ -521,13 +521,6 @@ uint32_t avnd_err_recover(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, uint32_t rc
 			return rc;
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_OPER_STATE);
 
-		/*
-		 * SU may be in the middle of SU_SI in assigning/removing state.
-		 * signal csi assign/remove done so that su-si assignment/removal
-		 * algo can proceed.
-		 */
-		avnd_comp_cmplete_all_assignment(cb, comp);
-
 		/* clean up the comp */
 		rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
 
@@ -702,22 +695,11 @@ uint32_t avnd_err_rcvr_comp_failover(AVND_CB *cb, AVND_COMP *failed_comp)
 	m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
 
-	/*
-	 *  su-sis may be in assigning/removing state. signal csi
-	 * assign/remove done so that su-si assignment/removal algo can proceed.
-	 */
-	avnd_comp_cmplete_all_assignment(cb, failed_comp);
-
 	/* We are now in the context of failover, forget the restart */
 	if (su->pres == SA_AMF_PRESENCE_RESTARTING || m_AVND_SU_IS_RESTART(su)) {
 		m_AVND_SU_RESTART_RESET(su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 	}
-
-	/* delete curr info of the failed comp */
-	rc = avnd_comp_curr_info_del(cb, failed_comp);
-	if (NCSCC_RC_SUCCESS != rc)
-		goto done;
 
 	// TODO: there should be no difference between PI/NPI comps
 	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
@@ -832,23 +814,11 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 			goto done;
 	}
 
-
-	/*
-	 *  su-sis may be in assigning/removing state. signal csi
-	 * assign/remove done so that su-si assignment/removal algo can proceed.
-	 */
-	avnd_comp_cmplete_all_assignment(cb, failed_comp);
-
 	/* We are now in the context of failover, forget the restart */
 	if (failed_su->pres == SA_AMF_PRESENCE_RESTARTING || m_AVND_SU_IS_RESTART(failed_su)) {
 		m_AVND_SU_RESTART_RESET(failed_su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
 	}
-
-	/* delete curr info of the failed comp */
-	rc = avnd_comp_curr_info_del(cb, failed_comp);
-	if (NCSCC_RC_SUCCESS != rc)
-		goto done;
 
 	/* In nodeswitchover context:
 	   a)If saAmfSUFailover is set for the faulted SU then this SU will be failed-over  

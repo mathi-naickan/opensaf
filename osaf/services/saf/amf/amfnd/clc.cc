@@ -846,13 +846,6 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 	/* get the final presence state */
 	final_st = comp->pres;
 
-	if (ev == AVND_COMP_CLC_PRES_FSM_EV_CLEANUP || ev == AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC) {
-		/* we need to delete all curr_info, pxied will have cbk for cleanup */
-		if (!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
-			avnd_comp_curr_info_del(cb, comp);
-		}
-	}
-
 	TRACE_1("Exited CLC FSM");
 	TRACE_1("'%s':FSM Enter presence state: '%s':FSM Exit presence state:%s",
 					comp->name.value,pres_state[prv_st],pres_state[final_st]);
@@ -1629,6 +1622,14 @@ uint32_t avnd_comp_clc_xxxing_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		goto done;
 	}
 
+	/*
+	 *  su-sis may be in assigning/removing state. signal csi
+	 * assign/remove done so that su-si assignment/removal algo can proceed.
+	 */
+	avnd_comp_cmplete_all_assignment(cb, comp);
+
+	avnd_comp_curr_info_del(cb, comp);
+
 	if ((clc_info->inst_retry_cnt < clc_info->inst_retry_max) &&
 	    (AVND_COMP_INST_EXIT_CODE_NO_RETRY != clc_info->inst_code_rcvd)) {
 		/* => keep retrying */
@@ -1971,6 +1972,7 @@ uint32_t avnd_comp_clc_terming_termsucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	if (!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
 		m_AVND_COMP_REG_PARAM_RESET(cb, comp);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
+		avnd_comp_curr_info_del(cb, comp);
 	}
 
 	TRACE_LEAVE();
@@ -2077,6 +2079,14 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 			exit(0);
 		}
 	}
+
+	/*
+	 *  su-sis may be in assigning/removing state. signal csi
+	 * assign/remove done so that su-si assignment/removal algo can proceed.
+	 */
+	avnd_comp_cmplete_all_assignment(cb, comp);
+
+	avnd_comp_curr_info_del(cb, comp);
 
 	/* reset the comp-reg & instantiate params */
 	if (!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
