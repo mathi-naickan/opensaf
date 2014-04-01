@@ -685,6 +685,13 @@ static uint32_t cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_IN
 		goto agent_rsp;
 	}
 
+	/* Check  maximum number of allowed replicas ,if exceeded Return Error no resource */
+	if (!(cb->num_rep < CPND_MAX_REPLICAS)) {
+		LOG_ER("cpnd has exceeded the maximum number of allowed replicas (CPND_MAX_REPLICAS)");
+		send_evt.info.cpa.info.openRsp.error = SA_AIS_ERR_NO_RESOURCES;
+		goto agent_rsp;
+	}
+
 	/* ckpt is not present locally */
 	/* if not present send to cpd,get the details... 
 	   Send the CPD_EVT_ND2D_CKPT_CREATE evt to CPD to get the ckpt details 

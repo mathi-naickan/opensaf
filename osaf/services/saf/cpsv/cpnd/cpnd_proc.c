@@ -438,8 +438,9 @@ uint32_t cpnd_ckpt_replica_create(CPND_CB *cb, CPND_CKPT_NODE *cp_node)
 	int32_t sec_cnt = 0;
 
 	TRACE_ENTER();
-	/* Return Error no resource */
+	/* Check  maximum number of allowed replicas ,if exceeded Return Error no resource */
 	if (!(cb->num_rep < CPND_MAX_REPLICAS)) {
+		LOG_ER("cpnd has exceeded the maximum number of allowed replicas (CPND_MAX_REPLICAS)");
 		TRACE_LEAVE();
 		return NCSCC_RC_FAILURE;
 	}
