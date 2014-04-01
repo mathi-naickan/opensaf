@@ -53,7 +53,7 @@
 #                       processes.                                          #
 #############################################################################
 
-xxCLCCLIDIRxx/osaf-transport:TRANSPORT:S:xxLIBDIRxx/osaf-transport:6000:-6:2:1:start:stop
+xxCLCCLIDIRxx/osaf-transport:TRANSPORT:S:xxCLCCLIDIRxx/osaf-transport:6000:-6:2:1:start:stop
 xxCLCCLIDIRxx/osaf-immnd:IMMND:S:xxCLCCLIDIRxx/osaf-immnd:48000:4:2:1:start:stop
 xxCLCCLIDIRxx/osaf-clmna:CLMNA:S:xxCLCCLIDIRxx/osaf-clmna:4000::2:1:start:stop
 xxCLCCLIDIRxx/osaf-amfnd:AMFND:S:xxCLCCLIDIRxx/osaf-amfnd:99000::0:1:start:stop
