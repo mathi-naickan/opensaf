@@ -13305,6 +13305,12 @@ SaInt32T ImmModel::pbePrtObjDeletesContinuation(SaUint32T invocation,
 
     TRACE("1PBE or 2PBE with error or 2PBE where both PBEs have replied.");
     nrofDeletes=0;
+
+    /* Lookup special applier */
+    ImplementerInfo* spImpl = getSpecialApplier();
+    if(spImpl && spImpl->mConn) {
+        (*spApplConnPtr) = spImpl->mConn;
+    }
     
     for(i2 = sPbeRtMutations.begin();i2!=sPbeRtMutations.end(); ) {
         if(i2->second->mContinuationId != invocation) {
@@ -13400,12 +13406,9 @@ SaInt32T ImmModel::pbePrtObjDeletesContinuation(SaUint32T invocation,
         sPbeRtReqContinuationMap.erase(ci);
     } 
 
-    /* Lookup special applier */
-    if(!objNameVector.empty()) {
-        ImplementerInfo* spImpl = getSpecialApplier();
-        if(spImpl && spImpl->mConn) {
-            (*spApplConnPtr) = spImpl->mConn;
-        }
+    /* If no notifications then reset spApplConnPtr to zero */
+    if((*spApplConnPtr) && objNameVector.empty()) {
+        (*spApplConnPtr) = 0;
     }
 
     TRACE_LEAVE();
