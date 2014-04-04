@@ -286,34 +286,40 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 		       nodeup_info->node_name.value);
 	}
 
-	/* Retrieve IP information */
-	if ((ip = (IPLIST *)ncs_patricia_tree_get(&clms_cb->iplist, (uint8_t *)&nodeid)) == NULL) {
-		clm_msg.info.api_resp_info.rc = SA_AIS_ERR_NOT_EXIST;
-		LOG_ER("IP information not found for: %s with node_id: %u", nodeup_info->node_name.value, nodeid);
-	} else {
-		if (ip->addr.length) { /* If length = 0, it is AF_TIPC. So process only IPv4 or 6 addresses */
-			/* We might want to validate IP */
-			if (ip_matched(ip->addr.family, ip->addr.value, node->node_addr.family,node->node_addr.value)) {
-				clm_msg.info.api_resp_info.rc = SA_AIS_OK;
-			} else {
-				clm_msg.info.api_resp_info.rc = SA_AIS_ERR_NOT_EXIST;
-				LOG_ER("IP address on %s is not matching the ipaddress in" PKGSYSCONFDIR "/imm.xml",
+	if (node != NULL) {
+		/* Retrieve IP information */
+		if ((ip = (IPLIST *)ncs_patricia_tree_get(&clms_cb->iplist, (uint8_t *)&nodeid)) == NULL) {
+			clm_msg.info.api_resp_info.rc = SA_AIS_ERR_NOT_EXIST;
+			LOG_ER("IP information not found for: %s with node_id: %u",
+							nodeup_info->node_name.value, nodeid);
+		} else {
+			if (ip->addr.length) { /* If length = 0, it is AF_TIPC. So process only IPv4 or 6 addresses */
+				/* We might want to validate IP */
+				if (ip_matched(ip->addr.family, ip->addr.value,
+						node->node_addr.family,node->node_addr.value)) {
+					clm_msg.info.api_resp_info.rc = SA_AIS_OK;
+				} else {
+					clm_msg.info.api_resp_info.rc = SA_AIS_ERR_NOT_EXIST;
+					LOG_ER("IP address on %s is not matching the ipaddress in" PKGSYSCONFDIR "/imm.xml",
 									nodeup_info->node_name.value);
+				}
 			}
 		}
-	}
 
-	if ((cb->node_id != nodeup_info->node_id) && (node->nodeup == SA_TRUE)){
-		clm_msg.info.api_resp_info.rc = SA_AIS_ERR_EXIST;
-		LOG_ER("Duplicate node join request for CLM node: '%s'. Specify a unique node name in" PKGSYSCONFDIR "/node_name",
-		       nodeup_info->node_name.value);
-	} else
-		clm_msg.info.api_resp_info.rc = SA_AIS_OK;
-		
+		if ((cb->node_id != nodeup_info->node_id) && (node->nodeup == SA_TRUE)){
+			clm_msg.info.api_resp_info.rc = SA_AIS_ERR_EXIST;
+			LOG_ER("Duplicate node join request for CLM node: '%s'. "
+					"Specify a unique node name in" PKGSYSCONFDIR "/node_name",
+					nodeup_info->node_name.value);
+		} else
+			clm_msg.info.api_resp_info.rc = SA_AIS_OK;
+
+	} /* Node exists in DB */
+
 	if (clm_msg.info.api_resp_info.rc != SA_AIS_OK) {
 		clm_msg.evt_type = CLMSV_CLMS_TO_CLMA_API_RESP_MSG;
 		clm_msg.info.api_resp_info.type = CLMSV_CLUSTER_JOIN_RESP;
-		clm_msg.info.api_resp_info.param.node_name = node_name;
+		clm_msg.info.api_resp_info.param.node_name = nodeup_info->node_name;
 		rc = clms_mds_msg_send(cb, &clm_msg, &evt->fr_dest, &evt->mds_ctxt, MDS_SEND_PRIORITY_HIGH,
 				       NCSMDS_SVC_ID_CLMNA);
 		if (rc != NCSCC_RC_SUCCESS)
