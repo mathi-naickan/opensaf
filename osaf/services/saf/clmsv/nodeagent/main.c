@@ -442,11 +442,10 @@ SaAisErrorT clmna_process_dummyup_msg(void)
 			break;
 		case NCSCC_RC_REQ_TIMOUT:
 			error = SA_AIS_ERR_TIMEOUT;
-			break;
-			LOG_ER("clmna_mds_msg_sync_send Timed Out");
+			LOG_ER("Send timed out. Check status(network, process) of ACTIVE controller");
 			goto done;
 		default:
-			LOG_ER("clmna_mds_msg_sync_send FAILED: %u", rc);
+			LOG_ER("Send failed: %u. Check network connectivity", rc);
 			goto done;
 		}
 
@@ -456,7 +455,7 @@ SaAisErrorT clmna_process_dummyup_msg(void)
 			error = SA_AIS_ERR_NO_RESOURCES;
 
 		if (error == SA_AIS_ERR_NOT_EXIST) {
-			LOG_ER("%s is Not a member of cluster",
+			LOG_ER("%s is not a configured node",
 				o_msg->info.api_resp_info.param.node_name.value);
 			free(o_msg);
 			goto done;

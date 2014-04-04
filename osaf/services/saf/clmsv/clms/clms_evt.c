@@ -282,8 +282,15 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 	node = clms_node_get_by_name(&node_name);
 	if (node == NULL) {
 		clm_msg.info.api_resp_info.rc = SA_AIS_ERR_NOT_EXIST;
-		LOG_ER("CLM NodeName: '%s' doesn't match entry in imm.xml. Specify a correct node name in" PKGSYSCONFDIR "/node_name",
-		       nodeup_info->node_name.value);
+		/* The /etc/opensaf/node_name is an user exposed configuration file.
+		 * The node_name file contains the RDN value of the CLM node name.
+		 * (a) When opensaf cluster configuration is pre-provisioned using the OpenSAF IMM tools:
+		 *     the /etc/opensaf/node_name should contain one of the values specified
+		 *     in nodes.cfg while generating the imm.xml.
+		 * (b) When opensaf cluster nodes are dynamically added at runtime:
+		 *     the /etc/opensaf/node_name should contain the rdn value.
+		 */
+		LOG_NO("Node '%s' requests to join the cluster but is unconfigured", nodeup_info->node_name.value);
 	}
 
 	if (node != NULL) {
