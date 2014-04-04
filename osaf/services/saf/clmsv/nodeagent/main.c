@@ -458,11 +458,19 @@ SaAisErrorT clmna_process_dummyup_msg(void)
 			LOG_ER("%s is not a configured node",
 				o_msg->info.api_resp_info.param.node_name.value);
 			free(o_msg);
+			rc = error; /* For now, just pass on the error to nid.
+				     * This is not needed in future when node local
+				     * cluster management policy based decisions can be made.
+				     */
 			goto done;
 		} else if (error == SA_AIS_ERR_EXIST) {
 			LOG_ER("%s is already up. Specify a unique name in" PKGSYSCONFDIR "/node_name",
 				o_msg->info.api_resp_info.param.node_name.value);
 			free(o_msg);
+			rc = error; /* This is not needed in future when node local
+				     * cluster management policy based decisions can be made.
+				     * For now, just pass on the error to nid.
+				     */
 			goto done;
 		}
 
