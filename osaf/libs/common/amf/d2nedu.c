@@ -55,8 +55,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVSV_DND_MSG *struct_ptr = NULL, **d_ptr = NULL;
-	uint16_t base_ver = 0;
-	base_ver = AVSV_AVD_AVND_MSG_FMT_VER_3;
+	uint16_t ver3 = AVSV_AVD_AVND_MSG_FMT_VER_3;
 
 	EDU_INST_SET avsv_dnd_msg_rules[] = {
 		{EDU_START, avsv_edp_dnd_msg, 0, 0, 0,
@@ -68,7 +67,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		 (long)&((AVSV_DND_MSG *)0)->msg_type, 0,
 		 avsv_dnd_msg_test_type_fnc},
 
-		/* 1 AVSV_N2D_NODE_UP_MSG_INFO */
+		/* AVSV_N2D_NODE_UP_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_node_up.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -76,7 +75,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_mds_dest, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_node_up.adest_address, 0, NULL},
 
-		/* 4 AVSV_N2D_REG_SU_MSG_INFO */
+		/* AVSV_N2D_REG_SU_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_reg_su.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -86,7 +85,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_reg_su.error, 0, NULL},
 
-		/* 8 AVSV_N2D_REG_COMP_MSG_INFO */
+		/* AVSV_N2D_REG_COMP_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_reg_comp.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -96,7 +95,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_reg_comp.error, 0, NULL},
 
-		/* 12 AVSV_N2D_OPERATION_STATE_MSG_INFO */
+		/* AVSV_N2D_OPERATION_STATE_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_opr_state.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -110,7 +109,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, m_NCS_EDP_NCSOPERSTATE, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_opr_state.su_oper_state, 0, NULL},
 
-		/* 18 AVSV_N2D_INFO_SU_SI_ASSIGN_MSG_INFO */
+		/* AVSV_N2D_INFO_SU_SI_ASSIGN_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_su_si_assign.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -123,13 +122,13 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_su_si_assign.si_name, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SAAMFHASTATET, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_su_si_assign.ha_state, 0, NULL},
-		{EDU_VER_GE, NULL,   0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(base_ver)))},
+		{EDU_VER_GE, NULL,   0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver3)))},
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_su_si_assign.single_csi, 0, NULL},
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_su_si_assign.error, 0, NULL},
 
-		/* 26 AVSV_N2D_PG_TRACK_ACT_MSG_INFO */
+		/* AVSV_N2D_PG_TRACK_ACT_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_pg_trk_act.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -141,7 +140,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_int, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_pg_trk_act.actn, 0, NULL},
 
-		/* 31 AVSV_N2D_OPERATION_REQUEST_MSG_INFO */
+		/* AVSV_N2D_OPERATION_REQUEST_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_op_req.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -151,7 +150,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_op_req.error, 0, NULL},
 
-		/* 35 AVSV_N2D_DATA_REQUEST_MSG_INFO */
+		/* AVSV_N2D_DATA_REQUEST_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_data_req.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -159,13 +158,13 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, avsv_edp_param_info, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_data_req.param_info, 0, NULL},
 
-		/* 38 AVSV_N2D_SHUTDOWN_APP_SU_MSG_INFO */
+		/* AVSV_N2D_SHUTDOWN_APP_SU_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_shutdown_app_su.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_shutdown_app_su.node_id, 0, NULL},
 
-		/* 40 AVSV_N2D_VERIFY_ACK_NACK_MSG_INFO */
+		/* AVSV_N2D_VERIFY_ACK_NACK_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_ack_nack_info.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -173,7 +172,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_ack_nack_info.ack, 0, NULL},
 
-		/* 43 AVSV_D2N_CLM_NODE_UP_MSG_INFO */
+		/* AVSV_D2N_CLM_NODE_UP_MSG_INFO */
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_node_up.node_id, 0, NULL},
 		{EDU_EXEC, ncs_edp_int, 0, 0, 0,
@@ -183,7 +182,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_node_up.su_failover_max, 0, NULL},
 
-		/* 47 AVSV_D2N_REG_SU_MSG_INFO */
+		/* AVSV_D2N_REG_SU_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_reg_su.msg_id, 0, NULL},
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
@@ -195,7 +194,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, avsv_edp_su_info_msg, EDQ_POINTER, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_reg_su.su_list, 0, NULL},
 
-		/* 52 AVSV_D2N_REG_COMP_MSG_INFO */
+		/* AVSV_D2N_REG_COMP_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_reg_comp.msg_id, 0, NULL},
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
@@ -207,7 +206,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, avsv_edp_comp_info_msg, EDQ_POINTER, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_reg_comp.list, 0, NULL},
 
-		/* 57 AVSV_D2N_INFO_SU_SI_ASSIGN_MSG_INFO */
+		/* AVSV_D2N_INFO_SU_SI_ASSIGN_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_su_si_assign.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -220,7 +219,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_su_si_assign.si_name, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SAAMFHASTATET, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_su_si_assign.ha_state, 0, NULL},
-		{EDU_VER_GE, NULL,   0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(base_ver)))},
+		{EDU_VER_GE, NULL,   0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver3)))},
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_su_si_assign.single_csi, 0, NULL},
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
@@ -228,7 +227,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, avsv_edp_susi_asgn, EDQ_POINTER, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_su_si_assign.list, 0, NULL},
 
-		/* 66 AVSV_D2N_PG_TRACK_ACT_RSP_MSG_INFO */
+		/* AVSV_D2N_PG_TRACK_ACT_RSP_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_pg_track_act_rsp.msg_id_ack, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -244,7 +243,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, avsv_edp_saamfprotectiongroupnotificationbuffert, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_pg_track_act_rsp.mem_list, 0, NULL},
 
-		/* 73 AVSV_D2N_PG_UPD_MSG_INFO */
+		/* AVSV_D2N_PG_UPD_MSG_INFO */
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_pg_upd.node_id, 0, NULL},
 		{EDU_EXEC, ncs_edp_sanamet, 0, 0, 0,
@@ -254,7 +253,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_saamfprotectiongroupnotificationt, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_pg_upd.mem, 0, NULL},
 
-		/* 77 AVSV_D2N_OPERATION_REQUEST_MSG_INFO */
+		/* AVSV_D2N_OPERATION_REQUEST_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_op_req.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -262,7 +261,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, avsv_edp_param_info, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_op_req.param_info, 0, NULL},
 
-		/* 80 AVSV_D2N_PRESENCE_SU_MSG_INFO */
+		/* AVSV_D2N_PRESENCE_SU_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_prsc_su.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -272,7 +271,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_prsc_su.term_state, 0, NULL},
 
-		/* 84 AVSV_D2N_DATA_VERIFY_MSG */
+		/* AVSV_D2N_DATA_VERIFY_MSG */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_data_verify.snd_id_cnt, 0, NULL},
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
@@ -284,25 +283,25 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_data_verify.su_failover_max, 0, NULL},
 
-		/* 89 AVSV_D2N_DATA_ACK_MSG */
+		/* AVSV_D2N_DATA_ACK_MSG */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_ack_info.msg_id_ack, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_ack_info.node_id, 0, NULL},
 
-		/* 91 AVSV_D2N_SHUTDOWN_APP_SU_MSG_INFO */
+		/* AVSV_D2N_SHUTDOWN_APP_SU_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_shutdown_app_su.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_shutdown_app_su.node_id, 0, NULL},
 
-		/* 93 AVSV_D2N_SET_LEDS_MSG_INFO, LCL_JMP_OFFSET_AVSV_D2N_SET_LEDS_MSG */
+		/* AVSV_D2N_SET_LEDS_MSG_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_set_leds.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_set_leds.node_id, 0, NULL},
 
-		/* 95 AVSV_N2D_COMP_VALIDATION_INFO, LCL_JMP_OFFSET_AVSV_N2D_COMP_VALID_MSG */
+		/* AVSV_N2D_COMP_VALIDATION_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_comp_valid_info.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -321,7 +320,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.n2d_comp_valid_info.mds_ctxt.data,
 		 MDS_SYNC_SND_CTXT_LEN_MAX, NULL},
 
-		/* 103 AVSV_D2N_COMP_VALIDATION_RESP_INFO, LCL_JMP_OFFSET_AVSV_D2N_COMP_VALID_RESP_MSG */
+		/* AVSV_D2N_COMP_VALIDATION_RESP_INFO */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_comp_valid_resp_info.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -331,7 +330,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_comp_valid_resp_info.result, 0, NULL},
 
-		/* 107 AVSV_D2N_ROLE_CHANGE_MSG, LCL_JMP_OFFSET_AVSV_D2N_ROLE_CHANGE_MSG */
+		/* AVSV_D2N_ROLE_CHANGE_MSG */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_role_change_info.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, 0,
@@ -339,7 +338,7 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_role_change_info.role, 0, NULL},
 
-		/* 110 AVSV_D2N_ADMIN_OP_REQ_MSG, LCL_JMP_OFFSET_AVSV_D2N_ADMIN_OP_REQ_MSG */
+		/* AVSV_D2N_ADMIN_OP_REQ_MSG */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, 
 		    (long)&((AVSV_DND_MSG*)0)->msg_info.d2n_admin_op_req_info.msg_id, 0, NULL},
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0, 
@@ -349,11 +348,11 @@ uint32_t avsv_edp_dnd_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT, 
 		    (long)&((AVSV_DND_MSG*)0)->msg_info.d2n_admin_op_req_info.oper_id, 0, NULL},
 
-		/* 114 AVSV_D2N_HEARTBEAT_MSG */
+		/* AVSV_D2N_HEARTBEAT_MSG */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, EDU_EXIT,
 		 (long)&((AVSV_DND_MSG *)0)->msg_info.d2n_hb_info.seq_id, 0, NULL},
 
-		/* 115 AVSV_D2N_REBOOT_MSG */
+		/* AVSV_D2N_REBOOT_MSG */
 		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
 			(long)&((AVSV_DND_MSG *)0)->msg_info.d2n_reboot_info.msg_id, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SACLMNODEIDT, 0, 0, EDU_EXIT,
@@ -417,7 +416,7 @@ int avsv_dnd_msg_test_type_fnc(NCSCONTEXT arg)
 		LCL_JMP_OFFSET_AVSV_D2N_PRESENCE_SU_MSG = 82,
 		LCL_JMP_OFFSET_AVSV_D2N_DATA_VERIFY_MSG = 86,
 		LCL_JMP_OFFSET_AVSV_D2N_DATA_ACK_MSG = 91,
-		LCL_JMP_OFFSET_AVSV_D2N_SHUTDOWN_APP_SU_MSG = 95,
+		LCL_JMP_OFFSET_AVSV_D2N_SHUTDOWN_APP_SU_MSG = 93,
 		LCL_JMP_OFFSET_AVSV_D2N_SET_LEDS_MSG = 95,
 		LCL_JMP_OFFSET_AVSV_N2D_COMP_VALID_MSG = 97,
 		LCL_JMP_OFFSET_AVSV_D2N_COMP_VALID_RESP_MSG = 105,
@@ -568,9 +567,7 @@ uint32_t avsv_edp_su_info_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVSV_SU_INFO_MSG *struct_ptr = NULL, **d_ptr = NULL;
-	uint16_t ver_compare = 0;
-
-	ver_compare = AVSV_AVD_AVND_MSG_FMT_VER_2;
+	uint16_t ver2 = AVSV_AVD_AVND_MSG_FMT_VER_2;
 
 	EDU_INST_SET avsv_su_info_msg_rules[] = {
 		{EDU_START, avsv_edp_su_info_msg, EDQ_LNKLIST, 0, 0,
@@ -591,7 +588,7 @@ uint32_t avsv_edp_su_info_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
 		 (long)&((AVSV_SU_INFO_MSG *)0)->is_ncs, 0, NULL},
 
-		{EDU_VER_GE, NULL, 0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver_compare)))},
+		{EDU_VER_GE, NULL, 0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver2)))},
 
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
 		 (long)&((AVSV_SU_INFO_MSG *)0)->su_is_external, 0, NULL},
