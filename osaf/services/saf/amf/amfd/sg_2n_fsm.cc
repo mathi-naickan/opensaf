@@ -31,6 +31,41 @@
 #include <imm.h>
 
 /**
+ * @brief         Respond to IMM for si-swap operation.
+ *
+ * @param [in]    su
+ * @param [in]    status 
+ *
+ */
+
+static void complete_siswap(AVD_SU *su, SaAisErrorT status)
+{
+	AVD_SU_SI_REL *l_susi;
+
+	TRACE_ENTER();
+
+	/* find the SI on which SWAP admin operation is pending */
+	for (l_susi = su->list_of_susi; l_susi != NULL; l_susi = l_susi->su_next) {
+		if (l_susi->si->invocation != 0)
+			break;
+	}
+
+	if (l_susi != NULL) {
+		avd_saImmOiAdminOperationResult(avd_cb->immOiHandle, l_susi->si->invocation, status);
+		l_susi->si->invocation = 0;
+		LOG_NO("%s Swap done", l_susi->si->name.value);
+		saflog(LOG_NOTICE, amfSvcUsrName, "%s Swap done", l_susi->si->name.value);
+	} else {
+		/* si->invocation field is not check pointed. If controller failovers when si-swap
+		   operation is in progress, si->invocation will be zero on the new active controller.
+		   Log an error when si-swap operation completes.*/
+		LOG_ER("Operation done, but invocationId for the operation on SI not found '%s'", su->name.value);
+	}
+	TRACE_LEAVE();
+}
+
+
+/**
  * @brief         Determine fsm state of an SU.
  *
  * @param [in]    su
@@ -888,16 +923,6 @@ static uint32_t avd_sg_2n_su_fault_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 	if (su->sg_of_su->su_oper_list.su == su) {
 		su_ha_state = avd_su_state_determine(su);
 		if (su_ha_state == SA_AMF_HA_QUIESCED) {
-			if (su->su_switch == AVSV_SI_TOGGLE_SWITCH) {
-				AVD_SU_SI_REL *temp_susi;
-				for (temp_susi = su->list_of_susi; temp_susi != NULL; temp_susi = temp_susi->su_next) {
-					if (temp_susi->si->invocation != 0) {
-						avd_saImmOiAdminOperationResult(cb->immOiHandle,
-								temp_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
-						temp_susi->si->invocation = 0;
-					}
-				}
-			}
 			m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
 		} else if (su_ha_state == SA_AMF_HA_QUIESCING) {
 			if (avd_sidep_si_dependency_exists_within_su(su)) {
@@ -2095,6 +2120,8 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 			}
 
 			m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
+			complete_siswap(su, SA_AIS_OK);
+
 		}
 	} else if ((act == AVSV_SUSI_ACT_MOD) && (state == SA_AMF_HA_STANDBY) &&
 		   (su->sg_of_su->su_oper_list.su == su)) {
@@ -2112,20 +2139,7 @@ static uint32_t avd_sg_2n_susi_sucss_su_oper(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_S
 		/*As sg is stable, screen for si dependencies and take action on whole sg*/
 		avd_sidep_update_si_dep_state_for_all_sis(su->sg_of_su);
 		avd_sidep_sg_take_action(su->sg_of_su); 
-		/* find the SI on which SWAP admin operation is pending */
-		for (l_susi = su->list_of_susi; l_susi != NULL && l_susi->si->invocation == 0; l_susi = l_susi->su_next);
-		if (l_susi != NULL){
-			avd_saImmOiAdminOperationResult(cb->immOiHandle, l_susi->si->invocation, SA_AIS_OK);
-			l_susi->si->invocation = 0;
-			LOG_NO("%s Swap done", l_susi->si->name.value);
-			saflog(LOG_NOTICE, amfSvcUsrName, "%s Swap done", l_susi->si->name.value);
-		}
-		else {
-			/* si->invocation field is not check pointed. If controller failovers when si-swap
-			   operation is in progress, si->invocation will be zero on the new active controller.
-			   Log an error when si-swap operation completes.*/
-			LOG_ER("Swap done, but invocationId for the swap operation not found '%s'", su->name.value);
-		}
+		complete_siswap(su, SA_AIS_OK);
 
 		if (su->sg_of_su->sg_ncs_spec)
 			amfd_switch(avd_cb);
@@ -2708,13 +2722,7 @@ uint32_t avd_sg_2n_susi_fail_func(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 
 			m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
 			m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
-			for (l_susi = su->list_of_susi; l_susi != NULL; l_susi = l_susi->su_next) {
-				if (l_susi->si->invocation != 0) {
-					avd_saImmOiAdminOperationResult(cb->immOiHandle,
-							l_susi->si->invocation, SA_AIS_ERR_BAD_OPERATION);
-					l_susi->si->invocation = 0;
-				}
-			}
+			complete_siswap(su, SA_AIS_ERR_BAD_OPERATION);
 
 		} else if ((act == AVSV_SUSI_ACT_MOD) &&
 			 ((state == SA_AMF_HA_QUIESCED) || (state == SA_AMF_HA_QUIESCING)) &&

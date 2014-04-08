@@ -334,6 +334,12 @@ static uint32_t sg_su_failover_func(AVD_SU *su)
 				   deleting the SUSI. */
 				avd_si_dec_curr_act_ass(susi->si);
 			}
+			/* Reply to IMM for admin operation on SI */
+			if (susi->si->invocation != 0) {
+				avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
+						susi->si->invocation, SA_AIS_OK);
+				susi->si->invocation = 0;
+			}
 		}
 		su->sg_of_su->node_fail(avd_cb, su);
 		avd_sg_su_asgn_del_util(avd_cb, su, true, false);
