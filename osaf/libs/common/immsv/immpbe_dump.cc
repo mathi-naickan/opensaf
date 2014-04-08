@@ -2818,6 +2818,11 @@ void pbeAbortTrans(void* db_handle)
 	char *execErr=NULL;
 	int rc=0;
 
+	if(sqliteTransLock == 0) {
+		LOG_WA("pbeAbortTrans was called when sqliteTransLock==0 -- ignoring abort");
+		return;
+	}
+
 	rc = sqlite3_exec(dbHandle, "ROLLBACK", NULL, NULL, &execErr);
 	if(rc != SQLITE_OK) {
 		LOG_ER("SQL statement ('ROLLBACK') failed because:\n %s",
@@ -2826,10 +2831,6 @@ void pbeAbortTrans(void* db_handle)
 		sqlite3_close(dbHandle);
 		LOG_ER("Exiting (line:%u)", __LINE__);
 		exit(1);
-	}
-
-	if(sqliteTransLock == 0) {
-		LOG_WA("pbeAbortTrans was called when sqliteTransLock==0");
 	}
 
         switch(sqliteTransLock) {

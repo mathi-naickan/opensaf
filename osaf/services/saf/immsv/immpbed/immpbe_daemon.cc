@@ -242,14 +242,18 @@ static bool pbe2_start_prepare_ccb_A_to_B(SaImmOiCcbIdT ccbId, SaUint32T numOps)
 		rc2B = saImmOmAdminOperationInvoke_2(sOwnerHandle, &slavePbeRtObjName, 0, OPENSAF_IMM_PBE_CCB_PREPARE,
 			params, &slavePbeRtReply, SA_TIME_ONE_SECOND * 10);
 
-		if(rc2B == SA_AIS_ERR_TRY_AGAIN || (rc2B==SA_AIS_OK && slavePbeRtReply==SA_AIS_ERR_TRY_AGAIN)) {
+		if(rc2B == SA_AIS_ERR_TRY_AGAIN || rc2B == SA_AIS_ERR_BAD_OPERATION || rc2B == SA_AIS_ERR_NOT_EXIST ||
+			(rc2B==SA_AIS_OK && slavePbeRtReply==SA_AIS_ERR_TRY_AGAIN)) {
 			usleep(sleep_delay_ms * 1000);
 			msecs_waited += sleep_delay_ms;	
-			LOG_NO("Slave PBE %u or Immsv (%u) replied with TRY_AGAIN on prepare for ccb:%llx/%llu", 
+			LOG_NO("Slave PBE %u or Immsv (%u) replied with transient error on prepare for ccb:%llx/%llu", 
 				rc2B, slavePbeRtReply, ccbId, ccbId);
 		}
-		/* Adjust the waiting time,a bove & below  to be more appropriate .... */
-	} while (((rc2B == SA_AIS_ERR_TRY_AGAIN) || (slavePbeRtReply == SA_AIS_ERR_TRY_AGAIN)) && (msecs_waited < 3000));
+		/* Adjust the waiting time, above & below  to be more appropriate .... 
+		   ERR_BAD_OPERATION or ERR_NOT_EXIST from immsv can happen at slave PBE startup when slave has 
+		   not created its RTO, or created RTO but not yet set admin-owner for it. */
+	} while ((rc2B == SA_AIS_ERR_TRY_AGAIN || rc2B == SA_AIS_ERR_BAD_OPERATION || rc2B == SA_AIS_ERR_NOT_EXIST || 
+			(rc2B==SA_AIS_OK && slavePbeRtReply == SA_AIS_ERR_TRY_AGAIN)) && (msecs_waited < 3000));
 
 	if(rc2B != SA_AIS_OK) {
 		if((rc2B == SA_AIS_ERR_NOT_EXIST) && (sNoStdFlags & OPENSAF_IMM_FLAG_2PBE1_ALLOW)) {
@@ -294,7 +298,7 @@ static SaAisErrorT pbe2_ok_to_prepare_ccb_at_B(SaImmOiCcbIdT ccbId, SaUint32T ex
 			   The runtime thread thus reads from the immutils structure only from a stable pointer
 			   verified to point at a ccb record with corrrect ccb-id. 
 			*/
-			LOG_WA("Missmatch on record for ccbId:%llx/%llu - thread interference problems ?", ccbId, ccbId);
+			LOG_WA("Mismatch on record for ccbId:%llx/%llu - thread interference problems ?", ccbId, ccbId);
 			s2PbeBCcbUtilCcbData = NULL; 
 			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
