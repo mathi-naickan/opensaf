@@ -1057,6 +1057,14 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			goto done;
 		}
 
+		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATING) ||
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATING) || 
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_RESTARTING)) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			LOG_WA("'%s' presence state is '%u'", su_name->value, su->saAmfSUPresenceState);
+			goto done;
+		}
+
 		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) ||
 				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATION_FAILED) || 
 				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
