@@ -108,7 +108,7 @@ static const char *g_comp_rcvr[] = {
 	"applicationRestart",
 	"containerRestart",
 	"suRestart",
-	"suFailover"
+	"componentFailover"
 };
 
 /****************************************************************************
