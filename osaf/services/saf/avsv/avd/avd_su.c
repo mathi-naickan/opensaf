@@ -1157,6 +1157,15 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			goto done;
 		}
 
+		if ((su->saAmfSUOperState == SA_AMF_OPERATIONAL_DISABLED) && 
+				(su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED)) {
+			/* This means that node on which this su is hosted, is absent. */
+			LOG_NO("Admin repair request for '%s', hosting node'%s' is absent", su_name->value,
+					su->su_on_node->name.value);
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		}
+
 		/* forward the admin op req to the node director */
 		if (avd_admin_op_msg_snd(su_name, AVSV_SA_AMF_SU, op_id,
 			su->su_on_node) == NCSCC_RC_SUCCESS) {
