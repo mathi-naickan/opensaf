@@ -1104,6 +1104,15 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 					"SU on this node is undergoing admin op (%s)", su->name.value);
 			goto done;
 		}
+
+		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATING) ||
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATING) || 
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_RESTARTING)) {
+			report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN, NULL,
+					"'%s' presence state is '%u'", su->name.value, su->saAmfSUPresenceState);
+			goto done;
+		}
+
 		if (su->sg_of_su->sg_fsm_state != AVD_SG_FSM_STABLE) {
 			report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN, NULL,
 					"SG of SU on this node not in STABLE state (%s)", su->name.value);

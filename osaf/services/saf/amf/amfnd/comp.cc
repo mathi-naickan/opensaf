@@ -506,7 +506,7 @@ proceed_next:
 	if (!m_AVND_COMP_TYPE_IS_PROXIED(*o_comp) &&
 	    ((*o_comp)->pres != SA_AMF_PRESENCE_INSTANTIATING) &&
 	    ((*o_comp)->pres != SA_AMF_PRESENCE_INSTANTIATED) && ((*o_comp)->pres != SA_AMF_PRESENCE_RESTARTING)) {
-		*o_amf_rc = SA_AIS_ERR_TRY_AGAIN;
+		*o_amf_rc = SA_AIS_ERR_BAD_OPERATION;
 		return;
 	}
 
