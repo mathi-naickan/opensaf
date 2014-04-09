@@ -3826,9 +3826,9 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 			if (rc != NCSCC_RC_SUCCESS) {
 				LOG_WA("Failed to send response to agent/client over MDS rc:%u", rc);
 			}
-			immsv_evt_free_attrNames(send_evt.info.imma.info.errRsp.errStrings);
 		}
 	finalize_ccb:
+		immsv_evt_free_attrNames(errStrings);
 		TRACE_2("CCB COMPLETED: TERMINATING CCB:%u", evt->info.ccbUpcallRsp.ccbId);
 		err = immModel_ccbFinalize(cb, evt->info.ccbUpcallRsp.ccbId);
 		if (err != SA_AIS_OK) {
