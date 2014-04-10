@@ -139,43 +139,6 @@ AVND_SU_SI_REC *avnd_silist_getlast(void)
 		return NULL;
 }
 
-/**
- * Return SI rank read from IMM
- * 
- * @param dn DN of SI
- * 
- * @return      rank of SI or -1 if not configured for SI
- */
-static uint32_t get_sirank(const SaNameT *dn)
-{
-	SaAisErrorT error;
-	SaImmAccessorHandleT accessorHandle;
-	const SaImmAttrValuesT_2 **attributes;
-	SaImmAttrNameT attributeNames[2] = {const_cast<SaImmAttrNameT>("saAmfSIRank"), NULL};
-	SaImmHandleT immOmHandle;
-	SaVersionT immVersion = {'A', 2, 1};
-	uint32_t rank = -1; // lowest possible rank if uninitialized
-
-	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
-
-	osafassert((error = immutil_saImmOmAccessorGet_2(accessorHandle, dn,
-		attributeNames, (SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK);
-
-	osafassert((error = immutil_getAttr(attributeNames[0], attributes, 0, &rank)) == SA_AIS_OK);
-
-	// saAmfSIRank attribute has a default value of zero (returned by IMM)
-	if (rank == 0) {
-		// Unconfigured ranks are treated as lowest possible rank
-		rank = -1;
-	}
-
-	immutil_saImmOmAccessorFinalize(accessorHandle);
-	immutil_saImmOmFinalize(immOmHandle);
-
-	return rank;
-}
-
 /****************************************************************************
   Name          : avnd_su_si_rec_add
  
@@ -216,6 +179,7 @@ AVND_SU_SI_REC *avnd_su_si_rec_add(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *p
 	 */
 	/* update the si-name (key) */
 	memcpy(&si_rec->name, &param->si_name, sizeof(SaNameT));
+	si_rec->rank = param->si_rank;
 	si_rec->curr_state = param->ha_state;
 
 	/*
@@ -243,7 +207,6 @@ AVND_SU_SI_REC *avnd_su_si_rec_add(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *p
 	/* Add to global SI list sorted by rank if appl SU */
 	if (!su->is_ncs) {
 		uint32_t res;
-		si_rec->rank = get_sirank(&param->si_name);
 		si_rec->cb_dll_node.key = (uint8_t *)&si_rec->rank;
 		res = ncs_db_link_list_add(&cb->si_list, &si_rec->cb_dll_node);
 		osafassert(res == NCSCC_RC_SUCCESS);
@@ -264,7 +227,8 @@ AVND_SU_SI_REC *avnd_su_si_rec_add(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *p
 		csi_param = csi_param->next;
 	}
 
-	TRACE_1("SU-SI record added, SU= %s : SI=%s",param->su_name.value,param->si_name.value);
+	TRACE_1("SU-SI record added, '%s', '%s', rank:%u", param->su_name.value,
+			param->si_name.value, si_rec->rank);
 	return si_rec;
 
  err:

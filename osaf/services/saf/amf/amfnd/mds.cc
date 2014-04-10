@@ -37,11 +37,27 @@
 #include "amf_n2avaedu.h"
 #include "ncsencdec_pub.h"
 
-const MDS_CLIENT_MSG_FORMAT_VER avnd_avd_msg_fmt_map_table[AVND_AVD_SUBPART_VER_MAX] =
-    { AVSV_AVD_AVND_MSG_FMT_VER_1, AVSV_AVD_AVND_MSG_FMT_VER_2, AVSV_AVD_AVND_MSG_FMT_VER_3, AVSV_AVD_AVND_MSG_FMT_VER_4};
-const MDS_CLIENT_MSG_FORMAT_VER avnd_avnd_msg_fmt_map_table[AVND_AVND_SUBPART_VER_MAX] =
-    { AVSV_AVND_AVND_MSG_FMT_VER_1 };
-const MDS_CLIENT_MSG_FORMAT_VER avnd_ava_msg_fmt_map_table[AVND_AVA_SUBPART_VER_MAX] = { AVSV_AVND_AVA_MSG_FMT_VER_1 };
+/* messages to director */
+const MDS_CLIENT_MSG_FORMAT_VER avnd_avd_msg_fmt_map_table[] = {
+	AVSV_AVD_AVND_MSG_FMT_VER_1, AVSV_AVD_AVND_MSG_FMT_VER_2,
+	AVSV_AVD_AVND_MSG_FMT_VER_3, AVSV_AVD_AVND_MSG_FMT_VER_4,
+	AVSV_AVD_AVND_MSG_FMT_VER_4
+};
+
+/* messages from director */
+const MDS_CLIENT_MSG_FORMAT_VER avd_avnd_msg_fmt_map_table[] = {
+	AVSV_AVD_AVND_MSG_FMT_VER_1, AVSV_AVD_AVND_MSG_FMT_VER_2,
+	AVSV_AVD_AVND_MSG_FMT_VER_3, AVSV_AVD_AVND_MSG_FMT_VER_4,
+	AVSV_AVD_AVND_MSG_FMT_VER_5
+};
+
+const MDS_CLIENT_MSG_FORMAT_VER avnd_avnd_msg_fmt_map_table[] = {
+	AVSV_AVND_AVND_MSG_FMT_VER_1
+};
+
+const MDS_CLIENT_MSG_FORMAT_VER avnd_ava_msg_fmt_map_table[] = {
+	AVSV_AVND_AVA_MSG_FMT_VER_1
+};
 
 /* static function declarations */
 
@@ -472,6 +488,9 @@ uint32_t avnd_mds_rcv(AVND_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
+
+	/* save the msg version for possible later use in event handlers */
+	evt->msg_fmt_ver = rcv_info->i_msg_fmt_ver;
 
 	/* nullify the msg as it is used in the event */
 	memset(&msg, 0, sizeof(AVND_MSG));
@@ -936,7 +955,7 @@ uint32_t avnd_mds_dec(AVND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 	case NCSMDS_SVC_ID_AVD:
 		if (!m_NCS_MSG_FORMAT_IS_VALID(dec_info->i_msg_fmt_ver,
 					       AVND_AVD_SUBPART_VER_MIN,
-					       AVND_AVD_SUBPART_VER_MAX, avnd_avd_msg_fmt_map_table)) {
+					       AVND_AVD_SUBPART_VER_MAX, avd_avnd_msg_fmt_map_table)) {
 			LOG_ER("%s,%u: wrong msg fmt not valid %u", __FUNCTION__, __LINE__,
 					dec_info->i_msg_fmt_ver);
 			return NCSCC_RC_FAILURE;
@@ -1032,7 +1051,7 @@ uint32_t avnd_mds_flat_dec(AVND_CB *cb, MDS_CALLBACK_DEC_INFO *dec_info)
 	case NCSMDS_SVC_ID_AVD:
 		if (!m_NCS_MSG_FORMAT_IS_VALID(dec_info->i_msg_fmt_ver,
 					       AVND_AVD_SUBPART_VER_MIN,
-					       AVND_AVD_SUBPART_VER_MAX, avnd_avd_msg_fmt_map_table)) {
+					       AVND_AVD_SUBPART_VER_MAX, avd_avnd_msg_fmt_map_table)) {
 			LOG_ER("%s,%u: wrong msg fmt not valid %u", __FUNCTION__, __LINE__,
 					dec_info->i_msg_fmt_ver);
 			return NCSCC_RC_FAILURE;

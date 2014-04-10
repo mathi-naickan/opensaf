@@ -43,14 +43,12 @@
 extern "C" {
 #endif
 
-/* In Service upgrade support */
-#define AVND_MDS_SUB_PART_VERSION   4
-
 /* Message format versions */
 #define AVSV_AVD_AVND_MSG_FMT_VER_1    1
 #define AVSV_AVD_AVND_MSG_FMT_VER_2    2
 #define AVSV_AVD_AVND_MSG_FMT_VER_3    3
 #define AVSV_AVD_AVND_MSG_FMT_VER_4    4
+#define AVSV_AVD_AVND_MSG_FMT_VER_5    5
 
 /* Internode/External Components Validation result */
 typedef enum {
@@ -474,6 +472,7 @@ typedef struct avsv_d2n_info_su_si_assign_msg_info_tag {
 	bool single_csi; /* To differentiate single csi assignment from SI assignment.*/
 	uint32_t num_assigns;
 	AVSV_SUSI_ASGN *list;
+	uint32_t si_rank;
 } AVSV_D2N_INFO_SU_SI_ASSIGN_MSG_INFO;
 
 typedef struct avsv_d2n_pg_track_act_rsp_msg_info_tag {

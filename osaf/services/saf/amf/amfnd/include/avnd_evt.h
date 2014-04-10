@@ -159,6 +159,7 @@ typedef struct avnd_pm_mon_evt {
 typedef struct avnd_evt_tag {
 	struct avnd_evt_tag *next;
 	MDS_SYNC_SND_CTXT mds_ctxt;
+	MDS_CLIENT_MSG_FORMAT_VER msg_fmt_ver;
 	NCS_IPC_PRIORITY priority;
 	AVND_EVT_TYPE type;
 

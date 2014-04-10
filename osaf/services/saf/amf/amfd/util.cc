@@ -882,6 +882,7 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi, AVSV_S
 
 		susi_msg->msg_info.d2n_su_si_assign.si_name = susi->si->name;
 		susi_msg->msg_info.d2n_su_si_assign.ha_state = susi->state;
+		susi_msg->msg_info.d2n_su_si_assign.si_rank = susi->si->saAmfSIRank;
 
 		/* Fill the SU SI pointer to l_susi which will be used from now
 		 * for information related to this SU SI

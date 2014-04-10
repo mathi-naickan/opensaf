@@ -33,6 +33,7 @@
 
 #include <logtrace.h>
 #include <avnd.h>
+#include <immutil.h>
 
 static uint32_t avnd_avd_su_update_on_fover(AVND_CB *cb, AVSV_D2N_REG_SU_MSG_INFO *info);
 
@@ -242,6 +243,46 @@ static void handle_su_si_assign_in_term_state(AVND_CB *cb,
 	}
 }
 
+/**
+ * Return SI rank read from IMM
+ *
+ * @param dn DN of SI
+ *
+ * @return      rank of SI or -1 if not configured for SI
+ */
+static uint32_t get_sirank(const SaNameT *dn)
+{
+	SaAisErrorT error;
+	SaImmAccessorHandleT accessorHandle;
+	const SaImmAttrValuesT_2 **attributes;
+	SaImmAttrNameT attributeNames[2] = {const_cast<SaImmAttrNameT>("saAmfSIRank"), NULL};
+	SaImmHandleT immOmHandle;
+	SaVersionT immVersion = {'A', 2, 1};
+	uint32_t rank = -1; // lowest possible rank if uninitialized
+
+	// TODO remove, just for test
+	LOG_NO("get_sirank %s", dn->value);
+
+	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
+	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+
+	osafassert((error = immutil_saImmOmAccessorGet_2(accessorHandle, dn,
+		attributeNames, (SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK);
+
+	osafassert((error = immutil_getAttr(attributeNames[0], attributes, 0, &rank)) == SA_AIS_OK);
+
+	// saAmfSIRank attribute has a default value of zero (returned by IMM)
+	if (rank == 0) {
+		// Unconfigured ranks are treated as lowest possible rank
+		rank = -1;
+	}
+
+	immutil_saImmOmAccessorFinalize(accessorHandle);
+	immutil_saImmOmFinalize(immOmHandle);
+
+	return rank;
+}
+
 /****************************************************************************
   Name          : avnd_evt_avd_info_su_si_assign_msg
  
@@ -281,9 +322,12 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
 
-	if ((info->msg_act == AVSV_SUSI_ACT_DEL) ||
-			(info->msg_act == AVSV_SUSI_ACT_MOD)) {
-
+	if (info->msg_act == AVSV_SUSI_ACT_ASGN) {
+		/* SI rank was introduced in version 5 of the node director supported
+		 * protocol, if the version is older then that, read SI rank from IMM */
+		if (evt->msg_fmt_ver < 5)
+			info->si_rank = get_sirank(&info->si_name);
+	} else {
 		if (info->si_name.length > 0) {
 			if (avnd_su_si_rec_get(cb, &info->su_name, &info->si_name) == NULL)
 				LOG_ER("susi_assign_evh: '%s' is not assigned to '%s'",
