@@ -575,6 +575,7 @@ uint32_t avsv_edp_su_info_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVSV_SU_INFO_MSG *struct_ptr = NULL, **d_ptr = NULL;
 	uint16_t ver2 = AVSV_AVD_AVND_MSG_FMT_VER_2;
+	uint16_t ver5 = AVSV_AVD_AVND_MSG_FMT_VER_5;
 
 	EDU_INST_SET avsv_su_info_msg_rules[] = {
 		{EDU_START, avsv_edp_su_info_msg, EDQ_LNKLIST, 0, 0,
@@ -595,10 +596,15 @@ uint32_t avsv_edp_su_info_msg(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
 		 (long)&((AVSV_SU_INFO_MSG *)0)->is_ncs, 0, NULL},
 
+		/* Include su_is_external in version 2 and higher */
 		{EDU_VER_GE, NULL, 0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver2)))},
-
 		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
 		 (long)&((AVSV_SU_INFO_MSG *)0)->su_is_external, 0, NULL},
+
+		/* Include su_failover in version 5 and higher */
+		{EDU_VER_GE, NULL, 0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver5)))},
+		{EDU_EXEC, ncs_edp_ncs_bool, 0, 0, 0,
+		 (long)&((AVSV_SU_INFO_MSG *)0)->su_failover, 0, NULL},
 
 		{EDU_TEST_LL_PTR, avsv_edp_su_info_msg, 0, 0, 0,
 		 (long)&((AVSV_SU_INFO_MSG *)0)->next, 0, NULL},
