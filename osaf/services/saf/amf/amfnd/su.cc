@@ -37,6 +37,65 @@
 
 static uint32_t avnd_avd_su_update_on_fover(AVND_CB *cb, AVSV_D2N_REG_SU_MSG_INFO *info);
 
+/**
+ * Return SU failover read from IMM
+ *
+ * @param name
+ * @return
+ */
+static bool get_su_failover(const SaNameT *name)
+{
+	SaImmAccessorHandleT accessorHandle;
+	const SaImmAttrValuesT_2 **attributes;
+	SaImmHandleT immOmHandle;
+	SaVersionT immVersion = { 'A', 2, 1 };
+	SaNameT sutype;
+	SaBoolT sufailover = SA_FALSE;
+	SaImmAttrNameT attributeNames[] = {
+		const_cast<SaImmAttrNameT>("saAmfSUFailover"),
+		const_cast<SaImmAttrNameT>("saAmfSUType"),
+		NULL
+	};
+
+	TRACE_ENTER2("'%s'", name->value);
+
+	// TODO remove, just for test
+	LOG_NO("get_su_failover '%s'", name->value);
+
+	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
+	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+
+	/* Use an attribute name list to avoid reading runtime attributes which
+	 * causes callbacks executed in AMF director. */
+	if (immutil_saImmOmAccessorGet_2(accessorHandle, name, attributeNames,
+		(SaImmAttrValuesT_2 ***)&attributes) != SA_AIS_OK) {
+		LOG_ER("saImmOmAccessorGet_2 FAILED for '%s'", name->value);
+		goto done;
+	}
+
+	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSUFailover"),
+			attributes, 0, &sufailover) != SA_AIS_OK) {
+		/* nothing specified in SU, read type */
+		if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSUType"),
+				attributes, 0, &sutype) == SA_AIS_OK) {
+
+			attributeNames[0] = const_cast<SaImmAttrNameT>("saAmfSutDefSUFailover");
+			attributeNames[1] = NULL;
+			if (immutil_saImmOmAccessorGet_2(accessorHandle, &sutype, NULL,
+					(SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
+				immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSutDefSUFailover"),
+					attributes, 0, &sufailover);
+			}
+		}
+	}
+
+done:
+	immutil_saImmOmAccessorFinalize(accessorHandle);
+	immutil_saImmOmFinalize(immOmHandle);
+	TRACE_LEAVE2();
+	return (sufailover == SA_TRUE) ? true : false;
+}
+
 /****************************************************************************
   Name          : avnd_evt_avd_reg_su_msg
  
@@ -89,6 +148,11 @@ uint32_t avnd_evt_avd_reg_su_evh(AVND_CB *cb, AVND_EVT *evt)
 			su = avnd_sudb_rec_add(cb, su_info, &rc);
 
 		m_AVND_SEND_CKPT_UPDT_ASYNC_ADD(cb, su, AVND_CKPT_SU_CONFIG);
+
+		/* su_failover included in message version 5 and higher */
+		if (evt->msg_fmt_ver < 5) {
+			su->sufailover = get_su_failover(&su->name);
+		}
 
 		/* add components belonging to this SU */
 		if (avnd_comp_config_get_su(su) != NCSCC_RC_SUCCESS) {

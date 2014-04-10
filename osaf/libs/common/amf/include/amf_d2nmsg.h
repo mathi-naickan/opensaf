@@ -117,6 +117,7 @@ typedef struct avsv_su_info_msg {
 	uint32_t su_restart_max;
 	bool is_ncs;
 	bool su_is_external;	/*indicates if this SU is external */
+	bool su_failover;
 	struct avsv_su_info_msg *next;
 } AVSV_SU_INFO_MSG;
 

@@ -480,6 +480,7 @@ static uint32_t avd_prep_su_info(AVD_CL_CB *cb, AVD_SU *su, AVD_DND_MSG *su_msg)
 	su_info->su_restart_prob = su->sg_of_su->saAmfSGSuRestartProb;
 	su_info->is_ncs = su->sg_of_su->sg_ncs_spec;
 	su_info->su_is_external = su->su_is_external;
+	su_info->su_failover = su->saAmfSUFailover;
 
 	su_info->next = su_msg->msg_info.d2n_reg_su.su_list;
 	su_msg->msg_info.d2n_reg_su.su_list = su_info;

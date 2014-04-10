@@ -1677,7 +1677,6 @@ unsigned int avnd_comp_config_get_su(AVND_SU *su)
 			avnd_hc_config_get(comp);
 		}
 	}
-	su_get_config_attributes(su);
 
 	rc = NCSCC_RC_SUCCESS;
 

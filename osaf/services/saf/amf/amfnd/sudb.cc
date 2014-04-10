@@ -102,6 +102,7 @@ AVND_SU *avnd_sudb_rec_add(AVND_CB *cb, AVND_SU_PARAM *info, uint32_t *rc)
 	/* update the NCS flag */
 	su->is_ncs = info->is_ncs;
 	su->su_is_external = info->su_is_external;
+	su->sufailover = info->su_failover;
 
 	/*
 	 * Update the rest of the parameters with default values.
@@ -270,47 +271,4 @@ uint32_t avnd_su_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 done:
 	TRACE_LEAVE();
 	return rc;
-}
-
-/**
- * Reads attributes from IMM which are required to be maintained at Amfnd also.
- * At present saAmfSUFailover is read.
- * 
- * @param su 
- * 
- */
-void su_get_config_attributes(AVND_SU *su)
-{
-	SaImmAccessorHandleT accessorHandle;
-	const SaImmAttrValuesT_2 **attributes;
-	SaImmHandleT immOmHandle;
-	SaVersionT immVersion = { 'A', 2, 1 };
-	SaNameT sutype;
-	TRACE_ENTER2("'%s'", su->name.value);
-
-	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
-
-	if (immutil_saImmOmAccessorGet_2(accessorHandle, &su->name, NULL,
-		(SaImmAttrValuesT_2 ***)&attributes) != SA_AIS_OK) {
-		LOG_ER("saImmOmAccessorGet_2 FAILED for '%s'", su->name.value);
-		goto done;
-	}
-	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
-		if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSUFailover"), attributes, 0, &su->sufailover) != SA_AIS_OK) {
-			if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSUType"), attributes, 0, &sutype) == SA_AIS_OK) {
-				if (immutil_saImmOmAccessorGet_2(accessorHandle, &sutype, NULL,
-							(SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
-					immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSutDefSUFailover"), attributes, 0, &su->sufailover);
-				}
-			}
-		}
-	}
-	else
-		su->sufailover = true;
-	
-done:
-	immutil_saImmOmAccessorFinalize(accessorHandle);
-	immutil_saImmOmFinalize(immOmHandle);
-	TRACE_LEAVE2();
 }
