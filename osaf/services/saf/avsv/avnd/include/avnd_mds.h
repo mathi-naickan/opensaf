@@ -30,8 +30,11 @@
 #ifndef AVND_MDS_H
 #define AVND_MDS_H
 
+/* In Service upgrade support */
+#define AVND_MDS_SUB_PART_VERSION   5
+
 #define AVND_AVD_SUBPART_VER_MIN   1
-#define AVND_AVD_SUBPART_VER_MAX   4
+#define AVND_AVD_SUBPART_VER_MAX   5
 
 #define AVND_AVND_SUBPART_VER_MIN   1
 #define AVND_AVND_SUBPART_VER_MAX   1
