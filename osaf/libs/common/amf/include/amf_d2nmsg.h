@@ -294,6 +294,7 @@ typedef struct avsv_susi_asgn {
 	uint32_t csi_rank;		/* The rank of the CSI in the SI */
 	uint32_t stdby_rank;
 	SaAmfCSITransitionDescriptorT active_comp_dsc;
+	SaAmfCompCapabilityModelT capability;
 	AVSV_CSI_ATTRS attrs;	/* Inside the struct there is a 
 					 * array of param vals.*/
 	struct avsv_susi_asgn *next;

@@ -242,6 +242,72 @@ AVND_SU_SI_REC *avnd_su_si_rec_add(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *p
 	return 0;
 }
 
+static void get_cstype(SaImmHandleT immOmHandle,
+		SaImmAccessorHandleT accessorHandle,
+		const SaNameT *csi_name, SaNameT *cstype)
+{
+	SaAisErrorT error;
+	const SaImmAttrValuesT_2 **attributes;
+	SaImmAttrNameT attributeNames[2] =
+		{const_cast<SaImmAttrNameT>("saAmfCSType"), NULL};
+
+	// TODO remove, just for test
+	LOG_NO("get_cstype: csi = '%s'", csi_name->value);
+
+	if ((error = immutil_saImmOmAccessorGet_2(accessorHandle, csi_name,
+			attributeNames,	(SaImmAttrValuesT_2 ***)&attributes)) != SA_AIS_OK) {
+		LOG_ER("saImmOmAccessorGet FAILED %u for %s", error, csi_name->value);
+		osafassert(0);
+	}
+
+	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCSType"), attributes,
+			0, cstype) != SA_AIS_OK)
+		osafassert(0);
+}
+
+static SaAmfCompCapabilityModelT get_comp_capability(const SaNameT *comp_type,
+		const SaNameT *csi_name)
+{
+	SaAisErrorT error;
+	SaNameT dn;
+	SaImmAccessorHandleT accessorHandle = 0;
+	const SaImmAttrValuesT_2 **attributes;
+	SaAmfCompCapabilityModelT comp_cap;
+	SaImmAttrNameT attributeNames[2] =
+		{const_cast<SaImmAttrNameT>("saAmfCtCompCapability"), NULL};
+	SaImmHandleT immOmHandle = 0;
+	SaVersionT immVersion = { 'A', 2, 1 };
+	SaNameT cs_type;
+
+	// TODO remove, just for test
+	LOG_NO("get_comp_capability: comptype = '%s' : csi = '%s'", comp_type->value, csi_name->value);
+
+	TRACE_ENTER2("comptype = '%s' : csi = '%s'", comp_type->value, csi_name->value);
+
+	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
+	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+
+	get_cstype(immOmHandle, accessorHandle, csi_name, &cs_type);
+	avsv_create_association_class_dn(&cs_type, comp_type, "safSupportedCsType", &dn);
+
+	if ((error = immutil_saImmOmAccessorGet_2(accessorHandle, &dn, attributeNames,
+			(SaImmAttrValuesT_2 ***)&attributes)) != SA_AIS_OK) {
+		LOG_ER("saImmOmAccessorGet FAILED %u for'%s'", error, dn.value);
+		goto done;
+	}
+
+	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCtCompCapability"),
+			attributes, 0, &comp_cap) != SA_AIS_OK)
+		osafassert(0);
+
+done:
+	immutil_saImmOmAccessorFinalize(accessorHandle);
+	immutil_saImmOmFinalize(immOmHandle);
+
+	TRACE_LEAVE2("%u", comp_cap);
+	return comp_cap;
+}
+
 /****************************************************************************
   Name          : avnd_su_si_csi_rec_add
  
@@ -307,30 +373,12 @@ AVND_COMP_CSI_REC *avnd_su_si_csi_rec_add(AVND_CB *cb,
 	memcpy(&csi_rec->name, &param->csi_name, sizeof(SaNameT));
 	csi_rec->rank = param->csi_rank;
 
-	{
-		/* Fill the cs type param from imm db, it will be used in finding comp capability */
-		SaAisErrorT error;
-		SaImmAccessorHandleT accessorHandle;
-		const SaImmAttrValuesT_2 **attributes;
-		SaImmAttrNameT attributeNames[2] = {const_cast<SaImmAttrNameT>("saAmfCSType"), NULL};
-		SaImmHandleT immOmHandle;
-		SaVersionT immVersion = { 'A', 2, 1 };
-
-		immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
-		immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
-
-		if ((error = immutil_saImmOmAccessorGet_2(accessorHandle, &param->csi_name, attributeNames, 
-						(SaImmAttrValuesT_2 ***)&attributes)) != SA_AIS_OK) {
-			LOG_ER("saImmOmAccessorGet FAILED %u for %s", error, param->csi_name.value);
-			osafassert(0);
-		}
-
-		if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCSType"), attributes, 0, &csi_rec->saAmfCSType) != SA_AIS_OK)
-			osafassert(0);
-
-		immutil_saImmOmAccessorFinalize(accessorHandle);
-		immutil_saImmOmFinalize(immOmHandle);
-	}
+	/* If CSI capability is not valid, read it from IMM */
+	if (param->capability == ~0)
+		csi_rec->capability =
+			get_comp_capability(&comp->saAmfCompType, &csi_rec->name);
+	else
+		csi_rec->capability = param->capability;
 
 	/* update the assignment related parameters */
 	memcpy(&csi_rec->act_comp_name, &param->active_comp_name, sizeof(SaNameT));

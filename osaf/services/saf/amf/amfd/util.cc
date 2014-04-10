@@ -731,6 +731,24 @@ static uint32_t avd_prep_csi_attr_info(AVD_CL_CB *cb, AVSV_SUSI_ASGN *compcsi_in
 	return NCSCC_RC_SUCCESS;
 }
 
+/**
+ * Get saAmfCtCompCapability from the SaAmfCtCsType instance associated with the
+ * types of csi and comp.
+ * @param csi
+ * @param comp
+ * @return SaAmfCompCapabilityModelT
+ */
+static SaAmfCompCapabilityModelT get_comp_capability(const AVD_CSI *csi,
+		const AVD_COMP *comp)
+{
+	SaNameT dn;
+	avsv_create_association_class_dn(&csi->cstype->name,
+		&comp->comp_type->name,	"safSupportedCsType", &dn);
+	AVD_CTCS_TYPE *ctcs_type = avd_ctcstype_get(&dn);
+	osafassert(ctcs_type);
+	return ctcs_type->saAmfCtCompCapability;
+}
+
 /*****************************************************************************
  * Function: avd_snd_susi_msg
  *
@@ -947,6 +965,8 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi, AVSV_S
 			compcsi_info->csi_name = l_compcsi->csi->name;
 			compcsi_info->csi_rank = l_compcsi->csi->rank;
 			compcsi_info->active_comp_dsc = trans_dsc;
+			compcsi_info->capability =
+				get_comp_capability(l_compcsi->csi, l_compcsi->comp);
 
 			/* fill the Attributes for the CSI if new. */
 			if (actn == AVSV_SUSI_ACT_ASGN) {

@@ -323,10 +323,21 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 	cb->rcv_msg_id = info->msg_id;
 
 	if (info->msg_act == AVSV_SUSI_ACT_ASGN) {
-		/* SI rank was introduced in version 5 of the node director supported
-		 * protocol, if the version is older then that, read SI rank from IMM */
-		if (evt->msg_fmt_ver < 5)
-			info->si_rank = get_sirank(&info->si_name);
+		/* SI rank and CSI capability (originally from SaAmfCtCsType)
+		 * was introduced in version 5 of the node director supported protocol.
+		 * If the protocol is older, take action */
+		if (evt->msg_fmt_ver < 5) {
+			AVSV_SUSI_ASGN *csi;
+
+			/* indicate that capability is invalid for later use when
+			 * creating CSI_REC */
+			for (csi = info->list; csi != NULL; csi = csi->next) {
+				csi->capability = (SaAmfCompCapabilityModelT) ~0;
+			}
+
+			/* SI rank is uninitialized, read it from IMM */
+ 			info->si_rank = get_sirank(&info->si_name);
+		}
 	} else {
 		if (info->si_name.length > 0) {
 			if (avnd_su_si_rec_get(cb, &info->su_name, &info->si_name) == NULL)
