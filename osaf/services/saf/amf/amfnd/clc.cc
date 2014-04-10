@@ -1628,8 +1628,6 @@ uint32_t avnd_comp_clc_xxxing_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	 */
 	avnd_comp_cmplete_all_assignment(cb, comp);
 
-	avnd_comp_curr_info_del(cb, comp);
-
 	if ((clc_info->inst_retry_cnt < clc_info->inst_retry_max) &&
 	    (AVND_COMP_INST_EXIT_CODE_NO_RETRY != clc_info->inst_code_rcvd)) {
 		/* => keep retrying */
