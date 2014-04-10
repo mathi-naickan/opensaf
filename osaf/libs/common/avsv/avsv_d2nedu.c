@@ -750,6 +750,7 @@ uint32_t avsv_edp_susi_asgn(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	AVSV_SUSI_ASGN *struct_ptr = NULL, **d_ptr = NULL;
+	uint16_t ver5 = AVSV_AVD_AVND_MSG_FMT_VER_5;
 
 	EDU_INST_SET avsv_susi_asgn_rules[] = {
 		{EDU_START, avsv_edp_susi_asgn, EDQ_LNKLIST, 0, 0,
@@ -767,6 +768,12 @@ uint32_t avsv_edp_susi_asgn(EDU_HDL *hdl, EDU_TKN *edu_tkn,
 		 (long)&((AVSV_SUSI_ASGN *)0)->stdby_rank, 0, NULL},
 		{EDU_EXEC, m_NCS_EDP_SAAMFCSITRANSITIONDESCRIPTORT, 0, 0, 0,
 		 (long)&((AVSV_SUSI_ASGN *)0)->active_comp_dsc, 0, NULL},
+
+		/* Include comp capability in version 5 and higher */
+		{EDU_VER_GE, NULL, 0, 0, 2, 0, 0, (EDU_EXEC_RTINE)((uint16_t *)(&(ver5)))},
+		{EDU_EXEC, ncs_edp_uns32, 0, 0, 0,
+		 (long)&((AVSV_SUSI_ASGN *)0)->capability, 0, NULL},
+
 		{EDU_EXEC, avsv_edp_csi_attr_info, 0, 0, 0,
 		 (long)&((AVSV_SUSI_ASGN *)0)->attrs, 0, NULL},
 
