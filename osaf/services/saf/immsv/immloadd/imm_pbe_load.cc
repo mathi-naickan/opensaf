@@ -409,6 +409,7 @@ bool loadClassesFromPbe(void* pbeHandle, SaImmHandleT immHandle, ClassInfoMap* c
 		class_name = result[r*ncols+2];
 		class_info = new ClassInfo;
 		class_info->className = std::string(class_name);
+		class_info->class_category = class_category;
 		if(!loadClassFromPbe(pbeHandle, immHandle, class_name,
 			   class_id, class_category, class_info))
 		{
@@ -519,6 +520,10 @@ bool loadObjectFromPbe(void* pbeHandle, SaImmHandleT immHandle, SaImmCcbHandleT 
 				++it;
 			}
 			assert(it != class_info->attrInfoVector.end());
+			if((strcmp(resultF[c], "SaImmAttrImplementerName") == 0) && 
+					(class_info->class_category == SA_IMM_CLASS_CONFIG))
+				continue;
+					
 			addObjectAttributeDefinition((char *) 
 				class_info->className.c_str(), 
 				resultF[c], &attrValueBuffers, 

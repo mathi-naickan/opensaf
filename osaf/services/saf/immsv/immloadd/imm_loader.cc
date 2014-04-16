@@ -121,6 +121,8 @@ bool isXsdLoaded;
 std::string xsddir;
 std::string xsd;
 typedef std::set<std::string> AttrFlagSet;
+std::set<std::string> runtimeClass;
+bool isPersistentRTClass = false;
 AttrFlagSet attrFlagSet;
 
 /* Helper functions */
@@ -1056,6 +1058,11 @@ static void endElementHandler(void* userData,
                 LOG_ER("Failed to create class %s - exiting",state->className);
                 exit(1);
             }
+	    /* Insert only runtime persistant class */
+	    if((state->classCategory == SA_IMM_CLASS_RUNTIME) && isPersistentRTClass) {
+			runtimeClass.insert(state->className);
+			isPersistentRTClass = false;
+	    }
             state->attrFlags = 0;
 
             state->attrValueTypeSet    = 0;
@@ -1081,6 +1088,10 @@ static void endElementHandler(void* userData,
                 state->attrFlags,
                 state->attrDefaultValueBuffer,
                 &(state->attrDefinitions));
+		
+	    if((state->attrFlags & SA_IMM_ATTR_RDN) && (state->attrFlags & SA_IMM_ATTR_PERSISTENT)){
+		isPersistentRTClass = true;
+	    }
 
             /* Free the default value */
             free(state->attrDefaultValueBuffer);
@@ -1089,12 +1100,27 @@ static void endElementHandler(void* userData,
         else
         {
             //addObjectAttributeDefinition(state);
-            addObjectAttributeDefinition(state->objectClass,
-                state->attrName,
-                &(state->attrValueBuffers),
-                getClassAttrValueType(&(state->classAttrTypeMap),
-                    state->objectClass, state->attrName),
-                &(state->attrValuesList));
+	    if((strcmp (state->attrName,"SaImmAttrImplementerName")==0)){ 
+		std::set<std::string>::iterator clit = runtimeClass.find(state->objectClass);
+		if(clit != runtimeClass.end()){
+	           	addObjectAttributeDefinition(state->objectClass,
+        	        	state->attrName,
+	        	        &(state->attrValueBuffers),
+        	        	getClassAttrValueType(&(state->classAttrTypeMap),
+	                	    state->objectClass, state->attrName),
+		                &(state->attrValuesList));
+		}
+	    } 
+	    else
+	    {
+		 addObjectAttributeDefinition(state->objectClass,
+                        state->attrName,
+                        &(state->attrValueBuffers),
+                        getClassAttrValueType(&(state->classAttrTypeMap),
+                            state->objectClass, state->attrName),
+                        &(state->attrValuesList));
+	    } 
+	
         }
         /* </object> */
     }

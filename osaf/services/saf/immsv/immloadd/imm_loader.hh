@@ -36,6 +36,7 @@ struct ClassInfo
 {
 	std::string className;
 	AttrInfoVector attrInfoVector;
+	SaImmClassCategoryT class_category;
 };
 
 typedef	std::map<std::string, ClassInfo*>  ClassInfoMap;
