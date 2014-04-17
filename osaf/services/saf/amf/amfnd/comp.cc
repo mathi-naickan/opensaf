@@ -2738,3 +2738,17 @@ bool comp_has_quiesced_assignment(const AVND_COMP *comp)
 
 	return false;
 }
+
+/**
+ * @brief Resets component restart count.
+ * @param comp
+ */
+void comp_reset_restart_count(AVND_COMP *comp)
+{
+	if (comp->err_info.restart_cnt != 0) {
+		comp->err_info.restart_cnt = 0;
+		avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompRestartCount_ID,
+				&comp->name, comp->err_info.restart_cnt);
+	}
+}
+

@@ -878,7 +878,6 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 {
 	AVND_SU_PRES_FSM_EV ev = AVND_SU_PRES_FSM_EV_MAX;
 	AVND_COMP_CSI_REC *csi = 0;
-	AVSV_PARAM_INFO param;
 	bool is_en;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("Comp '%s', Prv_state '%u', Final_state '%u'", comp->name.value, prv_st, final_st);
@@ -895,17 +894,8 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 
 		TRACE_1("Component restart not through admin operation");
 		/* inform avd of the change in restart count */
-		memset(&param, 0, sizeof(AVSV_PARAM_INFO));
-		param.class_id = AVSV_SA_AMF_COMP;
-		param.attr_id = saAmfCompRestartCount_ID;
-		param.name = comp->name;
-		param.act = AVSV_OBJ_OPR_MOD;
-		*((uint32_t *)param.value) = m_NCS_OS_HTONL(comp->err_info.restart_cnt);
-		param.value_len = sizeof(uint32_t);
-
-		rc = avnd_di_object_upd_send(cb, &param);
-		if (NCSCC_RC_SUCCESS != rc)
-			goto done;
+		avnd_di_uns32_upd_send(AVSV_SA_AMF_COMP, saAmfCompRestartCount_ID, 
+				&comp->name, comp->err_info.restart_cnt);
 	}
 	/* reset the admin-oper flag to false */
 	if (comp->admin_oper == SA_TRUE) {

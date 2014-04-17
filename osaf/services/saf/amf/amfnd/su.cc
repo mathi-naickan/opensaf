@@ -473,12 +473,15 @@ uint32_t avnd_evt_tmr_su_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 		su->comp_restart_cnt = 0;
 		su->su_err_esc_level = AVND_ERR_ESC_LEVEL_0;
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_COMP_RESTART_CNT);
+		su_reset_restart_count_in_comps(su);
 		break;
 	case AVND_ERR_ESC_LEVEL_1:
 		su->su_restart_cnt = 0;
 		su->su_err_esc_level = AVND_ERR_ESC_LEVEL_0;
 		cb->node_err_esc_level = AVND_ERR_ESC_LEVEL_0;
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_RESTART_CNT);
+		su_reset_restart_count_in_comps(su);
+		avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSURestartCount_ID, &su->name, su->su_restart_cnt);
 		break;
 	case AVND_ERR_ESC_LEVEL_2:
 		cb->su_failover_cnt = 0;
@@ -554,7 +557,9 @@ uint32_t avnd_su_curr_info_del(AVND_CB *cb, AVND_SU *su)
 	if (!m_AVND_SU_IS_FAILED(su)) {
 		su->su_err_esc_level = AVND_ERR_ESC_LEVEL_0;
 		su->comp_restart_cnt = 0;
+		su_reset_restart_count_in_comps(su);
 		su->su_restart_cnt = 0;
+		avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSURestartCount_ID, &su->name, su->su_restart_cnt);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_CONFIG);
 		/* stop su_err_esc_tmr TBD Later */
 
@@ -670,3 +675,17 @@ void avnd_su_pres_state_set(AVND_SU *su, SaAmfPresenceStateT newstate)
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_PRES_STATE);
 }
 
+/**
+ * @brief Resets component restart count for each component of SU. 
+ * @param su
+ */
+void su_reset_restart_count_in_comps(const AVND_SU *su)
+{
+	AVND_COMP *comp;
+	for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
+		comp;
+		comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+		comp_reset_restart_count(comp);
+	}
+
+}

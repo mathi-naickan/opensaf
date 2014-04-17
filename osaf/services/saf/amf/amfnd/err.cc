@@ -1088,6 +1088,7 @@ uint32_t avnd_err_restart_esc_level_0(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 		m_AVND_TMR_COMP_ERR_ESC_STOP(cb, su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
 		su->comp_restart_cnt = 0;
+		su_reset_restart_count_in_comps(su);
 
 		/* go to the next possible level, is su restart capable? */
 		if (su->su_restart_max != 0 && !m_AVND_SU_IS_SU_RESTART_DIS(su)) {
@@ -1133,7 +1134,6 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 {
 
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	AVSV_PARAM_INFO param;
 	TRACE_ENTER();
 
 	/* If the SU is still instantiating, do jump to next level */
@@ -1167,20 +1167,6 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
 		}
 		su->su_restart_cnt++;
-
-		/* send su_restart_cnt to AVD */
-		memset(&param, 0, sizeof(AVSV_PARAM_INFO));
-		param.class_id = AVSV_SA_AMF_SU;
-		param.attr_id = saAmfSURestartCount_ID;
-		param.name = su->name;
-		param.act = AVSV_OBJ_OPR_MOD;
-		*((uint32_t *)param.value) = m_NCS_OS_HTONL(su->su_restart_cnt);
-		param.value_len = sizeof(uint32_t);
-
-		if (NCSCC_RC_SUCCESS != avnd_di_object_upd_send(cb, &param)) {
-			TRACE_2("avnd_di_object_upd_send() failed for su_restart_cnt");
-		}
-
 		goto done;
 	}
 
@@ -1190,6 +1176,7 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 		m_AVND_TMR_SU_ERR_ESC_STOP(cb, su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
 		su->su_restart_cnt = 0;
+		su_reset_restart_count_in_comps(su);
 
 		/* go to the next possible level, get escalted recovery and modify count */
 		if ((cb->su_failover_max != 0) || (true == su->su_is_external)) {
@@ -1206,6 +1193,7 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 	}
 
  done:
+	avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSURestartCount_ID, &su->name, su->su_restart_cnt);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_RESTART_CNT);
 	TRACE_LEAVE2("retval=%u", rc);
 	return rc;
@@ -1373,6 +1361,9 @@ uint32_t avnd_evt_tmr_node_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 		if (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_2) {
 			su->comp_restart_cnt = 0;
 			su->su_restart_cnt = 0;
+			su_reset_restart_count_in_comps(su);
+			avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSURestartCount_ID,
+					&su->name, su->su_restart_cnt);
 			su->su_err_esc_level = AVND_ERR_ESC_LEVEL_0;
 		}
 		su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)&su->name);
