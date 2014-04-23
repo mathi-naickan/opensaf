@@ -48,6 +48,10 @@
 #define DEFAULT_APP_LOG_FILE_SIZE 1024
 #define VENDOR_ID 193
 #define DEFAULT_MAX_FILES_ROTATED 4
+/* Try for 10 seconds before giving up on an API */
+#define TEN_SECONDS 10*1000*1000
+/* Sleep for 100 ms before retrying an API */
+#define HUNDRED_MS 100*1000
 
 static void logWriteLogCallbackT(SaInvocationT invocation, SaAisErrorT error);
 
@@ -121,9 +125,9 @@ static SaAisErrorT write_log_record(SaLogHandleT logHandle,
 	SaAisErrorT errorCode;
 	SaInvocationT invocation;
 	int i = 0;
-	int try_agains = 0;
 	struct pollfd fds[1];
 	int ret;
+	unsigned int wait_time = 0;
 
 	i++;
 
@@ -131,13 +135,15 @@ static SaAisErrorT write_log_record(SaLogHandleT logHandle,
 
 retry:
 	errorCode = saLogWriteLogAsync(logStreamHandle, invocation, SA_LOG_RECORD_WRITE_ACK, logRecord);
-	if (errorCode == SA_AIS_ERR_TRY_AGAIN) {
-		usleep(100000);	/* 100 ms */
-		try_agains++;
+	if (errorCode == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+		usleep(HUNDRED_MS);
+		wait_time += HUNDRED_MS;
 		goto retry;
 	}
 
 	if (errorCode != SA_AIS_OK) {
+		if (wait_time)
+			fprintf(stderr, "Waited for %u seconds.\n", wait_time/1000000);
 		fprintf(stderr, "saLogWriteLogAsync FAILED: %s\n", saf_error(errorCode));
 		return errorCode;
 	}
@@ -172,26 +178,23 @@ poll_retry:
 		return errorCode;
 	}
 
-	if (cb_error == SA_AIS_ERR_TRY_AGAIN) {
-		usleep(100000);	/* 100 ms */
-		try_agains++;
+	if (cb_error == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+		usleep(HUNDRED_MS);
+		wait_time += HUNDRED_MS;
 		goto retry;
 	}
 
 	if (cb_error == SA_AIS_ERR_TIMEOUT) {
-		usleep(100000);	/* 100 ms */
+		usleep(HUNDRED_MS);
 		fprintf(stderr, "got SA_AIS_ERR_TIMEOUT, retry\n");
 		goto retry;
 	}
 
 	if (cb_error != SA_AIS_OK) {
+		if (wait_time)
+			fprintf(stderr, "Waited for %u seconds.\n", wait_time/1000000);
 		fprintf(stderr, "logWriteLogCallbackT FAILED: %s\n", saf_error(cb_error));
 		return errorCode;
-	}
-
-	if (try_agains > 0) {
-		fprintf(stderr, "got %u SA_AIS_ERR_TRY_AGAIN, waited %u secs\n", try_agains, try_agains / 10);
-		try_agains = 0;
 	}
 
 	return errorCode;
@@ -249,6 +252,7 @@ int main(int argc, char *argv[])
 	SaLogHandleT logHandle;
 	SaLogStreamHandleT logStreamHandle;
 	SaSelectionObjectT selectionObject;
+	unsigned int wait_time;
 
 	srandom(getpid());
 
@@ -338,8 +342,17 @@ int main(int argc, char *argv[])
 		logRecord.logBuffer = &logBuffer;
 	}
 
+	wait_time = 0;
 	error = saLogInitialize(&logHandle, &logCallbacks, &logVersion);
+	while (error == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+		usleep(HUNDRED_MS);
+		wait_time += HUNDRED_MS;
+		error = saLogInitialize(&logHandle, &logCallbacks, &logVersion);
+	}
+
 	if (error != SA_AIS_OK) {
+		if (wait_time)
+			fprintf(stderr, "Waited for %u seconds.\n", wait_time/1000000);
 		fprintf(stderr, "saLogInitialize FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
 	}
@@ -353,33 +366,69 @@ int main(int argc, char *argv[])
 	/* Try open the stream before creating it. It might be a configured app
 	 * stream with other attributes than we have causing open with default
 	 * attributes to fail */
+	wait_time = 0;
 	error = saLogStreamOpen_2(logHandle, &logStreamName, NULL, 0,
 			SA_TIME_ONE_SECOND, &logStreamHandle);
+	while (error == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+		usleep(HUNDRED_MS);
+		wait_time += HUNDRED_MS;
+		error = saLogStreamOpen_2(logHandle, &logStreamName, NULL, 0,
+				SA_TIME_ONE_SECOND, &logStreamHandle);
+	}
 
 	if (error == SA_AIS_ERR_NOT_EXIST) {
+		wait_time = 0;
 		error = saLogStreamOpen_2(logHandle, &logStreamName, logFileCreateAttributes,
 				logStreamOpenFlags, SA_TIME_ONE_SECOND, &logStreamHandle);
-		if (error != SA_AIS_OK) {
-			fprintf(stderr, "saLogStreamOpen_2 FAILED: %s\n", saf_error(error));
-			exit(EXIT_FAILURE);
+		while (error == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+			usleep(HUNDRED_MS);
+			wait_time += HUNDRED_MS;
+			error = saLogStreamOpen_2(logHandle, &logStreamName, logFileCreateAttributes,
+				logStreamOpenFlags, SA_TIME_ONE_SECOND, &logStreamHandle);
 		}
+	}
+
+	if (error != SA_AIS_OK) {
+		if (wait_time)
+			fprintf(stderr, "Waited for %u seconds.\n", wait_time/1000000);
+		fprintf(stderr, "saLogStreamOpen_2 FAILED: %s\n", saf_error(error));
+		exit(EXIT_FAILURE);
 	}
 
 	if (write_log_record(logHandle, logStreamHandle, selectionObject, &logRecord) != SA_AIS_OK) {
 		exit(EXIT_FAILURE);
 	}
 
+	wait_time = 0;
 	error = saLogStreamClose(logStreamHandle);
+	while (error == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+		usleep(HUNDRED_MS);
+		wait_time += HUNDRED_MS;
+		error = saLogStreamClose(logStreamHandle);
+	}
+
 	if (SA_AIS_OK != error) {
+		if (wait_time)
+			fprintf(stderr, "Waited for %u seconds.\n", wait_time/1000000);
 		fprintf(stderr, "saLogStreamClose FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
 	}
 
+	wait_time = 0;
 	error = saLogFinalize(logHandle);
+	while (error == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
+		usleep(HUNDRED_MS);
+		wait_time += HUNDRED_MS;
+		error = saLogFinalize(logHandle);
+	}
+
 	if (SA_AIS_OK != error) {
+		if (wait_time)
+			fprintf(stderr, "Waited for %u seconds.\n", wait_time/1000000);
 		fprintf(stderr, "saLogFinalize FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
 	}
 
 	exit(EXIT_SUCCESS);
 }
+
