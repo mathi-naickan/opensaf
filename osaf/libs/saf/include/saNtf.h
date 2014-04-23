@@ -622,7 +622,7 @@ typedef struct {
     SaNtfNotificationFilterHandleT miscellaneousFilterHandle;
 } SaNtfNotificationTypeFilterHandlesT_3;
 
-#define SA_NTF_FILTER_HANDLE_NULL       ((SaNtfNotificationFilterHandleT) NULL)
+#define SA_NTF_FILTER_HANDLE_NULL       ((SaNtfNotificationFilterHandleT) 0)
 
 #if defined(SA_NTF_A01) || defined(SA_NTF_A02)
 typedef struct {
