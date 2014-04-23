@@ -1930,7 +1930,7 @@ static void charactersHandler(void* userData,
 	case FLAG:
 		{
 			SaImmAttrFlagsT flg = charsToFlagsHelper(chars, (size_t)len);
-			if(flg == 0xffffffffffffffff) {
+			if(flg == 0xffffffffffffffffULL) {
 				stopParser(state);
 				state->parsingStatus = 1;
 			} else {
@@ -2003,7 +2003,7 @@ static SaImmAttrFlagsT charsToFlagsHelper(const xmlChar* str, size_t len)
 
 	LOG_ER("UNKNOWN FLAGS, %s", flag.c_str());
 
-	return 0xffffffffffffffff;
+	return 0xffffffffffffffffULL;
 }
 
 /**
