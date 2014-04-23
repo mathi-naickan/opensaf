@@ -892,7 +892,7 @@ int log_stream_write(log_stream_t *stream, const char *buf, size_t count)
 		/* Handle partial writes */
 		bytes_written += rc;
 		if (bytes_written < count) {
-			TRACE("Partial write. bytes_written = %d, count = %ld",
+			TRACE("Partial write. bytes_written = %d, count = %zu",
 					bytes_written, count);
 			goto retry;
 		}
