@@ -1529,7 +1529,7 @@ static AvdJobDequeueResultT job_exec_imm_objupdate(SaImmOiHandleT immOiHandle,
 
 	rc = saImmOiRtObjectUpdate_2(immOiHandle, &objupdate->dn, attrMods);
 
-	if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_EXIST)) {
+	if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_NOT_EXIST)) {
 		free(objupdate->attributeName);
 		free(objupdate->value);
 		free(fifo_dequeue());
