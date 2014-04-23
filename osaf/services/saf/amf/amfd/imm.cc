@@ -642,6 +642,14 @@ static void admin_operation_cb(SaImmOiHandleT immoi_handle,
 	AVSV_AMF_CLASS_ID type = object_name_to_class_type(object_name);
 
  	TRACE_ENTER2("'%s', invocation: %llu, op: %llu", object_name->value, invocation, op_id);
+
+	/* ignore admin ops if we are in the middle of a role switch */
+	if (avd_cb->swap_switch == SA_TRUE) {
+		report_admin_op_error(immoi_handle, invocation, SA_AIS_ERR_TRY_AGAIN, NULL,
+			"Admin op received during a role switch");
+		goto done;
+	}
+
 	saflog(LOG_NOTICE, amfSvcUsrName, "Admin op \"%s\" initiated for '%s', invocation: %llu",
 	       admin_op_name(static_cast<SaAmfAdminOperationIdT>(op_id)), object_name->value, invocation);
 
@@ -649,8 +657,11 @@ static void admin_operation_cb(SaImmOiHandleT immoi_handle,
 		admin_op_callback[type](immoi_handle, invocation, object_name, op_id, params);
 	} else {
 		LOG_ER("Admin operation not supported for %s (%u)", object_name->value, type);
-		avd_saImmOiAdminOperationResult(immoi_handle, invocation, SA_AIS_ERR_INVALID_PARAM);
+		report_admin_op_error(immoi_handle, invocation, SA_AIS_ERR_INVALID_PARAM, NULL,
+			"Admin operation not supported for %s (%u)", object_name->value, type);
 	}
+
+done:
 	TRACE_LEAVE();
 }
 
