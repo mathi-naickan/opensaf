@@ -154,7 +154,7 @@ AvdJobDequeueResultT ImmObjUpdate::exec(SaImmOiHandleT immOiHandle)
 
 	rc = saImmOiRtObjectUpdate_2(immOiHandle, &dn_, attrMods);
 
-	if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_EXIST)) {
+	if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_NOT_EXIST)) {
 		delete Fifo::dequeue();
 		res = JOB_EXECUTED;
 	} else if (rc == SA_AIS_ERR_TRY_AGAIN) {
