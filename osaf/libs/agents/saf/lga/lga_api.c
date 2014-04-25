@@ -507,11 +507,6 @@ static SaAisErrorT validate_open_params(SaLogHandleT logHandle,
 				return SA_AIS_ERR_INVALID_PARAM;
 			}
 
-			if (logFileCreateAttributes->maxLogRecordSize == 0) {
-				TRACE("maxLogRecordSize");
-				return SA_AIS_ERR_INVALID_PARAM;
-			}
-
 			if (logFileCreateAttributes->logFileFullAction < SA_LOG_FILE_FULL_ACTION_WRAP
 			    || logFileCreateAttributes->logFileFullAction > SA_LOG_FILE_FULL_ACTION_ROTATE) {
 				TRACE("logFileFullAction");
