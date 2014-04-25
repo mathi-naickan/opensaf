@@ -64,8 +64,8 @@ extern "C"
 {
 	int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe,
 			SaImmHandleT *immHandle, SaImmAdminOwnerHandleT *ownerHandle,
-			SaImmCcbHandleT *ccbHandle, int mode, const char *xsdPath);
-	int validateImmXML(const char *xmlfile, int verbose, int mode);
+			SaImmCcbHandleT *ccbHandle, int mode, const char *xsdPath, int strictParse);
+	int validateImmXML(const char *xmlfile, int verbose, int mode, int strictParse);
 }
 
 extern ImmutilErrorFnT immutilError;
@@ -146,6 +146,7 @@ typedef struct ParserStateStruct {
 	bool validation;
 	xmlParserCtxtPtr ctxt;
 	int parsingStatus;		/* 0 = ok */
+	bool strictParse;
 } ParserState;
 
 bool isXsdLoaded = false;
@@ -168,7 +169,8 @@ static void getDNForClass(ParserState*,
 						  SaImmAttrValuesT_2*);
 static int charsToValueHelper(SaImmAttrValueT*,
 							   SaImmValueTypeT,
-							   const char*);
+							   const char*,
+							   bool strictParse);
 static SaImmValueTypeT charsToTypeHelper(const xmlChar* str, size_t len);
 static SaImmAttrFlagsT charsToFlagsHelper(const xmlChar* str, size_t len);
 
@@ -1162,7 +1164,8 @@ static void getDNForClass(ParserState* state,
 
 	if(charsToValueHelper(values->attrValues,
 						values->attrValueType,
-						state->objectName)) {
+						state->objectName,
+						true)) {
 		free(values->attrValues);
 		values->attrValues = NULL;
 
@@ -2147,7 +2150,8 @@ static void addObjectAttributeDefinition(ParserState* state)
 
 		if(charsToValueHelper(&attrValues.attrValues[i],
 						   attrValues.attrValueType,
-						   *it)) {
+						   *it,
+						   true)) {
 			LOG_ER("Failed to parse a value of attribute %s", state->attrName);
 			stopParser(state);
 			state->parsingStatus = 1;
@@ -2398,7 +2402,8 @@ static void addClassAttributeDefinition(ParserState* state)
 	if (state->attrDefaultValueSet) {
 		if(charsToValueHelper(&attrDefinition.attrDefaultValue,
 						   state->attrValueType,
-						   state->attrDefaultValueBuffer)) {
+						   state->attrDefaultValueBuffer,
+						   state->strictParse)) {
 			LOG_ER("Failed to parse default value of attribute %s", state->attrName);
 			stopParser(state);
 			state->parsingStatus = 1;
@@ -2423,7 +2428,8 @@ static void addClassAttributeDefinition(ParserState* state)
  */
 static int charsToValueHelper(SaImmAttrValueT* value,
 							   SaImmValueTypeT type,
-							   const char* str)
+							   const char* str,
+							   bool strictParse)
 {
 	size_t len;
 	unsigned int i;
@@ -2515,15 +2521,17 @@ static int charsToValueHelper(SaImmAttrValueT* value,
 		return -1;
 	}
 
-	if(rc) {
+	if(rc && strictParse) {
 		free(*value);
 		*value = NULL;
+	} else {
+		rc = 0;
 	}
 
 	return rc;
 }
 
-int loadImmXML(const char *xmlfile)
+int loadImmXML(const char *xmlfile, int strictParse)
 {
 	ParserState state;
 	SaVersionT version;
@@ -2546,7 +2554,7 @@ int loadImmXML(const char *xmlfile)
 		if(!(*imm_import_immHandle)) {
 			errorCode = immutil_saImmOmInitialize(&state.immHandle, NULL, &version);
 			if (SA_AIS_OK != errorCode) {
-				fprintf(stderr, "Failed to initialize the IMM OM interface (%d)", errorCode);
+				fprintf(stderr, "Failed to initialize the IMM OM interface (%d)\n", errorCode);
 				return 1;
 			}
 		} else
@@ -2577,6 +2585,7 @@ int loadImmXML(const char *xmlfile)
 	state.validation = 0;
 
 	state.parsingStatus = 0;
+	state.strictParse = strictParse;
 
 	//std::cout << "Loading " << xmlfile << std::endl;
 
@@ -2660,7 +2669,7 @@ int loadImmXML(const char *xmlfile)
 //  to ease a future refactoring towards common codebase
 int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe,
 		SaImmHandleT *immHandle, SaImmAdminOwnerHandleT *ownerHandle,
-		SaImmCcbHandleT *ccbHandle, int mode, const char *xsdPath)
+		SaImmCcbHandleT *ccbHandle, int mode, const char *xsdPath, int strictParse)
 {
 	imm_import_adminOwnerName = adminOwnerName;
 	imm_import_verbose = verbose;
@@ -2680,10 +2689,10 @@ int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe
 	// assign own immutil errorhandler (no call to abort())
 	immutilError = imm_importImmutilError;
 
-	return loadImmXML(xmlfileC);
+	return loadImmXML(xmlfileC, strictParse);
 }
 
-int validateImmXML(const char *xmlfile, int verbose, int mode)
+int validateImmXML(const char *xmlfile, int verbose, int mode, int strictParse)
 {
 	ParserState state;
 	int result = 1;
@@ -2714,6 +2723,7 @@ int validateImmXML(const char *xmlfile, int verbose, int mode)
 	state.validation = 1;
 
 	state.parsingStatus = 0;
+	state.strictParse = strictParse;
 
 	transaction_mode = mode;
 

@@ -81,8 +81,8 @@ typedef enum {
 // Interface functions which implement -f and -L options (imm_import.cc)
 int importImmXML(char* xmlfileC, char* adminOwnerName, int verbose, int ccb_safe,
 		SaImmHandleT *immHandle, SaImmAdminOwnerHandleT *ownerHandle,
-		SaImmCcbHandleT *ccbHandle, int mode, const char *xsdPath);
-int validateImmXML(const char *xmlfile, int verbose, int mode);
+		SaImmCcbHandleT *ccbHandle, int mode, const char *xsdPath, int strictParse);
+int validateImmXML(const char *xmlfile, int verbose, int mode, int strictParse);
 static int imm_operation(int argc, char *argv[]);
 
 char *(*readln)(const char *);
@@ -131,6 +131,7 @@ static void usage(const char *progname)
 	printf("\t--ccb-apply (only in a transaction mode)\n");
 	printf("\t--ccb-abort (only in a transaction mode)\n");
 	printf("\t-X, --xsd <path_to_schema.xsd>\n");
+	printf("\t--strict (only valid for -f/--file and -L/--validate options)\n");
 
 	printf("\nEXAMPLE\n");
 	printf("\timmcfg -a saAmfNodeSuFailoverMax=7 safAmfNode=Node01,safAmfCluster=1\n");
@@ -163,9 +164,11 @@ static void usage(const char *progname)
 	printf("\t\tRunning immcfg in explicit commit mode where immcfg accepts immcfg commands from command line\n");
 	printf("\t\tCtrl+D - commit changes and exit, Ctrl+C - abort CCB and exit\n");
 	printf("\timmcfg -X /etc/opensaf/schema.xsd -f imm.xml\n");
-	printf("\t\timmcfg will load unsupported attribute flags in the current OpenSAF version from /etc/opensaf/schema.xsd, and use them to successfully import imm.xml");
+	printf("\t\timmcfg will load unsupported attribute flags in the current OpenSAF version from /etc/opensaf/schema.xsd, and use them to successfully import imm.xml\n");
 	printf("\timmcfg -X /etc/opensaf -f imm.xml\n");
-	printf("\t\timmcfg will load unsupported attribute flags in the current OpenSAF version from the schema specified in imm.xml which is stored in /etc/opensaf, and use loaded flags to successfully import imm.xml");
+	printf("\t\timmcfg will load unsupported attribute flags in the current OpenSAF version from the schema specified in imm.xml which is stored in /etc/opensaf, and use loaded flags to successfully import imm.xml\n");
+	printf("\timmcfg --strict -f imm.xml\n");
+	printf("\t\timmcfg will fail if attribute default value doesn't match attribute data type\n");
 }
 
 /* signal handler for SIGALRM */
@@ -1100,6 +1103,7 @@ static int imm_operation(int argc, char *argv[])
 		{"ccb-apply", no_argument, NULL, 0},
 		{"ccb-abort", no_argument, NULL, 0},
 		{"xsd", required_argument, NULL, 'X'},
+		{"strict", no_argument, NULL, 0},
 		{0, 0, 0, 0}
 	};
 	SaAisErrorT error;
@@ -1123,6 +1127,7 @@ static int imm_operation(int argc, char *argv[])
 	attr_notify_t attrNotify = NOTIFY_UNDEFINED;
 
 	char *xsdPath = NULL;
+	int strictParse = 0;
 
 	while (1) {
 		int option_index = 0;
@@ -1182,6 +1187,8 @@ static int imm_operation(int argc, char *argv[])
 						exit(EXIT_FAILURE);
 				}
 				op = verify_setoption(op, CCB_ABORT);
+			} else if (strcmp("strict", long_options[option_index].name) == 0) {
+				strictParse = 1;
 			}
 		break;
 		case 'a':
@@ -1273,7 +1280,7 @@ static int imm_operation(int argc, char *argv[])
 
 	if (op == VALIDATE_IMMFILE) {
 		VERBOSE_INFO("validateImmXML(xmlFilename=%s, verbose=%d)\n", xmlFilename, verbose);
-		rc = validateImmXML(xmlFilename, verbose, transaction_mode);
+		rc = validateImmXML(xmlFilename, verbose, transaction_mode, strictParse);
 
 		if(rc == 0)
 			printf("Validation is successful\n");
@@ -1289,7 +1296,8 @@ static int imm_operation(int argc, char *argv[])
 	if (op == LOAD_IMMFILE) {
 		VERBOSE_INFO("importImmXML(xmlFilename=%s, verbose=%d)\n", xmlFilename, verbose);
 		rc = importImmXML(xmlFilename, adminOwnerName, verbose, ccb_safe,
-				&immHandle, &ownerHandle, &ccbHandle, transaction_mode, xsdPath);
+				&immHandle, &ownerHandle, &ccbHandle, transaction_mode,
+				xsdPath, strictParse);
 		if(transaction_mode) {
 			if(rc) {
 				fprintf(stderr, "CCB is aborted\n");
