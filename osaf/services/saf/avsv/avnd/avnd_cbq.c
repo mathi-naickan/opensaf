@@ -483,6 +483,13 @@ uint32_t avnd_evt_ava_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 			if (NCSCC_RC_SUCCESS != rc)
 				goto done;
 		}
+
+		/*  cancel qscing_tmr in case this is this called
+		during an admin shutdown etc.. */
+		if (m_AVND_TMR_IS_ACTIVE(comp->qscing_tmr)) {
+			m_AVND_TMR_COMP_QSCING_CMPL_STOP(cb, comp);
+		}
+
 		break;
 
 	case AVSV_AMF_PXIED_COMP_INST:
