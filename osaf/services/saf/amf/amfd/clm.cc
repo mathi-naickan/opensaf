@@ -114,6 +114,7 @@ static void clm_node_exit_validate(AVD_AVND *node)
 			}
 			susi = susi->su_next;
 		}
+		su = su->avnd_list_su_next;
 	}
 
 done:
