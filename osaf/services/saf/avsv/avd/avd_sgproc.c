@@ -129,6 +129,10 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 		l_csi = l_csi->si_list_of_csi_next;
 	} /* while(l_csi != AVD_CSI_NULL) */
 
+	/* For NPI SU each component will get only one CSI and that is already assigned above.*/
+	if (su->saAmfSUPreInstantiable == false)
+		goto npisu_done;
+
 	/* After previous while loop(while (l_csi != NULL)) all the deserving components got assigned at least one. Some
 	   components and csis may be left out. We need to ignore now all unassigned comps as they cann't be assigned 
 	   any csi. Unassigned csis may include those csi, which cann't be assigned to any comp and those csi, which 
@@ -177,13 +181,19 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 		l_csi = l_csi->si_list_of_csi_next;
 	}/* while (l_csi != NULL) */
 
-	/* Log the unassigned csi.*/
+npisu_done:
 	l_csi = si->list_of_csi;
-	while ((l_csi != NULL) && (false == l_csi->assign_flag)) {
-		LOG_ER("%s: Component type missing for SU '%s'", __FUNCTION__, su->name.value);
-		LOG_ER("%s: Component type missing for CSI '%s'", __FUNCTION__, l_csi->name.value);
+	while (l_csi != NULL) {
+		if (l_csi->assign_flag == false) {
+			if (su->saAmfSUPreInstantiable == false)
+				LOG_WA("Invalid configuration: More than one CSI" 
+						" cannot be assigned to same"
+						" component for NPI SU");
+			LOG_ER("%s: Component type missing for SU '%s'", __FUNCTION__, su->name.value);
+			LOG_ER("%s: Either component type or component is missing for CSI '%s'", __FUNCTION__, l_csi->name.value);
+		}
 		l_csi = l_csi->si_list_of_csi_next;
-	}/* while ((l_csi != NULL) && (false == l_csi->assign_flag)) */
+	}
 
 	/* Now send the message about the SU SI assignment to
 	 * the AvND. Send message only if this function is not 
