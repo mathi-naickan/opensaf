@@ -482,11 +482,7 @@ int fileclose_hdl(void *indata, void *outdata, size_t max_outsize)
 	fd = *(char *) indata;
 	TRACE_ENTER2("fd=%d", fd);
 
-close_retry:
 	rc = close(fd);
-
-	if (rc == -1 && errno == EINTR)
-		goto close_retry;
 
 	if (rc == -1) {
 		LOG_ER("fileclose() %s",strerror(errno));

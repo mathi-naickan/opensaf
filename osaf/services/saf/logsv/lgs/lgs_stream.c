@@ -105,7 +105,7 @@ static int fileclose_h(int fd)
 	lgsf_retcode_t api_rc;
 	int rc = 0;
 	
-	TRACE_ENTER();
+	TRACE_ENTER2("fd=%d", fd);
 	
 	/* Fill in API structure */
 	apipar.req_code_in = LGSF_FILECLOSE;
