@@ -46,11 +46,7 @@ static int fileclose(int fd)
 
 	TRACE_ENTER2("fd=%d", fd);
 
-close_retry:
 	rc = close(fd);
-
-	if (rc == -1 && errno == EINTR)
-		goto close_retry;
 
 	if (rc == -1) {
 		LOG_ER("fileclose() %s",strerror(errno));
