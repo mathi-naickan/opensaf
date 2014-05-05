@@ -42,6 +42,7 @@
 #include <saImmOm.h>
 #include <immutil.h>
 #include <saf_error.h>
+#include <immsv_api.h>
 
 
 static SaVersionT immVersion = { 'A', 2, 13 };
@@ -385,7 +386,7 @@ static SaImmAttrValuesT_2 *new_attr_value(SaImmAttrDefinitionT_2 **attrDefinitio
  * @return int
  */
 int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
-	SaImmAdminOwnerHandleT ownerHandle, char **optargs, int optargs_len)
+	 char **optargs, int optargs_len)
 {
 	SaAisErrorT error;
 	int i;
@@ -539,7 +540,7 @@ done:
  *
  * @return int
  */
-int object_modify(const SaNameT **objectNames, SaImmAdminOwnerHandleT ownerHandle, char **optargs, int optargs_len)
+int object_modify(const SaNameT **objectNames, char **optargs, int optargs_len)
 {
 	SaAisErrorT error;
 	int i;
@@ -624,7 +625,7 @@ int object_modify(const SaNameT **objectNames, SaImmAdminOwnerHandleT ownerHandl
  *
  * @return int
  */
-int object_delete(const SaNameT **objectNames, SaImmAdminOwnerHandleT ownerHandle)
+int object_delete(const SaNameT **objectNames)
 {
 	SaAisErrorT error;
 	int rc = EXIT_FAILURE;
@@ -737,8 +738,8 @@ static int admin_owner_clear(const SaNameT **objectNames, SaImmHandleT immHandle
 	return 0;
 }
 
-static int class_change(SaImmHandleT immHandle, const SaImmAdminOwnerNameT adminOwnerName,
-		const SaImmClassNameT className, const char **attributeNames, attr_notify_t attrNotify)
+static int class_change(SaImmHandleT immHandle, const SaImmClassNameT className, 
+	const char **attributeNames, attr_notify_t attrNotify)
 {
 	SaAisErrorT error;
 	SaImmAccessorHandleT accessorHandle;
@@ -752,6 +753,7 @@ static int class_change(SaImmHandleT immHandle, const SaImmAdminOwnerNameT admin
 										2 - PBE disabled			*/
 	SaImmClassCategoryT classCategory;
 	SaImmAttrDefinitionT_2 **attrDefinitions = NULL;
+	SaImmAdminOwnerHandleT ownerHandle1 = 0;
 	int rc = 0;
 
 	int attrNum = 0;
@@ -806,6 +808,14 @@ static int class_change(SaImmHandleT immHandle, const SaImmAdminOwnerNameT admin
 
 		attrNum++;
 	}
+	if(!isSchemaChangeEnabled) {
+		error = immutil_saImmOmAdminOwnerInitialize(immHandle, OPENSAF_IMM_SERVICE_NAME, SA_TRUE, &ownerHandle1);
+		if (error != SA_AIS_OK) {
+			fprintf(stderr, "error - saImmOmAdminOwnerInitialize FAILED: %s\n", saf_error(error));
+			rc = EXIT_FAILURE;
+			goto done;
+		}
+	}
 
 	/* if schema change is disable, then turn it on until the class change is done */
 	if(!isSchemaChangeEnabled) {
@@ -814,13 +824,13 @@ static int class_change(SaImmHandleT immHandle, const SaImmAdminOwnerNameT admin
 		SaImmAdminOperationParamsT_2 param = { "opensafImmNostdFlags", SA_IMM_ATTR_SAUINT32T, (SaImmAttrValueT)&nostdFlag };
 		const SaImmAdminOperationParamsT_2 *params[2] = { &param, NULL };
 
-		if((error = immutil_saImmOmAdminOwnerSet(ownerHandle, objectNameList, SA_IMM_ONE)) != SA_AIS_OK) {
+		if((error = immutil_saImmOmAdminOwnerSet(ownerHandle1, objectNameList, SA_IMM_ONE)) != SA_AIS_OK) {
 			fprintf(stderr, "Cannot set admin owner on 'opensafImm=opensafImm,safApp=safImmService'\n");
 			rc = EXIT_FAILURE;
 			goto done;
 		}
 
-		if((error = immutil_saImmOmAdminOperationInvoke_2(ownerHandle, &opensafImmObjectName, 1, 1, params, &err, SA_TIME_ONE_SECOND * 60)) != SA_AIS_OK) {
+		if((error = immutil_saImmOmAdminOperationInvoke_2(ownerHandle1, &opensafImmObjectName, 1, 1, params, &err, SA_TIME_ONE_SECOND * 60)) != SA_AIS_OK) {
 			fprintf(stderr, "Failed to enable schema changes. Error: %d\n", error);
 			rc = EXIT_FAILURE;
 			goto done;
@@ -845,13 +855,21 @@ static int class_change(SaImmHandleT immHandle, const SaImmAdminOwnerNameT admin
 		SaImmAdminOperationParamsT_2 param = { "opensafImmNostdFlags", SA_IMM_ATTR_SAUINT32T, (SaImmAttrValueT)&nostdFlag };
 		const SaImmAdminOperationParamsT_2 *params[2] = { &param, NULL };
 
-		if((error = immutil_saImmOmAdminOperationInvoke_2(ownerHandle, &opensafImmObjectName, 0, 2, params, &err, SA_TIME_ONE_SECOND * 60)) != SA_AIS_OK) {
+		if((error = immutil_saImmOmAdminOperationInvoke_2(ownerHandle1, &opensafImmObjectName, 0, 2, params, &err, SA_TIME_ONE_SECOND * 60)) != SA_AIS_OK) {
 			fprintf(stderr, "Failed to disable schema changes. Error: %d\n", error);
 			rc = EXIT_FAILURE;
 		}
 	}
-
 done:
+	
+	if(!isSchemaChangeEnabled && ownerHandle1) {
+		error = immutil_saImmOmAdminOwnerFinalize(ownerHandle1);
+		if (SA_AIS_OK != error) {
+			fprintf(stderr, "error - saImmOmAdminOwnerFinalize FAILED: %s\n", saf_error(error));
+			rc = EXIT_FAILURE;
+		}
+	}
+	
 	if(attrDefinitions)
 		immutil_saImmOmClassDescriptionMemoryFree_2(immHandle, attrDefinitions);
 
@@ -1405,13 +1423,13 @@ static int imm_operation(int argc, char *argv[])
 
 	switch (op) {
 	case CREATE_OBJECT:
-		rc = object_create((const SaNameT **)objectNames, className, ownerHandle, optargs, optargs_len);
+		rc = object_create((const SaNameT **)objectNames, className, optargs, optargs_len);
 		break;
 	case DELETE_OBJECT:
-		rc = object_delete((const SaNameT **)objectNames, ownerHandle);
+		rc = object_delete((const SaNameT **)objectNames);
 		break;
 	case MODIFY_OBJECT:
-		rc = object_modify((const SaNameT **)objectNames, ownerHandle, optargs, optargs_len);
+		rc = object_modify((const SaNameT **)objectNames, optargs, optargs_len);
 		break;
 	case DELETE_CLASS:
 		rc = class_delete(classNames, immHandle);
@@ -1420,7 +1438,7 @@ static int imm_operation(int argc, char *argv[])
 		rc = admin_owner_clear((const SaNameT **)objectNames, immHandle);
 		break;
 	case CHANGE_CLASS :
-		rc = class_change(immHandle, adminOwnerName, className, (const char **)attributeNames, attrNotify);
+		rc = class_change(immHandle, className, (const char **)attributeNames, attrNotify);
 		break;
 	case TRANSACTION_MODE :
 		rc = start_cmd();
