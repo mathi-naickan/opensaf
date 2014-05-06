@@ -1482,6 +1482,14 @@ static void read_logsv_config_environ_var(lgs_conf_t *lgsConf) {
 
 	/* logMaxLogrecsize */
 	if ((val_str = getenv("LOGSV_MAX_LOGRECSIZE")) != NULL) {
+/* errno = 0 is necessary as per the manpage of strtoul. Quoting here:
+ * NOTES:
+ * Since strtoul() can legitimately return 0 or ULONG_MAX (ULLONG_MAX for strtoull())
+ * on both success and failure, the calling program should set errno to 0 before the call,
+ * and then determine if an error occurred by  checking  whether  errno  has  a
+ * nonzero value after the call.
+ */
+		errno = 0;
 		val_uint = strtoul(val_str, NULL, 0);
 		if ((errno != 0) || (val_uint > UINT_MAX)) {
 			LOG_ER("Illegal value for LOGSV_MAX_LOGRECSIZE - %s, default %u",
@@ -1499,6 +1507,7 @@ static void read_logsv_config_environ_var(lgs_conf_t *lgsConf) {
 
 	/* logStreamSystemHighLimit */
 	if ((val_str = getenv("LOG_STREAM_SYSTEM_HIGH_LIMIT")) != NULL) {
+		errno = 0;
 		val_uint = strtoul(val_str, NULL, 0);
 		if ((errno != 0) || (val_uint > UINT_MAX)) {
 			LOG_ER("Illegal value for LOG_STREAM_SYSTEM_HIGH_LIMIT - %s, default %u",
@@ -1516,6 +1525,7 @@ static void read_logsv_config_environ_var(lgs_conf_t *lgsConf) {
 
 	/* logStreamSystemLowLimit */
 	if ((val_str = getenv("LOG_STREAM_SYSTEM_LOW_LIMIT")) != NULL) {
+		errno = 0;
 		val_uint = strtoul(val_str, NULL, 0);
 		if ((errno != 0) || (val_uint > UINT_MAX)) {
 			LOG_ER("Illegal value for LOG_STREAM_SYSTEM_LOW_LIMIT - %s, default %u",
@@ -1533,6 +1543,7 @@ static void read_logsv_config_environ_var(lgs_conf_t *lgsConf) {
 
 	/* logStreamAppHighLimit */
 	if ((val_str = getenv("LOG_STREAM_APP_HIGH_LIMIT")) != NULL) {
+		errno = 0;
 		val_uint = strtoul(val_str, NULL, 0);
 		if ((errno != 0) || (val_uint > UINT_MAX)) {
 			LOG_ER("Illegal value for LOG_STREAM_APP_HIGH_LIMIT - %s, default %u",
@@ -1550,6 +1561,7 @@ static void read_logsv_config_environ_var(lgs_conf_t *lgsConf) {
 
 	/* logStreamAppLowLimit */
 	if ((val_str = getenv("LOG_STREAM_APP_LOW_LIMIT")) != NULL) {
+		errno = 0;
 		val_uint = strtoul(val_str, NULL, 0);
 		if ((errno != 0) || (val_uint > UINT_MAX)) {
 			LOG_ER("Illegal value for LOG_STREAM_APP_LOW_LIMIT - %s, default %u",
@@ -1567,6 +1579,7 @@ static void read_logsv_config_environ_var(lgs_conf_t *lgsConf) {
 
 	/* logMaxApplicationStreams */
 	if ((val_str = getenv("LOG_MAX_APPLICATION_STREAMS")) != NULL) {
+		errno = 0;
 		val_uint = strtoul(val_str, NULL, 0);
 		if ((errno != 0) || (val_uint > UINT_MAX)) {
 			LOG_ER("Illegal value for LOG_MAX_APPLICATION_STREAMS - %s, default %u",
