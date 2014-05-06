@@ -84,6 +84,9 @@ typedef struct {
 /* LOG configuration */
 /* Default values are used if no configuration object can be found in IMM */
 /* See function lgs_imm_logconf_get */
+/* Note: These values should be the same as the values defined as "default"
+ * values in the logConfig class definition.
+ */
 static lgs_conf_t _lgs_conf = {
 	.logRootDirectory = "",
 	.logMaxLogrecsize = 1024,
@@ -1990,6 +1993,52 @@ static void read_logsv_config_environ_var(lgs_conf_t *lgsConf) {
 	TRACE_LEAVE();
 }
 
+/* The function is called when the LOG config object exists,
+ * to determine if envrionment variables also are configured.
+ * If environment variables are also found, then the function
+ * logs a warning message to convey that the environment variables
+ * are ignored when the log config object is also configured.
+ @ param none
+ @ return none
+ */
+
+void check_environs_for_configattribs(void)
+{
+
+	/* If environment variables are configured then, print a warning
+	 * message to syslog.
+	 */
+	if (getenv("LOGSV_MAX_LOGRECSIZE") != NULL) {
+		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+		LOG_WA("Ignoring environment variable LOGSV_MAX_LOGRECSIZE");
+	}
+	
+	if (getenv("LOG_STREAM_SYSTEM_HIGH_LIMIT") != NULL) {
+		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+		LOG_WA("Ignoring environment variable LOG_STREAM_SYSTEM_HIGH_LIMIT");
+	}	
+
+	if (getenv("LOG_STREAM_SYSTEM_LOW_LIMIT") != NULL) {
+		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+		LOG_WA("Ignoring environment variable LOG_STREAM_SYSTEM_LOW_LIMIT");
+	}
+	
+	if (getenv("LOG_STREAM_APP_HIGH_LIMIT") != NULL) {
+		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+		LOG_WA("Ignoring environment variable LOG_STREAM_APP_HIGH_LIMIT");
+	}
+	
+	if (getenv("LOG_STREAM_APP_LOW_LIMIT") != NULL) {
+		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+		LOG_WA("Ignoring environment variable LOG_STREAM_APP_LOW_LIMIT");
+	}
+	
+	if (getenv("LOG_MAX_APPLICATION_STREAMS") != NULL) {
+		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+		LOG_WA("Ignoring environment variable LOG_MAX_APPLICATION_STREAMS");
+	}
+}
+
 /**
  * Get log service configuration parameter. See SaLogConfig class.
  * The configuration will be read from IMM. If no config object exits
@@ -2021,8 +2070,15 @@ const void *lgs_imm_logconf_get(lgs_logconfGet_t param, bool *noteflag)
 	if (lgs_conf->logInitiated != true) {
 		if (read_logsv_config_obj(LGS_IMM_LOG_CONFIGURATION, lgs_conf_p) != SA_AIS_OK) {
 			LOG_NO("No or invalid log service configuration object");
-			read_logsv_config_environ_var( lgs_conf_p);
+			read_logsv_config_environ_var(lgs_conf_p);
+		} else {
+			/* LGS_IMM_LOG_CONFIGURATION object exists.
+			 * If environment variables exists, then ignore them
+			 * and log a message to syslog.
+			 */
+				check_environs_for_configattribs();
 		}
+		
 		lgs_conf_p->logInitiated = true;
 	}
 

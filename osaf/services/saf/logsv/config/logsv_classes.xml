@@ -37,7 +37,7 @@
 			<type>SA_UINT32_T</type>
 			<category>SA_RUNTIME</category>
 			<flag>SA_CACHED</flag>
-		</attr>
+			</attr>
 		<attr>
 			<name>saLogStreamLogFullAction</name>
 			<type>SA_UINT32_T</type>
@@ -165,6 +165,9 @@
 		</attr>
 	</class>
 	<class name="OpenSafLogConfig">
+<!-- Care is needed when changing to the default values for the attributes of this class
+to ensure that default global values in the implementation are also changed accordingly.
+--> 
 		<category>SA_CONFIG</category>
 		<rdn>
 			<name>logConfig</name>
