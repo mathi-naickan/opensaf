@@ -181,12 +181,12 @@ static SaAisErrorT write_log_record(SaLogHandleT logHandle,
 
 		if (cb_invocation != invocation) {
 			fprintf(stderr, "logWriteLogCallbackT FAILED: wrong invocation\n");
-			return errorCode;
+			return SA_AIS_ERR_BAD_OPERATION;
 		}
 
 		if ((cb_error != SA_AIS_ERR_TRY_AGAIN) && (cb_error != SA_AIS_OK)) {
 			fprintf(stderr, "logWriteLogCallbackT FAILED: %u\n", cb_error);
-			return errorCode;
+			return cb_error;
 		}
 
 		if (cb_error == SA_AIS_ERR_TRY_AGAIN) {
