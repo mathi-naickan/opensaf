@@ -175,7 +175,7 @@ poll_retry:
 
 	if (cb_invocation != invocation) {
 		fprintf(stderr, "logWriteLogCallbackT FAILED: wrong invocation\n");
-		return errorCode;
+		return SA_AIS_ERR_BAD_OPERATION;
 	}
 
 	if (cb_error == SA_AIS_ERR_TRY_AGAIN && wait_time < TEN_SECONDS) {
@@ -194,7 +194,7 @@ poll_retry:
 		if (wait_time)
 			fprintf(stderr, "Waited for %u seconds.\n", wait_time/1000000);
 		fprintf(stderr, "logWriteLogCallbackT FAILED: %s\n", saf_error(cb_error));
-		return errorCode;
+		return cb_error;
 	}
 
 	return errorCode;
