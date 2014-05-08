@@ -840,6 +840,9 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		avd_si_admin_state_set(si, SA_AMF_ADMIN_UNLOCKED);
 
 		err = si->sg_of_si->si_func(avd_cb, si);
+		if (si->list_of_sisu == NULL)
+			LOG_NO("'%s' could not be assigned to any SU", si->name.value);
+
 		if (err != NCSCC_RC_SUCCESS) {
 			LOG_WA("SI unlock of %s failed", objectName->value);
 			avd_si_admin_state_set(si, SA_AMF_ADMIN_LOCKED);
