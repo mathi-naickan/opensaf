@@ -84,7 +84,7 @@ uint32_t cpd_mds_vdest_create(CPD_CB *cb)
 	/* Create VDEST */
 	rc = ncsvda_api(&arg);
 	if (NCSCC_RC_SUCCESS != rc) {
-		m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+		m_LEAP_DBG_SINK_VOID;
 		return rc;
 	}
 

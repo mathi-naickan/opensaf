@@ -91,8 +91,8 @@ void opensaf_reboot(unsigned node_id, const char* ee_name, const char* reason);
  **                                                                         **
  ****************************************************************************/
 
-#define m_KEY_CHK_FMT(k,f)  { if (k.fmat != f) m_LEAP_DBG_SINK(0);}
-#define m_KEY_CHK_LEN(l)    { if (l > SYSF_MAX_KEY_LEN) m_LEAP_DBG_SINK(0); }
+#define m_KEY_CHK_FMT(k,f)  { if (k.fmat != f) m_LEAP_DBG_SINK_VOID;}
+#define m_KEY_CHK_LEN(l)    { if (l > SYSF_MAX_KEY_LEN) m_LEAP_DBG_SINK_VOID; }
 #define m_KEY_CHK_SLEN(s)   { uint32_t l = m_NCS_STRLEN(s); m_KEY_CHK_LEN(l); }
 
 /*

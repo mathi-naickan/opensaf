@@ -737,7 +737,7 @@ tmr_t ncs_tmr_start(tmr_t tid, uint32_t tmrDelay,	/* timer period in number of 1
 		if (m_NCS_SEL_OBJ_IND(gl_tcb.sel_obj) != NCSCC_RC_SUCCESS) {
 			/* We would never reach here! */
 			m_NCS_UNLOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);
-			m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+			m_LEAP_DBG_SINK_VOID;
 			return NULL;
 		}
 	}

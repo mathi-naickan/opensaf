@@ -329,7 +329,7 @@ void ncs_dec_init_space(NCS_UBAID *uba, USRBUF *ub)
 uint8_t *ncs_dec_flatten_space(NCS_UBAID *uba, uint8_t *os, int32_t count)
 {
 	if (uba->ub == BNULL) {
-		m_LEAP_DBG_SINK(NULL);
+		m_LEAP_DBG_SINK_VOID;
 		return NULL;
 	}
 
@@ -619,7 +619,7 @@ USRBUF *ncs_decode_pointer(USRBUF *i_ub, uint64_t *o_recvd_ptr, uint8_t *o_ptr_s
 		*o_recvd_ptr = ncs_decode_32bit(&s);
 	else {
 		if (p_len != sizeof(NCSCONTEXT))
-			m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+			m_LEAP_DBG_SINK_VOID;
 		*o_recvd_ptr = ncs_decode_64bit(&s);
 	}
 
@@ -673,7 +673,7 @@ uint32_t ncs_uba_decode_pointer(NCS_UBAID *uba, uint64_t *o_recvd_ptr, uint8_t *
 		*o_recvd_ptr = ncs_decode_32bit(&s);
 	else {
 		if (p_len != sizeof(NCSCONTEXT))
-			m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+			m_LEAP_DBG_SINK_VOID;
 
 		*o_recvd_ptr = ncs_decode_64bit(&s);
 	}

@@ -360,7 +360,7 @@ static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block)
 				/* Should never reach here */
 				m_NCS_UNLOCK(&ncs_ipc->queue_lock, NCS_LOCK_WRITE);
 				ncshm_give_hdl((uint32_t)*mbx);
-				m_LEAP_DBG_SINK(0);
+				m_LEAP_DBG_SINK_VOID;
 				return NULL;
 			} else {
 				m_NCS_UNLOCK(&ncs_ipc->queue_lock, NCS_LOCK_WRITE);
@@ -381,7 +381,7 @@ static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block)
 					if (ipc_dequeue_ind_processing(ncs_ipc, active_queue) != NCSCC_RC_SUCCESS) {
 						m_NCS_UNLOCK(&ncs_ipc->queue_lock, NCS_LOCK_WRITE);
 						ncshm_give_hdl((uint32_t)*mbx);
-						m_LEAP_DBG_SINK(NULL);
+						m_LEAP_DBG_SINK_VOID;
 						return NULL;
 					} else {
 						m_NCS_UNLOCK(&ncs_ipc->queue_lock, NCS_LOCK_WRITE);
@@ -394,7 +394,7 @@ static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block)
 			assert(0);
 			m_NCS_UNLOCK(&ncs_ipc->queue_lock, NCS_LOCK_WRITE);
 			ncshm_give_hdl((uint32_t)*mbx);
-			m_LEAP_DBG_SINK(NULL);
+			m_LEAP_DBG_SINK_VOID;
 			return NULL;
 		}
 

@@ -2010,7 +2010,7 @@ static uint32_t ckpt_decode_cbk_handler(NCS_MBCSV_CB_ARG *cbk_arg)
 		TRACE_2(" INCORRECT DECODE called");
 		rc = NCSCC_RC_FAILURE;
 		TRACE("  INCORRECT DECODE called, FAILED");
-		m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+		m_LEAP_DBG_SINK_VOID;
 		break;
 	}			/*End switch(io_msg_type) */
 

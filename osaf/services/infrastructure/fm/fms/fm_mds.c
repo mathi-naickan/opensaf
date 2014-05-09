@@ -708,7 +708,7 @@ static uint32_t fm_fm_mds_enc(MDS_CALLBACK_ENC_INFO *enc_info)
 	case GFM_GFM_EVT_NODE_INFO_EXCHANGE:
 		data = ncs_enc_reserve_space(uba, (2 * sizeof(uint32_t)));
 		if (data == NULL) {
-			m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+			m_LEAP_DBG_SINK_VOID;
 		}
 
 		ncs_encode_32bit(&data, msg->info.node_info.node_id);

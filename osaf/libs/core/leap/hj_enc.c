@@ -171,7 +171,7 @@ USRBUF *ncs_prepend_n_octets(USRBUF *pbuf, uint8_t *os, unsigned int length)
 
 	pch = m_MMGR_RESERVE_AT_START(&pbuf, length, uint8_t *);
 	if (pch == NULL) {
-		m_LEAP_DBG_SINK((long)BNULL);
+		m_LEAP_DBG_SINK_VOID;
 		return BNULL;
 	}
 
@@ -185,7 +185,7 @@ USRBUF *ncs_prepend_uns16(USRBUF *pbuf, uint16_t val16)
 
 	p16 = m_MMGR_RESERVE_AT_START(&pbuf, (uint32_t)sizeof(uint16_t), uint8_t *);
 	if (p16 == NULL) {
-		m_LEAP_DBG_SINK((long)BNULL);
+		m_LEAP_DBG_SINK_VOID;
 		return BNULL;
 	}
 	*p16++ = (uint8_t)(val16 >> 8);
@@ -200,7 +200,7 @@ USRBUF *ncs_prepend_uns32(USRBUF *pbuf, uint32_t val32)
 
 	p32 = m_MMGR_RESERVE_AT_START(&pbuf, (uint32_t)sizeof(uint32_t), uint8_t *);
 	if (p32 == NULL) {
-		m_LEAP_DBG_SINK((long)BNULL);
+		m_LEAP_DBG_SINK_VOID;
 		return BNULL;
 	}
 	*p32++ = (uint8_t)(val32 >> 24);
@@ -217,7 +217,7 @@ USRBUF *ncs_prepend_uns64(USRBUF *pbuf, uint64_t val64)
 
 	p64 = m_MMGR_RESERVE_AT_START(&pbuf, 8, uint8_t *);
 	if (p64 == NULL) {
-		m_LEAP_DBG_SINK((long)BNULL);
+		m_LEAP_DBG_SINK_VOID;
 		return BNULL;
 	}
 

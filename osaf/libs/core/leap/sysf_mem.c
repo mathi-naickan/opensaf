@@ -139,7 +139,7 @@ void sysf_heap_free(void *data, uint8_t pool_id)
 
 void *sysf_stub_alloc(uint32_t b, uint8_t pool_id, uint8_t pri)
 {
-	m_LEAP_DBG_SINK(0);
+	m_LEAP_DBG_SINK_VOID;
 	return NULL;
 }
 
@@ -427,7 +427,7 @@ USRBUF *sysf_alloc_pkt(unsigned char pool_id, unsigned char priority, int num, u
 
 		if (pool_id >= UB_MAX_POOLS) {
 			m_PMGR_UNLK(&gl_ub_pool_mgr.lock);
-			m_LEAP_DBG_SINK(0);
+			m_LEAP_DBG_SINK_VOID;
 			return NULL;
 		}
 		ud = (USRDATA *)gl_ub_pool_mgr.pools[pool_id].mem_alloc(sizeof(USRDATA), pool_id, priority);

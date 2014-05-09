@@ -759,7 +759,7 @@ void ncs_get_sys_params_arg(NCS_SYS_PARAMS *sys_params)
 	if (m_NCS_GET_PHYINFO_FROM_NODE_ID(sys_params->node_id, &sys_params->shelf_id,
 					   &sys_params->slot_id, &sub_slot_id) != NCSCC_RC_SUCCESS) {
 
-		m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+		m_LEAP_DBG_SINK_VOID;
 		return;
 	}
 

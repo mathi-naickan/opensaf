@@ -398,7 +398,7 @@ NCSCONTEXT ncshm_take_hdl(NCS_SERVICE_ID id, uint32_t uhdl)
 	if ((cell = hm_find_cell(hdl)) != NULL) {
 		if ((cell->seq_id == hdl->seq_id) && ((NCS_SERVICE_ID)cell->svc_id == id) && (cell->busy == true)) {
 			if (++cell->use_ct == 0) {
-				m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);	/* Too many takes()s!! */
+				m_LEAP_DBG_SINK_VOID;	/* Too many takes()s!! */
 			}
 
 			data = cell->data;
@@ -432,7 +432,7 @@ void ncshm_give_hdl(uint32_t uhdl)
 	if ((cell = hm_find_cell(hdl)) != NULL) {
 		if (cell->seq_id == hdl->seq_id) {
 			if (--cell->use_ct < 1) {
-				m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);	/* Client BUG..Too many give()s!! */
+				m_LEAP_DBG_SINK_VOID;	/* Client BUG..Too many give()s!! */
 				cell->use_ct++;
 			} else {
 				if ((cell->busy == false) && (cell->use_ct == 1))
@@ -464,7 +464,7 @@ HM_FREE *hm_alloc_cell(uint8_t id)
 
 	if (pmgr->free_pool == NULL) {
 		if (hm_make_free_cells(pmgr) != NCSCC_RC_SUCCESS) {
-			m_LEAP_DBG_SINK(NULL);
+			m_LEAP_DBG_SINK_VOID;
 			return NULL;
 		}
 	}
@@ -495,12 +495,12 @@ HM_CELL *hm_find_cell(HM_HDL *hdl)
 	HM_CELLS *spot;
 
 	if ((unit = gl_hm.unit[hdl->idx1]) == NULL) {
-		m_LEAP_DBG_SINK(NULL);
+		m_LEAP_DBG_SINK_VOID;
 		return NULL;
 	}
 
 	if ((spot = unit->cells[hdl->idx2]) == NULL) {
-		m_LEAP_DBG_SINK(NULL);
+		m_LEAP_DBG_SINK_VOID;
 		return NULL;
 	}
 
@@ -622,7 +622,7 @@ HM_FREE *hm_target_cell(HM_HDL *hdl)
 
 	if ((unit = gl_hm.unit[hdl->idx1]) == NULL) {
 		if ((unit = (HM_UNIT*)  malloc(sizeof(HM_UNIT))) == NULL) {
-			m_LEAP_DBG_SINK(NULL);
+			m_LEAP_DBG_SINK_VOID;
 			return NULL;
 		}
 
@@ -632,7 +632,7 @@ HM_FREE *hm_target_cell(HM_HDL *hdl)
 
 	if ((cells = unit->cells[hdl->idx2]) == NULL) {
 		if ((cells = (HM_CELLS*) malloc(sizeof(HM_CELLS))) == NULL) {
-			m_LEAP_DBG_SINK(NULL);
+			m_LEAP_DBG_SINK_VOID;
 			return NULL;
 		}
 
@@ -669,7 +669,7 @@ HM_FREE *hm_target_cell(HM_HDL *hdl)
 		back = back->next;
 	}
 
-	m_LEAP_DBG_SINK(NULL);
+	m_LEAP_DBG_SINK_VOID;
 	return NULL;
 }
 
@@ -775,7 +775,7 @@ uint32_t ncslpg_give(NCSLPG_OBJ *pg, uint32_t ret)
 uint32_t ncslpg_create(NCSLPG_OBJ *pg)
 {
 	if (pg->open == true)
-		m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+		m_LEAP_DBG_SINK_VOID;
 	pg->open = true;
 	pg->inhere = 0;
 	return NCSCC_RC_SUCCESS;
