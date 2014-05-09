@@ -181,7 +181,7 @@ void cpd_saf_csi_set_cb(SaInvocationT invocation,
 			vda_info.info.vdest_chg_role.i_new_role = mds_role;
 			rc = ncsvda_api(&vda_info);
 			if (NCSCC_RC_SUCCESS != rc) {
-				m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+				m_LEAP_DBG_SINK_VOID;
 				LOG_ER("cpd vdest change role failed");
 				ncshm_give_hdl(cb->cpd_hdl);
 				TRACE_LEAVE();
@@ -206,7 +206,7 @@ void cpd_saf_csi_set_cb(SaInvocationT invocation,
 		vda_info.info.vdest_chg_role.i_new_role = mds_role;
 		rc = ncsvda_api(&vda_info);
 		if (NCSCC_RC_SUCCESS != rc) {
-			m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+			m_LEAP_DBG_SINK_VOID;
 			LOG_ER("cpd vdest change role failed");
 			ncshm_give_hdl(cb->cpd_hdl);
 			TRACE_LEAVE();

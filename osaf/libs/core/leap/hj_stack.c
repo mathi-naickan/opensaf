@@ -93,7 +93,7 @@ uint8_t *ncsmem_aid_cpy(NCSMEM_AID *ma, const uint8_t *ref, uint32_t len)
 		return answer;
 	}
 
-	m_LEAP_DBG_SINK(0);
+	m_LEAP_DBG_SINK_VOID;
 	return NULL;
 }
 
@@ -122,7 +122,7 @@ uint8_t *ncsmem_aid_alloc(NCSMEM_AID *ma, uint32_t size)
 		return answer;
 	}
 	ma->status = NCSCC_RC_FAILURE;
-	m_LEAP_DBG_SINK(0);
+	m_LEAP_DBG_SINK_VOID;
 	return NULL;
 }
 
@@ -145,7 +145,7 @@ NCS_SE *get_top_se(NCS_STACK *st)
 	uint16_t size = *p_size++;
 
 	if (*p_size != SE_ALIGNMENT_MARKER) {
-		m_LEAP_DBG_SINK(0);
+		m_LEAP_DBG_SINK_VOID;
 		return NULL;
 	}
 
@@ -254,7 +254,7 @@ NCS_SE *ncsstack_push(NCS_STACK *st, uint16_t type, uint16_t size)
 	uint16_t *len;
 
 	if (st->max_depth <= (st->cur_depth + size + sizeof(uint16_t) + sizeof(uint16_t))) {
-		m_LEAP_DBG_SINK(NULL);
+		m_LEAP_DBG_SINK_VOID;
 		return NULL;
 	}
 

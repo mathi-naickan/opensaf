@@ -68,7 +68,7 @@ USRBUF *ncs_decode_n_octets(USRBUF *u, uint8_t *os, uint32_t count)
    **/
 	if ((s = m_MMGR_DATA_AT_START(u, count, (char *)os)) != (char *)os) {
 		if (s == 0) {
-			m_LEAP_DBG_SINK(0);
+			m_LEAP_DBG_SINK_VOID;
 			return (USRBUF *)0;
 		}
 		memcpy(os, s, (size_t)count);
@@ -84,7 +84,7 @@ USRBUF *ncs_decode_n_octets(USRBUF *u, uint8_t *os, uint32_t count)
 uint8_t *ncs_flatten_n_octets(USRBUF *u, uint8_t *os, uint32_t count)
 {
 	if (u == BNULL) {
-		m_LEAP_DBG_SINK(0);
+		m_LEAP_DBG_SINK_VOID;
 		return NULL;
 	}
 

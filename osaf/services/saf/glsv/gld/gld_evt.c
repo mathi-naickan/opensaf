@@ -688,7 +688,7 @@ static uint32_t gld_quisced_process(GLSV_GLD_EVT *evt)
 		gld_cb->is_impl_set = false;
 		rc = glsv_gld_mbcsv_chgrole(gld_cb);
 		if (rc != NCSCC_RC_SUCCESS) {
-			m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
+			m_LEAP_DBG_SINK_VOID;
 			goto end;
 		}
 		saAmfResponse(gld_cb->amf_hdl, gld_cb->invocation, saErr);
