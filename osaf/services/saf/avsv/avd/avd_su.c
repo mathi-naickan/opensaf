@@ -28,6 +28,7 @@
 #include <avd_ntf.h>
 #include <avd_proc.h>
 #include <avd_csi.h>
+#include <avd_cluster.h>
 
 static NCS_PATRICIA_TREE su_db;
 
@@ -960,17 +961,11 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 	switch (op_id) {
 	case SA_AMF_ADMIN_UNLOCK:
 		avd_su_admin_state_set(su, SA_AMF_ADMIN_UNLOCKED);
-		if (((m_AVD_APP_SU_IS_INSVC(su, node)) || (su->sg_of_su->sg_ncs_spec == true)) &&
-			((su->saAmfSUPreInstantiable) ?
-			 (su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED):true)) {
-			/* Pres state check is to prevent assignment to SU in case SU is instantiating in
-			 * locked state and somebody issues UNLOCK on SU. Since comp are in instantiating state,
-			 * so AMFND will not assign the role to components. Anyway when SU gets instantiated, then
-			 * assignment will be given to components/SU.
-			 */
-			/* Reason for adding "su->sg_of_su->sg_ncs_spec == true" is for Middleware component
-			 * node oper state and SU oper state are marked enabled after they gets assignments.
-			 * So, we cann't check compatibility with m_AVD_APP_SU_IS_INSVC for them.
+		if ((su_is_insvc(su) == true) || (su->sg_of_su->sg_ncs_spec == true)) {
+			/* Reason for adding "su->sg_of_su->sg_ncs_spec == true" is for
+			 * Middleware component node oper state and SU oper state are marked
+			 * enabled after they gets assignments. So, we can't check
+			 * compatibility with m_AVD_APP_SU_IS_INSVC for them.
 			 */
 			avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 			if (su->sg_of_su->su_insvc(cb, su) != NCSCC_RC_SUCCESS)
@@ -1588,3 +1583,38 @@ void avd_su_constructor(void)
 	avd_class_impl_set("SaAmfSU", su_rt_attr_cb, su_admin_op_cb, su_ccb_completed_cb, su_ccb_apply_cb);
 }
 
+/**
+ * Checks if the SU can be made in-service
+ * For reference see 3.2.1.4 and for pre-instantiable SUs Table 4
+ *
+ * @param su
+ * @return true if SU can be made in-service
+ */
+bool su_is_insvc(const AVD_SU *su)
+{
+	const AVD_AVND *node;
+	const AVD_SG *sg = su->sg_of_su;
+	const AVD_APP *app = sg->app;
+
+	m_AVD_GET_SU_NODE_PTR(avd_cb, su, node);
+
+	if (su->saAmfSUPreInstantiable == true) {
+		return (avd_cluster->saAmfClusterAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(app->saAmfApplicationAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(sg->saAmfSGAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(node->saAmfNodeAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(node->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) &&
+				(su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) &&
+				((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED ||
+					su->saAmfSUPresenceState == SA_AMF_PRESENCE_RESTARTING));
+	} else {
+		return (avd_cluster->saAmfClusterAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(app->saAmfApplicationAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(sg->saAmfSGAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(node->saAmfNodeAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+				(node->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) &&
+				(su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED);
+	}
+}
