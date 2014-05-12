@@ -406,7 +406,6 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	AVD_AVND *node;
 	AVD_SU *su, *i_su;
 	SaAmfReadinessStateT old_state;
-	AVD_AVND *su_node_ptr = NULL;
 	bool node_reboot_req = true;
 
 	TRACE_ENTER2("id:%u, node:%x, '%s' state:%u", n2d_msg->msg_info.n2d_opr_state.msg_id,
@@ -443,8 +442,6 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		LOG_ER("%s: %s not found", __FUNCTION__, n2d_msg->msg_info.n2d_opr_state.su_name.value);
 		goto done;
 	}
-
-	m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
 
 	if (n2d_msg->msg_info.n2d_opr_state.rec_rcvr.saf_amf == SA_AMF_NODE_SWITCHOVER) {
 		saflog(LOG_NOTICE, amfSvcUsrName, "Node Switch-Over requested by '%s'",
@@ -660,7 +657,6 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		 * the SG FSM.
 		 */
 		if (su->sg_of_su->sg_ncs_spec == SA_TRUE) {
-			m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
 			if (su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) { 
 				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 				/* Run the SG FSM */
@@ -677,7 +673,6 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		} else {	/* if(su->sg_of_su->sg_ncs_spec == SA_TRUE) */
 
 			old_state = su->saAmfSuReadinessState;
-			m_AVD_GET_SU_NODE_PTR(cb, su, su_node_ptr);
 
 			/* If oper state of Uninstantiated SU got ENABLED so try to instantiate it 
 			   after evaluating SG. */
@@ -686,8 +681,7 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				goto done;
 			}
 
-			if (m_AVD_APP_SU_IS_INSVC(su, su_node_ptr)) {
-
+			if (su_is_insvc(su) == true) {
 				avd_su_readiness_state_set(su, SA_AMF_READINESS_IN_SERVICE);
 				if ((cb->init_state == AVD_APP_STATE) && (old_state == SA_AMF_READINESS_OUT_OF_SERVICE)) {
 					/* An application SU has become in service call SG FSM */
@@ -1269,7 +1263,6 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 void avd_sg_app_node_su_inst_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 {
 	AVD_SU *i_su;
-	AVD_AVND *su_node_ptr = NULL;
 
 	TRACE_ENTER2("'%s'", avnd->name.value);
 
@@ -1301,9 +1294,7 @@ void avd_sg_app_node_su_inst_func(AVD_CL_CB *cb, AVD_AVND *avnd)
 					/* mark the non preinstatiable as enable. */
 					avd_su_oper_state_set(i_su, SA_AMF_OPERATIONAL_ENABLED);
 
-					m_AVD_GET_SU_NODE_PTR(cb, i_su, su_node_ptr);
-
-					if (m_AVD_APP_SU_IS_INSVC(i_su, su_node_ptr)) {
+					if (su_is_insvc(i_su) == true) {
 						avd_su_readiness_state_set(i_su, SA_AMF_READINESS_IN_SERVICE);
 					}
 				}
@@ -1383,9 +1374,8 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg)
 			    (su_node_ptr->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) &&
 			    (i_su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) &&
 			    (i_su->term_state == false)) {
-				m_AVD_GET_SU_NODE_PTR(cb, i_su, su_node_ptr);
 
-				if (m_AVD_APP_SU_IS_INSVC(i_su, su_node_ptr)) {
+				if (su_is_insvc(i_su) == true) {
 					avd_su_readiness_state_set(i_su, SA_AMF_READINESS_IN_SERVICE);
 					i_su->sg_of_su->su_insvc(cb, i_su);
 
@@ -1456,7 +1446,6 @@ uint32_t avd_sg_app_sg_admin_func(AVD_CL_CB *cb, AVD_SG *sg)
 {
 	uint32_t rc = NCSCC_RC_FAILURE;
 	AVD_SU *i_su;
-	AVD_AVND *i_su_node_ptr = NULL;
 
 	TRACE_ENTER2("'%s'", sg->name.value);
 
@@ -1477,12 +1466,7 @@ uint32_t avd_sg_app_sg_admin_func(AVD_CL_CB *cb, AVD_SG *sg)
 		 * state.
 		 */
 		for (i_su = sg->list_of_su; i_su != NULL; i_su = i_su->sg_list_su_next) {
-			m_AVD_GET_SU_NODE_PTR(cb, i_su, i_su_node_ptr);
-			// TODO(nagu) remove saAmfSUPreInstantiable check and move into m_AVD_APP_SU_IS_INSVC
-			if (m_AVD_APP_SU_IS_INSVC(i_su, i_su_node_ptr) &&
-					((i_su->saAmfSUPreInstantiable) ?
-					 (i_su->saAmfSUPresenceState == 
-					  SA_AMF_PRESENCE_INSTANTIATED):true)) {
+			if (su_is_insvc(i_su) == true) {
 				avd_su_readiness_state_set(i_su, SA_AMF_READINESS_IN_SERVICE);
 			}
 		}

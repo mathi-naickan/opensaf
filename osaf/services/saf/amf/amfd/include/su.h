@@ -131,17 +131,11 @@ su->su_switch = state;\
 m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVSV_CKPT_SU_SWITCH);\
 }
 
-#define m_AVD_APP_SU_IS_INSVC(i_su,su_node_ptr) \
-((su_node_ptr->saAmfNodeAdminState == SA_AMF_ADMIN_UNLOCKED) && \
-(su_node_ptr->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) && \
-(i_su->sg_of_su->saAmfSGAdminState == SA_AMF_ADMIN_UNLOCKED) &&\
-(i_su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) &&\
-(i_su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED)\
-)
-
 #define m_AVD_GET_SU_NODE_PTR(avd_cb,i_su,su_node_ptr)  \
  if(true == i_su->su_is_external) su_node_ptr = avd_cb->ext_comp_info.local_avnd_node; \
  else su_node_ptr = i_su->su_on_node;
+
+bool su_is_insvc(const AVD_SU *su);
 
 /**
  * Allocate SU memory and initialize attributes to defaults
