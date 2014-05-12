@@ -60,6 +60,24 @@ SaVersionT SmfImmUtils::s_immVersion = { 'A', 2, 1 };
  *   FUNCTION PROTOTYPES
  * ========================================================================
  */
+bool 
+waitForNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
+{
+        int interval = 2;
+        int nodetimeout = smfd_cb->rebootTimeout/1000000000; //seconds
+        while (!getNodeDestination(i_node, o_nodeDest)) {
+                if (nodetimeout > 0) {
+                        TRACE("No destination found, try again wait %d seconds", interval);
+                        sleep(interval);
+                        nodetimeout -= interval;
+                } else {
+                        LOG_NO("no node destination found whitin time limit for node %s", i_node.c_str());
+                        return false;
+               }
+        }
+
+        return true;
+}
 
 bool 
 getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)

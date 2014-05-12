@@ -1688,41 +1688,6 @@ SmfUpgradeStep::saveImmContent()
 }
 
 //------------------------------------------------------------------------------
-// executeRemoteCmd()
-//------------------------------------------------------------------------------
-bool 
-SmfUpgradeStep::executeRemoteCmd( const std::string  &i_cmd,
-				  const std::string & i_node)
-{
-	TRACE_ENTER();
-	TRACE("Executing script '%s' on node '%s'", i_cmd.c_str(), i_node.c_str());
-	SaTimeT timeout;
-	uint32_t cmdrc;
-	bool rc = true;
-        SmfndNodeDest nodeDest;
-        if (!getNodeDestination(i_node, &nodeDest)) {
-		LOG_ER("no node destination found for node %s", i_node.c_str());
-		rc = false;
-		goto done;
-	}
-
-	/* Execute the script remote on node */
-	timeout = smfd_cb->cliTimeout;	/* Default timeout */
-
-	cmdrc = smfnd_exec_remote_cmd(i_cmd.c_str(), &nodeDest, timeout / 10000000, 0);
-	/* convert ns to 10 ms timeout */
-	if (cmdrc != 0) {
-		LOG_ER("executing command '%s' on node '%s' failed (%x)", 
-		       i_cmd.c_str(), i_node.c_str(), cmdrc);
-		rc = false;
-		goto done;
-	}
-done:
-	TRACE_LEAVE();
-	return rc;
-}
-
-//------------------------------------------------------------------------------
 // callActivationCmd()
 //------------------------------------------------------------------------------
 bool 
@@ -1778,7 +1743,7 @@ SmfUpgradeStep::callActivationCmd()
 
 			TRACE("Executing activation command '%s' on node '%s' (single-step)", 
 			      actCommand.c_str(), nodeName);
-                        if (!getNodeDestination(*n, &nodeDest)) {
+                        if (!waitForNodeDestination(*n, &nodeDest)) {
 				LOG_ER("no node destination found for node [%s]", nodeName);
 				result = false;
 				goto done;
@@ -1931,7 +1896,7 @@ SmfUpgradeStep::callBundleScript(SmfInstallRemoveT i_order,
 				char const* nodeName = n->c_str();
 				TRACE("Executing bundle script '%s' on node '%s' (single-step)", 
 				      command.c_str(), nodeName);
-				if (!getNodeDestination(*n, &nodeDest)) {
+				if (!waitForNodeDestination(*n, &nodeDest)) {
 					LOG_ER("no node destination found for node [%s]", nodeName);
 					result = false;
 					goto done;
@@ -1944,7 +1909,6 @@ SmfUpgradeStep::callBundleScript(SmfInstallRemoveT i_order,
 					goto done;
 				}
 			}
-
 		} else {
 
                         SmfndNodeDest nodeDest;
@@ -1952,19 +1916,11 @@ SmfUpgradeStep::callBundleScript(SmfInstallRemoveT i_order,
 			      command.c_str(), i_node.c_str());
 			TRACE("Get node destination for %s", i_node.c_str());
 
-			int interval = 5;
-			int nodetimeout = smfd_cb->rebootTimeout/1000000000; //seconds
-			while (!getNodeDestination(i_node, &nodeDest)) {
-				if (nodetimeout > 0) {
-					TRACE("No destination found, try again wait %d seconds", interval);
-					sleep(interval);
-					nodetimeout -= interval;
-				} else {
-					LOG_ER("no node destination found for node %s", i_node.c_str());
-					result = false;
-					goto done;
-				}
-			}
+                        if (!waitForNodeDestination(i_node, &nodeDest)) {
+                                LOG_NO("no node destination found for node %s", i_node.c_str());
+                                result = false;
+                                goto done;
+                        }
 
 			/* TODO : how to handle the case where the cmd is an URI */
 			/* First fetch the script using e.g. wget etc */
