@@ -66,9 +66,6 @@ static void *imm_impl_set_node_down_proc(void *_cb)
 {
 	SaAisErrorT rc;
 	CLMS_CB *cb = (CLMS_CB *) _cb;
-	NODE_DOWN_LIST *node_down_rec = NULL;
-	NODE_DOWN_LIST *temp_node_down_rec = NULL;
-	CLMS_CLUSTER_NODE *node = NULL;
 	int msecs_waited;
 
 	TRACE_ENTER();
@@ -114,21 +111,6 @@ static void *imm_impl_set_node_down_proc(void *_cb)
 		LOG_ER("saImmOiClassImplementerSet failed for class SaClmCluster, rc = %u,", rc);
 		exit(EXIT_FAILURE);
 	}
-
-	/* Process The NodeDowns that occurred during the role change */
-	node_down_rec = clms_cb->node_down_list_head;
-	while (node_down_rec) {
-		/*Remove NODE_DOWN_REC from the NODE_DOWN_LIST */
-		node = clms_node_get_by_id(node_down_rec->node_id);
-		temp_node_down_rec = node_down_rec;
-		if (node != NULL)
-			clms_track_send_node_down(node);
-		node_down_rec = node_down_rec->next;
-		/*Free the NODE_DOWN_REC */
-		free(temp_node_down_rec);
-	}
-	clms_cb->node_down_list_head = NULL;
-	clms_cb->node_down_list_tail = NULL;
 
 	cb->is_impl_set = true;
 

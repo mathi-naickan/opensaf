@@ -257,6 +257,8 @@ static void clms_amf_csi_set_callback(SaInvocationT invocation,
 	if (role_change == true) {
 		if(clms_cb->ha_state == SA_AMF_HA_ACTIVE) {
 			clms_imm_impl_set(clms_cb);
+			proc_downs_during_rolechange();
+
 			/* Unconditionally refresh IMM for runtime attributes */
 			clms_switchon_all_pending_rtupdates();
 		}
