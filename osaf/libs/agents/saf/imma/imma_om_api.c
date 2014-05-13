@@ -6780,7 +6780,7 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 	if (search_node->mLastAttributes) {
 		TRACE("Freeing last result");
 		imma_freeSearchAttrs((SaImmAttrValuesT_2 **)search_node->mLastAttributes);
-		search_node->mLastAttributes = 0;
+		search_node->mLastAttributes = NULL;
 	}
 
 	if (search_node->searchBundle) {
@@ -6789,6 +6789,7 @@ SaAisErrorT saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 		for(i=0; i<search_node->searchBundle->resultSize; i++) {
 			free(search_node->searchBundle->searchResult[i]->objectName.buf);
 			immsv_free_attrvalues_list(search_node->searchBundle->searchResult[i]->attrValuesList);
+			free(search_node->searchBundle->searchResult[i]);
 		}
 		free(search_node->searchBundle->searchResult);
 		free(search_node->searchBundle);

@@ -1188,11 +1188,14 @@ uint32_t imma_search_node_delete(IMMA_CB *cb, IMMA_SEARCH_NODE *search_node)
 		for(i=0; i<search_node->searchBundle->resultSize; i++) {
 			free(search_node->searchBundle->searchResult[i]->objectName.buf);
 			immsv_free_attrvalues_list(search_node->searchBundle->searchResult[i]->attrValuesList);
+			free(search_node->searchBundle->searchResult[i]);
 		}
 		free(search_node->searchBundle->searchResult);
 		free(search_node->searchBundle);
 		search_node->searchBundle = NULL;
-	} else if (!search_node->mSearchId && search_node->mLastAttributes) {
+	}
+
+	if (search_node->mLastAttributes) {
 		imma_freeSearchAttrs(search_node->mLastAttributes);
 		search_node->mLastAttributes = NULL;
 	}
