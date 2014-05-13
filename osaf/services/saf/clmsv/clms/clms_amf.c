@@ -255,14 +255,9 @@ static void clms_amf_csi_set_callback(SaInvocationT invocation,
 		role_change = false;
 
 	if (role_change == true) {
-		if(clms_cb->ha_state == SA_AMF_HA_ACTIVE) {
-			clms_imm_impl_set(clms_cb);
-			proc_downs_during_rolechange();
-
-			/* Unconditionally refresh IMM for runtime attributes */
-			clms_switchon_all_pending_rtupdates();
-		}
-
+		/* i.e Set up the infrastructure first.
+		 * i.e. Declare yourself as ACTIVE first.
+		 */
 		if ((rc = clms_mds_change_role(clms_cb)) != NCSCC_RC_SUCCESS) {
 			LOG_ER("clms_mds_change_role FAILED");
 			error = SA_AIS_ERR_FAILED_OPERATION;
@@ -271,6 +266,14 @@ static void clms_amf_csi_set_callback(SaInvocationT invocation,
 		/* Inform MBCSV of HA state change */
 		if (NCSCC_RC_SUCCESS != (error = clms_mbcsv_change_HA_state(clms_cb)))
 			error = SA_AIS_ERR_FAILED_OPERATION;
+
+		if(clms_cb->ha_state == SA_AMF_HA_ACTIVE) {
+			clms_imm_impl_set(clms_cb);
+			proc_downs_during_rolechange();
+
+			/* Unconditionally refresh IMM for runtime attributes */
+			clms_switchon_all_pending_rtupdates();
+		}
 
 		/* Clear up any pending rtu updates, the active will take care of it */
 		if (clms_cb->ha_state == SA_AMF_HA_STANDBY)

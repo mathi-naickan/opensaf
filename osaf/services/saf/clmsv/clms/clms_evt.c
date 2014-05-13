@@ -525,12 +525,9 @@ static uint32_t proc_rda_evt(CLMSV_CLMS_EVT * evt)
 			role_change = false;
 
 		if (role_change == true){
-
-			/* fail over, become implementer */
-			clms_imm_impl_set(clms_cb);
-
-			proc_downs_during_rolechange();
-
+			/* i.e Set up the infrastructure first.
+			 * i.e. Declare yourself as ACTIVE first.
+			 */
 			if ((rc = clms_mds_change_role(clms_cb)) != NCSCC_RC_SUCCESS) {
 				LOG_ER("clms_mds_change_role FAILED %u", rc);
 				goto done;
@@ -538,6 +535,13 @@ static uint32_t proc_rda_evt(CLMSV_CLMS_EVT * evt)
 
 			if (NCSCC_RC_SUCCESS != clms_mbcsv_change_HA_state(clms_cb))
 				goto done;
+
+			/* fail over, become implementer */
+			clms_imm_impl_set(clms_cb);
+
+			/* Process node downs during failover */
+			proc_downs_during_rolechange();
+
 		}
 
 	}
