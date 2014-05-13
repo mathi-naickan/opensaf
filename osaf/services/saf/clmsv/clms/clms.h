@@ -119,5 +119,6 @@ extern void ckpt_cluster_rec(void);
 extern void clms_cb_dump(void);
 extern uint32_t clms_send_is_member_info(CLMS_CB * cb, SaClmNodeIdT node_id,  SaBoolT member, SaBoolT is_configured);
 extern void clm_imm_reinit_bg(CLMS_CB * cb);
+extern void proc_downs_during_rolechange (void);
 
 #endif   /* ifndef CLMS_H */

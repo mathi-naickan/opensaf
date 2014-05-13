@@ -529,7 +529,7 @@ static uint32_t proc_rda_evt(CLMSV_CLMS_EVT * evt)
 			/* fail over, become implementer */
 			clms_imm_impl_set(clms_cb);
 
-
+			proc_downs_during_rolechange();
 
 			if ((rc = clms_mds_change_role(clms_cb)) != NCSCC_RC_SUCCESS) {
 				LOG_ER("clms_mds_change_role FAILED %u", rc);
@@ -1679,3 +1679,27 @@ static uint32_t clms_ack_to_response_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt, SaA
 	}
 	return mds_rc;
 }
+
+void proc_downs_during_rolechange (void)
+{
+	NODE_DOWN_LIST *node_down_rec = NULL;
+	NODE_DOWN_LIST *temp_node_down_rec = NULL;
+	CLMS_CLUSTER_NODE *node = NULL;
+
+	/* Process The NodeDowns that occurred during the role change */
+	node_down_rec = clms_cb->node_down_list_head;
+	while (node_down_rec) {
+		/*Remove NODE_DOWN_REC from the NODE_DOWN_LIST */
+		node = clms_node_get_by_id(node_down_rec->node_id);
+		temp_node_down_rec = node_down_rec;
+		if (node != NULL)
+			clms_track_send_node_down(node);
+		node_down_rec = node_down_rec->next;
+		/*Free the NODE_DOWN_REC */
+		free(temp_node_down_rec);
+	}
+	clms_cb->node_down_list_head = NULL;
+	clms_cb->node_down_list_tail = NULL;
+
+}
+
