@@ -803,6 +803,20 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 					}
 					t_sisu = t_sisu->si_next;
 				}/* while(t_sisu) */
+				if (t_sisu == NULL) {
+					/* Since csi assignment is over, walkthrough other
+					   unassigned CSIs for assignment. */
+					for (csi = susi->si->list_of_csi; csi; csi = 
+							csi->si_list_of_csi_next) {
+						if (csi->list_compcsi == NULL) {
+							/* Assign this csi and when the assignment
+							   will be over for this csi, then other
+							   unassigned CSIs will be taken.*/
+							if (csi_assign_hdlr(csi) == SA_AIS_OK)
+								goto done;
+						}
+					}
+				}
 				/* Comsume this message. */
 				goto done;
 			}
