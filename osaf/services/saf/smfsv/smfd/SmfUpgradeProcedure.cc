@@ -1315,10 +1315,18 @@ SmfUpgradeProcedure::addStepModifications(SmfUpgradeStep * i_newStep,
 					  std::multimap<std::string, objectInst> &i_objects)
 {
 	//This method is called for each calculated step. The purpose is to find out and add the modifications 
-	//which shold be carried out for this step. The targetEntityTemplate parent/type part of the procedure (in the campaign) 
+	//which should be carried out for this step. The targetEntityTemplate parent/type part of the procedure (in the campaign) 
 	//is used to match the steps activation/deactivation units. 
 	//If a match is found the modifications associated with this parent/type shall be added to the step.
         TRACE_ENTER();
+
+        //Skip this for procedures in state completed, modifications will not be needed if completed.
+        //This can happend if the cluster is rebooted and will fail if the reboot is performed when the 
+        //versioned types are removed i.e. during test traffic, if the types was removed in campaign wrapup/complete section.
+        if (getState() == SA_SMF_PROC_COMPLETED) {
+                TRACE_LEAVE();
+                return true;
+        }
 
 	std::list < SmfTargetEntityTemplate * >::const_iterator it;
 
