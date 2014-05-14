@@ -1121,9 +1121,16 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			goto done;
 		} 
 
-		if ((node->node_state == AVD_AVND_STATE_PRESENT) &&
+		/* Middleware sus are not enabled until node joins. During
+		   starting of opensaf, if mw su is locked-in and unlock-in
+		   command is issued, su should get instantiated. */
+		if (((node->node_state == AVD_AVND_STATE_PRESENT) ||
+					(node->node_state == AVD_AVND_STATE_NO_CONFIG) ||
+					(node->node_state == AVD_AVND_STATE_NCS_INIT)) &&
 				((node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) && 
 				 (su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)) && 
+				((su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) ||
+				 (su->sg_of_su->sg_ncs_spec == true)) &&
 				(su->sg_of_su->saAmfSGNumPrefInserviceSUs > sg_instantiated_su_count(su->sg_of_su))) {
 			/* When the SU will instantiate then prescence state change message will come
 			   and so store the callback parameters to send response later on. */
