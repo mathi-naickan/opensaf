@@ -160,5 +160,6 @@ extern void avd_csi_delete(struct avd_csi_tag *csi);
 extern void csi_cmplt_delete(struct avd_csi_tag *csi, SaBoolT ckpt);
 extern AVD_CSI *csi_create(const SaNameT *csi_name);
 extern bool csi_assignment_validate(struct avd_sg_tag *sg);
+extern SaAisErrorT csi_assign_hdlr(AVD_CSI *csi);
 
 #endif

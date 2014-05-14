@@ -446,13 +446,9 @@ static SaAisErrorT csi_ccb_completed_create_hdlr(CcbUtilOperationData_t *opdata)
 			t_sisu = avd_si->list_of_sisu;
 			while(t_sisu) {
 				if (t_sisu->csi_add_rem == true) {
-					report_ccb_validation_error(opdata, "CSI create of '%s' rejected: pending assignment"
+					LOG_NO("CSI create of '%s' in queue: pending assignment"
 							" for '%s'", 
 							opdata->objectName.value, t_sisu->su->name.value);
-					if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
-						rc = SA_AIS_ERR_BAD_OPERATION;
-						goto done;
-					}
 				}
 				t_sisu = t_sisu->si_next;
 			}/*  while(t_sisu) */
@@ -636,7 +632,7 @@ static SaAisErrorT csi_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 			t_sisu = csi->si->list_of_sisu;
 			while(t_sisu) {
 				if (t_sisu->csi_add_rem == true) {
-					report_ccb_validation_error(opdata, "CSI remove of '%s' rejected: pending "
+					LOG_NO("CSI remove of '%s' rejected: pending "
 							"assignment for '%s'", 
 							csi->name.value, t_sisu->su->name.value);
 					if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
@@ -822,26 +818,53 @@ static void csi_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
  **************************************************************************/
 static void csi_ccb_apply_create_hdlr(struct CcbUtilOperationData *opdata)
 {
-        AVD_CSI *csi = NULL;
-        AVD_COMP *t_comp;
+	AVD_CSI *csi = NULL;
+	if ((csi = avd_csi_get (&opdata->objectName)) == NULL) {
+		/* this check is added because, some times there is
+		   possibility that before getting ccb apply callback
+		   we might get compcsi create checkpoint and csi will
+		   be created as part of checkpoint processing */
+		csi = csi_create(&opdata->objectName);
+	} 
+	csi_get_attr_and_add_to_model(csi, opdata->param.create.attrValues,
+			opdata->param.create.parentName);
+
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
+		goto done;
+
+	csi_assign_hdlr(csi);
+
+done:
+	TRACE_LEAVE();
+}
+
+/**
+ * @brief       Assign csi to component as per compcsi configurations.
+ *
+ * @param[in]   csi pointer.
+ *
+ * @return      OK if csi is assigned else NO_OP.
+ */
+SaAisErrorT csi_assign_hdlr(AVD_CSI *csi)
+{
+	AVD_COMP *t_comp;
 	AVD_SU_SI_REL *t_sisu;
 	SaBoolT first_sisu = static_cast<SaBoolT>(true);
 	AVD_COMP_CSI_REL *compcsi;
 	AVD_COMPCS_TYPE *cst;
+	SaAisErrorT rc = SA_AIS_ERR_NO_OP;
 
-        TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
-
-
-	if ((csi = avd_csi_get (&opdata->objectName)) == NULL) {
-		/* this check is added because, some times there is possibility that before getting ccb apply callback
-		 * we might get compcsi create checkpoint and csi will be created as part of checkpoint processing
-		 */
-		csi = csi_create(&opdata->objectName);
-	} 
-	csi_get_attr_and_add_to_model(csi, opdata->param.create.attrValues, opdata->param.create.parentName);
-
-	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
-		goto done;
+	/* Check whether csi assignment is already in progress and if yes, then return.
+	   This csi will be assigned after the undergoing csi assignment gets over.*/
+	if (csi->si->list_of_sisu != NULL) {
+		for(t_sisu = csi->si->list_of_sisu; t_sisu != NULL; t_sisu = t_sisu->si_next) {
+			if (t_sisu->csi_add_rem == true) {
+				LOG_NO("CSI create '%s' delayed: pending assignment for '%s'",
+						csi->name.value, t_sisu->su->name.value);
+				goto done;
+			}
+		}
+	}
 
 	/* Check whether si has been assigned to any SU. */
 	if (NULL != csi->si->list_of_sisu) {
@@ -899,7 +922,7 @@ static void csi_ccb_apply_create_hdlr(struct CcbUtilOperationData *opdata)
 			}
 			if (NULL == t_comp) {
 				LOG_ER("Compcsi doesn't exist or MaxActiveCSI/MaxStandbyCSI have reached for csi '%s'",
-						opdata->objectName.value);
+						csi->name.value);
 				goto done;
 			}
 
@@ -920,6 +943,7 @@ static void csi_ccb_apply_create_hdlr(struct CcbUtilOperationData *opdata)
 					avd_susi_delete(avd_cb, t_sisu, true);
 					goto done;
 				}
+				rc = SA_AIS_OK;
 
 			}
 			t_sisu->csi_add_rem = static_cast<SaBoolT>(true);
@@ -935,6 +959,7 @@ static void csi_ccb_apply_create_hdlr(struct CcbUtilOperationData *opdata)
 		csi->si->sg_of_si->si_func(avd_cb, csi->si);
 	}
 done:
+	return rc;
 	TRACE_LEAVE();
 }
 
