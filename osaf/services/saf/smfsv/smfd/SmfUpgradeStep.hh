@@ -627,14 +627,6 @@ class SmfUpgradeStep {
 	} SmfInstallRemoveT;
 
 ///
-/// Purpose:  Call script on remote node
-/// @param    -
-/// @return   -
-///
-	bool executeRemoteCmd( const std::string &i_cmd,
-			       const std::string & i_node);
-
-///
 /// Purpose:  Call bundle script on remote node
 /// @param    -
 /// @return   -

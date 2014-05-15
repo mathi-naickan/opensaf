@@ -32,6 +32,7 @@
 #include <string.h>
 #include <algorithm>
 
+#include "osaf_time.h"
 #include "logtrace.h"
 #include "SmfUtils.hh"
 #include "smfd_smfnd.h"
@@ -60,6 +61,25 @@ SaVersionT SmfImmUtils::s_immVersion = { 'A', 2, 1 };
  *   FUNCTION PROTOTYPES
  * ========================================================================
  */
+bool 
+waitForNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
+{
+        int interval = 2;  //seconds
+        int nodetimeout = smfd_cb->rebootTimeout/1000000000; //seconds
+        while (!getNodeDestination(i_node, o_nodeDest)) {
+                if (nodetimeout > 0) {
+                        TRACE("No destination found, try again wait %d seconds", interval);
+                        struct timespec sleepTime = { interval, 0 };
+                        osaf_nanosleep(&sleepTime);
+                        nodetimeout -= interval;
+                } else {
+                        LOG_NO("no node destination found whitin time limit for node %s", i_node.c_str());
+                        return false;
+               }
+        }
+
+        return true;
+}
 
 bool 
 getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)

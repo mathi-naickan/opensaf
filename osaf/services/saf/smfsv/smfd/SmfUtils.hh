@@ -69,6 +69,7 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+extern bool waitForNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest);
 extern bool getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest);
 extern std::string replaceAllCopy(const std::string& i_haystack, const  std::string& i_needle, const  std::string& i_replacement);
 
