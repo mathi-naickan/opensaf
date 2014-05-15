@@ -2277,7 +2277,8 @@ uint32_t avnd_su_pres_terming_comptermfail_hdler(AVND_CB *cb, AVND_SU *su, AVND_
 				if (m_AVND_COMP_PRES_STATE_IS_INSTANTIATED(curr_comp) &&
 				    (!m_AVND_COMP_IS_FAILED(curr_comp)))
 					rc = avnd_comp_clc_fsm_trigger(cb, curr_comp, AVND_COMP_CLC_PRES_FSM_EV_TERM);
-				else
+				/* During shutdown phase AMFND cleans up all the components */
+				else if (cb->term_state != AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)
 					rc = avnd_comp_clc_fsm_trigger(cb, curr_comp,
 								       AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
 
