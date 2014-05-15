@@ -526,6 +526,19 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 								" repair action",
 								node->name.value);
 						avd_d2n_reboot_snd(node);
+
+						/* Finish as many IMM jobs as possible because active 
+						   controller is rebooting.
+
+						   TODO(Praveen): All the pending IMM related jobs should 
+						   be handled by the standby when it will become
+						   active after controller fail-over. 
+						   TODO: There should be some flush method on the job queue.
+						*/
+						AvdJobDequeueResultT job_res = JOB_EXECUTED;
+						while (job_res == JOB_EXECUTED)
+							job_res = Fifo::execute(cb->immOiHandle);
+
 						goto done;
 					} else {
 						avd_pg_node_csi_del_all(avd_cb, node);
