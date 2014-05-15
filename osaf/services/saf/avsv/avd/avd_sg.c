@@ -1142,10 +1142,8 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		   i.e. either in uninstanted or term failed state. */
 		for (su = sg->list_of_su; su != NULL; su = su->sg_list_su_next) {
 			if (su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATING) {
-				report_admin_op_error(immOiHandle, invocation,
-						SA_AIS_ERR_TRY_AGAIN, NULL,
-						"su'%s' in terminating state",
-						su->name.value);
+				LOG_WA("'%s' in terminating state", su->name.value);
+				rc = SA_AIS_ERR_TRY_AGAIN;
 				goto done;
 			}
 		}
