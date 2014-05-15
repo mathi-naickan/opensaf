@@ -1288,6 +1288,19 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			goto done;
 		}
 
+		/* If any su is in terminating state, that means lock-in op
+		   has not completed. Allow su to move into permanent state
+		   i.e. either in uninstanted or term failed state. */
+		for (su = sg->list_of_su; su != NULL; su = su->sg_list_su_next) {
+			if (su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATING) {
+				report_admin_op_error(immOiHandle, invocation,
+						SA_AIS_ERR_TRY_AGAIN, NULL,
+						"su'%s' in terminating state",
+						su->name.value);
+				goto done;
+			}
+		}
+
 		avd_sg_admin_state_set(sg, SA_AMF_ADMIN_LOCKED);
 		sg_app_sg_admin_unlock_inst(avd_cb, sg);
 
