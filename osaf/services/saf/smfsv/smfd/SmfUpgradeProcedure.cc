@@ -1467,6 +1467,14 @@ SmfUpgradeProcedure::addStepModifications(SmfUpgradeStep * i_newStep,
                                           const std::list < SmfTargetEntityTemplate * >&i_targetEntityTemplate,
                                           SmfAuT i_auType)
 {
+        //Skip this for procedures in state completed, modifications will not be needed if completed.
+        //This can happend if the cluster is rebooted and will fail if the reboot is performed when the 
+        //versioned types are removed i.e. during test traffic, if the types was removed in campaign wrapup/complete section.
+        if (getState() == SA_SMF_PROC_COMPLETED) {
+                TRACE_LEAVE();
+                return true;
+        }
+
 	std::list < SmfTargetEntityTemplate * >::const_iterator it;
 
 	for (it = i_targetEntityTemplate.begin(); it != i_targetEntityTemplate.end(); ++it) {
