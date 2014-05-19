@@ -675,6 +675,33 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
 				}
+			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefActiveSUs")) {
+				uint32_t pref_active_su = *static_cast<SaUint32T *>(value);
+
+				if (sg->sg_redundancy_model != SA_AMF_NPM_REDUNDANCY_MODEL) {
+					report_ccb_validation_error(opdata,
+						"%s: saAmfSGNumPrefActiveSUs for non-N+M model cannot"
+						" be modified when SG is unlocked", __FUNCTION__);
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				} else if (pref_active_su < sg->saAmfSGNumPrefActiveSUs) {
+					report_ccb_validation_error(opdata,
+						"%s: Cannot decrease saAmfSGNumPrefActiveSUs while SG"
+						" is unlocked ", __FUNCTION__);
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				} else {
+					uint32_t increase_amount = pref_active_su - sg->saAmfSGNumPrefActiveSUs;
+
+					if (sg->saAmfSGNumCurrInstantiatedSpareSUs < increase_amount) {
+						report_ccb_validation_error(opdata,
+							"%s: Not enough instantiated spare SUs to do"
+							" in-service increase of saAmfSGNumPrefActiveSUs",
+							__FUNCTION__);
+						rc = SA_AIS_ERR_BAD_OPERATION;
+						goto done;
+					}
+				}
 			} else {
 				report_ccb_validation_error(opdata,
 					"%s: Attribute '%s' cannot be modified when SG is unlocked",
@@ -1010,6 +1037,20 @@ static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 					sg->name.value, sg->saAmfSGAutoRepair);
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuHostNodeGroup")) {
 				sg->saAmfSGSuHostNodeGroup = *((SaNameT *)value);
+			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefActiveSUs")) {
+				if (value_is_deleted) {
+					/* TODO: This really should be handled in ccb_completed_modify_hdlr */
+					LOG_WA("not deleting saAmfSGNumPrefActiveSUs while in UNLOCKED");
+				} else {
+					sg->saAmfSGNumPrefActiveSUs = *static_cast<SaUint32T *>(value);
+
+					if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE)  {
+						/* find an instantiated spare SU */
+						if (sg->realign(avd_cb, sg) != NCSCC_RC_SUCCESS) {
+							osafassert(0);
+						}
+					}
+				}
 			} else {
 				osafassert(0);
 			}
