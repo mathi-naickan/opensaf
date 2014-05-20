@@ -463,6 +463,10 @@ void pbeAtomicSwitchFile(const char* filePath, std::string localTmpFilename)
 
 	if(!localTmpFilename.empty()) {
 		int rc=(-1);
+		std::string localTmpJournalFileName(localTmpFilename);
+		localTmpJournalFileName.append("-journal");
+		unlink(localTmpJournalFileName.c_str()); /* Should be an existing but empty file. */
+
 		std::string shellCommand("/bin/cp ");
 		shellCommand.append(localTmpFilename);
 		shellCommand.append(" ");
@@ -774,6 +778,13 @@ void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmp
 	}
 	if(badfile) {
 		discardPbeFile(std::string(filePath));
+	}
+	if(!localTmpFilename.empty()) {
+		std::string localTmpJournalFileName(localTmpFilename);
+		localTmpJournalFileName.append("-journal");
+		unlink(localTmpJournalFileName.c_str());
+		unlink(localTmpFilename.c_str());
+		localTmpFilename.clear();
 	}
 	TRACE_LEAVE();
 	return NULL;
@@ -1985,7 +1996,7 @@ unsigned int purgeInstancesOfClassToPBE(SaImmHandleT immHandle, std::string clas
 	exit(1);	
 }
 
-unsigned int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classIdMap,
+int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classIdMap,
 	std::string className, unsigned int* objIdCount, void* db_handle)
 {
 	unsigned int obj_count=0;
@@ -2041,12 +2052,12 @@ unsigned int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classId
 
 		assert(attrs[0] != NULL);
 
-		objectToPBE(std::string((const char*)objectName.value),
-			(const SaImmAttrValuesT_2**) attrs, classIdMap, dbHandle, 
-			++(*objIdCount), (SaImmClassNameT) className.c_str(), 0);
+		if(!objectToPBE(std::string((const char*)objectName.value),
+			(const SaImmAttrValuesT_2**) attrs, classIdMap, dbHandle,
+			++(*objIdCount), (SaImmClassNameT) className.c_str(), 0)) 
+		{goto bailout;}
 
 		++obj_count;
-
 	} while (true);
 
 	if (SA_AIS_ERR_NOT_EXIST != errorCode)
@@ -2061,8 +2072,7 @@ unsigned int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classId
 	return obj_count;
  bailout:
 	sqlite3_close(dbHandle);
-	LOG_ER("Exiting (line:%u)", __LINE__);
-	exit(1);
+	return(-1);
 }
 
 
@@ -2236,7 +2246,7 @@ void objectDeleteToPBE(std::string objectNameString, void* db_handle)
 	exit(1);
 }
 
-void objectToPBE(std::string objectNameString,
+bool objectToPBE(std::string objectNameString,
 	const SaImmAttrValuesT_2** attrs,
 	ClassMap *classIdMap,
 	void* db_handle,
@@ -2375,14 +2385,13 @@ void objectToPBE(std::string objectNameString,
 	sqlite3_clear_bindings(stmt);
 
 	TRACE_LEAVE();
-	return;
+	return true;
  bailout:
 	sqlite3_close(dbHandle);
-	LOG_ER("Exiting (line:%u)", __LINE__);
-	exit(1);
+	return false;
 }
 
-void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
+bool dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 	void* db_handle)
 {
 	std::list<std::string> classNameList;
@@ -2421,15 +2430,14 @@ void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 	fsyncPbeJournalFile();
 
 	TRACE_LEAVE();
-	return;
+	return true;
 
  bailout:
 	sqlite3_close(dbHandle);
-	LOG_ER("Exiting (line:%u)", __LINE__);
-	exit(1);	
+	return false;
 }
 
-unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* db_handle)
+int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* db_handle)
 {
 	/* Function used only when re-connecting to an already existing DB file. */
 	std::list<std::string> classNameList;
@@ -2438,7 +2446,7 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 	char *execErr=NULL;	
 	sqlite3* dbHandle = (sqlite3 *) db_handle;
 	std::string sqlQ("SELECT MAX(obj_id) FROM objects");
-	unsigned int obj_count;
+	int obj_count=0;
 	char **result=NULL;
 	char *qErr=NULL;
 	int nrows=0;
@@ -2509,7 +2517,7 @@ unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* 
 	return 0;
 }
 
-unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
+int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 	void* db_handle)
 {
 	int                    rc=0;
@@ -2583,9 +2591,12 @@ unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 			continue;
 		}
 
-		objectToPBE(std::string((char*)objectName.value, objectName.length),
+		if(!objectToPBE(std::string((char*)objectName.value, objectName.length),
 			(const SaImmAttrValuesT_2**) attrs, classIdMap, dbHandle, ++object_id, 
-			NULL, 0);
+			NULL, 0)) {
+			goto bailout;
+		}
+
 	} while (true);
 
 	if (SA_AIS_ERR_NOT_EXIST != errorCode)
@@ -2610,8 +2621,7 @@ unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 	return object_id; /* == number of dumped objects */
  bailout:
 	sqlite3_close(dbHandle);
-	LOG_ER("Exiting (line:%u)", __LINE__);
-	exit(1);
+	return(-1);
 }
 
 SaAisErrorT pbeBeginTrans(void* db_handle)
@@ -2953,7 +2963,7 @@ void pbeAtomicSwitchFile(const char* filePath, std::string localTmpFilename)
 	abort();
 }
 
-void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
+bool dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 	void* db_handle)
 {
 	abort();
@@ -2965,11 +2975,11 @@ unsigned int purgeInstancesOfClassToPBE(SaImmHandleT immHandle, std::string clas
 	return 0;
 }
 
-unsigned int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classIdMap,
+int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classIdMap,
 	std::string className, unsigned int* objIdCount, void* db_handle)
 {
 	abort();
-	return 0;
+	return (-1);
 }
 
 int finalizeSqlStatement(void *stmt) {
@@ -2992,7 +3002,7 @@ void deleteClassToPBE(std::string classNameString, void* db_handle,
 	abort();
 }
 
-unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
+int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 	void* db_handle)
 {
 	abort();
@@ -3042,7 +3052,7 @@ void objectModifyDiscardMatchingValuesOfAttrToPBE(void* db_handle, std::string o
 	abort();
 }
 
-void objectToPBE(std::string objectNameString,
+bool objectToPBE(std::string objectNameString,
 	const SaImmAttrValuesT_2** attrs,
 	ClassMap *classIdMap,
 	void* db_handle,
@@ -3058,7 +3068,7 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T epo
 	return SA_AIS_ERR_LIBRARY;
 }
 
-unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* db_handle)
+int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap, void* db_handle)
 {
 	abort();
 	return 0;

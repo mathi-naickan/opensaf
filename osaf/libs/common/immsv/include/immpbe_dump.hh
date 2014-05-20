@@ -64,11 +64,11 @@ std::string valueToString(SaImmAttrValueT, SaImmValueTypeT);
 void* pbeRepositoryInit(const char* filePath, bool create, std::string& localTmpFilename);
 void pbeAtomicSwitchFile(const char* filePath, std::string localTmpFilename);
 void pbeRepositoryClose(void* dbHandle);
-void dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
+bool dumpClassesToPbe(SaImmHandleT immHandle, ClassMap *classIdMap,
 	void* db_handle);
 
 unsigned int purgeInstancesOfClassToPBE(SaImmHandleT immHandle, std::string className, void* db_handle);
-unsigned int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classIdMap,
+int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classIdMap,
 	std::string className, unsigned int* objidCount, void* db_handle);
 
 ClassInfo* classToPBE(std::string classNameString, SaImmHandleT immHandle,
@@ -77,12 +77,12 @@ ClassInfo* classToPBE(std::string classNameString, SaImmHandleT immHandle,
 void deleteClassToPBE(std::string classNameString, void* db_handle,
 	ClassInfo* theClass);
 
-unsigned int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap,
+int verifyPbeState(SaImmHandleT immHandle, ClassMap *classIdMap,
 	void* db_handle);
 
-unsigned int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
+int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 	void* db_handle);
-void objectToPBE(std::string objectNameString,
+bool objectToPBE(std::string objectNameString,
 	const SaImmAttrValuesT_2** attrs,
 	ClassMap* classIdMap, void* db_handle, unsigned int object_id,
 	SaImmClassNameT className,

@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
     const char* dump_trace_label = "immdump";
     const char* trace_label = dump_trace_label;
     ClassMap classIdMap;
-    unsigned int objCount=0;
+    int objCount=0;
 
     if ((logPath = getenv("IMMSV_TRACE_PATHNAME")))
     {
@@ -197,11 +197,22 @@ int main(int argc, char* argv[])
             exit(1);
         }
 
-        dumpClassesToPbe(immHandle, &classIdMap, dbHandle);
-        TRACE("Dump classes OK");
+        if(dumpClassesToPbe(immHandle, &classIdMap, dbHandle)) {
+            TRACE("Dump classes OK");
+	} else {
+            std::cerr << "immdump: dumpClassesToPbe failed - exiting, check syslog for details"
+                << std::endl;
+            exit(1);
+	}
 
         objCount = dumpObjectsToPbe(immHandle, &classIdMap, dbHandle);
-        TRACE("Dump %u objects OK", objCount);
+	if(objCount > 0) {
+            TRACE("Dump %u objects OK", objCount);
+	} else {
+            std::cerr << "immdump: dumpObjectsToPbe failed - exiting, check syslog for details"
+                << std::endl;
+            exit(1);
+	}
 
         /* Discard the old classIdMap, will otherwise contain invalid
            pointer/member 'sqlStmt' after handle close below. */
@@ -217,6 +228,8 @@ int main(int argc, char* argv[])
         LOG_NO("Successfully dumped to file %s", localTmpFilename.c_str());
 
         pbeAtomicSwitchFile(filename.c_str(), localTmpFilename);
+	filename.append(".tmp-journal");
+	unlink(filename.c_str()); /* Dont bother checking if it succeeded. */
     } else {
         /* Generate IMM XML file from current IMM state */
         /* xmlWriter dump case */
