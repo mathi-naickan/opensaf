@@ -164,7 +164,7 @@ uint32_t clms_client_delete_by_mds_dest(MDS_DEST mds_dest)
 			rc = clms_client_delete(client->client_id);
 
 			/* Delete this client data from the clmresp tracking list */
-			rc = clms_client_del_trackresp(client->client_id);
+			rc = clms_client_del_trackresp(m_NCS_OS_NTOHL(client_id));
 			if (rc != NCSCC_RC_SUCCESS) {
 				LOG_ER("clms_client_delete_trackresp FAILED: %u", rc);
 			}
