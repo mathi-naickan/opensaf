@@ -546,10 +546,14 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 				do {
 					TRACE("Create of object with DN: %s",
 						ccbUtilOperationData->objectName.value);
-					objectToPBE(std::string((const char *) ccbUtilOperationData->objectName.value), 
+					if(!objectToPBE(std::string((const char *) ccbUtilOperationData->objectName.value), 
 						ccbUtilOperationData->param.create.attrValues,
 						sClassIdMap, sDbHandle, ++sObjCount,
-						ccbUtilOperationData->param.create.className, ccbId);
+						ccbUtilOperationData->param.create.className, ccbId))
+					{
+						rc = SA_AIS_ERR_FAILED_OPERATION;
+						goto abort;
+					}
 				} while (0);
 				break;
 

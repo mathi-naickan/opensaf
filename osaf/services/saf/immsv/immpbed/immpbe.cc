@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
 	const char* dump_trace_label = "osafimmpbed";
 	const char* trace_label = dump_trace_label;
 	ClassMap classIdMap;
-	unsigned int objCount=0;
+	int objCount=0;
 	bool fileReOpened=false;
 
 	unsigned int		retryInterval = 1000000;	/* 1 sec */
@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
 		if(dbHandle) {
 			objCount = verifyPbeState(immHandle, &classIdMap, dbHandle);
 			TRACE("Classes Verified");
-			if(!objCount) {dbHandle = NULL;}
+			if(objCount <= 0) {dbHandle = NULL;}
 		}
 
 		if(!dbHandle) {
@@ -231,14 +231,36 @@ int main(int argc, char* argv[])
 		if(dbHandle) {
 			TRACE_1("Opened persistent repository %s", filename.c_str());
 		} else {
-			LOG_WA("osafimmpbed: pbe intialize failed - exiting");
+			/* Any localTmpFile was removed in pbeRepositoryInit */
+			LOG_ER("osafimmpbed: pbe intialize failed - exiting");
 			exit(1);
 		}
 
-		dumpClassesToPbe(immHandle, &classIdMap, dbHandle);
+		if(!dumpClassesToPbe(immHandle, &classIdMap, dbHandle)) {
+			if(!localTmpFilename.empty()) {
+				std::string localTmpJournalFileName(localTmpFilename);
+				localTmpJournalFileName.append("-journal");
+				unlink(localTmpJournalFileName.c_str());
+				unlink(localTmpFilename.c_str());
+				localTmpFilename.clear();
+			}
+			LOG_ER("immPbe.cc exiting (line:%u)", __LINE__);
+			exit(1);
+		}
 		TRACE("Dump classes OK");
 
 		objCount = dumpObjectsToPbe(immHandle, &classIdMap, dbHandle);
+		if(objCount <= 0) {
+			if(!localTmpFilename.empty()) {
+				std::string localTmpJournalFileName(localTmpFilename);
+				localTmpJournalFileName.append("-journal");
+				unlink(localTmpJournalFileName.c_str());
+				unlink(localTmpFilename.c_str());
+				localTmpFilename.clear();
+			}
+			LOG_ER("immPbe.cc exiting (line:%u)", __LINE__);
+			exit(1);
+		}
 		TRACE("Dump objects OK");
 
 		/* Discard the old classIdMap, will otherwise contain invalid
@@ -260,7 +282,7 @@ int main(int argc, char* argv[])
 		   to be used by the pbeDaemon.
 		 */
 		if(fileReOpened) {
-			LOG_ER("osafimmpbed: will not re-open twice");
+			LOG_ER("osafimmpbed: will not re-open twice. immPbe.cc exiting (line:%u)", __LINE__);
 			exit(1);
 		}
 
