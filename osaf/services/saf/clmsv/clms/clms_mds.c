@@ -1170,13 +1170,14 @@ static uint32_t clms_mds_svc_event(struct ncsmds_callback_info *info)
 				evt->info.node_mds_info.node_id = info->info.svc_evt.i_node_id;
 				evt->info.node_mds_info.nodeup = false;
 			}
-
-			/* Push the event and we are done */
-			if (m_NCS_IPC_SEND(&clms_cb->mbx, evt, NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-				TRACE("ipc send failed");
-				free(evt);
-				rc = NCSCC_RC_FAILURE;
-				goto done;
+			if (evt->type) {
+				/* Push the event and we are done */
+				if (m_NCS_IPC_SEND(&clms_cb->mbx, evt, NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+					TRACE("ipc send failed");
+					free(evt);
+					rc = NCSCC_RC_FAILURE;
+					goto done;
+				}
 			}
 	}
  done:
