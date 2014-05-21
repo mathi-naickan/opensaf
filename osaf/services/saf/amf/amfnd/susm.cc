@@ -2639,12 +2639,21 @@ uint32_t avnd_su_pres_restart_compinst_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP
 
 		/* get the next csi */
 		curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node);
-		if (curr_csi) {
+
+		/* Restart next component associated with unassigned CSI and if the component 
+		   is not already in RESTARTING state. 
+		   TODO: SU FSM in restarting state should also not restart a component which 
+		   is in INSTANTIATING state. 
+		 */
+		if ((curr_csi != NULL) && 
+			(m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_UNASSIGNED(curr_csi) == true) &&
+			(curr_csi->comp->pres != SA_AMF_PRESENCE_RESTARTING)) {
 			/* we have another csi. trigger the comp fsm with RestartEv */
-			rc = avnd_comp_clc_fsm_trigger(cb, curr_csi->comp, AVND_COMP_CLC_PRES_FSM_EV_RESTART);
+			rc = avnd_comp_clc_fsm_trigger(cb, curr_csi->comp,
+							 AVND_COMP_CLC_PRES_FSM_EV_RESTART);
 			if (NCSCC_RC_SUCCESS != rc)
 				goto done;
-		} else {
+		} else if (all_csis_in_assigned_state(su) == true) { 
 			/* => si assignment done */
 			avnd_su_pres_state_set(su, SA_AMF_PRESENCE_INSTANTIATED);
 		}
