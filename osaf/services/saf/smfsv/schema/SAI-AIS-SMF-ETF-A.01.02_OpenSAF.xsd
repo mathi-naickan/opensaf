@@ -20,6 +20,8 @@
    Note: This is a modified schema.
    ================================
    The following modifications have been made:
+   Thu May 22 07:25:22 2014, Ingvar Bergstrom <ingvar.bergstrom@ericsson.com>
+       smfsv: Comments in ETF schema for SaTimeT unified, all specifies nanoseconds [#925]
    Wed Feb 27 10:26:17 2013,  Bertil Engelholm <bertil.engelholm@ericsson.com>
        smfsv: updated ETF schema with healthcheck for non sa aware comp type (#3027)
    Wed Feb 29 07:13:00 2012, Hans Feldt <hans.feldt@ericsson.com>
@@ -568,12 +570,12 @@
 				</xs:annotation>
 				<xs:element name="period" type="BoundedTimeT" minOccurs="0">
 					<xs:annotation>
-						<xs:documentation>A healthcheck is run every "period" milliseconds. This attribue needs to be specified if there is any limitation on the frequency of healthchecks</xs:documentation>
+						<xs:documentation>A healthcheck is run every "period" nanoseconds. This attribue needs to be specified if there is any limitation on the frequency of healthchecks</xs:documentation>
 					</xs:annotation>
 				</xs:element>
 				<xs:element name="maxDuration" type="BoundedTimeT" minOccurs="0">
 					<xs:annotation>
-						<xs:documentation>Time in milliseconds during which the AMF expects the response to a healthcheck</xs:documentation>
+						<xs:documentation>Time in nanoseconds during which the AMF expects the response to a healthcheck</xs:documentation>
 					</xs:annotation>
 				</xs:element>
 			</xs:sequence>
@@ -662,7 +664,7 @@
 			<xs:element name="terminateCallbackTimeOut" type="BoundedTimeT" minOccurs="0">
 				<xs:annotation>
 					<xs:documentation>Time in nano-seconds in which AMF expects an SaAmfResponse call from the component after a preceding callback to terminate the component. 
-If a component has not responded within terminateCallbackTimeOut milliseconds it will be shut down by executing the termination command.</xs:documentation>
+If a component has not responded within terminateCallbackTimeOut nanoseconds it will be shut down by executing the termination command.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="quiescingCompleteTimeout" type="BoundedTimeT" minOccurs="0">
