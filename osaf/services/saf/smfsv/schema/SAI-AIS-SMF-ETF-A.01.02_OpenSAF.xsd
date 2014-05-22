@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- edited with XMLSpy v2006 sp1 U (http://www.altova.com) by Maria Toeroe (Ericsson Canada/Open Systems Research) -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
 	<!--
@@ -20,6 +20,8 @@
    Note: This is a modified schema.
    ================================
    The following modifications have been made:
+   Thu May 22 07:25:22 2014, Ingvar Bergstrom <ingvar.bergstrom@ericsson.com>
+       smfsv: Comments in ETF schema for SaTimeT unified, all specifies nanoseconds [#925]
    Wed Aug 20 10:01:00 2013, Ingvar Bergstrom <ingvar.bergstrom@ericsson.com>
        smfsv: ETF and Campaign schemas are not matching each other (#460)
         -The component command arguments cardinality is changed from "single mandatory" to "0..*", i.e coluld be zero to infinite
@@ -571,12 +573,12 @@
 				</xs:annotation>
 				<xs:element name="period" type="BoundedTimeT" minOccurs="0">
 					<xs:annotation>
-						<xs:documentation>A healthcheck is run every "period" milliseconds. This attribue needs to be specified if there is any limitation on the frequency of healthchecks</xs:documentation>
+						<xs:documentation>A healthcheck is run every "period" nanoseconds. This attribue needs to be specified if there is any limitation on the frequency of healthchecks</xs:documentation>
 					</xs:annotation>
 				</xs:element>
 				<xs:element name="maxDuration" type="BoundedTimeT" minOccurs="0">
 					<xs:annotation>
-						<xs:documentation>Time in milliseconds during which the AMF expects the response to a healthcheck</xs:documentation>
+						<xs:documentation>Time in nanoseconds during which the AMF expects the response to a healthcheck</xs:documentation>
 					</xs:annotation>
 				</xs:element>
 			</xs:sequence>
@@ -665,7 +667,7 @@
 			<xs:element name="terminateCallbackTimeOut" type="BoundedTimeT" minOccurs="0">
 				<xs:annotation>
 					<xs:documentation>Time in nano-seconds in which AMF expects an SaAmfResponse call from the component after a preceding callback to terminate the component. 
-If a component has not responded within terminateCallbackTimeOut milliseconds it will be shut down by executing the termination command.</xs:documentation>
+If a component has not responded within terminateCallbackTimeOut nanoseconds it will be shut down by executing the termination command.</xs:documentation>
 				</xs:annotation>
 			</xs:element>
 			<xs:element name="quiescingCompleteTimeout" type="BoundedTimeT" minOccurs="0">
