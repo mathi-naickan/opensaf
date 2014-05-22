@@ -34,6 +34,8 @@ char match_ip[INET6_ADDRSTRLEN];
 #define DIS_TIME_OUT 5
 #define BCAST_FRE 250
 
+const char *IN6ADDR_LINK_LOCAL = "ff02::1";       /* IPv6, Scope:Link multicast address */ 
+const char *IN6ADDR_LINK_GLOBAL = "ff0e::1";      /* IPv6, Scope:Global multicast address */
 /* These are the numerical values of the tags found in the dtmd.conf */
 /* configuration file.                                               */
 typedef enum dtm_config_tags {
@@ -149,23 +151,18 @@ char *dtm_validate_listening_ip_addr(DTM_INTERNODE_CB * config)
 				//Bcast  Address
 				if (if_addr->ifa_addr->sa_family == AF_INET) {
 					tmp = &((struct sockaddr_in *)if_addr->ifa_broadaddr)->sin_addr;
-					TRACE("Bcast addr : %s",
-							inet_ntop(if_addr->ifa_addr->sa_family,
-								tmp,
-								config->bcast_addr,
-								sizeof(buf)));
+					inet_ntop(if_addr->ifa_addr->sa_family, tmp, config->bcast_addr,sizeof(buf));
 				} else if (if_addr->ifa_addr->sa_family == AF_INET6) {
 					struct sockaddr_in6 *addr = (struct sockaddr_in6 *)if_addr->ifa_addr;
+					memset(config->bcast_addr, 0, INET6_ADDRSTRLEN);
 					if (in6_islinklocal(addr) == true ) {
 						config->scope_link = true;	
+						strcpy(config->bcast_addr, IN6ADDR_LINK_LOCAL);
+					} else {
+						strcpy(config->bcast_addr, IN6ADDR_LINK_GLOBAL);
+					}			
 						TRACE ("DTM:  %s scope_link : %d    IP address : %s  sa_family : %d ",
 								if_addr->ifa_name, config->scope_link, match_ip, config->i_addr_family);
-					}			
-					TRACE("Bcast addr : %s",
-							inet_ntop(if_addr->ifa_addr->sa_family,
-								addr,
-								config->bcast_addr,
-								sizeof(buf)));
 
 				}
 				TRACE ("DTM:  %s Validate  IP address : %s  Bcast address : %s sa_family : %d ",
