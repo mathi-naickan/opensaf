@@ -1151,7 +1151,7 @@ SaBoolT lgs_is_valid_format_expression(const SaStringT formatExpression,
  * 
  * @return int number of bytes written to dest
  */
-int lgs_format_log_record(SaLogRecordT *logRecord, const SaStringT formatExpression,
+int lgs_format_log_record(SaLogRecordT *logRecord, const SaStringT formatExpression, SaUint64T logFileSize,
 	SaUint16T fixedLogRecordSize, size_t dest_size, char *dest, SaUint32T logRecordIdCounter)
 {
 	SaStringT fmtExpPtr = &formatExpression[0];
@@ -1245,8 +1245,28 @@ int lgs_format_log_record(SaLogRecordT *logRecord, const SaStringT formatExpress
 		memset(&dest[i], ' ', fixedLogRecordSize - i);
 		dest[fixedLogRecordSize - 1] = '\n';
 		i = fixedLogRecordSize;
-	} else {
-		dest[i - 1] = '\n';
+	} else if ((fixedLogRecordSize > 0) && (i >= fixedLogRecordSize)) {
+		dest[fixedLogRecordSize - 2] = (SaInt8T)'\"';
+		dest[fixedLogRecordSize - 1] = '\n';
+		i = fixedLogRecordSize;
+	}
+
+	if ((fixedLogRecordSize == 0) && (i < dest_size)) {
+		dest[i] = '\n';
+		++i;
+	} else if ((fixedLogRecordSize == 0) && (i >= dest_size)) { /* dest size = record size +1 */
+		if (i >= logFileSize) {
+		/* There can be situations when the filesize is as small as the maxrecsize.
+		 * For eg:- By default for the application streams max file size is 1024 
+		 */
+			dest[logFileSize - 2] = (SaInt8T)'\"';
+			dest[logFileSize - 1] = '\n';
+			i = logFileSize;
+		} else {
+			dest[dest_size - 2] = (SaInt8T)'\"';
+			dest[dest_size - 1] = '\n';
+			i = dest_size;
+		}
 	}
 
 	if (truncationLetterPos != -1) {	/* Insert truncation info letter */
