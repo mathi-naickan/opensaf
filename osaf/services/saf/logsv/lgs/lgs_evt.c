@@ -1150,7 +1150,7 @@ static uint32_t proc_write_log_async_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 		goto done;
 	}
 
-	if ((n = lgs_format_log_record(param->logRecord, stream->logFileFormat,
+	if ((n = lgs_format_log_record(param->logRecord, stream->logFileFormat, stream->maxLogFileSize,
 		stream->fixedLogRecordSize, buf_size, logOutputString, ++stream->logRecordId)) == 0) {
 		error = SA_AIS_ERR_INVALID_PARAM;
 		goto done;

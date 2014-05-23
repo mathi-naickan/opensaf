@@ -1489,7 +1489,7 @@ static void insert_localmsg_in_stream(log_stream_t *stream, char *message)
 	}
 
 	/* Format the log record */
-	if ((n = lgs_format_log_record(&log_record, stream->logFileFormat,
+	if ((n = lgs_format_log_record(&log_record, stream->logFileFormat, stream->maxLogFileSize,
 			stream->fixedLogRecordSize, buf_size, logOutputString,
 			LOG_REC_ID)) == 0) {
 		LOG_ER("%s - Could not format internal log record",__FUNCTION__);
