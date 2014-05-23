@@ -17,6 +17,7 @@
 
 #include <ncsencdec_pub.h>
 #include "lgs.h"
+#include "osaf_time.h"
 
 #define LGS_SVC_PVT_SUBPART_VERSION 1
 #define LGS_WRT_LGA_SUBPART_VER_AT_MIN_MSG_FMT 1
@@ -890,7 +891,7 @@ static uint32_t mds_rcv(struct ncsmds_callback_info *mds_info)
 
 	// for all msg types but WRITEs, sample curr time and store in msg
 	if ((type == LGSV_INITIALIZE_REQ) || (type == LGSV_STREAM_OPEN_REQ)) {
-		osafassert(clock_gettime(CLOCK_MONOTONIC, &evt->entered_at) == 0);
+		osaf_clock_gettime(CLOCK_MONOTONIC, &evt->entered_at);
 		rc = m_NCS_IPC_SEND(&lgs_mbx, evt, LGS_IPC_PRIO_CTRL_MSGS);
 		osafassert(rc == NCSCC_RC_SUCCESS);
 		return NCSCC_RC_SUCCESS;
@@ -899,7 +900,7 @@ static uint32_t mds_rcv(struct ncsmds_callback_info *mds_info)
 	prio = getmboxprio(api_info);
 
 	if ((type == LGSV_FINALIZE_REQ) || (type == LGSV_STREAM_CLOSE_REQ)) {
-		osafassert(clock_gettime(CLOCK_MONOTONIC, &evt->entered_at) == 0);
+		osaf_clock_gettime(CLOCK_MONOTONIC, &evt->entered_at);
 		rc = m_NCS_IPC_SEND(&lgs_mbx, evt, prio);
 		if (rc != NCSCC_RC_SUCCESS) {
 			/* Bump prio and try again, should succeed! */

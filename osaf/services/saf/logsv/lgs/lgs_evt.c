@@ -20,6 +20,7 @@
 #include <limits.h>
 
 #include "immutil.h"
+#include "osaf_time.h"
 
 #include "lgs.h"
 #include "lgs_util.h"
@@ -1251,19 +1252,26 @@ static uint32_t process_api_evt(lgsv_lgs_evt_t *evt)
 		goto done;
 	}
 
-	// Discard too old messages. Don't discard writes as they are async,
-	// no one is waiting on a response
+	/* Discard too old messages. Don't discard writes as they are async,
+	 * no one is waiting on a response.
+	 * Using osaf time functions will guarantee that code works on 32 and 64 bit
+	 * systems.
+	 */
 	if (api_type < LGSV_WRITE_LOG_ASYNC_REQ) {
-		struct timespec ts;
-		osafassert(clock_gettime(CLOCK_MONOTONIC, &ts) == 0);
-
-		// convert to milliseconds
-		uint64_t entered = (evt->entered_at.tv_sec * 1000) +
-			 (evt->entered_at.tv_nsec / 1000000);
-		uint64_t removed = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
-
-		// compare with sync send time used in library
-		if ((removed - entered) > (LGS_WAIT_TIME * 10)) {
+		struct timespec current_ts, diff_ts;
+		osaf_clock_gettime(CLOCK_MONOTONIC, &current_ts);
+		
+		/* Calculate time diff current - entered */
+		if (osaf_timespec_compare(&current_ts, &evt->entered_at) < 1) {
+			LOG_ER("%s - Entered message time > current time", __FUNCTION__);
+			osafassert(0);
+		}
+		osaf_timespec_subtract(&current_ts, &evt->entered_at, &diff_ts);
+		
+		/* Convert to millisec and compare with sync send time used in
+		 * library
+		 */
+		if (osaf_timespec_to_millis(&diff_ts) > (LGS_WAIT_TIME * 10)) {
 			LOG_IN("discarded message from %" PRIx64 " type %u",
 				evt->fr_dest, api_type);
 			goto done;

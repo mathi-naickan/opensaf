@@ -34,15 +34,14 @@
 
 #include "lgs.h"
 #include "osaf_utility.h"
-
-#define GETTIME(x) osafassert(clock_gettime(CLOCK_REALTIME, &x) == 0);
+#include "osaf_time.h"
 
 pthread_mutex_t lgs_ftcom_mutex;	/* For locking communication */
 static pthread_cond_t request_cv;	/* File thread waiting for request */
 static pthread_cond_t answer_cv;	/* API waiting for answer (timed) */
 
 /* Max time to wait for file thread to finish */
-static SaUint32T max_waittime_ms = 500;
+static uint32_t max_waittime_ms = 500;
 
 struct file_communicate {
 	bool request_f;	/* True if pending request */
@@ -82,22 +81,13 @@ static int start_file_thread(void);
  * @param timeout_time[out]
  * @param timeout_ms[in] in ms
  */
-static void get_timeout_time(struct timespec *timeout_time, long int timeout_ms)
+static void get_timeout_time(struct timespec *timeout_time, uint32_t timeout_ms)
 {
-	struct timespec start_time;
-	uint64_t millisec1,millisec2;
+	struct timespec start_time, add_time;
 	
-	GETTIME(start_time);
-	
-	/* Convert to ms */
-	millisec1 = (start_time.tv_sec * 1000) + (start_time.tv_nsec / 1000000);
-	
-	/* Add timeout time */
-	millisec2 = millisec1+timeout_ms;
-	
-	/* Convert back to timespec */
-	timeout_time->tv_sec = millisec2 / 1000;
-	timeout_time->tv_nsec = (millisec2 % 1000) * 1000000;
+	osaf_clock_gettime(CLOCK_REALTIME, &start_time);
+	osaf_millis_to_timespec((uint64_t) timeout_ms, &add_time);
+	osaf_timespec_add(&start_time, &add_time, timeout_time);
 }
 
 /*****************************************************************************
