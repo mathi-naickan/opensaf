@@ -1262,7 +1262,7 @@ static uint32_t process_api_evt(lgsv_lgs_evt_t *evt)
 		osaf_clock_gettime(CLOCK_MONOTONIC, &current_ts);
 		
 		/* Calculate time diff current - entered */
-		if (osaf_timespec_compare(&current_ts, &evt->entered_at) < 1) {
+		if (osaf_timespec_compare(&current_ts, &evt->entered_at) < 0) {
 			LOG_ER("%s - Entered message time > current time", __FUNCTION__);
 			osafassert(0);
 		}
