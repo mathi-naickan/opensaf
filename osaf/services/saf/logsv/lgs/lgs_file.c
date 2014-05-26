@@ -338,13 +338,13 @@ lgsf_retcode_t log_file_api(lgsf_apipar_t *apipar_in)
 	while (lgs_com_data.answer_f == false) {
 		rc = pthread_cond_timedwait(
 				&answer_cv, &lgs_ftcom_mutex, &timeout_time); /* -> UNLOCK -> LOCK */
-		if (rc == ETIMEDOUT) {
+		if ((rc == ETIMEDOUT) && (lgs_com_data.answer_f == false)) {
 			TRACE("Timed out before answer");
 			api_rc = LGSF_TIMEOUT;
 			lgs_com_data.timeout_f = true; /* Inform thread about timeout */
-			goto api_exit;
-		} else if (rc != 0) {
-			TRACE("pthread wait Failed - %s",strerror(rc));
+			goto api_timeout;
+		} else if ((rc != 0) && (rc != ETIMEDOUT)) {
+			LOG_ER("pthread wait Failed - %s",strerror(rc));
 			osaf_abort(rc);
 		}
 	}
@@ -358,6 +358,7 @@ lgsf_retcode_t log_file_api(lgsf_apipar_t *apipar_in)
 	apipar_in->hdl_ret_code_out = lgs_com_data.return_code;
 	memcpy(apipar_in->data_out, lgs_com_data.outdata_ptr, lgs_com_data.outdata_size);
 
+api_timeout:
 	/* Prepare to take a new answer */
 	lgs_com_data.answer_f = false;
 	lgs_com_data.return_code = LGSF_NORETC;
