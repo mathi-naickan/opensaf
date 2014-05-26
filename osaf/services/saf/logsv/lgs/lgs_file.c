@@ -289,8 +289,14 @@ lgsf_retcode_t log_file_api(lgsf_apipar_t *apipar_in)
 	}
 	
 	/* Free request data before allocating new memeory */
-	if (lgs_com_data.indata_ptr != NULL) free(lgs_com_data.indata_ptr);
-	if (lgs_com_data.outdata_ptr != NULL) free(lgs_com_data.outdata_ptr);
+	if (lgs_com_data.indata_ptr != NULL) {
+		free(lgs_com_data.indata_ptr);
+		lgs_com_data.indata_ptr = NULL;
+	}
+	if (lgs_com_data.outdata_ptr != NULL) {
+		free(lgs_com_data.outdata_ptr);
+		lgs_com_data.indata_ptr = NULL;
+	}
 
 	/* Allocate memory and enter data for a request */
 	lgs_com_data.request_code = apipar_in->req_code_in;
@@ -313,6 +319,7 @@ lgsf_retcode_t log_file_api(lgsf_apipar_t *apipar_in)
 			api_rc = LGSF_FAIL;
 			goto api_exit;
 		}
+		*(char *) lgs_com_data.outdata_ptr = '\0';
 	} else {
 		lgs_com_data.outdata_ptr = NULL;
 	}
