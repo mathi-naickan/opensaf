@@ -479,7 +479,7 @@ int fileclose_hdl(void *indata, void *outdata, size_t max_outsize)
 	int rc = 0;
 	int fd;
 	
-	fd = *(char *) indata;
+	fd = *(int *) indata;
 	TRACE_ENTER2("fd=%d", fd);
 
 	rc = close(fd);
