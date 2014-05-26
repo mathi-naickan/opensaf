@@ -2040,8 +2040,11 @@ static uint32_t dec_si_dep_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 
 	osafassert(status == NCSCC_RC_SUCCESS);
 
-	if (NULL == (si_struct = avd_si_get(&si_ptr_dec->name)))
-		osafassert(0);
+	if (NULL == (si_struct = avd_si_get(&si_ptr_dec->name))) {
+		si_struct = avd_si_new(&si_ptr_dec->name);
+		osafassert(si_struct != NULL);
+		avd_si_db_add(si_struct);
+	}
 
 	/* Update the fields received in this checkpoint message */
 	avd_sidep_si_dep_state_set(si_struct,si_ptr_dec->si_dep_state);
