@@ -388,9 +388,22 @@ void avd_node_oper_state_set(AVD_AVND *node, SaAmfOperationalStateT oper_state)
 		 */
 		avd_saImmOiRtObjectUpdate(&node->name, "saAmfNodeOperState",
 					SA_IMM_ATTR_SAUINT32T, &node->saAmfNodeOperState);
+
+		/* Send notification for node oper state down. It is set to
+		   DISABLE in avd_mds_avnd_down_evh and again
+		   avd_node_oper_state_set is called from avd_node_mark_absent.
+		   Since the oper state is the same when called from
+		   avd_node_mark_absent, we need to send notification. */
+		if ((node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) &&
+				(node->node_state == AVD_AVND_STATE_ABSENT)) {
+			avd_send_oper_chg_ntf(&node->name,
+					SA_AMF_NTFID_NODE_OP_STATE,
+					SA_AMF_OPERATIONAL_ENABLED,
+					node->saAmfNodeOperState);
+		}
 		return;
 	}
-	
+
 	SaAmfOperationalStateT old_state = node->saAmfNodeOperState;
 
 	osafassert(oper_state <= SA_AMF_OPERATIONAL_DISABLED);
