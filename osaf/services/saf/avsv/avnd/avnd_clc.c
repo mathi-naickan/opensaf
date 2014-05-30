@@ -831,6 +831,23 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 		}
 	}
 
+	/* can we clean up the proxy now? */
+	if ((m_AVND_COMP_TYPE_IS_PROXIED(comp)) &&
+			((cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)  ||
+			 (cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATING)) &&
+			((ev == AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC ||
+			 ev == AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_FAIL)))
+	{
+		AVND_COMP *proxy = comp->pxy_comp;
+		rc = avnd_comp_unreg_prc(cb, comp, proxy);
+
+		/* if proxy got unset then we can continue with proxy's termination */
+		if ((rc == NCSCC_RC_SUCCESS) && !m_AVND_COMP_TYPE_IS_PROXY(proxy))
+		{
+			rc = avnd_comp_clc_fsm_run(avnd_cb, proxy, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
+		}
+	}
+
 	TRACE_1("'%s':Entering CLC FSM: presence state:'%s', Event:'%s'",
 					comp->name.value,pres_state[prv_st],pres_state_evt[ev]);
 
@@ -1778,6 +1795,9 @@ uint32_t avnd_comp_clc_inst_clean_hdler(AVND_CB *cb, AVND_COMP *comp)
 		avnd_comp_cbq_del(cb, comp, true);
 		/* call the cleanup callback */
 		rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+	} else if (m_AVND_COMP_TYPE_IS_PROXY(comp) && comp->pxied_list.n_nodes) {
+		/* if there are still outstanding proxied components we can't terminate right now */
+		return rc;
 	} else
 		/* cleanup the comp */
 		rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
