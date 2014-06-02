@@ -1237,6 +1237,19 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	switch (info->term_state) {
 	case true:		/* => terminate the su */
+		/* Stop saAmfSGSuRestartProb timer if started */
+		if (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_1) {
+			m_AVND_TMR_SU_ERR_ESC_STOP(cb, su);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
+		}
+		/* Stop saAmfSGCompRestartProb timer if started */
+		else if (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_0) {
+			m_AVND_TMR_COMP_ERR_ESC_STOP(cb, su);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
+		}
+		else
+			TRACE("su_err_esc_tmr is started in wrong su_err_esc_level(%d)", su->su_err_esc_level);
+
 		TRACE("SU term state is set to true");
 		/* no si must be assigned to the su */
 		osafassert(!m_NCS_DBLIST_FIND_FIRST(&su->si_list));
