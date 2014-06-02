@@ -48,8 +48,12 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 						*value, opdata->objectName.value);
 				return SA_AIS_ERR_BAD_OPERATION;
 			}
-		} else
-			osafassert(0);
+		} else {
+			report_ccb_validation_error(opdata,
+				"Unknown attribute '%s'",
+				attribute->attrName);
+			return SA_AIS_ERR_BAD_OPERATION;
+		}
 	}
 
 	return SA_AIS_OK;
@@ -144,8 +148,9 @@ static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 			TRACE("saAmfHealthcheckMaxDuration modified to '%llu' for Comp'%s'", *param_val, 
 					comp->comp_info.name.value);
 			param.attr_id = saAmfHealthcheckMaxDuration_ID;
-		} else
+		} else {
 			osafassert(0);
+		}
 
 		avd_snd_op_req_msg(avd_cb, comp->su->su_on_node, &param);
 	}

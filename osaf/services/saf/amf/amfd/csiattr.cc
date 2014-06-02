@@ -412,7 +412,7 @@ static SaAisErrorT csiattr_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opd
 				if (NULL == csi_name_value_pair_find(csi, &csi_attr_name, value)) {
 					report_ccb_validation_error(opdata, "csi attr name '%s' and value '%s' doesn't exist", 
 							csi_attr_name.value, value);
-					rc = SA_AIS_ERR_EXIST;
+					rc = SA_AIS_ERR_NOT_EXIST;
 					goto done;
 				}
                         } /* for  */

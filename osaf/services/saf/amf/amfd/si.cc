@@ -976,8 +976,9 @@ static SaAisErrorT si_rt_attr_cb(SaImmOiHandleT immOiHandle,
 		} else if (!strcmp("saAmfSINumCurrStandbyAssignments", attributeName)) {
 			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &si->saAmfSINumCurrStandbyAssignments);
-		} else
-			osafassert(0);
+		} else {
+			LOG_ER("Ignoring unknown attribute '%s'", attributeName);
+		}
 	}
 
 	return SA_AIS_OK;
