@@ -1219,8 +1219,9 @@ static SaAisErrorT su_rt_attr_cb(SaImmOiHandleT immOiHandle,
 		} else if (!strcmp("saAmfSURestartCount", attributeName)) {
 			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &su->saAmfSURestartCount);
-		} else
-			osafassert(0);
+		} else {
+			LOG_ER("Ignoring unknown attribute '%s'", attributeName);
+		}
 	}
 
 	return SA_AIS_OK;
@@ -1459,8 +1460,9 @@ static void su_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 			avd_sutype_add_su(su);
 			su->saAmfSUFailover = sut->saAmfSutDefSUFailover;
 			su->su_is_external = sut->saAmfSutIsExternal;
-		} else
+		} else {
 			osafassert(0);
+		}
 	}
 
 	TRACE_LEAVE();

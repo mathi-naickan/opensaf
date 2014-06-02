@@ -814,8 +814,9 @@ static SaAisErrorT comp_rt_attr_cb(SaImmOiHandleT immOiHandle,
 			/* TODO */
 		} else if (!strcmp("saAmfCompCurrProxiedNames", attributeName)) {
 			/* TODO */
-		} else
-			osafassert(0);
+		} else {
+			LOG_ER("Ignoring unknown attribute '%s'", attributeName);
+		}
 	}
 
 	return SA_AIS_OK;

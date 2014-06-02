@@ -425,8 +425,9 @@ static SaAisErrorT compcstype_rt_attr_callback(SaImmOiHandleT immOiHandle,
 				SA_IMM_ATTR_SAUINT32T, &cst->saAmfCompNumCurrStandbyCSIs);
 		} else if (!strcmp("saAmfCompAssignedCsi", attributeName)) {
 			/* TODO */
-		} else
-			osafassert(0);
+		} else {
+			LOG_ER("Ignoring unknown attribute '%s'", attributeName);
+		}
 	}
 
 	return SA_AIS_OK;

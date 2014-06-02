@@ -279,12 +279,17 @@ static SaAisErrorT app_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 				SaNameT dn = *((SaNameT*)attribute->attrValues[0]);
 				if (NULL == avd_apptype_get(&dn)) {
 					LOG_ER("saAmfAppType '%s' not found", dn.value);
+					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
 				}
 				rc = SA_AIS_OK;
 				break;
-			} else
-				osafassert(0);
+			} else {
+				LOG_ER("Unknown attribute '%s'",
+					attribute->attrName);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
 		}
 		break;
 	case CCBUTIL_DELETE:
@@ -332,8 +337,9 @@ static void app_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 					app->saAmfAppType.value, app->name.value);
 				break;
 			}
-			else
+			else {
 				osafassert(0);
+			}
 		}
 		break;
 	}
@@ -432,8 +438,9 @@ static SaAisErrorT app_rt_attr_cb(SaImmOiHandleT immOiHandle,
 		if (!strcmp(attributeName, "saAmfApplicationCurrNumSGs")) {
 			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &app->saAmfApplicationCurrNumSGs);
-		} else
-			osafassert(0);
+		} else {
+			LOG_ER("Ignoring unknown attribute '%s'", attributeName);
+		}
 	}
 
 	return SA_AIS_OK;

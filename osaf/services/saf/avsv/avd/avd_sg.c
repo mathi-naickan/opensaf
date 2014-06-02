@@ -551,7 +551,10 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
 			} else {
-				osafassert(0);
+				LOG_ER("Unknown attribute '%s'",
+					attribute->attrName);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
 			}
 		}		/* while (attr_mod != NULL) */
 
@@ -1181,8 +1184,9 @@ static SaAisErrorT sg_rt_attr_cb(SaImmOiHandleT immOiHandle,
 		} else if (!strcmp("saAmfSGNumCurrInstantiatedSpareSUs", attributeName)) {
 			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &sg->saAmfSGNumCurrInstantiatedSpareSUs);
-		} else
-			osafassert(0);
+		} else {
+			LOG_ER("Ignoring unknown attribute '%s'", attributeName);
+		}
 	}
 
 	return SA_AIS_OK;

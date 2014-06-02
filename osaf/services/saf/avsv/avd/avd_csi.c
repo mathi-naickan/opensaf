@@ -782,8 +782,9 @@ static void csi_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 			csi->cstype = csi_type;
 			avd_cstype_add_csi(csi);
 		}
-		else
+		else {
 			osafassert(0);
+		}
 	}
 
         TRACE_LEAVE();
