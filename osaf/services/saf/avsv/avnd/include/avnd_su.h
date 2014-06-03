@@ -404,4 +404,7 @@ extern struct avnd_su_si_rec *avnd_silist_getlast(void);
 extern bool all_csis_in_removed_state(const AVND_SU *su);
 extern void su_reset_restart_count_in_comps(const AVND_SU *su);
 
+void su_increment_su_restart_count(AVND_SU *su);
+void su_increment_comp_restart_count(AVND_SU *su);
+
 #endif

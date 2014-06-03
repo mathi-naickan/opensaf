@@ -111,6 +111,18 @@ static const char *g_comp_rcvr[] = {
 	"componentFailover"
 };
 
+static void log_recovery_escalation(const AVND_COMP *comp,
+	const uint32_t previous_esc_rcvr,
+	const uint32_t esc_rcvr)
+{
+	if (esc_rcvr != previous_esc_rcvr) {
+		LOG_NO("'%s' recovery action escalated from '%s' to '%s'",
+			comp->name.value,
+			g_comp_rcvr[previous_esc_rcvr - 1],
+			g_comp_rcvr[esc_rcvr - 1]);
+	}
+}
+
 /****************************************************************************
   Name          : avnd_evt_ava_err_rep
  
@@ -302,6 +314,8 @@ uint32_t avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER2("Comp:'%s' esc_rcvr:'%u'", comp->name.value, esc_rcvr);
 
+	const uint32_t previous_esc_rcvr = esc_rcvr;
+
 	// Handle errors differently when shutdown has started
 	if (AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED == cb->term_state) {
 		LOG_NO("'%s' faulted due to '%s'", comp->name.value, g_comp_err[err_info->src]);
@@ -363,6 +377,9 @@ uint32_t avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 	rc = avnd_err_escalate(cb, comp->su, comp, &esc_rcvr);
 	if (NCSCC_RC_SUCCESS != rc)
 		goto done;
+
+	/* add an entry to syslog if recovery method has changed */
+	log_recovery_escalation(comp, previous_esc_rcvr, esc_rcvr);
 
 	LOG_NO("'%s' faulted due to '%s' : Recovery is '%s'",
 		comp->name.value, g_comp_err[err_info->src], g_comp_rcvr[esc_rcvr - 1]);
@@ -1017,17 +1034,20 @@ uint32_t avnd_err_restart_esc_level_0(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 			goto done;
 
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
-		su->comp_restart_cnt++;
+		su_increment_comp_restart_count(su);
 		goto done;
 	}
 
 	if (su->comp_restart_cnt < su->comp_restart_max) {
-		su->comp_restart_cnt++;
+		su_increment_comp_restart_count(su);
 		goto done;
 	}
 
 	/* ok! go to next level */
 	if (su->comp_restart_cnt >= su->comp_restart_max) {
+		LOG_NO("'%s' component restarts have reached configured limit of %u",
+			su->name.value, su->comp_restart_max);
+
 		/*stop the comp-err-esc-timer */
 		m_AVND_TMR_COMP_ERR_ESC_STOP(cb, su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
@@ -1110,12 +1130,15 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
 		}
-		su->su_restart_cnt++;
+		su_increment_su_restart_count(su);
 		goto done;
 	}
 
 	/* reached max count */
 	if (su->su_restart_cnt >= su->su_restart_max) {
+		LOG_NO("'%s' restarts have reached configured limit of %u",
+			su->name.value, su->su_restart_max);
+
 		/* stop timer */
 		m_AVND_TMR_SU_ERR_ESC_STOP(cb, su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
@@ -1182,17 +1205,20 @@ uint32_t avnd_err_restart_esc_level_2(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
 
-		cb->su_failover_cnt++;
+		cb_increment_su_failover_count(cb, su);
 		goto done;
 	}
 
 	if (cb->su_failover_cnt < cb->su_failover_max) {
-		cb->su_failover_cnt++;
+		cb_increment_su_failover_count(cb, su);
 		goto done;
 	}
 
 	/* reached max count */
 	if (cb->su_failover_cnt >= cb->su_failover_max) {
+		LOG_NO("SU failovers have reached configured limit of %u",
+			cb->su_failover_max);
+
 		/* stop timer */
 		m_AVND_TMR_NODE_ERR_ESC_STOP(cb);
 		cb->su_failover_cnt = 0;
@@ -1248,18 +1274,21 @@ AVSV_ERR_RCVR avnd_err_esc_su_failover(AVND_CB *cb, AVND_SU *su, AVSV_ERR_RCVR *
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
 
-		cb->su_failover_cnt++;
+		cb_increment_su_failover_count(cb, su);
 		goto done;
 	}
 
 	if (cb->su_failover_cnt < cb->su_failover_max) {
 		/* This means NODE_ERR_ESC may be already running because of other SUs escalations.*/
 		su->su_err_esc_level = AVND_ERR_ESC_LEVEL_2;
-		cb->su_failover_cnt++;
+		cb_increment_su_failover_count(cb, su);
 		goto done;
 	}
 
 	if (cb->su_failover_cnt >= cb->su_failover_max) {
+		LOG_NO("SU failovers have reached configured limit of %u",
+			cb->su_failover_max);
+
 		/* stop timer */
 		m_AVND_TMR_NODE_ERR_ESC_STOP(cb);
 		cb->su_failover_cnt = 0;
@@ -1293,6 +1322,8 @@ uint32_t avnd_evt_tmr_node_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
+	LOG_NO("node error escalation timer expired");
+	
 	su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
 	while (su != 0) {
 		/* Only reset to those Sus, which have affected the node err esc.*/
