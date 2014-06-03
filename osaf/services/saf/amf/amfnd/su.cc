@@ -462,6 +462,8 @@ uint32_t avnd_evt_tmr_su_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 	}
 
 	TRACE("'%s'", su->name.value);
+	
+	LOG_NO("'%s' error escalation timer expired", su->name.value);
 
 	if (NCSCC_RC_SUCCESS == m_AVND_CHECK_FOR_STDBY_FOR_EXT_COMP(cb, su->su_is_external))
 		goto done;
@@ -688,4 +690,25 @@ void su_reset_restart_count_in_comps(const AVND_SU *su)
 		comp_reset_restart_count(comp);
 	}
 
+}
+
+void su_increment_su_restart_count(AVND_SU& su)
+{
+	su.su_restart_cnt++;
+	LOG_NO("Restarting '%s' (SU restart count: %u)",
+		su.name.value, su.su_restart_cnt);	
+}
+
+void su_increment_comp_restart_count(AVND_SU& su)
+{
+	su.comp_restart_cnt++;
+	LOG_NO("Restarting a component of '%s' (comp restart count: %u)",
+		su.name.value, su.comp_restart_cnt);	
+}
+
+void cb_increment_su_failover_count(AVND_CB& cb, const AVND_SU& su)
+{
+	cb.su_failover_cnt++;
+	LOG_NO("Performing failover of '%s' (SU failover count: %u)",
+		su.name.value, cb.su_failover_cnt);	
 }

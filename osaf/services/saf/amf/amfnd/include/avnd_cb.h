@@ -154,6 +154,8 @@ typedef struct avnd_cb_tag {
 
 #define m_AVND_NODE_ERR_ESC_LEVEL_SET(x, val)  ((x)->node_err_esc_level = (val))
 
+void cb_increment_su_failover_count(AVND_CB& cb, const AVND_SU& su);
+
 extern AVND_CB *avnd_cb;
 
 #endif
