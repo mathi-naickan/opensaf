@@ -1160,7 +1160,7 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 	/* If the SU is still instantiating, do jump to next level */
 	if (su->pres == SA_AMF_PRESENCE_INSTANTIATING || su->pres == SA_AMF_PRESENCE_RESTARTING
 	    || m_AVND_SU_IS_ASSIGN_PEND(su)) {
-		/* go to the next possible level, get escalted recovery and modify count */
+		/* go to the next possible level, get escalated recovery and modify count */
 		if ((cb->su_failover_max != 0) || (true == su->su_is_external)) {
 			/* External component should not contribute to NODE FAILOVER of cluster
 			   component. Maximum it can go to SU FAILOVER. */
@@ -1202,7 +1202,7 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 		su->su_restart_cnt = 0;
 		su_reset_restart_count_in_comps(su);
 
-		/* go to the next possible level, get escalted recovery and modify count */
+		/* go to the next possible level, get escalated recovery and modify count */
 		if ((cb->su_failover_max != 0) || (true == su->su_is_external)) {
 			/* External component should not contribute to NODE FAILOVER of cluster
 			   component. Maximum it can go to SU FAILOVER. */
@@ -1310,7 +1310,7 @@ AVSV_ERR_RCVR avnd_err_esc_su_failover(AVND_CB *cb, AVND_SU *su, AVSV_ERR_RCVR *
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
-	/* initalize */
+	/* initialize */
 	if (su->sufailover)
 		*esc_rcvr = AVSV_ERR_RCVR_SU_FAILOVER;
 	else
