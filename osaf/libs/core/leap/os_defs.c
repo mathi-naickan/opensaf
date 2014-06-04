@@ -773,7 +773,7 @@ uint32_t ncs_os_posix_shm(NCS_OS_POSIX_SHM_REQ_INFO *req)
 			return NCSCC_RC_FAILURE;
 		}
 		shm_size = (long)req->info.open.i_size;
-		snprintf(shm_name, PATH_MAX, "/opensaf/%s", req->info.open.i_name);
+		snprintf(shm_name, PATH_MAX, "/opensaf_%s", req->info.open.i_name);
 		req->info.open.o_fd = shm_open(shm_name, req->info.open.i_flags, 0666);
 		if (req->info.open.o_fd < 0) {
 			return NCSCC_RC_FAILURE;
@@ -820,7 +820,7 @@ uint32_t ncs_os_posix_shm(NCS_OS_POSIX_SHM_REQ_INFO *req)
 
 	case NCS_OS_POSIX_SHM_REQ_UNLINK:	/* unlink is shm_unlink */
 
-		snprintf(shm_name, PATH_MAX, "/opensaf/%s", req->info.unlink.i_name);
+		snprintf(shm_name, PATH_MAX, "/opensaf_%s", req->info.unlink.i_name);
 		ret_flag = shm_unlink(shm_name);
 		if (ret_flag < 0) {
 			printf("shm_unlink failed with errno value %d\n", errno);

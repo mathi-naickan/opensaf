@@ -26,7 +26,6 @@ else
 	. $pkgsysconfdir/nid.conf
 fi	
 
-shmdir=/dev/shm/opensaf
 binary=$pkglibdir/$prog
 lockfile=$lockdir/$prog
 amfnd_bin=$pkglibdir/osafamfnd
@@ -77,9 +76,9 @@ check_env() {
 		exit 6
 	fi
 
-	# /dev/shm, /var/lock & /var/run could be tmpfs mounts and needs to be 
+	# /var/lock & /var/run could be tmpfs mounts and needs to be
 	# recreated at each boot
-	directories="$shmdir $lockdir $pkgpiddir"
+	directories="$lockdir $pkgpiddir"
 	for directory in $directories; do
 		mkdir -p $directory
 		if [ -n "$OPENSAF_GROUP" ]; then
@@ -95,9 +94,7 @@ check_env() {
 
 clean_shm() {
 	# Remove shared memory files created by OpenSAF
-	if [ -d /dev/shm/opensaf ]; then
-		rm -rf /dev/shm/opensaf
-	fi
+	find /dev/shm/. -maxdepth 1 -name 'opensaf_*' -exec rm -f {} \;
 }
 
 enable_coredump() {
