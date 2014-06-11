@@ -2468,7 +2468,7 @@ static uint32_t cpnd_evt_proc_ckpt_sect_delete(CPND_CB *cb, CPND_EVT *evt, CPSV_
 		if (sec_info) {
 			ckpt_data.sec_id = sec_info->sec_id;
 			ckpt_data.data = NULL;
-			ckpt_data.dataSize = sec_info->sec_size;
+			ckpt_data.dataSize = 0;
 			ckpt_data.dataOffset = 0;
 
 			memset(&ckpt_access, '\0', sizeof(CPSV_CKPT_ACCESS));
@@ -2711,7 +2711,7 @@ static uint32_t cpnd_evt_proc_nd2nd_ckpt_sect_delete(CPND_CB *cb, CPND_EVT *evt,
 	if (sec_info) {
 		ckpt_data.sec_id = sec_info->sec_id;
 		ckpt_data.data = NULL;
-		ckpt_data.dataSize = sec_info->sec_size;
+		ckpt_data.dataSize = 0;
 		ckpt_data.dataOffset = 0;
 
 		memset(&ckpt_access, '\0', sizeof(CPSV_CKPT_ACCESS));
