@@ -354,7 +354,6 @@ int make_log_dir_hdl(void *indata, void *outdata, size_t max_outsize)
 #if 0
 		rootpath = PKGLOGDIR;
 #endif
-		strncpy(out_path, rootpath, max_outsize);
 		n = snprintf(out_path, max_outsize, "%s", rootpath);
 		if (n >= max_outsize) {
 			LOG_WA("Invalid root path > max_outsize");

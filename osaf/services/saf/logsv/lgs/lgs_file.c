@@ -218,12 +218,12 @@ static int start_file_thread(void)
 		LOG_ER("pthread_mutex_init fail %s",strerror(errno));
 		goto done;
 	}
-	pthread_cond_init (&request_cv,NULL);
+	rc = pthread_cond_init (&request_cv,NULL);
 	if (rc != 0) {
 		LOG_ER("pthread_cond_init fail %s",strerror(errno));
 		goto done;
 	}
-	pthread_cond_init (&answer_cv,NULL);
+	rc = pthread_cond_init (&answer_cv,NULL);
 	if (rc != 0) {
 		LOG_ER("pthread_cond_init fail %s",strerror(errno));
 		goto done;
