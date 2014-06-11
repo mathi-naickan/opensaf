@@ -542,7 +542,7 @@ static void cpa_proc_ckpt_arrival_ntfy(CPA_CB *cb, CPA_EVT *evt)
 							callback->ioVector[i].sectionId = ckpt_data->sec_id;
 
 						callback->ioVector[i].dataBuffer = NULL;
-						/*   callback->ioVector[i].dataBuffer = ckpt_data->data; */
+						callback->ioVector[i].readSize = 0;
 						callback->ioVector[i].dataSize = ckpt_data->dataSize;
 						callback->ioVector[i].dataOffset = ckpt_data->dataOffset;
 						ckpt_data = ckpt_data->next;
