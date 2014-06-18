@@ -859,6 +859,11 @@ static SaAisErrorT ccb_completed_cb(SaImmOiHandleT immoi_handle,
 
 	TRACE_ENTER2("CCB ID %llu", ccb_id);
 
+	/* Standby AMFD should not process CCB completed callback. */
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
+		goto done;
+
+
 	/* "check that the sequence of change requests contained in the CCB is
 	   valid and that no errors will be generated when these changes
 	   are applied." */
