@@ -126,7 +126,7 @@ static void mqa_sync_with_mqd(MQA_CB *cb)
 	m_NCS_LOCK(&cb->mqd_sync_lock, NCS_LOCK_WRITE);
 
 	cb->mqd_sync_awaited = false;
-	m_NCS_SEL_OBJ_DESTROY(cb->mqd_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&cb->mqd_sync_sel);
 
 	m_NCS_UNLOCK(&cb->mqd_sync_lock, NCS_LOCK_WRITE);
 	TRACE_1("MQD synced up with the MQA");
@@ -163,7 +163,7 @@ static void mqa_sync_with_mqnd(MQA_CB *cb)
 	m_NCS_LOCK(&cb->mqnd_sync_lock, NCS_LOCK_WRITE);
 
 	cb->mqnd_sync_awaited = false;
-	m_NCS_SEL_OBJ_DESTROY(cb->mqnd_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&cb->mqnd_sync_sel);
 
 	m_NCS_UNLOCK(&cb->mqnd_sync_lock, NCS_LOCK_WRITE);
 	TRACE_1("MQND synced up with the MQA");

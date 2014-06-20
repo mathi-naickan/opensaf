@@ -1814,7 +1814,7 @@ static void sigusr2_handler(int sig)
  */
 static void sigterm_handler(int sig)
 {
-	ncs_sel_obj_ind(term_sel_obj);
+	ncs_sel_obj_ind(&term_sel_obj);
 	signal(SIGTERM, SIG_IGN);
 }
 
@@ -2174,7 +2174,7 @@ void pbeDaemon(SaImmHandleT immHandle, void* dbHandle, SaImmAdminOwnerHandleT ow
 		}
 
 		if (fds[FD_IMM_PBE_TERM].revents & POLLIN) {
-			ncs_sel_obj_rmv_ind(term_sel_obj, true, true);
+			ncs_sel_obj_rmv_ind(&term_sel_obj, true, true);
 			if (sDbHandle != NULL) {
 				LOG_NO("IMM %s received SIG_TERM, closing db handle", 
 					sPbe2 ? (sPbe2B?"PBE SLAVE":"PBE PRIMARY"):"PBE");

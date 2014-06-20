@@ -95,7 +95,7 @@ static void sigterm_handler(int sig)
 {
 	(void) sig;
 	signal(SIGTERM, SIG_IGN);
-	ncs_sel_obj_ind(term_sel_obj);
+	ncs_sel_obj_ind(&term_sel_obj);
 }
 
 /**

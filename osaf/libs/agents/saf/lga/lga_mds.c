@@ -507,7 +507,7 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info)
 			lga_cb.lgs_up = 1;
 			if (lga_cb.lgs_sync_awaited) {
 				/* signal waiting thread */
-				m_NCS_SEL_OBJ_IND(lga_cb.lgs_sync_sel);
+				m_NCS_SEL_OBJ_IND(&lga_cb.lgs_sync_sel);
 			}
 			pthread_mutex_unlock(&lga_cb.cb_lock);
 			break;

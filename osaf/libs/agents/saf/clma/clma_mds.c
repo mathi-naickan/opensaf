@@ -972,7 +972,7 @@ static uint32_t clma_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info)
 		clma_cb.clms_up = 1;
 		if (clma_cb.clms_sync_awaited) {
 			/* signal waiting thread */
-			m_NCS_SEL_OBJ_IND(clma_cb.clms_sync_sel);
+			m_NCS_SEL_OBJ_IND(&clma_cb.clms_sync_sel);
 		}
 		pthread_mutex_unlock(&clma_cb.cb_lock);
 		break;

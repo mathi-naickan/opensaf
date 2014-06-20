@@ -355,7 +355,7 @@ static NCS_IPC_MSG *ncs_ipc_recv_common(SYSF_MBX *mbx, bool block)
 			   In such a case by the time we reach here, all indications
 			   must have been removed.
 			 */
-			inds_rmvd = m_NCS_SEL_OBJ_RMV_IND(ncs_ipc->sel_obj, true, true);
+			inds_rmvd = m_NCS_SEL_OBJ_RMV_IND(&ncs_ipc->sel_obj, true, true);
 			if (inds_rmvd != 0) {
 				/* Should never reach here */
 				m_NCS_UNLOCK(&ncs_ipc->queue_lock, NCS_LOCK_WRITE);
@@ -423,7 +423,7 @@ static uint32_t ipc_enqueue_ind_processing(NCS_IPC *ncs_ipc, unsigned int queue_
 	if (ncs_ipc->msg_count == 0) {
 		/* There are no messages queued, we shall raise an indication
 		   on the "sel_obj".  */
-		if (m_NCS_SEL_OBJ_IND(ncs_ipc->sel_obj) != NCSCC_RC_SUCCESS) {
+		if (m_NCS_SEL_OBJ_IND(&ncs_ipc->sel_obj) != NCSCC_RC_SUCCESS) {
 			/* We would never reach here! */
 			assert(0);
 			return m_LEAP_DBG_SINK(NCSCC_RC_FAILURE);
@@ -461,7 +461,7 @@ static uint32_t ipc_dequeue_ind_processing(NCS_IPC *ncs_ipc, unsigned int active
 	ncs_ipc->msg_count--;
 
 	if (ncs_ipc->msg_count == 0) {
-		inds_rmvd = m_NCS_SEL_OBJ_RMV_IND(ncs_ipc->sel_obj, true, true);
+		inds_rmvd = m_NCS_SEL_OBJ_RMV_IND(&ncs_ipc->sel_obj, true, true);
 		if (inds_rmvd <= 0) {
 			if (inds_rmvd != -1) {
 				/* The object has not been destroyed and it has no indication

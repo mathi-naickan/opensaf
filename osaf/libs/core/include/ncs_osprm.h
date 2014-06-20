@@ -671,7 +671,7 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req);
                         (This is an IN argument)
 
 \****************************************************************************/
-	uint32_t ncs_sel_obj_destroy(NCS_SEL_OBJ i_sel_obj);
+	uint32_t ncs_sel_obj_destroy(NCS_SEL_OBJ *i_sel_obj);
 #define     m_NCS_SEL_OBJ_DESTROY(i_sel_obj) ncs_sel_obj_destroy(i_sel_obj)
 
 /****************************************************************************\ 
@@ -727,13 +727,13 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req);
 
    ARGUMENTS    :       
 
-    i_sel_obj   :       A selection-object created by the
+    i_sel_obj   :       ptr to a selection-object created by the
                         m_NCS_SEL_OBJ_CREATE.
 
                         (This is an IN argument)
 
 \****************************************************************************/
-	uint32_t ncs_sel_obj_ind(NCS_SEL_OBJ i_sel_obj);
+	uint32_t ncs_sel_obj_ind(NCS_SEL_OBJ *i_sel_obj);
 #define     m_NCS_SEL_OBJ_IND(i_sel_obj)  ncs_sel_obj_ind(i_sel_obj)
 
 /****************************************************************************\ 
@@ -773,7 +773,7 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req);
                         the return value.
  
 \***************************************************************************/
-	int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_sel_obj, bool i_no_blocking_flag, bool i_rmv_only_one_flag);
+	int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ *i_sel_obj, bool i_no_blocking_flag, bool i_rmv_only_one_flag);
 
 #define     m_NCS_SEL_OBJ_RMV_IND(sel_obj, noblock_flag, rmv_only_one_flag)\
             ncs_sel_obj_rmv_ind(sel_obj, noblock_flag,  rmv_only_one_flag)

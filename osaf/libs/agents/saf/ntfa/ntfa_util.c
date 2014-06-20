@@ -56,7 +56,7 @@ static unsigned int ntfa_create(void)
 	pthread_mutex_unlock(&ntfa_cb.cb_lock);
 
 	/* No longer needed */
-	m_NCS_SEL_OBJ_DESTROY(ntfa_cb.ntfs_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&ntfa_cb.ntfs_sync_sel);
 
 	/* TODO: fix env variable */
 	ntfa_cb.ntf_var_data_limit = NTFA_VARIABLE_DATA_LIMIT;

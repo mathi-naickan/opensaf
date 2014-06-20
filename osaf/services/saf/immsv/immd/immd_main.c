@@ -92,7 +92,7 @@ static void sigusr1_handler(int sig)
 {
 	(void)sig;
 	signal(SIGUSR1, SIG_IGN);
-	ncs_sel_obj_ind(immd_cb->usr1_sel_obj);
+	ncs_sel_obj_ind(&immd_cb->usr1_sel_obj);
 	/* Do not use trace in the signal handler
 	   It can apparently cause the main thread
 	   to spin or deadlock. See ticket #1173.
@@ -299,8 +299,8 @@ int main(int argc, char *argv[])
 				}
 			} else {
 				TRACE("SIGUSR1 event rec");
-				ncs_sel_obj_rmv_ind(immd_cb->usr1_sel_obj, true, true);
-				ncs_sel_obj_destroy(immd_cb->usr1_sel_obj);
+				ncs_sel_obj_rmv_ind(&immd_cb->usr1_sel_obj, true, true);
+				ncs_sel_obj_destroy(&immd_cb->usr1_sel_obj);
 
 				if (immd_amf_init(immd_cb) != NCSCC_RC_SUCCESS)
 					break;

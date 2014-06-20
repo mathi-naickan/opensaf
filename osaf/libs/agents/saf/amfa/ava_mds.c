@@ -435,7 +435,7 @@ uint32_t ava_mds_svc_evt(AVA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 			m_NCS_LOCK(&cb->lock, NCS_LOCK_WRITE);
 			if (m_AVA_FLAG_IS_FD_VALID(cb))
 				/* write into the fd */
-				m_NCS_SEL_OBJ_IND(cb->sel_obj);
+				m_NCS_SEL_OBJ_IND(&cb->sel_obj);
 			m_NCS_UNLOCK(&cb->lock, NCS_LOCK_WRITE);
 			break;
 

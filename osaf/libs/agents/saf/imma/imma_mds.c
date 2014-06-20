@@ -418,7 +418,7 @@ static uint32_t imma_mds_svc_evt(IMMA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_e
 			cb->is_immnd_up = true;
 			cb->immnd_mds_dest = svc_evt->i_dest;
 			if (cb->immnd_sync_awaited == true)
-				m_NCS_SEL_OBJ_IND(cb->immnd_sync_sel);
+				m_NCS_SEL_OBJ_IND(&cb->immnd_sync_sel);
 			m_NCS_UNLOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);/*special sync lock*/
 
 			if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE)!=NCSCC_RC_SUCCESS){

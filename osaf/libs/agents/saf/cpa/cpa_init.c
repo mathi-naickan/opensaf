@@ -106,7 +106,7 @@ void cpa_sync_with_cpnd(CPA_CB *cb)
 	m_NCS_LOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
 
 	cb->cpnd_sync_awaited = false;
-	m_NCS_SEL_OBJ_DESTROY(cb->cpnd_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&cb->cpnd_sync_sel);
 
 	m_NCS_UNLOCK(&cb->cpnd_sync_lock, NCS_LOCK_WRITE);
 	return;

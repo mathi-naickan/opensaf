@@ -348,7 +348,7 @@ static NCS_SEL_OBJ term_sel_obj; /* Selection object for TERM signal events */
 
 // symbols from ncs_osprm.h, don't pull in that file here!
 extern uint32_t ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj);
-extern uint32_t ncs_sel_obj_ind(NCS_SEL_OBJ i_ind_obj);
+extern uint32_t ncs_sel_obj_ind(NCS_SEL_OBJ *i_ind_obj);
 
 /**
  * TERM signal handler
@@ -356,7 +356,7 @@ extern uint32_t ncs_sel_obj_ind(NCS_SEL_OBJ i_ind_obj);
  */
 static void sigterm_handler(int sig)
 {
-	ncs_sel_obj_ind(term_sel_obj);
+	ncs_sel_obj_ind(&term_sel_obj);
 	signal(SIGTERM, SIG_IGN);
 }
 
