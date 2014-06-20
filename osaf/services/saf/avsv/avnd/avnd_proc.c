@@ -140,7 +140,7 @@ const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX] = {
  */
 static void sigterm_handler(int sig)
 {
-	ncs_sel_obj_ind(term_sel_obj);
+	ncs_sel_obj_ind(&term_sel_obj);
 	signal(SIGTERM, SIG_IGN);
 }
 
@@ -220,7 +220,7 @@ void avnd_main_process(void)
 		}
 
 		if (fds[FD_TERM].revents & POLLIN) {
-			ncs_sel_obj_rmv_ind(term_sel_obj, true, true);
+			ncs_sel_obj_rmv_ind(&term_sel_obj, true, true);
 			avnd_sigterm_handler();
 		}
 

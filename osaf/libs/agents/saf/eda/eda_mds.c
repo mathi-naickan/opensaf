@@ -961,7 +961,7 @@ static uint32_t eda_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info)
 			eda_cb->eds_intf.eds_up_publish = true;
 
 			if (eda_cb->eds_sync_awaited == true) {
-				m_NCS_SEL_OBJ_IND(eda_cb->eds_sync_sel);
+				m_NCS_SEL_OBJ_IND(&eda_cb->eds_sync_sel);
 			}
 			m_NCS_UNLOCK(&eda_cb->eds_sync_lock, NCS_LOCK_WRITE);
 			break;
@@ -1539,7 +1539,7 @@ void eda_sync_with_eds(EDA_CB *cb)
 	m_NCS_LOCK(&cb->eds_sync_lock, NCS_LOCK_WRITE);
 
 	cb->eds_sync_awaited = false;
-	m_NCS_SEL_OBJ_DESTROY(cb->eds_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&cb->eds_sync_sel);
 
 	m_NCS_UNLOCK(&cb->eds_sync_lock, NCS_LOCK_WRITE);
 	return;

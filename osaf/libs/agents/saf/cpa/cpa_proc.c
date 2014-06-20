@@ -693,7 +693,7 @@ static void cpa_proc_active_ckpt_info_bcast(CPA_CB *cb, CPA_EVT *evt)
 		/*Indicate the Waiting CPA API therad & wake up */
 		gc_node->is_active_bcast_came = true;
 		if (gc_node->cpd_active_sync_awaited) {
-			m_NCS_SEL_OBJ_IND(gc_node->cpd_active_sync_sel);
+			m_NCS_SEL_OBJ_IND(&gc_node->cpd_active_sync_sel);
 		}
 		m_NCS_UNLOCK(&gc_node->cpd_active_sync_lock, NCS_LOCK_WRITE);
 	}
@@ -1342,7 +1342,7 @@ void cpa_sync_with_cpd_for_active_replica_set(CPA_GLOBAL_CKPT_NODE *gc_node)
 	/* Destroy the sync - object */
 	m_NCS_LOCK(&gc_node->cpd_active_sync_lock, NCS_LOCK_WRITE);
 	gc_node->cpd_active_sync_awaited = false;
-	m_NCS_SEL_OBJ_DESTROY(gc_node->cpd_active_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&gc_node->cpd_active_sync_sel);
 	m_NCS_UNLOCK(&gc_node->cpd_active_sync_lock, NCS_LOCK_WRITE);
 	TRACE_LEAVE();
 	return;

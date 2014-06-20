@@ -385,7 +385,7 @@ static uint32_t ntfa_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info)
 			ntfa_cb.ntfs_up = 1;
 			if (ntfa_cb.ntfs_sync_awaited) {
 				/* signal waiting thread */
-				m_NCS_SEL_OBJ_IND(ntfa_cb.ntfs_sync_sel);
+				m_NCS_SEL_OBJ_IND(&ntfa_cb.ntfs_sync_sel);
 			}
 			pthread_mutex_unlock(&ntfa_cb.cb_lock);
 			break;

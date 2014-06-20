@@ -677,7 +677,7 @@ static uint32_t gla_mds_svc_evt(GLA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt
 			m_NCS_LOCK(&cb->glnd_sync_lock, NCS_LOCK_WRITE);
 
 			if (cb->glnd_sync_awaited == true) {
-				m_NCS_SEL_OBJ_IND(cb->glnd_sync_sel);
+				m_NCS_SEL_OBJ_IND(&cb->glnd_sync_sel);
 			}
 
 			m_NCS_UNLOCK(&cb->glnd_sync_lock, NCS_LOCK_WRITE);

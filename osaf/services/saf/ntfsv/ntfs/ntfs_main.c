@@ -140,7 +140,7 @@ static void sigusr1_handler(int sig)
 {
 	(void) sig;
 	signal(SIGUSR1, SIG_IGN);
-	ncs_sel_obj_ind(usr1_sel_obj);
+	ncs_sel_obj_ind(&usr1_sel_obj);
 	TRACE("Got USR1 signal");
 }
 
@@ -151,7 +151,7 @@ static void sigusr1_handler(int sig)
  */
 static void sigterm_handler(int sig)
 {
-	ncs_sel_obj_ind(term_sel_obj);
+	ncs_sel_obj_ind(&term_sel_obj);
 	signal(SIGTERM, SIG_IGN);
 }
 
@@ -344,8 +344,8 @@ int main(int argc, char *argv[])
 			} else {
 
 				TRACE("SIGUSR1 event rec");
-				ncs_sel_obj_rmv_ind(usr1_sel_obj, true, true);
-				ncs_sel_obj_destroy(usr1_sel_obj);
+				ncs_sel_obj_rmv_ind(&usr1_sel_obj, true, true);
+				ncs_sel_obj_destroy(&usr1_sel_obj);
 
 				if (ntfs_amf_init() != SA_AIS_OK)
 					break;

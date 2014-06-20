@@ -84,7 +84,7 @@ static void usr1_sig_handler(int sig)
 {
 	/*signal(SIGUSR1, SIG_IGN); */
 	if (smfd_cb->amf_hdl == 0)
-		ncs_sel_obj_ind(smfd_cb->usr1_sel_obj);
+		ncs_sel_obj_ind(&smfd_cb->usr1_sel_obj);
 }
 
 void smfd_cb_lock()

@@ -70,7 +70,7 @@ static void sigusr1_handler(int sig)
 {
 	(void)sig;
 	signal(SIGUSR1, SIG_IGN);
-	ncs_sel_obj_ind(usr1_sel_obj);
+	ncs_sel_obj_ind(&usr1_sel_obj);
 }
 
 /**
@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
 			}
 			} else {
 				TRACE("SIGUSR1 event rec");
-				ncs_sel_obj_destroy(usr1_sel_obj);
+				ncs_sel_obj_destroy(&usr1_sel_obj);
 				if (fm_amf_init(&fm_cb->fm_amf_cb) != NCSCC_RC_SUCCESS)
 					goto done;
 				fds[FD_AMF].fd = fm_cb->fm_amf_cb.amf_fd;

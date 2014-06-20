@@ -853,7 +853,7 @@ uint32_t mds_svc_tbl_cleanup(void)
 					/* Destroy selection object */
 					/* m_NCS_SEL_OBJ_DESTROY(temp_disc_queue->sel_obj);  */
 					/* We raise the selection object, instead of the destroy */
-					m_NCS_SEL_OBJ_IND(temp_disc_queue->sel_obj);
+					m_NCS_SEL_OBJ_IND(&temp_disc_queue->sel_obj);
 
 					/* Free queued request */
 					m_MMGR_FREE_DISC_QUEUE(temp_disc_queue);
@@ -881,7 +881,7 @@ uint32_t mds_svc_tbl_cleanup(void)
 		while (q_hdr != NULL) {
 			prev_mem = q_hdr;
 			q_hdr = q_hdr->next_send;
-			m_NCS_SEL_OBJ_IND(prev_mem->sel_obj);
+			m_NCS_SEL_OBJ_IND(&prev_mem->sel_obj);
 			m_MMGR_FREE_SYNC_SEND_QUEUE(prev_mem);
 		}
 		svc_info->sync_send_queue = NULL;
@@ -1038,7 +1038,7 @@ uint32_t mds_subtn_tbl_del(MDS_SVC_HDL svc_hdl, uint32_t subscr_svc_id)
 					/* Destroy selection object */
 					/* m_NCS_SEL_OBJ_DESTROY(temp_disc_queue->sel_obj);  */
 					/* We raise the selection object, instead of the destroy */
-					m_NCS_SEL_OBJ_IND(temp_disc_queue->sel_obj);
+					m_NCS_SEL_OBJ_IND(&temp_disc_queue->sel_obj);
 
 					/* Free queued request */
 					m_MMGR_FREE_DISC_QUEUE(temp_disc_queue);

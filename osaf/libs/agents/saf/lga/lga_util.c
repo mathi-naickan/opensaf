@@ -51,7 +51,7 @@ static unsigned int lga_create(void)
 	pthread_mutex_unlock(&lga_cb.cb_lock);
 
 	/* No longer needed */
-	m_NCS_SEL_OBJ_DESTROY(lga_cb.lgs_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&lga_cb.lgs_sync_sel);
 
 	return rc;
 

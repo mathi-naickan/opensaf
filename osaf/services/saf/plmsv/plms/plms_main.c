@@ -72,7 +72,7 @@ static void sigusr1_handler(int sig)
 {
         (void)sig;
         signal(SIGUSR1, SIG_IGN);
-        ncs_sel_obj_ind(plms_cb->usr1_sel_obj);
+        ncs_sel_obj_ind(&plms_cb->usr1_sel_obj);
 }
 
 static void usr2_sig_handler(int sig)
@@ -470,8 +470,8 @@ int main(int argc, char *argv[])
 		                }
 			} else {
 				TRACE("SIGUSR1 event rec");
-				ncs_sel_obj_rmv_ind(plms_cb->usr1_sel_obj, true,true);
-				ncs_sel_obj_destroy(plms_cb->usr1_sel_obj);
+				ncs_sel_obj_rmv_ind(&plms_cb->usr1_sel_obj, true,true);
+				ncs_sel_obj_destroy(&plms_cb->usr1_sel_obj);
 				
 				if (plms_amf_register() != NCSCC_RC_SUCCESS)
 					break;

@@ -80,7 +80,7 @@ static void imma_sync_with_immnd(IMMA_CB *cb)
 	m_NCS_LOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);
 
 	cb->immnd_sync_awaited = false;
-	m_NCS_SEL_OBJ_DESTROY(cb->immnd_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&cb->immnd_sync_sel);
 
 	m_NCS_UNLOCK(&cb->immnd_sync_lock, NCS_LOCK_WRITE);
 

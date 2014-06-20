@@ -551,7 +551,7 @@ static uint32_t mqa_mds_svc_evt(MQA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt
 				cb->is_mqnd_up = true;
 
 				if (cb->mqnd_sync_awaited == true) {
-					m_NCS_SEL_OBJ_IND(cb->mqnd_sync_sel);
+					m_NCS_SEL_OBJ_IND(&cb->mqnd_sync_sel);
 				}
 
 				m_NCS_UNLOCK(&cb->mqnd_sync_lock, NCS_LOCK_WRITE);
@@ -577,7 +577,7 @@ static uint32_t mqa_mds_svc_evt(MQA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt
 			cb->is_mqd_up = true;
 
 			if (cb->mqd_sync_awaited == true) {
-				m_NCS_SEL_OBJ_IND(cb->mqd_sync_sel);
+				m_NCS_SEL_OBJ_IND(&cb->mqd_sync_sel);
 			}
 			TRACE_1("MQD is up");
 

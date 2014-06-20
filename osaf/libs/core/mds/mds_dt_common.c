@@ -816,7 +816,7 @@ uint32_t mds_tmr_mailbox_processing(void)
 		   destroying thread performs the full destruction. This messagae is merely to 
 		   wake up the MDTM thread so that it may process the destroy-command.  
 		   We need to acknowledge that this event has been processed */
-		m_NCS_SEL_OBJ_IND(mbx_evt_info->info.destroy_ack_obj);
+		m_NCS_SEL_OBJ_IND(&mbx_evt_info->info.destroy_ack_obj);
 		status = NCSCC_RC_DISABLED;	/* To indicate that thread should destroy itself */
 	} else {
 		/* Event-type not set. BUG */

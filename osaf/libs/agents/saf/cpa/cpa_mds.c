@@ -456,7 +456,7 @@ static uint32_t cpa_mds_svc_evt(CPA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_evt
 				cb->is_cpnd_up = true;
 				cb->cpnd_mds_dest = svc_evt->i_dest;
 				if (cb->cpnd_sync_awaited == true) {
-					m_NCS_SEL_OBJ_IND(cb->cpnd_sync_sel);
+					m_NCS_SEL_OBJ_IND(&cb->cpnd_sync_sel);
 				}
 		
            /* Get the First Node */

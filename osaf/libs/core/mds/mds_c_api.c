@@ -982,7 +982,7 @@ if (PEER_SVC_ID_LIST != NULL)
 	while (q_hdr != NULL) {
 		prev_mem = q_hdr;
 		q_hdr = q_hdr->next_send;
-		m_NCS_SEL_OBJ_IND(prev_mem->sel_obj);
+		m_NCS_SEL_OBJ_IND(&prev_mem->sel_obj);
 		m_MMGR_FREE_SYNC_SEND_QUEUE(prev_mem);
 	}
 	svc_cb->sync_send_queue = NULL;
@@ -3292,7 +3292,7 @@ uint32_t mds_mcm_user_event_callback(MDS_SVC_HDL local_svc_hdl, PW_ENV_ID pwe_id
 					if (curr_queue_element->vdest == m_VDEST_ID_FOR_ADEST_ENTRY) {	/* Blocked send is to send to ADEST */
 
 						if (adest == curr_queue_element->adest) {	/* Raise selection object for this entry as we got up from that adest */
-							m_NCS_SEL_OBJ_IND(curr_queue_element->sel_obj);
+							m_NCS_SEL_OBJ_IND(&curr_queue_element->sel_obj);
 							m_MDS_LOG_INFO
 							    ("MCM_API : event_callback : Raising SEL_OBJ for Send to ADEST <0x%08x, %u>",
 							     curr_queue_element->vdest,
@@ -3304,7 +3304,7 @@ uint32_t mds_mcm_user_event_callback(MDS_SVC_HDL local_svc_hdl, PW_ENV_ID pwe_id
 				} else {	/* We got up for VDEST so check if any send to svc on this VDEST is remaining */
 
 					if (curr_queue_element->adest == 0 && curr_queue_element->vdest == vdest_id && event_type == NCSMDS_UP) {	/* Blocked send is send to VDEST and we got atleast one ACTIVE */
-						m_NCS_SEL_OBJ_IND(curr_queue_element->sel_obj);
+						m_NCS_SEL_OBJ_IND(&curr_queue_element->sel_obj);
 						m_MDS_LOG_INFO
 						    ("MCM_API : event_callback : Raising SEL_OBJ for Send to VDEST id = %d on ADEST <0x%08x, %u>",
 						     curr_queue_element->vdest,
@@ -3506,7 +3506,7 @@ uint32_t mds_mcm_subscription_tmr_expiry(MDS_SVC_HDL svc_hdl, MDS_SVC_ID sub_svc
 	}
 
 	if (tmp_await_active_queue->next_msg == NULL) {
-		m_NCS_SEL_OBJ_IND(tmp_await_active_queue->sel_obj);
+		m_NCS_SEL_OBJ_IND(&tmp_await_active_queue->sel_obj);
 		m_MDS_LOG_DBG("MCM_API : Leaving : S : mds_mcm_subscription_tmr_expiry");
 		return NCSCC_RC_SUCCESS;
 	}
@@ -3516,7 +3516,7 @@ uint32_t mds_mcm_subscription_tmr_expiry(MDS_SVC_HDL svc_hdl, MDS_SVC_ID sub_svc
 		tmp_await_active_queue = tmp_await_active_queue->next_msg;
 
 		/* Raise selection object */
-		m_NCS_SEL_OBJ_IND(bk_ptr->sel_obj);
+		m_NCS_SEL_OBJ_IND(&bk_ptr->sel_obj);
 		/* Memory for this will be get freed by awaiting request */
 
 	}

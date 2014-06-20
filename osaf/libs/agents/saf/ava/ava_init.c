@@ -201,7 +201,7 @@ uint32_t ava_create(NCS_LIB_CREATE *create_info)
 	m_NCS_UNLOCK(&cb->lock, NCS_LOCK_WRITE);
 
 	/* This sel obj is no more used */
-	m_NCS_SEL_OBJ_DESTROY(cb->sel_obj);
+	m_NCS_SEL_OBJ_DESTROY(&cb->sel_obj);
 
 	/* everything went off well.. store the cb hdl in the global variable */
 	gl_ava_hdl = cb->cb_hdl;

@@ -117,7 +117,7 @@ void gla_sync_with_glnd(GLA_CB *cb)
 	m_NCS_LOCK(&cb->glnd_sync_lock, NCS_LOCK_WRITE);
 
 	cb->glnd_sync_awaited = false;
-	m_NCS_SEL_OBJ_DESTROY(cb->glnd_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&cb->glnd_sync_sel);
 
 	m_NCS_UNLOCK(&cb->glnd_sync_lock, NCS_LOCK_WRITE);
 

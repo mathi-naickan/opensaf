@@ -274,7 +274,7 @@ static uint32_t plma_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *svc_evt)
 			plma_cb->plms_mdest_id = svc_evt->i_dest;
 			plma_cb->plms_svc_up = true;
 			if (plma_cb->plms_sync_awaited == true) {
-				m_NCS_SEL_OBJ_IND(plma_cb->sel_obj);
+				m_NCS_SEL_OBJ_IND(&plma_cb->sel_obj);
 			}
                         m_NCS_UNLOCK(&plma_cb->cb_lock, NCS_LOCK_WRITE);
 			break;
@@ -358,7 +358,7 @@ void plma_sync_with_plms()
 	m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
 	cb->plms_sync_awaited = false;
-	m_NCS_SEL_OBJ_DESTROY(cb->sel_obj);
+	m_NCS_SEL_OBJ_DESTROY(&cb->sel_obj);
 
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 

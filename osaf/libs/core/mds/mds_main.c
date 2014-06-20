@@ -308,7 +308,7 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 		/* Post a dummy message to MDS thread to guarantee that it
 		   wakes up (and thereby sees the destroy_ind) */
 		if (mds_destroy_event(destroy_ack_obj) == NCSCC_RC_FAILURE) {
-			m_NCS_SEL_OBJ_DESTROY(destroy_ack_obj);
+			m_NCS_SEL_OBJ_DESTROY(&destroy_ack_obj);
 			return NCSCC_RC_FAILURE;
 		}
 		/* Wait for indication from MDS thread that it is ok to kill it */
@@ -329,7 +329,7 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 		   destruction. Since we will be destroying the MDS-thread, the following 
 		   selection-object can no longer be accessed. Hence, it is safe and correct 
 		   to destroy it now */
-		m_NCS_SEL_OBJ_DESTROY(destroy_ack_obj);
+		m_NCS_SEL_OBJ_DESTROY(&destroy_ack_obj);
 		memset(&destroy_ack_obj, 0, sizeof(destroy_ack_obj));	/* Destroy info */
 
 		/* Sanity check */

@@ -242,7 +242,7 @@ static bool sysfTmrExpiry(SYSF_TMR_PAT_NODE *tmp)
 
 	if (tmr_destroying == true) {
 		/* Raise An indication */
-		m_NCS_SEL_OBJ_IND(tmr_destroy_syn_obj);
+		m_NCS_SEL_OBJ_IND(&tmr_destroy_syn_obj);
 
 		/*If thread canceled here, It had no effect on timer thread destroy */
 		ncslpg_give(&gl_tcb.persist, 0);
@@ -419,7 +419,7 @@ static uint32_t ncs_tmr_wait(void)
 			/* if select returned because of indication on sel_obj from sysfTmrDestroy */
 			if (tmr_destroying == true) {
 				/* Raise An indication */
-				m_NCS_SEL_OBJ_IND(tmr_destroy_syn_obj);
+				m_NCS_SEL_OBJ_IND(&tmr_destroy_syn_obj);
 				m_NCS_UNLOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);
 				return NCSCC_RC_SUCCESS;
 			}
@@ -427,7 +427,7 @@ static uint32_t ncs_tmr_wait(void)
 			gl_tcb.msg_count--;
 
 			if (gl_tcb.msg_count == 0) {
-				inds_rmvd = m_NCS_SEL_OBJ_RMV_IND(gl_tcb.sel_obj, true, true);
+				inds_rmvd = m_NCS_SEL_OBJ_RMV_IND(&gl_tcb.sel_obj, true, true);
 				if (inds_rmvd <= 0) {
 					if (inds_rmvd != -1) {
 						/* The object has not been destroyed and it has no indication
@@ -520,14 +520,14 @@ bool sysfTmrCreate(void)
 			      (char *)"OSAF_TMR",
 			      prio_val, policy, NCS_TMR_STACKSIZE, &gl_tcb.p_tsk_hdl) != NCSCC_RC_SUCCESS) {
 		ncs_patricia_tree_destroy(&gl_tcb.tmr_pat_tree);
-		m_NCS_SEL_OBJ_DESTROY(gl_tcb.sel_obj);
+		m_NCS_SEL_OBJ_DESTROY(&gl_tcb.sel_obj);
 		return false;
 	}
 
 	if (m_NCS_TASK_START(gl_tcb.p_tsk_hdl) != NCSCC_RC_SUCCESS) {
 		m_NCS_TASK_RELEASE(gl_tcb.p_tsk_hdl);
 		ncs_patricia_tree_destroy(&gl_tcb.tmr_pat_tree);
-		m_NCS_SEL_OBJ_DESTROY(gl_tcb.sel_obj);
+		m_NCS_SEL_OBJ_DESTROY(&gl_tcb.sel_obj);
 		return false;
 	}
 	return true;
@@ -562,7 +562,7 @@ bool sysfTmrDestroy(void)
 
 	tmr_destroying = true;
 
-	m_NCS_SEL_OBJ_IND(gl_tcb.sel_obj);
+	m_NCS_SEL_OBJ_IND(&gl_tcb.sel_obj);
 
 	/* Unlock the lock */
 	m_NCS_UNLOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);	/* critical region END */
@@ -583,7 +583,7 @@ bool sysfTmrDestroy(void)
 	}
 
 	ncs_patricia_tree_destroy(&gl_tcb.tmr_pat_tree);
-	m_NCS_SEL_OBJ_DESTROY(gl_tcb.sel_obj);
+	m_NCS_SEL_OBJ_DESTROY(&gl_tcb.sel_obj);
 
 	/* Stop the dedicated thread that runs out of ncs_tmr_wait() */
 
@@ -591,7 +591,7 @@ bool sysfTmrDestroy(void)
 
 	tmr_destroying = false;
 
-	m_NCS_SEL_OBJ_DESTROY(tmr_destroy_syn_obj);
+	m_NCS_SEL_OBJ_DESTROY(&tmr_destroy_syn_obj);
 
 	m_NCS_UNLOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);	/* critical region END */
 
@@ -736,7 +736,7 @@ tmr_t ncs_tmr_start(tmr_t tid, uint32_t tmrDelay,	/* timer period in number of 1
 	if (gl_tcb.msg_count == 0) {
 		/* There are no messages queued, we shall raise an indication
 		   on the "sel_obj".  */
-		if (m_NCS_SEL_OBJ_IND(gl_tcb.sel_obj) != NCSCC_RC_SUCCESS) {
+		if (m_NCS_SEL_OBJ_IND(&gl_tcb.sel_obj) != NCSCC_RC_SUCCESS) {
 			/* We would never reach here! */
 			m_NCS_UNLOCK(&gl_tcb.safe.enter_lock, NCS_LOCK_WRITE);
 			m_LEAP_DBG_SINK_VOID;

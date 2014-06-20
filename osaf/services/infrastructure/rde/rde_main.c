@@ -72,7 +72,7 @@ static void sigusr1_handler(int sig)
 {
 	(void)sig;
 	signal(SIGUSR1, SIG_IGN);
-	ncs_sel_obj_ind(usr1_sel_obj);
+	ncs_sel_obj_ind(&usr1_sel_obj);
 }
 
 uint32_t rde_set_role(PCS_RDA_ROLE role)
@@ -406,7 +406,7 @@ int main(int argc, char *argv[])
 				}
 			} else {
 				TRACE("SIGUSR1 event rec");
-				ncs_sel_obj_destroy(usr1_sel_obj);
+				ncs_sel_obj_destroy(&usr1_sel_obj);
 				
 				if (rde_amf_init(&rde_cb->rde_amf_cb) != NCSCC_RC_SUCCESS)
 					goto done;

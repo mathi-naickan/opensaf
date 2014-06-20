@@ -75,7 +75,7 @@ static unsigned int clma_create(void)
 	pthread_mutex_unlock(&clma_cb.cb_lock);
 
 	/* No longer needed */
-	m_NCS_SEL_OBJ_DESTROY(clma_cb.clms_sync_sel);
+	m_NCS_SEL_OBJ_DESTROY(&clma_cb.clms_sync_sel);
 
 	return rc;
 

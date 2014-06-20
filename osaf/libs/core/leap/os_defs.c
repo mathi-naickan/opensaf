@@ -1110,21 +1110,22 @@ uint32_t ncs_sel_obj_create(NCS_SEL_OBJ *o_sel_obj)
 	flags = fcntl(o_sel_obj->raise_obj, F_GETFL, 0);
 	if (fcntl(o_sel_obj->raise_obj, F_SETFL, (flags | O_NONBLOCK)) == -1) {
 		syslog(LOG_ERR, "%s: fcntl failed - %s", __FUNCTION__, strerror(errno));
-		(void) ncs_sel_obj_destroy(*o_sel_obj);
+		(void) ncs_sel_obj_destroy(o_sel_obj);
 		return NCSCC_RC_FAILURE;
 	}
 
 	return NCSCC_RC_SUCCESS;
 }
 
-uint32_t ncs_sel_obj_destroy(NCS_SEL_OBJ i_ind_obj)
+
+uint32_t ncs_sel_obj_destroy(NCS_SEL_OBJ *i_ind_obj)
 {
-	shutdown(i_ind_obj.raise_obj, SHUT_RDWR);
-	close(i_ind_obj.raise_obj);
-	shutdown(i_ind_obj.rmv_obj, SHUT_RDWR);
-	close(i_ind_obj.rmv_obj);
+	ncs_sel_obj_raise_operation_shut(i_ind_obj);
+	ncs_sel_obj_rmv_operation_shut(i_ind_obj);
+
 	return NCSCC_RC_SUCCESS;
 }
+
 
 uint32_t ncs_sel_obj_rmv_operation_shut(NCS_SEL_OBJ *i_ind_obj)
 {
@@ -1159,13 +1160,21 @@ uint32_t ncs_sel_obj_raise_operation_shut(NCS_SEL_OBJ *i_ind_obj)
 	return NCSCC_RC_SUCCESS;
 }
 
-uint32_t ncs_sel_obj_ind(NCS_SEL_OBJ i_ind_obj)
+uint32_t ncs_sel_obj_ind(NCS_SEL_OBJ *i_ind_obj)
 {
 	int rc;
 
+	if (i_ind_obj->raise_obj < 0) {
+		/* Very unlikely, still avoid spamming and log only once */ 
+		if (i_ind_obj->raise_obj == -1)
+			syslog(LOG_ERR, "%s: FAILED", __FUNCTION__);
+		i_ind_obj->raise_obj = -2;
+		return NCSCC_RC_FAILURE;
+	}
+
 retry:
 	/* The following call can block, in such a case a failure is returned */
-	if ((rc = write(i_ind_obj.raise_obj, "A", 1)) != 1) {
+	if ((rc = write(i_ind_obj->raise_obj, "A", 1)) != 1) {
 		if (rc == -1) {
 			if (errno == EINTR)
 				goto retry;
@@ -1179,7 +1188,7 @@ retry:
 	return NCSCC_RC_SUCCESS;
 }
 
-int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, bool nonblock, bool one_at_a_time)
+int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ *i_ind_obj, bool nonblock, bool one_at_a_time)
 {
 	char tmp[MAX_INDS_AT_A_TIME];
 	int ind_count, tot_inds_rmvd;
@@ -1189,6 +1198,15 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, bool nonblock, bool one_at_a_time
 	tot_inds_rmvd = 0;
 	num_at_a_time = (one_at_a_time ? 1 : MAX_INDS_AT_A_TIME);
 
+	if (i_ind_obj->rmv_obj < 0) {
+		/* Very unlikely, still avoid spamming and log only once */ 
+		if (i_ind_obj->rmv_obj == -1)
+			syslog(LOG_ERR, "%s: FAILED", __FUNCTION__);
+		i_ind_obj->rmv_obj = -2;
+		return NCSCC_RC_FAILURE;
+	}
+
+	
 	/* If one_at_a_time == false, remove MAX_INDS_AT_A_TIME in a 
 	 * non-blocking way and count the number of indications 
 	 * so removed using "tot_inds_rmvd"
@@ -1196,18 +1214,18 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, bool nonblock, bool one_at_a_time
 	 * If one_at_a_time == true,  then quit the infinite loop 
 	 * after removing at most 1 indication.
 	 */
-	flags = fcntl(i_ind_obj.raise_obj, F_GETFL, 0);
+	flags = fcntl(i_ind_obj->raise_obj, F_GETFL, 0);
 	if ((flags & O_NONBLOCK) != O_NONBLOCK) {
-		fcntl(i_ind_obj.raise_obj, F_SETFL, (flags | O_NONBLOCK));
+		fcntl(i_ind_obj->raise_obj, F_SETFL, (flags | O_NONBLOCK));
 		raise_non_block_flag_set = true;
 	}
-	flags = fcntl(i_ind_obj.rmv_obj, F_GETFL, 0);
+	flags = fcntl(i_ind_obj->rmv_obj, F_GETFL, 0);
 	if ((flags & O_NONBLOCK) != O_NONBLOCK) {
-		fcntl(i_ind_obj.rmv_obj, F_SETFL, (flags | O_NONBLOCK));
+		fcntl(i_ind_obj->rmv_obj, F_SETFL, (flags | O_NONBLOCK));
 		rmv_non_block_flag_set = true;
 	}
 	for (;;) {
-		ind_count = recv(i_ind_obj.rmv_obj, &tmp, num_at_a_time, 0);
+		ind_count = recv(i_ind_obj->rmv_obj, &tmp, num_at_a_time, 0);
 
 		DIAG1("RMV_IND:ind_count in nonblock-recv = %d\n", ind_count);
 
@@ -1229,21 +1247,21 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, bool nonblock, bool one_at_a_time
 				continue;
 			else {
 				/* Unknown error. */
-				syslog(LOG_ERR, "%s: recv failed - %s", __FUNCTION__, strerror(errno));
-				return -1;
+				syslog(LOG_ERR, "%s: recv failed - %s,  raise_obj: %d  rmv_obj: %d", __FUNCTION__, strerror(errno), i_ind_obj->raise_obj, i_ind_obj->rmv_obj);
+				osaf_abort(ind_count);
 			}
 		}
 	}			/* End of infinite loop */
 
 	if (raise_non_block_flag_set == true) {
-		flags = fcntl(i_ind_obj.raise_obj, F_GETFL, 0);
+		flags = fcntl(i_ind_obj->raise_obj, F_GETFL, 0);
 		flags = flags & ~(O_NONBLOCK);
-		fcntl(i_ind_obj.raise_obj, F_SETFL, flags);	
+		fcntl(i_ind_obj->raise_obj, F_SETFL, flags);	
 	}
 	if (rmv_non_block_flag_set == true) {
-		flags = fcntl(i_ind_obj.rmv_obj, F_GETFL, 0);
+		flags = fcntl(i_ind_obj->rmv_obj, F_GETFL, 0);
 		flags = flags & ~(O_NONBLOCK);
-		fcntl(i_ind_obj.rmv_obj, F_SETFL, flags);	
+		fcntl(i_ind_obj->rmv_obj, F_SETFL, flags);	
 	}
 
 	/* Reaching here implies that all pending indications have been removed 
@@ -1269,7 +1287,7 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, bool nonblock, bool one_at_a_time
 	/* Case (c) described above */
 	for (;;) {
 		/* We now block on receive.  */
-		ind_count = recv(i_ind_obj.rmv_obj, &tmp, num_at_a_time, 0);
+		ind_count = recv(i_ind_obj->rmv_obj, &tmp, num_at_a_time, 0);
 		if (ind_count > 0) {
 			/* Some indication has arrived. */
 
@@ -1286,8 +1304,7 @@ int ncs_sel_obj_rmv_ind(NCS_SEL_OBJ i_ind_obj, bool nonblock, bool one_at_a_time
 			 * Close down and return error.
 			 * FIXME: TODO
 			 */
-			shutdown(i_ind_obj.rmv_obj, SHUT_RDWR);
-			close(i_ind_obj.rmv_obj);
+			ncs_sel_obj_rmv_operation_shut(i_ind_obj);
 			DIAG("RMV_IND2. Returning -1\n");
 			return -1;
 		}
