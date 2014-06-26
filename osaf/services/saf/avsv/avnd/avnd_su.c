@@ -1,4 +1,5 @@
 /*      -*- OpenSAF  -*-
+
  *
  * (C) Copyright 2008 The OpenSAF Foundation
  *
@@ -295,12 +296,20 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 				info->su_name.value, info->msg_act);
 		goto done;
 	}
+
 	if ((cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_INITIATED) ||
 			(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)) {
+		if ((su->is_ncs == true) &&
+			(info->msg_act == AVSV_SUSI_ACT_MOD) && 
+				(info->ha_state == SA_AMF_HA_ACTIVE)) {
+			LOG_NO("shutdown started, failover requested, escalate to forced shutdown");
+			avnd_last_step_clean(cb);
+		} else {
 			LOG_NO("Shutting started : Ignoring assignment for SU'%s'",
 						info->su_name.value);
-		goto done;
-        }
+			goto done;
+		}
+	}
 
 	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
