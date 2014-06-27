@@ -143,10 +143,11 @@ Some implementation defined configuration can be done for the LOG service.
 Two ways of handling configuration is supported.
 
 1. Configuration using a configuration object in IMM:
+----------------------------------------------------
 When the LOG service is started it looks for a configuration object of 
 OpenSafLogConfig class. If an object is found and is correct the parameters in the
 object will be used. The configuration file as described in section 2 will not
-be used. The parameters in the object corresponds with the parameters described
+be used except according to 3. below. The parameters in the object corresponds with the parameters described
 in section 2. All parameters has a default value that is defined in the class
 definition. By default an object of this class is created with the object name
 "logConfig=1,safApp=safLogService" and no other attributes are set,
@@ -194,6 +195,7 @@ Possible configurations are:
 2 Split file system
 
 2. Configuration using a configuration file with environment variables:
+----------------------------------------------------------------------
 This is the "old" way of handling configuration and is kept for backwards
 compatibility and is used if no IMM configuration object is found .
 The config file is typically:
@@ -247,6 +249,30 @@ LOG_MAX_APPLICATION_STREAMS
 The maximum number of application log streams that can be created.
 
 Don't forget the "export" keyword before the variable!
+
+3. Precedence, special case
+---------------------------
+If any of the following attributes contains its default value of 0 and a
+corresponding environment variable is defined according to 2. the environment
+variable will be used.
+
+Config object attribute will be replaced by value of environment variable
+saLogStreamSystemHighLimit  0                       LOG_STREAM_SYSTEM_HIGH_LIMIT
+saLogStreamSystemLowLimit   0                       LOG_STREAM_SYSTEM_LOW_LIMIT
+saLogAppHighLimit           0                       LOG_STREAM_APP_HIGH_LIMIT
+saLogAppLowLimit            0                       LOG_STREAM_APP_LOW_LIMIT
+
+The attributes in the configuration object is not changed to reflect this.
+The configuration is logged in the syslog (messages)
+Example:
+...osaflogd[409]: NO Log config sys: hi 50001 lo 5001, app: hi 50002 lo 5002
+
+If an environment variable is defined and the corresponding config object
+attribute is not 0 the environment variable will not be used and a warning is
+logged.
+Example:
+...WA Log Configuration object 'logConfig=1,safApp=safLogService' exists
+...WA Ignoring environment variable LOG_STREAM_SYSTEM_HIGH_LIMIT
 
 
 COMMAND LINE INTERFACE
