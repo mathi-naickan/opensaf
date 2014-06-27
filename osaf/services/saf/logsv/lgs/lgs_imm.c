@@ -1400,31 +1400,31 @@ static SaAisErrorT read_logsv_config_obj(const char *dn, lgs_conf_t *lgsConf) {
 		if (!strcmp(attribute->attrName, "logRootDirectory")) {
 			strncpy((char *) lgsConf->logRootDirectory, *((char **) value), PATH_MAX);
 			param_cnt++;
-			TRACE("logRootDirectory: %s", lgsConf->logRootDirectory);
+			TRACE("Conf obj; logRootDirectory: %s", lgsConf->logRootDirectory);
 		} else if (!strcmp(attribute->attrName, "logMaxLogrecsize")) {
 			lgsConf->logMaxLogrecsize = *((SaUint32T *) value);
 			param_cnt++;
-			TRACE("logMaxLogrecsize: %u", lgsConf->logMaxLogrecsize);
+			TRACE("Conf obj; logMaxLogrecsize: %u", lgsConf->logMaxLogrecsize);
 		} else if (!strcmp(attribute->attrName, "logStreamSystemHighLimit")) {
 			lgsConf->logStreamSystemHighLimit = *((SaUint32T *) value);
 			param_cnt++;
-			TRACE("logStreamSystemHighLimit: %u", lgsConf->logStreamSystemHighLimit);
+			TRACE("Conf obj; logStreamSystemHighLimit: %u", lgsConf->logStreamSystemHighLimit);
 		} else if (!strcmp(attribute->attrName, "logStreamSystemLowLimit")) {
 			lgsConf->logStreamSystemLowLimit = *((SaUint32T *) value);
 			param_cnt++;
-			TRACE("logStreamSystemLowLimit: %u", lgsConf->logStreamSystemLowLimit);
+			TRACE("Conf obj; logStreamSystemLowLimit: %u", lgsConf->logStreamSystemLowLimit);
 		} else if (!strcmp(attribute->attrName, "logStreamAppHighLimit")) {
 			lgsConf->logStreamAppHighLimit = *((SaUint32T *) value);
 			param_cnt++;
-			TRACE("logStreamAppHighLimit: %u", lgsConf->logStreamAppHighLimit);
+			TRACE("Conf obj; logStreamAppHighLimit: %u", lgsConf->logStreamAppHighLimit);
 		} else if (!strcmp(attribute->attrName, "logStreamAppLowLimit")) {
 			lgsConf->logStreamAppLowLimit = *((SaUint32T *) value);
 			param_cnt++;
-			TRACE("logStreamAppLowLimit: %u", lgsConf->logStreamAppLowLimit);
+			TRACE("Conf obj; logStreamAppLowLimit: %u", lgsConf->logStreamAppLowLimit);
 		} else if (!strcmp(attribute->attrName, "logMaxApplicationStreams")) {
 			lgsConf->logMaxApplicationStreams = *((SaUint32T *) value);
 			param_cnt++;
-			TRACE("logMaxApplicationStreams: %u", lgsConf->logMaxApplicationStreams);
+			TRACE("Conf obj; logMaxApplicationStreams: %u", lgsConf->logMaxApplicationStreams);
 		}
 	}
 
@@ -1607,9 +1607,11 @@ static void read_logsv_config_environ_var(lgs_conf_t *lgsConf) {
  @ return none
  */
 
-void check_environs_for_configattribs(void)
+static void check_environs_for_configattribs(lgs_conf_t *lgsConf)
 {
-
+	char *val_str;
+	unsigned long int val_uint;
+	
 	/* If environment variables are configured then, print a warning
 	 * message to syslog.
 	 */
@@ -1617,27 +1619,70 @@ void check_environs_for_configattribs(void)
 		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
 		LOG_WA("Ignoring environment variable LOGSV_MAX_LOGRECSIZE");
 	}
-	
-	if (getenv("LOG_STREAM_SYSTEM_HIGH_LIMIT") != NULL) {
-		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
-		LOG_WA("Ignoring environment variable LOG_STREAM_SYSTEM_HIGH_LIMIT");
+
+	/* Environment variables for limits are used if limits
+     * in configuration object is 0.
+     */
+	if ((val_str = getenv("LOG_STREAM_SYSTEM_HIGH_LIMIT")) != NULL) {
+		errno = 0;
+		val_uint = strtoul(val_str, NULL, 0);
+		if ((errno != 0) || (val_uint > UINT_MAX)) {
+			LOG_WA("Ignoring environment variable LOG_STREAM_SYSTEM_HIGH_LIMIT");
+			LOG_WA("Illegal value");
+		} else if ((lgsConf->logStreamSystemHighLimit == 0) &&
+				(lgsConf->logStreamSystemLowLimit < val_uint)) {
+			lgsConf->logStreamSystemHighLimit = val_uint;
+		} else {
+			LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+			LOG_WA("Ignoring environment variable LOG_STREAM_SYSTEM_HIGH_LIMIT");
+		}
 	}	
 
-	if (getenv("LOG_STREAM_SYSTEM_LOW_LIMIT") != NULL) {
-		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
-		LOG_WA("Ignoring environment variable LOG_STREAM_SYSTEM_LOW_LIMIT");
+	if ((val_str = getenv("LOG_STREAM_SYSTEM_LOW_LIMIT")) != NULL) {
+		errno = 0;
+		val_uint = strtoul(val_str, NULL, 0);
+		if ((errno != 0) || (val_uint > UINT_MAX)) {
+			LOG_WA("Ignoring environment variable LOG_STREAM_SYSTEM_LOW_LIMIT");
+			LOG_WA("Illegal value");
+		} else if ((lgsConf->logStreamSystemLowLimit == 0) &&
+				(lgsConf->logStreamSystemHighLimit > val_uint)) {
+				lgsConf->logStreamSystemLowLimit = val_uint;
+		} else {
+			LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+			LOG_WA("Ignoring environment variable LOG_STREAM_SYSTEM_LOW_LIMIT");
+		}
 	}
 	
-	if (getenv("LOG_STREAM_APP_HIGH_LIMIT") != NULL) {
-		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
-		LOG_WA("Ignoring environment variable LOG_STREAM_APP_HIGH_LIMIT");
+	if ((val_str = getenv("LOG_STREAM_APP_HIGH_LIMIT")) != NULL) {
+		errno = 0;
+		val_uint = strtoul(val_str, NULL, 0);
+		if ((errno != 0) || (val_uint > UINT_MAX)) {
+			LOG_WA("Ignoring environment variable LOG_STREAM_APP_HIGH_LIMIT");
+			LOG_WA("Illegal value");
+		} else if ((lgsConf->logStreamAppHighLimit == 0) &&
+				(lgsConf->logStreamAppLowLimit < val_uint)) {
+			lgsConf->logStreamAppHighLimit = val_uint;
+		} else {
+			LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+			LOG_WA("Ignoring environment variable LOG_STREAM_APP_HIGH_LIMIT");
+		}
 	}
 	
-	if (getenv("LOG_STREAM_APP_LOW_LIMIT") != NULL) {
-		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
-		LOG_WA("Ignoring environment variable LOG_STREAM_APP_LOW_LIMIT");
+	if ((val_str = getenv("LOG_STREAM_APP_LOW_LIMIT")) != NULL) {
+		errno = 0;
+		val_uint = strtoul(val_str, NULL, 0);
+		if ((errno != 0) || (val_uint > UINT_MAX)) {
+			LOG_WA("Ignoring environment variable LOG_STREAM_APP_LOW_LIMIT");
+			LOG_WA("Illegal value");
+		} else if ((lgsConf->logStreamAppLowLimit == 0) &&
+				(lgsConf->logStreamAppHighLimit > val_uint)) {
+			lgsConf->logStreamAppLowLimit = val_uint;
+		} else {
+			LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
+			LOG_WA("Ignoring environment variable LOG_STREAM_APP_LOW_LIMIT");
+		}
 	}
-	
+
 	if (getenv("LOG_MAX_APPLICATION_STREAMS") != NULL) {
 		LOG_WA("Log Configuration object '%s' exists", LGS_IMM_LOG_CONFIGURATION); 
 		LOG_WA("Ignoring environment variable LOG_MAX_APPLICATION_STREAMS");
@@ -1680,9 +1725,18 @@ const void *lgs_imm_logconf_get(lgs_logconfGet_t param, bool *noteflag)
 			/* LGS_IMM_LOG_CONFIGURATION object exists.
 			 * If environment variables exists, then ignore them
 			 * and log a message to syslog.
+			 * For mailbox limits environment variables are used if the
+			 * value in configuration object is 0
 			 */
-				check_environs_for_configattribs();
+			check_environs_for_configattribs(lgs_conf_p);
 		}
+		
+		/* Write configuration to syslog */
+		LOG_NO("Log config system: high %d low %d, application: high %d low %d",
+				lgs_conf->logStreamSystemHighLimit,
+				lgs_conf->logStreamSystemLowLimit,
+				lgs_conf->logStreamAppHighLimit,
+				lgs_conf->logStreamAppLowLimit);
 		
 		lgs_conf_p->logInitiated = true;
 	}
