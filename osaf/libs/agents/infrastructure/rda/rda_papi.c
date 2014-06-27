@@ -37,6 +37,7 @@
 #include <sched.h>
 #include "logtrace.h"
 #include "osaf_poll.h"
+#include "osaf_utility.h"
 
 /*
 ** Global data
@@ -112,6 +113,7 @@ static uint32_t rda_callback_task(RDA_CALLBACK_CB *rda_callback_cb)
 			rc = rda_callback_req(rda_callback_cb->sockfd);
 			if (rc != PCSRDA_RC_SUCCESS) {
 				rda_disconnect(rda_callback_cb->sockfd);
+				rda_callback_cb->sockfd = -1;
 				continue;
 			}
 
@@ -678,7 +680,10 @@ static uint32_t rda_read_msg(int sockfd, char *msg, int size)
 	 */
 	msg_size = recv(sockfd, msg, size, 0);
 	if (msg_size < 0) {
-		LOG_ER("recv: PCSRDA_RC_IPC_RECV_FAILED: rc=%d-%s\n", errno, strerror(errno));
+		if (errno != EINTR && errno != EWOULDBLOCK) {
+			LOG_ER("recv: PCSRDA_RC_IPC_RECV_FAILED: fd=%d  rc=%d-%s\n", sockfd, errno, strerror(errno));
+			osaf_abort(msg_size);
+		}
 		return PCSRDA_RC_IPC_RECV_FAILED;
 	}
 
