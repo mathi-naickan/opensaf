@@ -698,9 +698,6 @@ static SaAisErrorT ccb_completed_cb(SaImmOiHandleT immoi_handle,
 
 	TRACE_ENTER2("CCB ID %llu", ccb_id);
 
-	/* Standby AMFD should not process CCB completed callback. */
-	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
-		goto done;
 
 
 	/* "check that the sequence of change requests contained in the CCB is
@@ -709,6 +706,11 @@ static SaAisErrorT ccb_completed_cb(SaImmOiHandleT immoi_handle,
 
 	while ((opdata = ccbutil_getNextCcbOp(ccb_id, opdata)) != NULL) {
 		type = object_name_to_class_type(&opdata->objectName);
+
+		/* Standby AMFD should process CCB completed callback only for CCB_DELETE. */
+		if ((avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) &&
+				(opdata->operationType != CCBUTIL_DELETE))
+			continue;
 		if (ccb_completed_callback[type] == NULL) {
 			/* this can happen for malformed DNs */
 			LOG_ER("Class implementer for '%s' not found", opdata->objectName.value);
