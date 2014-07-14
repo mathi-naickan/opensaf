@@ -2072,7 +2072,8 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	}
 
 	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(comp->su) &&
-			m_AVND_SU_IS_PREINSTANTIABLE(comp->su)) {
+			m_AVND_SU_IS_PREINSTANTIABLE(comp->su) &&
+                        (avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED)) {
 		/* request director to orchestrate component failover */
 		rc = avnd_di_oper_send(cb, comp->su, SA_AMF_COMPONENT_FAILOVER);
 	}

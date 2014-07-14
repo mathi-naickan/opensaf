@@ -1324,6 +1324,42 @@ done:
 	return rc;
 }
 
+static void perform_pending_nodeswitchover(void)
+{
+	bool nodeswitchover = true;
+
+	/* Reverify if nodeswitchover is really pending */	
+	if ((avnd_cb->term_state != AVND_TERM_STATE_NODE_SWITCHOVER_STARTED) ||  
+			(avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED))
+		return; 
+
+	AVND_COMP *comp;
+	AVND_SU *su = avnd_cb->failed_su;
+	for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
+			comp;
+		comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+
+		if ((comp->pres == SA_AMF_PRESENCE_INSTANTIATING) || 
+				(comp->pres == SA_AMF_PRESENCE_TERMINATING) ||
+				(comp->pres == SA_AMF_PRESENCE_RESTARTING) ||
+				(comp->pres == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+			nodeswitchover= false;
+			break;
+		}
+	}
+
+
+	if (nodeswitchover == true) {
+		/* Now send nodeswitchover request to AMFD as cleanup of failed component is 
+		   completed in faulted SU.
+		 */
+
+		LOG_NO("Informing director of Nodeswitchover");
+		uint32_t rc = avnd_di_oper_send(avnd_cb, su, SA_AMF_NODE_SWITCHOVER);
+		osafassert(NCSCC_RC_SUCCESS == rc);
+	}
+}
+
 /****************************************************************************
   Name          : avnd_su_pres_fsm_run
  
@@ -1361,6 +1397,12 @@ uint32_t avnd_su_pres_fsm_run(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, AVND_SU
 	final_st = su->pres;
 
 	TRACE_1("Exited SU presence state FSM: New State = %u",final_st);
+
+	if ((cb->term_state == AVND_TERM_STATE_NODE_SWITCHOVER_STARTED) &&
+			(cb->oper_state == SA_AMF_OPERATIONAL_DISABLED)) { 
+		perform_pending_nodeswitchover();
+        }
+
 
 	/* process state change */
 	if (prv_st != final_st)
