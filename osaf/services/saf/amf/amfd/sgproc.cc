@@ -381,7 +381,73 @@ static uint32_t su_recover_from_fault(AVD_SU *su)
 	return rc;
 }
 
+/**
+ * @brief       Try to repair node by sending reboot message to node
+ *              director of the node.
+ *
+ * @param[in]   ptr to node. 
+ *
+ **/
 
+static void node_try_repair(AVD_AVND *node)
+{
+	TRACE_ENTER2("'%s'", node->name.value);
+
+	if (node->saAmfNodeAutoRepair) {
+		LOG_NO("Ordering reboot of '%s' as node fail/switch-over repair action",
+				node->name.value);
+		saflog(LOG_NOTICE, amfSvcUsrName,
+			"Ordering reboot of '%s' as node fail/switch-over repair action",
+			node->name.value);
+		avd_d2n_reboot_snd(node);
+	} else {
+		LOG_NO("NodeAutorepair disabled for '%s', no reboot ordered",
+				node->name.value);
+		saflog(LOG_NOTICE, amfSvcUsrName,
+			"NodeAutorepair disabled for '%s', NO reboot ordered",
+			node->name.value);
+
+	}
+	TRACE_LEAVE();
+}
+
+/**
+ * @brief       Performs node-switchover recovery. 
+ *
+ * @param[in]   ptr to failed su.
+ *
+ **/
+static void perform_nodeswitchover_recovery(AVD_AVND *node)
+{
+	bool node_reboot = true;
+	TRACE_ENTER2("'%s'", node->name.value);
+
+	AVD_SU *su = node->list_of_su;
+	for (;su != NULL; su = su->avnd_list_su_next) {
+		avd_su_readiness_state_set(su, SA_AMF_READINESS_OUT_OF_SERVICE);
+
+		if (su->list_of_susi == NULL)
+			continue;
+
+		if (su_recover_from_fault(su) == NCSCC_RC_FAILURE) {
+			LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, su->name.value);
+			goto done;
+		}
+
+		if (su->list_of_susi != NULL)
+			node_reboot = false;
+
+		if (avd_sg_app_su_inst_func(avd_cb, su->sg_of_su) == NCSCC_RC_FAILURE) {
+			LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, su->name.value);
+			goto done;
+		}
+	}
+
+	if (node_reboot == true)
+		node_try_repair(node);
+done:
+	TRACE_LEAVE();
+}
 /*****************************************************************************
  * Function: avd_su_oper_state_func
  *
@@ -546,80 +612,16 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 						break;
 					}
 				case SA_AMF_NODE_SWITCHOVER:
-					i_su = node->list_of_su;
-					while (i_su != NULL) {
-						avd_su_readiness_state_set(i_su, SA_AMF_READINESS_OUT_OF_SERVICE);
-						if (i_su->list_of_susi != AVD_SU_SI_REL_NULL) {
-							/* Delay Node reboot if:
-								a)Faulted SU has saAmfSUFailover set but 
-									other healthy SUs are present on node.
-								b)Only faulted SU exists on the node and its 
-									saAmfSUFailover is false.
-							 */
-							node_reboot_req = false;
-							if (((i_su == su) && (!i_su->saAmfSUFailover)) ||
-									((i_su != su) &&
-								 (i_su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED))) {
-
-								/* Since assignments exists call the SG FSM.*/
-								if (su_recover_from_fault(i_su) == NCSCC_RC_FAILURE) {
-									LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
-									goto done;
-								}
-							}
-						}
-
-						/* Verify the SG to check if any instantiations need
-						 * to be done for the SG on which this SU exists.
-						 */
-						if ((!su->saAmfSUFailover))
-							if (avd_sg_app_su_inst_func(cb, i_su->sg_of_su) == NCSCC_RC_FAILURE) {
-								LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, i_su->name.value);
-								goto done;
-							}
-
-						i_su = i_su->avnd_list_su_next;
-					}
-					break;
-				case AVSV_ERR_RCVR_SU_FAILOVER:
-					/* This is a case when node switchover and su failover are happening together.
-					   Reboot node only:
-					   a) After gracefully removing all the assignments (SUs with saAmfSUFailover set).
-					   b) After termination of all components in faulted SU and after performing its failover
-					   	as a single entity (saAmfSUFailover set). 
-					 */
-					if (su_recover_from_fault(su) == NCSCC_RC_FAILURE) {
-						LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, su->name.value);
-						goto done;
-					}
-					if (avd_sg_app_su_inst_func(cb, su->sg_of_su) == NCSCC_RC_FAILURE) {
-						LOG_ER("%s:%d %s", __FUNCTION__, __LINE__, su->name.value);
-						goto done;
-					}
-					for (i_su = node->list_of_su; i_su; i_su = i_su->avnd_list_su_next) {
-						if (i_su->list_of_susi != AVD_SU_SI_REL_NULL) {
-							node_reboot_req = false;
-							break;
-						}
-					}
+					perform_nodeswitchover_recovery(su->su_on_node);
+					goto done;
 					break;
 				default :
 					break;
 				}
 
-				if (node_reboot_req) {
-					if (node->saAmfNodeAutoRepair) {
-						saflog(LOG_NOTICE, amfSvcUsrName,
-								"Ordering reboot of '%s' as node fail/switch-over repair action",
-								node->name.value);
-						avd_d2n_reboot_snd(node);
-					} else {
-						saflog(LOG_NOTICE, amfSvcUsrName,
-								"NodeAutorepair disabled for '%s', NO reboot ordered",
-								node->name.value);
-						
-					}
-				}
+				if (node_reboot_req)
+					node_try_repair(node);
+
 			} else { /* if (n2d_msg->msg_info.n2d_opr_state.node_oper_state == SA_AMF_OPERATIONAL_DISABLED) */
 
 				if (su->list_of_susi != AVD_SU_SI_REL_NULL) {
@@ -1245,16 +1247,7 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		}
 		if (true == all_su_unassigned) {
 			/* All app su got unassigned, Safe to reboot the blade now. */
-			if (node->saAmfNodeAutoRepair) {
-				saflog(LOG_NOTICE, amfSvcUsrName,
-					"Ordering reboot of '%s' as node fail/switch-over repair action",
-					node->name.value);
-				avd_d2n_reboot_snd(node);
-			} else {
-				saflog(LOG_NOTICE, amfSvcUsrName,
-					"NodeAutorepair disabled for '%s', NO reboot ordered",
-					node->name.value);
-			}
+			node_try_repair(node);
 		}
 	}
 	/* Free the messages */

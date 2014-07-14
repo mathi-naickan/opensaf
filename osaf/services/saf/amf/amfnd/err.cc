@@ -814,7 +814,9 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 		m_AVND_SU_FAILED_SET(failed_su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
 	}
+
 	cb->term_state = AVND_TERM_STATE_NODE_SWITCHOVER_STARTED;
+	cb->failed_su = failed_su;
 
 	/* transition the su oper state to disabled */
 	m_AVND_SU_OPER_STATE_SET(failed_su, SA_AMF_OPERATIONAL_DISABLED);
@@ -825,11 +827,6 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 	if(SA_AMF_OPERATIONAL_DISABLED != cb->oper_state) {
 		/* transition the node oper state to disabled */
 		cb->oper_state = SA_AMF_OPERATIONAL_DISABLED;
-
-		/* inform avd */
-		rc = avnd_di_oper_send(cb, failed_su, SA_AMF_NODE_SWITCHOVER);
-		if (NCSCC_RC_SUCCESS != rc)
-			goto done;
 	}
 
 	/* We are now in the context of failover, forget the restart */
@@ -865,7 +862,6 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 				goto done;
 			}
 		}
-		avnd_su_si_del(cb, &failed_comp->su->name);
 	}
 	else {
 		/* terminate the failed comp */
