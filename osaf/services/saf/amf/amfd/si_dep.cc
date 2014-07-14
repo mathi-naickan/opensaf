@@ -2541,7 +2541,14 @@ void sidep_update_si_self_dep_state(AVD_SI *si)
 	/*Any dependent SI is never expcted in this state when screening is going on.
 	In such situation do not update si_dep_state. It will be taken care during failover*/
 	if (si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
-		TRACE("si:'%s', si_dep_state:%u", si->name.value, si->si_dep_state);
+		AVD_SPONS_SI_NODE *spons;
+		/*If atleast one sponsor is unassigned, unassign the dependent*/
+		for (spons = si->spons_si_list; spons; spons = spons->next) {
+			if (spons->si->list_of_sisu == NULL) {
+				avd_sidep_si_dep_state_set(si, AVD_SI_READY_TO_UNASSIGN);
+				goto done;	
+			}
+		}
 		goto done;
 	}
 
