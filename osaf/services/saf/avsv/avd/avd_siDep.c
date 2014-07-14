@@ -2521,13 +2521,20 @@ void sidep_update_dependents_states(AVD_SI *si)
 void sidep_update_si_self_dep_state(AVD_SI *si) 
 {
 	bool all_sponsors_assgnd = false;	
+	AVD_SPONS_SI_NODE *spons;
 
 	TRACE_ENTER2("sponsor si:'%s'", si->name.value);
 
 	/*Any dependent SI is never expcted in this state when screening is going on.
 	In such situation do not update si_dep_state. It will be taken care during failover*/
 	if (si->si_dep_state == AVD_SI_FAILOVER_UNDER_PROGRESS) {
-		TRACE("si:'%s', si_dep_state:%u", si->name.value, si->si_dep_state);
+		/*If atleast one sponsor is unassigned, unassign the dependent*/
+		for (spons = si->spons_si_list; spons; spons = spons->next) {
+			if (spons->si->list_of_sisu == NULL) {
+				avd_sidep_si_dep_state_set(si, AVD_SI_READY_TO_UNASSIGN);
+				goto done;	
+			}
+		}
 		goto done;
 	}
 
