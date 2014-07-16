@@ -437,8 +437,10 @@ static const std::string immAttrNostFlags(OPENSAF_IMM_ATTR_NOSTD_FLAGS);
 static const std::string immSyncBatchSize(OPENSAF_IMM_SYNC_BATCH_SIZE);
 static const std::string immPbeBSlaveName(OPENSAF_IMM_2PBE_APPL_NAME);
 
+static const std::string immMngtClass("SaImmMngt");
 static const std::string immManagementDn("safRdn=immManagement,safApp=safImmService");
 static const std::string saImmRepositoryInit("saImmRepositoryInit");
+static const std::string saImmOiTimeout("saImmOiTimeout");
 
 static SaImmRepositoryInitModeT immInitMode = SA_IMM_INIT_FROM_FILE;
 
@@ -6941,15 +6943,39 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                     object->mImplementer->mImplementerName.c_str());
                 ccb->mWaitStartTime = time(NULL);
                 osafassert(ccb->mWaitStartTime > ((time_t) 0));
+            } else if(className == immMngtClass) {
+                if(sImmNodeState == IMM_NODE_LOADING) {
+                    if(objectName != immManagementDn) {
+                        /* Backwards compatibility for loading. */
+                        LOG_WA("Imm loading encountered bogus object '%s' of class '%s'",
+                            objectName.c_str(), immMngtClass.c_str());
+                    }
+                } else {
+                    LOG_NO("ERR_BAD_OPERATION: Imm not allowing creates of instances of class '%s'",
+                        immMngtClass.c_str());
+                    err = SA_AIS_ERR_BAD_OPERATION;
+                }
+            } else if(className == immClassName) {
+                if(sImmNodeState == IMM_NODE_LOADING) {
+                    if(objectName != immObjectDn) {
+                        /* Backwards compatibility for loading. */
+                        LOG_WA("Imm loading encountered bogus object '%s' of class '%s'",
+                            objectName.c_str(), immClassName.c_str());
+                    }
+                } else {
+                    LOG_NO("ERR_BAD_OPERATION: Imm not allowing creates of instances of class '%s'",
+                        immClassName.c_str());
+                    err = SA_AIS_ERR_BAD_OPERATION;
+                }
             } else if(ccb->mCcbFlags & SA_IMM_CCB_REGISTERED_OI) {
                 if((object->mImplementer == NULL) && 
                    (ccb->mCcbFlags & SA_IMM_CCB_ALLOW_NULL_OI)) {
                     TRACE_7("Null implementer, SA_IMM_CCB_REGISTERED_OI set, "
                         "but SA_IMM_CCB_ALLOW_NULL_OI set => safe relaxation");
                 } else {
-                    TRACE_7("ERR_NOT_EXIST: object '%s' does not have an "
+                    TRACE_7("ERR_NOT_EXIST: class '%s' does not have an "
                         "implementer and flag SA_IMM_CCB_REGISTERED_OI is set", 
-                        objectName.c_str());
+                        className.c_str());
                     err = SA_AIS_ERR_NOT_EXIST;
                 }
             } else { /* SA_IMM_CCB_REGISTERED_OI NOT set */
@@ -6963,7 +6989,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                     TRACE_7("Object '%s' has NULL implementer, flag SA_IMM_CCB_REGISTERED_OI "
                         "is NOT set - moderately safe.", objectName.c_str());
                 }
-            } 
+            }
         }
 
     bypass_impl:
@@ -7195,6 +7221,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
 
     ObjectNameSet afimPreOpNDRefs;  // Set of NO_DANGLING references from after image before CCB operation
     bool hasNoDanglingRefs = false;
+    bool modifiedImmMngt = false;  /* true => modification of the SAF immManagement object. */
     
     if(! (nameCheck(objectName)||nameToInternal(objectName)) ) {
         LOG_NO("ERR_INVALID_PARAM: Not a proper object name");
@@ -7256,6 +7283,8 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
     }
     
     object = oi->second;
+
+    modifiedImmMngt = (objectName == immManagementDn);
     
     object->getAdminOwnerName(&objAdminOwnerName);
     if(objAdminOwnerName != adminOwner->mAdminOwnerName)
@@ -7375,6 +7404,16 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
         sz = strnlen((char *) p->attrValue.attrName.buf,
             (size_t) p->attrValue.attrName.size);
         std::string attrName((const char *) p->attrValue.attrName.buf, sz);
+        bool modifiedRim = modifiedImmMngt && (attrName == saImmRepositoryInit);
+        bool modifiedOiTimeout = modifiedImmMngt && (attrName == saImmOiTimeout);
+
+        if(modifiedOiTimeout) {
+            /* Currently the IMM does not support this attribute. */
+            LOG_NO("ERR_BAD_OPERATION: attr '%s' in IMM object %s is not supported",
+                attrName.c_str(), objectName.c_str());
+            err = SA_AIS_ERR_BAD_OPERATION;
+            break; //out of for-loop
+        }
         
         i4 = classInfo->mAttrMap.find(attrName);
         if(i4==classInfo->mAttrMap.end()) {
@@ -7517,7 +7556,19 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
 
                     multiattr->setExtraValue(tmpos);
                 }
-                
+
+                if (modifiedRim) {
+                    SaImmRepositoryInitModeT newRim = (SaImmRepositoryInitModeT) attrValue->getValue_int();
+                    if((newRim != SA_IMM_INIT_FROM_FILE) && (newRim != SA_IMM_KEEP_REPOSITORY)) {
+                        LOG_NO("ERR_BAD_OPERATION: attr '%s' in IMM object %s can not have value %u",
+                            attrName.c_str(), objectName.c_str(), newRim);
+                        err = SA_AIS_ERR_BAD_OPERATION;
+                        break;
+                    }
+                }
+
+
+
                 if(p->attrValue.attrValuesNumber > 1) {
                     if(!(attr->mFlags & SA_IMM_ATTR_MULTI_VALUE)) {
                         LOG_NO("ERR_INVALID_PARAM: attr '%s' is not multivalued, yet "
@@ -7568,6 +7619,14 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                     break;
                 }
                 
+                if (modifiedRim) {
+                    LOG_NO("ERR_BAD_OPERATION: attr '%s' in IMM object %s must not be empty",
+                        attrName.c_str(), objectName.c_str());
+                    err = SA_AIS_ERR_BAD_OPERATION;
+                    break;
+                }
+
+
                 if(!attrValue->empty()) {
                     eduAtValToOs(&tmpos, &(p->attrValue.attrValue),
                         (SaImmValueTypeT) p->attrValue.attrValueType);
@@ -7612,7 +7671,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                     p->attrModType);
                 break;
         }
-        
+
         if(err != SA_AIS_OK) {
             break; //out of for-loop
         }
@@ -8192,6 +8251,13 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
     if(!doIt &&
         !(oi->second->mImplementer && oi->second->mImplementer->mNodeId) && configObj) {
         /* Implementer is not present. */
+        /* Prevent delete of imm service objects, even when there is no OI for them */
+        if(oi->first == immManagementDn || oi->first == immObjectDn) {
+            LOG_NO("ERR_BAD_OPERATION: Imm not allowing delete of object '%s'",
+                oi->first.c_str());
+            return SA_AIS_ERR_BAD_OPERATION;
+        }
+
         if(ccb->mCcbFlags & SA_IMM_CCB_REGISTERED_OI){
             if((oi->second->mImplementer == NULL) &&
                (ccb->mCcbFlags & SA_IMM_CCB_ALLOW_NULL_OI)) {
