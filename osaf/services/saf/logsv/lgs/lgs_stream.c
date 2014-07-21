@@ -395,8 +395,7 @@ void log_stream_delete(log_stream_t **s)
 	TRACE_ENTER2("%s", stream->name);
 
 	if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) {
-		if ((stream->streamType == STREAM_TYPE_APPLICATION) &&
-				(!strncmp(stream->name, "safLgStr=", 9))) {
+		if (stream->streamType == STREAM_TYPE_APPLICATION) {
 			SaAisErrorT rv;
 			TRACE("Stream is closed, I am HA active so remove IMM object");
 			SaNameT objectName;
