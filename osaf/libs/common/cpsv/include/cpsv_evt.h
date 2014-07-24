@@ -328,6 +328,7 @@ typedef struct cpsv_a2nd_rdset {
 /* Delete SaCkptHandleT                client_hdl; */
 	SaCkptCheckpointHandleT ckpt_id;
 	SaTimeT reten_time;
+	uint32_t type;
 } CPSV_A2ND_RDSET;
 
 typedef struct cpsv_a2nd_active_rep_set {

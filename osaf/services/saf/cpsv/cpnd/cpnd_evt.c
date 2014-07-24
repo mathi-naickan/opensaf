@@ -1425,6 +1425,7 @@ static uint32_t cpnd_evt_proc_ckpt_rdset(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_I
 	send_evt.info.cpd.type = CPD_EVT_ND2D_CKPT_RDSET;
 	send_evt.info.cpd.info.rd_set.ckpt_id = evt->info.rdsetReq.ckpt_id;
 	send_evt.info.cpd.info.rd_set.reten_time = evt->info.rdsetReq.reten_time;
+	send_evt.info.cpd.info.rd_set.type = evt->info.rdsetReq.type;
 
 	rc = cpnd_mds_msg_sync_send(cb, NCSMDS_SVC_ID_CPD, cb->cpd_mdest_id, &send_evt, &out_evt, CPSV_WAIT_TIME);
 

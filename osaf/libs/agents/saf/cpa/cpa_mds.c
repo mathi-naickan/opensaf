@@ -642,8 +642,8 @@ static uint32_t cpa_mds_enc(CPA_CB *cb, MDS_CALLBACK_ENC_INFO *enc_info)
                 }
          }
       }  /* For all other cases call EDU othen than Write/Read API's */
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, FUNC_NAME(CPSV_EVT),
-				    enc_info->io_uba, EDP_OP_TYPE_ENC, pevt, &ederror);
+		rc = m_NCS_EDU_VER_EXEC(&cb->edu_hdl, FUNC_NAME(CPSV_EVT),
+				enc_info->io_uba, EDP_OP_TYPE_ENC, pevt, &ederror, enc_info->o_msg_fmt_ver);
 		TRACE_LEAVE();
 		return rc;
 	} else {

@@ -1758,7 +1758,7 @@ SaAisErrorT saCkptCheckpointRetentionDurationSet(SaCkptCheckpointHandleT checkpo
 	evt.type = CPSV_EVT_TYPE_CPND;
 	evt.info.cpnd.type = CPND_EVT_A2ND_CKPT_RDSET;
 	evt.info.cpnd.info.rdsetReq.ckpt_id = lc_node->gbl_ckpt_hdl;
-
+	evt.info.cpnd.info.rdsetReq.type = CPSV_CKPT_RDSET_INFO;
 	/* Convert the retentionDuration from saTimeT to millisecs */
 /*   retentionDuration = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(retentionDuration); */
 	evt.info.cpnd.info.rdsetReq.reten_time = retentionDuration;
