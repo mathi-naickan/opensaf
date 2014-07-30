@@ -1163,9 +1163,9 @@ SmfUpgradeProcedure::calcActivationUnitsFromTemplate(SmfParentType * i_parentTyp
                                                 }
 				}
                         }
+
                 } else if (className == "SaAmfCompType") {
                         TRACE("Check Comp type %s", i_parentType->getTypeDn().c_str());
-			bool removeDuplicates = false;
 			std::multimap<std::string, objectInst>::iterator objit;
                         for (objit = i_objects.begin(); objit != i_objects.end(); ++objit) {
                                 TRACE("Check Comp %s", (*objit).second.compDN.c_str());
@@ -1189,7 +1189,6 @@ SmfUpgradeProcedure::calcActivationUnitsFromTemplate(SmfParentType * i_parentTyp
 									TRACE("Component %s is hosted on node within the targetNodeTemplate", comp.c_str());
 									TRACE("The stepRestartOption was set to false(0), use parent %s, as act/deactComponent", parentDn.c_str());
 									o_actDeactUnits.push_back(parentDn);
-									removeDuplicates = true;  //Duplicates must be removed from list when the loop is finished
 								} else { // saSmfStepRestartOption is set to true
 									TRACE("Component %s is hosted on node within the targetNodeTemplate, add to list", (*objit).second.compDN.c_str());
 									//Check if component is restartable
@@ -1209,7 +1208,6 @@ SmfUpgradeProcedure::calcActivationUnitsFromTemplate(SmfParentType * i_parentTyp
 							std::string parentDn = comp.substr(comp.find(',') + 1, std::string::npos);
 							TRACE("The stepRestartOption was set to false(0), use parent %s, as act/deactComponent", parentDn.c_str());
 							o_actDeactUnits.push_back(parentDn);
-							removeDuplicates = true;  //Duplicates must be removed from list when the loop is finished
 						} else { // saSmfStepRestartOption is set to true
 							//Check if component is restartable
 							if (isCompRestartable((*objit).second.compDN) == false) {
@@ -1224,12 +1222,6 @@ SmfUpgradeProcedure::calcActivationUnitsFromTemplate(SmfParentType * i_parentTyp
 				}
 
                         } //End for (objit = foundObjs.begin(); objit != foundObjs.end(); ++objit)
-
-			if (removeDuplicates == true){
-				TRACE("Sort the act/deact unit list");
-				o_actDeactUnits.sort();
-				o_actDeactUnits.unique();
-			}
                 }
         } else {
                 /* Only parent is set and contain a value */
@@ -1265,17 +1257,15 @@ SmfUpgradeProcedure::calcActivationUnitsFromTemplate(SmfParentType * i_parentTyp
                                 }
 			}
 		}
+        }
 
-		//Since the list is on component level there may have been several hits resulting in the same SU and node
-		//Make the SU list unique
-		o_actDeactUnits.sort();
-		o_actDeactUnits.unique();
+        //Always remove duplicates from o_actDeactUnits and o_nodeList output lists
+        o_actDeactUnits.sort();
+        o_actDeactUnits.unique();
 
-		//Make the Node list unique
-		if (o_nodeList != NULL) {
-			o_nodeList->sort();
-			o_nodeList->unique();
-		}
+        if (o_nodeList != NULL) {
+                o_nodeList->sort();
+                o_nodeList->unique();
         }
 
         TRACE_LEAVE();
