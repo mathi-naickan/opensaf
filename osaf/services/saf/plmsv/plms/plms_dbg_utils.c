@@ -50,6 +50,7 @@ plms_cb_dump_routine ()
 
 	/* Fetch the current timestamp, as an ascii string */
     	tod=(time_t) (time((time_t *) 0));
+	tzset();	
 	tstamp_data = localtime_r(&tod, &tm_info);
 	osafassert(tstamp_data);
 
