@@ -336,6 +336,7 @@ static void print_header(SaNtfNotificationHeaderT *notificationHeader)
 	SaTimeT totalTime;
 	SaTimeT ntfTime = (SaTimeT)0;
 	char time_str[24];
+	struct tm *tstamp_data, tm_info;
 
 	/* Event type */
 	TRACE_1("eventType = %d", (int)*notificationHeader->eventType);
@@ -355,7 +356,11 @@ static void print_header(SaNtfNotificationHeaderT *notificationHeader)
 	ntfTime = *notificationHeader->eventTime;
 
 	totalTime = (ntfTime / (SaTimeT)SA_TIME_ONE_SECOND);
-	(void)strftime(time_str, sizeof(time_str), "%d-%m-%Y %T", localtime((const time_t *)&totalTime));
+	tzset();
+	tstamp_data = localtime_r((const time_t *)&totalTime, &tm_info);
+	osafassert(tstamp_data);
+	
+	(void)strftime(time_str, sizeof(time_str), "%d-%m-%Y %T", tstamp_data);
 
 	TRACE_1("eventTime = %lld = %s\n", (SaTimeT)ntfTime, time_str);
 
