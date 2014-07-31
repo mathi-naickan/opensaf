@@ -42,6 +42,7 @@ plms_cb_dump_routine ()
 	char tmp[SA_MAX_NAME_LENGTH +1]="",count;
 	SaUint8T max = 0;
 	PLMS_CB *cb = plms_cb;
+	struct tm *tstamp_data, tm_info;
 
 	ee_base_info = (PLMS_EE_BASE_INFO *)ncs_patricia_tree_getnext(&cb->base_ee_info,NULL);
 	he_base_info = (PLMS_HE_BASE_INFO *)ncs_patricia_tree_getnext(&cb->base_he_info,NULL);
@@ -49,7 +50,10 @@ plms_cb_dump_routine ()
 
 	/* Fetch the current timestamp, as an ascii string */
     	tod=(time_t) (time((time_t *) 0));
-	strftime((char *)(asc_tod), 40, "%d%b%Y_%H.%M.%S", localtime(&tod));
+	tstamp_data = localtime_r(&tod, &tm_info);
+	osafassert(tstamp_data);
+
+	strftime((char *)(asc_tod), 40, "%d%b%Y_%H.%M.%S", tstamp_data);
 	
 	strcpy(tmp_file, PKGLOGDIR "/plms_dump.out");
 	strcat(tmp_file, asc_tod);
