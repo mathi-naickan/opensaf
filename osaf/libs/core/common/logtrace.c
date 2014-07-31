@@ -87,12 +87,17 @@ static void output(const char *file, unsigned int line, int priority, int catego
 	struct timeval tv;
 	char preamble[512];
 	char log_string[1024];
+	struct tm *tstamp_data, tm_info;
 
 	assert(priority <= LOG_DEBUG && category < CAT_MAX);
 
 	/* Create a nice syslog looking date string */
 	gettimeofday(&tv, NULL);
-	strftime(log_string, sizeof(log_string), "%b %e %k:%M:%S", localtime(&tv.tv_sec));
+	tzset();
+	tstamp_data = localtime_r(&tv.tv_sec, &tm_info);
+	osafassert(tstamp_data);
+	
+	strftime(log_string, sizeof(log_string), "%b %e %k:%M:%S", tstamp_data);
 	i = snprintf(preamble, sizeof(preamble), "%s.%06ld %s ", log_string, tv.tv_usec, ident);
 
 	snprintf(&preamble[i], sizeof(preamble) - i, "[%d:%s:%04u] %s %s",
