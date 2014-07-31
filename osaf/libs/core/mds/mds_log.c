@@ -188,6 +188,7 @@ void log_mds_dbg(char *fmt, ...)
 static void log_mds(const char *str)
 {
 	FILE *fp;
+	struct tm *tstamp_data, tm_info;
 
 	if (lf != NULL && ((fp = fopen(lf, "a+")) != NULL)) {
 		struct timeval tv;
@@ -196,7 +197,11 @@ static void log_mds(const char *str)
 		int i;
 
 		gettimeofday(&tv, NULL);
-		strftime(asc_tod, sizeof(asc_tod), "%b %e %k:%M:%S", localtime(&tv.tv_sec));
+		tzset();
+		tstamp_data = localtime_r(&tv.tv_sec, &tm_info);
+		osafassert(tstamp_data);
+
+		strftime(asc_tod, sizeof(asc_tod), "%b %e %k:%M:%S", tstamp_data);
 		i = snprintf(log_string, sizeof(log_string), "%s.%06ld %s %s",
 			     asc_tod, tv.tv_usec, log_line_prefix, str);
 
