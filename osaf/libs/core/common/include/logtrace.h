@@ -33,7 +33,7 @@
 #define LOGTRACE_H
 
 #include <syslog.h>
-
+#include <ncsgl_defs.h>
 #ifdef  __cplusplus
 extern "C" {
 #endif
