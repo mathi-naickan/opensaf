@@ -86,14 +86,19 @@ static void amf_healthcheck_callback(SaInvocationT        inv,
 	SaAisErrorT rc;
 	time_t local_time;
 	static int healthcheck_count;
+	struct tm *tstamp_data, tm_info;
 
 	healthcheck_count++;
 
 	/* Store latest health check trace */
 	local_time = time(NULL);
+	tzset();
+	tstamp_data = localtime_r(&local_time, &tm_info);
+	osafassert(tstamp_data);
+
 	snprintf(latest_healthcheck_trace, sizeof(latest_healthcheck_trace),
 			 "Last received healthcheck cnt=%u at %s",
-			 healthcheck_count, asctime(localtime(&local_time)));
+			 healthcheck_count, asctime(tstamp_data));
 
 	rc = saAmfResponse(amf_hdl, inv, SA_AIS_OK);
 	if (SA_AIS_OK != rc) {
