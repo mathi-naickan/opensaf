@@ -692,7 +692,7 @@ static uint32_t lgs_ckpt_stream_open(lgs_cb_t *cb, log_stream_t *logStream, lgsv
 			TRACE_4("REG_REC ASYNC UPDATE SEND SUCCESS...");
 		}
 	}
-	TRACE_LEAVE();
+	TRACE_LEAVE2("async_rc = %d",async_rc);
 	return async_rc;
 }
 

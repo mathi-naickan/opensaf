@@ -30,6 +30,7 @@ static MDS_CLIENT_MSG_FORMAT_VER
 	1			/*msg format version for LGA subpart version 1 */
 };
 
+
 /****************************************************************************
  * Name          : lgs_evt_destroy
  * 
@@ -57,14 +58,14 @@ void lgs_evt_destroy(lgsv_lgs_evt_t *evt)
   Arguments     : NCS_UBAID *msg,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
 static uint32_t dec_initialize_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_initialize_req_t *param = &msg->info.api_info.param.init;
 	uint8_t local_data[20];
 
@@ -74,10 +75,9 @@ static uint32_t dec_initialize_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 	param->version.majorVersion = ncs_decode_8bit(&p8);
 	param->version.minorVersion = ncs_decode_8bit(&p8);
 	ncs_dec_skip_space(uba, 3);
-	total_bytes += 3;
 
 	TRACE_8("LGSV_INITIALIZE_REQ");
-	return total_bytes;
+	return rc;
 }
 
 /****************************************************************************
@@ -88,14 +88,14 @@ static uint32_t dec_initialize_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
   Arguments     : NCS_UBAID *msg,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
 static uint32_t dec_finalize_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_finalize_req_t *param = &msg->info.api_info.param.finalize;
 	uint8_t local_data[20];
 
@@ -103,10 +103,9 @@ static uint32_t dec_finalize_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 	p8 = ncs_dec_flatten_space(uba, local_data, 4);
 	param->client_id = ncs_decode_32bit(&p8);
 	ncs_dec_skip_space(uba, 4);
-	total_bytes += 4;
 
 	TRACE_8("LGSV_FINALIZE_REQ");
-	return total_bytes;
+	return rc;
 }
 
 /****************************************************************************
@@ -117,7 +116,7 @@ static uint32_t dec_finalize_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
   Arguments     : NCS_UBAID *msg,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
@@ -125,7 +124,7 @@ static uint32_t dec_lstr_open_sync_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
 	int len;
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_stream_open_req_t *param = &msg->info.api_info.param.lstr_open_sync;
 	uint8_t local_data[256];
 
@@ -133,38 +132,37 @@ static uint32_t dec_lstr_open_sync_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 	p8 = ncs_dec_flatten_space(uba, local_data, 4);
 	param->client_id = ncs_decode_32bit(&p8);
 	ncs_dec_skip_space(uba, 4);
-	total_bytes += 4;
 
 	/* log stream name length */
 	p8 = ncs_dec_flatten_space(uba, local_data, 2);
 	param->lstr_name.length = ncs_decode_16bit(&p8);
 	ncs_dec_skip_space(uba, 2);
-	total_bytes += 2;
+	
+	if (param->lstr_name.length >= SA_MAX_NAME_LENGTH) {
+		TRACE("%s - lstr_name too long",__FUNCTION__);
+		rc = NCSCC_RC_FAILURE;
+		goto done;
+	}
 
 	/* log stream name */
 	ncs_decode_n_octets_from_uba(uba, param->lstr_name.value, (uint32_t)param->lstr_name.length);
-	total_bytes += (uint32_t)param->lstr_name.length;
 
 	/* log file name */
 	p8 = ncs_dec_flatten_space(uba, local_data, 2);
 	len = ncs_decode_16bit(&p8);
 	ncs_dec_skip_space(uba, 2);
-	total_bytes += 2;
 
 	if (len > 0) {
 		ncs_decode_n_octets_from_uba(uba, (uint8_t *)param->logFileName, len);
-		total_bytes += len;
 	}
 
 	/* log file path name */
 	p8 = ncs_dec_flatten_space(uba, local_data, 2);
 	len = ncs_decode_16bit(&p8);
 	ncs_dec_skip_space(uba, 2);
-	total_bytes += 2;
 
 	if (len > 0) {
 		ncs_decode_n_octets_from_uba(uba, (uint8_t *)param->logFilePathName, len);
-		total_bytes += len;
 	}
 
 	/* log record format length */
@@ -176,28 +174,25 @@ static uint32_t dec_lstr_open_sync_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 	param->maxFilesRotated = ncs_decode_16bit(&p8);
 	len = ncs_decode_16bit(&p8);
 	ncs_dec_skip_space(uba, 24);
-	total_bytes += 24;
 
 	/* Decode format string if initiated */
 	if (len > 0) {
 		if ((param->logFileFmt = malloc(len)) == NULL) {
 			LOG_WA("malloc FAILED");
-			total_bytes = 0;
+			rc = NCSCC_RC_FAILURE;
 			goto done;
 		}
 		ncs_decode_n_octets_from_uba(uba, (uint8_t *)param->logFileFmt, len);
-		total_bytes += len;
 	}
 
 	/* log stream open flags */
 	p8 = ncs_dec_flatten_space(uba, local_data, 1);
 	param->lstr_open_flags = ncs_decode_8bit(&p8);
 	ncs_dec_skip_space(uba, 1);
-	total_bytes += 1;
 
  done:
 	TRACE_8("LGSV_STREAM_OPEN_REQ");
-	return total_bytes;
+	return rc;
 }
 
 /****************************************************************************
@@ -208,14 +203,14 @@ static uint32_t dec_lstr_open_sync_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
   Arguments     : NCS_UBAID *uba,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
 static uint32_t dec_lstr_close_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_stream_close_req_t *param = &msg->info.api_info.param.lstr_close;
 	uint8_t local_data[20];
 
@@ -224,10 +219,9 @@ static uint32_t dec_lstr_close_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 	param->client_id = ncs_decode_32bit(&p8);
 	param->lstr_id = ncs_decode_32bit(&p8);
 	ncs_dec_skip_space(uba, 8);
-	total_bytes += 8;
 
 	TRACE_8("LGSV_STREAM_CLOSE_REQ");
-	return total_bytes;
+	return rc;
 }
 
 /****************************************************************************
@@ -238,43 +232,47 @@ static uint32_t dec_lstr_close_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
   Arguments     : NCS_UBAID *msg,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
 static uint32_t dec_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
-	SaNameT *logSvcUsrName;
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_write_log_async_req_t *param = &msg->info.api_info.param.write_log_async;
 	uint8_t local_data[1024];
-
+	/* Initiate pointers that will point to allocated memory. Needed for
+	 * for handling free if decoding is stopped because of corrupt message
+	 * Note that more pointers has to be initiated in the allocation sequence
+	 * below.
+	 */
+	SaNameT *logSvcUsrName = NULL;
+	SaLogNtfLogHeaderT *ntfLogH = NULL;
+	SaLogGenericLogHeaderT *genLogH = NULL;
+	param->logRecord = NULL;
+	
 	p8 = ncs_dec_flatten_space(uba, local_data, 20);
 	param->invocation = ncs_decode_64bit(&p8);
 	param->ack_flags = ncs_decode_32bit(&p8);
 	param->client_id = ncs_decode_32bit(&p8);
 	param->lstr_id = ncs_decode_32bit(&p8);
 	ncs_dec_skip_space(uba, 20);
-	total_bytes += 20;
 
 	param->logRecord = malloc(sizeof(SaLogRecordT));
 	if (!param->logRecord) {
 		LOG_WA("malloc FAILED");
-		return (0);
+		rc = NCSCC_RC_FAILURE;
+		goto err_done;
 	}
+	/* Initiate logRecord pointers */
+	param->logRecord->logBuffer = NULL;
+	
 	/* ************* SaLogRecord decode ************** */
 	p8 = ncs_dec_flatten_space(uba, local_data, 12);
 	param->logRecord->logTimeStamp = ncs_decode_64bit(&p8);
 	param->logRecord->logHdrType = ncs_decode_32bit(&p8);
 	ncs_dec_skip_space(uba, 12);
-	total_bytes += 12;
-
-	/*Only alarm, and application log streams so far.. */
-	SaLogNtfLogHeaderT *ntfLogH;
-	SaLogGenericLogHeaderT *genLogH;
-	ntfLogH = &param->logRecord->logHeader.ntfHdr;
-	genLogH = &param->logRecord->logHeader.genericHdr;
 
 	/*
 	 ** When allocating an SaNameT, add an extra byte for null termination.
@@ -283,6 +281,12 @@ static uint32_t dec_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 
 	switch (param->logRecord->logHdrType) {
 	case SA_LOG_NTF_HEADER:
+		ntfLogH = &param->logRecord->logHeader.ntfHdr;
+		/* Initiate log ntf header pointers */
+		ntfLogH->notificationObject = NULL;
+		ntfLogH->notifyingObject = NULL;
+		ntfLogH->notificationClassId = NULL;
+		
 		p8 = ncs_dec_flatten_space(uba, local_data, 14);
 		ntfLogH->notificationId = ncs_decode_64bit(&p8);
 		ntfLogH->eventType = ncs_decode_32bit(&p8);
@@ -290,45 +294,46 @@ static uint32_t dec_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 		ntfLogH->notificationObject = malloc(sizeof(SaNameT) + 1);
 		if (!ntfLogH->notificationObject) {
 			LOG_WA("malloc FAILED");
-			return (0);
+			rc = NCSCC_RC_FAILURE;
+			goto err_done;
 		}
 
 		ntfLogH->notificationObject->length = ncs_decode_16bit(&p8);
 		if (SA_MAX_NAME_LENGTH <= ntfLogH->notificationObject->length) {
 			TRACE("notificationObject to big");
-			return (0);
+			rc = NCSCC_RC_FAILURE;
+			goto err_done;
 		}
 		ncs_dec_skip_space(uba, 14);
-		total_bytes += 14;
 
 		ncs_decode_n_octets_from_uba(uba,
 					     ntfLogH->notificationObject->value, ntfLogH->notificationObject->length);
-		total_bytes += ntfLogH->notificationObject->length;
 		ntfLogH->notificationObject->value[ntfLogH->notificationObject->length] = '\0';
 
 		ntfLogH->notifyingObject = malloc(sizeof(SaNameT) + 1);
 		if (!ntfLogH->notifyingObject) {
 			LOG_WA("malloc FAILED");
-			return (0);
+			rc = NCSCC_RC_FAILURE;
+			goto err_done;
 		}
 		p8 = ncs_dec_flatten_space(uba, local_data, 2);
 		ntfLogH->notifyingObject->length = ncs_decode_16bit(&p8);
 		ncs_dec_skip_space(uba, 2);
-		total_bytes += 2;
 
 		if (SA_MAX_NAME_LENGTH <= ntfLogH->notifyingObject->length) {
 			TRACE("notifyingObject to big");
-			return (0);
+			rc = NCSCC_RC_FAILURE;
+			goto err_done;
 		}
 
 		ncs_decode_n_octets_from_uba(uba, ntfLogH->notifyingObject->value, ntfLogH->notifyingObject->length);
-		total_bytes += ntfLogH->notifyingObject->length;
 		ntfLogH->notifyingObject->value[ntfLogH->notifyingObject->length] = '\0';
 
 		ntfLogH->notificationClassId = malloc(sizeof(SaNtfClassIdT));
 		if (!ntfLogH->notificationClassId) {
 			LOG_WA("malloc FAILED");
-			return (0);
+			rc = NCSCC_RC_FAILURE;
+			goto err_done;
 		}
 		p8 = ncs_dec_flatten_space(uba, local_data, 16);
 		ntfLogH->notificationClassId->vendorId = ncs_decode_32bit(&p8);
@@ -336,15 +341,18 @@ static uint32_t dec_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 		ntfLogH->notificationClassId->minorId = ncs_decode_16bit(&p8);
 		ntfLogH->eventTime = ncs_decode_64bit(&p8);
 		ncs_dec_skip_space(uba, 16);
-		total_bytes += 16;
-
 		break;
 
 	case SA_LOG_GENERIC_HEADER:
+		genLogH = &param->logRecord->logHeader.genericHdr;
+		/* Initiate general header pointers */
+		genLogH->notificationClassId = NULL;
+		
 		genLogH->notificationClassId = malloc(sizeof(SaNtfClassIdT));
 		if (!genLogH->notificationClassId) {
 			LOG_WA("malloc FAILED");
-			return (0);
+			rc = NCSCC_RC_FAILURE;
+			goto err_done;
 		}
 		p8 = ncs_dec_flatten_space(uba, local_data, 10);
 		genLogH->notificationClassId->vendorId = ncs_decode_32bit(&p8);
@@ -354,7 +362,8 @@ static uint32_t dec_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 		logSvcUsrName = malloc(sizeof(SaNameT) + 1);
 		if (!logSvcUsrName) {
 			LOG_WA("malloc FAILED");
-			return (0);
+			rc = NCSCC_RC_FAILURE;
+			goto err_done;
 		}
 
 		/*
@@ -364,53 +373,88 @@ static uint32_t dec_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 		logSvcUsrName->length = ncs_decode_16bit(&p8);
 
 		if (SA_MAX_NAME_LENGTH <= logSvcUsrName->length) {
-			LOG_ER("logSvcUsrName too big");
-			free(logSvcUsrName);
-			return (0);
+			LOG_WA("logSvcUsrName too big");
+			rc = NCSCC_RC_FAILURE;
+			goto err_done;
 		}
 		ncs_dec_skip_space(uba, 10);
-		total_bytes += 10;
 
 		ncs_decode_n_octets_from_uba(uba, logSvcUsrName->value, logSvcUsrName->length);
-		total_bytes += logSvcUsrName->length;
 		logSvcUsrName->value[logSvcUsrName->length] = '\0';
 		genLogH->logSvcUsrName = logSvcUsrName;
 		p8 = ncs_dec_flatten_space(uba, local_data, 2);
 		genLogH->logSeverity = ncs_decode_16bit(&p8);
 		ncs_dec_skip_space(uba, 2);
-		total_bytes += 2;
 		break;
 
 	default:
-		TRACE("ERROR IN logHdrType in logRecord");
-		break;
+		LOG_WA("ERROR IN logHdrType in logRecord");
+		rc = NCSCC_RC_FAILURE;
+		goto err_done;
 	}
+	
 	param->logRecord->logBuffer = malloc(sizeof(SaLogBufferT));
 	if (!param->logRecord->logBuffer) {
 		LOG_WA("malloc FAILED");
-		return (0);	/* FIX no error handling! */
+		rc = NCSCC_RC_FAILURE;
+		goto err_done;
 	}
+	/* Initialize logBuffer pointers */
+	param->logRecord->logBuffer->logBuf = NULL;
+	
 	p8 = ncs_dec_flatten_space(uba, local_data, 4);
 	param->logRecord->logBuffer->logBufSize = ncs_decode_32bit(&p8);
 	ncs_dec_skip_space(uba, 4);
-	total_bytes += 4;
 
 	/* Make sure at least one byte is allocated for later */
 	param->logRecord->logBuffer->logBuf = calloc(1, param->logRecord->logBuffer->logBufSize + 1);
 	if (param->logRecord->logBuffer->logBuf == NULL) {
 		LOG_WA("malloc FAILED");
-		return (0);	/* FIX no error handling! */
+		rc = NCSCC_RC_FAILURE;
+		goto err_done;
 	}
 	if (param->logRecord->logBuffer->logBufSize > 0) {
 		ncs_decode_n_octets_from_uba(uba,
 					     param->logRecord->logBuffer->logBuf,
 					     (uint32_t)param->logRecord->logBuffer->logBufSize);
-		total_bytes += (uint32_t)param->logRecord->logBuffer->logBufSize;
 	}
-
+	
     /************ end saLogRecord decode ****************/
 	TRACE_8("LGSV_WRITE_LOG_ASYNC_REQ");
-	return total_bytes;
+	return rc;
+
+	err_done:
+	/* The message is corrupt and cannot be decoded.Free memory allocated so far
+	 * Make sure to free in correct order and only if allocated
+	 */
+	if (param->logRecord != NULL) {
+		if (param->logRecord->logBuffer != NULL) {
+			if (param->logRecord->logBuffer->logBuf != NULL)
+				free(param->logRecord->logBuffer->logBuf);
+			free(param->logRecord->logBuffer);
+		}
+		if (ntfLogH != NULL) { /* &param->logRecord->logHeader.ntfHdr */
+			if (ntfLogH->notificationObject != NULL)
+				free(ntfLogH->notificationObject);
+			if (ntfLogH->notifyingObject != NULL)
+				free(ntfLogH->notifyingObject);
+			if (ntfLogH->notificationClassId != NULL)
+				free(ntfLogH->notificationClassId);
+		}
+		if (genLogH != NULL) { /* &param->logRecord->logHeader.genericHdr */
+			if (genLogH->notificationClassId != NULL)
+				free(genLogH->notificationClassId);
+		}
+	
+		free(param->logRecord);
+	}
+	
+	if (logSvcUsrName != NULL)
+		free(logSvcUsrName);
+		
+    /************ end saLogRecord decode ****************/
+	TRACE_8("LGSV_WRITE_LOG_ASYNC_REQ (error)");
+	return rc;
 }
 
 /****************************************************************************
@@ -421,30 +465,30 @@ static uint32_t dec_write_log_async_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
   Arguments     : NCS_UBAID *msg,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
 static uint32_t enc_initialize_rsp_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_initialize_rsp_t *param = &msg->info.api_resp_info.param.init_rsp;
 
 	/* client_id */
 	p8 = ncs_enc_reserve_space(uba, 4);
 	if (p8 == NULL) {
 		TRACE("ncs_enc_reserve_space failed");
+		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
 	ncs_encode_32bit(&p8, param->client_id);
 	ncs_enc_claim_space(uba, 4);
-	total_bytes += 4;
 
  done:
 	TRACE_8("LGSV_INITIALIZE_RSP");
-	return total_bytes;
+	return rc;
 }
 
 /****************************************************************************
@@ -455,30 +499,30 @@ static uint32_t enc_initialize_rsp_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
   Arguments     : NCS_UBAID *msg,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
 static uint32_t enc_finalize_rsp_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_finalize_rsp_t *param = &msg->info.api_resp_info.param.finalize_rsp;
 
 	/* client_id */
 	p8 = ncs_enc_reserve_space(uba, 4);
 	if (p8 == NULL) {
 		TRACE("ncs_enc_reserve_space failed");
+		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
 	ncs_encode_32bit(&p8, param->client_id);
 	ncs_enc_claim_space(uba, 4);
-	total_bytes += 4;
 
  done:
 	TRACE_8("LGSV_FINALIZE_RSP");
-	return total_bytes;
+	return rc;
 }
 
 /****************************************************************************
@@ -489,31 +533,31 @@ static uint32_t enc_finalize_rsp_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
   Arguments     : NCS_UBAID *msg,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
 static uint32_t enc_lstr_close_rsp_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_stream_close_rsp_t *param = &msg->info.api_resp_info.param.close_rsp;
 
 	/* client_id */
 	p8 = ncs_enc_reserve_space(uba, 8);
 	if (p8 == NULL) {
 		TRACE("ncs_enc_reserve_space failed");
+		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
 	ncs_encode_32bit(&p8, param->client_id);
 	ncs_encode_32bit(&p8, param->lstr_id);
 	ncs_enc_claim_space(uba, 8);
-	total_bytes += 8;
 
  done:
 	TRACE_8("LGSV_CLOSE_RSP");
-	return total_bytes;
+	return rc;
 }
 
 /****************************************************************************
@@ -524,29 +568,29 @@ static uint32_t enc_lstr_close_rsp_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
   Arguments     : NCS_UBAID *msg,
                   LGSV_MSG *msg
                   
-  Return Values : uns32
+  Return Values : uint32_t
  
   Notes         : None.
 ******************************************************************************/
 static uint32_t enc_lstr_open_rsp_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 {
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 	lgsv_stream_open_rsp_t *param = &msg->info.api_resp_info.param.lstr_open_rsp;
 
 	/* lstr_id */
 	p8 = ncs_enc_reserve_space(uba, 8);
 	if (p8 == NULL) {
 		TRACE("ncs_enc_reserve_space failed");
+		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 	ncs_encode_32bit(&p8, param->lstr_id);
 	ncs_enc_claim_space(uba, 4);
-	total_bytes += 4;
 
  done:
 	TRACE_8("LGSV_STREAM_OPEN_RSP");
-	return total_bytes;
+	return rc;
 }
 
 /****************************************************************************
@@ -584,9 +628,9 @@ static uint32_t mds_enc(struct ncsmds_callback_info *info)
 	lgsv_msg_t *msg;
 	NCS_UBAID *uba;
 	uint8_t *p8;
-	uint32_t total_bytes = 0;
 	MDS_CLIENT_MSG_FORMAT_VER msg_fmt_version;
-
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	
 	msg_fmt_version = m_NCS_ENC_MSG_FMT_GET(info->info.enc.i_rem_svc_pvt_ver,
 						LGS_WRT_LGA_SUBPART_VER_AT_MIN_MSG_FMT,
 						LGS_WRT_LGA_SUBPART_VER_AT_MAX_MSG_FMT, LGS_WRT_LGA_MSG_FMT_ARRAY);
@@ -612,7 +656,6 @@ static uint32_t mds_enc(struct ncsmds_callback_info *info)
 	}
 	ncs_encode_32bit(&p8, msg->type);
 	ncs_enc_claim_space(uba, 4);
-	total_bytes += 4;
 
 	if (LGSV_LGA_API_RESP_MSG == msg->type) {
 	/** encode the API RSP msg subtype **/
@@ -623,7 +666,6 @@ static uint32_t mds_enc(struct ncsmds_callback_info *info)
 		}
 		ncs_encode_32bit(&p8, msg->info.api_resp_info.type);
 		ncs_enc_claim_space(uba, 4);
-		total_bytes += 4;
 
 		/* rc */
 		p8 = ncs_enc_reserve_space(uba, 4);
@@ -633,25 +675,27 @@ static uint32_t mds_enc(struct ncsmds_callback_info *info)
 		}
 		ncs_encode_32bit(&p8, msg->info.api_resp_info.rc);
 		ncs_enc_claim_space(uba, 4);
-		total_bytes += 4;
 
 		switch (msg->info.api_resp_info.type) {
 		case LGSV_INITIALIZE_RSP:
-			total_bytes += enc_initialize_rsp_msg(uba, msg);
+			rc = enc_initialize_rsp_msg(uba, msg);
 			break;
 		case LGSV_FINALIZE_RSP:
-			total_bytes += enc_finalize_rsp_msg(uba, msg);
+			rc = enc_finalize_rsp_msg(uba, msg);
 			break;
 		case LGSV_STREAM_OPEN_RSP:
-			total_bytes += enc_lstr_open_rsp_msg(uba, msg);
+			rc = enc_lstr_open_rsp_msg(uba, msg);
 			break;
 		case LGSV_STREAM_CLOSE_RSP:
-			total_bytes += enc_lstr_close_rsp_msg(uba, msg);
+			rc = enc_lstr_close_rsp_msg(uba, msg);
 			break;
 		default:
 			TRACE("Unknown API RSP type = %d", msg->info.api_resp_info.type);
 			break;
 		}
+		if (rc == NCSCC_RC_FAILURE)
+			goto err;
+		
 	} else if (LGSV_LGS_CBK_MSG == msg->type) {
 	/** encode the API RSP msg subtype **/
 		p8 = ncs_enc_reserve_space(uba, 16);
@@ -663,7 +707,6 @@ static uint32_t mds_enc(struct ncsmds_callback_info *info)
 		ncs_encode_32bit(&p8, msg->info.cbk_info.lgs_client_id);
 		ncs_encode_64bit(&p8, msg->info.cbk_info.inv);
 		ncs_enc_claim_space(uba, 16);
-		total_bytes += 16;
 		if (msg->info.cbk_info.type == LGSV_WRITE_LOG_CALLBACK_IND) {
 			p8 = ncs_enc_reserve_space(uba, 4);
 			if (!p8) {
@@ -671,7 +714,6 @@ static uint32_t mds_enc(struct ncsmds_callback_info *info)
 				goto err;
 			}
 			ncs_encode_32bit(&p8, msg->info.cbk_info.write_cbk.error);
-			total_bytes += 4;
 		} else {
 			TRACE("unknown callback type %d", msg->info.cbk_info.type);
 			goto err;
@@ -703,15 +745,16 @@ static uint32_t mds_enc(struct ncsmds_callback_info *info)
 static uint32_t mds_dec(struct ncsmds_callback_info *info)
 {
 	uint8_t *p8;
-	lgsv_lgs_evt_t *evt;
+	lgsv_lgs_evt_t *evt = NULL;
 	NCS_UBAID *uba = info->info.dec.io_uba;
 	uint8_t local_data[20];
-	uint32_t total_bytes = 0;
-
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	
 	if (0 == m_NCS_MSG_FORMAT_IS_VALID(info->info.dec.i_msg_fmt_ver,
 					   LGS_WRT_LGA_SUBPART_VER_AT_MIN_MSG_FMT,
 					   LGS_WRT_LGA_SUBPART_VER_AT_MAX_MSG_FMT, LGS_WRT_LGA_MSG_FMT_ARRAY)) {
 		TRACE("Wrong format version");
+		rc = NCSCC_RC_FAILURE;
 		goto err;
 	}
 
@@ -727,36 +770,33 @@ static uint32_t mds_dec(struct ncsmds_callback_info *info)
 	p8 = ncs_dec_flatten_space(uba, local_data, 4);
 	evt->info.msg.type = ncs_decode_32bit(&p8);
 	ncs_dec_skip_space(uba, 4);
-	total_bytes += 4;
 
 	if (LGSV_LGA_API_MSG == evt->info.msg.type) {
 		p8 = ncs_dec_flatten_space(uba, local_data, 4);
 		evt->info.msg.info.api_info.type = ncs_decode_32bit(&p8);
 		ncs_dec_skip_space(uba, 4);
-		total_bytes += 4;
 
 		/* FIX error handling for dec functions */
 		switch (evt->info.msg.info.api_info.type) {
 		case LGSV_INITIALIZE_REQ:
-			total_bytes += dec_initialize_msg(uba, &evt->info.msg);
+			rc = dec_initialize_msg(uba, &evt->info.msg);
 			break;
 		case LGSV_FINALIZE_REQ:
-			total_bytes += dec_finalize_msg(uba, &evt->info.msg);
+			rc = dec_finalize_msg(uba, &evt->info.msg);
 			break;
 		case LGSV_STREAM_OPEN_REQ:
-			total_bytes += dec_lstr_open_sync_msg(uba, &evt->info.msg);
+			rc = dec_lstr_open_sync_msg(uba, &evt->info.msg);
 			break;
 		case LGSV_STREAM_CLOSE_REQ:
-			total_bytes += dec_lstr_close_msg(uba, &evt->info.msg);
+			rc = dec_lstr_close_msg(uba, &evt->info.msg);
 			break;
 		case LGSV_WRITE_LOG_ASYNC_REQ:
-			total_bytes += dec_write_log_async_msg(uba, &evt->info.msg);
+			rc = dec_write_log_async_msg(uba, &evt->info.msg);
 			break;
 		default:
-			TRACE("Unknown API type = %d", evt->info.msg.info.api_info.type);
 			break;
 		}
-		if (total_bytes == 4)
+		if (rc == NCSCC_RC_FAILURE)
 			goto err;
 	} else {
 		TRACE("unknown msg type = %d", (int)evt->info.msg.type);
@@ -766,6 +806,11 @@ static uint32_t mds_dec(struct ncsmds_callback_info *info)
 	return NCSCC_RC_SUCCESS;
 
  err:
+	/* Decoding failed. There will be no message to pass as an event */
+	TRACE("%s - Decoding failed",__FUNCTION__);
+	if (evt != NULL)
+		free(evt);
+	
 	return NCSCC_RC_FAILURE;
 }
 
@@ -887,8 +932,8 @@ static uint32_t mds_rcv(struct ncsmds_callback_info *mds_info)
 	evt->fr_dest = mds_info->info.receive.i_fr_dest;
 	evt->rcvd_prio = mds_info->info.receive.i_priority;
 	evt->mds_ctxt = mds_info->info.receive.i_msg_ctxt;
-
-	// for all msg types but WRITEs, sample curr time and store in msg
+	
+	/* for all msg types but WRITEs, sample curr time and store in msg */
 	if ((type == LGSV_INITIALIZE_REQ) || (type == LGSV_STREAM_OPEN_REQ)) {
 		osafassert(clock_gettime(CLOCK_MONOTONIC, &evt->entered_at) == 0);
 		rc = m_NCS_IPC_SEND(&lgs_mbx, evt, LGS_IPC_PRIO_CTRL_MSGS);
@@ -909,6 +954,8 @@ static uint32_t mds_rcv(struct ncsmds_callback_info *mds_info)
 		return NCSCC_RC_SUCCESS;
 	}
 
+	/* LGSV_WRITE_LOG_ASYNC_REQ
+	 */
 	/* Can we leave the mbox FULL state? */
 	if (mbox_full[prio] && (mbox_msgs[prio] <= mbox_low[prio])) {
 		mbox_full[prio] = false;
@@ -1173,7 +1220,7 @@ uint32_t lgs_mds_init(lgs_cb_t *cb)
 	MDS_SVC_ID svc = NCSMDS_SVC_ID_LGA;
 
 	TRACE_ENTER();
-
+	
 	/* Create the VDEST for LGS */
 	if (NCSCC_RC_SUCCESS != (rc = mds_vdest_create(cb))) {
 		LOG_ER(" lgs_mds_init: named vdest create FAILED\n");
@@ -1336,7 +1383,7 @@ uint32_t lgs_mds_msg_send(lgs_cb_t *cb,
 	NCSMDS_INFO mds_info;
 	MDS_SEND_INFO *send_info = &mds_info.info.svc_send;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-
+	
 	/* populate the mds params */
 	memset(&mds_info, '\0', sizeof(NCSMDS_INFO));
 
