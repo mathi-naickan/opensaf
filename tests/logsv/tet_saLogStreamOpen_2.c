@@ -299,6 +299,35 @@ void saLogStreamOpen_2_22(void)
     test_validate(rc, SA_AIS_ERR_NOT_EXIST);
 }
 
+/**
+ * Open with stream name length == 256
+ */
+void saLogStreamOpen_2_23(void)
+{
+	SaAisErrorT rc_17 = SA_AIS_OK;
+
+    strcpy((char*)genLogRecord.logBuffer->logBuf, __FUNCTION__);
+    genLogRecord.logBuffer->logBufSize = strlen(__FUNCTION__);
+	genLogRecord.logHeader.genericHdr.logSvcUsrName = &saNameT_appstream_name_256;
+    
+    safassert(saLogInitialize(&logHandle, &logCallbacks, &logVersion), SA_AIS_OK);
+    rc_17 = saLogStreamOpen_2(logHandle, &saNameT_appstream_name_256, NULL, 0,
+                             SA_TIME_ONE_SECOND, &logStreamHandle);
+    safassert(saLogFinalize(logHandle), SA_AIS_OK);
+
+	/* restore genLogRecord */
+	genLogRecord.logHeader.genericHdr.logSvcUsrName = &logSvcUsrName;
+
+	/* If tested length is >= 256 the server will stop decoding write message
+	 * and the message is ignored. This will result in no answer message from
+	 * the server and waiting for message will timeout. When this happen the
+	 * saLogStreamOpen_2 returns SA_AIS_ERR_TRY_AGAIN
+	 * Note that normally the API is checking length. But if testing with this
+	 * check disabled the server shall not crash.
+	 */
+	test_validate(rc_17, SA_AIS_ERR_INVALID_PARAM);
+}
+
 extern void saLogStreamOpenAsync_2_01(void);
 extern void saLogStreamOpenCallbackT_01(void);
 extern void saLogWriteLog_01(void);
@@ -316,6 +345,9 @@ extern void saLogWriteLogAsync_11(void);
 extern void saLogWriteLogAsync_12(void);
 extern void saLogWriteLogAsync_13(void);
 extern void saLogWriteLogAsync_14(void);
+extern void saLogWriteLogAsync_15(void);
+extern void saLogWriteLogAsync_16(void);
+extern void saLogWriteLogAsync_17(void);
 extern void saLogWriteLogCallbackT_01(void);
 extern void saLogWriteLogCallbackT_02(void);
 extern void saLogWriteLogCallbackT_03(void);
@@ -346,6 +378,7 @@ __attribute__ ((constructor)) static void saLibraryLifeCycle_constructor(void)
     test_case_add(2, saLogStreamOpen_2_20, "Open app stream with invalid logFileFmt");
     test_case_add(2, saLogStreamOpen_2_21, "Open app stream with unsupported logFullAction");
     test_case_add(2, saLogStreamOpen_2_22, "Open non exist app stream with NULL create attrs");
+	test_case_add(2, saLogStreamOpen_2_23, "Open with stream name length == 256");
 //    test_case_add(2, saLogStreamOpenAsync_2_01, "saLogStreamOpenAsync_2() OK");
 //    test_case_add(2, saLogStreamOpenCallbackT_01, "saLogStreamOpenCallbackT() OK");
 //    test_case_add(2, saLogWriteLog_01, "saLogWriteLog() system OK");
@@ -362,6 +395,9 @@ __attribute__ ((constructor)) static void saLibraryLifeCycle_constructor(void)
     test_case_add(2, saLogWriteLogAsync_12, "saLogWriteAsyncLog() without logTimeStamp set");
     test_case_add(2, saLogWriteLogAsync_13, "saLogWriteAsyncLog() 1800 bytes logrecord (ticket #203)");
     test_case_add(2, saLogWriteLogAsync_14, "saLogWriteAsyncLog() invalid severity");
+    test_case_add(2, saLogWriteLogAsync_15, "saLogWriteAsyncLog() NTF notificationObject length == 256");
+    test_case_add(2, saLogWriteLogAsync_16, "saLogWriteAsyncLog() NTF notifyingObject length == 256");
+    test_case_add(2, saLogWriteLogAsync_17, "saLogWriteLogAsync() Generic logSvcUsrName length == 256");
     test_case_add(2, saLogWriteLogCallbackT_01, "saLogWriteLogCallbackT() SA_DISPATCH_ONE");
     test_case_add(2, saLogWriteLogCallbackT_02, "saLogWriteLogCallbackT() SA_DISPATCH_ALL");
 //    test_case_add(2, saLogFilterSetCallbackT_01, "saLogFilterSetCallbackT OK");

@@ -49,6 +49,8 @@ extern SaNameT notificationStreamName;
 extern SaNameT app1StreamName;
 extern SaNameT notifyingObject;
 extern SaNameT notificationObject;
+extern SaNameT saNameT_Object_256;
+extern SaNameT saNameT_appstream_name_256;
 extern SaVersionT logVersion;
 extern SaAisErrorT rc;
 extern SaLogHandleT logHandle;
