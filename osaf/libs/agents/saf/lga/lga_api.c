@@ -439,6 +439,21 @@ static SaAisErrorT validate_open_params(SaLogHandleT logHandle,
 		rc = SA_AIS_ERR_INVALID_PARAM;
 		goto done;
 	}
+	
+	/* Note:
+	 * logStreamName is of type SaNameT this means that length normally is not
+	 * allowed to be > SA_MAX_NAME_LENGTH - 1 (255). SaNameT also means that
+	 * value does not have to be '\0' terminated.
+	 * HOWEVER:
+	 * This parameter does not follow these rules. In this case value shall be
+	 * '\0' terminated and length can be 256.
+	 * In order to not break backwards compatibility this should not be changed.
+	 */
+	if (logStreamName->length >= SA_MAX_NAME_LENGTH) {
+		TRACE("SA_AIS_ERR_INVALID_PARAM, logStreamName->length > SA_MAX_NAME_LENGTH");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done;
+	}
 
 	/* Check log stream input parameters */
 	/* The well known log streams */
@@ -789,14 +804,16 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 				goto done;
 			}
 			logSvcUsrName.length = strlen(logSvcUsrChars);
-			if (logSvcUsrName.length > SA_MAX_NAME_LENGTH) {
+			if (logSvcUsrName.length >= SA_MAX_NAME_LENGTH) {
+				TRACE("SA_AMF_COMPONENT_NAME is too long");
 				rc = SA_AIS_ERR_INVALID_PARAM;
 				goto done;
 			}
 			strcpy((char *)logSvcUsrName.value, logSvcUsrChars);
 			write_param->logSvcUsrName = &logSvcUsrName;
 		} else {
-			if (logRecord->logHeader.genericHdr.logSvcUsrName->length > SA_MAX_NAME_LENGTH) {
+			if (logRecord->logHeader.genericHdr.logSvcUsrName->length >= SA_MAX_NAME_LENGTH) {
+				TRACE("logSvcUsrName too long");
 				rc = SA_AIS_ERR_INVALID_PARAM;
 				goto done;
 			}
@@ -812,8 +829,8 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 			goto done;
 		}
 
-		if (logRecord->logHeader.ntfHdr.notificationObject->length > SA_MAX_NAME_LENGTH) {
-			TRACE("notificationObject.length > SA_MAX_NAME_LENGTH");
+		if (logRecord->logHeader.ntfHdr.notificationObject->length >= SA_MAX_NAME_LENGTH) {
+			TRACE("notificationObject.length >= SA_MAX_NAME_LENGTH");
 			rc = SA_AIS_ERR_INVALID_PARAM;
 			goto done;
 		}
@@ -824,8 +841,8 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 			goto done;
 		}
 
-		if (logRecord->logHeader.ntfHdr.notifyingObject->length > SA_MAX_NAME_LENGTH) {
-			TRACE("notifyingObject.length > SA_MAX_NAME_LENGTH");
+		if (logRecord->logHeader.ntfHdr.notifyingObject->length >= SA_MAX_NAME_LENGTH) {
+			TRACE("notifyingObject.length >= SA_MAX_NAME_LENGTH");
 			rc = SA_AIS_ERR_INVALID_PARAM;
 			goto done;
 		}
