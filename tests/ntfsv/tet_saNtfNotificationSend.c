@@ -689,6 +689,31 @@ void saNtfNotificationSend_11(void) {
 	sec_al_send(1, SA_AIS_ERR_INVALID_PARAM);
 }
 
+/**
+ * saNtfNotificationSend ObjectCreateDeleteNotification  SaNameT length == 256
+ * 
+ * Not allowed in OpenSAF. Max size is 255
+ * Note that log service does not allow a length of 256. If this is allowed
+ * for notifications alarms will not be logged.
+ */
+void saNtfNotificationSend_12(void) 
+{
+    SaAisErrorT rc;
+
+    saNotificationAllocationParamsT myNotificationAllocationParams;
+    saNotificationFilterAllocationParamsT myNotificationFilterAllocationParams;
+    saNotificationParamsT myNotificationParams;
+    fillInDefaultValues(&myNotificationAllocationParams,
+                        &myNotificationFilterAllocationParams, &myNotificationParams);
+    myNotificationParams.notificationObject.length = 256;
+    myNotificationParams.notifyingObject.length = 256;
+
+    rc = send_obj_cr_del(&myNotificationAllocationParams,
+                         &myNotificationFilterAllocationParams,
+                         &myNotificationParams);
+    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
+
 __attribute__ ((constructor)) static void saNtfNotificationSend_constructor(
 		void) {
 	test_suite_add(8, "Producer API 3 send");
@@ -713,6 +738,7 @@ __attribute__ ((constructor)) static void saNtfNotificationSend_constructor(
 					  "changedAttributes.attributeType failed SA_AIS_ERR_INVALID_PARAM");
 	test_case_add(8, saNtfNotificationSend_11,
 					  "securityAlarmDetector.valueType failed SA_AIS_ERR_INVALID_PARAM");
-	
+	test_case_add(8, saNtfNotificationSend_12,
+					  "saNtfNotificationSend ObjectCreateDeleteNotification  SaNameT length == 256");	
 }
 
