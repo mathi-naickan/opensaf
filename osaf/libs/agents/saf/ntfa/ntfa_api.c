@@ -305,7 +305,7 @@ static SaAisErrorT checkHeader(SaNtfNotificationHeaderT *nh)
 {
 	int i =0;
 
-	if (nh->notificationObject->length > SA_MAX_NAME_LENGTH || nh->notifyingObject->length > SA_MAX_NAME_LENGTH) {
+	if (nh->notificationObject->length >= SA_MAX_NAME_LENGTH || nh->notifyingObject->length >= SA_MAX_NAME_LENGTH) {
 		TRACE_1("SaNameT length too big");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
