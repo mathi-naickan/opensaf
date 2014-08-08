@@ -330,6 +330,13 @@ static uint32_t dgram_set_mcast_ttl(DTM_INTERNODE_CB * dtms_cb, int mcast_ttl)
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
+		unsigned int ifindex;
+		ifindex = if_nametoindex(dtms_cb->ifname);
+		if (setsockopt(dtms_cb->dgram_sock_sndr, IPPROTO_IPV6, IPV6_MULTICAST_IF,&ifindex, sizeof(ifindex)) < 0) {
+			LOG_ER("DTM :setsockopt(IPV6_MULTICAST_IF) failed err :%s ifname :%d", strerror(errno),if_nametoindex(dtms_cb->ifname));
+			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
+			return NCSCC_RC_FAILURE;
+		}
 	} else if (mcast_sender_addr->ai_family == AF_INET) {	/* v4 specific */
 		/* The v4 mcast TTL socket option requires that the value be */
 		/* passed in an unsigned char */
@@ -712,7 +719,6 @@ uint32_t dtm_stream_nonblocking_listener(DTM_INTERNODE_CB * dtms_cb)
 		return NCSCC_RC_FAILURE;
 	}
 
-
 	if (set_nonblocking(dtms_cb->stream_sock, true) != NCSCC_RC_SUCCESS) {
 		LOG_ER("DTM : set_nonblocking() failed");
 		dtm_sockdesc_close(dtms_cb->stream_sock);
@@ -1012,6 +1018,7 @@ uint32_t dtm_dgram_bcast_listener(DTM_INTERNODE_CB * dtms_cb)
 	/* results and bind to the first we can */
 	p = addr_list;
 	bool binded = false;
+	unsigned int ifindex;
 
 	for (; p; p = p->ai_next) {
 
@@ -1054,6 +1061,27 @@ uint32_t dtm_dgram_bcast_listener(DTM_INTERNODE_CB * dtms_cb)
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
+		if (p->ai_family == AF_INET6)  {
+			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+			ifindex = if_nametoindex(dtms_cb->ifname);	
+			ipv6->sin6_scope_id = ifindex; 
+			if (setsockopt(dtms_cb->dgram_sock_rcvr, IPPROTO_IPV6, IPV6_MULTICAST_IF, &ifindex, sizeof(ifindex)) < 0) {
+				LOG_ER("DTM :setsockopt(IPV6_MULTICAST_IF) failed err :%s", strerror(errno));
+				TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
+				return NCSCC_RC_FAILURE;
+			}
+
+			struct ipv6_mreq maddr;
+			struct sockaddr_in6 *ipv6_mr = (struct sockaddr_in6 *)p->ai_addr;
+			maddr.ipv6mr_multiaddr =  ipv6_mr->sin6_addr;
+			maddr.ipv6mr_interface = if_nametoindex(dtms_cb->ifname);
+			if (setsockopt(dtms_cb->dgram_sock_rcvr, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &maddr,
+						sizeof(maddr)) < 0) {
+				LOG_ER("DTM :setsockopt(IPV6_ADD_MEMBERSHIP) failed err :%s", strerror(errno));
+				TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
+				return NCSCC_RC_FAILURE;
+			}
+		} 
 		if (bind(dtms_cb->dgram_sock_rcvr, p->ai_addr, p->ai_addrlen) == -1) {
 			LOG_ER("DTM:Socket bind failed  err :%s", strerror(errno));
 			close(dtms_cb->dgram_sock_rcvr);
@@ -1154,13 +1182,35 @@ uint32_t dtm_dgram_bcast_sender(DTM_INTERNODE_CB * dtms_cb)
 	if (dtms_cb->i_addr_family == DTM_IP_ADDR_TYPE_IPV6) {
 		struct sockaddr_in6 *bcast_sender_addr_in6 = (struct sockaddr_in6 *)&bcast_dest_storage;
 		int yes = 1;
-		setsockopt(dtms_cb->dgram_sock_sndr, SOL_IPV6, IPV6_MULTICAST_HOPS, &yes, sizeof yes);
-		setsockopt(dtms_cb->dgram_sock_sndr, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+		if (setsockopt(dtms_cb->dgram_sock_sndr, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &yes, sizeof yes) < 0) {
+			LOG_ER("DTM :setsockopt(IPV6_MULTICAST_HOPS) failed err :%s", strerror(errno));
+			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
+			return NCSCC_RC_FAILURE;
+		} 
+
+		if (setsockopt(dtms_cb->dgram_sock_sndr, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) < 0) {
+			LOG_ER("DTM :setsockopt(SO_REUSEADDR) failed err :%s", strerror(errno));
+			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
+			return NCSCC_RC_FAILURE;
+		}      
+
+		unsigned int ifindex;
+		ifindex = if_nametoindex(dtms_cb->ifname);
+		if (setsockopt(dtms_cb->dgram_sock_sndr, IPPROTO_IPV6, IPV6_MULTICAST_IF,&ifindex, sizeof(ifindex)) < 0) {
+			LOG_ER("DTM :setsockopt(IPV6_MULTICAST_IF) failed err :%s ifname :%d", strerror(errno),if_nametoindex(dtms_cb->ifname));
+			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
+			return NCSCC_RC_FAILURE;
+		}
+
 		struct ipv6_mreq maddr;
 		maddr.ipv6mr_multiaddr = bcast_sender_addr_in6->sin6_addr;
-		maddr.ipv6mr_interface = 0;
-		setsockopt (dtms_cb->dgram_sock_sndr, SOL_IPV6, IPV6_ADD_MEMBERSHIP, &maddr, sizeof maddr);
-	}
+		maddr.ipv6mr_interface = if_nametoindex(dtms_cb->ifname);
+		if (setsockopt (dtms_cb->dgram_sock_sndr, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &maddr, sizeof maddr) < 0) {
+			LOG_ER("DTM :setsockopt(IPV6_ADD_MEMBERSHIP) failed err :%s", strerror(errno));
+			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
+			return NCSCC_RC_FAILURE;
+		}      
+	} 
 	TRACE_LEAVE2("rc :%d", NCSCC_RC_SUCCESS);
 	return NCSCC_RC_SUCCESS;
 }
