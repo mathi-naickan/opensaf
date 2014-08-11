@@ -40,6 +40,7 @@
 #include "immutil.h"
 #include "smfd_smfnd.h"
 #include "smfd.h"
+#include "osaf_time.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -743,6 +744,7 @@ SmfUpgradeStep::modifyInformationModel()
 	objectName.length = modifyRollbackCcbDn.length();
 	strncpy((char *)objectName.value, modifyRollbackCcbDn.c_str(), objectName.length);
 	objectName.value[objectName.length] = 0;
+	uint32_t retry_count = 0;
 
         /* In case of a undoing the rollback could already exists, delete it and recreate a new one */
 	rc = immutil_saImmOiRtObjectDelete(getProcedure()->getProcThread()->getImmHandle(), &objectName);
@@ -761,18 +763,58 @@ SmfUpgradeStep::modifyInformationModel()
 	if (m_modificationList.size() > 0) {
 		TRACE("Modifying information model");
 		SmfImmUtils immUtil;
+
+	while (1) {
+	int interval = 5; // seconds
                 SmfRollbackCcb rollbackCcb(modifyRollbackCcbDn,
                                            getProcedure()->getProcThread()->getImmHandle());
 
-		if ((rc = immUtil.doImmOperations(m_modificationList, &rollbackCcb)) != SA_AIS_OK) {
-			LOG_ER("SmfUpgradeStep modify IMM failed, rc=%s", saf_error(rc));
-			return rc;
-		}
+		rc = immUtil.doImmOperations(m_modificationList, &rollbackCcb);
+		if (((rc == SA_AIS_ERR_TIMEOUT) || (rc == SA_AIS_ERR_NOT_EXIST)) && (retry_count <= 6)) {
+			// When IMM aborts a CCB because of synch request from a payload, then
+			// the next call of CCBInitialize() will return TRY_AGAIN till the time
+			// the synch is complete.
+			// There is no direct information available to the OM that can indicate
+			// that the CCB or the Adminownerset failed because of an abort and also
+			// there is no notification that can indicate that IMM is ready now.
+			// That leaves SMF with the option to correlate error codes returned.
+			// 
+			// Notes on treatment of SA_AIS_ERR_TIMEOUT and SA_AIS_ERR_NOT_EXIST error codes:
+			//
+			// 1) CCB abort when it is not the first operation(create/modify/delete) in the CCB
+			//    and if there is dependency between objects in the CCB:-
+			//
+			// An abort of a CCB and if the objects(Create/Modify/delete) had
+			// some dependency(parent-child) among them, then an API call of
+			// AdminOwnerSet() or the CCBCreate/Delete/Modify() on a dependant object will return
+			// SA_AIS_ERR_NOT_EXIST, because the CCB aborted.
+			//
+			// 2) CCB abort when it is a first operation and/or there is no intra-ccb objects-dependency:-
+			//
+			// When an ongoing CCB is aborted because of a synch request originating from a payload,
+			// then the AdminOwnerSet() or the CCBCreate/Delete/Modify() will return timeout.
 
-                if ((rc = rollbackCcb.execute()) != SA_AIS_OK) {
-			LOG_ER("SmfUpgradeStep failed to store rollback CCB, rc=%s", saf_error(rc));
+			++retry_count;
+			LOG_NO("SmfUpgradeStep modify IMM failed with error: %s", saf_error(rc));
+			LOG_NO("CCB was aborted!?, Retrying: %u", retry_count);
+			// Total retry time of 2.5 minutes for a worst case IMM loaded with say < 300k objects. 
+			// Retry every 25 seconds. i.e. (nanosleep for 5 seconds)  + (immutil_ccbInitialize will
+			// worstcase wait till 20 seconds).
+			struct timespec sleepTime = { interval, 0 };
+			osaf_nanosleep(&sleepTime);
+			// Note: Alternatively Make rollbackCcb unique by adding a method for this to the rollbackCcb.
+			continue;
+		} else if (rc != SA_AIS_OK) {
+			LOG_NO("Giving up, SmfUpgradeStep modify IMM failed, rc=%s", saf_error(rc));
 			return rc;
-                }
+		} else if (rc == SA_AIS_OK) { /* Things went fine */
+                	if ((rc = rollbackCcb.execute()) != SA_AIS_OK) {
+				LOG_NO("SmfUpgradeStep failed to store rollback CCB, rc=%s", saf_error(rc));
+				return rc;
+                	}
+			break;
+		}
+	} /* End while (1) */
         } else {
                 TRACE("Nothing to modify in information model");
 	}
