@@ -193,3 +193,77 @@ void avnd_tmr_exp(void *uarg)
 	}
 
 }
+
+uint32_t tmr_comp_err_esc_start(AVND_CB *cb, AVND_SU *su)
+{
+	uint32_t rc;
+
+	LOG_NO("'%s' component restart probation timer started (timeout: %lld ns)",
+		su->name.value,
+		su->comp_restart_prob);
+
+	rc = avnd_start_tmr(cb,
+			&su->su_err_esc_tmr,
+			AVND_TMR_SU_ERR_ESC,
+        	su->comp_restart_prob,
+        	su->su_hdl);
+
+	return rc;
+}
+
+void tmr_comp_err_esc_stop(avnd_cb_tag *cb, avnd_su_tag *su)
+{
+	LOG_NO("'%s' component restart probation timer stopped",
+		su->name.value);
+
+	avnd_stop_tmr(cb, &su->su_err_esc_tmr);
+}
+
+uint32_t tmr_su_err_esc_start(avnd_cb_tag *cb, avnd_su_tag *su)
+{
+	uint32_t rc;
+
+	LOG_NO("'%s' SU restart probation timer started (timeout: %lld ns)",
+		su->name.value,
+		su->su_restart_prob);
+
+	rc = avnd_start_tmr(cb,
+			&su->su_err_esc_tmr,
+			AVND_TMR_SU_ERR_ESC,
+			su->su_restart_prob,
+			su->su_hdl);
+
+	return rc;
+}
+
+void tmr_su_err_esc_stop(avnd_cb_tag *cb, avnd_su_tag *su)
+{
+	LOG_NO("'%s' SU restart probation timer stopped",
+		su->name.value);
+
+	avnd_stop_tmr(cb, &su->su_err_esc_tmr);
+}
+
+uint32_t tmr_node_err_esc_start(avnd_cb_tag *cb)
+{
+	uint32_t rc;
+
+	LOG_NO("SU failover probation timer started (timeout: %lld ns)",
+		cb->su_failover_prob);
+
+	rc = avnd_start_tmr(cb,
+			&cb->node_err_esc_tmr,
+			AVND_TMR_NODE_ERR_ESC,
+			cb->su_failover_prob,
+			0);
+
+	return rc;
+}
+
+void tmr_node_err_esc_stop(avnd_cb_tag *cb)
+{
+	LOG_NO("SU failover probation timer stopped");
+	
+	avnd_stop_tmr(cb, &cb->node_err_esc_tmr);
+}
+

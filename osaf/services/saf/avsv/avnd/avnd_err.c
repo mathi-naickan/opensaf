@@ -1027,7 +1027,7 @@ uint32_t avnd_err_restart_esc_level_0(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 	/* first time in this level */
 	if (su->comp_restart_cnt == 0) {
 		/*start timer */
-		m_AVND_TMR_COMP_ERR_ESC_START(cb, su, rc);
+		rc = tmr_comp_err_esc_start(cb, su);
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
 
@@ -1047,7 +1047,7 @@ uint32_t avnd_err_restart_esc_level_0(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 			su->name.value, su->comp_restart_max);
 
 		/*stop the comp-err-esc-timer */
-		m_AVND_TMR_COMP_ERR_ESC_STOP(cb, su);
+		tmr_comp_err_esc_stop(cb, su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
 		su->comp_restart_cnt = 0;
 		su_reset_restart_count_in_comps(su);
@@ -1122,7 +1122,7 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 
 	if (su->su_restart_cnt < su->su_restart_max) {
 		if (su->su_restart_cnt == 0) {
-			m_AVND_TMR_SU_ERR_ESC_START(cb, su, rc);
+			rc = tmr_su_err_esc_start(cb, su);
 			if (NCSCC_RC_SUCCESS != rc)
 				goto done;
 
@@ -1138,7 +1138,7 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 			su->name.value, su->su_restart_max);
 
 		/* stop timer */
-		m_AVND_TMR_SU_ERR_ESC_STOP(cb, su);
+		tmr_su_err_esc_stop(cb, su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
 		su->su_restart_cnt = 0;
 		su_reset_restart_count_in_comps(su);
@@ -1199,7 +1199,7 @@ uint32_t avnd_err_restart_esc_level_2(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 	}
 
 	if (cb->su_failover_cnt == 0) {
-		m_AVND_TMR_NODE_ERR_ESC_START(cb, rc);
+		rc = tmr_node_err_esc_start(cb);
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
 
@@ -1218,7 +1218,7 @@ uint32_t avnd_err_restart_esc_level_2(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 			cb->su_failover_max);
 
 		/* stop timer */
-		m_AVND_TMR_NODE_ERR_ESC_STOP(cb);
+		tmr_node_err_esc_stop(cb);
 		cb->su_failover_cnt = 0;
 		cb->node_err_esc_level = AVND_ERR_ESC_LEVEL_3;
 		*esc_rcvr = SA_AMF_NODE_FAILOVER;
@@ -1268,7 +1268,7 @@ AVSV_ERR_RCVR avnd_err_esc_su_failover(AVND_CB *cb, AVND_SU *su, AVSV_ERR_RCVR *
 		   component failing, whose SU has SUFailover attr set to true. */
 		su->su_err_esc_level = AVND_ERR_ESC_LEVEL_2;
 		/* start timer */
-		m_AVND_TMR_NODE_ERR_ESC_START(cb, rc);
+		rc = tmr_node_err_esc_start(cb);
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
 
@@ -1288,7 +1288,7 @@ AVSV_ERR_RCVR avnd_err_esc_su_failover(AVND_CB *cb, AVND_SU *su, AVSV_ERR_RCVR *
 			cb->su_failover_max);
 
 		/* stop timer */
-		m_AVND_TMR_NODE_ERR_ESC_STOP(cb);
+		tmr_node_err_esc_stop(cb);
 		cb->su_failover_cnt = 0;
 		*esc_level = AVND_ERR_ESC_LEVEL_3;
 		*esc_rcvr = SA_AMF_NODE_FAILOVER;
@@ -1320,7 +1320,7 @@ uint32_t avnd_evt_tmr_node_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
-	LOG_NO("node error escalation timer expired");
+	LOG_NO("SU failover probation timer expired");
 	
 	su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
 	while (su != 0) {

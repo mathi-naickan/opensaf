@@ -390,7 +390,7 @@ uint32_t avnd_evt_tmr_su_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE("'%s'", su->name.value);
 	
-	LOG_NO("'%s' error escalation timer expired", su->name.value);
+	LOG_NO("'%s' SU restart probation timer expired", su->name.value);
 
 	if (NCSCC_RC_SUCCESS == m_AVND_CHECK_FOR_STDBY_FOR_EXT_COMP(cb, su->su_is_external))
 		goto done;
