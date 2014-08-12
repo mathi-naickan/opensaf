@@ -1239,12 +1239,12 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 	case true:		/* => terminate the su */
 		/* Stop saAmfSGSuRestartProb timer if started */
 		if (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_1) {
-			m_AVND_TMR_SU_ERR_ESC_STOP(cb, su);
+			tmr_su_err_esc_stop(cb, su);
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
 		}
 		/* Stop saAmfSGCompRestartProb timer if started */
 		else if (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_0) {
-			m_AVND_TMR_COMP_ERR_ESC_STOP(cb, su);
+			tmr_comp_err_esc_stop(cb, su);
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_ERR_ESC_TMR);
 		}
 		else

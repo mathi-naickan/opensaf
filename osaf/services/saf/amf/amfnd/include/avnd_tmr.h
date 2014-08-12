@@ -33,6 +33,7 @@
 #include "ncssysf_tmr.h"
 
 struct avnd_cb_tag;
+struct avnd_su_tag;
 
 /* timer type enums */
 typedef enum avnd_tmr_type {
@@ -121,35 +122,23 @@ typedef struct avnd_tmr {
 #define m_AVND_TMR_MSG_RESP_STOP(cb, rec) \
             avnd_stop_tmr((cb), &(rec).resp_tmr);
 
-/* Macro to start the component-error-escalation timer */
-#define m_AVND_TMR_COMP_ERR_ESC_START(cb, su, rc)\
-            (rc) = avnd_start_tmr ((cb), &(su)->su_err_esc_tmr,\
-                                   AVND_TMR_SU_ERR_ESC, \
-                                   (su)->comp_restart_prob, (su)->su_hdl);
+/* start the component-error-escalation timer */
+uint32_t tmr_comp_err_esc_start(avnd_cb_tag *cb, avnd_su_tag *su);
 
-/* Macro to stop the component-error-escalation timer */
-#define m_AVND_TMR_COMP_ERR_ESC_STOP(cb, su)\
-            avnd_stop_tmr ((cb), &(su)->su_err_esc_tmr);
+/* stop the component-error-escalation timer */
+void tmr_comp_err_esc_stop(avnd_cb_tag *cb, avnd_su_tag *su);
 
-/* Macro to start the su-error-escalation timer */
-#define m_AVND_TMR_SU_ERR_ESC_START(cb, su, rc)\
-            (rc) = avnd_start_tmr ((cb), &(su)->su_err_esc_tmr,\
-                                   AVND_TMR_SU_ERR_ESC, \
-                                   (su)->su_restart_prob, (su)->su_hdl);
+/* start the su-error-escalation timer */
+uint32_t tmr_su_err_esc_start(avnd_cb_tag *cb, avnd_su_tag *su);
 
-/* Marcro to stop the su-error-escalation timer */
-#define m_AVND_TMR_SU_ERR_ESC_STOP(cb, su)\
-            avnd_stop_tmr ((cb), &(su)->su_err_esc_tmr);
+/* stop the su-error-escalation timer */
+void tmr_su_err_esc_stop(avnd_cb_tag *cb, avnd_su_tag *su);
 
-/* Macro to start the node-error-escalation timer */
-#define m_AVND_TMR_NODE_ERR_ESC_START(cb, rc)\
-            (rc) = avnd_start_tmr ((cb), &(cb)->node_err_esc_tmr, \
-                                     AVND_TMR_NODE_ERR_ESC,\
-                                    (cb)->su_failover_prob, 0);
+/* start the node-error-escalation timer */
+uint32_t tmr_node_err_esc_start(avnd_cb_tag *cb);
 
-/* Macro to stop the node-error-escalation timer */
-#define m_AVND_TMR_NODE_ERR_ESC_STOP(cb)\
-            avnd_stop_tmr((cb), &(cb)->node_err_esc_tmr);
+/* stop the node-error-escalation timer */
+void tmr_node_err_esc_stop(avnd_cb_tag *cb);
 
 /* Macro to start the proxied comp-inst timer */
 #define m_AVND_TMR_PXIED_COMP_INST_START(cb, comp, rc) \

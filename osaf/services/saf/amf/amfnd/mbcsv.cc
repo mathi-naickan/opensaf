@@ -1588,11 +1588,11 @@ uint32_t avnd_ha_state_act_hdlr(AVND_CB *cb)
 				if ((AVND_ERR_ESC_LEVEL_0 == su->su_err_esc_level) &&
 				    (true == su->su_err_esc_tmr.is_active)) {
 					/* This means component err esc timer is running. */
-					m_AVND_TMR_COMP_ERR_ESC_START(cb, su, rc);
+					rc = tmr_comp_err_esc_start(cb, su);
 				} else if ((AVND_ERR_ESC_LEVEL_1 == su->su_err_esc_level) &&
 					   (true == su->su_err_esc_tmr.is_active)) {
 					/* This means su err esc timer is running. */
-					m_AVND_TMR_SU_ERR_ESC_START(cb, su, rc);
+					rc = tmr_su_err_esc_start(cb, su);
 				}
 
 				if (rc != NCSCC_RC_SUCCESS) {
