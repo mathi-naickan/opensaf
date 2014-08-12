@@ -207,8 +207,8 @@ uint32_t tmr_comp_err_esc_start(AVND_CB *cb, AVND_SU *su)
 	rc = avnd_start_tmr(cb,
 			&su->su_err_esc_tmr,
 			AVND_TMR_SU_ERR_ESC,
-        	su->comp_restart_prob,
-        	su->su_hdl);
+			su->comp_restart_prob,
+			su->su_hdl);
 
 	return rc;
 }
