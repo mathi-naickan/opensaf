@@ -123,22 +123,22 @@ typedef struct avnd_tmr {
             avnd_stop_tmr((cb), &(rec).resp_tmr);
 
 /* start the component-error-escalation timer */
-uint32_t tmr_comp_err_esc_start(avnd_cb_tag *cb, avnd_su_tag *su);
+uint32_t tmr_comp_err_esc_start(struct avnd_cb_tag *cb, struct avnd_su_tag *su);
 
 /* stop the component-error-escalation timer */
-void tmr_comp_err_esc_stop(avnd_cb_tag *cb, avnd_su_tag *su);
+void tmr_comp_err_esc_stop(struct avnd_cb_tag *cb, struct avnd_su_tag *su);
 
 /* start the su-error-escalation timer */
-uint32_t tmr_su_err_esc_start(avnd_cb_tag *cb, avnd_su_tag *su);
+uint32_t tmr_su_err_esc_start(struct avnd_cb_tag *cb, struct avnd_su_tag *su);
 
 /* stop the su-error-escalation timer */
-void tmr_su_err_esc_stop(avnd_cb_tag *cb, avnd_su_tag *su);
+void tmr_su_err_esc_stop(struct avnd_cb_tag *cb, struct avnd_su_tag *su);
 
 /* start the node-error-escalation timer */
-uint32_t tmr_node_err_esc_start(avnd_cb_tag *cb);
+uint32_t tmr_node_err_esc_start(struct avnd_cb_tag *cb);
 
 /* stop the node-error-escalation timer */
-void tmr_node_err_esc_stop(avnd_cb_tag *cb);
+void tmr_node_err_esc_stop(struct avnd_cb_tag *cb);
 
 /* Macro to start the proxied comp-inst timer */
 #define m_AVND_TMR_PXIED_COMP_INST_START(cb, comp, rc) \
