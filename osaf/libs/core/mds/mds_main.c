@@ -417,6 +417,7 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 			mds_log_init(buff, pref);
 		}
 
+		/* CREATE and CONNECT are mutually exclusive */
 		if (getenv("MDS_SOCK_SERVER_CREATE")) {
 			const char *name = getenv("MDS_SOCK_SERVER_NAME");
 			if (name) {
@@ -427,9 +428,7 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 					return NCSCC_RC_FAILURE;
 				}
 			}
-		}
-
-		if (getenv("MDS_SOCK_SERVER_CONNECT")) {
+		} else if (getenv("MDS_SOCK_SERVER_CONNECT")) {
 			const char *name = getenv("MDS_SOCK_SERVER_NAME");
 			if (name) {
 				status = mds_dest_register(name, gl_mds_mcm_cb->adest, 10000);
