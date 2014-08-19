@@ -650,13 +650,6 @@ SmfImmDeleteOperation::execute(SmfRollbackData* o_rollbackData)
 		return result;
 	}
 
-	result = immutil_saImmOmCcbObjectDelete(m_ccbHandle, &objectName);
-	if (result != SA_AIS_OK) {
-		LOG_NO("SmfImmDeleteOperation::execute, immutil_saImmOmCcbObjectDelete failed rc=%s (child objects maybe exists)", saf_error(result));
-                TRACE_LEAVE();
-		return result;
-	}
-
         if (o_rollbackData != NULL) {
                 if ((result = this->prepareRollback(o_rollbackData)) != SA_AIS_OK) {
                         LOG_NO("SmfImmDeleteOperation::execute, failed to prepare rollback data rc=%s", saf_error(result));
@@ -664,6 +657,13 @@ SmfImmDeleteOperation::execute(SmfRollbackData* o_rollbackData)
                         return SA_AIS_ERR_FAILED_OPERATION;
                 }
         }
+
+	result = immutil_saImmOmCcbObjectDelete(m_ccbHandle, &objectName);
+	if (result != SA_AIS_OK) {
+		LOG_NO("SmfImmDeleteOperation::execute, immutil_saImmOmCcbObjectDelete failed rc=%s (child objects maybe exists)", saf_error(result));
+                TRACE_LEAVE();
+		return result;
+	}
 
 	//Release IMM ownership
 	//This is not needed when saImmOmAdminOwnerInitialize "releaseOwnershipOnFinalize" is set to true
