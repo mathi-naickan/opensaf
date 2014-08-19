@@ -3105,9 +3105,11 @@ SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *evt)
 		TRACE("The HE %s is yet to be verified.",hpi_evt->entity_path);
 		/* The HE is not verified and hence call HE verifiaction
 		routine. But verification can be done only getting 
-		INSERTION-PENDING and ACTIVE as we get inv-data.*/
+		INSERTION-PENDING, INACTIVE, and ACTIVE as we get inv-data.*/
 		if((SAHPI_HS_STATE_INSERTION_PENDING ==  
 		hpi_evt->sa_hpi_evt.EventDataUnion.HotSwapEvent.HotSwapState) || 
+		(SAHPI_HS_STATE_INACTIVE ==
+		hpi_evt->sa_hpi_evt.EventDataUnion.HotSwapEvent.HotSwapState) ||
 		(SAHPI_HS_STATE_ACTIVE == 
 		hpi_evt->sa_hpi_evt.EventDataUnion.HotSwapEvent.HotSwapState)){
 			ret_err = plms_he_verify(hpi_evt,&curHEType,&ent);

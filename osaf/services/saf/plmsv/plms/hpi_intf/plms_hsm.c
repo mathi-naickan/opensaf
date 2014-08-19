@@ -821,8 +821,12 @@ static SaUint32T hsm_discover_and_dispatch()
 			TRACE("Hotswap state of res:%u is :%u", rpt_entry.ResourceId,state);
 		}
 		/* Retrieve IDR info if the state is 
-		SAHPI_HS_STATE_INSERTION_PENDING or SAHPI_HS_STATE_ACTIVE */
+		SAHPI_HS_STATE_INSERTION_PENDING, SAHPI_HS_STATE_INACTIVE,
+		or SAHPI_HS_STATE_ACTIVE. If the FRU is in M1 when PLM starts,
+		PLM admin functions won't work unless SAHPI_HS_STATE_INACTIVE
+		is handled here, too */
 		if ( SAHPI_HS_STATE_INSERTION_PENDING == state ||
+		     SAHPI_HS_STATE_INACTIVE == state ||
 		     SAHPI_HS_STATE_ACTIVE == state )
 			retriev_idr_info = true;
 			
