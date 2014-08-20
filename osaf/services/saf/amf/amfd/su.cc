@@ -928,7 +928,10 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			/* This means that shutdown was going on and lock has
 			   been issued.  In this case, response to shutdown
 			   and then allow lock operation to proceed. */
-			su->complete_admin_op(SA_AIS_OK);
+			avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
+					su->pend_cbk.invocation, SA_AIS_OK);
+			su->pend_cbk.invocation = 0;
+			su->pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
 		}
 	}
 	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
