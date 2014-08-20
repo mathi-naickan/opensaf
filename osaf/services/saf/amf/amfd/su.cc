@@ -144,13 +144,14 @@ void AVD_SU::remove_comp(AVD_COMP *comp) {
 	}
 
 	bool old_preinst_value = saAmfSUPreInstantiable;
-	bool curr_preinst_value = false;
+	bool curr_preinst_value = saAmfSUPreInstantiable;
 
 	// check if preinst possibly is still true
 	if (comp_is_preinstantiable(comp) == true) {
+		curr_preinst_value = false;
 		i_comp = list_of_comp;
 		while (i_comp) {
-			if (comp_is_preinstantiable(i_comp) == true) {
+			if ((comp_is_preinstantiable(i_comp) == true) && (i_comp != comp)) {
 				curr_preinst_value = true;
 				break;
 			}
