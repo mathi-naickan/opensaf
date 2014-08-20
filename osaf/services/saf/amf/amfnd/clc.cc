@@ -1270,7 +1270,9 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			ev = AVND_SU_PRES_FSM_EV_COMP_TERM_FAIL;
 		else if ((SA_AMF_PRESENCE_TERMINATING == final_st) && (comp->su->pres == SA_AMF_PRESENCE_RESTARTING))
 			ev = AVND_SU_PRES_FSM_EV_COMP_TERMINATING;
-		else if ((sufailover_in_progress(comp->su) || sufailover_during_nodeswitchover(comp->su)) &&
+		else if ((sufailover_in_progress(comp->su) || 
+					(avnd_cb->term_state == AVND_TERM_STATE_NODE_SWITCHOVER_STARTED) || 
+					(all_comps_terminated_in_su(comp->su) == true)) &&
 				(SA_AMF_PRESENCE_UNINSTANTIATED == final_st))
 			/* If sufailover flag is enabled, then SU FSM needs to be triggered in both sufailover
 			   and nodeswitchover escalation.

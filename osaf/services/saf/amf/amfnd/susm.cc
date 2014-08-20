@@ -1330,7 +1330,7 @@ done:
  * @param su
  * @return bool
  */
-static bool all_comps_terminated_in_su(const AVND_SU *su)
+bool all_comps_terminated_in_su(const AVND_SU *su)
 {
 	AVND_COMP *comp;
 
@@ -1600,7 +1600,7 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 			}
 			else 
 			{
-				if (m_AVND_SU_IS_FAILED(su)) {
+				if (m_AVND_SU_IS_FAILED(su) && (su->si_list.n_nodes == 0)) {
 					m_AVND_SU_FAILED_RESET(su);
 					m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 				}
@@ -2517,9 +2517,8 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su, AVND_CO
 	TRACE_ENTER2("Component Uninstantiated event in the Terminating state:'%s' : '%s'",
 				 su->name.value, compname);
 
-	/* This case is for handling the case of admn su term while su is restarting */
-	if (m_AVND_SU_IS_PREINSTANTIABLE(su) && m_AVND_SU_IS_FAILED(su) &&
-			(m_AVND_SU_IS_ADMN_TERM(su) || sufailover_in_progress(su)))
+	/* Mark failed PI SU uninstantiated whenever all components are uninstantiated. */
+	if (m_AVND_SU_IS_PREINSTANTIABLE(su) && m_AVND_SU_IS_FAILED(su))
 	{
 		TRACE("PI SU");
 		for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
