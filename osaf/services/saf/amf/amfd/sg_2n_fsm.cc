@@ -2835,19 +2835,20 @@ void SG_2N::node_fail_su_oper(AVD_SU *su) {
 					}
 					avd_sg_su_oper_list_add(cb, a_susi->su, false);
 					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
-				} else  {
-
+				} else if (su->su_switch == AVSV_SI_TOGGLE_SWITCH) {
 					/* During si-swap while standby assignment is going on, if Nodefailover 
 					   or SU failover got escalated then toggle SU switch state and make SG 
 					   stable. After SG becomes stable, spare SU will be instantiated, 
 					   if available, or same SU will get standby assignment after repair.
 					 */
-					if (su->su_switch == AVSV_SI_TOGGLE_SWITCH) {
-						su->set_su_switch(AVSV_SI_TOGGLE_STABLE);
-						m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
-						complete_siswap(a_susi->su, SA_AIS_OK);
-					}
+					su->set_su_switch(AVSV_SI_TOGGLE_STABLE);
+					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
+					complete_siswap(a_susi->su, SA_AIS_OK);
+				} else {
+					avd_sg_su_oper_list_add(cb, a_susi->su, false);
+					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 				}
+				
 			}
 		} /* if (a_susi->su != su) */
 		else {
