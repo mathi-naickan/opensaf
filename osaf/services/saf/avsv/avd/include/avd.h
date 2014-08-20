@@ -35,6 +35,7 @@
 
 #include "logtrace.h"
 #include "avsv.h"
+#include "avd_imm.h"
 #include "logtrace.h"
 
 #include "ncsencdec_pub.h"
