@@ -59,7 +59,7 @@ static void complete_siswap(AVD_SU *su, SaAisErrorT status)
 		/* si->invocation field is not check pointed. If controller failovers when si-swap
 		   operation is in progress, si->invocation will be zero on the new active controller.
 		   Log an error when si-swap operation completes.*/
-		LOG_ER("Operation done, but invocationId for the operation on SI not found '%s'", su->name.value);
+		TRACE("Operation done, but invocationId for the operation on SI not found '%s'", su->name.value);
 	}
 	TRACE_LEAVE();
 }
@@ -3077,16 +3077,27 @@ static void avd_sg_2n_node_fail_su_oper(AVD_CL_CB *cb, AVD_SU *su)
 			/* the admin state of the SU is shutdown change it to lock. */
 			if (su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
 				avd_su_admin_state_set(su, SA_AMF_ADMIN_LOCKED);
+				avd_sg_su_oper_list_add(cb, a_susi->su, false);
+				m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 			} else if (su_node_ptr->saAmfNodeAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
 				m_AVD_IS_NODE_LOCK((su_node_ptr), flag);
 				if (flag == true) {
 					node_admin_state_set(su_node_ptr, SA_AMF_ADMIN_LOCKED);
 				}
+				avd_sg_su_oper_list_add(cb, a_susi->su, false);
+				m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 			} else {
-				m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
+				/* During si-swap while standby assignment is going on, if Nodefailover
+				   or SU failover got escalated then toggle SU switch state and make SG
+				   stable. After SG becomes stable, spare SU will be instantiated,
+				   if available, or same SU will get standby assignment after repair.
+				 */
+				if (su->su_switch == AVSV_SI_TOGGLE_SWITCH) {
+					m_AVD_SET_SU_SWITCH(cb, su, AVSV_SI_TOGGLE_STABLE);
+					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
+					complete_siswap(a_susi->su, SA_AIS_OK);
+				}
 			}
-			avd_sg_su_oper_list_add(cb, a_susi->su, false);
-			m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 		} /* if (a_susi->su != su) */
 		else {
 			if (s_susi != AVD_SU_SI_REL_NULL) {
