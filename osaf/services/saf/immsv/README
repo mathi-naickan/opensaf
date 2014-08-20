@@ -344,6 +344,45 @@ imm loading actually uses the regular imm API to recreate the imm contents.
 In particular, saImmOmCcbObjectCreate is used to recreate all objects from
 the file-system image.
 
+Common missunderstandings about "system attributes" of an imm object.
+---------------------------------------------------------------------
+Besides the attributes defined in its class, every object also gets assigned
+three system attributes (see section 4.2.19 in the SAF IMM A.2.1 spec):
+
+    SaImmAttrClassName - SaStringT - holds the class-name for the object.
+    SaImmAttrAdminOwnerName - SaStringT - holds admin-owner (if it exists).
+    SaImmAttrImplementerName - SaStringT - holds implemener-name (if it exists).
+
+These system attributes are maintained by the imm service and are not writable
+by any Om or OI client. They are readable at any time. The SaImmAttrClassName
+attribute is in essence static, since no object can ever change class. It is
+also a persistent attribute in that the value is dumped to external format
+and the value of course survives cluster restarts.
+
+The SaImmAttrAdminOwnerName and SaImmAttrImplementerName get assigned when/if 
+an admin-owner or implementer is set for the object. These attributes are not
+full-cycle persistent. That is, a cluster restart will drop their value. For
+the SaImmAttrAdminOwnerName attribute, imm-loading always assigns the value
+'IMMLOADER'. That admin-owner is special in that it may be overwritten by
+anyone setting a new and normal admin-owner for the object. The admin-owner
+value 'IMMLOADER' can be used to see if an object has been modified since 
+the last cluster restart. For SaImmAttrImplementerName the value will always
+be empty/null after a cluster restart.
+
+Note however that both SaImmAttrImplementerName and SaImmAttrAdminOwnerName
+are written to export format when the imm is dumped. This can be usefull
+for debugging purposes, but the immloader discards these values so that
+the system comes up "clean" with respect to admin-owners and implementers.
+
+One conclusion from this is that an OI that is started/restarted must always
+invoke not just saImmOiImplementerSet, but also any relevant
+saImmOiClassImplementerSet or saImmOiObjectImplementerSet. If the OI only
+restarted as a process, the call will be 'idempotent' and succeed quickly.
+If the OI is started after a cluster-start then these calls are necssary
+to rebuild the implementer-map. See ticket defect ticket #543 for details.
+(http://sourceforge.net/p/opensaf/tickets/543)
+      
+
 PERSISTENCE
 ===========
 The IMM standard mandates that configuration attributes and persistent runtime
