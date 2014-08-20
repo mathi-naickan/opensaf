@@ -893,7 +893,9 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 
 	/* Avoid multiple admin operations on other SUs belonging to the same SG. */
 	for (su_ptr = su->sg_of_su->list_of_su; su_ptr != NULL; su_ptr = su_ptr->sg_list_su_next) {
-		if (su_ptr->pend_cbk.invocation != 0) {
+		/* su's sg_fsm_state is checked below, just check other su. */
+		if ((su != su_ptr) && (su_ptr->pend_cbk.invocation != 0)) {
+
 			rc = SA_AIS_ERR_TRY_AGAIN;
 			LOG_WA("Admin operation is already going on (su'%s')", su_ptr->name.value);
 			goto done;
@@ -908,9 +910,21 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 	}
 
 	if (su->sg_of_su->sg_fsm_state != AVD_SG_FSM_STABLE) {
-		rc = SA_AIS_ERR_TRY_AGAIN;
-		LOG_WA("SG state is not stable"); /* whatever that means... */
-		goto done;
+		if((su->sg_of_su->sg_fsm_state != AVD_SG_FSM_SU_OPER) ||
+				(su->saAmfSUAdminState != SA_AMF_ADMIN_SHUTTING_DOWN) ||
+				(op_id != SA_AMF_ADMIN_LOCK)) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			LOG_WA("SG state is not stable"); /* whatever that means... */
+			goto done;
+		} else {
+			/* This means that shutdown was going on and lock has
+			   been issued.  In this case, response to shutdown
+			   and then allow lock operation to proceed. */
+			avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
+					pend_cbk.invocation, result);
+			su->pend_cbk.invocation = 0;
+			su->pend_cbk.admin_oper = 0;
+		}
 	}
 	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
 	if (sg_is_tolerance_timer_running_for_any_si(su->sg_of_su)) {
