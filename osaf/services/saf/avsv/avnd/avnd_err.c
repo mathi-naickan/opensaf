@@ -896,7 +896,7 @@ uint32_t avnd_err_rcvr_node_failover(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP 
 uint32_t avnd_err_su_repair(AVND_CB *cb, AVND_SU *su)
 {
 	AVND_COMP *comp = 0;
-	bool is_en;
+	bool is_en, is_uninst = false, is_comp_insting = false;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
 
@@ -908,6 +908,9 @@ uint32_t avnd_err_su_repair(AVND_CB *cb, AVND_SU *su)
 	/* If the SU is in inst-failed state, do nothing */
 	if (su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED)
 		return rc;
+
+	if (all_comps_terminated_in_su(su) == true)
+		is_uninst = true;
 
 	/* scan & instantiate failed pi comps */
 	for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
@@ -925,6 +928,9 @@ uint32_t avnd_err_su_repair(AVND_CB *cb, AVND_SU *su)
 				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
 			}
 		}
+		if (comp->pres == SA_AMF_PRESENCE_INSTANTIATING)
+			is_comp_insting = true;
+
 	}			/* for */
 
 	if (!m_AVND_SU_IS_PREINSTANTIABLE(su)) {
@@ -944,6 +950,8 @@ uint32_t avnd_err_su_repair(AVND_CB *cb, AVND_SU *su)
 		}
 	}
 
+	if ((is_uninst == true) && (is_comp_insting == true))
+	       avnd_su_pres_state_set(su, SA_AMF_PRESENCE_INSTANTIATING);
  done:
 	TRACE_LEAVE2("retval=%u", rc);
 	return rc;

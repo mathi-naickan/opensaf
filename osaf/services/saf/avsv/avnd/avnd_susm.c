@@ -1550,7 +1550,7 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 		if ((SA_AMF_PRESENCE_TERMINATING == prv_st) && (SA_AMF_PRESENCE_UNINSTANTIATED == final_st)) {
 			TRACE("SU Terminating -> Uninstantiated");
 			/* reset the su failed flag */
-			if (m_AVND_SU_IS_FAILED(su)) {
+			if (m_AVND_SU_IS_FAILED(su) && (su->si_list.n_nodes == 0)) {
 				m_AVND_SU_FAILED_RESET(su);
 				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 			}
@@ -2479,7 +2479,7 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su, AVND_CO
 				 su->name.value, compname);
 
 	/* This case is for handling the case of admn su term while su is restarting */
-	if (m_AVND_SU_IS_PREINSTANTIABLE(su) && m_AVND_SU_IS_FAILED(su) && m_AVND_SU_IS_ADMN_TERM(su)) {
+	if (m_AVND_SU_IS_PREINSTANTIABLE(su) && m_AVND_SU_IS_FAILED(su)) {
 		TRACE("PI SU");
 		for (curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
 		     curr_comp;
@@ -2975,5 +2975,27 @@ uint32_t avnd_su_pres_instfailed_compuninst(AVND_CB *cb, AVND_SU *su, AVND_COMP 
 
 	TRACE_LEAVE2("%u", rc);
 	return rc;
+}
+
+/**
+ * Check if all components have been terminated in the su.
+ * @param su
+ * @return bool
+ */
+bool all_comps_terminated_in_su(const AVND_SU *su)
+{
+        AVND_COMP *comp;
+
+        for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
+                        comp;
+                        comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+
+                if (comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) {
+                        TRACE("'%s' not terminated, pres.st=%u", comp->name.value, comp->pres);
+                        return false;
+                }
+       }
+
+       return true;
 }
 

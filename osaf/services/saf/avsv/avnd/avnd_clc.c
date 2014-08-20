@@ -1092,6 +1092,9 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 				}
 
 			}
+
+			if (all_comps_terminated_in_su(comp->su) == true)
+				avnd_su_pres_state_set(comp->su, SA_AMF_PRESENCE_UNINSTANTIATED);
 		}
 
 		/* restarting -> instantiated */
