@@ -921,7 +921,7 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			   been issued.  In this case, response to shutdown
 			   and then allow lock operation to proceed. */
 			avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
-					pend_cbk.invocation, result);
+					su->pend_cbk.invocation, SA_AIS_OK);
 			su->pend_cbk.invocation = 0;
 			su->pend_cbk.admin_oper = 0;
 		}
