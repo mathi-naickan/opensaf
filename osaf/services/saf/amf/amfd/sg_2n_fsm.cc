@@ -3821,17 +3821,17 @@ uint32_t avd_sg_2n_su_admin_fail(AVD_CL_CB *cb, AVD_SU *su, AVD_AVND *avnd)
 			/* If the SU is in the operation list and the SU admin state is lock.
 			 * send D2N-INFO_SU_SI_ASSIGN modify quiesced message to the SU. 
 			 */
-			if (!avd_sidep_si_dependency_exists_within_su(su)) {
+			if (avd_sidep_si_dependency_exists_within_su(su)) {
+				if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) ==
+						NCSCC_RC_FAILURE) {
+					LOG_NO("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
+					goto done;
+				}
+			} else {
 				/* change the state for all assignments to quiesced. */
 				if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {
 					LOG_NO("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
 					goto done;
-				} else {
-					if (avd_sg_susi_mod_snd_honouring_si_dependency(su, SA_AMF_HA_QUIESCED) == 
-							NCSCC_RC_FAILURE) {
-						LOG_NO("%s:%u: %s (%u)", __FILE__, __LINE__, su->name.value, su->name.length);
-						goto done;
-					}
 				}
 			}
 		}
