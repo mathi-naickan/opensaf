@@ -183,6 +183,9 @@ typedef struct avd_sg_tag {
 					 * of the rank.
 					 */
 
+	SaInvocationT adminOp_invocationId;
+	SaAmfAdminOperationIdT adminOp;
+
 	struct avd_sg_tag *sg_list_sg_type_next;
 	struct avd_amf_sg_type_tag *sg_type;
 	struct avd_sg_tag *sg_list_app_next;
@@ -356,6 +359,7 @@ extern void avd_su_role_failover(struct avd_su_tag *su, struct avd_su_tag *stdby
 extern bool sg_is_tolerance_timer_running_for_any_si(AVD_SG *sg);
 extern void avd_sg_adjust_config(AVD_SG *sg);
 extern uint32_t sg_instantiated_su_count(const AVD_SG *sg);
+extern bool sg_stable_after_lock_in_or_unlock_in(AVD_SG *sg);
 
 
 #endif

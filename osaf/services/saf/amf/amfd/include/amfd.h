@@ -36,6 +36,7 @@
 #include "logtrace.h"
 
 #include "amf.h"
+#include "imm.h"
 
 #include "ncsencdec_pub.h"
 #include "amf_d2nmsg.h"

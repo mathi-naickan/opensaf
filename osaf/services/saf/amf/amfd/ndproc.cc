@@ -542,6 +542,22 @@ done:
 	return false;
 }
 
+/**
+ * handler to report error response to imm for any pending admin operation on sg 
+ *
+ * @param sg
+ */
+static void sg_admin_op_report_to_imm(AVD_SG *sg)
+{
+	if (sg_stable_after_lock_in_or_unlock_in(sg) == true) {
+		avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
+				sg->adminOp_invocationId, SA_AIS_OK);
+		sg->adminOp = static_cast<SaAmfAdminOperationIdT>(0);
+		sg->adminOp_invocationId = 0;
+		sg->adminOp = static_cast<SaAmfAdminOperationIdT>(0);
+	}
+
+}
 /*****************************************************************************
  * Function: avd_data_update_req_func
  *
@@ -742,6 +758,10 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 					} else if (su->pend_cbk.invocation != 0) {
 						su_admin_op_report_to_imm(su, static_cast<SaAmfPresenceStateT>(l_val));
 					}
+
+					if (su->sg_of_su->adminOp_invocationId != 0)
+						sg_admin_op_report_to_imm(su->sg_of_su);
+
 					/* send response to pending clm callback */
 					if (su->su_on_node->clm_pend_inv != 0)
 						clm_pend_response(su, static_cast<SaAmfPresenceStateT>(l_val));
