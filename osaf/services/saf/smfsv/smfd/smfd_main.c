@@ -165,8 +165,8 @@ static uint32_t initialize_smfd(void)
 
 	/* Set the behaviour of SMF-IMM interactions */
 	immutilWrapperProfile.errorsAreFatal = 0;   /* False, no reboot when fail */
-	immutilWrapperProfile.nTries         = 500; /* Times */
-	immutilWrapperProfile.retryInterval  = 400; /* MS */
+	immutilWrapperProfile.nTries         = 600; /* Times */
+	immutilWrapperProfile.retryInterval  = 1000; /* MS */
 
 	if (ncs_agents_startup() != NCSCC_RC_SUCCESS) {
 		LOG_ER("ncs_agents_startup FAILED");

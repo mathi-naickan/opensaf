@@ -633,7 +633,8 @@ uint32_t create_campaign_objects(smfd_cb_t * cb)
  */
 uint32_t updateImmAttr(const char *dn, SaImmAttrNameT attributeName, SaImmValueTypeT attrValueType, void *value)
 {
-	(void)immutil_update_one_rattr(smfd_cb->campaignOiHandle, dn, attributeName, attrValueType, value);
+	SaAisErrorT rc = immutil_update_one_rattr(smfd_cb->campaignOiHandle, dn, attributeName, attrValueType, value);
+	osafassert(rc == SA_AIS_OK);
 
 	return NCSCC_RC_SUCCESS;
 }

@@ -830,6 +830,14 @@ SmfCampStateExecuting::executeWrapup(SmfUpgradeCampaign * i_camp)
 {
 	TRACE_ENTER();
 
+	//Activate IMM BPE if active when campaign was started.
+	i_camp->restorePbe();
+
+	// Wait for IMM to become writable again by keep on writing until it
+	// succeeds. Write the same value, just for synchronization purposes.
+	changeState(i_camp, SmfCampStateExecuting::instance());
+
+	// IMM is writeable again so let's execute campCompleteAction
 	if (i_camp->m_campWrapup.executeCampComplete() == false) {
 		std::string error = "Campaign wrapup executing campaign complete actions failed";
 		LOG_ER("%s", error.c_str());
@@ -837,9 +845,6 @@ SmfCampStateExecuting::executeWrapup(SmfUpgradeCampaign * i_camp)
 		changeState(i_camp, SmfCampStateExecFailed::instance());
 		return SMF_CAMP_FAILED;
 	}
-
-	//Activate IMM BPE if active when campaign was started.
-	i_camp->restorePbe();
 
 	// TODO Start wait to complete timer
 	LOG_NO("CAMP: Start wait to complete timer (not implemented yet)");
@@ -1737,6 +1742,12 @@ SmfCampRollingBack::rollbackInit(SmfUpgradeCampaign * i_camp)
 	TRACE_ENTER();
 
         TRACE("SmfCampRollingBack::rollbackInit implementation");
+        //Activate IMM BPE if active when campaign was started.
+	i_camp->restorePbe();
+
+	// Wait for IMM to become writable again by keep on writing until it
+	// succeeds. Write the same value, just for synchronization purposes.
+	changeState(i_camp, SmfCampRollingBack::instance());
 
         if (i_camp->m_campInit.rollback() != SA_AIS_OK) {
 		std::string error = "Campaign init rollback failed";
@@ -1745,9 +1756,6 @@ SmfCampRollingBack::rollbackInit(SmfUpgradeCampaign * i_camp)
 		changeState(i_camp, SmfCampRollbackFailed::instance());
 		return SMF_CAMP_FAILED;
 	}
-
-        //Activate IMM BPE if active when campaign was started.
-	i_camp->restorePbe();
  
         changeState(i_camp, SmfCampRollbackCompleted::instance());
         LOG_NO("CAMP: Upgrade campaign rollback completed %s", i_camp->getCampaignName().c_str());
