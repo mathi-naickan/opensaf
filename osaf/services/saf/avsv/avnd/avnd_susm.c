@@ -1413,6 +1413,62 @@ uint32_t avnd_su_pres_fsm_run(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, AVND_SU
 	return rc;
 }
 
+
+
+/**
+ * @brief  Reset flags when a NPI SU moves from RESTARTING to INSTANTIATED state. 
+ * @param  su 
+ * @return NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE 
+ */
+
+static uint32_t npi_su_restarting_to_instantiated(AVND_SU *su)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+
+	if (m_AVND_SU_IS_RESTART(su)) {
+		m_AVND_SU_FAILED_RESET(su);
+		m_AVND_SU_RESTART_RESET(su);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(avnd_cb, su, AVND_CKPT_SU_FLAG_CHANGE);
+	}
+
+	return rc;
+}
+
+
+/**
+ * @brief  Reset flags when a PI SU moves from RESTARTING to INSTANTIATED state.
+ * @param  su
+ * @return NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ */
+static uint32_t pi_su_restarting_to_instantiated(AVND_SU *su)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+
+	/* A SU can be restarted because all components faulted with component 
+	   restart recovery policy or because of surestart escalation. */	
+	if (m_AVND_SU_IS_RESTART(su)) {
+		/* reset the su failed flag & set the oper state to enabled */
+		if (m_AVND_SU_IS_FAILED(su)) {
+			m_AVND_SU_FAILED_RESET(su);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(avnd_cb, su, AVND_CKPT_SU_FLAG_CHANGE);
+			m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_ENABLED);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(avnd_cb, su, AVND_CKPT_SU_OPER_STATE);
+			TRACE("Setting the Oper state to Enabled");
+		}
+
+		/* 
+		 * reassign all the sis... 
+		 * it's possible that the si was never assigned. send su-oper 
+		 * enable msg instead.
+		 */
+		if (su->si_list.n_nodes) 
+			rc = avnd_su_si_reassign(avnd_cb, su);
+		else
+			rc = avnd_di_oper_send(avnd_cb, su, 0);
+	}
+	
+	return rc;
+}
 /****************************************************************************
   Name          : avnd_su_pres_st_chng_prc
  
@@ -1433,7 +1489,8 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 	AVND_SU_SI_REC *si = 0;
 	bool is_en;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	TRACE_ENTER2("'%s'", su->name.value);
+
+	TRACE_ENTER2("'%s' %s => %s",su->name.value, presence_state[prv_st],presence_state[final_st]);		
 
 	/* pi su */
 	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
@@ -1462,32 +1519,9 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 		}
 
 		/* restarting -> instantiated */
-		if ((SA_AMF_PRESENCE_RESTARTING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATED == final_st)) {
-			TRACE("SU Restarting -> Instantiated");
-			/* reset the su failed flag & set the oper state to enabled */
-			if (m_AVND_SU_IS_FAILED(su)) {
-				m_AVND_SU_FAILED_RESET(su);
-				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
-				m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_ENABLED);
-				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
-				TRACE("Setting the Oper state to Enabled");
-			}
-
-			/* 
-			 * reassign all the sis... 
-			 * it's possible that the si was never assigned. send su-oper 
-			 * enable msg instead.
-			 */
-			if (su->si_list.n_nodes) {
-				TRACE("Reassigning the SIs");
-				rc = avnd_su_si_reassign(cb, su);
-			}
-			else
-				rc = avnd_di_oper_send(cb, su, 0);
-			if (NCSCC_RC_SUCCESS != rc)
-				goto done;
-
-		}
+		if ((SA_AMF_PRESENCE_RESTARTING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATED == final_st)) 
+			rc = pi_su_restarting_to_instantiated(su);
+	
 
 		/* terminating -> instantiated */
 		if ((SA_AMF_PRESENCE_TERMINATING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATED == final_st)) {
@@ -1624,14 +1658,8 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 
 		}
 
-		/* restarting -> instantiated */
-		if ((SA_AMF_PRESENCE_RESTARTING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATED == final_st)) {
-			TRACE("Restarting -> Instantiated");
-			/* reset the failed & restart flag */
-			m_AVND_SU_FAILED_RESET(su);
-			m_AVND_SU_RESTART_RESET(su);
-			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
-		}
+		if ((SA_AMF_PRESENCE_RESTARTING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATED == final_st))
+			rc = npi_su_restarting_to_instantiated(su);
 
 		/* terminating -> uninstantiated */
 		if ((SA_AMF_PRESENCE_TERMINATING == prv_st) && (SA_AMF_PRESENCE_UNINSTANTIATED == final_st)) {
@@ -2187,6 +2215,20 @@ uint32_t avnd_su_pres_inst_surestart_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *
 	return rc;
 }
 
+static bool su_evaluate_restarting_state(AVND_SU *su)
+{
+	AVND_COMP *comp = NULL;
+	for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
+		comp;
+		comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+		if (comp->pres !=SA_AMF_PRESENCE_RESTARTING) {
+			return false;
+		}	
+	}
+
+	return true;
+}
+
 /****************************************************************************
   Name          : avnd_su_pres_inst_comprestart_hdler
  
@@ -2207,6 +2249,10 @@ uint32_t avnd_su_pres_inst_comprestart_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP
 	char *compname = comp ? (char*)comp->name.value : "none";
 	TRACE_1("Component restart event in the Instantiated state, returning success:'%s' : '%s'",
 			su->name.value, compname);
+
+	if (su_evaluate_restarting_state(su) == true)
+		avnd_su_pres_state_set(su, SA_AMF_PRESENCE_RESTARTING);
+
 	return rc;
 }
 
@@ -2619,7 +2665,8 @@ uint32_t avnd_su_pres_restart_compinst_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP
 		     curr_comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_comp->su_dll_node))) {
 			TRACE("PI SU:'%s'", su->name.value);
 			/* restart the pi comp */
-			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp)) {
+			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(curr_comp) &&
+					(m_AVND_SU_IS_RESTART(su))) {
 				rc = avnd_comp_clc_fsm_run(cb, curr_comp, AVND_COMP_CLC_PRES_FSM_EV_RESTART);
 				if (NCSCC_RC_SUCCESS != rc)
 					goto done;
@@ -2665,7 +2712,8 @@ uint32_t avnd_su_pres_restart_compinst_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP
 		 */
 		if ((curr_csi != NULL) && 
 			(m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_UNASSIGNED(curr_csi) == true) &&
-			(curr_csi->comp->pres != SA_AMF_PRESENCE_RESTARTING)) {
+			(curr_csi->comp->pres != SA_AMF_PRESENCE_RESTARTING) && 
+			(m_AVND_SU_IS_RESTART(su))) {
 			/* we have another csi. trigger the comp fsm with RestartEv */
 			rc = avnd_comp_clc_fsm_trigger(cb, curr_csi->comp,
 							 AVND_COMP_CLC_PRES_FSM_EV_RESTART);
