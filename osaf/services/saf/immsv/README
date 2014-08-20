@@ -327,6 +327,22 @@ possibility of getting TIMEOUT on a ccb-apply when applying a CCB with
 PBE enabled. TIMEOUT of course means that the client then does not
 know if the CCB committed, aborted, or is still being processed.
 
+Common missunderstandings about attribute defaults.
+---------------------------------------------------
+Imm class definitions allow the declaration of a default value to be defined
+as part of an attribute definition.
+
+(i) A default declaration is only allowed for single valued attributes (no
+concept of a multivalued default exists).
+
+(ii) Default values are assigned at object creation. Default values are NOT
+assigned if an attribute is set to the empty/null value by a modification.
+
+(iii) Default values are assigned at cluster restart for any attributes that
+are null/empty and that have a default. This is a special case of (i) because
+imm loading actually uses the regular imm API to recreate the imm contents.
+In particular, saImmOmCcbObjectCreate is used to recreate all objects from
+the file-system image.
 
 PERSISTENCE
 ===========
@@ -1286,7 +1302,7 @@ labeled:
         SA_IMM_ATTR_NOTIFY
 
 in the SaImmAttrFlagsT type. The SaImmAttrFlagsT type is used when defining 
-atributes as part of an imm class definition. 
+attributes as part of an imm class definition. 
 
 The meaning of this new flag is that, if it is on, then any change to the value
 of that attribute in any instance (imm object) of that class, will generate a 
@@ -1357,7 +1373,7 @@ interpret what kind of object is being created and who is creating it.
 
 SaImmOiCcbObjectModifyCallbackT_2 will contain only attribute values that have
 been modified in this operation *and* that have the SA_IMM_ATTR_NOTIFY flag on.
-In addition, the callback will contain the system atributes SaImmAttrClassName.
+In addition, the callback will contain the system attributes SaImmAttrClassName.
 The system attribute SaImmAdminOwnerName will also be included if the value
 has not been provided already in a previous callback for the CCB. Thus if a prior
 create or modify has been sent then the current modify will not add the admin-
@@ -1416,7 +1432,7 @@ is creating it. The ccbId parameter will be zero.
 
 SaImmOiCcbObjectModifyCallbackT_2 will contain only cached runtime attribute values
 that have been updated in this operation *and* that have the SA_IMM_ATTR_NOTIFY
-flag on. In addition, the callback will contain the system atributes
+flag on. In addition, the callback will contain the system attributes
 SaImmAttrClassName and SaImmImplementerName. The class-name may be needed if the
 special applier attached after the object was created and had not yet initialized
 by reading from the imm. Indeed it is left open to the implementor of the special
