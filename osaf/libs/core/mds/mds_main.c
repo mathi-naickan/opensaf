@@ -515,7 +515,9 @@ void mds_init_transport(void)
 	struct stat sockStat;
 
 	rc = stat(MDS_MDTM_CONNECT_PATH, &sockStat);
-	if (rc != 0)  /* dtm intra server not exists */
+	if (rc == 0)  /* dtm intra server not exists */
+		tipc_or_tcp = "TCP";
+	else
 		tipc_or_tcp = "TIPC";
 
 	if (strcmp(tipc_or_tcp, "TIPC") == 0) {
