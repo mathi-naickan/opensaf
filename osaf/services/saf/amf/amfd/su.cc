@@ -1219,8 +1219,9 @@ static SaAisErrorT su_rt_attr_cb(SaImmOiHandleT immOiHandle,
 	AVD_SU *su = avd_su_get(objectName);
 	SaImmAttrNameT attributeName;
 	int i = 0;
+	SaAisErrorT rc = SA_AIS_OK;
 
-	TRACE("%s", objectName->value);
+	TRACE_ENTER2("%s", objectName->value);
 
 	while ((attributeName = attributeNames[i++]) != NULL) {
 		if (!strcmp("saAmfSUAssignedSIs", attributeName)) {
@@ -1231,20 +1232,25 @@ static SaAisErrorT su_rt_attr_cb(SaImmOiHandleT immOiHandle,
 				attributeName, SA_IMM_ATTR_SAUINT32T, &saAmfSUAssignedSIs);
 #endif
 		} else if (!strcmp("saAmfSUNumCurrActiveSIs", attributeName)) {
-			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
+			rc = avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &su->saAmfSUNumCurrActiveSIs);
 		} else if (!strcmp("saAmfSUNumCurrStandbySIs", attributeName)) {
-			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
+			rc = avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &su->saAmfSUNumCurrStandbySIs);
 		} else if (!strcmp("saAmfSURestartCount", attributeName)) {
-			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
+			rc = avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &su->saAmfSURestartCount);
 		} else {
 			LOG_ER("Ignoring unknown attribute '%s'", attributeName);
 		}
+		if (rc != SA_AIS_OK) {
+			/* For any failures of update, return FAILED_OP. */
+			rc = SA_AIS_ERR_FAILED_OPERATION;
+			break;
+		}
 	}
-
-	return SA_AIS_OK;
+	TRACE_LEAVE2("%u", rc);
+	return rc;
 }
 
 /*****************************************************************************
