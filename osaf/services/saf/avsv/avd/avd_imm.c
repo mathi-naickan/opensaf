@@ -1302,7 +1302,7 @@ done:
  * @param attrValueType
  * @param value
  */
-void avd_saImmOiRtObjectUpdate_sync(const SaNameT *dn, SaImmAttrNameT attributeName,
+SaAisErrorT avd_saImmOiRtObjectUpdate_sync(const SaNameT *dn, SaImmAttrNameT attributeName,
 	SaImmValueTypeT attrValueType, void *value)
 {
 	SaAisErrorT rc;
@@ -1323,6 +1323,7 @@ void avd_saImmOiRtObjectUpdate_sync(const SaNameT *dn, SaImmAttrNameT attributeN
 		LOG_WA("saImmOiRtObjectUpdate of '%s' %s failed with %u", 
 			dn->value, attributeName, rc);
 	}
+	return rc;
 }
 
 /**
