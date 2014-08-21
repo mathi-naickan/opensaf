@@ -112,18 +112,19 @@ void ccbutil_deleteCcbData(struct CcbUtilCcbData *ccb)
 	if (ccb == NULL)
 		return;
 	while (item != NULL) {
-		op = item->operationListHead;
-		while(op) {
-			osaf_extended_name_free(&op->objectName);
-			op = op->next;
-			if(op == item->operationListTail)
-				break;
-		}
 		if (ccb->ccbId == item->ccbId) {
 			if (prev == NULL) {
 				ccbList = item->next;
 			} else {
 				prev->next = item->next;
+			}
+
+			op = item->operationListHead;
+			while(op) {
+				osaf_extended_name_free(&op->objectName);
+				op = op->next;
+				if(op == item->operationListTail)
+					break;
 			}
 		}
 		prev = item;
