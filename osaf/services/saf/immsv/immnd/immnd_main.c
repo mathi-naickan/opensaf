@@ -35,6 +35,7 @@
 #include <rda_papi.h>
 #include <daemon.h>
 #include <nid_api.h>
+#include "mds_dl_api.h"
 
 #include "immnd.h"
 
@@ -115,9 +116,15 @@ static uint32_t immnd_initialize(char *progname)
 	if (getenv("SA_AMF_COMPONENT_NAME") == NULL)
 		immnd_cb->nid_started = 1;
 
+	/* After restart it is important to do this before MDS gets initialized
+	 * to avoid a timing problem in imma. It waits for MDS IMMND UP and then
+	 * registers/connects with the server. The server should do the reverse.
+	 */
 	const char *name = PKGLOCALSTATEDIR "/immnd.sock";
-	setenv("MDS_SOCK_SERVER_NAME", name, 1);
-	putenv("MDS_SOCK_SERVER_CREATE=YES");
+	if (mds_auth_server_create(name) != NCSCC_RC_SUCCESS) {
+		LOG_ER("mds_auth_server_create FAILED");
+		goto done;
+	}
 
 	if (ncs_agents_startup() != NCSCC_RC_SUCCESS) {
 		LOG_ER("ncs_agents_startup FAILED");

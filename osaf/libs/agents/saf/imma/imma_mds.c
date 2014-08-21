@@ -66,6 +66,7 @@ uint32_t imma_mds_get_handle(IMMA_CB *cb)
 		return rc;
 	}
 	cb->imma_mds_hdl = arg.info.adest_get_hdls.o_mds_pwe1_hdl;
+	cb->imma_mds_adest = arg.info.adest_get_hdls.o_adest;
 	return rc;
 }
 
@@ -116,7 +117,6 @@ uint32_t imma_mds_register(IMMA_CB *cb)
 		TRACE_3("mds register A failed rc:%u", rc);
 		return rc;
 	}
-	cb->imma_mds_dest = svc_info.info.svc_install.o_dest;
 
 	/* STEP 3: Subscribe to IMMND up/down events */
 	svc_info.i_op = MDS_SUBSCRIBE;

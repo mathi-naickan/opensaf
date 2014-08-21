@@ -719,6 +719,13 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 	int sync_pid = (!load_pid && (cb->syncPid > 0))?(cb->syncPid):0;
 	int pbe_pid =  (!load_pid && (cb->pbePid > 0))?(cb->pbePid):0;
 
+	if (sinfo->pid == 0) {
+		LOG_WA("%s: PID 0 (%d) for %lx, MDS problem?", __FUNCTION__,
+			evt->info.initReq.client_pid, sinfo->dest);
+		error = SA_AIS_ERR_LIBRARY;
+		goto agent_rsp;
+	}
+
 	if (load_pid > 0) {
 		if (sinfo->pid == load_pid) {
 			TRACE_2("Loader attached, pid: %u", load_pid);

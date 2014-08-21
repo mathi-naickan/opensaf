@@ -129,7 +129,7 @@ typedef struct imma_continuation_record {
 typedef struct imma_cb {
 	/* Identification Information about the IMMA */
 	uint32_t imma_mds_hdl;
-	MDS_DEST imma_mds_dest;
+	MDS_DEST imma_mds_adest; /* adest of this MDS core */
 	NCSMDS_SVC_ID sv_id;
 	NCS_LOCK cb_lock;
 	uint32_t pend_dis;		/* Number of pending dispaches */
