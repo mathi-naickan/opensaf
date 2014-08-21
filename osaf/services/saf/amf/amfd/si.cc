@@ -862,7 +862,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			avd_si_admin_state_set(si, SA_AMF_ADMIN_LOCKED);
 			goto done;
 		}
-
+		si->invocation = invocation;
 		break;
 
 	case SA_AMF_ADMIN_SHUTDOWN:
@@ -925,6 +925,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 					"SI shutdown/lock of %s failed", objectName->value);
 			goto done;
 		}
+		si->invocation = invocation;
 
 		break;
 
@@ -953,8 +954,6 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		goto done;
 	}
 
-	if ((operationId != SA_AMF_ADMIN_SI_SWAP))
-		avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 done:
 	TRACE_LEAVE();
 }
