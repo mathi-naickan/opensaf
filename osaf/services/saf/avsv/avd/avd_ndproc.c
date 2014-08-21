@@ -669,6 +669,20 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 						su_admin_op_report_to_imm(su, l_val);
 					}
 
+					if (l_val == SA_AMF_PRESENCE_TERMINATION_FAILED) {
+						AVD_SI* si;
+						for (si = su->sg_of_su->list_of_si; si != NULL;
+								si = si->sg_list_of_si_next) {
+							if (si->invocation != 0) {
+								LOG_WA("SU '%s' moved to 'termination failed' state",
+										su->name.value);
+								avd_saImmOiAdminOperationResult(cb->immOiHandle,
+										si->invocation, SA_AIS_ERR_REPAIR_PENDING);
+								si->invocation = 0;
+							}
+						}
+					}
+
 					if (su->sg_of_su->adminOp_invocationId != 0)
 						sg_admin_op_report_to_imm(su->sg_of_su);
 

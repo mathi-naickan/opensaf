@@ -848,7 +848,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			avd_si_admin_state_set(si, SA_AMF_ADMIN_LOCKED);
 			rc = SA_AIS_ERR_BAD_OPERATION;
 		}
-
+		si->invocation = invocation;
 		break;
 
 	case SA_AMF_ADMIN_SHUTDOWN:
@@ -883,6 +883,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			/* This may happen when SUs are locked before SI is locked. */
 			LOG_WA("SI lock of %s, has no assignments", objectName->value);
 			rc = SA_AIS_OK;
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 			goto done;
 		}
 
@@ -909,6 +910,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			avd_si_admin_state_set(si, back_val);
 			rc = SA_AIS_ERR_BAD_OPERATION;
 		}
+		si->invocation = invocation;
 
 		break;
 
@@ -933,7 +935,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 	}
 
 done:
-	if ((operationId != SA_AMF_ADMIN_SI_SWAP) || (rc != SA_AIS_OK))
+	if (rc != SA_AIS_OK)
 		avd_saImmOiAdminOperationResult(immOiHandle, invocation, rc);
 	TRACE_LEAVE();
 }

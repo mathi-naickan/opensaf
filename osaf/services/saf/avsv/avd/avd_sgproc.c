@@ -1060,6 +1060,16 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				} else
 					; // wait for SG to become STABLE
 			}
+			if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE){
+				AVD_SI* si;
+				for (si = su->sg_of_su->list_of_si; si != NULL; si = si->sg_list_of_si_next) {
+					if (si->invocation != 0) {
+						avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
+								si->invocation, SA_AIS_OK);
+						si->invocation = 0;
+					}
+				}
+			}
 		}
 		/* also check for pending clm callback operations */ 
 		if (su->su_on_node->clm_pend_inv != 0) {
