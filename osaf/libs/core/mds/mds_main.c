@@ -163,8 +163,8 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 		int rc = mds_process_info_add(info);
 		osafassert(rc == NCSCC_RC_SUCCESS);
 	} else {
-		// can this ever happen?
-		syslog(LOG_WARNING, "%s: dest %lx already exist", __FUNCTION__, mds_dest);
+		/* this happens in clients that uses both OM and OI */
+		TRACE("dest %lx already exist", mds_dest);
 	}
 
 	osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
@@ -182,16 +182,30 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 }
 
 /**
-+ * Sends and receives an initialize message using osaf_secutil
-+ * @param evt_type
-+ * @param mds_dest
-+ * @param version
-+ * @param out_evt
-+ * @param timeout max time to wait for a response in ms unit
-+ * @return NCSCC_RC_SUCCESS - response stored in out_evt, NCSCC_RC_FAILURE or
-+ *                     NCSCC_RC_REQ_TIMOUT
-+ */
-static uint32_t mds_dest_register(const char *name, MDS_DEST mds_dest, int timeout)
+ * Creates an auth server socket for this process
+ * @param name file system name of socket
+ * @return NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+ */
+int mds_auth_server_create(const char *name)
+{
+	if (osaf_auth_server_create(name, mds_register_callback) != 0) {
+		syslog(LOG_ERR, "MDS_LIB_CREATE: osaf_auth_server_create failed");
+		return NCSCC_RC_FAILURE;
+	}
+
+	return NCSCC_RC_SUCCESS;
+}
+
+/**
+ * Sends and receives an initialize message using osaf_secutil
+ * @param evt_type
+ * @param mds_dest
+ * @param version
+ * @param out_evt
+ * @param timeout max time to wait for a response in ms unit
+ * @return 0 - OK, negated errno otherwise
+ */
+int mds_auth_server_connect(const char *name, MDS_DEST mds_dest, int timeout)
 {
 	uint32_t rc;
 	uint8_t msg[32];
@@ -229,7 +243,7 @@ static uint32_t mds_dest_register(const char *name, MDS_DEST mds_dest, int timeo
 		goto fail;
 	}
 
-	fail:
+fail:
 	return rc;
  }
 
@@ -415,30 +429,6 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 			snprintf(buff, sizeof(buff), PKGLOGDIR "/mds.log");
 			snprintf(pref, sizeof(pref), "<%u>", mds_tipc_ref);
 			mds_log_init(buff, pref);
-		}
-
-		/* CREATE and CONNECT are mutually exclusive */
-		if (getenv("MDS_SOCK_SERVER_CREATE")) {
-			const char *name = getenv("MDS_SOCK_SERVER_NAME");
-			if (name) {
-				if (osaf_auth_server_create(name, mds_register_callback) != 0) {
-					syslog(LOG_ERR, "MDS_LIB_CREATE: osaf_auth_server_create failed");
-					/*  todo cleanup ? */
-					osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
-					return NCSCC_RC_FAILURE;
-				}
-			}
-		} else if (getenv("MDS_SOCK_SERVER_CONNECT")) {
-			const char *name = getenv("MDS_SOCK_SERVER_NAME");
-			if (name) {
-				status = mds_dest_register(name, gl_mds_mcm_cb->adest, 10000);
-				if (status != NCSCC_RC_SUCCESS) {
-					syslog(LOG_ERR, "MDS_LIB_CREATE: mds_dest_register failed %u", status);
-					/*  todo cleanup ? */
-					osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
-					return NCSCC_RC_FAILURE;
-				}
-			}
 		}
 
 		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
