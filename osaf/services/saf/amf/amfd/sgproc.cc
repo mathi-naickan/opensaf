@@ -28,6 +28,7 @@
 
 #include <immutil.h>
 #include <logtrace.h>
+#include <set>
 
 #include <amfd.h>
 #include <imm.h>
@@ -1350,6 +1351,64 @@ done:
 	TRACE_LEAVE();
 }
 
+/**
+ * @brief	This function finds higher rank unlocked, uninstantiated su. 
+ * @param 	ptr to sg 
+ * @param 	pointer to su
+ * 
+ */
+AVD_SU* su_to_instantiate(AVD_SG *sg)
+{
+	for (AVD_SU* i_su = sg->list_of_su; i_su != NULL; i_su = i_su->sg_list_su_next) {
+		TRACE("%s", i_su->name.value);
+		if (is_instantiable(i_su))
+			return i_su;
+	}
+	return NULL;
+}
+
+/**
+ * @brief	This function finds lower rank unassigned, locked, intantiated su. 
+ * @param 	ptr to sg 
+ * @param 	pointer to su
+ * 
+ */
+AVD_SU* su_to_terminate(AVD_SG *sg)
+{
+	AVD_SU* su_term = NULL;
+	for (AVD_SU* su = sg->list_of_su; su != NULL; su = su->sg_list_su_next) {
+		TRACE("Rev 2 %s, %u, %u, %u", su->name.value, su->saAmfSURank,
+				su->saAmfSuReadinessState, su->saAmfSUPresenceState);
+		if ((su->saAmfSuReadinessState == SA_AMF_READINESS_OUT_OF_SERVICE) &&
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) &&
+				(su->list_of_susi == NULL)) {
+			su_term = su;
+		}
+	}
+	return su_term;
+}
+
+/**
+ * @brief	This function finds higher rank unlocked, uninstantiated su. 
+ * @param 	ptr to sg 
+ * @param 	pointer to su
+ * 
+ */
+uint32_t in_serv_su(AVD_SG *sg)
+{
+	TRACE_ENTER();
+	uint32_t in_serv = 0;
+	for (AVD_SU* i_su = sg->list_of_su; i_su != NULL; i_su = i_su->sg_list_su_next) {
+		TRACE_ENTER2("%s", i_su->name.value);
+		if (su_is_insvc(i_su)) {
+			TRACE_ENTER2(" in_serv_su %s", i_su->name.value);
+			in_serv ++;
+		}
+	}
+	TRACE_LEAVE2("%u", in_serv);
+	return in_serv;
+}
+
 /*****************************************************************************
  * Function: avd_sg_app_su_inst_func
  *
@@ -1415,8 +1474,6 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg)
 				}
 
 			} else if ((i_su->saAmfSUPreInstantiable == true) &&
-					(sg->saAmfSGNumPrefInserviceSUs > (sg_instantiated_su_count(i_su->sg_of_su) +
-									   num_try_insvc_su)) &&
 					(i_su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) &&
 					((i_su->saAmfSUAdminState == SA_AMF_ADMIN_UNLOCKED) ||
 					 (i_su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED)) &&
@@ -1426,10 +1483,39 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg)
 					(su_node_ptr->node_info.member == true) &&
 					(i_su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) &&
 					(i_su->term_state == false)) {
-
-				/* Try to Instantiate this SU */
-				if (avd_snd_presence_msg(cb, i_su, false) == NCSCC_RC_SUCCESS) {
-					num_try_insvc_su++;
+				TRACE("%u, %u", sg->saAmfSGNumPrefInserviceSUs, num_try_insvc_su);
+				if (sg->saAmfSGNumPrefInserviceSUs > (sg_instantiated_su_count(i_su->sg_of_su) +
+							num_try_insvc_su)){
+					/* Try to Instantiate this SU */
+					if (avd_snd_presence_msg(cb, i_su, false) == NCSCC_RC_SUCCESS) {
+						num_try_insvc_su++;
+					}
+				} else {
+					/* Check whether in-serv su are sufficient. */
+					if (sg->saAmfSGNumPrefInserviceSUs > in_serv_su(sg)) {
+						/* Find most eligible SU(Higher Rank, Unlocked) to instantiate. */
+						AVD_SU* su_inst = su_to_instantiate(sg);
+						/* Find lower rank unassigned, locked, intantiated su to terminate. */
+						AVD_SU* su_term = su_to_terminate(sg);
+						TRACE("%p, %p", su_inst, su_term);
+						if (su_inst && su_term) {
+							TRACE("%s, %s", su_inst->name.value, su_term->name.value);
+							/* Try to Instantiate this SU */
+							if (avd_snd_presence_msg(cb, su_inst, false) == NCSCC_RC_SUCCESS) {
+								/* Don't increment num_try_insvc_su as we are any way
+								   going to terminate one SU. */;
+								if (avd_snd_presence_msg(cb, su_term, true) ==
+										NCSCC_RC_SUCCESS) {
+									avd_su_readiness_state_set(su_term,
+											SA_AMF_READINESS_OUT_OF_SERVICE);
+									num_insvc_su --;
+								}
+							}
+						} else {
+							/* No action to take if any su can't be instantiated or
+							   if any su can't be terminated. */
+						}
+					}
 				}
 			} else
 				TRACE("nop for %s", i_su->name.value);

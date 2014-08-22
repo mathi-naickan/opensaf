@@ -898,8 +898,8 @@ void avd_node_admin_lock_unlock_shutdown(AVD_AVND *node,
 				/* Since an SU has come in-service re look at the SG to see if other
 				 * instantiations or terminations need to be done.
 				 */
-				avd_sg_app_su_inst_func(cb, su->sg_of_su);
 			}
+			avd_sg_app_su_inst_func(cb, su->sg_of_su);
 
 			/* get the next SU on the node */
 			su = su->avnd_list_su_next;

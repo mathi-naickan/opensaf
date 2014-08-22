@@ -1677,14 +1677,15 @@ uint32_t sg_instantiated_su_count(const AVD_SG *sg)
 	AVD_SU *su;
 
 	for (su = sg->list_of_su, inst_su_count = 0; su != NULL; su = su->sg_list_su_next) {
-		TRACE_1("su'%s', pres state'%u'", su->name.value, su->saAmfSUPresenceState);
-		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) ||
-				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATING) ||
-				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_RESTARTING)) {
+		TRACE_1("su'%s', pres state'%u', in_serv'%u', PrefIn'%u'", su->name.value,
+				su->saAmfSUPresenceState, su->saAmfSuReadinessState, sg->saAmfSGNumPrefInserviceSUs);
+		if (((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) ||
+					(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATING) ||
+					(su->saAmfSUPresenceState == SA_AMF_PRESENCE_RESTARTING))) {
 			inst_su_count ++;
 		}
 	}
-
+	TRACE_LEAVE2("%u", inst_su_count);
 	return inst_su_count;
 }
 

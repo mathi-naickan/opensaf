@@ -135,7 +135,7 @@ m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVSV_CKPT_SU_SWITCH);\
  if(true == i_su->su_is_external) su_node_ptr = avd_cb->ext_comp_info.local_avnd_node; \
  else su_node_ptr = i_su->su_on_node;
 
-bool su_is_insvc(const AVD_SU *su);
+extern bool su_is_insvc(const AVD_SU *su);
 
 /**
  * Allocate SU memory and initialize attributes to defaults
@@ -235,5 +235,6 @@ extern void avd_su_dec_curr_stdby_si(AVD_SU *su);
 extern uint32_t avd_su_get_current_no_of_assignments(AVD_SU *su, SaAmfHAStateT ha_state);
 extern AVD_SU *avd_su_get_or_create(const SaNameT *dn);
 extern void su_nd_attribute_update(const AVD_SU *su, AVSV_AMF_SU_ATTR_ID attrib_id);
+extern bool is_instantiable(AVD_SU *su);
 
 #endif
