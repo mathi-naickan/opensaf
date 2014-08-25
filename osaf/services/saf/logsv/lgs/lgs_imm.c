@@ -761,8 +761,325 @@ static SaAisErrorT config_ccb_completed(SaImmOiHandleT immOiHandle,
 	return rc;
 }
 
+/**********************************************
+ * Help functions for check_attr_validity(...)
+ **********************************************/
+
+typedef struct {
+	/* Store default values for the stream config class. The values are fetched
+	 * using saImmOmClassDescriptionGet(...)
+	 * Note: Only values relevant for validity checks are stored.
+	 */
+	SaUint64T saLogStreamMaxLogFileSize;
+	SaUint32T saLogStreamFixedLogRecordSize;
+} lgs_stream_defval_t;
+
+static bool lgs_stream_defval_updated_flag = false;
+static lgs_stream_defval_t lgs_stream_defval;
+
 /**
- * Verify that attribute values are reasonable.
+ * Return a stream config class default values. Fetched using imm om interface
+ * 
+ * @return  struct of type lgs_stream_defval_t
+ */
+static lgs_stream_defval_t *get_SaLogStreamConfig_default(void)
+{
+	SaImmHandleT om_handle = 0;
+	SaAisErrorT rc = SA_AIS_OK;
+	SaImmClassCategoryT cc;
+	SaImmAttrDefinitionT_2 **attributes = NULL;
+	SaImmAttrDefinitionT_2 *attribute = NULL;
+	int i = 0;
+	
+	TRACE_ENTER2("448");
+	if (lgs_stream_defval_updated_flag == false) {
+		/* Get class defaults for SaLogStreamConfig class from IMM
+		 * We are only interested in saLogStreamMaxLogFileSize and
+		 * saLogStreamFixedLogRecordSize
+		 */
+		int iu_setting = immutilWrapperProfile.errorsAreFatal;
+		immutilWrapperProfile.errorsAreFatal = 0;
+		
+		rc = immutil_saImmOmInitialize(&om_handle, NULL, &immVersion);
+		if (rc != SA_AIS_OK) {
+			TRACE("\t448 immutil_saImmOmInitialize fail rc=%d", rc);
+		}
+		if (rc == SA_AIS_OK) {
+			rc = immutil_saImmOmClassDescriptionGet_2(om_handle, "SaLogStreamConfig",
+					&cc, &attributes);
+		}
+		
+		if (rc == SA_AIS_OK) {
+			while ((attribute = attributes[i++]) != NULL) {
+				if (!strcmp(attribute->attrName, "saLogStreamMaxLogFileSize")) {
+					TRACE("\t448 Got saLogStreamMaxLogFileSize");
+					lgs_stream_defval.saLogStreamMaxLogFileSize =
+							*((SaUint64T *) attribute->attrDefaultValue);
+					TRACE("\t448 value = %lld",
+							lgs_stream_defval.saLogStreamMaxLogFileSize);
+				} else if (!strcmp(attribute->attrName, "saLogStreamFixedLogRecordSize")) {
+					TRACE("\t448 Got saLogStreamFixedLogRecordSize");
+					lgs_stream_defval.saLogStreamFixedLogRecordSize =
+							*((SaUint32T *) attribute->attrDefaultValue);
+					TRACE("\t448 value = %d",
+							lgs_stream_defval.saLogStreamFixedLogRecordSize);
+				}
+			}
+			
+			rc = immutil_saImmOmClassDescriptionMemoryFree_2(om_handle, attributes);
+			if (rc != SA_AIS_OK) {
+				LOG_ER("448 %s: Failed to free class description memory rc=%d",
+					__FUNCTION__, rc);
+				osafassert(0);
+			}
+			lgs_stream_defval_updated_flag = true;
+		} else {
+			/* Default values are not fetched. Temporary use hard coded values.
+			 */
+			TRACE("\t448 saImmOmClassDescriptionGet_2 failed rc=%d", rc);
+			lgs_stream_defval.saLogStreamMaxLogFileSize = 5000000;
+			lgs_stream_defval.saLogStreamFixedLogRecordSize = 150;
+		}
+		
+		rc = immutil_saImmOmFinalize(om_handle);
+		if (rc != SA_AIS_OK) {
+			TRACE("\t448 immutil_saImmOmFinalize fail rc=%d", rc);
+		}
+				
+		immutilWrapperProfile.errorsAreFatal = iu_setting;
+	} else {
+		TRACE("\t448 Defaults are already fetched");
+		TRACE("\t448 saLogStreamMaxLogFileSize=%lld",
+				lgs_stream_defval.saLogStreamMaxLogFileSize);
+		TRACE("\t448 saLogStreamFixedLogRecordSize=%d",
+				lgs_stream_defval.saLogStreamFixedLogRecordSize);
+	}
+	
+	
+	TRACE_LEAVE2("448");
+	return &lgs_stream_defval;
+}
+
+/**
+ * Check if a stream with the same file name and relative path already
+ * exist
+ * 
+ * @param immOiHandle
+ * @param fileName
+ * @param pathName
+ * @param stream
+ * @param operationType
+ * @return true if exists
+*/
+bool chk_filepath_stream_exist(
+		char *fileName,
+		char *pathName,
+		log_stream_t *stream,
+		enum CcbUtilOperationType operationType)
+{
+	log_stream_t *i_stream = NULL;
+	char *i_fileName = NULL;
+	char *i_pathName = NULL;
+	bool rc = false;
+	
+	TRACE_ENTER2("448");
+	TRACE("\t448 fileName \"%s\", pathName \"%s\"", fileName, pathName);
+	
+	/* If a stream is modified only the name may be modified. The path name
+	 * must be fetched from the stream.
+	 */
+	if (operationType == CCBUTIL_MODIFY) {
+		TRACE("\t448 MODIFY");
+		if (stream == NULL) {
+			/* No stream to modify. Should never happen */
+			osafassert(0);
+		}
+		if ((fileName == NULL) && (pathName == NULL)) {
+			/* Nothing has changed */
+			TRACE("\t448 Nothing has changed");
+			return false;
+		}
+		if (fileName == NULL) {
+			i_fileName = stream->fileName;
+			TRACE("\t448 From stream: fileName \"%s\"", i_fileName);
+		} else {
+			i_fileName = fileName;
+		}
+		if (pathName == NULL) {
+			i_pathName = stream->pathName;
+			TRACE("\t448 From stream: pathName \"%s\"", i_pathName);
+		} else {
+			i_pathName = pathName;
+		}
+	} else if (operationType == CCBUTIL_CREATE) {
+		TRACE("\t448 CREATE");
+		if ((fileName == NULL) || (pathName == NULL)) {
+			/* Should never happen
+			 * A valid fileName and pathName is always given at create */
+			LOG_ER("448 fileName or pathName is not a string");
+			osafassert(0);
+		}
+		
+		i_fileName = fileName;
+		i_pathName = pathName;
+	} else {
+		/* Unknown operationType. Should never happen */
+			osafassert(0);
+	}
+	
+	/* Check if any stream has given filename and path */
+	TRACE("\t448 Check if any stream has given filename and path");
+	i_stream = log_stream_getnext_by_name(NULL);
+	while (i_stream != NULL) {
+		TRACE("\t448 Check stream \"%s\"", i_stream->name);
+		if ((strncmp(i_stream->fileName, i_fileName, NAME_MAX) == 0) &&
+			(strncmp(i_stream->pathName, i_pathName, SA_MAX_NAME_LENGTH) == 0)) {
+			rc = true;
+			break;
+		}
+		i_stream = log_stream_getnext_by_name(i_stream->name);
+	}
+	
+	TRACE_LEAVE2("448 rc = %d", rc);
+	return rc;
+}
+
+/**
+ * Verify fixedLogRecordSize and maxLogFileSize.
+ * Rules:
+ *  - fixedLogRecordSize must be less than maxLogFileSize
+ *  - fixedLogRecordSize must be less than or equal to logMaxLogrecsize
+ *  - fixedLogRecordSize can be 0. Means variable record size
+ *  - maxLogFileSize must be bigger than 0. No limit is not supported
+ *  - maxLogFileSize must be bigger than logMaxLogrecsize
+ * 
+ * The ..._flag variable == true means that the corresponding attribute is
+ * changed.
+ * 
+ * @param immOiHandle
+ * @param maxLogFileSize
+ * @param maxLogFileSize_flag
+ * @param fixedLogRecordSize
+ * @param fixedLogRecordSize_flag
+ * @param stream
+ * @param operationType
+ * @return false if error
+ */
+static bool chk_max_filesize_recordsize_compatible(SaImmOiHandleT immOiHandle,
+		SaUint64T maxLogFileSize,
+		bool maxLogFileSize_mod,
+		SaUint32T fixedLogRecordSize,
+		bool fixedLogRecordSize_mod,
+		log_stream_t *stream,
+		enum CcbUtilOperationType operationType,
+		SaImmOiCcbIdT ccbId)
+{
+	SaUint64T i_maxLogFileSize = 0;
+	SaUint32T i_fixedLogRecordSize = 0;
+	SaUint32T i_logMaxLogrecsize = 0;
+	lgs_stream_defval_t *stream_default;
+	
+	bool rc = true;
+	
+	TRACE_ENTER2("448");
+	
+	/** Get all parameters **/
+	
+	/* Get logMaxLogrecsize from configuration parameters */
+	i_logMaxLogrecsize = *(SaUint32T *) lgs_imm_logconf_get(
+			LGS_IMM_LOG_MAX_LOGRECSIZE, NULL);
+	TRACE("\t448 i_logMaxLogrecsize = %d", i_logMaxLogrecsize);
+	/* Get stream default settings */
+	stream_default = get_SaLogStreamConfig_default();
+	
+	if (operationType == CCBUTIL_MODIFY) {
+		TRACE("\t448 operationType == CCBUTIL_MODIFY");
+		/* The stream exists. 
+		 */
+		if (stream == NULL) {
+			/* Should never happen */
+			LOG_ER("448 %s stream == NULL", __FUNCTION__);
+			osafassert(0);
+		}
+		if (fixedLogRecordSize_mod == false) {
+			/* fixedLogRecordSize is not given. Get from stream */
+			i_fixedLogRecordSize = stream->fixedLogRecordSize;
+			TRACE("\t448 Get from stream, fixedLogRecordSize = %d",
+					i_fixedLogRecordSize);
+		} else {
+			i_fixedLogRecordSize = fixedLogRecordSize;
+		}
+		
+		if (maxLogFileSize_mod == false) {
+			/* maxLogFileSize is not given. Get from stream */
+			i_maxLogFileSize = stream->maxLogFileSize;
+			TRACE("\t448 Get from stream, maxLogFileSize = %lld",
+					i_maxLogFileSize);
+		} else {
+			i_maxLogFileSize = maxLogFileSize;
+			TRACE("\t448 Modified maxLogFileSize = %lld", i_maxLogFileSize);
+		}
+	} else if (operationType == CCBUTIL_CREATE) {
+		TRACE("\t448 operationType == CCBUTIL_CREATE");
+		/* The stream does not yet exist
+		 */
+		if (fixedLogRecordSize_mod == false) {
+			/* fixedLogRecordSize is not given. Use default */
+			i_fixedLogRecordSize = stream_default->saLogStreamFixedLogRecordSize;
+			TRACE("\t448 Get default, fixedLogRecordSize = %d",
+					i_fixedLogRecordSize);
+		} else {
+			i_fixedLogRecordSize = fixedLogRecordSize;
+		}
+		
+		if (maxLogFileSize_mod == false) {
+			/* maxLogFileSize is not given. Use default */
+			i_maxLogFileSize = stream_default->saLogStreamMaxLogFileSize;
+			TRACE("\t448 Get default, maxLogFileSize = %lld",
+					i_maxLogFileSize);
+		} else {
+			i_maxLogFileSize = maxLogFileSize;
+		}		
+	} else {
+		/* Unknown operationType */
+		LOG_ER("%s Unknown operationType", __FUNCTION__);
+		osafassert(0);
+	}
+	
+	/** Do the verification **/
+	if (i_maxLogFileSize <= i_logMaxLogrecsize) {
+		/* maxLogFileSize must be bigger than logMaxLogrecsize */
+		report_oi_error(immOiHandle, ccbId,
+					"maxLogFileSize out of range");
+		TRACE("\t448 i_maxLogFileSize (%lld) <= i_logMaxLogrecsize (%d)",
+				i_maxLogFileSize, i_logMaxLogrecsize);
+		rc = false;
+	} else if (i_fixedLogRecordSize == 0) {
+		/* fixedLogRecordSize can be 0. Means variable record size */
+		TRACE("\t448 fixedLogRecordSize = 0");
+		rc = true;
+	} else if (i_fixedLogRecordSize >= i_maxLogFileSize) {
+		/* fixedLogRecordSize must be less than maxLogFileSize */
+		report_oi_error(immOiHandle, ccbId,
+				"fixedLogRecordSize out of range");
+		TRACE("\t448 i_fixedLogRecordSize >= i_maxLogFileSize");
+		rc = false;
+	} else if (i_fixedLogRecordSize > i_logMaxLogrecsize) {
+		/* fixedLogRecordSize must be less than maxLogFileSize */
+		report_oi_error(immOiHandle, ccbId,
+				"fixedLogRecordSize out of range");
+		TRACE("\t448 i_fixedLogRecordSize > i_logMaxLogrecsize");
+		rc = false;
+	}
+	
+	TRACE_LEAVE2("448 rc = %d", rc);
+	return rc;
+}
+
+/**
+ * Validate input parameters creation and modify of a persistent stream
+ * i.e. a stream that has a configuration object.
+ * 
  * @param ccbUtilOperationData
  *
  * @return SaAisErrorT
@@ -771,161 +1088,360 @@ static SaAisErrorT check_attr_validity(SaImmOiHandleT immOiHandle,
 		const struct CcbUtilOperationData *opdata)
 {
 	SaAisErrorT rc = SA_AIS_OK;
-	void *value;
-	int n = 0;
-	const SaImmAttrValuesT_2 *attribute;
-	log_stream_t *stream = (opdata->operationType == CCBUTIL_CREATE) ? NULL
-			: log_stream_get_by_name((char *) opdata->param.modify.objectName->value);
-
-	TRACE_ENTER();
-
-	int i = 0;
-	while (rc == SA_AIS_OK) {
-		if (opdata->operationType == CCBUTIL_CREATE) {
-			attribute = opdata->param.create.attrValues[i];
-			value = (attribute != NULL && attribute->attrValuesNumber > 0) ?
-					attribute->attrValues[0] : NULL;
+	void *value = NULL;
+	int aindex = 0;
+	const SaImmAttrValuesT_2 *attribute = NULL;
+	log_stream_t *stream = NULL;
+	
+	/* Attribute values to be checked
+	 */
+	/* Mandatory if create. Can be modified */
+	char *i_fileName = NULL;
+	bool i_fileName_mod = false;
+	/* Mandatory if create. Cannot be changed (handled in class definition) */
+	char *i_pathName = NULL;
+	bool i_pathName_mod = false;
+	/* Modification flag -> true if modified */
+	SaUint32T i_fixedLogRecordSize = 0;
+	bool i_fixedLogRecordSize_mod = false;
+	SaUint64T i_maxLogFileSize = 0;
+	bool i_maxLogFileSize_mod = false;
+	SaUint32T i_logFullAction = 0;
+	bool i_logFullAction_mod = false;
+	char *i_logFileFormat = NULL;
+	bool i_logFileFormat_mod = false;
+	SaUint32T i_logFullHaltThreshold = 0;
+	bool i_logFullHaltThreshold_mod = false;
+	SaUint32T i_maxFilesRotated = 0;
+	bool i_maxFilesRotated_mod = false;
+	SaUint32T i_severityFilter = 0;
+	bool i_severityFilter_mod = false;
+	
+	TRACE_ENTER2("448");
+	
+	/* Get first attribute if any and fill in name and path if the stream
+	 * exist (modify)
+	 */
+	if (opdata->operationType == CCBUTIL_MODIFY) {
+		TRACE("\t448 Validate for MODIFY");
+		stream = log_stream_get_by_name(
+				(char *) opdata->param.modify.objectName->value);
+		if (stream == NULL) {
+			/* No stream to modify */
+			report_oi_error(immOiHandle, opdata->ccbId,
+					"Stream does not exist");
+			TRACE("\t448 Stream does not exist");
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
 		} else {
-			// CCBUTIL_MODIFY
-			attribute = (opdata->param.modify.attrMods[i] != NULL) ?
-					&opdata->param.modify.attrMods[i]->modAttr : NULL;
-			value = (attribute != NULL && attribute->attrValuesNumber > 0) ?
-					attribute->attrValues[0] : NULL;
-		}
-
-		if (attribute != NULL && value != NULL) {
-			TRACE("attribute %s", attribute->attrName);
-
-			if (!strcmp(attribute->attrName, "saLogStreamFileName")) {
-				char *fileName = *((char **) value);
-				if (fileName == NULL) {
-					rc = SA_AIS_ERR_INVALID_PARAM;
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"NULL pointer to saLogStreamFileName");
-				} else if (lgs_check_path_exists_h(fileName) == 0) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"File %s already exist", fileName);
-					rc = SA_AIS_ERR_EXIST;
-					TRACE("fileName: %s", fileName);
-				}
-			} else if (!strcmp(attribute->attrName, "saLogStreamPathName")) {
-				char stream_path[PATH_MAX];
-				n = snprintf(stream_path, PATH_MAX, "%s//%s//.",
-						lgs_cb->logsv_root_dir,
-						*((char **) value));
-				if (n >= PATH_MAX) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"Path > PATH_MAX");
-					rc = SA_AIS_ERR_BAD_OPERATION;
-				} else if (lgs_relative_path_check_ts(stream_path)) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"Path %s not valid", stream_path);
-					rc = SA_AIS_ERR_INVALID_PARAM;
-				} else if (lgs_check_path_exists_h(lgs_cb->logsv_root_dir) != 0) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"Path %s does not exist", stream_path);
-					rc = SA_AIS_ERR_BAD_OPERATION;
-				}
-				TRACE("Stream path: %s", stream_path);
-			} else if (!strcmp(attribute->attrName, "saLogStreamMaxLogFileSize")) {
-				SaUint64T maxLogFileSize = *((SaUint64T *) value);
-				// maxLogFileSize == 0 is interpreted as "infinite" size.
-				if (maxLogFileSize > 0 &&
-						stream != NULL &&
-						maxLogFileSize < stream->fixedLogRecordSize) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"maxLogFileSize out of range");
-					rc = SA_AIS_ERR_BAD_OPERATION;
-				}
-				TRACE("maxLogFileSize: %llu", maxLogFileSize);
-			} else if (!strcmp(attribute->attrName, "saLogStreamFixedLogRecordSize")) {
-				SaUint32T fixedLogRecordSize = *((SaUint32T *) value);
-				if (stream != NULL &&
-						stream->maxLogFileSize > 0 &&
-						fixedLogRecordSize > stream->maxLogFileSize) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"fixedLogRecordSize out of range");
-					rc = SA_AIS_ERR_BAD_OPERATION;
-				}
-				TRACE("fixedLogRecordSize: %u", fixedLogRecordSize);
-			} else if (!strcmp(attribute->attrName, "saLogStreamLogFullAction")) {
-				SaLogFileFullActionT logFullAction = *((SaUint32T *) value);
-				if ((logFullAction < SA_LOG_FILE_FULL_ACTION_WRAP) ||
-						(logFullAction > SA_LOG_FILE_FULL_ACTION_ROTATE)) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"logFullAction out of range");
-					rc = SA_AIS_ERR_BAD_OPERATION;
-				}
-				if ((logFullAction == SA_LOG_FILE_FULL_ACTION_WRAP) ||
-						(logFullAction == SA_LOG_FILE_FULL_ACTION_HALT)) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"logFullAction:Current Implementation doesn't support Wrap and halt");
-					rc = SA_AIS_ERR_NOT_SUPPORTED;
-				}
-				TRACE("logFullAction: %u", logFullAction);
-			} else if (!strcmp(attribute->attrName, "saLogStreamLogFullHaltThreshold")) {
-				SaUint32T logFullHaltThreshold = *((SaUint32T *) value);
-				if (logFullHaltThreshold >= 100) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"logFullHaltThreshold out of range");
-					rc = SA_AIS_ERR_BAD_OPERATION;
-				}
-				TRACE("logFullHaltThreshold: %u", logFullHaltThreshold);
-			} else if (!strcmp(attribute->attrName, "saLogStreamMaxFilesRotated")) {
-				SaUint32T maxFilesRotated = *((SaUint32T *) value);
-				if (maxFilesRotated < 1 || maxFilesRotated > 128) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"maxFilesRotated out of range (min 1, max 127): %u",
-							maxFilesRotated);
-					rc = SA_AIS_ERR_BAD_OPERATION;
-				}
-				TRACE("maxFilesRotated: %u", maxFilesRotated);
-			} else if (!strcmp(attribute->attrName, "saLogStreamLogFileFormat")) {
-				SaBoolT dummy;
-				char *logFileFormat = *((char **) value);
-				TRACE("logFileFormat: %s", logFileFormat);
-
-				if (opdata->operationType == CCBUTIL_CREATE) {
-					if (!lgs_is_valid_format_expression(logFileFormat, STREAM_TYPE_APPLICATION, &dummy)) {
-						report_oi_error(immOiHandle, opdata->ccbId,
-								"Invalid logFileFormat: %s", logFileFormat);
-						rc = SA_AIS_ERR_BAD_OPERATION;
-					}
-				}
-				else {
-					if (!lgs_is_valid_format_expression(logFileFormat, stream->streamType, &dummy)) {
-						report_oi_error(immOiHandle, opdata->ccbId,
-								"Invalid logFileFormat: %s", logFileFormat);
-						rc = SA_AIS_ERR_BAD_OPERATION;
-					}
-				}
-			} else if (!strcmp(attribute->attrName, "saLogStreamSeverityFilter")) {
-				SaUint32T severityFilter = *((SaUint32T *) value);
-				if (severityFilter > 0x7f) {
-					report_oi_error(immOiHandle, opdata->ccbId,
-							"Invalid severity: %x", severityFilter);
-					rc = SA_AIS_ERR_BAD_OPERATION;
-				}
-				TRACE("severityFilter: %u", severityFilter);
-			} else if (!strncmp(attribute->attrName, "SaImm", 5) ||
-					!strncmp(attribute->attrName, "safLg", 5)) {
-				;
+			/* Get first attribute */
+			if (opdata->param.modify.attrMods[aindex] != NULL) {
+				attribute = &opdata->param.modify.attrMods[aindex]->modAttr;
+				aindex++;
+				TRACE("\t448 First attribute \"%s\" fetched",
+						attribute->attrName);
 			} else {
-				report_oi_error(immOiHandle, opdata->ccbId,
-						"invalid attribute %s", attribute->attrName);
-				rc = SA_AIS_ERR_BAD_OPERATION;
+				TRACE("\t448 No attributes found");
 			}
+			/* Get relative path and file name from stream.
+			 * Name may be modified
+			 */
+			i_pathName = stream->pathName;
+			i_fileName = stream->fileName;
+			TRACE("\t448 From stream: pathName \"%s\", fileName \"%s\"",
+					i_pathName, i_fileName);
+		}
+	} else if (opdata->operationType == CCBUTIL_CREATE){
+		TRACE("\t448 Validate for CREATE");
+		/* Check if stream already exist after parameters are saved.
+		 * Parameter value for fileName is needed.
+		 */
+		/* Get first attribute */
+		attribute = opdata->param.create.attrValues[aindex];
+		aindex++;
+		TRACE("\t448 First attribute \"%s\" fetched", attribute->attrName);
+	} else {
+		/* Invalid operation type */
+		LOG_ER("%s Invalid operation type", __FUNCTION__);
+		osafassert(0);
+	}
+	
+
+	while ((attribute != NULL) && (rc == SA_AIS_OK)){
+		/* Save all changed/given attribute values
+		 */
+		
+		/* Get the value */
+		if (attribute->attrValuesNumber > 0) {
+			value = attribute->attrValues[0];
+		} else if (opdata->operationType == CCBUTIL_MODIFY) {
+			/* An attribute without a value is never valid if modify */
+			report_oi_error(immOiHandle, opdata->ccbId,
+					"Attribute %s has no value",attribute->attrName);
+			TRACE("\t448 Modify: Attribute %s has no value",attribute->attrName);
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
 		} else {
-			TRACE("i: %d, attribute: %d, value: %d", i, attribute == NULL ? 0 : 1
-					, value == NULL ? 0 : 1);
-			if (attribute == NULL) {
-				break;
+			/* If create all attributes will be present also the ones without
+			 * any value.
+			 */
+			TRACE("\t448 Create: Attribute %s has no value",attribute->attrName);
+			goto next;
+		}
+		
+		/* Save attributes with a value */
+		if (!strcmp(attribute->attrName, "saLogStreamFileName")) {
+			/* Save filename. Check later together with path name */
+			i_fileName = *((char **) value);
+			i_fileName_mod = true;
+			TRACE("\t448 Saved attribute \"%s\"", attribute->attrName);
+			
+		} else if (!strcmp(attribute->attrName, "saLogStreamPathName")) {
+			/* Save path name. Check later together with filename */
+			i_pathName = *((char **) value);
+			i_pathName_mod = true;
+			TRACE("\t448 Saved attribute \"%s\"", attribute->attrName);
+			
+		} else if (!strcmp(attribute->attrName, "saLogStreamMaxLogFileSize")) {
+			/* Save and compare with FixedLogRecordSize after all attributes
+			 * are read. Must be bigger than FixedLogRecordSize
+			 */
+			i_maxLogFileSize = *((SaUint64T *) value);
+			i_maxLogFileSize_mod = true;
+			TRACE("\t448 Saved attribute \"%s\"", attribute->attrName);
+			
+		} else if (!strcmp(attribute->attrName, "saLogStreamFixedLogRecordSize")) {
+			/* Save and compare with MaxLogFileSize after all attributes
+			 * are read. Must be smaller than MaxLogFileSize
+			 */
+			i_fixedLogRecordSize = *((SaUint64T *) value);
+			i_fixedLogRecordSize_mod = true;
+			TRACE("\t448 Saved attribute \"%s\"", attribute->attrName);
+			
+		} else if (!strcmp(attribute->attrName, "saLogStreamLogFullAction")) {
+			i_logFullAction = *((SaUint32T *) value);
+			i_logFullAction_mod = true;
+			TRACE("\t448 Saved attribute \"%s\"", attribute->attrName);
+			
+		} else if (!strcmp(attribute->attrName, "saLogStreamLogFileFormat")) {
+			i_logFileFormat = *((char **) value);
+			i_logFileFormat_mod = true;
+			TRACE("\t448 Saved attribute \"%s\"", attribute->attrName);
+			
+		} else if (!strcmp(attribute->attrName, "saLogStreamLogFullHaltThreshold")) {
+			i_logFullHaltThreshold = *((SaUint32T *) value);
+			i_logFullHaltThreshold_mod = true;
+			TRACE("\t448 Saved attribute \"%s\"", attribute->attrName);
+			
+		} else if (!strcmp(attribute->attrName, "saLogStreamMaxFilesRotated")) {
+			i_maxFilesRotated = *((SaUint32T *) value);
+			i_maxFilesRotated_mod = true;
+			TRACE("\t448 Saved attribute \"%s\"", attribute->attrName);
+			
+		} else if (!strcmp(attribute->attrName, "saLogStreamSeverityFilter")) {
+			i_severityFilter = *((SaUint32T *) value);
+			i_severityFilter_mod = true;
+			TRACE("\t448 Saved attribute \"%s\" = %d", attribute->attrName,
+					i_severityFilter);
+			
+		}
+		
+		/* Get next attribute or detect no more attributes */
+	next:
+		if (opdata->operationType == CCBUTIL_CREATE) {
+			attribute = opdata->param.create.attrValues[aindex];
+		} else {
+			/* CCBUTIL_MODIFY */
+			if (opdata->param.modify.attrMods[aindex] != NULL) {
+				attribute = &opdata->param.modify.attrMods[aindex]->modAttr;
+			} else {
+				attribute = NULL;
 			}
 		}
-		i++;
+		aindex++;
 	}
-	TRACE_LEAVE2();
-	return rc;
+	
+	/* Check all attributes:
+	 * Attributes must be within limits
+	 * Note: Mandatory attributes are flagged SA_INITIALIZED meaning that
+	 * IMM will reject create if these attributes are not defined. Therefore
+	 * this is not checked here.
+	 */
+	if (rc == SA_AIS_OK) {
+		/* saLogStreamPathName
+		 * Must be valid and not outside of root path
+		 */
+		if (i_pathName_mod) {
+			TRACE("\t448 Checking saLogStreamPathName");
+			if (i_pathName == NULL) {
+				/* Must point to a string */
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"NULL pointer to saLogStreamPathName");
+				TRACE("\t448 NULL pointer to saLogStreamPathName");
+				goto done;
+			}
+			
+			if (lgs_relative_path_check_ts(i_pathName) == true) {
+				report_oi_error(immOiHandle, opdata->ccbId,
+							"Path %s not valid", i_pathName);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				TRACE("\t448 Path %s not valid", i_pathName);
+				goto done;
+			}
+		}
+		
+		/* saLogStreamFileName
+		 * Must be a name. A stream with this name and relative path must not
+		 * already exist.
+		 */
+		if (i_fileName_mod) {
+			TRACE("\t448 Checking saLogStreamFileName");
+			if (i_fileName == NULL) {
+				/* Must point to a string */
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"NULL pointer to saLogStreamFileName");
+				TRACE("\t448 NULL pointer to saLogStreamFileName");
+				goto done;
+			}
+			
+			if (chk_filepath_stream_exist(i_fileName, i_pathName,
+					stream, opdata->operationType)) {
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"Path/file %s/%s already exist", i_pathName, i_fileName);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				TRACE("\t448 Path/file %s/%s already exist",
+						i_pathName, i_fileName);
+				goto done;
+			}
+		}
+		
+		/* saLogStreamMaxLogFileSize or saLogStreamFixedLogRecordSize
+		 * See chk_max_filesize_recordsize_compatible() for rules
+		 */
+		if (i_maxLogFileSize_mod || i_fixedLogRecordSize_mod) {
+			TRACE("\t448 Check saLogStreamMaxLogFileSize,"
+					" saLogStreamFixedLogRecordSize");
+			if (chk_max_filesize_recordsize_compatible(immOiHandle,
+					i_maxLogFileSize,
+					i_maxLogFileSize_mod,
+					i_fixedLogRecordSize,
+					i_fixedLogRecordSize_mod,
+					stream,
+					opdata->operationType,
+					opdata->ccbId) == false) {
+				/* report_oi_error is done within check function */
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				TRACE("\t448 chk_max_filesize_recordsize_compatible Fail");
+				goto done;
+			}
+		}
+		
+		/* saLogStreamLogFullAction
+		 * 1, 2 and 3 are valid according to AIS but only action rotate (3)
+		 * is supported.
+		 */
+		if (i_logFullAction_mod) {
+			TRACE("\t448 Check saLogStreamLogFullAction");
+			/* If this attribute is changed an oi error report is written
+			 * and the value is changed (backwards compatible) but this will
+			 * not affect change action
+			 */
+			if ((i_logFullAction < SA_LOG_FILE_FULL_ACTION_WRAP) ||
+					(i_logFullAction > SA_LOG_FILE_FULL_ACTION_ROTATE)) {
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"logFullAction out of range");
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				TRACE("\t448 logFullAction out of range");
+				goto done;
+			}
+			if ((i_logFullAction == SA_LOG_FILE_FULL_ACTION_WRAP) ||
+					(i_logFullAction == SA_LOG_FILE_FULL_ACTION_HALT)) {
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"logFullAction:Current Implementation doesn't support Wrap and halt");
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				TRACE("\t448 logFullAction: Not supported");
+				goto done;
+			}
+		}
+
+		/* saLogStreamLogFileFormat
+		 * If create the only possible stream type is application and no stream
+		 * is yet created. All streams can be modified.
+		 */
+		if (i_logFileFormat_mod) {
+			SaBoolT dummy;
+			if (opdata->operationType == CCBUTIL_CREATE) {
+				if (!lgs_is_valid_format_expression(i_logFileFormat, STREAM_TYPE_APPLICATION, &dummy)) {
+					report_oi_error(immOiHandle, opdata->ccbId,
+							"Invalid logFileFormat: %s", i_logFileFormat);
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					TRACE("\t448 Create: Invalid logFileFormat: %s",
+							i_logFileFormat);
+					goto done;
+				}
+			}
+			else {
+				if (!lgs_is_valid_format_expression(i_logFileFormat, stream->streamType, &dummy)) {
+					report_oi_error(immOiHandle, opdata->ccbId,
+							"Invalid logFileFormat: %s", i_logFileFormat);
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					TRACE("\t448 Modify: Invalid logFileFormat: %s",
+							i_logFileFormat);
+					goto done;
+				}
+			}
+		}
+
+		/* saLogStreamLogFullHaltThreshold
+		 * Not supported and not used. For backwards compatibility the
+		 * value can still be set/changed between 0 and 99 (percent)
+		 */
+		if (i_logFullHaltThreshold_mod) {
+			TRACE("\t448 Checking saLogStreamLogFullHaltThreshold");
+			if (i_logFullHaltThreshold >= 100) {
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"logFullHaltThreshold out of range");
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+		}
+		
+		/* saLogStreamMaxFilesRotated
+		 * < 127
+		 */
+		if (i_maxFilesRotated_mod) {
+			TRACE("\t448 Checking saLogStreamMaxFilesRotated");
+			if ((i_maxFilesRotated < 1) || (i_maxFilesRotated > 127)) {
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"maxFilesRotated out of range (min 1, max 127): %u",
+						i_maxFilesRotated);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				TRACE("\t448 maxFilesRotated out of range "
+						"(min 1, max 127): %u", i_maxFilesRotated);
+				goto done;
+			}
+		}
+		
+		/* saLogStreamSeverityFilter
+		 *     < 0x7f
+		 */
+		if (i_severityFilter_mod) {
+			TRACE("\t448 Checking saLogStreamSeverityFilter");
+			if (i_severityFilter >= 0x7f) {
+				report_oi_error(immOiHandle, opdata->ccbId,
+					"Invalid severity: %x", i_severityFilter);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				TRACE("\t448 Invalid severity: %x", i_severityFilter);
+				goto done;
+			}
+		}
+	}
+	
+	done:
+		TRACE_LEAVE2("448 rc = %d", rc);
+		return rc;
 }
 
 /**

@@ -427,7 +427,7 @@ void lgs_free_write_log(const lgsv_write_log_async_req_t *param)
  * Note: This function must be thread safe
  * 
  * @param path
- * @return true if path is allowed
+ * @return true if path is not allowed
  */
 bool lgs_relative_path_check_ts(const char* path)
 {
