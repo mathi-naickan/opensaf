@@ -197,9 +197,9 @@ void saLogStreamOpen_2_15(void)
     appStream1LogFileCreateAttributes.haProperty = SA_FALSE;
     rc = saLogStreamOpen_2(logHandle, &app1StreamName, &appStream1LogFileCreateAttributes,
                              SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle);
-
+	/* haProperty value is not checked by logsv */
     safassert(saLogFinalize(logHandle), SA_AIS_OK);
-    test_validate(rc, SA_AIS_ERR_EXIST);
+    test_validate(rc, SA_AIS_OK);
 }
 
 void saLogStreamOpen_2_16(void)

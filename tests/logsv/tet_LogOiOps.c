@@ -104,10 +104,10 @@ void saLogOi_05(void)
     int rc;
     char command[256];
 
-    sprintf(command, "immcfg -a saLogStreamLogFullAction=1 %s",
+    sprintf(command, "immcfg -a saLogStreamLogFullAction=1 %s 2> /dev/null",
         SA_LOG_STREAM_ALARM);
-    assert((rc = system(command)) != -1);
-    rc_validate(WEXITSTATUS(rc), 0);
+    rc = system(command);
+    rc_validate(WEXITSTATUS(rc), 1);
 }
 
 /**
@@ -118,10 +118,10 @@ void saLogOi_06(void)
     int rc;
     char command[256];
 
-    sprintf(command, "immcfg -a saLogStreamLogFullAction=2 %s",
+    sprintf(command, "immcfg -a saLogStreamLogFullAction=2 %s 2> /dev/null",
         SA_LOG_STREAM_ALARM);
-    assert((rc = system(command)) != -1);
-    rc_validate(WEXITSTATUS(rc), 0);
+    rc = system(command);
+    rc_validate(WEXITSTATUS(rc), 1);
 }
 
 /**
