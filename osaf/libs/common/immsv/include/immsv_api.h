@@ -59,6 +59,14 @@ extern "C" {
 #define IMMSV_MAX_OBJS_IN_SYNCBATCH (IMMSV_DEFAULT_MAX_SYNC_BATCH_SIZE / 10) 
 
 #define OPENSAF_IMM_LONG_DNS_ALLOWED "longDnsAllowed"
+#define OPENSAF_IMM_ACCESS_CONTROL_MODE "accessControlMode"
+#define OPENSAF_IMM_ADMIN_GROUP_NAME "adminGroupName"
+
+typedef enum {
+	ACCESS_CONTROL_DISABLED = 0,
+	ACCESS_CONTROL_PERMISSIVE = 1,
+	ACCESS_CONTROL_ENFORCING = 2
+} OsafImmAccessControlModeT;
 
 /*Max # of outstanding fevs messages towards director.*/
 /*Note max-max is 255. cb->fevs_replies_pending is an uint8_t*/

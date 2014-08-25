@@ -170,7 +170,6 @@ typedef struct immnd_cb_tag {
 	NCS_SEL_OBJ usr1_sel_obj;	/* Selection object for USR1 signal events */
 	SaSelectionObjectT amf_sel_obj;	/* Selection Object for AMF events */
 	int nid_started;	/* true if started by NID */
-	const char *admin_group_name;  // linux group name for admins
 } IMMND_CB;
 
 /* CB prototypes */

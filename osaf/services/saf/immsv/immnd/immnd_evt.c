@@ -25,6 +25,8 @@
 ******************************************************************************/
 
 #define _GNU_SOURCE
+#include <sys/types.h>
+#include <pwd.h>
 #include <osaf_secutil.h>
 #include "immnd.h"
 #include "immsv_api.h"
@@ -743,20 +745,39 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 		goto agent_rsp;
 	}
 
-	/* allow access using white list approach */
-	if (sinfo->uid == 0) {
-		TRACE("superuser");
-	} else if (getgid() == sinfo->gid) {
-		TRACE("same group");
-	} else if ((immnd_cb->admin_group_name != NULL) &&
-		 (osaf_user_is_member_of_group(sinfo->uid, immnd_cb->admin_group_name) == true)) {
-		TRACE("configured group");
-	} else {
-		syslog(LOG_AUTH, "access denied, uid:%d, pid:%d", sinfo->uid, sinfo->pid);
-		TRACE_2("access denied, uid:%d, pid:%d, group_name:%s",	sinfo->uid, sinfo->pid,
-			immnd_cb->admin_group_name);
-		error = SA_AIS_ERR_ACCESS_DENIED;
-		goto agent_rsp;
+	OsafImmAccessControlModeT mode = immModel_accessControlMode(immnd_cb);
+	if (mode != ACCESS_CONTROL_DISABLED) {
+		/* allow access using white list approach */
+		if (sinfo->uid == 0) {
+			TRACE("superuser");
+		} else if (getgid() == sinfo->gid) {
+			TRACE("same group");
+		} else {
+			const char *admin_group_name = immModel_adminGroupName(immnd_cb);
+			if ((admin_group_name != NULL) &&
+				(osaf_user_is_member_of_group(sinfo->uid, admin_group_name) == true)) {
+				TRACE("configured group");
+			} else {
+				if (mode == ACCESS_CONTROL_PERMISSIVE) {
+					struct passwd *pwd = getpwuid(sinfo->uid);
+					if (pwd != NULL)
+						syslog(LOG_AUTH, "access violation by %s(uid=%d)",
+								pwd->pw_name, sinfo->uid);
+					TRACE_2("access violation, uid:%d, pid:%d, group_name:%s",
+							sinfo->uid, sinfo->pid,	admin_group_name);
+				} else {
+					// mode ENFORCING
+					struct passwd *pwd = getpwuid(sinfo->uid);
+					if (pwd != NULL)
+						syslog(LOG_AUTH, "access denied for %s(uid=%d)",
+								pwd->pw_name, sinfo->uid);
+					TRACE_2("access denied, uid:%d, pid:%d, group_name:%s",
+							sinfo->uid, sinfo->pid,	admin_group_name);
+					error = SA_AIS_ERR_ACCESS_DENIED;
+					goto agent_rsp;
+				}
+			}
+		}
 	}
 
 	cl_node = calloc(1, sizeof(IMMND_IMM_CLIENT_NODE));

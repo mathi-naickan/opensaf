@@ -31,6 +31,7 @@
 
 #include <saClm.h>
 #include "immsv_evt_model.h"
+#include "immsv_api.h"
 
 extern IMMND_CB *immnd_cb;
 
@@ -296,6 +297,8 @@ extern "C" {
 	SaBoolT immModel_protocol43Allowed(IMMND_CB *cb);
 	SaBoolT immModel_protocol45Allowed(IMMND_CB *cb);
 	SaBoolT immModel_oneSafe2PBEAllowed(IMMND_CB *cb);
+	OsafImmAccessControlModeT immModel_accessControlMode(IMMND_CB *cb);
+	const char *immModel_adminGroupName(IMMND_CB *cb);
 
 	SaBoolT immModel_purgeSyncRequest(IMMND_CB *cb, SaUint32T clientId);
 

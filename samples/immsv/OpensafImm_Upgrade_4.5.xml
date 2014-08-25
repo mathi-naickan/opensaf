@@ -9,6 +9,19 @@
       <flag>SA_INITIALIZED</flag>
     </rdn>
     <attr>
+      <name>accessControlMode</name>
+      <type>SA_UINT32_T</type>
+      <category>SA_CONFIG</category>
+      <flag>SA_WRITABLE</flag>
+      <default-value>0</default-value>
+    </attr>
+    <attr>
+      <name>adminGroupName</name>
+      <type>SA_STRING_T</type>
+      <category>SA_CONFIG</category>
+      <flag>SA_WRITABLE</flag>
+    </attr>
+    <attr>
       <name>longDnsAllowed</name>
       <type>SA_UINT32_T</type>
       <category>SA_CONFIG</category>

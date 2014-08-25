@@ -31,9 +31,16 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <ncsgl_defs.h>
+#include <config.h>
 
 #include "saAis.h"
 #include "osaf_extended_name.h"
+
+// Default value of accessControlMode attribute in the OpensafImm class
+// Can be changed at build time using configure
+#ifndef IMM_ACCESS_CONTROL_MODE
+#define IMM_ACCESS_CONTROL_MODE ACCESS_CONTROL_DISABLED
+#endif
 
 #define MAX_DEPTH 10
 #define MAX_CHAR_BUFFER_SIZE 8192  //8k
@@ -286,10 +293,11 @@ void opensafClassCreate(SaImmHandleT immHandle)
 {
     SaAisErrorT err = SA_AIS_OK;
     int retries=0;
-    SaImmAttrDefinitionT_2 d1, d2, d3, d4, d5, d6;
+    SaImmAttrDefinitionT_2 d1, d2, d3, d4, d5, d6, d7, d8;
     SaUint32T nost_flags_default = 0;
     SaUint32T batch_size_default = IMMSV_DEFAULT_MAX_SYNC_BATCH_SIZE;
     SaUint32T extended_names_enabled_default = 0;
+    SaUint32T access_control_mode_default = IMM_ACCESS_CONTROL_MODE;
 
     d1.attrName = (char *) OPENSAF_IMM_ATTR_RDN;
     d1.attrValueType = SA_IMM_ATTR_SANAMET;
@@ -322,7 +330,18 @@ void opensafClassCreate(SaImmHandleT immHandle)
     d6.attrFlags = SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_WRITABLE;
     d6.attrDefaultValue = &extended_names_enabled_default;
 
-    const SaImmAttrDefinitionT_2* attrDefs[7] = {&d1, &d2, &d3, &d4, &d5, &d6, 0};
+    d7.attrName = (char *) OPENSAF_IMM_ACCESS_CONTROL_MODE;
+    d7.attrValueType = SA_IMM_ATTR_SAUINT32T;
+    d7.attrFlags = SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_WRITABLE;
+    d7.attrDefaultValue = &access_control_mode_default;
+
+    d8.attrName = (char *) OPENSAF_IMM_ADMIN_GROUP_NAME;
+    d8.attrValueType = SA_IMM_ATTR_SASTRINGT;
+    d8.attrFlags = SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_WRITABLE;
+    d8.attrDefaultValue = NULL;
+
+    const SaImmAttrDefinitionT_2* attrDefs[] =
+    	{&d1, &d2, &d3, &d4, &d5, &d6, &d7, &d8, 0};
 
 
     do {/* Create the class */

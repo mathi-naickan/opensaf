@@ -134,8 +134,6 @@ static uint32_t immnd_initialize(char *progname)
 	/* unset so that forked processes (e.g. loader) does not create MDS server */
 	unsetenv("MDS_SOCK_SERVER_CREATE");
 
-	immnd_cb->admin_group_name = getenv("IMM_ADMIN_GROUP_NAME");
-
 	/* Initialize immnd control block */
 	immnd_cb->ha_state = SA_AMF_HA_ACTIVE;
 	immnd_cb->cli_id_gen = 1;

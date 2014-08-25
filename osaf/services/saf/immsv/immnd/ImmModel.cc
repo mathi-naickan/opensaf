@@ -25,7 +25,6 @@
 
 
 #include "immnd.h"
-#include "immsv_api.h"
 #include "osaf_unicode.h"
 #include "osaf_extended_name.h"
 
@@ -443,6 +442,8 @@ static const std::string immAttrNostFlags(OPENSAF_IMM_ATTR_NOSTD_FLAGS);
 static const std::string immSyncBatchSize(OPENSAF_IMM_SYNC_BATCH_SIZE);
 static const std::string immPbeBSlaveName(OPENSAF_IMM_2PBE_APPL_NAME);
 static const std::string immLongDnsAllowed(OPENSAF_IMM_LONG_DNS_ALLOWED);
+static const std::string immAccessControlMode(OPENSAF_IMM_ACCESS_CONTROL_MODE);
+static const std::string immAdminGroupName(OPENSAF_IMM_ADMIN_GROUP_NAME);
 
 static const std::string immMngtClass("SaImmMngt");
 static const std::string immManagementDn("safRdn=immManagement,safApp=safImmService");
@@ -899,6 +900,17 @@ immModel_protocol45Allowed(IMMND_CB *cb)
         SA_TRUE : SA_FALSE;
 }
 
+OsafImmAccessControlModeT
+immModel_accessControlMode(IMMND_CB *cb)
+{
+    return ImmModel::instance(&cb->immModel)->accessControlMode();
+}
+
+const char*
+immModel_adminGroupName(IMMND_CB *cb)
+{
+    return ImmModel::instance(&cb->immModel)->adminGroupName();
+}
 
 SaBoolT
 immModel_purgeSyncRequest(IMMND_CB *cb, SaUint32T clientId)
@@ -2454,6 +2466,15 @@ ImmModel::setLoader(int pid)
             LOG_NO("RepositoryInitModeT is SA_IMM_INIT_FROM_FILE");
             immInitMode = SA_IMM_INIT_FROM_FILE; /* Ensure valid value*/
         }
+
+        if (accessControlMode() == ACCESS_CONTROL_DISABLED) {
+        	LOG_WA("IMM Access Control mode is DISABLED!");
+        } else if (accessControlMode() == ACCESS_CONTROL_PERMISSIVE) {
+        	LOG_WA("IMM Access Control mode is PERMISSIVE");
+        } else {
+        	LOG_NO("IMM Access Control mode is ENFORCING");
+        }
+
     } else {
         TRACE_5("Loading starts, pid:%u", pid);
     }
@@ -3436,6 +3457,53 @@ ImmModel::schemaChangeAllowed()
 
     TRACE_LEAVE();
     return noStdFlags & OPENSAF_IMM_FLAG_SCHCH_ALLOW;
+}
+
+OsafImmAccessControlModeT
+ImmModel::accessControlMode()
+{
+    TRACE_ENTER();
+    ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
+    if(oi == sObjectMap.end()) {
+        TRACE_LEAVE();
+        return ACCESS_CONTROL_DISABLED;
+    }
+
+    ObjectInfo* immObject =  oi->second;
+    ImmAttrValueMap::iterator avi =
+        immObject->mAttrValueMap.find(immAccessControlMode);
+    if (avi == immObject->mAttrValueMap.end())
+    	return ACCESS_CONTROL_DISABLED;
+    osafassert(!(avi->second->isMultiValued()));
+    ImmAttrValue* valuep = avi->second;
+    OsafImmAccessControlModeT accessControlMode =
+    	static_cast<OsafImmAccessControlModeT>(valuep->getValue_int());
+
+    TRACE_LEAVE2("%u", accessControlMode);
+    return accessControlMode;
+}
+
+const char*
+ImmModel::adminGroupName()
+{
+    TRACE_ENTER();
+    ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
+    if(oi == sObjectMap.end()) {
+        TRACE_LEAVE();
+        return NULL;
+    }
+
+    ObjectInfo* immObject =  oi->second;
+    ImmAttrValueMap::iterator avi =
+        immObject->mAttrValueMap.find(immAdminGroupName);
+    if (avi == immObject->mAttrValueMap.end())
+    	return NULL;
+    osafassert(!(avi->second->isMultiValued()));
+    ImmAttrValue* valuep = avi->second;
+    const char *adminGroupName = valuep->getValueC_str();
+
+    TRACE_LEAVE();
+    return adminGroupName;
 }
 
 /**

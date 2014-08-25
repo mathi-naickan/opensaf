@@ -23,6 +23,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "immsv_api.h"
 
 struct ClassInfo;
 struct CcbInfo;
@@ -102,6 +103,8 @@ public:
 
     bool                nocaseCompare(const std::string& s1, 
 	                              const std::string& s2) const;
+    const char*         adminGroupName();
+    OsafImmAccessControlModeT accessControlMode();
     bool                schemaChangeAllowed();
     bool                protocol41Allowed();
     bool                protocol43Allowed();
