@@ -170,9 +170,11 @@ extern "C" {
 /* Log file full actions */
 
 	typedef enum {
-		SA_LOG_FILE_FULL_ACTION_WRAP = 1,
-		SA_LOG_FILE_FULL_ACTION_HALT = 2,
-		SA_LOG_FILE_FULL_ACTION_ROTATE = 3
+		SA_LOG_FULL_ACTION_BEGIN = 0,
+		SA_LOG_FILE_FULL_ACTION_WRAP = 1, /* Not supported */
+		SA_LOG_FILE_FULL_ACTION_HALT = 2, /* Not supported */
+		SA_LOG_FILE_FULL_ACTION_ROTATE = 3,
+		SA_LOG_FULL_ACTION_END
 	} SaLogFileFullActionT;
 
 /* Log file creation attributes */
