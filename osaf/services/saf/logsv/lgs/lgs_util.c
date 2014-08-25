@@ -52,7 +52,7 @@ int lgs_create_config_file(log_stream_t *stream)
 	/* check the existence of logsv_root_dir/pathName, create the path if it doesn't */
 	snprintf(pathname, PATH_MAX, "%s/%s", lgs_cb->logsv_root_dir, stream->pathName);
 	struct stat statbuf;
-	if (lgs_relative_path_check(pathname) || lstat(pathname, &statbuf) != 0) {
+	if (lgs_relative_path_check_ts(pathname) || lstat(pathname, &statbuf) != 0) {
 		if (lgs_make_dir(lgs_cb->logsv_root_dir, stream->pathName) != 0) {
 			LOG_NO("Create directory '%s/%s' failed", lgs_cb->logsv_root_dir, stream->pathName);
 			rc = -1;
@@ -292,9 +292,12 @@ void lgs_free_write_log(const lgsv_write_log_async_req_t *param)
 
 /**
  * Check if a relative ("/../") path occurs in the path.
+ * Note: This function must be thread safe
+ * 
  * @param path
+ * @return true if path is not allowed
  */
-bool lgs_relative_path_check(const char* path)
+bool lgs_relative_path_check_ts(const char* path)
 {
 	bool rc = false;
 	int len_path = strlen(path);
@@ -355,13 +358,13 @@ int lgs_make_dir(const char* root, const char* path)
 	}
 	/* end tempoarary fix */
 
-	if (lgs_relative_path_check(root) || lstat(root, &statbuf) != 0 ||
+	if (lgs_relative_path_check_ts(root) || lstat(root, &statbuf) != 0 ||
 			(strlen(root) + strlen(path) + 2) > (PATH_MAX + NAME_MAX)) {
 		LOG_ER("root directory problem %s", root);
 		rc = -1;
 		goto done;
 	}
-	if (lgs_relative_path_check(path)) {
+	if (lgs_relative_path_check_ts(path)) {
 		LOG_ER("relative path in directory %s", path);
 		rc = -1;
 		goto done;

@@ -287,7 +287,7 @@ log_stream_t *log_stream_new(SaNameT *dn,
 	osafassert(dn != NULL);
 	TRACE_ENTER2("%s, l: %u", dn->value, dn->length);
 
-	if (lgs_relative_path_check(pathname)) {
+	if (lgs_relative_path_check_ts(pathname)) {
 		goto done;
 	}
 	stream = calloc(1, sizeof(log_stream_t));
