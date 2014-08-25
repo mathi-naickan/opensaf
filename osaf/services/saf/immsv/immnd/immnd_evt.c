@@ -38,7 +38,7 @@
 #define IMMND_SEARCH_BUNDLE_SIZE ((MDS_DIRECT_BUF_MAXSIZE / 100) * 90)   
 #define IMMND_MAX_SEARCH_RESULT (IMMND_SEARCH_BUNDLE_SIZE / 300)  
 
-static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq);
+static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, const IMMSV_SEND_INFO *sinfo);
 static uint32_t immnd_evt_proc_cb_dump(IMMND_CB *cb);
 static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo, SaBoolT isOm);
 static uint32_t immnd_evt_proc_imm_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo, SaBoolT isOm);
@@ -2835,7 +2835,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 	}
 
 	if(newMsg) {
-		error = immnd_fevs_local_checks(cb, &(evt->info.fevsReq));
+		error = immnd_fevs_local_checks(cb, &(evt->info.fevsReq), sinfo);
 		if(error != SA_AIS_OK) {
 			/*Fevs request will NOT be forwarded to IMMD.
 			  Return directly with error or OK for idempotent requests.
@@ -3048,7 +3048,8 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
   nodes and not propagated over fevs, because sync clients may not yet
   have synced the implementer setting and thus reject the idempotent case. 
 */
-static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
+static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
+		const IMMSV_SEND_INFO *sinfo)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	osafassert(fevsReq);
@@ -3104,6 +3105,24 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 	switch (frwrd_evt.info.immnd.type) {
 	case IMMND_EVT_A2ND_OBJ_CREATE:
 	case IMMND_EVT_A2ND_OBJ_MODIFY:
+		if ((frwrd_evt.info.immnd.type == IMMND_EVT_A2ND_OBJ_MODIFY) &&
+				(strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf,
+						OPENSAF_IMM_OBJECT_DN) == 0)) {
+			IMMSV_ATTR_MODS_LIST *attrMod = frwrd_evt.info.immnd.info.objModify.attrMods;
+			while (attrMod != NULL) {
+				if (strcmp(attrMod->attrValue.attrName.buf, OPENSAF_IMM_ACCESS_CONTROL_MODE) == 0) {
+					if (sinfo->uid != 0) {
+						struct passwd *pwd = getpwuid(sinfo->uid);
+						if (pwd != NULL)
+							syslog(LOG_AUTH, "change of access control mode denied for %s(uid=%d)",
+								pwd->pw_name, sinfo->uid);
+						error = SA_AIS_ERR_ACCESS_DENIED;
+						goto done;
+					}
+				}
+				attrMod = attrMod->next;
+			}
+		}
 	case IMMND_EVT_A2ND_OBJ_DELETE:
 	case IMMND_EVT_A2ND_CCB_FINALIZE:
 	case IMMND_EVT_A2ND_OI_CCB_AUG_INIT:
@@ -3423,6 +3442,7 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 			frwrd_evt.info.immnd.type, error);
 	}
 
+done:
 	TRACE_LEAVE();
 	return error;
 }
