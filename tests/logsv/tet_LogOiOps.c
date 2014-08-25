@@ -450,7 +450,7 @@ void saLogOi_28()
 {
     int rc;
     char command[256];
-    sprintf(command, "immcfg -a saLogStreamMaxLogFileSize=1000 safLgStrCfg=strA,safApp=safLogService");
+    sprintf(command, "immcfg -a saLogStreamMaxLogFileSize=2001 safLgStrCfg=strA,safApp=safLogService");
     rc = system(command);
 	safassert(rc, 0);
     sprintf(command, "immcfg -a saLogStreamMaxFilesRotated=1 safLgStrCfg=strA,safApp=safLogService");
@@ -466,16 +466,16 @@ void saLogOi_28()
 }
 
 /**
- * CCB Object Modify, saLogStreamMaxLogFileSize=0, strB
+ * CCB Object Modify, saLogStreamMaxLogFileSize=0, strB, ERR Not supported
  */
 void saLogOi_29()
 {
     int rc;
     char command[256];
 
-    sprintf(command, "immcfg -a saLogStreamMaxLogFileSize=0 safLgStrCfg=strB,safApp=safLogService");
+    sprintf(command, "immcfg -a saLogStreamMaxLogFileSize=0 safLgStrCfg=strB,safApp=safLogService 2> /dev/null");
     rc = system(command);
-    rc_validate(WEXITSTATUS(rc), 0);
+    rc_validate(WEXITSTATUS(rc), 1);
 }
 
 /**
@@ -886,7 +886,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
     test_case_add(4, saLogOi_24, "CCB Object Create, strB");
     test_case_add(4, saLogOi_25, "CCB Object Create, strC");
     test_case_add(4, saLogOi_28, "CCB Object Modify, saLogStreamMaxFilesRotated=1, strA");
-    test_case_add(4, saLogOi_29, "CCB Object Modify, saLogStreamMaxLogFileSize=0, strB");
+    test_case_add(4, saLogOi_29, "CCB Object Modify, saLogStreamMaxLogFileSize=0, strB, ERR not supported");
     test_case_add(4, saLogOi_30, "CCB Object Modify, saLogStreamFixedLogRecordSize=80, strC");
     test_case_add(4, saLogOi_31, "immlist strA-strC");
     test_case_add(4, saLogOi_32, "immfind strA-strC");
