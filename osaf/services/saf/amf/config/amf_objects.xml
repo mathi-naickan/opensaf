@@ -105,7 +105,7 @@
 	</object>
 	<object class="SaAmfSGType">
 		<dn>safVersion=4.0.0,safSgType=OpenSafSgTypeNoRed</dn>
-		<attr>=
+		<attr>
 			<name>saAmfSgtRedundancyModel</name>
 			<value>5</value>
 		</attr>
