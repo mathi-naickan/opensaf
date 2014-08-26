@@ -256,6 +256,7 @@ AVND_COMP *avnd_compdb_rec_add(AVND_CB *cb, AVND_COMP_PARAM *info, uint32_t *rc)
 
 	/* a fresh comp... */
 	comp = new AVND_COMP();
+	comp->use_comptype_attr = new std::bitset<NumAttrs>;
 	
 	/*
 	 * Update the config parameters.
@@ -918,23 +919,23 @@ uint32_t avnd_comptype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 				case saAmfCtDefCallbackTimeout_ID: {
 					SaTimeT saAmfCtDefCallbackTimeout = *((SaTimeT *) param->value);
 					osafassert(sizeof(SaTimeT) == param->value_len);
-					if (comp->use_comptype_attr.test(PxiedInstCallbackTimeout)) {
+					if (comp->use_comptype_attr->test(PxiedInstCallbackTimeout)) {
 						comp->pxied_inst_cbk_timeout = saAmfCtDefCallbackTimeout;
 						TRACE("comp->pxied_inst_cbk_timeout modified to '%llu'", comp->pxied_inst_cbk_timeout);
 					}
-					if (comp->use_comptype_attr.test(TerminateCallbackTimeout)) {
+					if (comp->use_comptype_attr->test(TerminateCallbackTimeout)) {
 						comp->term_cbk_timeout = saAmfCtDefCallbackTimeout;
 						TRACE("comp->term_cbk_timeout modified to '%llu'", comp->term_cbk_timeout);
 					}
-					if (comp->use_comptype_attr.test(PxiedCleanupCallbackTimeout)) {
+					if (comp->use_comptype_attr->test(PxiedCleanupCallbackTimeout)) {
 						comp->pxied_clean_cbk_timeout = saAmfCtDefCallbackTimeout;
 						TRACE("comp->pxied_clean_cbk_timeout modified to '%llu'", comp->pxied_clean_cbk_timeout);						
 					}
-					if (comp->use_comptype_attr.test(CsiSetCallbackTimeout)) {
+					if (comp->use_comptype_attr->test(CsiSetCallbackTimeout)) {
 						comp->csi_set_cbk_timeout = saAmfCtDefCallbackTimeout;
 						TRACE("comp->csi_set_cbk_timeout modified to '%llu'", comp->csi_set_cbk_timeout);						
 					}
-					if (comp->use_comptype_attr.test(CsiRemoveCallbackTimeout)) {
+					if (comp->use_comptype_attr->test(CsiRemoveCallbackTimeout)) {
 						comp->csi_rmv_cbk_timeout = saAmfCtDefCallbackTimeout;
 						TRACE("comp->csi_rmv_cbk_timeout modified to '%llu'", comp->csi_rmv_cbk_timeout);						
 					}
@@ -944,27 +945,27 @@ uint32_t avnd_comptype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 					AVND_COMP_CLC_CMD_PARAM *cmd;
 					SaTimeT saAmfCtDefClcCliTimeout = *((SaTimeT *) param->value);
 					osafassert(sizeof(SaTimeT) == param->value_len);
-					if (comp->use_comptype_attr.test(CompInstantiateTimeout)) {						
+					if (comp->use_comptype_attr->test(CompInstantiateTimeout)) {						
 						cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_INSTANTIATE - 1];
 						cmd->timeout = saAmfCtDefClcCliTimeout;
 						TRACE("cmd->timeout (Instantiate) modified to '%llu'", cmd->timeout);						
 					}
-					if (comp->use_comptype_attr.test(CompTerminateTimeout)) {						
+					if (comp->use_comptype_attr->test(CompTerminateTimeout)) {						
 						cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_TERMINATE - 1];
 						cmd->timeout = saAmfCtDefClcCliTimeout;
 						TRACE("cmd->timeout (Terminate) modified to '%llu'", cmd->timeout);						
 					}
-					if (comp->use_comptype_attr.test(CompCleanupTimeout)) {						
+					if (comp->use_comptype_attr->test(CompCleanupTimeout)) {						
 						cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_CLEANUP - 1];
 						cmd->timeout = saAmfCtDefClcCliTimeout;
 						TRACE("cmd->timeout (Cleanup) modified to '%llu'", cmd->timeout);						
 					}
-					if (comp->use_comptype_attr.test(CompAmStartTimeout)) {						
+					if (comp->use_comptype_attr->test(CompAmStartTimeout)) {						
 						cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_AMSTART - 1];
 						cmd->timeout = saAmfCtDefClcCliTimeout;
 						TRACE("cmd->timeout (AM Start) modified to '%llu'", cmd->timeout);						
 					}
-					if (comp->use_comptype_attr.test(CompAmStopTimeout)) {						
+					if (comp->use_comptype_attr->test(CompAmStopTimeout)) {						
 						cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_AMSTOP - 1];
 						cmd->timeout = saAmfCtDefClcCliTimeout;
 						TRACE("cmd->timeout (AM Stop) modified to '%llu'", cmd->timeout);						
@@ -974,7 +975,7 @@ uint32_t avnd_comptype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 				case saAmfCtDefQuiescingCompleteTimeout_ID: {
 					SaTimeT saAmfCtDefQuiescingCompleteTimeout = *((SaTimeT *) param->value);
 					osafassert(sizeof(SaTimeT) == param->value_len);
-					if (comp->use_comptype_attr.test(DefQuiescingCompleteTimeout)) {
+					if (comp->use_comptype_attr->test(DefQuiescingCompleteTimeout)) {
 						comp->quies_complete_cbk_timeout = saAmfCtDefQuiescingCompleteTimeout;
 						TRACE("comp->quies_complete_cbk_timeout modified to '%llu'", comp->quies_complete_cbk_timeout);
 					}
@@ -983,7 +984,7 @@ uint32_t avnd_comptype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 				case saAmfCtDefRecoveryOnError_ID: {
 					SaAmfRecommendedRecoveryT saAmfCtDefRecoveryOnError = *((SaAmfRecommendedRecoveryT *) param->value);
 					osafassert(sizeof(SaAmfRecommendedRecoveryT) == param->value_len);
-					if (comp->use_comptype_attr.test(DefRecoveryOnError)) {
+					if (comp->use_comptype_attr->test(DefRecoveryOnError)) {
 						comp->err_info.def_rec = saAmfCtDefRecoveryOnError;
 						TRACE("comp->err_info.def_rec modified to '%u'", comp->err_info.def_rec);						
 					}
@@ -992,7 +993,7 @@ uint32_t avnd_comptype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 				case saAmfCtDefDisableRestart_ID: {
 					SaBoolT saAmfCtDefDisableRestart = *((SaBoolT *) param->value);
 					osafassert(sizeof(SaBoolT) == param->value_len);
-					if (comp->use_comptype_attr.test(DefDisableRestart)) {
+					if (comp->use_comptype_attr->test(DefDisableRestart)) {
 						comp->is_restart_en = (saAmfCtDefDisableRestart == true) ? false : true;
 						TRACE("comp->is_restart_en modified to '%u'", comp->is_restart_en);
 					}
@@ -1407,8 +1408,8 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 			attributes, 0, &cmd->timeout) != SA_AIS_OK) {
 		cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
 		comp->pxied_inst_cbk_timeout = comptype->saAmfCtDefCallbackTimeout;
-		comp->use_comptype_attr.set(PxiedInstCallbackTimeout);
-		comp->use_comptype_attr.set(CompInstantiateTimeout);
+		comp->use_comptype_attr->set(PxiedInstCallbackTimeout);
+		comp->use_comptype_attr->set(CompInstantiateTimeout);
 	} else {
 		comp->pxied_inst_cbk_timeout = cmd->timeout;
 	}
@@ -1425,8 +1426,8 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 		if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
 			cmd->timeout = comptype->saAmfCtDefCallbackTimeout;
 			comp->term_cbk_timeout = cmd->timeout;
-			comp->use_comptype_attr.set(TerminateCallbackTimeout);
-			comp->use_comptype_attr.set(CompTerminateTimeout);
+			comp->use_comptype_attr->set(TerminateCallbackTimeout);
+			comp->use_comptype_attr->set(CompTerminateTimeout);
 		}
 		else
 			cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
@@ -1443,8 +1444,8 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 			attributes, 0, &cmd->timeout) != SA_AIS_OK) {
 		cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
 		comp->pxied_clean_cbk_timeout = comptype->saAmfCtDefCallbackTimeout;
-		comp->use_comptype_attr.set(PxiedCleanupCallbackTimeout);
-		comp->use_comptype_attr.set(CompCleanupTimeout);
+		comp->use_comptype_attr->set(PxiedCleanupCallbackTimeout);
+		comp->use_comptype_attr->set(CompCleanupTimeout);
 	} else {
 		comp->pxied_clean_cbk_timeout = cmd->timeout;
 	}
@@ -1460,7 +1461,7 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompAmStartTimeout"),
 			attributes, 0, &cmd->timeout) != SA_AIS_OK) {
 		cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
-		comp->use_comptype_attr.set(CompAmStartTimeout);
+		comp->use_comptype_attr->set(CompAmStartTimeout);
 	}
 
 	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_AMSTOP - 1];
@@ -1473,7 +1474,7 @@ static void init_clc_cli_attributes(AVND_COMP *comp,
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompAmStopTimeout"),
 			attributes, 0, &cmd->timeout) != SA_AIS_OK) {
 		cmd->timeout = comptype->saAmfCtDefClcCliTimeout;
-		comp->use_comptype_attr.set(CompAmStopTimeout);
+		comp->use_comptype_attr->set(CompAmStopTimeout);
 	}
 
 	cmd = &comp->clc_info.cmds[AVND_COMP_CLC_CMD_TYPE_HC - 1];
@@ -1557,22 +1558,22 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes)
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompCSISetCallbackTimeout"), attributes,
 			    0, &comp->csi_set_cbk_timeout) != SA_AIS_OK)
 		comp->csi_set_cbk_timeout = comptype->saAmfCtDefCallbackTimeout;
-		comp->use_comptype_attr.set(CsiSetCallbackTimeout);
+		comp->use_comptype_attr->set(CsiSetCallbackTimeout);
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompCSIRmvCallbackTimeout"), attributes,
 			    0, &comp->csi_rmv_cbk_timeout) != SA_AIS_OK)
 		comp->csi_rmv_cbk_timeout = comptype->saAmfCtDefCallbackTimeout;
-		comp->use_comptype_attr.set(CsiRemoveCallbackTimeout);
+		comp->use_comptype_attr->set(CsiRemoveCallbackTimeout);
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompQuiescingCompleteTimeout"), attributes,
 			    0, &comp->quies_complete_cbk_timeout) != SA_AIS_OK) {
 		comp->quies_complete_cbk_timeout = comptype->saAmfCompQuiescingCompleteTimeout;
-		comp->use_comptype_attr.set(DefQuiescingCompleteTimeout);
+		comp->use_comptype_attr->set(DefQuiescingCompleteTimeout);
 	}
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompRecoveryOnError"), attributes, 0, &comp->err_info.def_rec) != SA_AIS_OK) {
 		comp->err_info.def_rec = comptype->saAmfCtDefRecoveryOnError;
-		comp->use_comptype_attr.set(DefRecoveryOnError);
+		comp->use_comptype_attr->set(DefRecoveryOnError);
 	} else {
 		if ((SaAmfRecommendedRecoveryT)comp->err_info.def_rec == SA_AMF_NO_RECOMMENDATION) {
 			comp->err_info.def_rec = SA_AMF_COMPONENT_FAILOVER;
@@ -1583,7 +1584,7 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes)
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompDisableRestart"), attributes, 0, &disable_restart) != SA_AIS_OK) {
 		disable_restart = comptype->saAmfCtDefDisableRestart;
-		comp->use_comptype_attr.set(DefDisableRestart);
+		comp->use_comptype_attr->set(DefDisableRestart);
 	}
 
 	comp->is_restart_en = (disable_restart == true) ? false : true;
@@ -1671,6 +1672,7 @@ void avnd_comp_delete(AVND_COMP *comp)
         	delete [] comp->saAmfCompCmdEnv;
         }
 
+	delete comp->use_comptype_attr;
         delete comp;
 	return;
 }
@@ -1694,6 +1696,7 @@ static AVND_COMP *avnd_comp_create(const SaNameT *comp_name, const SaImmAttrValu
 	TRACE_ENTER2("%s", comp_name->value);
 
 	comp = new AVND_COMP();
+	comp->use_comptype_attr = new std::bitset<NumAttrs>;
 
 	memcpy(&comp->name, comp_name, sizeof(comp->name));
 	comp->name.length = comp_name->length;

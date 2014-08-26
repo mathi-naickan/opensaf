@@ -235,6 +235,7 @@ AVND_COMP *avnd_internode_comp_add(NCS_PATRICIA_TREE *ptree, SaNameT *name,
 
 	/* a fresh comp... */
 	comp = new AVND_COMP();
+	comp->use_comptype_attr = new std::bitset<NumAttrs>;
 
 	/* update the comp-name (patricia key) */
 	memcpy(&comp->name, name, sizeof(SaNameT));

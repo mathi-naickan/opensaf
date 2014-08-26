@@ -383,7 +383,7 @@ typedef struct avnd_comp_tag {
 	bool error_report_sent; /* true when error is repoted on component using 
 				   saAmfComponentErrorReport() or saAmfComponentErrorReport_4()*/ 
 
-	std::bitset<NumAttrs> use_comptype_attr;
+	std::bitset<NumAttrs> *use_comptype_attr;
 
 } AVND_COMP;
 
