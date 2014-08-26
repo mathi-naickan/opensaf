@@ -753,9 +753,9 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 		} else if (getgid() == sinfo->gid) {
 			TRACE("same group");
 		} else {
-			const char *admin_group_name = immModel_adminGroupName(immnd_cb);
-			if ((admin_group_name != NULL) &&
-				(osaf_user_is_member_of_group(sinfo->uid, admin_group_name) == true)) {
+			const char *authorized_group = immModel_authorizedGroup(immnd_cb);
+			if ((authorized_group != NULL) &&
+				(osaf_user_is_member_of_group(sinfo->uid, authorized_group) == true)) {
 				TRACE("configured group");
 			} else {
 				if (mode == ACCESS_CONTROL_PERMISSIVE) {
@@ -764,7 +764,7 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 						syslog(LOG_AUTH, "access violation by %s(uid=%d)",
 								pwd->pw_name, sinfo->uid);
 					TRACE_2("access violation, uid:%d, pid:%d, group_name:%s",
-							sinfo->uid, sinfo->pid,	admin_group_name);
+							sinfo->uid, sinfo->pid,	authorized_group);
 				} else {
 					// mode ENFORCING
 					struct passwd *pwd = getpwuid(sinfo->uid);
@@ -772,7 +772,7 @@ static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 						syslog(LOG_AUTH, "access denied for %s(uid=%d)",
 								pwd->pw_name, sinfo->uid);
 					TRACE_2("access denied, uid:%d, pid:%d, group_name:%s",
-							sinfo->uid, sinfo->pid,	admin_group_name);
+							sinfo->uid, sinfo->pid,	authorized_group);
 					error = SA_AIS_ERR_ACCESS_DENIED;
 					goto agent_rsp;
 				}

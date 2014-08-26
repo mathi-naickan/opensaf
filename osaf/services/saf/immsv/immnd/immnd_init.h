@@ -298,7 +298,7 @@ extern "C" {
 	SaBoolT immModel_protocol45Allowed(IMMND_CB *cb);
 	SaBoolT immModel_oneSafe2PBEAllowed(IMMND_CB *cb);
 	OsafImmAccessControlModeT immModel_accessControlMode(IMMND_CB *cb);
-	const char *immModel_adminGroupName(IMMND_CB *cb);
+	const char *immModel_authorizedGroup(IMMND_CB *cb);
 
 	SaBoolT immModel_purgeSyncRequest(IMMND_CB *cb, SaUint32T clientId);
 

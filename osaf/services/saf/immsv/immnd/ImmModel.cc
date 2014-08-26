@@ -443,7 +443,7 @@ static const std::string immSyncBatchSize(OPENSAF_IMM_SYNC_BATCH_SIZE);
 static const std::string immPbeBSlaveName(OPENSAF_IMM_2PBE_APPL_NAME);
 static const std::string immLongDnsAllowed(OPENSAF_IMM_LONG_DNS_ALLOWED);
 static const std::string immAccessControlMode(OPENSAF_IMM_ACCESS_CONTROL_MODE);
-static const std::string immAdminGroupName(OPENSAF_IMM_ADMIN_GROUP_NAME);
+static const std::string immAuthorizedGroup(OPENSAF_IMM_AUTHORIZED_GROUP);
 
 static const std::string immMngtClass("SaImmMngt");
 static const std::string immManagementDn("safRdn=immManagement,safApp=safImmService");
@@ -907,9 +907,9 @@ immModel_accessControlMode(IMMND_CB *cb)
 }
 
 const char*
-immModel_adminGroupName(IMMND_CB *cb)
+immModel_authorizedGroup(IMMND_CB *cb)
 {
-    return ImmModel::instance(&cb->immModel)->adminGroupName();
+    return ImmModel::instance(&cb->immModel)->authorizedGroup();
 }
 
 SaBoolT
@@ -3484,7 +3484,7 @@ ImmModel::accessControlMode()
 }
 
 const char*
-ImmModel::adminGroupName()
+ImmModel::authorizedGroup()
 {
     TRACE_ENTER();
     ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
@@ -3495,7 +3495,7 @@ ImmModel::adminGroupName()
 
     ObjectInfo* immObject =  oi->second;
     ImmAttrValueMap::iterator avi =
-        immObject->mAttrValueMap.find(immAdminGroupName);
+        immObject->mAttrValueMap.find(immAuthorizedGroup);
     if (avi == immObject->mAttrValueMap.end())
     	return NULL;
     osafassert(!(avi->second->isMultiValued()));

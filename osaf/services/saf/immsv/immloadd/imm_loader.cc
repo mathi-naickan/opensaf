@@ -335,7 +335,7 @@ void opensafClassCreate(SaImmHandleT immHandle)
     d7.attrFlags = SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_WRITABLE;
     d7.attrDefaultValue = &access_control_mode_default;
 
-    d8.attrName = (char *) OPENSAF_IMM_ADMIN_GROUP_NAME;
+    d8.attrName = (char *) OPENSAF_IMM_AUTHORIZED_GROUP;
     d8.attrValueType = SA_IMM_ATTR_SASTRINGT;
     d8.attrFlags = SA_IMM_ATTR_CONFIG | SA_IMM_ATTR_WRITABLE;
     d8.attrDefaultValue = NULL;

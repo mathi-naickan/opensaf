@@ -16,7 +16,7 @@
       <default-value>0</default-value>
     </attr>
     <attr>
-      <name>adminGroupName</name>
+      <name>authorizedGroup</name>
       <type>SA_STRING_T</type>
       <category>SA_CONFIG</category>
       <flag>SA_WRITABLE</flag>

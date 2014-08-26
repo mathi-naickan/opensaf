@@ -103,7 +103,7 @@ public:
 
     bool                nocaseCompare(const std::string& s1, 
 	                              const std::string& s2) const;
-    const char*         adminGroupName();
+    const char*         authorizedGroup();
     OsafImmAccessControlModeT accessControlMode();
     bool                schemaChangeAllowed();
     bool                protocol41Allowed();
