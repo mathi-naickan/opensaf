@@ -1,0 +1,95 @@
+#
+#      -*- OpenSAF  -*-
+#
+# (C) Copyright 2014 The OpenSAF Foundation
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
+#
+# Author(s): Ericsson AB
+#
+
+
+IMM Access Control (introduced in 4.5)
+===================================================
+
+General
+------------
+
+OpenSAF ticket: https://sourceforge.net/p/opensaf/tickets/938/
+
+The IMM service in OpenSAF supports access control of clients/users. By default
+this control is disabled for backwards compatibility reasons. Access control
+can be enabled at compile time or runtime.
+
+The access control support three modes, DISABLED, PERMISSIVE and ENFORCING.
+
+The semantics of these modes are:
+- DISABLED - access control disabled (default)
+
+- PERMISSIVE - access violations are logged as security/authorization messages
+    (normally to /var/log/auth but system dependent) but still ALLOWED.
+
+- ENFORCING - same as PERMISSIVE but violations are not allowed but denied.
+
+When access control is enabled the following users are allowed access:
+- root (uid:0)
+
+- members of the same primary groups as the IMM service itself (normally other
+processes of the opensaf middleware)
+
+- members of one additional group
+
+
+The IMM APIs can return the code SA_AIS_ERR_ACCESS_DENIED(38) from the
+initialize functions if the current user does not enough privilege.
+
+
+Configuration
+-------------
+
+The IMM OpenSAF service object contains two new attributes, "accessControlMode"
+and "authorizedGroup".
+
+"accessControlMode" is an enum (integer) with the following allowed values:
+0 - DISABLED (default)
+1 - PERMISSIVE
+2 - ENFORCING
+
+"authorizedGroup" is an optional attribute of type string holding the name of
+an existing linux group. Members of this group will have access to IMM.
+
+Only the root user can change these attributes.
+
+Configure additional group access:
+$ sudo immcfg -a authorizedGroup=imm-users opensafImm=opensafImm,safApp=safImmService
+
+Enable PERMISSIVE mode:
+$ sudo immcfg -a accessControlMode=1 opensafImm=opensafImm,safApp=safImmService
+
+Check for violation:
+$ grep "access violation" /var/log/auth.log | grep osafimmnd
+
+Enable ENFORCING mode:
+$ sudo immcfg -a accessControlMode=2 opensafImm=opensafImm,safApp=safImmService
+
+Check for denied access:
+$ grep "access denied" /var/log/auth.log | grep osafimmnd
+
+
+At build time the default access control mode can be changed (to ENFORCING) 
+after the configure step by adding to config.h:
+
+#define IMM_ACCESS_CONTROL_MODE 2
+
+
+Logging
+-----------
+IMM logs violation and denied access to syslog using the LOG_AUTH facility.
+
