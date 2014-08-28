@@ -2852,7 +2852,7 @@ const void *lgs_imm_logconf_get(lgs_logconfGet_t param, bool *noteflag)
 	lgs_conf_p = (lgs_conf_t *) lgs_conf;
 	/* Check if parameters has to be fetched from IMM */
 	if (lgs_conf->logInitiated != true) {
-		if (read_logsv_config_obj()) {
+		if (read_logsv_config_obj() != SA_AIS_OK) {
 			LOG_NO("No or invalid log service configuration object");
 			read_logsv_config_environ_var();
 		} else {
