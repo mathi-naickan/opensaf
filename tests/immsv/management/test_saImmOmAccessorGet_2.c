@@ -133,7 +133,7 @@ void saImmOmAccessorGet_2_04(void)
     rc = saImmOmAccessorGet_2(accessorHandle, &objectName, accessorGetConfigAttrsToken, &attributes);
     /* Verify the number of config attributes */
     cnt = print_SaImmAttrValuesT_2(attributes);
-    assert(cnt == 6);
+    assert(cnt == 8);
     test_validate(rc, SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
