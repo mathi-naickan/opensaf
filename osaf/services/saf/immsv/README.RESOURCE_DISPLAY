@@ -1,0 +1,92 @@
+The enhancement dumps IMMsv resource utilization data using a specialIMM Admin Operation.
+The IMM AdminOperation must be directed to the immsv object:
+
+    opensafImm=opensafImm,safApp=safImmService. 
+
+PBE is the normally implementer for that object (when PBE is enabled).
+The display admin operation request reaches the PBE and if the requested resource
+is a PBE resource the PBE replies with an extended adminoperation resut having 
+resource name as return parameter-name. 
+
+The reply from PBE is intercepted by the IMMND and display requests for resources
+in the IMMND are then appended. Currently this will be the IMMND colocated with the client
+invoking the request. In  he future, displayin resources of remote IMMNDs should be
+supported. 
+
+This special admin-operation works with PBE disabled also, but can then not display
+resource utilization for the PBE, only for the IMMND.
+
+A new immutil API immutil_saImmOiAdminOperationResult_o2 has been added that copes
+with returning extended results. 
+
+Presently two modes for dumping resource utilization is supported:
+--------------------------------------------------------------------
+(1) Terse.
+display -- returns the terse output for the requested resource. The current 'count'
+of the instances of the requested resource will be returned.
+
+The supported resource are currently:
+
+    implementers
+    adminowners
+    ccbs
+    searches.
+
+Eg:
+
+immadm -O display -p resource:SA_STRING_T:implementers \
+  opensafImm=opensafImm,safApp=safImmService
+
+Name                                               Type         Value(s)
+========================================================================
+count                                              SA_INT64_T   13 (0xd)
+
+
+--------------------------------------------------------------------
+displayverbose -- returns the verbose output for the requested resource.
+The verbose output is currently supported only for the resources: implementers
+and adminowners. If the number of resource is greater than 127 then the verbose
+output is displayed to syslog.
+
+Eg: 
+
+immadm -O displayverbose -p resource:SA_STRING_T:implementers \
+  opensafImm=opensafImm,safApp=safImmService 
+
+[using admin-owner: 'safImmService']
+Object: opensafImm=opensafImm,safApp=safImmService
+Name                                               Type         Value(s)
+========================================================================
+safLogService                                      SA_INT64_T   131343 (0x2010f)
+safClmService                                      SA_INT64_T   131343 (0x2010f)
+@safAmfService2020f                                SA_INT64_T   131599 (0x2020f)
+safAmfService                                      SA_INT64_T   131343 (0x2010f)
+OpenSafImmPBE                                      SA_INT64_T   131343 (0x2010f)
+MsgQueueService131343                              SA_INT64_T   131343 (0x2010f)
+safMsgGrpService                                   SA_INT64_T   131343 (0x2010f)
+safCheckPointService                               SA_INT64_T   131343 (0x2010f)
+safEvtService                                      SA_INT64_T   131343 (0x2010f)
+safLckService                                      SA_INT64_T   131343 (0x2010f)
+safSmfService                                      SA_INT64_T   131343 (0x2010f)
+MsgQueueService131855                              SA_INT64_T   131855 (0x2030f)
+MsgQueueService131599                              SA_INT64_T   131599 (0x2020f)
+
+
+If the operationName display-help is used, the return parameters will contain
+the currently supported resources for display.
+
+Eg: 
+
+immadm -O display-help opensafImm=opensafImm,safApp=safImmService
+[using admin-owner: 'safImmService'] Object:
+opensafImm=opensafImm,safApp=safImmService 
+[using admin-owner: 'safImmService']
+Object: opensafImm=opensafImm,safApp=safImmService
+Name                                               Type         Value(s)
+========================================================================
+supportedResources                                 SA_STRING_T  implementers
+supportedResources                                 SA_STRING_T  adminowners
+supportedResources                                 SA_STRING_T  ccbs
+supportedResources                                 SA_STRING_T  searches
+
+

@@ -1703,7 +1703,7 @@ This was actually fixed as a defect made visible by the 2PBE enhancement.
 The IMM service takes stronger ownership of the OpenSAF Imm service object
 mentioned earlier:
 
-	  'opensafImm=opensafImm,safApp=safImmService'
+        'opensafImm=opensafImm,safApp=safImmService'
 
 by more or less permanently setting adminOwner for this object to be
 safImmService. The 'immadm' command has been fixed to be aware of this more
@@ -1736,7 +1736,7 @@ See: osaf/services/saf/immsv/README.NO_DANGLING for details.
 
 Support for saImmOmCcbAbort() and saImmOmCcbValidate() (4.5)
 ========================================================================
-https://sourceforge.net/p/opensaf/tickets/798/
+http://sourceforge.net/p/opensaf/tickets/798/
 
 Adds adds support for an OM client to explicitly request abort of the current
 CCB(id) without finalizing the handle.
@@ -1824,7 +1824,7 @@ This is a blocking syncronous call.
 
 Allow admin-operations directly targeting an implementer or applier (4.5)
 ======================================================================
-https://sourceforge.net/p/opensaf/tickets/799/
+http://sourceforge.net/p/opensaf/tickets/799/
 
 
 The existing IMM admin-operation API in OpenSAF:
@@ -1900,35 +1900,109 @@ not to create deadlock cycles between the involved processes. Any such deadlock 
 be resolved by the timeout of the synchronous admin-ops, so the problem would be lack
 of progress on some task, not a permanently hung set of processes.
 
+Support for long DNs in existing IMM APIs (4.5)
+===============================================
+http://sourceforge.net/p/opensaf/tickets/886
+http://sourceforge.net/p/opensaf/tickets/957/
+This enhancement is part of the general enhancement for supporting long DNs in
+OpenSAF tracked by ticket: #191. Ticket #886 adds support for long DNs to IMM.
+
+The library implementation of the existing IMM API has been addapted to the 
+"tunneling" solution  provided by the OpenSAF generic patch for ticket #191.
+See the document: 
+
+        OpenSAF_Extensions_PR.odt 
+
+on how to use the SaNameT tunneling primitives, allowing DNs longer than 255 bytes 
+to be passed via an SaNameT value.
+
+A new IMM API where all use of SaNameT is replaced by SaStringt and SaConstStringT
+has been reviewed and accepted by the OpenSAF TC. But support for this new API
+did not make it into OpenSAF 4.5. Instead it will be provided in OpenSAF 4.6.
+This is tracked by ticket #643 (http://sourceforge.net/p/opensaf/tickets/643).
+
+An unofficial API similar to #643 has been provided in OpenSAF4.5  as part of
+immutils (ticket #957). The immutils library uses 'char *' and 'const char *'
+instead of SaStringT and SaConstStringT. The immutils library source code is 
+available for copying under the directory:
+
+  samples/immsv/immutils
+
+The additions to the immutils API encapsulates use of the SaNameT tunneling over
+the IMMA lib. It can be seen as an example of how to use SaNameT tunneling, or it
+can be copied and incorporated into an application library with the understanding
+that it is part of, maintained, and versioned by each such application. 
+
+
 Attribute 'longDnsAllowed' added to class 'OpensafImm' (4.5)
 ===========================================================
-https://sourceforge.net/p/opensaf/tickets/897
+http://sourceforge.net/p/opensaf/tickets/897
 
-This enhancement is part of the general enhancement for supporting long DNs in
+This enhancement is part of the general effort for supporting long DNs in
 OpenSAF tracked by ticket: #191 and adding support for long DNs to IMM tracked by
 ticket: #886.
 
-A config attribute named 'longDnsAllowed' is added to the class 'OpensafImm'.
-The default value is 0 with the intended meaning that long DNs are not allowed.
-Any other value has the meaning that long DNs are allowed. A boolean function 
-getLongDnsAllowed()' has been added to ImmModel. This function will be used by
-the function ImmModel::ccbObjectCreate() when it detects that an object proposed
-to be created has a DN longer than 255 bytes. The creation will only be allowed
-if getLongDnsAllowed() returns true.
+A config attribute named 'longDnsAllowed' is added to the class 'OpensafImm' and
+is available in the only instance of that class: 
 
-Validation of updates to the value of  'longDnsAllowed' will be added as part of
-ticket #934. Transitioning from true to false will only be allowed at a site if
-the imm database at the site currently has no object with a long DN.
+   opensafImm=opensafImm,safApp=safImmService
+
+The default value is 0 with the intended meaning that long DNs are not allowed.
+Any other value has the meaning that long DNs are allowed. The attribute is checked
+as part of processing any IMM request that would imply the usage of a long DN. 
+
+Transitioning from true to false/0 for this attribute will only be allowed at a site
+if the imm database at the site currently has no long DNs.
 
 An imm xml file containing the extended class definition for OpensafImm has been
-added at samples/immsv/OpensafImm_Upgrade_4.5.xml.
-The xml file should be used for upgrading the class when older OpenSAF systems are
-upgraded to OpenSAF 4.5 and that system must be capable of supporting long DNs.
+added at:
+
+        samples/immsv/OpensafImm_Upgrade_4.5.xml.
+
+That xml file should be used for upgrading the class when systems running older 
+OpenSAF releases are upgraded to OpenSAF 4.5 and that system needs to be capable
+of supporting long DNs. An initial start of a pristine OpenSAF 4.5 ssytem will
+automatically install this new attribute. 
+
+
+SAF RDN limitation of 64 characters made conditional on 'longDnsAllowed (4.5)
+=============================================================================
+http://sourceforge.net/p/opensaf/tickets/23/
+
+If support for long DNs is enabled (by setting the longDnsAllowed attribute to
+a non zero value) then this will also disable the 64 byte limit on RDN length in
+that system.
+
+
+Add OI functionality for the IMM service to validate its own config data (4.5)
+==============================================================================
+http://sourceforge.net/p/opensaf/tickets/934/
+http://sourceforge.net/p/opensaf/tickets/951/
+
+Prior to OpenSAF 4.5 there was really no IMM OI implemented. The IMM service
+has two configuration objects for managing the imm service itself:
+
+        safRdn=immManagement,safApp=safImmService
+        opensafImm=opensafImm,safApp=safImmService
+
+The first one is the SAF defined configuration object for IMM where the only
+used attribute is the config attribute:
+
+        saImmRepositoryInit
+
+used for managing enablement of PBE. The second one is the OpenSAF defined
+configuration object for IMM where the config attributes are:
+
+        opensafImmSyncBatchSize
+        longDnsAllowed
+
+The IMM OI is normally "hosted" in the PBE. If the PBE is disabled, changes to these
+objects are handled by the IMMND.
 
 
 Allow schema change to add attribute default (4.5)
 ==================================================
-https://sourceforge.net/p/opensaf/tickets/895
+http://sourceforge.net/p/opensaf/tickets/895
 
 The restriction of not allowing a default value to be added to an attribute definition
 that previously had no default, has been removed. Only new instances of the class will
@@ -1940,10 +2014,62 @@ cause all instances that used to have a null value to get the default value.
 A general rule for schema changes is that the immsv never alters the value of existing
 attributes as part of a schema change. Doing so would require the OI to be notified,
 which is not realistic since the shcema change is not performed as a CCB.
-This new feature is only available after an upgrade to OpensAF 4.5 has completed. 
+This new feature is only available after an upgrade to OpensAF 4.5 has completed.
 
 
-Notes on upgrading from OpenSAF 4.[1,2,3,4] to OpenSAF 4.5
+Support for configurable OI callback timeout (4.5)
+=================================================
+http://sourceforge.net/p/opensaf/tickets/16/
+
+A new environment variable IMMA_OI_CALLBACK_TIMEOUT is recognized by the OI library.
+In the same way as for the existing IMMA_SYNCR_TIMEOUT, this environment variable
+is sampled by the SaImmOiInitialize function for initializing an oi-handle.
+
+The OI-handle will have that timeout associated with it for the rest of its lifetime,
+for the server side monitoring of callbacks generated over the handle.
+
+The unit used for the value is seconds. 
+
+Different OI handles can have different callback timeouts, by changing the value of
+IMMA_OI_CALLBACK_TIMEOUT prior to each saImmOiIntitialize.
+
+If the environment variable is not defined, then the default OI timeout defined in
+the server will be used by the server when monitoring callbacks to this OI.
+Currently the default OI callback timeout is defined to be 6 seconds. It is normally
+not recommended to set an OI callback timeout to a value higher than 10 seconds, since
+that is the default om/oi-client side timeout for synchronous downcalls.
+
+
+SaDoubleT and SaFloatT attributes handled correctly (4.5)
+=========================================================
+http://sourceforge.net/p/opensaf/tickets/53/
+See ticket for details.
+
+
+Auto relase of lingering search handles  (4.5)
+==============================================
+http://sourceforge.net/p/opensaf/tickets/47/
+See ticket for details.
+
+AdminOp on immsv for dumping resource utilization data (4.5)
+===========================================================
+http://sourceforge.net/p/opensaf/tickets/35/
+
+This enhancement is mainly intended to assist the maintainers
+of OpenSAF in troubleshouting resource/performance issues.
+It is not intended to be an end-user utility.
+
+See: osaf/services/saf/immsv/README.RESOURCE_DISPLAY for details.
+
+#938 IMM Access control (4.5)
+=============================
+http://sourceforge.net/p/opensaf/tickets/938/
+OpenSAF 4.5 adds the immsv enhancement of supporting access control of imma clients.
+
+See: osaf/services/saf/immsv/README.ACCESS_CONTROL for details.
+
+
+Notes on upgrading from OpenSAF 4.[1,2,3,4] to OpenSAF (4.5)
 ==========================================================
 Several enhancements in OpenSAF4.5 add new message types or add new imm server states
 for ccb handling (#798,  #799, #16, #895). During a rolling upgrade from an earlier OpenSAF
@@ -1974,34 +2100,16 @@ automatically toggle on relevant flags.
 
 In summary:
 
-Bit 1 controls schema (imm class) changes allowed or not.
-Bit 2 controls OpenSAF4.1 protocols allowed or not.
-Bit 3 controls OpenSAF4.3 protocols allowed or not.
-Bit 4 controls 2PBE oneSafe2PBE (see 2PBE feature in OpenSAF4.4 above).
-Bit 5 controls OpenSAF4.5 protocols allowed or not.
+Bit 1 controls schema (imm class) changes allowed or not (normally off/0).
+Bit 2 controls OpenSAF4.1 protocols allowed or not (normally on/1).
+Bit 3 controls OpenSAF4.3 protocols allowed or not (normally on/1).
+Bit 4 controls 2PBE oneSafe2PBE, see 2PBE feature in OpenSAF4.4 above (normally off/0).
+Bit 5 controls OpenSAF4.5 protocols allowed or not (normally on/1).
 
+Note also that enhancement #897 described above, added a new config attribute to
+the class 'OpensafImm'. An imm xml file containing the extended class definition
+for OpensafImm has been added at samples/immsv/OpensafImm_Upgrade_4.5.xml.
 
-Support for configurable OI callback timeout (4.5)
-=================================================
-https://sourceforge.net/p/opensaf/tickets/16/
-
-A new environment variable IMMA_OI_CALLBACK_TIMEOUT is recognized by the OI library.
-In the same way as for the existing IMMA_SYNCR_TIMEOUT, this environment variable
-is sampled by the SaImmOiInitialize function for initializing an oi-handle.
-
-The OI-handle will have that timeout associated with it for the rest of its lifetime,
-for the server side monitoring of callbacks generated over the handle.
-
-The unit used for the value is seconds. 
-
-Different OI handles can have different callback timeouts, by changing the value of
-IMMA_OI_CALLBACK_TIMEOUT prior to each saImmOiIntitialize.
-
-If the environment variable is not defined, then the default OI timeout defined in
-the server will be used by the server when monitoring callbacks to this OI.
-Currently the default OI callback timeout is defined to be 6 seconds. It is not
-recommended to set an OI callback timeout to a value higher than 10 seconds, since
-that is the default om/oi-client side timeout for synchronous downcalls. 
 
 ----------------------------------------
 DEPENDENCIES
