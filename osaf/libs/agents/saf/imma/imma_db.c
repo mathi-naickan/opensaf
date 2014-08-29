@@ -676,12 +676,16 @@ void imma_mark_clients_stale(IMMA_CB *cb, bool mark_exposed)
 ******************************************************************************/
 void imma_process_stale_clients(IMMA_CB *cb)
 {
-	/* We are LOCKED already */
 	IMMA_CLIENT_NODE  * clnode;
 	SaImmHandleT *temp_ptr=0;
 	SaImmHandleT temp_hdl=0;
 
 	TRACE_ENTER();
+
+	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
+		TRACE_3("Lock failure");
+		abort();
+	}
 
 	/* scan the entire handle db & check each record */
 	while ((clnode = (IMMA_CLIENT_NODE *)
@@ -705,6 +709,11 @@ void imma_process_stale_clients(IMMA_CB *cb)
 			*/
 			imma_proc_stale_dispatch(cb, clnode);
 		}
+	}
+
+	if (m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
+		TRACE_3("unlock failure");
+		abort();
 	}
 
 	TRACE_LEAVE();
