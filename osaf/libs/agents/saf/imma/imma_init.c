@@ -24,14 +24,12 @@
 ******************************************************************************/
 
 #define _GNU_SOURCE
-#include <configmake.h>
 #include <string.h>
 
 #include "imma.h"
 #include "osaf_poll.h"
 #include "osaf_extended_name.h"
 #include "saAis.h"
-#include "mds_dl_api.h"
 
 /*****************************************************************************
  global data used by IMMA
@@ -165,14 +163,6 @@ static uint32_t imma_create(NCSMDS_SVC_ID sv_id)
 
 	imma_sync_with_immnd(cb); /* Needed to prevent endless TRY_AGAIN loop
 								 for first client. */
-
-	/* connect and register MDS dest with auth server in immnd */
-	const char *name = PKGLOCALSTATEDIR "/immnd.sock";
-	int status = mds_auth_server_connect(name, cb->imma_mds_adest, 10000);
-	if (status != NCSCC_RC_SUCCESS) {
-		TRACE_4("mds_auth_server_connect failed %u", status);
-		return NCSCC_RC_FAILURE;
-	}
 
 	/* EDU initialisation ABT: Dont exactly know why we need this but... */
 	if (m_NCS_EDU_HDL_INIT(&cb->edu_hdl) != NCSCC_RC_SUCCESS) {

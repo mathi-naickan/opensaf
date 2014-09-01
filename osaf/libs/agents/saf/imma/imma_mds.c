@@ -23,8 +23,13 @@
 
 *****************************************************************************/
 
+#include <configmake.h>
+
 #include "imma.h"
 #include "ncs_util.h"
+#include "mds_dl_api.h"
+
+static const char *sockname = PKGLOCALSTATEDIR "/immnd.sock";
 
 static uint32_t imma_mds_enc_flat(IMMA_CB *cb, MDS_CALLBACK_ENC_FLAT_INFO *info);
 static uint32_t imma_mds_dec_flat(IMMA_CB *cb, MDS_CALLBACK_DEC_FLAT_INFO *info);
@@ -417,6 +422,14 @@ static uint32_t imma_mds_svc_evt(IMMA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_e
 			m_NCS_LOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);/*special sync lock*/
 			cb->is_immnd_up = true;
 			cb->immnd_mds_dest = svc_evt->i_dest;
+
+			/* (Re-)connect and register our MDS dest with auth server in immnd */
+			if (mds_auth_server_connect(sockname,
+					cb->imma_mds_adest, 10000) != NCSCC_RC_SUCCESS) {
+				/* server UP indication yet this does not work... */
+				LOG_WA("%s: mds_auth_server_connect failed", __FUNCTION__);
+			}
+
 			if (cb->immnd_sync_awaited == true)
 				m_NCS_SEL_OBJ_IND(&cb->immnd_sync_sel);
 			m_NCS_UNLOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);/*special sync lock*/
