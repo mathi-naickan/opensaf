@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -113,6 +114,19 @@ static int server_sock_create(const char *pathname)
 
 	if ((server_sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		LOG_ER("%s: socket failed - %s", __FUNCTION__, strerror(errno));
+		return -1;
+	}
+
+	int flags = fcntl(server_sockfd, F_GETFD, 0);
+	if ((flags < 0) || (flags > 1)) {
+		LOG_ER("%s: fcntl F_GETFD failed - %s", __FUNCTION__, strerror(errno));
+		close(server_sockfd);
+		return -1;
+	}
+
+	if (fcntl(server_sockfd, F_SETFD, flags | FD_CLOEXEC) == -1) {
+		LOG_ER("%s: fcntl F_SETFD failed - %s", __FUNCTION__, strerror(errno));
+		close(server_sockfd);
 		return -1;
 	}
 
