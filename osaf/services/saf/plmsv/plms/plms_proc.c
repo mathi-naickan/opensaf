@@ -2085,7 +2085,7 @@ void plms_process_mds_info_event(PLMS_EVT *plm_evt)
 		case NCSMDS_UP:
 			if (mds_info->svc_id == NCSMDS_SVC_ID_PLMS_HRB) {
 				cb->hrb_dest = plm_evt->req_evt.mds_info.dest; 
-				LOG_ER("Received MDS UP for PLMS_HRB");
+				LOG_NO("Received MDS UP for PLMS_HRB");
 			}
 			break;
 		case NCSMDS_DOWN:

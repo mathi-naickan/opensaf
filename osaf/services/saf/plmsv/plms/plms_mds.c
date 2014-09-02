@@ -211,7 +211,7 @@ SaUint32T plms_mds_register()
         svc_info.i_svc_id = NCSMDS_SVC_ID_PLMS;
         svc_info.i_op = MDS_SUBSCRIBE;
         svc_info.info.svc_subscribe.i_num_svcs = 1;
-        svc_info.info.svc_subscribe.i_scope = NCSMDS_SCOPE_NONE;
+        svc_info.info.svc_subscribe.i_scope = NCSMDS_SCOPE_INTRANODE;
         svc_info.info.svc_subscribe.i_svc_ids = plms_hrb_id;
         if (ncsmds_api(&svc_info) == NCSCC_RC_FAILURE) {
                 LOG_ER("PLMS - MDS Subscribe for PLMS_HRB up/down Failed");
