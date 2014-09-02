@@ -586,15 +586,21 @@ static void *plms_hsm(void)
 				state = SAHPI_HS_STATE_INACTIVE;
 			}
 		} else {
-			/* Get the hotswap state */
-			rc = saHpiHotSwapStateGet(cb->session_id,rpt_entry.ResourceId,&state);
-			if( SA_OK != rc )
-			{
-				LOG_ER("HSM:saHpiHotSwapStateGet failed for res with state model as:%d and ret val:%d",
-											hotswap_state_model,rc);
-				continue;
+			/* Don't get the hotswap state if this is a hot swap
+			event, because it might fail if the entity has been
+			extracted, and we have the info in the event anyways. */
+			if (event.EventType == SAHPI_ET_HOTSWAP) {
+				state = event.EventDataUnion.HotSwapEvent.HotSwapState;
 			}
-			TRACE("HSM:Hotswap state of res:%u is :%u",rpt_entry.ResourceId,state);
+			else {
+				rc = saHpiHotSwapStateGet(cb->session_id,rpt_entry.ResourceId,&state);
+				if( SA_OK != rc )
+				{
+					LOG_ER("HSM:saHpiHotSwapStateGet failed for res with state model as:%d and ret val:%d", hotswap_state_model,rc);
+					continue;
+				}
+				TRACE("HSM:Hotswap state of res:%u is :%u",rpt_entry.ResourceId,state);
+			}
 		}
 
 		/* If it is a resource restore event( communication lost and
@@ -645,7 +651,7 @@ static void *plms_hsm(void)
 
 				}
 			}
-			hsm_send_hotswap_event(&rpt_entry,hotswap_state_model,state,
+			hsm_send_hotswap_event(&rpt_entry,hotswap_state_model,event.EventDataUnion.HotSwapEvent.HotSwapState,
 			event.EventDataUnion.HotSwapEvent.PreviousHotSwapState,retriev_idr_info);
 
 		}

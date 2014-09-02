@@ -4885,7 +4885,16 @@ void plms_he_np_clean_up(PLMS_ENTITY *ent, PLMS_EPATH_TO_ENTITY_MAP_INFO
 		free(ent->entity.he_entity.saPlmHECurrEntityPath);
 		ent->entity.he_entity.saPlmHECurrEntityPath = NULL;
 	}
-	
+
+	/* Update IMM*/
+	ret_err = plms_attr_imm_update(ent,
+					"saPlmHEOperationalState",
+					SA_IMM_ATTR_SAUINT32T,
+					SA_PLM_OPERATIONAL_ENABLED);
+
+	TRACE("Wipe out current operational state. Ent: %s",ent->dn_name_str);
+	ent->entity.he_entity.saPlmHEOperationalState =
+		SA_PLM_OPERATIONAL_ENABLED;
 
 	ent->deact_in_pro = false;
 	ent->act_in_pro = false;
