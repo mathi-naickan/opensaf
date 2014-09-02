@@ -1479,15 +1479,26 @@ SaUint32T plms_HE_adm_reset_op(PLMS_EVT *evt)
 	Follow plms_plmc_instantiated_process().
 	*/
 	
-	trk_info->imm_adm_opr_id = evt->req_evt.admin_op.operation_id; 
-	trk_info->inv_id = evt->req_evt.admin_op.inv_id;
-	trk_info->change_step = SA_PLM_CHANGE_COMPLETED;
-	trk_info->track_cause = SA_PLM_CAUSE_HE_ACTIVATED;
-	trk_info->root_correlation_id = SA_NTF_IDENTIFIER_UNUSED; 
-	trk_info->root_entity = ent;
-	trk_info->track_count = count;
-	trk_info->aff_ent_list = aff_ent_list;
-	trk_info->group_info_list = NULL;
+	if (count) {
+		trk_info->imm_adm_opr_id = evt->req_evt.admin_op.operation_id;
+		trk_info->inv_id = evt->req_evt.admin_op.inv_id;
+		trk_info->change_step = SA_PLM_CHANGE_COMPLETED;
+		trk_info->track_cause = SA_PLM_CAUSE_HE_ACTIVATED;
+		trk_info->root_correlation_id = SA_NTF_IDENTIFIER_UNUSED;
+		trk_info->root_entity = ent;
+		trk_info->track_count = count;
+		trk_info->aff_ent_list = aff_ent_list;
+		trk_info->group_info_list = NULL;
+	}
+	else {
+		ret_err = saImmOiAdminOperationResult(cb->oi_hdl,
+			evt->req_evt.admin_op.inv_id,SA_AIS_OK);
+		ent->adm_op_in_progress = false;
+		ent->am_i_aff_ent = false;
+		plms_aff_ent_mark_unmark(aff_ent_list,false);
+		plms_ent_list_free(aff_ent_list);
+		plms_trk_info_free(trk_info);
+	}
 
 	plms_ent_list_free(aff_he_list);
 	aff_he_list = NULL;
