@@ -64,6 +64,7 @@ typedef struct smfd_cb {
 	SMFD_SMFND_ADEST_INVID_MAP *smfnd_list;     /* SMFNDs need to respond to the callback. */
 	uint32_t no_of_smfnd;
 	pthread_mutex_t lock;                     /* Used by smfd_cb_t lock/unlock functions */
+	uint32_t maxDnLength;                     /* Max DN length */
 } smfd_cb_t;
 
 #ifdef __cplusplus

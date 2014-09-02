@@ -179,6 +179,7 @@ SmfCampaignInit::execute()
 	TRACE_ENTER();
 
         SaAisErrorT result = SA_AIS_OK;
+        SmfImmUtils immUtil;
 
         LOG_NO("CAMP: Campaign init, start add to IMM (%zu)", m_addToImm.size());
 
@@ -194,7 +195,6 @@ SmfCampaignInit::execute()
         }
 
 	if (m_addToImm.size() > 0) {
-		SmfImmUtils immUtil;
                 SmfRollbackCcb rollbackCcb(addToImmRollbackCcbDn,
                                            SmfCampaignThread::instance()->getImmHandle());
 
@@ -225,13 +225,24 @@ SmfCampaignInit::execute()
                 return false;
         }
 
+        if (!immUtil.read_IMM_long_DN_config_and_set_control_block(smfd_cb)) {
+       	LOG_ER("SmfCampaignInit: reading long DN config from IMM FAILED");
+       	TRACE_LEAVE();
+       	return false;
+    }
 	std::list < SmfUpgradeAction * >::iterator upActiter;
 	upActiter = m_campInitAction.begin();
 	while (upActiter != m_campInitAction.end()) {
+		if (!immUtil.read_IMM_long_DN_config_and_set_control_block(smfd_cb)) {
+			LOG_ER("SmfCampaignInit: reading long DN config from IMM FAILED");
+			TRACE_LEAVE();
+			return false;
+		}
 		SaAisErrorT rc = (*upActiter)->execute(SmfCampaignThread::instance()->getImmHandle(),
                                                        &initRollbackDn);
 		if (rc != SA_AIS_OK) {
 			LOG_ER("SmfCampaignInit init action %d failed, rc=%s", (*upActiter)->getId(), saf_error(rc));
+			TRACE_LEAVE();
 			return false;
 		}
 		upActiter++;

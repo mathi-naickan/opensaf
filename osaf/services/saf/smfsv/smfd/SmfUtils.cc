@@ -312,9 +312,9 @@ SmfImmUtils::getObject(const std::string & i_dn, SaImmAttrValuesT_2 *** o_attrib
 	SaAisErrorT rc = SA_AIS_OK;
 	SaNameT objectName;
 
-        if (i_dn.length() > kMaxDnLength) {
+        if (i_dn.length() > smfd_cb->maxDnLength) {
 		LOG_NO("getObject error, dn too long (%zu), max %zu",
-                        i_dn.length(), static_cast<size_t>(kMaxDnLength));
+                        i_dn.length(), static_cast<size_t>(smfd_cb->maxDnLength));
 		return false;
         }
 
@@ -339,9 +339,9 @@ SmfImmUtils::getObjectAisRC(const std::string & i_dn, SaImmAttrValuesT_2 *** o_a
 	SaAisErrorT rc = SA_AIS_OK;
 	SaNameT objectName;
 
-        if (i_dn.length() > kMaxDnLength) {
+        if (i_dn.length() > smfd_cb->maxDnLength) {
 		LOG_NO("getObjectAisRC error, dn too long (%zu), max %zu",
-                        i_dn.length(), static_cast<size_t>(kMaxDnLength));
+                        i_dn.length(), static_cast<size_t>(smfd_cb->maxDnLength));
 		return SA_AIS_ERR_NAME_TOO_LONG;
         }
 
@@ -381,9 +381,9 @@ SmfImmUtils::getChildren(const std::string & i_dn, std::list < std::string > &o_
 	TRACE_ENTER();
 
 	if (i_dn.size() > 0) {
-                if (i_dn.length() > kMaxDnLength) {
+                if (i_dn.length() > smfd_cb->maxDnLength) {
                         LOG_NO("getChildren error, dn too long (%zu), max %zu",
-                                i_dn.length(), static_cast<size_t>(kMaxDnLength));
+                                i_dn.length(), static_cast<size_t>(smfd_cb->maxDnLength));
                         return false;
                 }
 
@@ -465,9 +465,9 @@ SmfImmUtils::getChildrenAndAttrBySearchHandle(const std::string& i_dn,
 	TRACE_ENTER();
 
 	if (i_dn.size() > 0) {
-                if (i_dn.length() > kMaxDnLength) {
+                if (i_dn.length() > smfd_cb->maxDnLength) {
                         LOG_NO("getChildren error, dn too long (%zu), max %zu",
-                                i_dn.length(), static_cast<size_t>(kMaxDnLength));
+                                i_dn.length(), static_cast<size_t>(smfd_cb->maxDnLength));
 			rc =  false;
 			goto done;
                 }
@@ -531,9 +531,9 @@ SmfImmUtils::callAdminOperation(const std::string & i_dn, unsigned int i_operati
 	SaNameT objectName;
 	int retry          = 100;
 
-        if (i_dn.length() > kMaxDnLength) {
+        if (i_dn.length() > smfd_cb->maxDnLength) {
                 LOG_NO("callAdminOperation error, dn too long (%zu), max %zu",
-                        i_dn.length(), static_cast<size_t>(kMaxDnLength));
+                        i_dn.length(), static_cast<size_t>(smfd_cb->maxDnLength));
                 return SA_AIS_ERR_NAME_TOO_LONG;
         }
 
@@ -710,6 +710,59 @@ SmfImmUtils::nodeToClmNode(const std::string& i_node, std::string& o_clmNode)
 
         return true;
 }
+//------------------------------------------------------------------------------
+// Reads IMM configuration data for long DNs and sets cb data structure
+//------------------------------------------------------------------------------
+bool
+SmfImmUtils::read_IMM_long_DN_config_and_set_control_block(smfd_cb_t * cb)
+{
+	TRACE_ENTER();
+
+	//here is the only place where "kMaxDnLength" constant is directly used
+	uint32_t maxDnLength = kMaxDnLength;
+
+	/* First check if long DNs already enabled.
+	 * If enabled then there is no need to check it again,
+	 * since once it is enabled, is never turned off again.
+	 */
+	if(cb->maxDnLength == maxDnLength) {
+		TRACE("read_IMM_long_DN_config_and_set_control_block(): Long DNs already enabled");
+		TRACE_LEAVE();
+		return true;
+	}
+
+	/* Set the default value first,
+	 * to make sure that a value is set,
+	 * even if this function fails to get the config from IMM.
+	 */
+	cb->maxDnLength = DEFAULT_MAX_DN_LENGTH;
+
+	SaImmAttrValuesT_2 **attributes;
+
+	if(getObject(IMM_CONFIG_OBJECT_DN, &attributes) == false) {
+                LOG_ER("Could not get IMM config object from IMM %s", IMM_CONFIG_OBJECT_DN);
+                TRACE_LEAVE();
+                return false;
+	}
+
+	const SaUint32T *longDnsAllowed = immutil_getUint32Attr((const SaImmAttrValuesT_2 **)attributes, IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, 0);
+	if(longDnsAllowed) {
+		TRACE("%s=%u", IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, *longDnsAllowed);
+		if(*longDnsAllowed == 0) {
+			cb->maxDnLength = DEFAULT_MAX_DN_LENGTH;
+			TRACE_LEAVE();
+			return true;
+		}
+		if(*longDnsAllowed == 1) {
+			cb->maxDnLength = maxDnLength;
+			TRACE_LEAVE();
+			return true;
+		}
+	}
+	LOG_ER("Could not get long DN config from IMM attr %s %s", IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, IMM_CONFIG_OBJECT_DN);
+	TRACE_LEAVE();
+	return false;
+}
 
 // ------------------------------------------------------------------------------
 // smf_stringToImmType()
@@ -865,9 +918,9 @@ smf_stringToValue(SaImmValueTypeT i_type, SaImmAttrValueT *i_value, const char* 
         case SA_IMM_ATTR_SANAMET:
                 len = strlen(i_str);
 
-                if (len > kMaxDnLength) {
+                if (len > smfd_cb->maxDnLength) {
                         LOG_NO("smf_stringToValue error, SaNameT value too long (%zu), max %zu",
-                                len, static_cast<size_t>(kMaxDnLength));
+                                len, static_cast<size_t>(smfd_cb->maxDnLength));
                         return false;
                 }
 

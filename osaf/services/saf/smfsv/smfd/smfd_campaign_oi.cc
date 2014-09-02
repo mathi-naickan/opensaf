@@ -850,6 +850,13 @@ uint32_t read_config_and_set_control_block(smfd_cb_t * cb)
 	SmfImmUtils immutil;
 	SaImmAttrValuesT_2 **attributes;
 
+	//Read IMM configuration for long DNs and set cb data structure
+        //The long DN info is configured in IMM not in SMF config object
+	if (!immutil.read_IMM_long_DN_config_and_set_control_block(cb)) {
+		LOG_ER("read_IMM_long_DN_config_and_set_control_block FAIL");
+		return NCSCC_RC_FAILURE;
+	}
+
 	if (immutil.getObject(SMF_CONFIG_OBJECT_DN, &attributes) == false) {
 		LOG_ER("Could not get SMF config object from IMM %s", SMF_CONFIG_OBJECT_DN);
 		return NCSCC_RC_FAILURE;

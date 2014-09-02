@@ -472,10 +472,10 @@ int SmfCampaignThread::sendStateNotification(const std::string & dn, uint32_t cl
 
 	/* Notifying object */
 	size_t length = sizeof(SMF_NOTIFYING_OBJECT);
-	if (length > static_cast<size_t>(kMaxDnLength)) {
+	if (length > static_cast<size_t>(smfd_cb->maxDnLength)) {
 		TRACE("notifyingObject length was %zu, truncated to %zu",
-                length, static_cast<size_t>(kMaxDnLength));
-		length = kMaxDnLength;
+                length, static_cast<size_t>(smfd_cb->maxDnLength));
+		length = smfd_cb->maxDnLength;
 	}
         char* value = (char*) malloc(length + 1);
 	if (value == NULL) {
@@ -489,10 +489,10 @@ int SmfCampaignThread::sendStateNotification(const std::string & dn, uint32_t cl
 
 	/* Notification object */
 	length = dn.length();
-	if (length > static_cast<size_t>(kMaxDnLength)) {
+	if (length > static_cast<size_t>(smfd_cb->maxDnLength)) {
 		TRACE("notificationHeader length was %zu, truncated to %zu",
-                length, static_cast<size_t>(kMaxDnLength));
-		length = kMaxDnLength;
+                length, static_cast<size_t>(smfd_cb->maxDnLength));
+		length = smfd_cb->maxDnLength;
 	}
         value = (char*) malloc(length + 1);
 	if (value == NULL) {
