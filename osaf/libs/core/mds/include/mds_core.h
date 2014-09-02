@@ -288,7 +288,6 @@ typedef struct mds_mcm_cb {
 	NCS_PATRICIA_TREE subtn_results;
 	NCS_PATRICIA_TREE svc_list;	/* Tree of MDS_SVC_INFO information */
 	NCS_PATRICIA_TREE vdest_list;	/* Tree of MDS_VDEST_INFO information */
-	NCS_PATRICIA_TREE process_info_db; /* all known local MDS dests */
 } MDS_MCM_CB;
 
 /* Global MDSCB */
@@ -308,13 +307,15 @@ typedef struct mds_process_info {
        uid_t uid;
        gid_t gid;
        pid_t pid;
-       int count;
+       int count;  // ref count, entry deleted at zero
 } MDS_PROCESS_INFO;
 
 MDS_PROCESS_INFO *mds_process_info_get(MDS_DEST mds_dest);
 int mds_process_info_add(MDS_PROCESS_INFO *info);
 int mds_process_info_del(MDS_PROCESS_INFO *info);
-int mds_process_info_cnt(void);
+int mds_process_info_db_init(void);
+int mds_process_info_enabled(void);
+
 
 /* ******************************************** */
 /* ******************************************** */

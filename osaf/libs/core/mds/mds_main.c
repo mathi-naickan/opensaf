@@ -153,8 +153,9 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 
 	osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 
-	if (mds_process_info_get(mds_dest) == NULL) {
-		MDS_PROCESS_INFO *info = malloc(sizeof(MDS_PROCESS_INFO));
+	MDS_PROCESS_INFO *info = mds_process_info_get(mds_dest);
+	if (info == NULL) {
+		MDS_PROCESS_INFO *info = calloc(1, sizeof(MDS_PROCESS_INFO));
 		osafassert(info);
 		info->mds_dest = mds_dest;
 		info->uid = creds->uid;
@@ -165,6 +166,10 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 	} else {
 		/* this happens in clients that uses both OM and OI */
 		TRACE("dest %lx already exist", mds_dest);
+		// just update credentials
+		info->uid = creds->uid;
+		info->pid = creds->pid;
+		info->gid = creds->gid;
 	}
 
 	osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
@@ -188,8 +193,13 @@ static void mds_register_callback(int fd, const struct ucred *creds)
  */
 int mds_auth_server_create(const char *name)
 {
+	if (mds_process_info_db_init() != NCSCC_RC_SUCCESS) {
+		syslog(LOG_ERR, "%s: mds_process_info_db_init failed", __FUNCTION__);
+		return NCSCC_RC_FAILURE;
+	}
+
 	if (osaf_auth_server_create(name, mds_register_callback) != 0) {
-		syslog(LOG_ERR, "MDS_LIB_CREATE: osaf_auth_server_create failed");
+		syslog(LOG_ERR, "%s: osaf_auth_server_create failed", __FUNCTION__);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -233,6 +243,7 @@ int mds_auth_server_connect(const char *name, MDS_DEST mds_dest, int timeout)
 		if (type != MDS_REGISTER_RESP) {
 			TRACE_3("wrong type %d", type);
 			rc = NCSCC_RC_FAILURE;
+			goto fail;
 		}
 		int status = ncs_decode_32bit(&p);
 		TRACE("received type:%d, status:%d", type, status);

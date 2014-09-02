@@ -270,8 +270,6 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer, uint16_
 		abort();
 	}
 
-	MDS_PROCESS_INFO *info = mds_process_info_get(adest);
-
 	if (MDTM_DIRECT == flag) {
 		uint32_t xch_id = 0;
 		uint8_t prot_ver = 0;
@@ -429,6 +427,9 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer, uint16_
 		reassem_queue->recv.pri = (prot_ver & MDTM_PRI_MASK) + 1;
 		reassem_queue->recv.snd_type = msg_snd_type;
 		reassem_queue->recv.src_seq_num = svc_seq_num;
+
+		/* fill in credentials (if any) */
+		MDS_PROCESS_INFO *info = mds_process_info_get(adest);
 		if (info != NULL) {
 			reassem_queue->recv.pid = info->pid;
 			reassem_queue->recv.uid = info->uid;

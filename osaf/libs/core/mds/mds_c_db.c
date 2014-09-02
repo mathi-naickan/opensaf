@@ -2331,17 +2331,27 @@ uint32_t mds_subtn_res_tbl_cleanup(void)
 	return NCSCC_RC_SUCCESS;
 }
 
+/****************************************************************************/
+/* Process info database, stores mapping between mdsdest and pid
+ * Only used by some services. Tree itself cannot be located in control block
+ * which is dynamically allocated.
+ */
+
+static NCS_PATRICIA_TREE process_info_db; /* all known local MDS dests */
+
 MDS_PROCESS_INFO *mds_process_info_get(MDS_DEST mds_dest)
 {
-       return (MDS_PROCESS_INFO *) ncs_patricia_tree_get(&gl_mds_mcm_cb->process_info_db,
-               (uint8_t *)&mds_dest);
+	if (process_info_db.n_nodes > 0)
+		return (MDS_PROCESS_INFO *) ncs_patricia_tree_get(&process_info_db,
+				(uint8_t *)&mds_dest);
+	return NULL;
 }
 
 int mds_process_info_add(MDS_PROCESS_INFO *info)
 {
        TRACE_ENTER2("dest:%lx, pid:%d", info->mds_dest, info->pid);
        info->patnode.key_info = (uint8_t *)&info->mds_dest;
-       int rc = ncs_patricia_tree_add(&gl_mds_mcm_cb->process_info_db,
+       int rc = ncs_patricia_tree_add(&process_info_db,
     		   (NCS_PATRICIA_NODE *)&info->patnode);
        return rc;
 }
@@ -2349,14 +2359,29 @@ int mds_process_info_add(MDS_PROCESS_INFO *info)
 int mds_process_info_del(MDS_PROCESS_INFO *info)
 {
        TRACE_ENTER2("dest:%lx, pid:%d", info->mds_dest, info->pid);
-       int rc = ncs_patricia_tree_del(&gl_mds_mcm_cb->process_info_db,
+       int rc = ncs_patricia_tree_del(&process_info_db,
     		   (NCS_PATRICIA_NODE *)&info->patnode);
        return rc;
 }
 
-int mds_process_info_cnt(void)
+int mds_process_info_db_init(void)
 {
-	return gl_mds_mcm_cb->process_info_db.n_nodes;
+	NCS_PATRICIA_PARAMS pat_tree_params = {0};
+
+	/* locking not needed */
+	pat_tree_params.key_size = sizeof(MDS_DEST);
+	if (NCSCC_RC_SUCCESS != ncs_patricia_tree_init(
+			&process_info_db, &pat_tree_params)) {
+		syslog(LOG_ERR, "%s: patricia_tree_init failed", __FUNCTION__);
+		return NCSCC_RC_FAILURE;
+	}
+
+	return NCSCC_RC_SUCCESS;
+}
+
+int mds_process_info_enabled(void)
+{
+	return process_info_db.params.key_size > 0;
 }
 
 /*********************************************************

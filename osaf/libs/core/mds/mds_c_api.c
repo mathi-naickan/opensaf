@@ -1601,7 +1601,23 @@ else (entry exists)
 	MDS_PROCESS_INFO *info = mds_process_info_get(adest);
 	if (info != NULL) {
 		info->count++;
-		TRACE("svc %d up cnt:%d, db cnt:%d", svc_id, info->count, mds_process_info_cnt());
+		TRACE("svc UP process_info EXIST, svc:%d cnt:%d, adest:%lx",
+				svc_id, info->count, adest);
+	} else if (mds_process_info_enabled()) {
+		/* If process_info does not exist, create and fill in what we have.
+		 * Especially count is later needed to garbage collect.
+		 */
+		MDS_PROCESS_INFO *info = calloc(1, sizeof(MDS_PROCESS_INFO));
+		osafassert(info);
+		info->mds_dest = adest;
+		info->count = 1;
+		TRACE("svc UP process_info NOTEXIST, svc:%d, adest:%lx", svc_id, adest);
+		int rc = mds_process_info_add(info);
+		osafassert(rc == NCSCC_RC_SUCCESS);
+	} else {
+		/* do nothing, this happens in library code or in servers not using
+		 * the authentication service in MDS. */
+		;
 	}
 
 	status = mds_svc_tbl_query(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(local_svc_hdl),
@@ -2656,7 +2672,7 @@ else (entry exists)
 	MDS_PROCESS_INFO *info = mds_process_info_get(adest);
 	if (info != NULL) {
 		info->count--;
-		TRACE("svc %d down cnt:%d, db cnt:%d", svc_id, info->count, mds_process_info_cnt());
+		TRACE("svc %d DOWN cnt:%d, adest:%lx", svc_id, info->count, adest);
 		if (info->count == 0) {
 			mds_process_info_del(info);
 			free(info);
@@ -3822,13 +3838,6 @@ uint32_t mds_mcm_init(void)
 	vdest_for_adest_node->node.key_info = (uint8_t *)&vdest_for_adest_node->vdest_id;
 
 	ncs_patricia_tree_add(&gl_mds_mcm_cb->vdest_list, (NCS_PATRICIA_NODE *)vdest_for_adest_node);
-
-	memset(&pat_tree_params, 0, sizeof(pat_tree_params));
-	pat_tree_params.key_size = sizeof(MDS_DEST);
-	if (NCSCC_RC_SUCCESS != ncs_patricia_tree_init(&gl_mds_mcm_cb->process_info_db, &pat_tree_params)) {
-		m_MDS_LOG_ERR("MCM_API : patricia_tree_init:proc_info :failure, L mds_mcm_init");
-		return NCSCC_RC_FAILURE;
-	}
 
 	return NCSCC_RC_SUCCESS;
 }
