@@ -39,8 +39,8 @@
 #define EPATH_DOT_SEPARATOR_CHAR        '.'
 #define EPATH_COMMA_SEPARATOR_CHAR      ','
 
-#define SAHPI_ENT_RACK_INDEX 59 
-#define SAHPI_ENT_AMC_INDEX 84
+#define SAHPI_ENT_RACK_INDEX 72
+#define SAHPI_ENT_AMC_INDEX 97
 
 /* list of entity path types */
 typedef struct
@@ -129,6 +129,19 @@ static PLMS_ENTITY_TYPE_LIST  hpi_ent_type_list[] = {
 
 
 	{"CHASSIS_SPECIFIC",           SAHPI_ENT_CHASSIS_SPECIFIC},
+	{"CHASSIS_SPECIFIC01",         SAHPI_ENT_CHASSIS_SPECIFIC01},
+	{"CHASSIS_SPECIFIC02",         SAHPI_ENT_CHASSIS_SPECIFIC02},
+	{"CHASSIS_SPECIFIC03",         SAHPI_ENT_CHASSIS_SPECIFIC03},
+	{"CHASSIS_SPECIFIC04",         SAHPI_ENT_CHASSIS_SPECIFIC04},
+	{"CHASSIS_SPECIFIC05",         SAHPI_ENT_CHASSIS_SPECIFIC05},
+	{"CHASSIS_SPECIFIC06",         SAHPI_ENT_CHASSIS_SPECIFIC06},
+	{"CHASSIS_SPECIFIC07",         SAHPI_ENT_CHASSIS_SPECIFIC07},
+	{"CHASSIS_SPECIFIC08",         SAHPI_ENT_CHASSIS_SPECIFIC08},
+	{"CHASSIS_SPECIFIC09",         SAHPI_ENT_CHASSIS_SPECIFIC09},
+	{"CHASSIS_SPECIFIC10",         SAHPI_ENT_CHASSIS_SPECIFIC10},
+	{"CHASSIS_SPECIFIC11",         SAHPI_ENT_CHASSIS_SPECIFIC11},
+	{"CHASSIS_SPECIFIC12",         SAHPI_ENT_CHASSIS_SPECIFIC12},
+	{"CHASSIS_SPECIFIC13",         SAHPI_ENT_CHASSIS_SPECIFIC13},
 	{"BOARD_SET_SPECIFIC",         SAHPI_ENT_BOARD_SET_SPECIFIC},
 	{"OEM_SYSINT_SPECIFIC",        SAHPI_ENT_OEM_SYSINT_SPECIFIC},
 	{"ROOT",                       SAHPI_ENT_ROOT},
@@ -234,24 +247,31 @@ SaUint32T convert_entitypath_to_string(SaHpiEntityPathT *entity_path,
 			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +1;
 			found = true;
 		}
+		if(entity_path->Entry[i].EntityType > SAHPI_ENT_CHASSIS_SPECIFIC
+			&& entity_path->Entry[i].EntityType <= SAHPI_ENT_CHASSIS_SPECIFIC13){
+			temp_value = entity_path->Entry[i].EntityType
+				- SAHPI_ENT_CHASSIS_SPECIFIC;
+			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE + 1 + temp_value;
+			found = true;
+		}
 		if(SAHPI_ENT_BOARD_SET_SPECIFIC ==	
 			entity_path->Entry[i].EntityType){
-			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +2;
+			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +15;
 			found = true;
 		}
 		if(SAHPI_ENT_OEM_SYSINT_SPECIFIC ==
 			entity_path->Entry[i].EntityType){
-			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +3;
+			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +16;
 			found = true;
 		}
 		if(SAHPI_ENT_ROOT ==
 			entity_path->Entry[i].EntityType){
-			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +4;
+			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +17;
 			found = true;
 		}
 		if(SAHPI_ENT_RACK ==
 			entity_path->Entry[i].EntityType){
-			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +5;
+			temp_index = SAHPI_ENT_SYSTEM_FIRMWARE +18;
 			found = true;
 		}
 
