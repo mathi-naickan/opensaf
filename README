@@ -263,9 +263,9 @@ The following software is required to build OpenSAF:
     * python-dev(el)
     * Optionally:
         * The Linux Kernel with TIPC development support. This is required when opensaf is 
-	  built with the option --enable-tipc. OpenSAF works with TIPC version 1.5 onwards. But it 
-	  is strongly adviced to use TIPC 1.6.2 and above to get the TIPC service unsubscribe 
-	  feature(Cancellation to a Subscription).
+	  built with the option --enable-tipc. OpenSAF works with TIPC version 1.5 onwards
+	  with some TIPC code fixes. But it is strongly adviced to use TIPC 1.7.7 and above
+	  to get the TIPC properly work.
 
         * When PLM is enabled, an HPI implementation (e.g. OpenHPI)
         * When IMM PBE feature is enabled, sqlite3
