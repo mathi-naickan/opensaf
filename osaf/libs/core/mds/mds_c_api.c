@@ -1601,7 +1601,7 @@ else (entry exists)
 	MDS_PROCESS_INFO *info = mds_process_info_get(adest);
 	if (info != NULL) {
 		info->count++;
-		TRACE("svc UP process_info EXIST, svc:%d cnt:%d, adest:%lx",
+		TRACE("svc UP process_info EXIST, svc:%d cnt:%d, adest:%"PRIx64,
 				svc_id, info->count, adest);
 	} else if (mds_process_info_enabled()) {
 		/* If process_info does not exist, create and fill in what we have.
@@ -1611,7 +1611,7 @@ else (entry exists)
 		osafassert(info);
 		info->mds_dest = adest;
 		info->count = 1;
-		TRACE("svc UP process_info NOTEXIST, svc:%d, adest:%lx", svc_id, adest);
+		TRACE("svc UP process_info NOTEXIST, svc:%d, adest:%"PRIx64, svc_id, adest);
 		int rc = mds_process_info_add(info);
 		osafassert(rc == NCSCC_RC_SUCCESS);
 	} else {
@@ -2672,7 +2672,7 @@ else (entry exists)
 	MDS_PROCESS_INFO *info = mds_process_info_get(adest);
 	if (info != NULL) {
 		info->count--;
-		TRACE("svc %d DOWN cnt:%d, adest:%lx", svc_id, info->count, adest);
+		TRACE("svc %d DOWN cnt:%d, adest:%"PRIx64, svc_id, info->count, adest);
 		if (info->count == 0) {
 			mds_process_info_del(info);
 			free(info);
