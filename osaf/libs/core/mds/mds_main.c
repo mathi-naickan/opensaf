@@ -149,7 +149,7 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 	}
 
 	MDS_DEST mds_dest = ncs_decode_64bit(&p);
-	TRACE("mds: received %d from %lx, pid %d", type, mds_dest, creds->pid);
+	TRACE("mds: received %d from %"PRIx64", pid %d", type, mds_dest, creds->pid);
 
 	osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 
@@ -165,7 +165,7 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 		osafassert(rc == NCSCC_RC_SUCCESS);
 	} else {
 		/* this happens in clients that uses both OM and OI */
-		TRACE("dest %lx already exist", mds_dest);
+		TRACE("dest %"PRIx64" already exist", mds_dest);
 		// just update credentials
 		info->uid = creds->uid;
 		info->pid = creds->pid;

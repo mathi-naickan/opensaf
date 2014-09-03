@@ -11967,7 +11967,7 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
     for(ci2=sSearchReqContinuationMap.begin(); 
         ci2!=sSearchReqContinuationMap.end();
         ++ci2) {
-        if(now - ci2->second.mCreateTime >= ci2->second.mTimeout) {
+        if(now - ci2->second.mCreateTime >= (int)ci2->second.mTimeout) {
             TRACE_5("Timeout on Search continuation %llu", ci2->first);
             searchReqs.push_back(ci2->first);
         } 
@@ -12009,13 +12009,13 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
 
             uint32_t oi_timeout = ((*i3)->mState == IMM_CCB_CRITICAL) ? DEFAULT_TIMEOUT_SEC : max_oi_timeout;
             if(((*i3)->mWaitStartTime &&
-                (now - (*i3)->mWaitStartTime >= oi_timeout)) ||
+                (now - (*i3)->mWaitStartTime >= (int)oi_timeout)) ||
                 ((*i3)->mPbeRestartId)) {
                 if((*i3)->mPbeRestartId) {
                     oi_timeout = 0;
                     TRACE_5("PBE restarted id:%u with ccb:%u in critical",
                         (*i3)->mPbeRestartId, (*i3)->mId);
-                } else if(now - (*i3)->mWaitStartTime >= max_oi_timeout) {
+                } else if(now - (*i3)->mWaitStartTime >= (int)max_oi_timeout) {
                     oi_timeout = 0;
                     TRACE_5("CCB %u timeout while waiting on implementer reply",
                         (*i3)->mId);

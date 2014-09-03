@@ -2349,7 +2349,7 @@ MDS_PROCESS_INFO *mds_process_info_get(MDS_DEST mds_dest)
 
 int mds_process_info_add(MDS_PROCESS_INFO *info)
 {
-       TRACE_ENTER2("dest:%lx, pid:%d", info->mds_dest, info->pid);
+       TRACE_ENTER2("dest:%"PRIx64", pid:%d", info->mds_dest, info->pid);
        info->patnode.key_info = (uint8_t *)&info->mds_dest;
        int rc = ncs_patricia_tree_add(&process_info_db,
     		   (NCS_PATRICIA_NODE *)&info->patnode);
@@ -2358,7 +2358,7 @@ int mds_process_info_add(MDS_PROCESS_INFO *info)
 
 int mds_process_info_del(MDS_PROCESS_INFO *info)
 {
-       TRACE_ENTER2("dest:%lx, pid:%d", info->mds_dest, info->pid);
+       TRACE_ENTER2("dest:%"PRIx64", pid:%d", info->mds_dest, info->pid);
        int rc = ncs_patricia_tree_del(&process_info_db,
     		   (NCS_PATRICIA_NODE *)&info->patnode);
        return rc;
