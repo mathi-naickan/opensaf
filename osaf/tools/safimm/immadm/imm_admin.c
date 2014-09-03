@@ -41,6 +41,7 @@
 
 #include <immutil.h>
 #include <saf_error.h>
+#include "osaf_extended_name.h"
 
 #define PARAMDELIM ":"
 
@@ -266,6 +267,12 @@ int main(int argc, char *argv[])
 	int verbose = 0;
 
 	int params_len = 0;
+
+	/* Support for long DN */
+	setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1);
+	/* osaf_extended_name_init() is added to prevent future safe use of
+	 * osaf_extended_name_* before saImmOmInitialize and saImmOiInitialize */
+	osaf_extended_name_init();
 
 	params = realloc(NULL, sizeof(SaImmAdminOperationParamsT_2 *));
 	params[0] = NULL;

@@ -109,6 +109,12 @@ int main(int argc, char *argv[])
 	const char* className = "";
 	unsigned long timeoutVal = 60;
 
+	/* Support for long DN */
+	setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1);
+	/* osaf_extended_name_init() is added to prevent future safe use of
+	 * osaf_extended_name_* before saImmOmInitialize and saImmOiInitialize */
+	osaf_extended_name_init();
+
 	while (1) {
 		c = getopt_long(argc, argv, "c:s:t:h", long_options, NULL);
 

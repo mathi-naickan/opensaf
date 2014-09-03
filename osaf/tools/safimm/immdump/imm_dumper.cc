@@ -17,6 +17,7 @@
 
 
 #include "imm_dumper.hh"
+#include "osaf_extended_name.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -28,6 +29,7 @@
 #include <assert.h>
 #include <libgen.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #define XML_VERSION "1.0"
 
@@ -110,6 +112,12 @@ int main(int argc, char* argv[])
     const char* trace_label = dump_trace_label;
     ClassMap classIdMap;
     int objCount=0;
+
+	/* Support for long DN */
+	setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1);
+	/* osaf_extended_name_init() is added to prevent future safe use of
+	 * osaf_extended_name_* before saImmOmInitialize and saImmOiInitialize */
+	osaf_extended_name_init();
 
     if ((logPath = getenv("IMMSV_TRACE_PATHNAME")))
     {

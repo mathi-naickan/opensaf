@@ -40,6 +40,7 @@
 #include <saImmOm.h>
 #include <immutil.h>
 #include <saf_error.h>
+#include "osaf_extended_name.h"
 
 static SaVersionT immVersion = { 'A', 2, 11 };
 extern struct ImmutilWrapperProfile immutilWrapperProfile;
@@ -432,6 +433,12 @@ int main(int argc, char *argv[])
 	int class_desc_print = 0;
 	int rc = EXIT_SUCCESS;
 	unsigned long timeoutVal = 60;
+
+	/* Support for long DN */
+	setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1);
+	/* osaf_extended_name_init() is added to prevent future safe use of
+	 * osaf_extended_name_* before saImmOmInitialize and saImmOiInitialize */
+	osaf_extended_name_init();
 
 	while (1) {
 		c = getopt_long(argc, argv, "a:p:t:ch", long_options, NULL);
