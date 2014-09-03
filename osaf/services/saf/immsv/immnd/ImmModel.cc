@@ -453,6 +453,7 @@ static const std::string saImmOiTimeout("saImmOiTimeout");
 static SaImmRepositoryInitModeT immInitMode = SA_IMM_INIT_FROM_FILE;
 
 static SaUint32T ccbIdLongDnGuard  = 0; /* Disallow long DN creates if longDnsAllowed is being changed in ccb*/
+static bool      sIsLongDnLoaded   = false; /* track long DNs before opensafImm=opensafImm,safApp=safImmService is created */
 
 struct AttrFlagIncludes
 {
@@ -2633,7 +2634,7 @@ ImmModel::getLongDnsAllowed(ObjectInfo* immObject)
         oi = sObjectMap.find(immObjectDn);
         if(oi == sObjectMap.end()) {
             TRACE_LEAVE();
-            return false;
+            return sImmNodeState == IMM_NODE_LOADING;
         }
         immObject =  oi->second;
     }
@@ -6800,33 +6801,47 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
             objectName.append((const char*)attrValues->n.attrValue.val.x.buf, 
                 strnlen((const char*)attrValues->n.attrValue.val.x.buf,
                     (size_t)attrValues->n.attrValue.val.x.size));
-        } else if (attrValues->n.attrValueType == SA_IMM_ATTR_SANAMET
-                && !longDnsPermitted) {
-            AttrMap::iterator it = classInfo->mAttrMap.find(attrName);
-            if(it == classInfo->mAttrMap.end()) {
-                LOG_ER("ERR_INVALID_PARAM: Cannot find attribute '%s'",
-                    attrName.c_str());
-                err = SA_AIS_ERR_INVALID_PARAM;     //Should never happen!
-                goto ccbObjectCreateExit;
-            }
-            if(attrValues->n.attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-                LOG_NO("ERR_NAME_TOO_LONG: Attribute '%s' has long name. "
-                    "Not allowed by IMM service or extended names are disabled",
-                    attrName.c_str());
-                err = SA_AIS_ERR_NAME_TOO_LONG;
-                goto ccbObjectCreateExit;
-            }
-
-            IMMSV_EDU_ATTR_VAL_LIST *value = attrValues->n.attrMoreValues;
-            while(value) {
-                if(value->n.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-                    LOG_NO("ERR_NAME_TOO_LONG: Attribute '%s' has long DN. "
+        } else if (attrValues->n.attrValueType == SA_IMM_ATTR_SANAMET) {
+            if(!longDnsPermitted) {
+                AttrMap::iterator it = classInfo->mAttrMap.find(attrName);
+                if(it == classInfo->mAttrMap.end()) {
+                    LOG_ER("ERR_INVALID_PARAM: Cannot find attribute '%s'",
+                        attrName.c_str());
+                    err = SA_AIS_ERR_INVALID_PARAM;     //Should never happen!
+                    goto ccbObjectCreateExit;
+                }
+                if(attrValues->n.attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                    LOG_NO("ERR_NAME_TOO_LONG: Attribute '%s' has long name. "
                         "Not allowed by IMM service or extended names are disabled",
                         attrName.c_str());
                     err = SA_AIS_ERR_NAME_TOO_LONG;
                     goto ccbObjectCreateExit;
                 }
-                value = value->next;
+
+                IMMSV_EDU_ATTR_VAL_LIST *value = attrValues->n.attrMoreValues;
+                while(value) {
+                    if(value->n.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                        LOG_NO("ERR_NAME_TOO_LONG: Attribute '%s' has long DN. "
+                            "Not allowed by IMM service or extended names are disabled",
+                            attrName.c_str());
+                        err = SA_AIS_ERR_NAME_TOO_LONG;
+                        goto ccbObjectCreateExit;
+                    }
+                    value = value->next;
+                }
+            } else if (isLoading && !sIsLongDnLoaded) {
+                if(attrValues->n.attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                    sIsLongDnLoaded = true;
+                } else {
+                    IMMSV_EDU_ATTR_VAL_LIST *value = attrValues->n.attrMoreValues;
+                    while(value) {
+                        if(value->n.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                            sIsLongDnLoaded = true;
+                            break;
+                        }
+                        value = value->next;
+                    }
+                }
             }
         }
 
@@ -6868,6 +6883,11 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
         goto ccbObjectCreateExit;
     }
     
+    if(isLoading && !sIsLongDnLoaded
+            && objectName.size() >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+        sIsLongDnLoaded = true;
+    }
+
     if ((i5 = sObjectMap.find(objectName)) != sObjectMap.end()) {
         if(i5->second->mObjFlags & IMM_CREATE_LOCK) {
             if(isLoading) {
@@ -7339,6 +7359,26 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                         /* Backwards compatibility for loading. */
                         LOG_WA("Imm loading encountered bogus object '%s' of class '%s'",
                             objectName.c_str(), immClassName.c_str());
+                    }
+                    if(sIsLongDnLoaded) {
+                        i6 = object->mAttrValueMap.find(immLongDnsAllowed);
+                        if(i6 == object->mAttrValueMap.end() || !i6->second) {
+                            LOG_ER("ERR_FAILED_OPERATION: Long DN is used during the loading initial data, "
+                                    "but attribute 'longDnsAllowed' is not defined in class %s",
+                                    immClassName.c_str());
+                            err = SA_AIS_ERR_FAILED_OPERATION;
+                        } else if(!i6->second->getValue_int()) {
+                            LOG_ER("ERR_FAILED_OPERATION: Long DN is used during the loading initial data, "
+                                    "but longDnsAllowed is set to 0");
+                            err = SA_AIS_ERR_FAILED_OPERATION;
+                        }
+                    } else {
+                        /* 'else' branch is not needed. Only for small performance issue.
+                         * sIsLongDnLoaded is set to true only to avoid extra checks.
+                         * opensafImm=opensafImm,safApp=safImmService is created only once,
+                         * and this code will not be executed again.
+                         */
+                        sIsLongDnLoaded = true;
                     }
                 } else {
                     setCcbErrorString(ccb,
