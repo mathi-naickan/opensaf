@@ -1259,6 +1259,7 @@ immModel_implIsFree(IMMND_CB *cb, const SaImmOiImplementerNameT impName)
     if(!impl) {return SA_AIS_OK;}
 
     if(impl->mId == 0) {return SA_AIS_OK;}
+    if(impl->mDying) {return SA_AIS_ERR_TRY_AGAIN;}
 
     return SA_AIS_ERR_EXIST;
 }
