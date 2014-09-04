@@ -108,8 +108,8 @@ static SaAisErrorT sqlite_prepare_ccb(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT 
 						sClassIdMap, sDbHandle, ++sObjCount,
 						ccbUtilOperationData->param.create.className, ccbId))
 					{
-						rc = SA_AIS_ERR_FAILED_OPERATION;
-						goto ccb_abort;
+						LOG_ER("objectToPBE failed in sqlite_prepare_ccb. Handle is closed - exiting");
+						exit(1);
 					}
 				} while (0);
 				break;
@@ -540,6 +540,10 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 			if(persistentExtent) {
 				TRACE_5("sObjCount:%u", sObjCount);
 				obj_count = dumpInstancesOfClassToPBE(pbeOmHandle, sClassIdMap, className, &sObjCount, sDbHandle);
+				if(obj_count < 0) {
+					LOG_ER("dumpInstncesOfClassesToPBE failed in callback in PBE. sDbHandle is closed - exiting");
+					exit(1);
+				}
 				LOG_NO("PBE dumped %u objects of new class definition for %s", obj_count, className.c_str());
 				TRACE_5("sObjCount:%u", sObjCount);
 			}

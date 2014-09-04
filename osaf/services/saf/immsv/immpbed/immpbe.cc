@@ -214,8 +214,8 @@ int main(int argc, char* argv[])
 		/* getClassIdMap */
 		if(dbHandle) {
 			objCount = verifyPbeState(immHandle, &classIdMap, dbHandle);
-			TRACE("Classes Verified");
-			if(objCount <= 0) {dbHandle = NULL;}
+			TRACE("Classes Verified?:%d", objCount);
+			if(objCount <= 0) {dbHandle = NULL;} 
 		}
 
 		if(!dbHandle) {
@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
 			TRACE_1("Opened persistent repository %s", filename.c_str());
 		} else {
 			/* Any localTmpFile was removed in pbeRepositoryInit */
-			LOG_ER("osafimmpbed: pbe intialize failed - exiting");
+			LOG_ER("immpbe.cc: pbe intialize failed - exiting");
 			exit(1);
 		}
 
@@ -247,7 +247,7 @@ int main(int argc, char* argv[])
 				unlink(localTmpFilename.c_str());
 				localTmpFilename.clear();
 			}
-			LOG_ER("immPbe.cc exiting (line:%u)", __LINE__);
+			LOG_ER("immpbe.cc: dumpClassesToPbe failed - exiting (line:%u)", __LINE__);
 			exit(1);
 		}
 		TRACE("Dump classes OK");
@@ -261,7 +261,7 @@ int main(int argc, char* argv[])
 				unlink(localTmpFilename.c_str());
 				localTmpFilename.clear();
 			}
-			LOG_ER("immPbe.cc exiting (line:%u)", __LINE__);
+			LOG_ER("immpbe.cc dumpObjectsToPbe failed - exiting (line:%u)", __LINE__);
 			exit(1);
 		}
 		TRACE("Dump objects OK");
@@ -285,7 +285,7 @@ int main(int argc, char* argv[])
 		   to be used by the pbeDaemon.
 		 */
 		if(fileReOpened) {
-			LOG_ER("osafimmpbed: will not re-open twice. immPbe.cc exiting (line:%u)", __LINE__);
+			LOG_ER("immpbe.cc: will not re-open twice. immpbe.cc exiting (line:%u)", __LINE__);
 			exit(1);
 		}
 
@@ -300,9 +300,8 @@ int main(int argc, char* argv[])
 	if(!dbHandle) {
 		dbHandle = pbeRepositoryInit(filename.c_str(), false, localTmpFilename);
 		if(!dbHandle) {
-			LOG_WA("osafimmpbed: pbe intialize failed - exiting");
+			LOG_WA("immpbe.cc: pbe intialize failed - exiting");
 			exit(1);
-			/* TODO SYNC with pbe-file AND with IMMSv */
 		}
 	}
 
