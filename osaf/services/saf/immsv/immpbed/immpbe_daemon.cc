@@ -141,7 +141,11 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 			if(persistentExtent) {
 				TRACE_5("sObjCount:%u", sObjCount);
 				obj_count = dumpInstancesOfClassToPBE(pbeOmHandle, sClassIdMap, className, &sObjCount, sDbHandle);
-				LOG_IN("PBE dumped %u objects of new class definition for %s", obj_count, className.c_str());
+				if(obj_count < 0) {
+					LOG_ER("dumpInstncesOfClassesToPBE failed in callback in PBE. sDbHandle is closed - exiting");
+					exit(1);
+				}
+				LOG_IN("PBE dumped %d objects of new class definition for %s", obj_count, className.c_str());
 				TRACE_5("sObjCount:%u", sObjCount);
 			}
 		} else {
@@ -551,8 +555,8 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 						sClassIdMap, sDbHandle, ++sObjCount,
 						ccbUtilOperationData->param.create.className, ccbId))
 					{
-						rc = SA_AIS_ERR_FAILED_OPERATION;
-						goto abort;
+						LOG_ER("objectToPBE failed in saImmOiCcbCompletedCallback. Handle is closed - exiting");
+						exit(1);
 					}
 				} while (0);
 				break;
@@ -827,10 +831,13 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 
 		TRACE("Begin PBE transaction for rt obj create OK");
 
-		objectToPBE(std::string((const char *) operation->objectName.value), 
+		if(!objectToPBE(std::string((const char *) operation->objectName.value), 
 			operation->param.create.attrValues,
 			sClassIdMap, sDbHandle, ++sObjCount,
-			operation->param.create.className, ccbId);
+			operation->param.create.className, ccbId)) {
+			LOG_ER("objectToPBE failed for PRTO create. Handle is closed - exiting");
+			exit(1);
+		}
 
 		ccbutil_deleteCcbData(ccbutil_findCcbData(0));
 
