@@ -1758,7 +1758,11 @@ uint32_t imma_hdl_callbk_dispatch_block(IMMA_CB *cb, SaImmHandleT immHandle)
 			}
 		} else {
 			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
-			return SA_AIS_ERR_LIBRARY;
+			/* callbk_mbx can fail only when handle is finalized
+			   If a NULL is returned by m_NCS_IPC_RECEIVE then handle is
+			   considered as finalized and is a valid case. 
+			   so, SA_AIS_OK will be returned*/
+			return SA_AIS_OK;
 		}
 
 		callback = (IMMA_CALLBACK_INFO *)m_NCS_IPC_RECEIVE(callbk_mbx, NULL);
