@@ -19,11 +19,21 @@
 #define OPENSAF_CORE_OSAF_SECUTIL_H_
 
 #define  _GNU_SOURCE
+#include <stddef.h>
+#include <stdbool.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include <sys/types.h>
-#include <ncsgl_defs.h>
+/* Support for building with LSB compiler */
+#ifndef SO_PEERCRED
+#define SO_PEERCRED	17
+struct ucred {
+  pid_t pid;
+  uid_t uid;
+  gid_t gid;
+};
+#endif
 
 #ifdef	__cplusplus
 extern "C" {
