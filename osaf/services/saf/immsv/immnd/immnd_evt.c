@@ -3103,26 +3103,28 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 	}
 
 	switch (frwrd_evt.info.immnd.type) {
-	case IMMND_EVT_A2ND_OBJ_CREATE:
+
 	case IMMND_EVT_A2ND_OBJ_MODIFY:
-		if ((frwrd_evt.info.immnd.type == IMMND_EVT_A2ND_OBJ_MODIFY) &&
-				(strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf,
-						OPENSAF_IMM_OBJECT_DN) == 0)) {
-			IMMSV_ATTR_MODS_LIST *attrMod = frwrd_evt.info.immnd.info.objModify.attrMods;
-			while (attrMod != NULL) {
-				if (strcmp(attrMod->attrValue.attrName.buf, OPENSAF_IMM_ACCESS_CONTROL_MODE) == 0) {
-					if (sinfo->uid != 0) {
-						struct passwd *pwd = getpwuid(sinfo->uid);
-						if (pwd != NULL)
-							syslog(LOG_AUTH, "change of access control mode denied for %s(uid=%d)",
-								pwd->pw_name, sinfo->uid);
-						error = SA_AIS_ERR_ACCESS_DENIED;
-						goto done;
-					}
-				}
-				attrMod = attrMod->next;
+		if ((strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf, OPENSAF_IMM_OBJECT_DN) == 0) ||
+		    (strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf, "safRdn=immManagement,safApp=safImmService") == 0))
+		{
+			/* Modifications to:
+			         opensafImm=opensafImm,safApp=safImmService
+			   or:
+			        safRdn=immManagement,safApp=safImmService
+		           are only allowed for root users.
+			*/
+			if (sinfo->uid != 0) {
+				struct passwd *pwd = getpwuid(sinfo->uid);
+				if (pwd != NULL)
+					syslog(LOG_AUTH, "Modifications to imm service objects denied for %s(uid=%d)",
+						pwd->pw_name, sinfo->uid);
+				error = SA_AIS_ERR_ACCESS_DENIED;
+				goto done;
 			}
 		}
+		/* intentional fall through. */
+	case IMMND_EVT_A2ND_OBJ_CREATE:
 	case IMMND_EVT_A2ND_OBJ_DELETE:
 	case IMMND_EVT_A2ND_CCB_FINALIZE:
 	case IMMND_EVT_A2ND_OI_CCB_AUG_INIT:
