@@ -1672,6 +1672,11 @@ void avd_node_down_mw_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd)
 		 * accordingly.
 		 */
 		i_su->sg_of_su->node_fail(cb, i_su);
+		/* Mw 2N SU in stable state, that means clm track will not start
+		   in avd_sg_2n_susi_sucss_sg_reln, so start here.*/
+		if ((i_su->sg_of_su->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL) &&
+				(i_su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE))
+			(void) avd_clm_track_start();
 
 		/* Free all the SU SI assignments*/ 
 		i_su->delete_all_susis();
