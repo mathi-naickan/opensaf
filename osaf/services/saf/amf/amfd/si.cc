@@ -878,11 +878,11 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			    (si->saAmfSIAdminState != SA_AMF_ADMIN_SHUTTING_DOWN) ||
 			    (adm_state != SA_AMF_ADMIN_LOCKED)) {
 				report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN, NULL,
-						"SI lock of %s failed, SG not stable", objectName->value);
+						"SI lock of '%s' failed, SG not stable", objectName->value);
 				goto done;
 			} else {
 				report_admin_op_error(immOiHandle, si->invocation, SA_AIS_ERR_INTERRUPT, NULL,
-						"'SI lock has been issued '%s'", objectName->value);
+						"SI lock has been issued '%s'", objectName->value);
 				si->invocation = 0;
 			}
 		}
