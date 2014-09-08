@@ -874,13 +874,16 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		 * return an error.
 		 */
 		if (si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) {
-			LOG_WA("SI lock of %s failed, SG not stable", objectName->value);
 			if ((si->sg_of_si->sg_fsm_state != AVD_SG_FSM_SI_OPER) ||
 			    (si->saAmfSIAdminState != SA_AMF_ADMIN_SHUTTING_DOWN) ||
 			    (adm_state != SA_AMF_ADMIN_LOCKED)) {
 				report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN, NULL,
-						"'%s' other semantics...", objectName->value);
+						"SI lock of %s failed, SG not stable", objectName->value);
 				goto done;
+			} else {
+				report_admin_op_error(immOiHandle, si->invocation, SA_AIS_ERR_INTERRUPT, NULL,
+						"'SI lock has been issued '%s'", objectName->value);
+				si->invocation = 0;
 			}
 		}
 
