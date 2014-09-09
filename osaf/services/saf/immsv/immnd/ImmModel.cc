@@ -8292,6 +8292,28 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
             LOG_IN("Skipping OI callback for modify on %s since OI is same as PBE",
                objectName.c_str());
 
+            /* Check that the value of accessControlMode is in a range */
+            ImmAttrValueMap::iterator avmi = afim->mAttrValueMap.find(OPENSAF_IMM_ACCESS_CONTROL_MODE);
+            if(avmi != afim->mAttrValueMap.end()) {
+                osafassert(avmi->second);
+                if(avmi->second->empty()) {
+                    LOG_ER("ERR_BAD_OPERATION: Value of '%s' attribute in object '%s' cannot be empty",
+                            OPENSAF_IMM_ACCESS_CONTROL_MODE,
+                            objectName.c_str());
+                    err = SA_AIS_ERR_BAD_OPERATION;
+                    goto bypass_impl;
+                } else {
+                    SaUint32T mode = (SaUint32T)avmi->second->getValue_int();
+                    if(mode > 2) { /* ACCESS_CONTROL_ENFORCING == 2 */
+                        LOG_ER("ERR_BAD_OPERATION: Value of '%s' attribute in object '%s' is out of range",
+                                OPENSAF_IMM_ACCESS_CONTROL_MODE,
+                                objectName.c_str());
+                        err = SA_AIS_ERR_BAD_OPERATION;
+                        goto bypass_impl;
+                    }
+                }
+            }
+
             /* Pre validate any changes. More efficent here than in apply/completed and
                we need to guard against race on long DN creation allowed. Such long DNs
                are themselves created in CCBs or RTO creates.
