@@ -7029,8 +7029,22 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
 
             unsigned int sze = (unsigned int) sObjectMap.size();
             if(sze >= 5000) {
-                if(sze%1000 == 0) {
-                    LOG_WA("Number of objects in IMM is:%u", sze);
+                bool warn = sze > 350000;
+
+                if(sze%100000 == 0) {
+                    if(warn) {
+                        LOG_WA("Number of objects in IMM is:%u", sze);
+                    } else {
+                        LOG_NO("Number of objects in IMM is:%u", sze);
+                    }
+                } else if(sze%10000 == 0) {
+                    if(warn) {
+                       LOG_WA("Number of objects in IMM is:%u", sze);
+                    } else {
+                       LOG_IN("Number of objects in IMM is:%u", sze);
+                    }
+                } else if(sze%1000 == 0) {
+                    TRACE("Number of objects in IMM is:%u", sze);
                 }
             }
             
