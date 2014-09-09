@@ -452,7 +452,7 @@ static const std::string saImmOiTimeout("saImmOiTimeout");
 
 static SaImmRepositoryInitModeT immInitMode = SA_IMM_INIT_FROM_FILE;
 
-static SaUint32T ccbIdLongDnGuard  = 0; /* Disallow long DN creates if longDnsAllowed is being changed in ccb*/
+static SaUint32T ccbIdLongDnGuard  = 0; /* Disallow long DN additions if longDnsAllowed is being changed in ccb*/
 static bool      sIsLongDnLoaded   = false; /* track long DNs before opensafImm=opensafImm,safApp=safImmService is created */
 
 struct AttrFlagIncludes
@@ -3861,10 +3861,9 @@ ImmModel::notCompatibleAtt(const std::string& className, ClassInfo* newClassInfo
                         }
                     }
 
-                    if(av->isMultiValued())
+                    if(av->isMultiValued()) {
                         av = ((ImmAttrMultiValue *)av)->getNextAttrValue();
-                    else
-                        break;
+                    } else {break;}
                 }
             }
         }
@@ -7854,9 +7853,8 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
             (size_t) p->attrValue.attrName.size);
         std::string attrName((const char *) p->attrValue.attrName.buf, sz);
         bool modifiedRim = modifiedImmMngt && (attrName == saImmRepositoryInit);
-        bool modifiedOiTimeout = modifiedImmMngt && (attrName == saImmOiTimeout);
-
-        if(modifiedOiTimeout) {
+        
+        if(modifiedImmMngt && (attrName == saImmOiTimeout)) {
             /* Currently the IMM does not support this attribute. */
             TRACE_7("ERR_BAD_OPERATION: attr '%s' in IMM object %s is not supported",
                 attrName.c_str(), objectName.c_str());
@@ -8316,18 +8314,48 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                     err = SA_AIS_ERR_BUSY;
                 } else {
                     if(!longDnsAllowedAfter) {
-                        /* Check that NO LONG DNS EXIST! */
+                        TRACE("longDnsAllowed assigned 0 => Check that no long DNs exist in IMM-db");
                         ObjectMap::iterator omi = sObjectMap.begin();
                         while(omi != sObjectMap.end()) {
-                            if(omi->first.length() > 255) {
+                            if(omi->first.length() >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
                                 LOG_WA("Setting attr %s to 0 in %s not allowed when long DN exists: '%s'",
-                                    immLongDnsAllowed.c_str(),immObjectDn.c_str(), omi->first.c_str());
+                                    immLongDnsAllowed.c_str(), immObjectDn.c_str(), omi->first.c_str());
                                 err = SA_AIS_ERR_BAD_OPERATION;
                                 goto bypass_impl;
                             }
+                            /* Check any attributes of type SaNameT that could be dangling, i.e. does NOT
+                               have the SA_IMM_ATTR_NO_DANGLING flag set. Skip checking the RDN atribute
+                               because it is covered by the DN check above. Implementation below is not the
+                               most optimal as it iterates over the attribute definitions of the class for
+                               each object. But THIS CASE, of turning OFF longDnsAllowed, must be extreemely
+                               rare. The implication is that the turning ON of longDnsAllowed was a mistake.
+                            */
+                            for(i4 = omi->second->mClassInfo->mAttrMap.begin();
+                                i4 != omi->second->mClassInfo->mAttrMap.end(); ++i4) {
+                                if((i4->second->mValueType == SA_IMM_ATTR_SANAMET) && 
+                                    !(i4->second->mFlags & SA_IMM_ATTR_RDN) &&
+                                    !(i4->second->mFlags & SA_IMM_ATTR_NO_DANGLING))
+                                {
+                                    oavi = omi->second->mAttrValueMap.find(i4->first);
+                                    osafassert(oavi !=  omi->second->mAttrValueMap.end());
+                                    ImmAttrValue *av = oavi->second;
+                                    do {
+                                        const char* dn = av->getValueC_str();
+                                        if((dn && strlen(dn) >= SA_MAX_UNEXTENDED_NAME_LENGTH)) {
+                                            LOG_WA("Setting attr %s to 0 in %s not allowed when long DN exists "
+                                                "inside object: %s", immLongDnsAllowed.c_str(), 
+                                                immObjectDn.c_str(), omi->first.c_str());
+                                            err = SA_AIS_ERR_BAD_OPERATION;
+                                            goto bypass_impl;
+                                        }
+                                        av = (av->isMultiValued()) ?
+                                            ((ImmAttrMultiValue *)av)->getNextAttrValue() : NULL;
+                                    } while (av);
+                                }
+                            }
                             ++omi;
                         }
-                    }
+                    } /* End of LONG DN check */
 
                     ccbIdLongDnGuard = ccbId;
                 }
