@@ -165,11 +165,11 @@ static void ccb_create_obj(SaNameT* parentDn, SaNameT* rdnVal, SaImmCcbHandleT c
 	unsigned int retries=0;
 	SaAisErrorT err = SA_AIS_OK;
 	SaImmAttrValueT theValue;
+	SaStringT str = (SaStringT) rdnVal->value;
 
 	if (rdnAttType == SA_IMM_ATTR_SANAMET) {
 		theValue = rdnVal;
 	} else {
-		SaStringT str = (SaStringT) rdnVal->value;
 		assert(rdnAttType == SA_IMM_ATTR_SASTRINGT);
 		theValue = &str;
 	}
