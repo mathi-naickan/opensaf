@@ -112,7 +112,9 @@ uint32_t MDTM_CACHED_EVENTS_TMR_VAL = 24000;
 
 enum {
 	MDS_REGISTER_REQ = 77,
-	MDS_REGISTER_RESP = 78
+	MDS_REGISTER_RESP = 78,
+	MDS_UNREGISTER_REQ = 79,
+	MDS_UNREGISTER_RESP = 80
 };
 
 /**
@@ -143,51 +145,67 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 	}
 
 	int type = ncs_decode_32bit(&p);
-	if (type != MDS_REGISTER_REQ) {
+
+	NCSMDS_SVC_ID svc_id = ncs_decode_32bit(&p);
+	MDS_DEST mds_dest = ncs_decode_64bit(&p);
+
+	TRACE("mds: received %d from %"PRIx64", pid %d", type, mds_dest, creds->pid);
+
+	if (type == MDS_REGISTER_REQ) {
+		osaf_mutex_lock_ordie(&gl_mds_library_mutex);
+
+		MDS_PROCESS_INFO *info = mds_process_info_get(mds_dest, svc_id);
+		if (info == NULL) {
+			MDS_PROCESS_INFO *info = calloc(1, sizeof(MDS_PROCESS_INFO));
+			osafassert(info);
+			info->mds_dest = mds_dest;
+			info->svc_id = svc_id;
+			info->uid = creds->uid;
+			info->pid = creds->pid;
+			info->gid = creds->gid;
+			int rc = mds_process_info_add(info);
+			osafassert(rc == NCSCC_RC_SUCCESS);
+		} else {
+			/* when can this happen? */
+			LOG_NO("%s: dest %"PRIx64" already exist", __FUNCTION__, mds_dest);
+
+			// just update credentials
+			info->uid = creds->uid;
+			info->pid = creds->pid;
+			info->gid = creds->gid;
+		}
+
+		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
+
+		p = buf;
+		uint32_t sz = ncs_encode_32bit(&p, MDS_REGISTER_RESP);
+		sz += ncs_encode_32bit(&p, 0); // result OK
+
+		if ((n = send(fd, buf, sz, 0)) == -1)
+			syslog(LOG_ERR, "%s: send to pid %d failed - %s",
+					__FUNCTION__, creds->pid, strerror(errno));
+	} else if (type == MDS_UNREGISTER_REQ) {
+		osaf_mutex_lock_ordie(&gl_mds_library_mutex);
+
+		MDS_PROCESS_INFO *info = mds_process_info_get(mds_dest, svc_id);
+		if (info != NULL) {
+			(void)mds_process_info_del(info);
+		}
+		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
+
+		p = buf;
+		uint32_t sz = ncs_encode_32bit(&p, MDS_UNREGISTER_RESP);
+		sz += ncs_encode_32bit(&p, 0);  // result OK
+
+		if ((n = send(fd, buf, sz, 0)) == -1)
+			syslog(LOG_ERR, "%s: send to pid %d failed - %s",
+					__FUNCTION__, creds->pid, strerror(errno));
+	} else {
 		syslog(LOG_ERR, "%s: recv failed - wrong type %d", __FUNCTION__, type);
 		goto done;
 	}
 
-	NCSMDS_SVC_ID svc_id = ncs_decode_32bit(&p);
-
-	MDS_DEST mds_dest = ncs_decode_64bit(&p);
-	TRACE("mds: received %d from %"PRIx64", pid %d", type, mds_dest, creds->pid);
-
-	osaf_mutex_lock_ordie(&gl_mds_library_mutex);
-
-	MDS_PROCESS_INFO *info = mds_process_info_get(mds_dest, svc_id);
-	if (info == NULL) {
-		MDS_PROCESS_INFO *info = calloc(1, sizeof(MDS_PROCESS_INFO));
-		osafassert(info);
-		info->mds_dest = mds_dest;
-		info->svc_id = svc_id;
-		info->uid = creds->uid;
-		info->pid = creds->pid;
-		info->gid = creds->gid;
-		info->count = 1;
-		int rc = mds_process_info_add(info);
-		osafassert(rc == NCSCC_RC_SUCCESS);
-	} else {
-		/* when can this happen? */
-		LOG_NO("%s: dest %"PRIx64" already exist", __FUNCTION__, mds_dest);
-
-		// just update credentials
-		info->uid = creds->uid;
-		info->pid = creds->pid;
-		info->gid = creds->gid;
-	}
-
-	osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
-
-	p = buf;
-	uint32_t sz = ncs_encode_32bit(&p, MDS_REGISTER_RESP);
-	sz += ncs_encode_32bit(&p, 0); // result OK
-
-	if ((n = send(fd, buf, sz, 0)) == -1)
-		syslog(LOG_ERR, "%s: send to pid %d failed - %s",
-			__FUNCTION__, creds->pid, strerror(errno));
-
-	done:
+done:
 	TRACE_LEAVE();
 }
 
@@ -246,6 +264,59 @@ int mds_auth_server_connect(const char *name, MDS_DEST mds_dest, int svc_id, int
 		p = msg;
 		int type = ncs_decode_32bit(&p);
 		if (type != MDS_REGISTER_RESP) {
+			TRACE_3("wrong type %d", type);
+			rc = NCSCC_RC_FAILURE;
+			goto fail;
+		}
+		int status = ncs_decode_32bit(&p);
+		TRACE("received type:%d, status:%d", type, status);
+		status == 0 ? (rc = NCSCC_RC_SUCCESS) : (rc = NCSCC_RC_FAILURE);
+	} else {
+		TRACE_3("err n:%d", n);
+		rc = NCSCC_RC_FAILURE;
+		goto fail;
+	}
+
+fail:
+	return rc;
+ }
+
+/**
+ * Sends and receives an unregister message using osaf_secutil
+ * @param evt_type
+ * @param mds_dest
+ * @param version
+ * @param out_evt
+ * @param timeout max time to wait for a response in ms unit
+ * @return 0 - OK, negated errno otherwise
+ */
+int mds_auth_server_disconnect(const char *name, MDS_DEST mds_dest, int svc_id, int timeout)
+{
+	uint32_t rc;
+	uint8_t msg[32];
+	uint8_t *p = msg;
+	uint32_t sz;
+	int n;
+
+	sz = ncs_encode_32bit(&p, MDS_UNREGISTER_REQ);
+	sz += ncs_encode_32bit(&p, svc_id);
+	sz += ncs_encode_64bit(&p, mds_dest);
+
+	n = osaf_auth_server_connect(name, msg, sz, msg,
+			sizeof(msg), timeout);
+
+	if (n < 0) {
+		TRACE_3("err n:%d", n);
+		rc = NCSCC_RC_FAILURE;
+		goto fail;
+	} else if (n == 0) {
+		TRACE_3("tmo");
+		rc = NCSCC_RC_REQ_TIMOUT;
+		goto fail;
+	} else if (n == 8) {
+		p = msg;
+		int type = ncs_decode_32bit(&p);
+		if (type != MDS_UNREGISTER_RESP) {
 			TRACE_3("wrong type %d", type);
 			rc = NCSCC_RC_FAILURE;
 			goto fail;

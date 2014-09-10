@@ -313,7 +313,6 @@ typedef struct mds_process_info {
        uid_t uid;
        gid_t gid;
        pid_t pid;
-       int count;  // ref count, entry deleted at zero
 } MDS_PROCESS_INFO;
 
 MDS_PROCESS_INFO *mds_process_info_get(MDS_DEST mds_dest, NCSMDS_SVC_ID svc_id);
