@@ -3855,7 +3855,13 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 			break;
 		}
 
-		mcm_query_for_node_dest_on_archword(info_result->key.adest, &to, info_result->rem_svc_arch_word);
+		/* If Mcast allwasy send full encode */
+		if ((svc_cb->subtn_info->prev_ver_sub_count == 0) && (strcmp(tipc_or_tcp, "TIPC") == 0)
+				&& (to_msg.data.info.len < MDS_DIRECT_BUF_MAXSIZE)) {
+			to = DESTINATION_OFF_NODE;
+		} else {
+			mcm_query_for_node_dest_on_archword(info_result->key.adest, &to, info_result->rem_svc_arch_word);
+		}
 
 		if (to == DESTINATION_SAME_PROCESS) {
 			if (to_msg.msg_type != MSG_NCSCONTEXT) {
