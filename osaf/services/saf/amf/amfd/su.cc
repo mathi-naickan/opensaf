@@ -35,10 +35,12 @@ AmfDb<std::string, AVD_SU> *su_db = NULL;
 void AVD_SU::initialize() {
 	
 	saAmfSURank = 0;
+	saAmfSUHostNodeOrNodeGroup.length = 0;
 	saAmfSUFailover = false;
 	saAmfSUFailover_configured = false;
 	saAmfSUPreInstantiable = SA_FALSE;
 	saAmfSUOperState = SA_AMF_OPERATIONAL_DISABLED;
+	saAmfSUAdminState = SA_AMF_ADMIN_UNLOCKED;
 	saAmfSuReadinessState = SA_AMF_READINESS_OUT_OF_SERVICE;
 	saAmfSUPresenceState = SA_AMF_PRESENCE_UNINSTANTIATED;
 	saAmfSUNumCurrActiveSIs = 0;
@@ -47,6 +49,7 @@ void AVD_SU::initialize() {
 	term_state = false;
 	su_switch = AVSV_SI_TOGGLE_STABLE;
 	su_is_external = false;
+	su_act_state = 0;
 	sg_of_su = NULL;
 	su_on_node = NULL;
 	list_of_susi = NULL;
