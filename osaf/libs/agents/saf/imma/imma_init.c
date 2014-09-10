@@ -30,6 +30,7 @@
 #include "osaf_poll.h"
 #include "osaf_extended_name.h"
 #include "saAis.h"
+#include "mds_dl_api.h"
 
 /*****************************************************************************
  global data used by IMMA
@@ -206,6 +207,12 @@ static uint32_t imma_destroy(NCSMDS_SVC_ID sv_id)
 	IMMA_CONTINUATION_RECORD *cont, *tmp;
 	IMMA_CB *cb = &imma_cb;
 	TRACE_ENTER();
+
+	if (mds_auth_server_disconnect(imma_sockname,
+			cb->imma_mds_adest, sv_id, 10000) != NCSCC_RC_SUCCESS) {
+		// this will fail in the resurrect case, don't log
+		TRACE("%s: mds_auth_server_disconnect failed", __FUNCTION__);
+	}
 
 	/* MDS unregister. */
 	imma_mds_unregister(cb);

@@ -36,6 +36,7 @@
 #include "imma_mds.h"
 
 extern IMMA_CB imma_cb;
+extern const char *imma_sockname;
 
 unsigned int imma_shutdown(NCSMDS_SVC_ID sv_id);
 unsigned int imma_startup(NCSMDS_SVC_ID sv_id);
