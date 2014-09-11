@@ -85,6 +85,9 @@ void clma_fill_node_from_node4(SaClmClusterNodeT *clusterNode, SaClmClusterNodeT
 	(void)memcpy(clusterNode->nodeAddress.value, clusterNode_4.nodeAddress.value, clusterNode->nodeAddress.length);
 	clusterNode->nodeName.length = clusterNode_4.nodeName.length;
 	(void)memcpy(clusterNode->nodeName.value, clusterNode_4.nodeName.value, clusterNode->nodeName.length);
+	clusterNode->nodeName.value[clusterNode->nodeName.length <
+		SA_MAX_NAME_LENGTH ? clusterNode->nodeName.length :
+			SA_MAX_NAME_LENGTH - 1] = '\0';
 	clusterNode->member = clusterNode_4.member;
 	clusterNode->bootTimestamp = clusterNode_4.bootTimestamp;
 	clusterNode->initialViewNumber = clusterNode_4.initialViewNumber;

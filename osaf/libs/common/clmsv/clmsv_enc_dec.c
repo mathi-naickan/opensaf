@@ -34,6 +34,8 @@ uint32_t clmsv_decodeSaNameT(NCS_UBAID *uba, SaNameT *name)
 	ncs_dec_skip_space(uba, 2);
 	total_bytes += 2;
 	ncs_decode_n_octets_from_uba(uba, name->value, (uint32_t)name->length);
+	name->value[name->length < SA_MAX_NAME_LENGTH ? name->length :
+		SA_MAX_NAME_LENGTH - 1] = '\0';
 	total_bytes += name->length;
 	return total_bytes;
 }
