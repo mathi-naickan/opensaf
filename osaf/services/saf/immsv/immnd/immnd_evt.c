@@ -38,7 +38,7 @@
 #define IMMND_SEARCH_BUNDLE_SIZE ((MDS_DIRECT_BUF_MAXSIZE / 100) * 90)   
 #define IMMND_MAX_SEARCH_RESULT (IMMND_SEARCH_BUNDLE_SIZE / 300)  
 
-static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, const IMMSV_SEND_INFO *sinfo);
+static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, uid_t uid);
 static uint32_t immnd_evt_proc_cb_dump(IMMND_CB *cb);
 static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo, SaBoolT isOm);
 static uint32_t immnd_evt_proc_imm_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo, SaBoolT isOm);
@@ -2835,7 +2835,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 	}
 
 	if(newMsg) {
-		error = immnd_fevs_local_checks(cb, &(evt->info.fevsReq), sinfo);
+		error = immnd_fevs_local_checks(cb, &(evt->info.fevsReq), (sinfo)?(sinfo->uid):0);
 		if(error != SA_AIS_OK) {
 			/*Fevs request will NOT be forwarded to IMMD.
 			  Return directly with error or OK for idempotent requests.
@@ -3048,8 +3048,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
   nodes and not propagated over fevs, because sync clients may not yet
   have synced the implementer setting and thus reject the idempotent case. 
 */
-static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
-		const IMMSV_SEND_INFO *sinfo)
+static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, uid_t uid)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	osafassert(fevsReq);
@@ -3105,20 +3104,21 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 	switch (frwrd_evt.info.immnd.type) {
 
 	case IMMND_EVT_A2ND_OBJ_MODIFY:
-		if ((strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf, OPENSAF_IMM_OBJECT_DN) == 0) ||
-		    (strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf, "safRdn=immManagement,safApp=safImmService") == 0))
+		if((strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf, OPENSAF_IMM_OBJECT_DN) == 0) ||
+			(strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf, "safRdn=immManagement,safApp=safImmService") == 0))
 		{
 			/* Modifications to:
-			         opensafImm=opensafImm,safApp=safImmService
+			   opensafImm=opensafImm,safApp=safImmService
 			   or:
-			        safRdn=immManagement,safApp=safImmService
-		           are only allowed for root users.
+			   safRdn=immManagement,safApp=safImmService
+			   are only allowed for root users.
 			*/
-			if (sinfo->uid != 0) {
-				struct passwd *pwd = getpwuid(sinfo->uid);
-				if (pwd != NULL)
+			if(uid) {
+				struct passwd *pwd = getpwuid(uid);
+				if (pwd != NULL) {
 					syslog(LOG_AUTH, "Modifications to imm service objects denied for %s(uid=%d)",
-						pwd->pw_name, sinfo->uid);
+						pwd->pw_name, uid);
+				}
 				error = SA_AIS_ERR_ACCESS_DENIED;
 				goto done;
 			}
@@ -3339,9 +3339,29 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 		error = SA_AIS_ERR_LIBRARY;
 		break;
 
+	case IMMND_EVT_A2ND_ADMO_CLEAR:
+		if ((immModel_accessControlMode(cb) == ACCESS_CONTROL_ENFORCING)) {
+			/*
+			  The om API downcall 'saImmOmAdminOwnerClear(...)' is special in that
+			  it forces the removal of adminownership set up by some other user/handle.
+			  It is only needed to 'clean up' after an application has terminated 
+			  without releaseing admin-owner and with releaseOnFinalize set to false.
+			  Because of the very special and powerful nature of this operation, only
+			  root users should be allowed to use it, when acces control is enabled.
+			*/
+			if(uid) {
+				struct passwd *pwd = getpwuid(uid);
+				if (pwd != NULL) {
+					syslog(LOG_AUTH, "saImmOmAdminOwnerClear denied for %s(uid=%d)",
+						pwd->pw_name, uid);
+				}
+				error = SA_AIS_ERR_ACCESS_DENIED;
+				goto done;
+			}
+		}
+		/* intentional fall through. */
 	case IMMND_EVT_A2ND_ADMO_SET:
 	case IMMND_EVT_A2ND_ADMO_RELEASE:
-	case IMMND_EVT_A2ND_ADMO_CLEAR:
 		if(fevsReq->sender_count != 0x1) {
 			LOG_WA("ERR_LIBRARY: IMMND_EVT_A2ND_ADMO_XXX(%u) fevsReq->sender_count != 0x1",
 			       frwrd_evt.info.immnd.type);
