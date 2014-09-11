@@ -118,7 +118,6 @@ AVD_SG::AVD_SG():
 		sg_redundancy_model(SA_AMF_NO_REDUNDANCY_MODEL),
 		list_of_su(NULL),
 		list_of_si(NULL),
-		adminOp(SA_AMF_ADMIN_UNLOCK),
 		sg_list_sg_type_next(NULL),
 		sg_type(NULL),
 		sg_list_app_next(NULL),
@@ -129,6 +128,7 @@ AVD_SG::AVD_SG():
 		si_tobe_redistributed(NULL),
 		try_inst_counter(0)
 {
+	adminOp = static_cast<SaAmfAdminOperationIdT>(0);
 	memset(&name, 0, sizeof(SaNameT));
 	memset(&saAmfSGType, 0, sizeof(SaNameT));
 	memset(&saAmfSGSuHostNodeGroup, 0, sizeof(SaNameT));
