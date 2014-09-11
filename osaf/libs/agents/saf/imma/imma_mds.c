@@ -419,9 +419,6 @@ static uint32_t imma_mds_svc_evt(IMMA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_e
 
 		case NCSMDS_UP:
 			TRACE_3("IMMND UP");
-			m_NCS_LOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);/*special sync lock*/
-			cb->is_immnd_up = true;
-			cb->immnd_mds_dest = svc_evt->i_dest;
 
 			/* (Re-)connect and register our MDS dest with auth server in immnd */
 			if (mds_auth_server_connect(sockname,
@@ -429,6 +426,10 @@ static uint32_t imma_mds_svc_evt(IMMA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_e
 				/* server UP indication yet this does not work... */
 				LOG_WA("%s: mds_auth_server_connect failed", __FUNCTION__);
 			}
+
+			m_NCS_LOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);/*special sync lock*/
+			cb->immnd_mds_dest = svc_evt->i_dest;
+			cb->is_immnd_up = true;
 
 			if (cb->immnd_sync_awaited == true)
 				m_NCS_SEL_OBJ_IND(&cb->immnd_sync_sel);
