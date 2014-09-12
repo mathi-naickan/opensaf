@@ -449,11 +449,19 @@ void clms_admin_state_update_rattr(CLMS_CLUSTER_NODE * nd)
 	TRACE_ENTER2("Admin state %d update for node %s", nd->admin_state, nd->node_name.value);
 
 	CLMS_CLUSTER_NODE *node = NULL;
-	/* If this update was attempted was for a node down and as a part of try-again-later, then
+	/* If this update being attempted was for a node down and as a part of try-again-later, then
 	 * we need to lookup using name, because the node_id record would
 	 * have been deleted as a part of node down processing
 	 */
 	osafassert((node = clms_node_get_by_name(&nd->node_name)));
+
+	if (clms_cb->is_impl_set == false) {
+		TRACE("Implementer not yet set: Switching on the tryagain flag");
+		node->rtu_pending = true;
+		clms_cb->rtu_pending = true;
+		TRACE_LEAVE();
+		return;
+	}
 
 	SaImmAttrValueT attrUpdateValue[] = { &nd->admin_state };
 	const SaImmAttrModificationT_2 *attrMods[] = {
