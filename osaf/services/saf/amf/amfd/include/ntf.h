@@ -34,6 +34,11 @@
 #define ADDITION_TEXT_LENGTH 320
 #define AMF_NTF_SENDER "safApp=safAmfService"
 
+/* All states like oper, readiness etc starts from 1, so defining not applicable values */
+#define STATE_ID_NA  0
+#define OLD_STATE_NA 0
+#define NEW_STATE_NA 0
+
 /* Alarms */
 void avd_send_comp_inst_failed_alarm(const SaNameT *comp_name, const SaNameT *node_name);
 void avd_send_comp_clean_failed_alarm(const SaNameT *comp_name, const SaNameT *node_name);

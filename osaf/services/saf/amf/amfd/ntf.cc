@@ -55,7 +55,7 @@ void avd_send_comp_inst_failed_alarm(const SaNameT *comp_name, const SaNameT *no
 				 SA_NTF_SOFTWARE_ERROR,
 				 SA_NTF_SEVERITY_MAJOR,
 				 (NCSCONTEXT)node_name,
-				 1 /* add_info is node_name */); 
+				 true /* add_info is node_name */); 
 }
 
 /*****************************************************************************
@@ -87,7 +87,7 @@ void avd_send_comp_clean_failed_alarm(const SaNameT *comp_name, const SaNameT *n
 				 SA_NTF_SOFTWARE_ERROR,
 				 SA_NTF_SEVERITY_MAJOR,
 				 (NCSCONTEXT)node_name,
-				 1 /* add_info is node_name */); 
+				 true /* add_info is node_name */); 
 
 }
 /*****************************************************************************
@@ -121,7 +121,7 @@ void avd_send_cluster_reset_alarm(const SaNameT *comp_name)
 				 SA_NTF_SOFTWARE_ERROR,
 				 SA_NTF_SEVERITY_MAJOR,
 				 NULL,
-				 0 /* No add_info */);
+				 false /* No add_info */);
 
 }
 
@@ -152,7 +152,7 @@ void avd_send_si_unassigned_alarm(const SaNameT *si_name)
 				 SA_NTF_SOFTWARE_ERROR,
 				 SA_NTF_SEVERITY_MAJOR,
 				 NULL,
-				 0 /* No add_info */);
+				 false /* No add_info */);
 
 }
 
@@ -184,7 +184,7 @@ void avd_send_comp_proxy_status_unproxied_alarm(const SaNameT *comp_name)
 				 SA_NTF_SOFTWARE_ERROR,
 				 SA_NTF_SEVERITY_MAJOR,
 				 NULL,
-				 0 /* No add_info */);
+				 false /* No add_info */);
 
 }
 
@@ -220,7 +220,7 @@ void avd_send_admin_state_chg_ntf(const SaNameT *name, SaAmfNotificationMinorIdT
 					old_state,
 					new_state,
 					NULL,
-					0);
+					false);
 
 }
 
@@ -256,7 +256,7 @@ void avd_send_oper_chg_ntf(const SaNameT *name, SaAmfNotificationMinorIdT minor_
 					old_state,
 					new_state,
 					NULL,
-					0);
+					false);
 }
 
 /*****************************************************************************
@@ -291,7 +291,7 @@ void avd_send_su_pres_state_chg_ntf(const SaNameT *su_name,
 					old_state,
 					new_state,
 					NULL,
-					0);
+					false);
 
 }
 
@@ -330,7 +330,7 @@ void avd_send_su_ha_state_chg_ntf(const SaNameT *su_name,
 					old_state,
 					new_state,
 					(NCSCONTEXT)si_name,
-					2 /* Si_name */);
+					true /* Si_name */);
 
 }
 
@@ -367,7 +367,7 @@ void avd_send_su_ha_readiness_state_chg_ntf(const SaNameT *su_name, const SaName
 					old_state,
 					new_state,
 					(NCSCONTEXT)si_name,
-					2 /* Si_name */);
+					true /* Si_name */);
 
 }
 
@@ -402,7 +402,7 @@ void avd_send_si_assigned_ntf(const SaNameT *si_name, SaAmfAssignmentStateT old_
 					old_state,
 					new_state,
 					NULL,
-					0);
+					false);
 
 }
 
@@ -439,7 +439,7 @@ void avd_send_comp_proxy_status_proxied_ntf(const SaNameT *comp_name,
 					old_status,
 					new_status,
 					NULL,
-					0);
+					false);
 
 }
 
@@ -472,7 +472,7 @@ void avd_alarm_clear(const SaNameT *name, SaUint16T minorId, uint32_t probableCa
 	       probableCause,
 	       SA_NTF_SEVERITY_CLEARED,
 	       NULL,
-	       0);
+	       false);
 }
 
 SaAisErrorT fill_ntf_header_part_avd(SaNtfNotificationHeaderT *notificationHeader,
@@ -483,7 +483,7 @@ SaAisErrorT fill_ntf_header_part_avd(SaNtfNotificationHeaderT *notificationHeade
 			      SaUint16T minorId,
 			      SaInt8T *avd_name,
 			      NCSCONTEXT add_info,
-			      int type,
+			      int additional_info_is_present,
 			      SaNtfNotificationHandleT notificationHandle)
 {
 
@@ -503,30 +503,31 @@ SaAisErrorT fill_ntf_header_part_avd(SaNtfNotificationHeaderT *notificationHeade
 	(void)strcpy(notificationHeader->additionalText, (SaInt8T*)add_text);
 
 	/* Fill the additional info if present */
-	if (type != 0) {
-		switch (minorId) {
-		case SA_AMF_NTFID_ERROR_REPORT: 
-			SaNtfAdditionalInfoT *info; 
-			info = (SaNtfAdditionalInfoT *) add_info;	
-			notificationHeader->additionalInfo[0].infoId = info->infoId;
-			notificationHeader->additionalInfo[0].infoType = info->infoType;
-			notificationHeader->additionalInfo[0].infoValue = info->infoValue;
-			break;
-		default:
+	if (additional_info_is_present == true) {
+		if (minorId == SA_AMF_NTFID_ERROR_REPORT) {
+			SaAmfRecommendedRecoveryT *recovery = (SaAmfRecommendedRecoveryT *) (add_info);
+			notificationHeader->additionalInfo[0].infoId = SA_AMF_AI_APPLIED_RECOVERY;
+			notificationHeader->additionalInfo[0].infoType = SA_NTF_VALUE_UINT64;
+			notificationHeader->additionalInfo[0].infoValue.uint64Val = *recovery;
+		} else {
 			SaStringT dest_ptr;
 			SaAisErrorT ret;
 			SaNameT *name = (SaNameT*)(add_info);
-			if (type == 1) {
+
+			if ((minorId == SA_AMF_NTFID_COMP_INSTANTIATION_FAILED) ||
+					(minorId == SA_AMF_NTFID_COMP_CLEANUP_FAILED)) {
 				/* node_name */
 				notificationHeader->additionalInfo[0].infoId = SA_AMF_NODE_NAME;
 				notificationHeader->additionalInfo[0].infoType = SA_NTF_VALUE_LDAP_NAME;
 
-			} else if (type == 2) {
+			} else if ((minorId == SA_AMF_NTFID_SU_SI_HA_STATE) || 
+					(minorId == SA_AMF_NTFID_SU_SI_HA_READINESS_STATE)) {
 				/* si_name */
 				notificationHeader->additionalInfo[0].infoId = SA_AMF_SI_NAME;
 				notificationHeader->additionalInfo[0].infoType = SA_NTF_VALUE_LDAP_NAME;
 
 			}
+
 			ret = saNtfPtrValAllocate(notificationHandle,
 					sizeof (SaNameT) + 1,
 					(void**)&dest_ptr,
@@ -538,7 +539,6 @@ SaAisErrorT fill_ntf_header_part_avd(SaNtfNotificationHeaderT *notificationHeade
 			}
 
 			memcpy(dest_ptr, name, sizeof(SaNameT));
-			break;
 		}
 	}
 	return SA_AIS_OK;
@@ -641,22 +641,29 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 				     SaUint16T oldstate,
 				     SaUint16T newState,
 				     NCSCONTEXT add_info,
-				     int type)
+				     int additional_info_is_present)
 {
 	uint32_t status = NCSCC_RC_FAILURE;
 	SaNtfStateChangeNotificationT myStateNotification;
 	SaUint16T add_info_items = 0;
 	SaUint64T allocation_size = 0;
+	SaUint16T num_of_changedStates = 1;
 
 	if (!avd_cb->active_services_exist) {
 		// TODO #3051
 		LOG_WA("State change notification lost for '%s'", ntf_object.value);
 		return status;
 	}
-
-	if (type != 0) {
+	if (additional_info_is_present == true) {
 		add_info_items = 1;
 		allocation_size = SA_NTF_ALLOC_SYSTEM_LIMIT;
+	} else {
+		add_info_items = 0;
+		allocation_size = 0;
+	}
+
+	if (stateId == STATE_ID_NA) {
+		num_of_changedStates = 0;
 	}
 
 	status = saNtfStateChangeNotificationAllocate(avd_cb->ntfHandle,/* handle to Notification Service instance */
@@ -668,7 +675,7 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 						      /* number of additional info items */
 						      add_info_items,
 						      /* number of state changes */
-						      1,
+						      num_of_changedStates,
 						      /* use default allocation size */
 						      allocation_size);
 
@@ -685,7 +692,7 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 				 minorId,
 				 const_cast<SaInt8T*>(AMF_NTF_SENDER),
 				 add_info,
-				 type,
+				 additional_info_is_present,
 				 myStateNotification.notificationHandle);
 	
 	if (status != SA_AIS_OK) {
@@ -695,10 +702,13 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 	}
 
 	*(myStateNotification.sourceIndicator) = static_cast<SaNtfSourceIndicatorT>(sourceIndicator);
-	myStateNotification.changedStates->stateId = stateId;
-	myStateNotification.changedStates->oldStatePresent = SA_TRUE;
-	myStateNotification.changedStates->oldState = oldstate;
-	myStateNotification.changedStates->newState = newState;
+	
+	if (num_of_changedStates == 1) {
+		myStateNotification.changedStates->stateId = stateId;
+		myStateNotification.changedStates->oldStatePresent = SA_TRUE;
+		myStateNotification.changedStates->oldState = oldstate;
+		myStateNotification.changedStates->newState = newState;
+	}
 
 	status = saNtfNotificationSend(myStateNotification.notificationHandle);
 
@@ -724,28 +734,32 @@ void avd_send_error_report_ntf(const SaNameT *name, SaAmfRecommendedRecoveryT re
 {
 
         TRACE_ENTER();
-	if ((recovery > SA_AMF_NO_RECOMMENDATION) && (recovery < SA_AMF_CONTAINER_RESTART)) {
-		char add_text[ADDITION_TEXT_LENGTH];
-		SaNtfAdditionalInfoT add_info;
-		add_info.infoId = SA_AMF_AI_RECOMMENDED_RECOVERY;
-		add_info.infoType = SA_NTF_VALUE_UINT64;
-		add_info.infoValue.uint64Val = recovery;
+	char add_text[ADDITION_TEXT_LENGTH];
+	SaAmfNotificationMinorIdT minorid;
+	bool additional_info_is_present;
+
+	if ((recovery >= SA_AMF_NO_RECOMMENDATION) && (recovery < SA_AMF_CONTAINER_RESTART)) {
 		snprintf(add_text, ADDITION_TEXT_LENGTH, "Error reported on %s with recovery %s", name->value,
 				amf_recovery[recovery]);
-		sendAlarmNotificationAvd(avd_cb,
-				*name,
-				(SaUint8T*)add_text,
-				SA_SVC_AMF,
-				SA_AMF_NTFID_ERROR_REPORT,
-				SA_NTF_SOFTWARE_ERROR,
-				SA_NTF_SEVERITY_MAJOR,
-				(NCSCONTEXT) &add_info,
-				1 /* No add_info */);
-
+		minorid = SA_AMF_NTFID_ERROR_REPORT;
+		additional_info_is_present = true;
 	} else {
-		avd_alarm_clear(name, SA_AMF_NTFID_ERROR_CLEAR,
-				SA_NTF_SOFTWARE_ERROR);
+		snprintf(add_text, ADDITION_TEXT_LENGTH, "Error reported on %s is now cleared", name->value);
+		minorid = SA_AMF_NTFID_ERROR_CLEAR;
+		additional_info_is_present = false;
 	}
+
+	sendStateChangeNotificationAvd(avd_cb,
+			*name,
+			(SaUint8T*)add_text,
+			SA_SVC_AMF,
+			minorid,
+			SA_NTF_UNKNOWN_OPERATION,
+			STATE_ID_NA, 
+			OLD_STATE_NA,
+			NEW_STATE_NA,
+			(NCSCONTEXT)&recovery,
+			additional_info_is_present);
 
 	TRACE_LEAVE();
 }
