@@ -652,6 +652,9 @@ static void su_add_to_model(AVD_SU *su)
 	}
 
 done:
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUOperState",
+			SA_IMM_ATTR_SAUINT32T, &su->saAmfSUOperState);
+
 	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUPreInstantiable",
 		SA_IMM_ATTR_SAUINT32T, &su->saAmfSUPreInstantiable);
 
