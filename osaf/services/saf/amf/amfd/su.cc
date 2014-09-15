@@ -1162,7 +1162,9 @@ static void su_admin_op_cb(SaImmOiHandleT immoi_handle,	SaInvocationT invocation
 			/* This means that shutdown was going on and lock has
 			   been issued.  In this case, response to shutdown
 			   and then allow lock operation to proceed. */
-			su->complete_admin_op(SA_AIS_OK);
+			report_admin_op_error(immoi_handle, su->pend_cbk.invocation,
+					SA_AIS_ERR_INTERRUPT, &su->pend_cbk,
+					"SU lock has been issued '%s'", su->name.value);
 		}
 	}
 	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
