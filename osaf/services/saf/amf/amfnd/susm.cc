@@ -1695,9 +1695,8 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 
 		/* instantiating/instantiated/restarting -> inst-failed */
 		if (((SA_AMF_PRESENCE_INSTANTIATING == prv_st) ||
-		     (SA_AMF_PRESENCE_INSTANTIATED == prv_st) ||
-		     (SA_AMF_PRESENCE_RESTARTING == prv_st)) && (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)) {
-			TRACE("SU Instantiating/Instantiated/Restarting -> Instantiation Failed");
+		     (SA_AMF_PRESENCE_INSTANTIATED == prv_st)) && (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)) {
+			TRACE("SU Instantiating/Instantiated -> Instantiation Failed");
 			/* si-assignment failed .. inform avd */
 			TRACE("SI-Assignment failed, Informing AVD");
 			rc = avnd_di_susi_resp_send(cb, su, si);
@@ -1714,6 +1713,16 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 
 			rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
 
+		}
+		if ((SA_AMF_PRESENCE_RESTARTING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)) {
+			TRACE("Restarting -> Instantiation Failed");
+			if (sufailover_in_progress(su)) {
+				/*Do not reset any flag, this will be done as a part of repair.*/
+				rc = avnd_di_oper_send(cb, su, AVSV_ERR_RCVR_SU_FAILOVER);
+				osafassert(NCSCC_RC_SUCCESS == rc);
+				avnd_su_si_del(avnd_cb, &su->name);
+				goto done;
+			}
 		}
 
 		if ((SA_AMF_PRESENCE_RESTARTING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATED == final_st))
