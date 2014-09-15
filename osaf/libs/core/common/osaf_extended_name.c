@@ -24,6 +24,18 @@
 #include "osaf_extended_name.h"
 #include "ncsgl_defs.h"
 
+enum {
+	/* Index in the SaNameT._opaque array where the string pointer will be
+	   stored when the distinguished name is longer than 255 bytes. By
+	   storing the pointer at an aligned address, Valgrind will be able to
+	   detect the pointer and thus the memory leak detection in Valgrind
+	   will work with these strings. Note though that since the largest
+	   member in the SaNameT structure is a 16-bit integer, there is no
+	   guarantee that the SaNameT structure itself is stored at an aligned
+	   address. */
+	kExtendedNamePointerOffset = sizeof(SaConstStringT) / sizeof(SaUint16T)
+};
+
 static inline SaConstStringT get_ptr(const SaNameT* name);
 static inline void set_ptr(SaConstStringT value, SaNameT* name);
 
@@ -36,7 +48,8 @@ static inline SaConstStringT get_ptr(const SaNameT* name)
 		SaConstStringT pointer;
 		SaUint8T bytes[sizeof(SaConstStringT)];
 	} tmp;
-	memcpy(tmp.bytes, name->_opaque + 1, sizeof(SaConstStringT));
+	memcpy(tmp.bytes, name->_opaque + kExtendedNamePointerOffset,
+		sizeof(SaConstStringT));
 	return tmp.pointer;
 }
 
@@ -48,7 +61,8 @@ static inline void set_ptr(SaConstStringT value, SaNameT* name)
 	} tmp;
 	tmp.pointer = value;
 	name->_opaque[0] = kExtendedNameMagic;
-	memcpy(name->_opaque + 1, tmp.bytes, sizeof(SaConstStringT));
+	memcpy(name->_opaque + kExtendedNamePointerOffset, tmp.bytes,
+		sizeof(SaConstStringT));
 }
 
 void osaf_extended_name_init(void)
@@ -135,7 +149,9 @@ size_t osaf_extended_name_length(const SaNameT* name)
 void osaf_extended_name_clear(SaNameT* name)
 {
 	name->_opaque[0] = 0;
-	memset(name->_opaque + 1, 0, sizeof(SaConstStringT));
+	*(char*) (name->_opaque + 1) = '\0';
+	memset(name->_opaque + kExtendedNamePointerOffset, 0,
+		sizeof(SaConstStringT));
 }
 
 void osaf_extended_name_steal(SaStringT value, SaNameT* name)
@@ -179,6 +195,7 @@ void osaf_extended_name_free(SaNameT* name)
 			free((SaStringT*) get_ptr(name));
 		}
 		name->_opaque[0] = 0xffff;
-		memset(name->_opaque + 1, 0, sizeof(SaConstStringT));
+		memset(name->_opaque + kExtendedNamePointerOffset, 0,
+			sizeof(SaConstStringT));
 	}
 }
