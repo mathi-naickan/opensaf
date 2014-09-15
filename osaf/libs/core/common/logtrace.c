@@ -104,11 +104,21 @@ static void output(const char *file, unsigned int line, int priority, int catego
 		getpid(), file, line, prefix_name[priority + category], format);
 	i = vsnprintf(log_string, sizeof(log_string), preamble, ap);
 
-	/* Add line feed if not there already */
-	if (log_string[i - 1] != '\n') {
-		log_string[i] = '\n';
-		log_string[i + 1] = '\0';
-		i++;
+	/* Check if the logtrace user had passed message length >= logtrace array limit of 1023.
+	 * If so, prepare/add space for line feed and truncation character 'T'.
+	 */
+	if (i >= 1023) {
+		i = 1023;
+		log_string[i-2] = 'T';
+		log_string[i-1] = '\n';
+		log_string[i] = '\0';//
+	} else {
+		/* Add line feed if not there already */
+		if (log_string[i - 1] != '\n') {
+			log_string[i] = '\n';
+			log_string[i + 1] = '\0';
+			i++;
+		}
 	}
 
 	/* If we got here without a file descriptor, trace was enabled in runtime, open the file */
