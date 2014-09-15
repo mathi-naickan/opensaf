@@ -1622,6 +1622,13 @@ void AVD_SG::set_fsm_state(AVD_SG_FSM_STATE state) {
 			adminOp_invocationId = 0;
 			adminOp = static_cast<SaAmfAdminOperationIdT>(0);
 		}
+		for (AVD_SI* si = list_of_si; si != NULL; si = si->sg_list_of_si_next) {
+			if (si->invocation != 0) {
+				avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
+						si->invocation, SA_AIS_OK);
+				si->invocation = 0;
+			}
+		}
 	}
 }
 
