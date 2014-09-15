@@ -78,8 +78,6 @@ uint32_t mds_log_init(char *log_file_name, char *line_prefix)
 	memset(process_name, 0, MAX_PROCESS_NAME);
 	get_process_name();	
 
-	/* Copy the log-line-prefix */
-
 	if (lf != NULL)
 		return NCSCC_RC_FAILURE;
 

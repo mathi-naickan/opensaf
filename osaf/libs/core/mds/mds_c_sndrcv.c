@@ -435,8 +435,8 @@ static uint32_t mds_mcm_direct_send(NCSMDS_INFO *info)
 
 	if ((info->info.svc_direct_send.i_to_svc == 0) || (info->i_svc_id == 0)) {
 		m_MDS_FREE_DIRECT_BUFF(info->info.svc_direct_send.i_direct_buff);
-		m_MDS_LOG_ERR("MDS_SND_RCV: Source or Dest service provided is Null, src_svc=%, dest_svc=%d \n",
-			      info->i_svc_id, info->info.svc_direct_send.i_to_svc);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Source or Dest service provided is Null, src svc_id = %s, dest svc_id = %s \n",
+			      ncsmds_svc_names[info->i_svc_id], ncsmds_svc_names[info->info.svc_direct_send.i_to_svc]);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -892,13 +892,13 @@ static uint32_t mcm_pvt_normal_svc_snd(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 	status = mcm_pvt_normal_snd_process_common(env_hdl, fr_svc_id, send_msg, to_dest, to_svc_id, req, pri, xch_id);
 
 	if (status == NCSCC_RC_SUCCESS) {
-		m_MDS_LOG_INFO("MDS_SND_RCV: Normal send Message sent successfully from svc_id= %d, to svc_id=%d\n",
-			       fr_svc_id, to_svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: Normal send Message sent successfully from svc_id = %s, to svc_id = %s\n",
+			       ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_pvt_normal_svc_snd\n");
 		return NCSCC_RC_SUCCESS;
 	} else {
-		m_MDS_LOG_ERR("MDS_SND_RCV: Normal send Message sent Failed from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-			      to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Normal send Message sent Failed from svc_id = %s, to svc_id = %s\n",
+			      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_pvt_normal_svc_snd\n");
 		return status;
@@ -956,7 +956,7 @@ static uint32_t mcm_pvt_normal_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr
 
 	/* Get SVC_cb */
 	if (NCSCC_RC_SUCCESS != (mds_svc_tbl_get(pwe_hdl, src_svc_id, &hdl))) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: SVC not present=%d\n", src_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: svc_id = %s not present\n", ncsmds_svc_names[src_svc_id]);
 		if (to_msg.msg_type == MSG_DIRECT_BUFF) {
 			return MDS_INT_RC_DIRECT_SEND_FAIL;	/* This is as the direct buff is freed at a common location */
 		}
@@ -1000,10 +1000,9 @@ static uint32_t mcm_pvt_normal_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr
 		/* Check in subscriptions whether this exists */
 		if (NCSCC_RC_SUCCESS != mds_mcm_process_disc_queue_checks(svc_cb, dest_svc_id, to_dest, req,
 									  &ret_adest, &timer_running, &tx_send_hdl)) {
-			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV:No Route Found from SVC id = %d to SVC id = %d on ADEST <0x%08x, %u>",
-			     fr_svc_id, to_svc_id, m_MDS_GET_NODE_ID_FROM_ADEST(to_dest),
-			     m_MDS_GET_PROCESS_ID_FROM_ADEST(to_dest));
+			m_MDS_LOG_ERR("MDS_SND_RCV:No Route Found from svc_id = %s, to svc_id = %s on Adest = <0x%08x, %u> ",
+					ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id], m_MDS_GET_NODE_ID_FROM_ADEST(to_dest),
+					m_MDS_GET_PROCESS_ID_FROM_ADEST(to_dest));
 			if (to_msg.msg_type == MSG_DIRECT_BUFF) {
 				return MDS_INT_RC_DIRECT_SEND_FAIL;	/* This is as the direct buff is freed at a common location */
 			}
@@ -1025,9 +1024,9 @@ static uint32_t mcm_pvt_normal_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr
 							       dest, &role_ret, &subs_result_hdl)) {
 		/* Destination Route Not Found */
 		subs_result_hdl = NULL;
-		m_MDS_LOG_ERR
-		    ("MDS_SND_RCV: Query for Destination failed, This case cannot exist as this has been validated before Src_svc=%d, Dest_scv=%d, vdest=%d, ADEST=%llx",
-		     svc_cb->svc_id, to_svc_id, dest_vdest_id, dest);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Query for Destination failed, This case cannot exist as this has \
+				been validated before src svc_id = %s, dest scv_id = %s, vdest=%d, Adest = %s",
+		     ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[to_svc_id], dest_vdest_id, log_tx_send_hdl->sub_adest_details );
 		return NCSCC_RC_FAILURE;
 	}
 	mcm_query_for_node_dest_on_archword(dest, &to, subs_result_hdl->rem_svc_arch_word);
@@ -1061,9 +1060,9 @@ static uint32_t mds_mcm_send_msg_enc(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG 
 							       dest, &role, &subs_result_hdl)) {
 		/* Destination Route Not Found */
 		subs_result_hdl = NULL;
-		m_MDS_LOG_ERR
-		    ("MDS_SND_RCV: Query for Destination failed, This case cannot exist as this has been validated before Src_svc=%d, Dest_scv=%d, vdest=%d, ADEST=%llx",
-		     svc_cb->svc_id, to_svc_id, dest_vdest_id, dest);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Query for Destination failed, This case cannot exist as this has been \
+				validated before src svc_id = %s, dest scv_id = %s, vdest=%d, Adest = <%"PRId64">",
+				ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[to_svc_id], dest_vdest_id, dest);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -1141,8 +1140,8 @@ static uint32_t mcm_msg_cpy_send(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG *to_
 								       dest_vdest_id);
 			if (NCSCC_RC_SUCCESS !=
 			    (mds_svc_tbl_get(orig_sender_pwe_hdl, to_svc_id, ((NCSCONTEXT)&orig_sender_cb)))) {
-				m_MDS_LOG_ERR("MDS_SND_RCV: (Local) dest not found SVC=%d, VDEST=%d, PWE=%d\n",
-					      to_svc_id, dest_vdest_id, m_MDS_GET_PWE_ID_FROM_SVC_HDL(svc_cb->svc_hdl));
+				m_MDS_LOG_ERR("MDS_SND_RCV: (Local) dest not found svc_id = %s, Vdest_id = %d, PWE=%d\n",
+					      ncsmds_svc_names[to_svc_id], dest_vdest_id, m_MDS_GET_PWE_ID_FROM_SVC_HDL(svc_cb->svc_hdl));
 				m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_cpy_send\n");
 				return NCSCC_RC_FAILURE;
 			}
@@ -1178,8 +1177,8 @@ static uint32_t mcm_msg_cpy_send(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG *to_
 
 				if (ncs_enc_init_space_pp(&req.msg.data.fullenc_uba, NCSUB_MDS_POOL, 0) !=
 				    NCSCC_RC_SUCCESS) {
-					m_MDS_LOG_ERR("MDS_SND_RCV: encode full init failed svc_id=%d\n",
-						      svc_cb->svc_id);
+					m_MDS_LOG_ERR("MDS_SND_RCV: encode full init failed svc_id = %s\n",
+						      ncsmds_svc_names[svc_cb->svc_id]);
 					return NCSCC_RC_FAILURE;
 				}
 
@@ -1199,11 +1198,10 @@ static uint32_t mcm_msg_cpy_send(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG *to_
 			if (NCSCC_RC_SUCCESS != svc_cb->cback_ptr(&cbinfo)) {
 				if ((i_req->i_sendtype == MDS_SENDTYPE_BCAST)
 				    || (i_req->i_sendtype == MDS_SENDTYPE_RBCAST)) {
-					m_MDS_LOG_ERR
-					    ("MDS_C_SNDRCV; ENCode full callback  failed(broadcast) svc_id=%d\n",
-					     to_svc_id);
+					m_MDS_LOG_ERR("MDS_C_SNDRCV; ENCode full callback  failed(broadcast) svc_id = %s\n",
+					     ncsmds_svc_names[to_svc_id]);
 				} else {
-					m_MDS_LOG_ERR(" Copy callback failed svc_id=%d\n", to_svc_id);
+					m_MDS_LOG_ERR(" Copy callback failed svc_id = %s\n", ncsmds_svc_names[to_svc_id]);
 				}
 				return NCSCC_RC_FAILURE;
 			}
@@ -1269,6 +1267,7 @@ static uint32_t mcm_msg_cpy_send(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG *to_
 	req.adest = dest;
 
 	strcpy(req.sub_adest_details, lcl_subtn_res->sub_adest_details);
+
 	m_MDS_LOG_INFO("MDS_SND_RCV: Sending the data to MDTM layer\n");
 	m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_cpy_send\n");
 	return mds_mdtm_send(&req);
@@ -1384,13 +1383,13 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 	if (to == DESTINATION_OFF_NODE) {
 		msg_send.msg.encoding = MDS_ENC_TYPE_FULL;
 		if (ncs_enc_init_space_pp(&msg_send.msg.data.fullenc_uba, NCSUB_MDS_POOL, 0) != NCSCC_RC_SUCCESS) {
-			m_MDS_LOG_ERR("MDS_SND_RCV: encode full init failed svc_id=%d\n", svc_cb->svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: encode full init failed svc_id = %s\n", ncsmds_svc_names[svc_cb->svc_id]);
 			return NCSCC_RC_FAILURE;
 		}
 	} else {
 		msg_send.msg.encoding = MDS_ENC_TYPE_FLAT;
 		if (ncs_enc_init_space_pp(&msg_send.msg.data.flat_uba, NCSUB_MDS_POOL, 0) != NCSCC_RC_SUCCESS) {
-			m_MDS_LOG_ERR("MDS_SND_RCV: encode flat init failed svc_id=%d\n", svc_cb->svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: encode flat init failed svc_id = %s\n", ncsmds_svc_names[svc_cb->svc_id]);
 			return NCSCC_RC_FAILURE;
 		}
 	}
@@ -1423,9 +1422,8 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 	status = svc_cb->cback_ptr(&cbinfo);
 
 	if (status != NCSCC_RC_SUCCESS) {
-		m_MDS_LOG_ERR
-		    ("MDS_SND_RCV: Encode callback of  Dest =%d, Adest=%llx, svc-id=%d failed while sending to svc=%d)",
-		     dest_vdest_id, adest, svc_cb->svc_id, to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Encode callback of  Dest =%d, Adest = %s, svc_id = %s failed while sending to svc_id = %s)",
+		     dest_vdest_id, svc_cb->adest_details, ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_encode_full_or_flat_and_send\n");
 		if (msg_send.msg.encoding == MDS_ENC_TYPE_FLAT) {
 			m_MMGR_FREE_BUFR_LIST(msg_send.msg.data.flat_uba.start);
@@ -1437,8 +1435,8 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 
 	if (to == DESTINATION_OFF_NODE) {
 		if (msg_send.msg.data.fullenc_uba.start == NULL) {
-			m_MDS_LOG_ERR("MDS_SND_RCV: Empty and NULL message from svc-id=%d to svc-id=%d", svc_cb->svc_id,
-				      to_svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: Empty and NULL message from svc_id = %s to svc_id = %s", ncsmds_svc_names[svc_cb->svc_id],
+				      ncsmds_svc_names[to_svc_id]);
 			m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_encode_full_or_flat_and_send\n");
 			return NCSCC_RC_FAILURE;
 		} else if ((snd_type == MDS_SENDTYPE_BCAST) || (snd_type == MDS_SENDTYPE_RBCAST)) {
@@ -1454,8 +1452,8 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 		}
 	} else {
 		if (msg_send.msg.data.flat_uba.start == NULL) {
-			m_MDS_LOG_ERR("MDS_SND_RCV: Empty and NULL message from svc-id=%d to svc-id=%d", svc_cb->svc_id,
-				      to_svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: Empty and NULL message from svc_id = %s to svc_id = %s", ncsmds_svc_names[svc_cb->svc_id],
+				      ncsmds_svc_names[to_svc_id]);
 			m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_encode_full_or_flat_and_send\n");
 			return NCSCC_RC_FAILURE;
 		} else if ((snd_type == MDS_SENDTYPE_BCAST) || (snd_type == MDS_SENDTYPE_RBCAST)) {
@@ -1534,14 +1532,14 @@ static uint32_t mds_mcm_raise_selection_obj_for_ack(MDS_SVC_INFO *svc_cb, MDS_DA
 
 	m_MDS_LOG_DBG("MDS_SND_RCV : Entering mds_mcm_raise_selection_obj_for_ack\n");
 	if (NCSCC_RC_SUCCESS != mcm_pvt_get_sync_send_entry(svc_cb, recv, &sync_queue)) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: No entry in sync send table svc_id=%d, xch_id=%d\n", svc_cb->svc_id,
+		m_MDS_LOG_ERR("MDS_SND_RCV: No entry in sync send table svc_id = %s, xch_id=%d\n", ncsmds_svc_names[svc_cb->svc_id],
 			      recv->exchange_id);
 		m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mds_mcm_raise_selection_obj_for_ack\n");
 		return NCSCC_RC_FAILURE;
 	}
 	sync_queue->status = NCSCC_RC_SUCCESS;
-	m_MDS_LOG_INFO("MDS_SND_RCV: Entry Found in sync send table svc_id=%d, xch_id=%d ,raising sel object\n",
-		       svc_cb->svc_id, recv->exchange_id);
+	m_MDS_LOG_INFO("MDS_SND_RCV: Entry Found in sync send table svc_id = %s, xch_id=%d ,raising sel object\n",
+		       ncsmds_svc_names[svc_cb->svc_id], recv->exchange_id);
 	m_NCS_SEL_OBJ_IND(&sync_queue->sel_obj);
 	m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mds_mcm_raise_selection_obj_for_ack\n");
 
@@ -1570,8 +1568,8 @@ static uint32_t mcm_pvt_get_sync_send_entry(MDS_SVC_INFO *svc_cb, MDS_DATA_RECV 
 			if (queue->msg_snd_type == MDS_SENDTYPE_SNDRSP) {
 				if ((recv->snd_type == MDS_SENDTYPE_RSP) || (recv->snd_type == MDS_SENDTYPE_SNDRACK)) {
 					*sync_queue = queue;
-					m_MDS_LOG_INFO("MDS_SND_RCV: Found sync queue entry for svc_id=%d, xch_id=%d\n",
-						       svc_cb->svc_id, recv->exchange_id);
+					m_MDS_LOG_INFO("MDS_SND_RCV: Found sync queue entry for svc_id = %s, xch_id=%d\n",
+						       ncsmds_svc_names[svc_cb->svc_id], recv->exchange_id);
 					return NCSCC_RC_SUCCESS;
 				}
 			} else if ((queue->msg_snd_type == MDS_SENDTYPE_SNDRACK)
@@ -1579,25 +1577,24 @@ static uint32_t mcm_pvt_get_sync_send_entry(MDS_SVC_INFO *svc_cb, MDS_DATA_RECV 
 				if (recv->snd_type == MDS_SENDTYPE_ACK) {
 					if (recv->src_adest == queue->dest_sndrack_adest.adest) {
 						*sync_queue = queue;
-						m_MDS_LOG_INFO
-						    ("MDS_SND_RCV: Found sync queue entry for svc_id=%d, xch_id=%d\n",
-						     svc_cb->svc_id, recv->exchange_id);
+						m_MDS_LOG_INFO("MDS_SND_RCV: Found sync queue entry for svc_id = %s, xch_id=%d\n",
+						     ncsmds_svc_names[svc_cb->svc_id], recv->exchange_id);
 						return NCSCC_RC_SUCCESS;
 					}
 				}
 			} else if (queue->msg_snd_type == MDS_SENDTYPE_REDRSP) {
 				if ((recv->snd_type == MDS_SENDTYPE_RRSP) || (recv->snd_type == MDS_SENDTYPE_REDRACK)) {
 					*sync_queue = queue;
-					m_MDS_LOG_INFO("MDS_SND_RCV: Found sync queue entry for svc_id=%d, xch_id=%d\n",
-						       svc_cb->svc_id, recv->exchange_id);
+					m_MDS_LOG_INFO("MDS_SND_RCV: Found sync queue entry for svc_id = %s, xch_id=%d\n",
+						       ncsmds_svc_names[svc_cb->svc_id], recv->exchange_id);
 					return NCSCC_RC_SUCCESS;
 				}
 			} else if ((queue->msg_snd_type == MDS_SENDTYPE_SNDACK)
 				   || (queue->msg_snd_type == MDS_SENDTYPE_REDACK)) {
 				if (recv->snd_type == MDS_SENDTYPE_ACK) {
 					*sync_queue = queue;
-					m_MDS_LOG_INFO("MDS_SND_RCV: Found sync queue entry for svc_id=%d, xch_id=%d\n",
-						       svc_cb->svc_id, recv->exchange_id);
+					m_MDS_LOG_INFO("MDS_SND_RCV: Found sync queue entry for svc_id = %s, xch_id=%d\n",
+						       ncsmds_svc_names[svc_cb->svc_id], recv->exchange_id);
 					return NCSCC_RC_SUCCESS;
 				}
 			}
@@ -1605,7 +1602,7 @@ static uint32_t mcm_pvt_get_sync_send_entry(MDS_SVC_INFO *svc_cb, MDS_DATA_RECV 
 		queue = queue->next_send;
 	}
 	*sync_queue = NULL;
-	m_MDS_LOG_INFO("MDS_SND_RCV:No entry Found for sync queue svc_id=%d, xch_id=%d\n", svc_cb->svc_id,
+	m_MDS_LOG_INFO("MDS_SND_RCV:No entry Found for sync queue svc_id = %s, xch_id=%d\n", ncsmds_svc_names[svc_cb->svc_id],
 		       recv->exchange_id);
 	return NCSCC_RC_FAILURE;
 }
@@ -1649,7 +1646,7 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 	if (sub_info == NULL) {
 		/* No subscription to this */
 		/* Make a subscription to this service */
-		m_MDS_LOG_INFO("MDS_SND_RCV: No subscription to service=%d, Making subscription\n", dest_svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: No subscription to svc_id = %s, Making subscription\n", ncsmds_svc_names[dest_svc_id]);
 		mds_mcm_subtn_add(svc_cb->svc_hdl, dest_svc_id, svc_cb->install_scope,
 				  MDS_VIEW_RED /* redundantview */ , MDS_SUBTN_IMPLICIT);
 		if (NCSCC_RC_SUCCESS != mds_subtn_tbl_get(svc_cb->svc_hdl, dest_svc_id, &sub_info)) {
@@ -1673,8 +1670,8 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 	   Enqueue <sel-obj>, <send-type + destination-data>
 	   Wait_for_ind_on_sel_obj_with_remaining_timeout
 	 */
-	m_MDS_LOG_INFO("MDS_SND_RCV:Blocking send from SVC id = %d to SVC id = %d",
-		       m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl), dest_svc_id);
+	m_MDS_LOG_INFO("MDS_SND_RCV:Blocking send from svc_id = %s, to svc_id = %s",
+		       ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl)], ncsmds_svc_names[dest_svc_id]);
 
 	disc_rc = mds_subtn_tbl_add_disc_queue(sub_info, req, dest_vdest_id, 	
 							anchor, env_hdl, svc_cb->svc_id, time_wait);
@@ -1682,13 +1679,11 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 		/* Again we will come here when timeout or result has come */
 		/* Check whether the Dest exists */
 		/* After Subscription timeout also no route found */
-		/* m_MDS_LOG_ERR("MDS_SND_RCV: No Route FOUND from SVC id = %d to SVC id = %d on "); */
+		/* m_MDS_LOG_ERR("MDS_SND_RCV: No Route FOUND from svc_id = %s, to svc_id = %s on "); */
 		if (NCSCC_RC_REQ_TIMOUT == disc_rc) {
 			/* We timed out waiting for a route */
-			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV:No Route Found from SVC id = %d to SVC id = %d on ADEST <0x%08x, %u>",
-			     svc_cb->svc_id, dest_svc_id, m_MDS_GET_NODE_ID_FROM_ADEST(i_dest),
-			     m_MDS_GET_PROCESS_ID_FROM_ADEST(i_dest));
+			m_MDS_LOG_ERR("MDS_SND_RCV:No Route Found from svc_id = %s, to svc_id = %s on Adest = %s",
+			     ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[dest_svc_id], sub_info->sub_adest_details);
 		}
 
 		m_MDS_LOG_DBG("MDS_SND_RCV :L  mds_mcm_process_disc_queue_checks\n");
@@ -1700,10 +1695,8 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 			if (NCSCC_RC_SUCCESS !=
 			    mds_get_subtn_res_tbl_by_adest(svc_cb->svc_hdl, dest_svc_id, dest_vdest_id, anchor, &log_t_send_hdl)) {
 				/* m_MDS_LOG_ERR("MDS_SND_RCV: No Route FOUND from SVC id = %d "); */
-				m_MDS_LOG_ERR
-				    ("MDS_SND_RCV:No Route Found from SVC id = %d to SVC id = %d on ADEST <0x%08x, %u>",
-				     svc_cb->svc_id, dest_svc_id, m_MDS_GET_NODE_ID_FROM_ADEST(i_dest),
-				     m_MDS_GET_PROCESS_ID_FROM_ADEST(i_dest));
+				m_MDS_LOG_ERR("MDS_SND_RCV:No Route Found from svc_id = %s, to svc_id = %s on Adest = %s",
+				     ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[dest_svc_id], sub_info->sub_adest_details);
 				m_MDS_LOG_DBG("MDS_SND_RCV :L  mds_mcm_process_disc_queue_checks\n");
 				return NCSCC_RC_FAILURE;
 			} else {
@@ -2043,7 +2036,7 @@ static uint32_t mcm_process_await_active(MDS_SVC_INFO *svc_cb, MDS_SUBSCRIPTION_
 								     MDS_SVC_ARCHWORD_TYPE_UNSPECIFIED, &bcast_ptr,
 								     1))))) {
 			if (ncs_enc_init_space_pp(&req.msg.data.fullenc_uba, NCSUB_MDS_POOL, 0) != NCSCC_RC_SUCCESS) {
-				m_MDS_LOG_ERR("MDS_SND_RCV: encode full init failed svc_id=%d\n", svc_cb->svc_id);
+				m_MDS_LOG_ERR("MDS_SND_RCV: encode full init failed svc_id = %s\n", ncsmds_svc_names[svc_cb->svc_id]);
 				return NCSCC_RC_FAILURE;
 			}
 			req.msg.data.fullenc_uba.start = m_MMGR_DITTO_BUFR(bcast_ptr->bcast_enc);
@@ -2071,7 +2064,7 @@ static uint32_t mcm_process_await_active(MDS_SVC_INFO *svc_cb, MDS_SUBSCRIPTION_
 
 			status = svc_cb->cback_ptr(&cbinfo);
 			if (status != NCSCC_RC_SUCCESS) {
-				m_MDS_LOG_ERR("MDS_SND_RCV: CALLBACK ENC failed for svc_id=%d\n", svc_cb->svc_id);
+				m_MDS_LOG_ERR("MDS_SND_RCV: CALLBACK ENC failed for svc_id = %s\n", ncsmds_svc_names[svc_cb->svc_id]);
 				return NCSCC_RC_FAILURE;
 			}
 
@@ -2173,12 +2166,12 @@ static uint32_t mcm_pvt_red_svc_snd(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 	    mcm_pvt_red_snd_process_common(env_hdl, fr_svc_id, send_msg, to_dest, to_svc_id, req, pri, xch_id, anchor);
 
 	if (status == NCSCC_RC_SUCCESS) {
-		m_MDS_LOG_INFO("MDS_SND_RCV: RED send Message sent successfully from svc_id= %d, to svc_id=%d\n",
-			       fr_svc_id, to_svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: RED send Message sent successfully from svc_id = %s, to svc_id = %s\n",
+			       ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		return NCSCC_RC_SUCCESS;
 	} else {
-		m_MDS_LOG_ERR("MDS_SND_RCV: RED send Message sent Failed from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-			      to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: RED send Message sent Failed from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+			      ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		return status;
@@ -2232,7 +2225,7 @@ static uint32_t mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 
 	/* Get SVC_cb */
 	if (NCSCC_RC_SUCCESS != (mds_svc_tbl_get(pwe_hdl, src_svc_id, &hdl))) {
-		m_MDS_LOG_ERR("MDS_SND_RCV:SVC not present=%d\n", src_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: svc_id = %s not present\n", ncsmds_svc_names[src_svc_id]);
 		if (to_msg.msg_type == MSG_DIRECT_BUFF) {
 			return MDS_INT_RC_DIRECT_SEND_FAIL;	/* This is as the direct buff is freed at a common location */
 		}
@@ -2258,10 +2251,8 @@ static uint32_t mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 		if (NCSCC_RC_SUCCESS !=
 		    mds_mcm_process_disc_queue_checks_redundant(svc_cb, dest_svc_id, dest_vdest_id, dest, req)) {
 			/* m_MDS_LOG_ERR("MDS_SND_RCV:No Route Found\n"); */
-			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV:No Route Found from SVC id = %d to SVC id = %d on ADEST <0x%08x, %u>",
-			     fr_svc_id, to_svc_id, m_MDS_GET_NODE_ID_FROM_ADEST(to_dest),
-			     m_MDS_GET_PROCESS_ID_FROM_ADEST(to_dest));
+			m_MDS_LOG_ERR("MDS_SND_RCV:No Route Found from svc_id = %s, to svc_id = %s on Adest = %s",
+			     ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id], svc_cb->adest_details);
 			if (to_msg.msg_type == MSG_DIRECT_BUFF) {
 				return MDS_INT_RC_DIRECT_SEND_FAIL;	/* This is as the direct buff is freed at a common location */
 			}
@@ -2273,9 +2264,9 @@ static uint32_t mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 							       dest, &role_ret, &subs_result_hdl)) {
 		/* Destination Route Not Found */
 		subs_result_hdl = NULL;
-		m_MDS_LOG_ERR
-		    ("MDS_SND_RCV: Query for Destination failed, This case cannot exist as this has been validated before Src_svc=%d, Dest_scv=%d, vdest=%d, ADEST=%llx",
-		     svc_cb->svc_id, to_svc_id, dest_vdest_id, dest);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Query for Destination failed, This case cannot exist as \
+				this has been validated before src svc = %s, dest scv_id = %s, vdest=%d, Adest = %s",
+				ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[to_svc_id], dest_vdest_id, log_subs_result_hdl->sub_adest_details);
 		return NCSCC_RC_FAILURE;
 	}
 	mcm_query_for_node_dest_on_archword(dest, &to, subs_result_hdl->rem_svc_arch_word);
@@ -2312,7 +2303,7 @@ static uint32_t mds_mcm_process_disc_queue_checks_redundant(MDS_SVC_INFO *svc_cb
 	if (sub_info == NULL) {
 		/* No subscription to this */
 		/* Make a subscription to this service */
-		m_MDS_LOG_INFO("MDS_SND_RCV: No subscription to service=%d, Making subscription\n", dest_svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: No subscription to svc_id = %s, Making subscription\n", ncsmds_svc_names[dest_svc_id]);
 		mds_mcm_subtn_add(svc_cb->svc_hdl, dest_svc_id, svc_cb->install_scope,
 				  MDS_VIEW_RED /* redundantview */ , MDS_SUBTN_IMPLICIT);
 
@@ -2344,10 +2335,8 @@ static uint32_t mds_mcm_process_disc_queue_checks_redundant(MDS_SVC_INFO *svc_cb
 		/* m_MDS_LOG_ERR("MDS_SND_RCV: No Route FOUND \n"); */
 		if (NCSCC_RC_REQ_TIMOUT == disc_rc) {
 			/* We timed out waiting for a route */
-			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV:No Route Found from SVC id = %d to SVC id = %d to VDEST id = %d on  ADEST <0x%08x, %u>",
-			     svc_cb->svc_id, dest_svc_id, dest_vdest_id, m_MDS_GET_NODE_ID_FROM_ADEST(anchor),
-			     m_MDS_GET_PROCESS_ID_FROM_ADEST(anchor));
+			m_MDS_LOG_ERR("MDS_SND_RCV:No Route Found from svc_id = %s, to svc_id = %s to VDEST id = %d on Adest = %s",
+			     ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[dest_svc_id], dest_vdest_id, sub_info->sub_adest_details);
 		}
 		return NCSCC_RC_FAILURE;
 	} else {
@@ -2454,9 +2443,8 @@ static uint32_t mcm_pvt_normal_svc_sndrsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 	if (NCSCC_RC_SUCCESS != status) {
 		/* delete the created the sync send entry */
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
-		m_MDS_LOG_ERR
-		    ("MDS_SND_RCV: Normal sndrsp mesg SEND Failed from svc_id= %d, to svc_id=%d to_dest=%llx\n",
-		     fr_svc_id, to_svc_id, to_dest);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndrsp mesg SEND Failed from svc_id = %s, to svc_id = %s to_dest= %"PRIu64"\n",
+		     ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id], to_dest);
 		return status;
 	} else {
 		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
@@ -2519,7 +2507,7 @@ static uint32_t mds_await_active_tbl_del_entry(MDS_PWE_HDL env_hdl, MDS_SVC_ID f
 
 	/* Get SVC_cb */
 	if (NCSCC_RC_SUCCESS != (mds_svc_tbl_get(env_hdl, fr_svc_id, &hdl))) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: SVC not present=%d\n", fr_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: svc_id = %s not present\n", ncsmds_svc_names[fr_svc_id]);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -2606,7 +2594,7 @@ static uint32_t mcm_pvt_del_sync_send_entry(MDS_PWE_HDL env_hdl, MDS_SVC_ID fr_s
 
 	m_MDS_LOG_INFO("MDS_SND_RCV: Deleting the sync send entry with xch_id=%d\n", xch_id);
 	if (NCSCC_RC_SUCCESS != mds_svc_tbl_get(env_hdl, fr_svc_id, &hdl)) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: Service Doesnt exists svc_id=%d\n", fr_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Service Doesnt exists svc_id = %s\n", ncsmds_svc_names[fr_svc_id]);
 		return NCSCC_RC_FAILURE;
 	}
 	svc_cb = (MDS_SVC_INFO *)hdl;
@@ -2632,14 +2620,14 @@ static uint32_t mcm_pvt_del_sync_send_entry(MDS_PWE_HDL env_hdl, MDS_SVC_ID fr_s
 		}
 
 		svc_cb->sync_count--;
-		m_MDS_LOG_INFO("MDS_SND_RCV: Successfully Deleted the sync send entry with xch_id=%d, fr_svc_id=%d\n",
-			       xch_id, fr_svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: Successfully Deleted the sync send entry with xch_id=%d, From svc_id = %s\n",
+			       xch_id, ncsmds_svc_names[fr_svc_id]);
 		m_NCS_SEL_OBJ_DESTROY(&q_ptr->sel_obj);
 		m_MMGR_FREE_SYNC_SEND_QUEUE(q_ptr);
 		q_ptr = NULL;
 		return NCSCC_RC_SUCCESS;
 	}
-	m_MDS_LOG_ERR("MDS_SND_RCV: No Entry in Sync Send queue xch_id=%d, fr_svc_id=%d\n", xch_id, fr_svc_id);
+	m_MDS_LOG_ERR("MDS_SND_RCV: No Entry in Sync Send queue xch_id=%d, From svc_id = %s\n", xch_id, ncsmds_svc_names[fr_svc_id]);
 	return NCSCC_RC_FAILURE;
 }
 
@@ -2665,7 +2653,7 @@ static uint32_t mcm_pvt_create_sync_send_entry(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 
 	/* Validate PWE-Handle first:  */
 	if (NCSCC_RC_SUCCESS != mds_svc_tbl_get((MDS_PWE_HDL)env_hdl, fr_svc_id, &hdl)) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: SVC doesnt exists\n", fr_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: svc_is = %s doesnt exists\n", ncsmds_svc_names[fr_svc_id]);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -2807,8 +2795,8 @@ static uint32_t mcm_pvt_normal_svc_sndrack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id
 
 	if (NCSCC_RC_SUCCESS != status) {
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, msg_dest_adest);
-		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndrack mesg SEND Failed from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-			      to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndrack mesg SEND Failed from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+			      ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(msg_dest_adest);
 		return status;
@@ -2868,7 +2856,6 @@ static uint32_t mcm_pvt_process_sndrack_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 	uint8_t *data = NULL;
 	uint8_t to;
 	MDS_VDEST_ID dest_vdest_id = 0;
-
 	NCSCONTEXT hdl;
 	MDS_SUBSCRIPTION_RESULTS_INFO *log_subtn_result_info = NULL;
 
@@ -2901,7 +2888,7 @@ static uint32_t mcm_pvt_process_sndrack_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 
 	/* Get SVC_cb */
 	if (NCSCC_RC_SUCCESS != (mds_svc_tbl_get((MDS_PWE_HDL)env_hdl, fr_svc_id, &hdl))) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: svc not present=%d\n", fr_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: svc_id = %s not present\n", ncsmds_svc_names[fr_svc_id]);
 		if (to_msg.msg_type == MSG_DIRECT_BUFF) {
 			return MDS_INT_RC_DIRECT_SEND_FAIL;	/* This is as the direct buff is freed at a common location */
 		}
@@ -2920,12 +2907,12 @@ static uint32_t mcm_pvt_process_sndrack_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 	} else
 		dest = anchor;
 
-	if (NCSCC_RC_SUCCESS != mds_subtn_res_tbl_query_by_adest(svc_cb->svc_hdl, to_svc_id, dest_vdest_id, dest)) {
+	if (NCSCC_RC_SUCCESS != mds_get_subtn_res_tbl_by_adest(svc_cb->svc_hdl, to_svc_id, dest_vdest_id, dest, &log_subtn_result_info)) {
 		/* Check in subscriptions whether this exists */
 		if (NCSCC_RC_SUCCESS !=
 		    mds_mcm_process_disc_queue_checks_redundant(svc_cb, to_svc_id, dest_vdest_id, dest, req)) {
-			m_MDS_LOG_ERR("MDS_SND_RCV: Nwo_desto Route Found from svc_id=%d, to svc_id= %d",
-				      svc_cb->svc_id, to_svc_id);
+			 m_MDS_LOG_ERR("MDS_SND_RCV: Nwo_desto Route Found from svc_id = %s, to svc_id = %s Adest = <%"PRId64">",
+				      ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[to_svc_id], dest);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			if (to_msg.msg_type == MSG_DIRECT_BUFF) {
 				return MDS_INT_RC_DIRECT_SEND_FAIL;	/* This is as the direct buff is freed at a common location */
@@ -2939,9 +2926,9 @@ static uint32_t mcm_pvt_process_sndrack_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 							       dest, &role_ret, &subs_result_hdl)) {
 		/* Destination Route Not Found */
 		subs_result_hdl = NULL;
-		m_MDS_LOG_ERR
-		    ("MDS_SND_RCV: Query for Destination failed, This case cannot exist as this has been validated before Src_svc=%d, Dest_scv=%d, vdest=%d, ADEST=%llx",
-		     svc_cb->svc_id, to_svc_id, dest_vdest_id, dest);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Query for Destination failed, This case cannot exist as \
+				this has been validated before src svc_id = %s, dest scv_id = %s, vdest=%d, Adest = %s",
+				ncsmds_svc_names[svc_cb->svc_id], ncsmds_svc_names[to_svc_id], dest_vdest_id, log_subtn_result_info->sub_adest_details);
 		return NCSCC_RC_FAILURE;
 	}
 	mcm_query_for_node_dest_on_archword(dest, &to, subs_result_hdl->rem_svc_arch_word);
@@ -3047,8 +3034,8 @@ static uint32_t mcm_pvt_normal_svc_sndack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 	if (NCSCC_RC_SUCCESS != status) {
 		/* delete the created the sync send entry */
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
-		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndack message SEND Failed from svc_id= %d, to svc_id=%d\n",
-			      fr_svc_id, to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndack message SEND Failed from svc_id = %s, to svc_id = %s\n",
+			      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		return status;
 	} else {
@@ -3062,8 +3049,8 @@ static uint32_t mcm_pvt_normal_svc_sndack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 				m_MDS_LOG_INFO("MDS_SND_RCV: Successfully recd the ack also\n");
 				return NCSCC_RC_SUCCESS;
 			}
-			m_MDS_LOG_ERR("MDS_SND_RCV: Timeout occured on sndack message from svc_id=%d, to svc_id=%d",
-				      fr_svc_id, to_svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: Timeout occured on sndack message from svc_id = %s, to svc_id = %s",
+				      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			mds_await_active_tbl_del_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id,
 						       to_svc_id, m_MDS_GET_INTERNAL_VDEST_ID_FROM_MDS_DEST(to_dest),
@@ -3162,12 +3149,12 @@ static uint32_t mcm_pvt_normal_svc_snd_rsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id
 	    mcm_pvt_red_snd_process_common(env_hdl, fr_svc_id, send_msg, to_dest, to_svc_id, req, pri, xch_id, adest);
 
 	if (status == NCSCC_RC_SUCCESS) {
-		m_MDS_LOG_INFO("MDS_SND_RCV: Normal rsp Message sent successfully from svc_id= %d, to svc_id=%d\n",
-			       fr_svc_id, to_svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: Normal rsp Message sent successfully from svc_id = %s, to svc_id = %s\n",
+			       ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		return NCSCC_RC_SUCCESS;
 	} else {
-		m_MDS_LOG_ERR("MDS_SND_RCV: Normal rsp Message sent Failed from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-			      to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Normal rsp Message sent Failed from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+			      ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(adest);
 		return status;
@@ -3260,8 +3247,8 @@ static uint32_t mcm_pvt_red_svc_sndrsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 	if (NCSCC_RC_SUCCESS != status) {
 		/* delete the created the sync send entry */
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
-		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndrsp message SEND Failed from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-			      to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndrsp message SEND Failed from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+			      ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		return status;
@@ -3278,8 +3265,8 @@ static uint32_t mcm_pvt_red_svc_sndrsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 				m_MDS_LOG_INFO("MDS_SND_RCV: Successfully recd the response also\n");
 				return NCSCC_RC_SUCCESS;
 			}
-			m_MDS_LOG_ERR("MDS_SND_RCV: Timeout occured on red sndrsp message from svc_id=%d, to svc_id=%d",
-				      fr_svc_id, to_svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: Timeout occured on red sndrsp message from svc_id = %s, to svc_id = %s",
+				      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			m_MDS_ERR_PRINT_ANCHOR(anchor);
 
@@ -3406,8 +3393,8 @@ static uint32_t mcm_pvt_red_svc_sndrack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 
 	if (NCSCC_RC_SUCCESS != status) {
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, msg_dest_adest);
-		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndrack message SEND Failed from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-			      to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndrack message SEND Failed from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+			      ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		return status;
@@ -3536,8 +3523,8 @@ static uint32_t mcm_pvt_red_svc_sndack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 		/* delete the created the sync send entry */
 		printf("RED sndack message SEND Failed\n");
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
-		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndack message SEND Failed from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-			      to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndack message SEND Failed from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+			      ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		return status;
@@ -3653,12 +3640,12 @@ static uint32_t mcm_pvt_red_svc_snd_rsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 					   anchor_1);
 
 	if (status == NCSCC_RC_SUCCESS) {
-		m_MDS_LOG_INFO("MDS_SND_RCV: RED rsp Message sent successfully from svc_id= %d, to svc_id=%d\n",
-			       fr_svc_id, to_svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: RED rsp Message sent successfully from svc_id = %s, to svc_id = %s\n",
+			       ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		return NCSCC_RC_SUCCESS;
 	} else {
-		m_MDS_LOG_ERR("MDS_SND_RCV: RED rsp Message sent Failed from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-			      to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: RED rsp Message sent Failed from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+			      ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		return status;
@@ -3740,8 +3727,8 @@ static uint32_t mcm_pvt_normal_svc_bcast(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 
 	mcm_pvt_process_svc_bcast_common(env_hdl, fr_svc_id, to_msg, to_svc_id, req,
 					 scope, pri, 0 /* For normal=0, red=1 */ );
-	m_MDS_LOG_INFO("MDS_SND_RCV: Normal Bcast Message sent successfully from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-		       to_svc_id);
+	m_MDS_LOG_INFO("MDS_SND_RCV: Normal Bcast Message sent successfully from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+		       ncsmds_svc_names[to_svc_id]);
 	return NCSCC_RC_SUCCESS;	/* This is why because broadcast whether sends or not should return Success */
 }
 
@@ -3784,7 +3771,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 
 	/* Get SVC_cb */
 	if (NCSCC_RC_SUCCESS != mds_svc_tbl_get(pwe_hdl, fr_svc_id, &hdl)) {
-		m_MDS_LOG_ERR("MCM: SVC not present=%d\n", fr_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: svc_id = %s not present\n", ncsmds_svc_names[fr_svc_id]);
 		if (to_msg.msg_type == MSG_DIRECT_BUFF) {
 			return MDS_INT_RC_DIRECT_SEND_FAIL;	/* This is as the direct buff is freed at a common location */
 		}
@@ -3796,7 +3783,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 	mds_subtn_tbl_get(svc_cb->svc_hdl, to_svc_id, &sub_info);
 
 	if (scope < NCSMDS_SCOPE_INTRANODE || scope > NCSMDS_SCOPE_NONE) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: bcast scope not supported, svc-id=%d, scope=%d", fr_svc_id, scope);
+		m_MDS_LOG_ERR("MDS_SND_RCV: bcast scope not supported, svc_id = %s, scope=%d", ncsmds_svc_names[fr_svc_id], scope);
 		if (to_msg.msg_type == MSG_DIRECT_BUFF) {
 			return MDS_INT_RC_DIRECT_SEND_FAIL;	/* This is as the direct buff is freed at a common location */
 		}
@@ -3806,8 +3793,8 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 	if (sub_info == NULL) {
 		/* No subscription to this */
 		/* Make a subscription to this service */
-		m_MDS_LOG_INFO("MDS_SND_RCV: Broadcast :No subscription to service=%d, Making subscription\n",
-			       to_svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: Broadcast :No subscription to svc_id = %s, Making subscription\n",
+			       ncsmds_svc_names[to_svc_id]);
 		mds_mcm_subtn_add(svc_cb->svc_hdl, to_svc_id, svc_cb->install_scope, MDS_VIEW_RED /* redundantview */ ,
 				  MDS_SUBTN_IMPLICIT);
 
@@ -3890,9 +3877,9 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 				req, 0, info_result->key.adest, pri);
 		if ((svc_cb->subtn_info->prev_ver_sub_count == 0) && (strcmp(tipc_or_tcp, "TIPC") == 0)
 				&& (to_msg.data.info.len < MDS_DIRECT_BUF_MAXSIZE)) {
-			m_MDS_LOG_DBG("MDTM: Break while(1) prev_ver_sub_count: %d  SVCid =%d  data.len: %d ", 
+				m_MDS_LOG_DBG("MDTM: Break while(1) prev_ver_sub_count: %d  svc_id =%s  data.len: %d ",
 					svc_cb->subtn_info->prev_ver_sub_count,
-					m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl), to_msg.data.info.len);	
+					ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl)], to_msg.data.info.len);	
 			if (status == NCSCC_RC_SUCCESS) {
 				/* Break after one successful Mcast message */
 				break;
@@ -3997,8 +3984,8 @@ static uint32_t mcm_pvt_red_svc_bcast(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 
 	mcm_pvt_process_svc_bcast_common(env_hdl, fr_svc_id, to_msg, to_svc_id, req,
 					 scope, pri, 1 /* For normal=0, red=1 */ );
-	m_MDS_LOG_INFO("MDS_SND_RCV: RED Bcast Message sent successfully from svc_id= %d, to svc_id=%d\n", fr_svc_id,
-		       to_svc_id);
+	m_MDS_LOG_INFO("MDS_SND_RCV: RED Bcast Message sent successfully from svc_id = %s, to svc_id = %s\n", ncsmds_svc_names[fr_svc_id],
+		       ncsmds_svc_names[to_svc_id]);
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -4056,8 +4043,10 @@ uint32_t mds_mcm_ll_data_rcv(MDS_DATA_RECV *recv)
 		if ( NCSCC_RC_SUCCESS == mds_get_subtn_res_tbl_by_adest(recv->dest_svc_hdl, recv->src_svc_id,
 					recv->src_vdest, recv->src_adest, &lcl_subtn_res) ) {
 			if (recv->src_seq_num != lcl_subtn_res->msg_rcv_cnt) {
-				m_MDS_LOG_ERR
-					("MDS_SND_RCV: msg loss detected, Src SVC=%d, Src vdest id= %d, Src adest=%llu, local svc id=%d msg num=%d, recvd cnt=%d\n", recv->src_svc_id, recv->src_vdest, recv->src_adest, svccb->svc_id, recv->src_seq_num, lcl_subtn_res->msg_rcv_cnt);
+				m_MDS_LOG_ERR("MDS_SND_RCV: msg loss detected, Src svc_id = %s, Src vdest id= %d,\
+						Src Adest = %"PRIu64", local svc_id = %s msg num=%d, recvd cnt=%d\n",
+						ncsmds_svc_names[recv->src_svc_id], recv->src_vdest, recv->src_adest, 
+						ncsmds_svc_names[svccb->svc_id], recv->src_seq_num, lcl_subtn_res->msg_rcv_cnt);
 				
 				mds_mcm_msg_loss(recv->dest_svc_hdl, recv->src_adest, 
 					recv->src_svc_id, recv->src_vdest);
@@ -4395,7 +4384,7 @@ static uint32_t mds_mcm_process_recv_snd_msg_common(MDS_SVC_INFO *svccb, MDS_DAT
 		rc = svccb->cback_ptr(&cbinfo);
 		if (rc != NCSCC_RC_SUCCESS) {
 			mds_mcm_free_msg_memory(recv->msg);
-			m_MDS_LOG_ERR("MDS_SND_RCV: Receive callback failed<Svc=%d>", svccb->svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: Receive callback failed svc_id = %s", ncsmds_svc_names[svccb->svc_id]);
 			return NCSCC_RC_FAILURE;
 		}
 
@@ -4736,7 +4725,7 @@ static uint32_t mds_mcm_process_rcv_snd_rsp_common(MDS_SVC_INFO *svccb, MDS_DATA
 				result->sent_msg = cbinfo.info.dec_flat.o_msg;
 			}
 		} else {
-			m_MDS_LOG_ERR("MDS_SND_RCV: decode full or flat failed=%d\n", svccb->svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: decode full or flat failed svc_id = %s\n", ncsmds_svc_names[svccb->svc_id]);
 			mds_mcm_free_msg_memory(recv->msg);
 			return NCSCC_RC_FAILURE;
 		}
@@ -4946,7 +4935,7 @@ static uint32_t mds_mcm_do_decode_full_or_flat(MDS_SVC_INFO *svccb, NCSMDS_CALLB
 		m_MDS_LOG_DBG("MDS_SND_RCV : calling callback ptr\n");
 
 		if ((rc = svccb->cback_ptr(cbinfo)) != NCSCC_RC_SUCCESS) {
-			m_MDS_LOG_ERR("MDS_SND_RCV: Decode full callback failed<Svc=%d>", svccb->svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: Decode full callback failed svc_id = %s", ncsmds_svc_names[svccb->svc_id]);
 			rc = NCSCC_RC_FAILURE;
 		}
 
@@ -4964,7 +4953,7 @@ static uint32_t mds_mcm_do_decode_full_or_flat(MDS_SVC_INFO *svccb, NCSMDS_CALLB
 		m_MDS_LOG_DBG("MDS_SND_RCV : calling callback ptr\n");
 
 		if ((rc = svccb->cback_ptr(cbinfo)) != NCSCC_RC_SUCCESS) {
-			m_MDS_LOG_ERR("MDS_SND_RCV: Decode-flat callback failed<Svc=%d>", svccb->svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: Decode-flat callback failed svc_id = %s", ncsmds_svc_names[svccb->svc_id]);
 			rc = NCSCC_RC_FAILURE;
 		}
 
@@ -5125,8 +5114,8 @@ static uint32_t mcm_pvt_normal_svc_sndrsp_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_
 
 	if (NCSCC_RC_SUCCESS != ret_status) {
 		/* delete the created the sync send entry */
-		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndrsp direct message SEND Failed from svc_id =%d to svc_id =%d",
-			      fr_svc_id, to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndrsp direct message SEND Failed From svc_id = %s to svc_id = %s",
+			      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 		return ret_status;
@@ -5147,8 +5136,8 @@ static uint32_t mcm_pvt_normal_svc_sndrsp_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_
 				return NCSCC_RC_SUCCESS;
 			}
 			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV: Timeout occured on  Direct sndrsp direct message from svc_id =%d to svc_id =%d",
-			     fr_svc_id, to_svc_id);
+			    ("MDS_SND_RCV: Timeout occured on  Direct sndrsp direct message From svc_id = %s to svc_id = %s",
+			     ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			mds_await_active_tbl_del_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id,
 						       to_svc_id, m_MDS_GET_INTERNAL_VDEST_ID_FROM_MDS_DEST(to_dest),
@@ -5213,8 +5202,8 @@ static uint32_t mcm_pvt_normal_svc_sndack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_
 
 	if (NCSCC_RC_SUCCESS != ret_status) {
 		/* delete the created the sync send entry */
-		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndack direct message SEND Failed from svc_id=%d to svc_id=%d",
-			      fr_svc_id, to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndack direct message SEND Failed from svc_id = %s to svc_id = %s",
+			      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 		return ret_status;
@@ -5232,8 +5221,8 @@ static uint32_t mcm_pvt_normal_svc_sndack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_
 				return NCSCC_RC_SUCCESS;
 			}
 			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV: Timeout occured on sndack direct message from svc_id=%d to svc_id=%d",
-			     fr_svc_id, to_svc_id);
+			    ("MDS_SND_RCV: Timeout occured on sndack direct message from svc_id = %s to svc_id = %s",
+			     ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			mds_await_active_tbl_del_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id,
 						       to_svc_id, m_MDS_GET_INTERNAL_VDEST_ID_FROM_MDS_DEST(to_dest),
@@ -5307,8 +5296,8 @@ static uint32_t mcm_pvt_normal_svc_sndrack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr
 	ret_status = mcm_pvt_process_sndrack_common(env_hdl, fr_svc_id, send_msg, to_dest, to_svc_id, req, pri, 0);
 
 	if (NCSCC_RC_SUCCESS != ret_status) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndrack direct message SEND Failed from svc_id=%d to svc_id=%d",
-			      fr_svc_id, to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: Normal sndrack direct message SEND Failed from svc_id = %s to svc_id = %s",
+			      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, msg_dest_adest);
 		return ret_status;
@@ -5325,8 +5314,8 @@ static uint32_t mcm_pvt_normal_svc_sndrack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr
 				return NCSCC_RC_SUCCESS;
 			}
 			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV: Timeout occured on Normal sndrack direct messagefrom svc_id=%d to svc_id=%d",
-			     fr_svc_id, to_svc_id);
+			    ("MDS_SND_RCV: Timeout occured on Normal sndrack direct messagefrom svc_id = %s to svc_id = %s",
+			     ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			mds_await_active_tbl_del_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id,
 						       to_svc_id, m_MDS_GET_INTERNAL_VDEST_ID_FROM_MDS_DEST(to_dest),
@@ -5434,8 +5423,8 @@ static uint32_t mcm_pvt_red_svc_sndrsp_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_svc
 
 	if (NCSCC_RC_SUCCESS != ret_status) {
 		/* delete the created the sync send entry */
-		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndrsp direct message SEND Failed from svc_id=%d to svc_id=%d",
-			      fr_svc_id, to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndrsp direct message SEND Failed from svc_id = %s to svc_id = %s",
+			      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
@@ -5455,8 +5444,8 @@ static uint32_t mcm_pvt_red_svc_sndrsp_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_svc
 				return NCSCC_RC_SUCCESS;
 			}
 			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV: Timeout occured on RED sndrsp direct message Failed from svc_id=%d to svc_id=%d",
-			     fr_svc_id, to_svc_id);
+			    ("MDS_SND_RCV: Timeout occured on RED sndrsp direct message Failed from svc_id = %s to svc_id = %s",
+			     ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			m_MDS_ERR_PRINT_ANCHOR(anchor);
 			mds_await_active_tbl_del_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id,
@@ -5534,8 +5523,8 @@ static uint32_t mcm_pvt_red_svc_sndrack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 	ret_status = mcm_pvt_process_sndrack_common(env_hdl, fr_svc_id, send_msg, to_dest, to_svc_id, req, pri, anchor);
 
 	if (NCSCC_RC_SUCCESS != ret_status) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndrack direct message SEND Failed Failed from svc_id=%d to svc_id=%d",
-			      fr_svc_id, to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndrack direct message SEND Failed Failed from svc_id = %s to svc_id = %s",
+			      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, msg_dest_adest);
@@ -5552,8 +5541,8 @@ static uint32_t mcm_pvt_red_svc_sndrack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 				return NCSCC_RC_SUCCESS;
 			}
 			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV: Timeout occured on  RED sndrack direct message Failed from svc_id=%d to svc_id=%d",
-			     fr_svc_id, to_svc_id);
+			    ("MDS_SND_RCV: Timeout occured on  RED sndrack direct message Failed from svc_id = %s to svc_id = %s",
+			     ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			m_MDS_ERR_PRINT_ANCHOR(anchor);
 			mds_await_active_tbl_del_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id,
@@ -5619,8 +5608,8 @@ static uint32_t mcm_pvt_red_svc_sndack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_svc
 
 	if (NCSCC_RC_SUCCESS != ret_status) {
 		/* delete the created the sync send entry */
-		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndack direct message SEND Failed from svc_id=%d to svc_id=%d",
-			      fr_svc_id, to_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: RED sndack direct message SEND Failed from svc_id = %s to svc_id = %s",
+			      ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
@@ -5636,9 +5625,8 @@ static uint32_t mcm_pvt_red_svc_sndack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_svc
 				m_MDS_LOG_INFO("MDS_SND_RCV: Successfully recd the ack also\n");
 				return NCSCC_RC_SUCCESS;
 			}
-			m_MDS_LOG_ERR
-			    ("MDS_SND_RCV: Timeout occured on RED sndack direct  message from svc_id=%d to svc_id=%d",
-			     fr_svc_id, to_svc_id);
+			m_MDS_LOG_ERR("MDS_SND_RCV: Timeout occured on RED sndack direct  message from svc_id = %s to svc_id = %s",
+			     ncsmds_svc_names[fr_svc_id], ncsmds_svc_names[to_svc_id]);
 			m_MDS_ERR_PRINT_ADEST(to_dest);
 			m_MDS_ERR_PRINT_ANCHOR(anchor);
 			mds_await_active_tbl_del_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id,
@@ -5853,9 +5841,8 @@ uint32_t mds_retrieve(NCSMDS_INFO *info)
 		while ((msgelem = (MDS_MCM_MSG_ELEM *)m_NCS_IPC_NON_BLK_RECEIVE(&local_mbx, NULL)) != NULL) {
 			/* IR Fix 82530 */
 			if (mds_mailbox_proc(msgelem, svc_cb) == NCSCC_RC_NO_OBJECT) {
-				m_MDS_LOG_INFO
-				    ("MDS_SND_RCV: Svc doesnt exists after calling the mailbox_proc, when called(MDS Q-Ownership,DIS-ALL), svc_id=%d",
-				     svc_id);
+				m_MDS_LOG_INFO("MDS_SND_RCV: Svc doesnt exists after calling the mailbox_proc, when called(MDS Q-Ownership,DIS-ALL), svc_id = %s",
+				     ncsmds_svc_names[svc_id]);
 				return NCSCC_RC_FAILURE;
 			}
 			msgelem = NULL;
@@ -5918,14 +5905,13 @@ static uint32_t mds_mailbox_proc(MDS_MCM_MSG_ELEM *msgelem, MDS_SVC_INFO *svc_cb
 						mds_mcm_free_msg_memory(msgelem->info.data.enc_msg);
 					}
 					status = NCSCC_RC_NO_OBJECT;
-					m_MDS_LOG_INFO
-					    ("MDS_SND_RCV: Service doesnt exists : after calling the callback dec_full(MDS Q-Ownership), svc_id=%d",
-					     svc_id);
+					m_MDS_LOG_INFO("MDS_SND_RCV: Service doesnt exists : after calling the callback dec_full(MDS Q-Ownership), svc_id = %s",
+					     ncsmds_svc_names[svc_id]);
 					goto out2;
 				}
 
 				if (status != NCSCC_RC_SUCCESS) {
-					m_MDS_LOG_ERR("MDS_SND_RCV: decode full failed of SVC=%d\n", svc_id);
+					m_MDS_LOG_ERR("MDS_SND_RCV: decode full failed of svc_id = %s\n", ncsmds_svc_names[svc_id]);
 					goto out2;
 				}
 
@@ -5957,14 +5943,13 @@ static uint32_t mds_mailbox_proc(MDS_MCM_MSG_ELEM *msgelem, MDS_SVC_INFO *svc_cb
 						mds_mcm_free_msg_memory(msgelem->info.data.enc_msg);
 					}
 					status = NCSCC_RC_NO_OBJECT;
-					m_MDS_LOG_INFO
-					    ("MDS_SND_RCV: Service doesnt exists : after calling the callback dec_flat(MDS Q-Ownership), svc_id=%d",
-					     svc_id);
+					m_MDS_LOG_INFO("MDS_SND_RCV: Service doesnt exists : after calling the callback dec_flat(MDS Q-Ownership), svc_id = %s",
+					     ncsmds_svc_names[svc_id]);
 					goto out2;
 				}
 
 				if (status != NCSCC_RC_SUCCESS) {
-					m_MDS_LOG_ERR("MDS_SND_RCV: decode flat failed of SVC=%d\n", svc_id);
+					m_MDS_LOG_ERR("MDS_SND_RCV: decode flat failed of svc_id = %s\n", ncsmds_svc_names[svc_id]);
 					goto out2;
 				}
 
@@ -6072,9 +6057,8 @@ static uint32_t mds_mailbox_proc(MDS_MCM_MSG_ELEM *msgelem, MDS_SVC_INFO *svc_cb
 		osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 
 		if (mds_validate_svc_cb(svc_cb, svc_hdl, svc_id) != NCSCC_RC_SUCCESS) {
-			m_MDS_LOG_INFO
-			    ("MDS_SND_RCV: Service doesnt exists : after calling the callback rec or direct_rec(MDS Q-Ownership), svc_id=%d",
-			     svc_id);
+			m_MDS_LOG_INFO("MDS_SND_RCV: Service doesnt exists : after calling the callback rec or direct_rec(MDS Q-Ownership), svc_id = %s",
+			     ncsmds_svc_names[svc_id]);
 			status = NCSCC_RC_NO_OBJECT;
 		}
 
@@ -6098,9 +6082,8 @@ static uint32_t mds_mailbox_proc(MDS_MCM_MSG_ELEM *msgelem, MDS_SVC_INFO *svc_cb
 		osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 
 		if (mds_validate_svc_cb(svc_cb, svc_hdl, svc_id) != NCSCC_RC_SUCCESS) {
-			m_MDS_LOG_INFO
-			    ("MDS_SND_RCV: Service doesnt exists : after calling the callback for the Events(MDS Q-Ownership), svc_id=%d",
-			     svc_id);
+			m_MDS_LOG_INFO("MDS_SND_RCV: Service doesnt exists : after calling the callback for the Events(MDS Q-Ownership), svc_id = %s",
+			     ncsmds_svc_names[svc_id]);
 			status = NCSCC_RC_NO_OBJECT;
 		}
 
@@ -6126,16 +6109,15 @@ static uint32_t mds_validate_svc_cb(MDS_SVC_INFO *svc_cb, MDS_SVC_HDL svc_hdl, M
 	NCSCONTEXT hdl;
 
 	if (NCSCC_RC_SUCCESS != mds_svc_tbl_get(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(svc_hdl), svc_id, &hdl)) {
-		m_MDS_LOG_INFO
-		    ("MDS_SND_RCV: Service Uninstalled while calling the callback's in MDS Q-Ownership model, svc_id=%d",
-		     svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: Service Uninstalled while calling the callback's in MDS Q-Ownership model, svc_id = %s",
+		     ncsmds_svc_names[svc_id]);
 		return NCSCC_RC_FAILURE;
 	}
 
 	local_svc_cb = (MDS_SVC_INFO *)(hdl);
 
 	if (svc_cb != local_svc_cb) {
-		m_MDS_LOG_INFO("MDS_SND_RCV: Service Uninstalled and installed again, svc_id=%d", svc_id);
+		m_MDS_LOG_INFO("MDS_SND_RCV: Service Uninstalled and installed again, svc_id = %s", ncsmds_svc_names[svc_id]);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -6177,6 +6159,7 @@ uint32_t mds_await_active_tbl_send(MDS_AWAIT_ACTIVE_QUEUE *hdr,
 				req.dest_vdest_id, adest, &lcl_subtn_res);
 		req.svc_seq_num = lcl_subtn_res->msg_snd_cnt++;
 		req.adest = adest;
+
 		strcpy(req.sub_adest_details, lcl_subtn_res->sub_adest_details);
 		mds_mdtm_send(&req);
 		mov_ptr = queue;

@@ -549,8 +549,8 @@ uint32_t mds_mdtm_send_tcp(MDTM_SEND_REQ *req)
 				uint32_t len = 0;
 				len = m_MMGR_LINK_DATA_LEN(usrbuf);	/* Getting total len */
 
-				m_MDS_LOG_INFO("MDTM: User Sending Data lenght=%d Fr_svc=%d to_svc=%d\n", len,
-					       req->src_svc_id, req->dest_svc_id);
+				m_MDS_LOG_INFO("MDTM: User Sending Data lenght=%d From svc_id = %s to svc_id = %s\n", len,
+					       ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
 
 				if (len > MDS_DIRECT_BUF_MAXSIZE) {
 					/* Packet needs to be fragmented and send */
@@ -613,8 +613,8 @@ uint32_t mds_mdtm_send_tcp(MDTM_SEND_REQ *req)
 					return NCSCC_RC_FAILURE;
 				}
 
-				m_MDS_LOG_INFO("MDTM: User Sending Data len=%d Fr_svc=%d to_svc=%d\n",
-					       req->msg.data.buff_info.len, req->src_svc_id, req->dest_svc_id);
+				m_MDS_LOG_INFO("MDTM: User Sending Data len=%d From svc_id = %s to svc_id = %s\n",
+					       req->msg.data.buff_info.len, ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
 
 				uint8_t body[req->msg.data.buff_info.len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP];
 
@@ -680,7 +680,7 @@ void mdtm_process_poll_recv_data_tcp(void)
 
 			recd_bytes = recv(tcp_cb->DBSRsock, tcp_cb->len_buff, 2, MSG_NOSIGNAL);
 			if (0 == recd_bytes) {
-				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
+				syslog(LOG_ERR, "MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 				close(tcp_cb->DBSRsock);
 				exit(0);
 			} else if (2 == recd_bytes) {
@@ -694,14 +694,14 @@ void mdtm_process_poll_recv_data_tcp(void)
 				if (NULL == (tcp_cb->buffer = calloc(1, (local_len_buf + 1)))) {
 					/* Length + 2 is done to reuse the same buffer 
 					   while sending to other nodes */
-					LOG_ER("Memory allocation failed in dtm_intranode_processing");
+					syslog(LOG_ERR, "Memory allocation failed in dtm_intranode_processing");
 					return;
 				}
 				recd_bytes = recv(tcp_cb->DBSRsock, tcp_cb->buffer, local_len_buf, 0);
 				if (recd_bytes < 0) {
 					return;
 				} else if (0 == recd_bytes) {
-					LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
+					syslog(LOG_ERR, "MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 					close(tcp_cb->DBSRsock);
 					exit(0);
 				} else if (local_len_buf > recd_bytes) {
@@ -748,7 +748,7 @@ void mdtm_process_poll_recv_data_tcp(void)
 				tcp_cb->buff_total_len = ncs_decode_16bit(&data);
 				return;
 			} else if (0 == recd_bytes) {
-				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
+				syslog(LOG_ERR, "MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 				close(tcp_cb->DBSRsock);
 				exit(0);
 			} else {
@@ -760,14 +760,14 @@ void mdtm_process_poll_recv_data_tcp(void)
 			if (NULL == (tcp_cb->buffer = calloc(1, (tcp_cb->buff_total_len + 1)))) {
 				/* Length + 2 is done to reuse the same buffer 
 				   while sending to other nodes */
-				LOG_ER("Memory allocation failed in dtm_internode_processing");
+				syslog(LOG_ERR, "Memory allocation failed in dtm_internode_processing");
 				return;
 			}
 			recd_bytes = recv(tcp_cb->DBSRsock, tcp_cb->buffer, tcp_cb->buff_total_len, 0);
 			if (recd_bytes < 0) {
 				return;
 			} else if (0 == recd_bytes) {
-				LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
+				syslog(LOG_ERR, "MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 				close(tcp_cb->DBSRsock);
 				exit(0);
 			} else if (tcp_cb->buff_total_len > recd_bytes) {
@@ -801,7 +801,7 @@ void mdtm_process_poll_recv_data_tcp(void)
 		if (recd_bytes < 0) {
 			return;
 		} else if (0 == recd_bytes) {
-			LOG_ER("MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
+			syslog(LOG_ERR, "MDTM:socket_recv() = %d, conn lost with dh server, exiting library err :%s", recd_bytes, strerror(errno));
 			close(tcp_cb->DBSRsock);
 			exit(0);
 		} else if (tcp_cb->bytes_tb_read > recd_bytes) {
