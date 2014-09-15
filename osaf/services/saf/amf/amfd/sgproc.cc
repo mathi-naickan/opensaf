@@ -301,12 +301,23 @@ static uint32_t sg_su_failover_func(AVD_SU *su)
 		   initiation of node level operation on the list of SUs. So if this SU has 
 		   list of SUSIs, AMF would have sent assignment as a part of node level operation.
 		   Now SUSIs in this SU are going to be deleted so we can decrement the counter in node.
+		   In case of Node unlock this counter is incremented per susi. So decrement 
+		   should also be done per susi.
 		 */ 
-		su->su_on_node->su_cnt_admin_oper--;
+		
+		SaAisErrorT res = SA_AIS_OK;
+		if (su->su_on_node->saAmfNodeAdminState == SA_AMF_ADMIN_UNLOCKED) {
+			for (AVD_SU_SI_REL *susi = su->list_of_susi; susi; susi = susi->su_next) {
+				if (susi->fsm == AVD_SU_SI_STATE_ASGN) 
+					su->su_on_node->su_cnt_admin_oper--;
+			}
+			res = SA_AIS_ERR_TIMEOUT;
+		} else
+			su->su_on_node->su_cnt_admin_oper--;
 
 		/* If node level operation is finished on all the SUs, reply to imm.*/
 		if (su->su_on_node->su_cnt_admin_oper == 0)
-			node_complete_admin_op(su->su_on_node, SA_AIS_OK);
+			node_complete_admin_op(su->su_on_node, res);
 	}
 
 	/*If the AvD is in AVD_APP_STATE then reassign all the SUSI assignments for this SU */
