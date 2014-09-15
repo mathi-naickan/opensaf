@@ -37,6 +37,52 @@
 #include "ncssysf_mem.h"
 #include "osaf_utility.h"
 
+/**************************************************************************
+ * SVC_NAME  of Service : A well known name that a service 
+ ***************************************************************************/
+const char ncsmds_svc_names[NCSMDS_SVC_ID_NCSMAX][MAX_SVC_NAME_LEN] =
+{
+        "UNKNOWN(0)",
+        "DTS(1)",
+        "DTA(2)",
+        "GLA(3)",
+        "GLND(4)",
+        "GLD(5)",
+        "VDA(6)",
+        "EDS(7)",
+        "EDA(8)",
+        "MQA(9)",
+        "MQND(10)",
+        "MQD(11)",
+        "AVD(12)",
+        "AVND(13)",
+        "AVA(14)",
+        "CLA(15)",
+        "CPD(16)",
+        "CPND(17)",
+        "CPA(18)",
+        "MBCSV(19)",
+        "LGS(20)",
+        "LGA(21)",
+        "AVND_CNTLR(22)",
+        "GFM(23)",
+        "IMMD(24)",
+        "IMMND(25)",
+        "IMMA_OM(26)",
+        "IMMA_OI(27)",
+        "NTFS(28)",
+        "NTFA(29)",
+        "SMFD(30)",
+        "SMFND(31)",
+        "SMFA(32)",
+        "RDE(33)",
+        "CLMS(34)",
+        "CLMA(35)",
+        "CLMNA(36)",
+        "PLMS(37)",
+        "PLMS_HRB(38)",
+        "PLMA(39)",
+};
 /****************************************************************************
  *
  * Function Name: ncsmds_api

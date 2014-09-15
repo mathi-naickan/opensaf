@@ -194,6 +194,12 @@ extern "C" {
 		NCSMDS_SVC_ID_EXTERNAL_MIN = 512,
 	} NCSMDS_SVC_ID;
 
+#define MAX_SVC_NAME_LEN 30 /*NID_MAX_SVC_NAME_LEN is 15 so keeping some buffer*/
+/**************************************************************************
+ * SVC_NAME  of Service : A well known name that a service 
+ ***************************************************************************/
+extern const char ncsmds_svc_names[NCSMDS_SVC_ID_NCSMAX][MAX_SVC_NAME_LEN];
+
 /*
  * NCSMDS_MAX_PWES
  *
