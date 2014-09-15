@@ -438,7 +438,7 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 		{
 			char buff[50], pref[50];
 			snprintf(buff, sizeof(buff), PKGLOGDIR "/mds.log");
-			snprintf(pref, sizeof(pref), "<%u>", mds_tipc_ref);
+			memset(pref, 0 ,sizeof(pref));
 			mds_log_init(buff, pref);
 		}
 

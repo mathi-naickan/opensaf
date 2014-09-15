@@ -25,11 +25,42 @@
 #include "mds_log.h"
 #include "mds_dt2c.h"		/* Include for arch-word definitions */
 
-static char log_line_prefix[40];
+#define MAX_PROCESS_NAME 255
 static char *lf = NULL;
 
 static void log_mds(const char *str);
+static char process_name[MAX_PROCESS_NAME];
 
+/*****************************************************
+ Function NAME: get_process_name()
+ Returns : <process_name>[<pid> or <tipc_port_ref>]
+*****************************************************/
+static void get_process_name(void)
+{
+	char name[1024];
+	uint32_t process_id = getpid();
+	char *token;
+
+	sprintf(name, "/proc/%d/cmdline", process_id);
+	FILE* f = fopen(name,"r");
+	if(f){
+		size_t size;
+		size = fread(name, sizeof(char), 1024, f);
+		if(size>0){
+			if('\n'==name[size-1])
+				name[size-1]='\0';
+		}
+		fclose(f);
+	}
+	token = strtok(name, "/");
+	while( token != NULL )
+	{
+		strcpy(name,token);
+		token = strtok(NULL, "/");
+	}
+	snprintf(process_name, MAX_PROCESS_NAME, "%s[%d]", name, process_id);
+	return;
+}
 /*******************************************************************************
 * Funtion Name   :    mds_log_init
 *
@@ -44,13 +75,10 @@ static char mds_log_fname[MAX_MDS_FNAME_LEN];
 uint32_t mds_log_init(char *log_file_name, char *line_prefix)
 {
 	FILE *fh;
-	uint32_t process_id = 0;
-
-	process_id = (uint32_t)getpid();
+	memset(process_name, 0, MAX_PROCESS_NAME);
+	get_process_name();	
 
 	/* Copy the log-line-prefix */
-	strncpy(log_line_prefix, line_prefix, sizeof(log_line_prefix) - 1);
-	log_line_prefix[sizeof(log_line_prefix) - 1] = 0;	/* Terminate string */
 
 	if (lf != NULL)
 		return NCSCC_RC_FAILURE;
@@ -64,8 +92,8 @@ uint32_t mds_log_init(char *log_file_name, char *line_prefix)
 
 	if ((fh = fopen(lf, "a+")) != NULL) {
 		fclose(fh);
-		log_mds_notify("BEGIN MDS LOGGING| PID=%d|ARCHW=%x|64bit=%ld\n",
-			       process_id, MDS_SELF_ARCHWORD, (long)MDS_WORD_SIZE_TYPE);
+		log_mds_notify("BEGIN MDS LOGGING| PID=<%s> | ARCHW=%x|64bit=%ld\n",
+				process_name, MDS_SELF_ARCHWORD, (long)MDS_WORD_SIZE_TYPE);
 	}
 
 	return NCSCC_RC_SUCCESS;
@@ -85,7 +113,7 @@ void log_mds_critical(char *fmt, ...)
 	int i;
 	va_list ap;
 
-	i = snprintf(str, sizeof(str), "CRITICAL    |");
+	i = snprintf(str, sizeof(str), "%s CRITICAL  |", process_name);
 	va_start(ap, fmt);
 	vsnprintf(str + i, sizeof(str) - i, fmt, ap);
 	va_end(ap);
@@ -106,7 +134,7 @@ void log_mds_err(char *fmt, ...)
 	int i;
 	va_list ap;
 
-	i = snprintf(str, sizeof(str), "ERR    |");
+	i = snprintf(str, sizeof(str), "%s ERR  |", process_name); 
 	va_start(ap, fmt);
 	vsnprintf(str + i, sizeof(str) - i, fmt, ap);
 	va_end(ap);
@@ -127,7 +155,7 @@ void log_mds_notify(char *fmt, ...)
 	int i;
 	va_list ap;
 
-	i = snprintf(str, sizeof(str), "NOTIFY |");
+	i = snprintf(str, sizeof(str), "%s NOTIFY  |", process_name);
 	va_start(ap, fmt);
 	vsnprintf(str + i, sizeof(str) - i, fmt, ap);
 	va_end(ap);
@@ -148,7 +176,7 @@ void log_mds_info(char *fmt, ...)
 	int i;
 	va_list ap;
 
-	i = snprintf(str, sizeof(str), "INFO   |");
+	i = snprintf(str, sizeof(str), "%s INFO  |", process_name);
 	va_start(ap, fmt);
 	vsnprintf(str + i, sizeof(str) - i, fmt, ap);
 	va_end(ap);
@@ -170,7 +198,7 @@ void log_mds_dbg(char *fmt, ...)
 	int i;
 	va_list ap;
 
-	i = snprintf(str, sizeof(str), "DBG    |");
+	i = snprintf(str, sizeof(str), "%s DBG  |", process_name);
 	va_start(ap, fmt);
 	vsnprintf(str + i, sizeof(str) - i, fmt, ap);
 	va_end(ap);
@@ -202,8 +230,8 @@ static void log_mds(const char *str)
 		osafassert(tstamp_data);
 
 		strftime(asc_tod, sizeof(asc_tod), "%b %e %k:%M:%S", tstamp_data);
-		i = snprintf(log_string, sizeof(log_string), "%s.%06ld %s %s",
-			     asc_tod, tv.tv_usec, log_line_prefix, str);
+		i = snprintf(log_string, sizeof(log_string), "%s.%06ld %s",
+			     asc_tod, tv.tv_usec, str);
 
 		if (i >= sizeof(log_string)) {
 			i = sizeof(log_string);
