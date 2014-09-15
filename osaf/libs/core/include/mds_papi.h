@@ -798,6 +798,7 @@ unpack individual structure members. */
 		 */
 		MDS_HDL svc_pwe_hdl;
 		MDS_SVC_PVT_SUB_PART_VER i_rem_svc_pvt_ver;	/* Remote service id subpart version */
+		char i_dest_details[255]; /* <node[slotno]:processname[pid]> */
 
 	} MDS_CALLBACK_SVC_EVENT_INFO;
 

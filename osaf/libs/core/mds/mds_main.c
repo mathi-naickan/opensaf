@@ -433,6 +433,7 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 			return NCSCC_RC_FAILURE;
 		}
 		gl_mds_mcm_cb->adest = m_MDS_GET_ADEST_FROM_NODE_ID_AND_PROCESS_ID(node_id, mds_tipc_ref);
+		get_adest_details(gl_mds_mcm_cb->adest, gl_mds_mcm_cb->adest_details);	
 
 		/* Initialize logging */
 		{

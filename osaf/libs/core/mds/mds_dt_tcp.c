@@ -17,6 +17,7 @@
 
 #include "mds_dt.h"
 #include "mds_log.h"
+#include "mds_core.h"
 #include "ncssysf_def.h"
 #include "ncssysf_tsk.h"
 #include "ncssysf_mem.h"
@@ -194,6 +195,8 @@ uint32_t mds_mdtm_init_tcp(NODE_ID nodeid, uint32_t *mds_tcp_ref)
 	tcp_cb->node_id = nodeid;
 
 	*mds_tcp_ref = mdtm_pid;
+
+	get_adest_details(tcp_cb->adest, tcp_cb->adest_details);
 
 	if (mds_socket_domain == AF_UNIX) {
 		int servlen = 0;

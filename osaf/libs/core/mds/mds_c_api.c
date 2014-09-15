@@ -25,6 +25,7 @@
 
 #include "mds_core.h"
 #include "mds_log.h"
+#include "mds_core.h"
 
 /*********************************************************
 
@@ -1517,6 +1518,7 @@ uint32_t mds_mcm_svc_up(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 	MDS_SUBSCRIPTION_RESULTS_INFO *subtn_result_info = NULL;
 	MDS_SUBSCRIPTION_RESULTS_INFO *active_subtn_result_info = NULL;
 	MDS_SUBSCRIPTION_RESULTS_INFO *next_active_result_info = NULL;
+	MDS_SUBSCRIPTION_RESULTS_INFO *log_subtn_result_info = NULL;
 
 	m_MDS_LOG_DBG("MCM_API : Entering : mds_mcm_svc_up : Details below :");
 	m_MDS_LOG_DBG("MCM_API : LOCAL SVC INFO : SVC id = %d | PWE id = %d | VDEST id = %d |",
@@ -1649,11 +1651,16 @@ else (entry exists)
 
     /*************** Validation for SCOPE **********************/
 
-	status = mds_subtn_res_tbl_query_by_adest(local_svc_hdl, svc_id, vdest_id, adest);
+	status = mds_get_subtn_res_tbl_by_adest(local_svc_hdl, svc_id, vdest_id, adest, &log_subtn_result_info);
 
 	if (status == NCSCC_RC_FAILURE) {	/* Subscription result tabel entry doesn't exist */
 
 		if (vdest_id == m_VDEST_ID_FOR_ADEST_ENTRY) {	/* Remote svc is on ADEST */
+			char to_adest_details[255];
+			memset(to_adest_details, 0, 255);
+
+			get_subtn_adest_details(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(local_svc_hdl),
+					svc_id,	adest, to_adest_details);
 
 			mds_subtn_res_tbl_add(local_svc_hdl, svc_id,
 					      (MDS_VDEST_ID)vdest_id, adest, role,
@@ -1691,6 +1698,9 @@ else (entry exists)
 								       &tmr_running, &subtn_result_info, true);
 					/* check if any other active present */
 					if (status == NCSCC_RC_FAILURE) {	/* No active present */
+						char to_adest_details[255];
+						get_subtn_adest_details(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(local_svc_hdl),
+								svc_id, active_adest, to_adest_details);
 						/* Add entry to subscription result table */
 						status = mds_subtn_res_tbl_add(local_svc_hdl,
 									       svc_id,
@@ -2578,6 +2588,7 @@ uint32_t mds_mcm_svc_down(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, V_DEST_RL role,
 	bool tmr_running;
 	MDS_SUBSCRIPTION_RESULTS_INFO *subtn_result_info = NULL;
 	MDS_SUBSCRIPTION_RESULTS_INFO *next_active_result_info = NULL;
+	MDS_SUBSCRIPTION_RESULTS_INFO *log_subtn_result_info = NULL;
 	V_DEST_RL dest_role;
 
 	m_MDS_LOG_DBG("MCM_API : Entering : mds_mcm_svc_down : Details below :");
@@ -2701,7 +2712,7 @@ else (entry exists)
 	}
     /*************** Validation for SCOPE **********************/
 
-	status = mds_subtn_res_tbl_query_by_adest(local_svc_hdl, svc_id, (MDS_VDEST_ID)vdest_id, adest);
+	status = mds_get_subtn_res_tbl_by_adest(local_svc_hdl, svc_id, (MDS_VDEST_ID)vdest_id, adest, &log_subtn_result_info);
 	if (status == NCSCC_RC_FAILURE) {	/* Subscription result tabel entry doesn't exist */
 
 		/* Discard : Getting down before getting up */
@@ -3407,6 +3418,8 @@ uint32_t mds_mcm_user_event_callback(MDS_SVC_HDL local_svc_hdl, PW_ENV_ID pwe_id
 	if (vdest_id == m_VDEST_ID_FOR_ADEST_ENTRY) {
 		/* Service is on remote ADEST */
 		cbinfo->info.svc_evt.i_dest = adest;
+		if ((event_type == NCSMDS_UP) || (event_type == NCSMDS_RED_UP))
+			get_adest_details(adest, cbinfo->info.svc_evt.i_dest_details);
 		cbinfo->info.svc_evt.i_anc = 0;	/* anchor same as adest */
 	} else {
 		/* Service is on remote VDEST */
@@ -3414,6 +3427,8 @@ uint32_t mds_mcm_user_event_callback(MDS_SVC_HDL local_svc_hdl, PW_ENV_ID pwe_id
 
 		if (event_type == NCSMDS_RED_UP || event_type == NCSMDS_RED_DOWN || event_type == NCSMDS_CHG_ROLE) {
 			cbinfo->info.svc_evt.i_anc = adest;	/* anchor same as adest */
+			if (event_type == NCSMDS_RED_UP)
+				get_adest_details(adest, cbinfo->info.svc_evt.i_dest_details);
 		} else {
 			cbinfo->info.svc_evt.i_anc = 0;
 		}

@@ -36,6 +36,7 @@ typedef struct mdtm_tcp_cb {
 
 	void *mdtm_hdle_task;
 	uint64_t adest;
+	char adest_details[255]; /* <node[slotno]:processname[pid]> */
 
 	SYSF_MBX tmr_mbx;
 	int tmr_fd;

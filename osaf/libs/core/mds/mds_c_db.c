@@ -25,6 +25,175 @@
 
 #include "mds_core.h"
 #include "mds_log.h"
+#include "ncs_main_papi.h"
+extern char *tipc_or_tcp;
+extern uint32_t mds_mcm_check_intranode(MDS_DEST adest);
+/*****************************************************
+Function NAME: get_adest_details()
+Returns : <node[slotno]:processname[pid]>
+*****************************************************/
+void get_adest_details(MDS_DEST adest, char* adest_details)
+{
+        char *token;
+        struct stat s;
+        uint32_t process_id = 0;
+        NCS_PHY_SLOT_ID phy_slot;
+        NCS_SUB_SLOT_ID sub_slot;
+        char name[1024];
+        char process_name[255];
+        bool remote = false;
+ 
+        m_NCS_GET_PHYINFO_FROM_NODE_ID(m_NCS_NODE_ID_FROM_MDS_DEST(adest), NULL, &phy_slot, &sub_slot);
+ 
+        if (strcmp(tipc_or_tcp, "TCP") == 0) {
+                process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
+                if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
+                        sprintf(name, "/proc/%d/cmdline", process_id);
+                        if(stat(name, &s) != 0) {
+                                sprintf(process_name, "pid[%u]", process_id);
+                        } else {
+ 
+                                FILE* f = fopen(name,"r");
+                                if(f){
+                                        size_t size;
+                                        size = fread(name, sizeof(char), 1024, f);
+                                        if(size>0){
+                                                if('\n' == name[size-1])
+                                                        name[size-1]='\0';
+                                        }
+                                        fclose(f);
+                                }
+                                token = strtok(name, "/");
+                                while( token != NULL )
+                                {
+                                        strcpy(name,token);
+                                        token = strtok(NULL, "/");
+                                }
+                                sprintf(process_name, "%s[%u]", name, process_id);
+                        }
+ 
+                } else {
+                        sprintf(process_name, "dest_pid[%u]", process_id);
+                        remote = true;
+                }
+        } else  if (strcmp(tipc_or_tcp, "TIPC") == 0) {
+                process_id = getpid();
+                if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
+                        sprintf(name, "/proc/%d/cmdline", process_id);
+                        if(stat(name, &s) != 0) {
+                                sprintf(process_name, "tipc_id_ref[%u]", process_id);
+                        } else {
+ 
+                                FILE* f = fopen(name,"r");
+                                if(f){
+                                        size_t size;
+                                        size = fread(name, sizeof(char), 1024, f);
+                                        if(size>0){
+                                                if('\n' == name[size-1])
+                                                        name[size-1]='\0';
+                                        }
+                                        fclose(f);
+                                }
+                                token = strtok(name, "/");
+                                while( token != NULL )
+                                {
+                                        strcpy(name,token);
+                                        token = strtok(NULL, "/");
+                                }
+                                sprintf(process_name, "%s[%u]", name, process_id);
+                        }
+ 
+                } else {
+ 
+                        process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
+                        sprintf(process_name, "dest_tipc_id_ref[%u]",process_id);
+                        remote = true;
+                }
+        }
+ 
+        if (remote == true)
+                sprintf(adest_details, "<rem_nodeid[%d]:%s>",
+                                phy_slot, process_name);
+        else
+                sprintf(adest_details, "<nodeid[%d]:%s>",
+                                phy_slot, process_name);
+ 
+        m_MDS_LOG_DBG("MCM_DB : Leaving : F : get_adest_details adest_details: %s ", adest_details);
+}
+ 
+ 
+/*****************************************************
+  Function NAME: get_subtn_adest_details 
+  Returns : <node[slotno]:processname[pid]>
+ *****************************************************/
+void get_subtn_adest_details(MDS_PWE_HDL pwe_hdl, MDS_SVC_ID svc_id, MDS_DEST adest, char* adest_details)
+{
+        uint32_t process_id = 0;
+        NCS_PHY_SLOT_ID phy_slot;
+        NCS_SUB_SLOT_ID sub_slot;
+        char process_name[255];
+        bool remote = false;
+        MDS_SVC_INFO *svc_info = NULL;
+ 
+        char name[1024];
+        char *token;
+        struct stat s;
+ 
+        m_NCS_GET_PHYINFO_FROM_NODE_ID(m_NCS_NODE_ID_FROM_MDS_DEST(adest), NULL, &phy_slot, &sub_slot);
+        process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
+ 
+        if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
+                if (NCSCC_RC_SUCCESS == mds_svc_tbl_get(pwe_hdl, svc_id, (NCSCONTEXT)&svc_info)) {
+                        strcpy(adest_details, svc_info->adest_details);
+                        goto done;
+                } else if (strcmp(tipc_or_tcp, "TCP") == 0) {
+ 
+                        sprintf(name, "/proc/%d/cmdline", process_id);
+                        if(stat(name, &s) != 0) {
+                                sprintf(process_name, "pid[%u]", process_id);
+                        } else {
+ 
+                                FILE* f = fopen(name,"r");
+                                if(f){
+                                        size_t size;
+                                        size = fread(name, sizeof(char), 1024, f);
+                                        if(size>0){
+                                                if('\n' == name[size-1])
+                                                        name[size-1]='\0';
+                                        }
+                                        fclose(f);
+                                }
+                                token = strtok(name, "/");
+                                while( token != NULL )
+                                {
+                                        strcpy(name,token);
+                                        token = strtok(NULL, "/");
+                                }
+                                sprintf(process_name, "%s[%u]", name, process_id);
+                        }
+                } else {
+                        /* Service Doesn't exist */
+                        sprintf(process_name, "tipc_id_ref[%u]", process_id);
+                }
+        } else {
+                if (strcmp(tipc_or_tcp, "TCP") == 0) {
+                        sprintf(process_name, "dest_pid[%u]", process_id);
+                        remote = true;
+                } else {
+                        sprintf(process_name, "dest_tipc_id_ref[%u]",process_id);
+                        remote = true;
+                }
+        }
+ 
+        if (remote == true)
+                sprintf(adest_details, "<rem_node[%d]:%s>",
+                                phy_slot, process_name);
+        else
+                sprintf(adest_details, "<node[%d]:%s>",
+                                phy_slot, process_name);
+done:
+        m_MDS_LOG_DBG("MCM_DB : Leaving : F : get_subtn_adest_details adest_details: %s ", adest_details);
+}
 
 /* ******************************************** */
 /* ******************************************** */
@@ -574,6 +743,7 @@ uint32_t mds_svc_tbl_add(NCSMDS_INFO *info)
 		info->info.svc_install.o_sel_obj = m_NCS_IPC_GET_SEL_OBJ(&svc_info->q_mbx);
 	}
 
+	strcpy(svc_info->adest_details, gl_mds_mcm_cb->adest_details);
 	svc_info->svc_list_node.key_info = (uint8_t *)&svc_info->svc_hdl;
 
 	ncs_patricia_tree_add(&gl_mds_mcm_cb->svc_list, (NCS_PATRICIA_NODE *)&svc_info->svc_list_node);
@@ -944,6 +1114,7 @@ uint32_t mds_subtn_tbl_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, NCSMDS
 	subtn_info->next = svc_info->subtn_info;
 	svc_info->subtn_info = subtn_info;
 
+	strcpy(subtn_info->sub_adest_details, svc_info->adest_details); 
 	/*  STEP 2.b: Start Subscription Timer */
 
 	subtn_info->tmr_flag = true;
@@ -1459,6 +1630,9 @@ uint32_t mds_subtn_res_tbl_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id,
 	subtn_res_info->rem_svc_sub_part_ver = svc_sub_part_ver;
 	subtn_res_info->rem_svc_arch_word = archword_type;
 
+	get_subtn_adest_details(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(svc_hdl), 
+			subscr_svc_id, adest, subtn_res_info->sub_adest_details);
+	
 	ncs_patricia_tree_add(&gl_mds_mcm_cb->subtn_results, (NCS_PATRICIA_NODE *)&subtn_res_info->node);
 
 	if (vdest_id != m_VDEST_ID_FOR_ADEST_ENTRY) {	/* Entry to add is VDEST entry */

@@ -19,6 +19,7 @@
 #include "mds_dt.h"
 #include "mds_core.h"
 #include "mds_log.h"
+#include "mds_core.h"
 #include "ncssysf_def.h"
 #include "ncssysf_tsk.h"
 #include "ncssysf_mem.h"

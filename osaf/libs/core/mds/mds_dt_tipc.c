@@ -26,6 +26,7 @@
 */
 #include "mds_dt.h"
 #include "mds_log.h"
+#include "mds_core.h"
 #include "ncssysf_def.h"
 #include "ncssysf_tsk.h"
 #include "ncssysf_mem.h"
@@ -111,6 +112,7 @@ typedef struct mdtm_tipc_cb {
 	void *mdtm_hdle_task;
 	int hdle_mdtm;
 	uint64_t adest;
+	char adest_details[255];
 
 	SYSF_MBX tmr_mbx;
 	int tmr_fd;
@@ -226,6 +228,7 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 	tipc_cb.adest = ((uint64_t)(nodeid)) << 32;
 	tipc_cb.adest |= addr.addr.id.ref;
 	tipc_cb.node_id = nodeid;
+	get_adest_details(tipc_cb.adest, tipc_cb.adest_details);
 
 	tipc_node_id = mdtm_tipc_own_node(tipc_cb.BSRsock);	/* This gets the tipc ownaddress */
 
@@ -822,6 +825,8 @@ static uint32_t mdtm_process_discovery_events(uint32_t discovery_event, struct t
 			MDS_VDEST_ID vdest;
 			NCS_VDEST_TYPE policy = 0;
 			MDS_SVC_HDL svc_hdl;
+			char adest_details[255];
+			memset(adest_details, 0, 255);
 
 			MDS_SVC_PVT_SUB_PART_VER svc_sub_part_ver;
 			MDS_SVC_ARCHWORD_TYPE archword_type;
@@ -887,6 +892,8 @@ static uint32_t mdtm_process_discovery_events(uint32_t discovery_event, struct t
 				     svc_id, m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl), node, discovery_event);
 				return NCSCC_RC_FAILURE;
 			}
+			get_subtn_adest_details(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(svc_hdl), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl),
+					adest, adest_details);
 
 			if (TIPC_PUBLISHED == discovery_event) {
 				m_MDS_LOG_NOTIFY

@@ -328,7 +328,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 					      NCSMDS_SCOPE_TYPE scope, MDS_SEND_PRIORITY_TYPE pri,
 					      uint8_t flag /* For normal=0, red=1 */ );
 
-static uint32_t mds_mcm_check_intranode(MDS_DEST adest);
+uint32_t mds_mcm_check_intranode(MDS_DEST adest);
 
 #define MDS_GET_NODE_ID(p) m_MDS_GET_NODE_ID_FROM_ADEST(p)
 
@@ -929,6 +929,7 @@ static uint32_t mcm_pvt_normal_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr
 	MDS_PWE_HDL pwe_hdl = (MDS_PWE_HDL)env_hdl;
 	MDS_SVC_INFO *svc_cb = NULL;
 	MDS_SUBSCRIPTION_RESULTS_INFO *tx_send_hdl = NULL;	/* Subscription Result */
+	MDS_SUBSCRIPTION_RESULTS_INFO *log_tx_send_hdl = NULL;      /* Subscription Result */
 
 	uint32_t status = 0;
 
@@ -973,7 +974,7 @@ static uint32_t mcm_pvt_normal_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr
 
 		/* Query one type to get the tx_send_hdl(results) */
 		if (NCSCC_RC_SUCCESS !=
-		    mds_subtn_res_tbl_query_by_adest(svc_cb->svc_hdl, dest_svc_id, dest_vdest_id, dest)) {
+		    mds_get_subtn_res_tbl_by_adest(svc_cb->svc_hdl, dest_svc_id, dest_vdest_id, dest, &log_tx_send_hdl)) {
 			tx_send_hdl = NULL;
 		} else {
 			/* Route available, send the data now */
@@ -1267,6 +1268,7 @@ static uint32_t mcm_msg_cpy_send(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG *to_
 	}
 	req.adest = dest;
 
+	strcpy(req.sub_adest_details, lcl_subtn_res->sub_adest_details);
 	m_MDS_LOG_INFO("MDS_SND_RCV: Sending the data to MDTM layer\n");
 	m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_cpy_send\n");
 	return mds_mdtm_send(&req);
@@ -1318,7 +1320,7 @@ static uint32_t mcm_msg_direct_send_buff(uint8_t to, MDS_DIRECT_BUFF_INFO buff_i
 
 	req.pri = pri;
 	req.msg_fmt_ver = msg_fmt_ver;
-
+	strcpy(req.sub_adest_details, lcl_subtn_res->sub_adest_details);
 	m_MDS_LOG_INFO("MDS_SND_RCV: Sending the data to MDTM layer\n");
 
 	m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_direct_send_buff\n");
@@ -1492,6 +1494,7 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 	msg_send.dest_pwe_id = m_MDS_GET_PWE_ID_FROM_SVC_HDL(svc_cb->svc_hdl);
 	msg_send.dest_vdest_id = dest_vdest_id;
 	msg_send.src_svc_sub_part_ver = svc_cb->svc_sub_part_ver;
+	strcpy(msg_send.sub_adest_details, lcl_subtn_res->sub_adest_details);
 
 	if ((((svc_cb->subtn_info->prev_ver_sub_count > 0)) 
 				&& (snd_type == MDS_SENDTYPE_BCAST || snd_type == MDS_SENDTYPE_RBCAST))
@@ -1628,6 +1631,7 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 	bool time_wait = false;
 
 	MDS_SUBSCRIPTION_RESULTS_INFO *t_send_hdl = NULL;	/* Subscription Result */
+	MDS_SUBSCRIPTION_RESULTS_INFO *log_t_send_hdl = NULL;       /* Subscription Result */
 
 	m_MDS_LOG_DBG("MDS_SND_RCV :Entering mds_mcm_process_disc_queue_checks\n");
 
@@ -1694,7 +1698,7 @@ static uint32_t mds_mcm_process_disc_queue_checks(MDS_SVC_INFO *svc_cb, MDS_SVC_
 
 			/* Query one type to get the tx_send_hdl(results) */
 			if (NCSCC_RC_SUCCESS !=
-			    mds_subtn_res_tbl_query_by_adest(svc_cb->svc_hdl, dest_svc_id, dest_vdest_id, anchor)) {
+			    mds_get_subtn_res_tbl_by_adest(svc_cb->svc_hdl, dest_svc_id, dest_vdest_id, anchor, &log_t_send_hdl)) {
 				/* m_MDS_LOG_ERR("MDS_SND_RCV: No Route FOUND from SVC id = %d "); */
 				m_MDS_LOG_ERR
 				    ("MDS_SND_RCV:No Route Found from SVC id = %d to SVC id = %d on ADEST <0x%08x, %u>",
@@ -2208,6 +2212,7 @@ static uint32_t mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 	uint32_t status = 0;
 
 	MDS_SUBSCRIPTION_RESULTS_INFO *subs_result_hdl = NULL;
+	MDS_SUBSCRIPTION_RESULTS_INFO *log_subs_result_hdl = NULL;
 	V_DEST_RL role_ret = 0;	/* Not used, only passed to get the subscription result ptr */
 
 	if (to_msg.msg_type == MSG_NCSCONTEXT) {
@@ -2247,7 +2252,7 @@ static uint32_t mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 	/* Check dest_svc_id, dest_pwe_id, Destination <ADEST, VDEST>,
 	   exists in subscription result table */
 
-	if (NCSCC_RC_SUCCESS != mds_subtn_res_tbl_query_by_adest(svc_cb->svc_hdl, dest_svc_id, dest_vdest_id, dest)) {
+	if (NCSCC_RC_SUCCESS != mds_get_subtn_res_tbl_by_adest(svc_cb->svc_hdl, dest_svc_id, dest_vdest_id, dest, &log_subs_result_hdl)) {
 		/* Destination Route Not Found, still some validations required */
 		/* Check in subscriptions whether this exists */
 		if (NCSCC_RC_SUCCESS !=
@@ -2295,6 +2300,7 @@ static uint32_t mds_mcm_process_disc_queue_checks_redundant(MDS_SVC_INFO *svc_cb
 {
 
 	MDS_SUBSCRIPTION_INFO *sub_info = NULL;
+	MDS_SUBSCRIPTION_RESULTS_INFO *log_subtn_result_info = NULL;
 	uint32_t disc_rc;
 	bool time_wait = false;
 
@@ -2345,8 +2351,8 @@ static uint32_t mds_mcm_process_disc_queue_checks_redundant(MDS_SVC_INFO *svc_cb
 		}
 		return NCSCC_RC_FAILURE;
 	} else {
-		if (NCSCC_RC_SUCCESS != (mds_subtn_res_tbl_query_by_adest(svc_cb->svc_hdl, dest_svc_id,
-									  dest_vdest_id, anchor))) {
+		if (NCSCC_RC_SUCCESS != (mds_get_subtn_res_tbl_by_adest(svc_cb->svc_hdl, dest_svc_id,
+									  dest_vdest_id, anchor, &log_subtn_result_info))) {
 			m_MDS_LOG_ERR
 			    ("MDS_SND_RCV: Destination Route not found even after the DISCOVERY Timer timeout\n");
 			return NCSCC_RC_FAILURE;
@@ -2864,6 +2870,7 @@ static uint32_t mcm_pvt_process_sndrack_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 	MDS_VDEST_ID dest_vdest_id = 0;
 
 	NCSCONTEXT hdl;
+	MDS_SUBSCRIPTION_RESULTS_INFO *log_subtn_result_info = NULL;
 
 	MDS_SVC_INFO *svc_cb = NULL;
 
@@ -3916,7 +3923,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
  *                NCSCC_RC_FAILURE
  *
  ****************************************************************************/
-static uint32_t mds_mcm_check_intranode(MDS_DEST adest)
+uint32_t mds_mcm_check_intranode(MDS_DEST adest)
 {
 	if (MDS_GET_NODE_ID(adest) == MDS_GET_NODE_ID(m_MDS_GET_ADEST))
 		return NCSCC_RC_SUCCESS;
@@ -6170,6 +6177,7 @@ uint32_t mds_await_active_tbl_send(MDS_AWAIT_ACTIVE_QUEUE *hdr,
 				req.dest_vdest_id, adest, &lcl_subtn_res);
 		req.svc_seq_num = lcl_subtn_res->msg_snd_cnt++;
 		req.adest = adest;
+		strcpy(req.sub_adest_details, lcl_subtn_res->sub_adest_details);
 		mds_mdtm_send(&req);
 		mov_ptr = queue;
 		queue = queue->next_msg;
