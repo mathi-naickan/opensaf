@@ -2877,11 +2877,11 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 
 			immModel_setAdmReqContinuation(cb, saInv, conn);
 
-		} else if((evt->info.fevsReq.sender_count == 0x1) && !(cl_node->mIsSync) &&
+		} else if((evt->info.fevsReq.sender_count == 0x1) && !(cl_node && cl_node->mIsSync) &&
 			(immModel_immNotWritable(cb) ||  (cb->mSyncFinalizing && cb->fevs_out_count))) {
 			/* sender_count set to 1 if we are to check locally for writability
 			  before sending to IMMD. This to avoid broadcasting requests that 
-			  are doomed anyway. The clause '!(cl_node->mIsSync)' is there to 
+			  are doomed anyway. The clause '!(cl_node && cl_node->mIsSync)' is there to 
 			  allow the immsync process to use saImmOmClassCreate. The local
 			  check is skipped for immsync resulting in the class-creaet message
 			  to be broadcast over fevs. The class create will be rejected at
