@@ -35,6 +35,7 @@
 #include <saImmOi.h>
 #include <immutil.h>
 #include <saf_error.h>
+#include "osaf_time.h"
 
 #include "stdio.h"
 #include "logtrace.h"
@@ -3157,34 +3158,92 @@ SmfSwapThread::start(void)
  * SmfSwapThread::main
  * main for the thread.
  */
-void 
+void
 SmfSwapThread::main(void)
 {
 	TRACE_ENTER();
 	sem_post(&m_semaphore);          //Start method waits for thread to start
-	SmfAdminOperationAction admOp(1);
 	std::string si_name = smfd_cb->smfSiSwapSiName;
+	int max_swap_retry = smfd_cb->smfSiSwapMaxRetry; //Number of retries before giving up
+	int retryCnt = 0;
+        int termCnt;
+	SmfAdminOperationAction admOp(1);
 	admOp.setDoDn(si_name);
 	admOp.setDoId(SA_AMF_ADMIN_SI_SWAP);
-	int max_swap_retry = smfd_cb->smfSiSwapMaxRetry;
-	int retryCnt = 0;
-	int rc;
-	while((rc = admOp.execute(0)) != SA_AIS_OK) {
-		retryCnt++;
-		if(retryCnt > max_swap_retry) {
-			SmfProcStateExecFailed::instance()->changeState(m_proc, SmfProcStateExecFailed::instance());
+	int rc = admOp.execute(0);
+	while ((rc == SA_AIS_ERR_TRY_AGAIN) ||
+              (rc == SA_AIS_ERR_BUSY) ||
+              (rc == SA_AIS_ERR_TIMEOUT) ||
+              (rc == SA_AIS_ERR_FAILED_OPERATION)) {
 
-			LOG_NO("SmfSwapThread::main: SA_AMF_ADMIN_SI_SWAP giving up after %d retries", retryCnt);
-			CAMPAIGN_EVT *evt = new CAMPAIGN_EVT();
-			evt->type = CAMPAIGN_EVT_PROCEDURE_RC;
-			evt->event.procResult.rc = SMF_PROC_FAILED;
-			evt->event.procResult.procedure = m_proc;
-			SmfCampaignThread::instance()->send(evt);
-			break;
-		}
-		TRACE("SI_AMF_ADMIN_SI_SWAP, rc=%d, wait 2 seconds and retry", rc);
-		sleep(2);
-	}
+                if (retryCnt > max_swap_retry) {
+                        LOG_NO("SA_AMF_ADMIN_SI_SWAP giving up after %d retries", retryCnt);
+                        goto exit_error;
+                }
 
+                if ((rc == SA_AIS_ERR_TIMEOUT) ||
+                    (rc == SA_AIS_ERR_FAILED_OPERATION)) {
+                        //A timeout or failed operation occur. It is undefined if the operation was successful or not.
+                        //We wait for maximum two minutes to see if the campaign thread is terminated (which it is in a successful swap)
+                        //If not terminated, retry the SWAP operation.
+                        LOG_NO("SA_AMF_ADMIN_SI_SWAP return SA_AIS_ERR_TIMEOUT or SA_AIS_ERR_FAILED_OPERATION [%d]. Wait for SmfCampaignThread to die, if not retry", rc);
+                        termCnt = 0;
+                        while (SmfCampaignThread::instance() != NULL) {
+                                if(termCnt >= 60) { //Wait for max 2 minutes (60 * 2 sec)
+                                        LOG_NO("Campaign thread was not terminated within 120 seconds after SA_AMF_ADMIN_SI_SWAP, retry SWAP operation");
+                                        break;
+                                }
+                                struct timespec sleepTime = { 2, 0 };
+                                osaf_nanosleep(&sleepTime);
+                                termCnt++;
+                        }
+                } else { //SA_AIS_ERR_TRY_AGAIN or SA_AIS_ERR_BUSY
+                        LOG_NO("SA_AMF_ADMIN_SI_SWAP return SA_AIS_ERR_TRY_AGAIN or SA_AIS_ERR_BUSY [%d], wait 2 seconds and retry", rc);
+                        struct timespec sleepTime = { 2, 0 };
+                        osaf_nanosleep(&sleepTime);
+                }
+
+                retryCnt++;
+                rc = admOp.execute(0);
+        }
+
+        if (rc != SA_AIS_OK) {
+                //SA_AIS_ERR_LIBRARY, SA_AIS_ERR_BAD,_HANDLE SA_AIS_ERR_INIT, SA_AIS_ERR,_INVALID_PARAM, SA_AIS_ERR_NO_MEMORY
+                //SA_AIS_ERR_NO_RESOURCES, SA_AIS_ERR_BAD_OPERATION, SA_AIS_ERR_NOT_EXIST, SA_AIS_ERR_EXIST, SA_AIS_ERR_UNAVAILABLE
+                LOG_NO("Admin op SA_AMF_ADMIN_SI_SWAP fail [rc = %d]", rc);
+                goto exit_error;
+        }
+
+        LOG_NO("SA_AMF_ADMIN_SI_SWAP [rc=%d] successfully initiated", rc);
+
+        //Wait for the campaign thread to disappear on current node after swap
+        termCnt = 0;
+        while (SmfCampaignThread::instance() != NULL) {
+                if(termCnt >= 60) { //Wait for 2 minutes (60 * 2 sec)
+                        LOG_NO("Campaign thread does not disappear within 120 seconds after SA_AMF_ADMIN_SI_SWAP, the operation was assumed failed.");
+                        goto exit_error;
+                }
+                struct timespec sleepTime = { 2, 0 };
+                osaf_nanosleep(&sleepTime);
+                termCnt++;
+        }
+
+        LOG_NO("Campaign thread terminated after SA_AMF_ADMIN_SI_SWAP");
+        return;
 	TRACE_LEAVE();
+
+exit_error:
+        if (SmfCampaignThread::instance() != NULL) {
+                SmfProcStateExecFailed::instance()->changeState(m_proc, SmfProcStateExecFailed::instance());
+        }
+
+        if (SmfCampaignThread::instance() != NULL) {
+                CAMPAIGN_EVT *evt = new CAMPAIGN_EVT();
+                evt->type = CAMPAIGN_EVT_PROCEDURE_RC;
+                evt->event.procResult.rc = SMF_PROC_FAILED;
+                evt->event.procResult.procedure = m_proc;
+                SmfCampaignThread::instance()->send(evt);
+        }
+        TRACE_LEAVE();
+        return;
 }
