@@ -7151,8 +7151,8 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                     TRACE("Attribute %s was missing from create input list", attrName.c_str());
 
                     if((attr->mFlags & SA_IMM_ATTR_RUNTIME) && 
-                      ~(attr->mFlags & SA_IMM_ATTR_PERSISTENT) &&
-                      ~(attr->mFlags & SA_IMM_ATTR_NOTIFY)) {
+                      !(attr->mFlags & SA_IMM_ATTR_PERSISTENT) &&
+                      !(attr->mFlags & SA_IMM_ATTR_NOTIFY)) {
                         /* Persistent runtime attributes appended for PBE will be
                            trimmed away if not needed by special applier. 
                            Notify marked attributes (must be cached) are appeded for
