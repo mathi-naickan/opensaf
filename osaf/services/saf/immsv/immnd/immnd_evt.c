@@ -6378,7 +6378,7 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb,
 		}
 	} 
 
-        if(spApplConn && (err = SA_AIS_OK) && !delayedReply) {
+        if(spApplConn && (err == SA_AIS_OK) && !delayedReply) {
 		int ix = 0;
 		/* Indicates object is marked with SA_IMM_ATTR_NOTIFY and
 		   special applier is present at this node and we dont need to
