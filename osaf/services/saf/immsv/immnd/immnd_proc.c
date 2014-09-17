@@ -1422,7 +1422,6 @@ static int immnd_forkLoader(IMMND_CB *cb, bool preLoad)
 				     (preLoad)?"preload":0, 0
 		};
 
-		TRACE_5("EXEC %s %s %s", ldrArgs[0], ldrArgs[1], ldrArgs[2]);
 		execvp(loaderName, ldrArgs);
 		LOG_ER("%s failed to exec, error %u, exiting", base, errno);
 		exit(1);
@@ -1569,12 +1568,10 @@ static int immnd_forkPbe(IMMND_CB *cb)
 			pbeArgs[2] = (cb->m2Pbe)?((cb->mIsCoord)?"--pbe2A":"--pbe2B"):"--pbe";
 			pbeArgs[3] = dbFilePath; 
 			pbeArgs[4] =  0;
-			LOG_IN("Exec: %s %s %s %s", pbeArgs[0], pbeArgs[1], pbeArgs[2], pbeArgs[3]);
 		} else {
 			pbeArgs[1] = (cb->m2Pbe)?((cb->mIsCoord)?"--pbe2A":"--pbe2B"):"--pbe";
 			pbeArgs[2] = dbFilePath;
 			pbeArgs[3] =  0;
-			TRACE("Exec: %s %s %s", pbeArgs[0], pbeArgs[1], pbeArgs[2]);
 		}
 
 		execvp(execPath, pbeArgs);
