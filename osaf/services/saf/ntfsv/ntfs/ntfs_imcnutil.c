@@ -70,7 +70,6 @@ static pid_t create_imcnprocess(SaAmfHAStateT ha_state)
 		start_args[1] = (ha_state == SA_AMF_HA_ACTIVE)?"active":"standby";
 		start_args[2] = 0;
 
-		TRACE("Starting %s(%s %s)",start_args[0],start_args[0],start_args[1]);
 		execvp(start_args[0], start_args);
 		LOG_ER("Failed to start!");
 		abort();
