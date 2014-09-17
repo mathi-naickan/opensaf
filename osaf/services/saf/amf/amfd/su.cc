@@ -1781,6 +1781,7 @@ static void su_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 
 void AVD_SU::inc_curr_act_si() {
 	saAmfSUNumCurrActiveSIs++;
+	osafassert(saAmfSUNumCurrActiveSIs <= sg_of_su->saAmfSGMaxActiveSIsperSU);
 	TRACE("%s saAmfSUNumCurrActiveSIs=%u", name.value,
 		saAmfSUNumCurrActiveSIs);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, this, AVSV_CKPT_SU_SI_CURR_ACTIVE);
@@ -1796,6 +1797,7 @@ void AVD_SU::dec_curr_act_si() {
 
 void AVD_SU::inc_curr_stdby_si() {
 	saAmfSUNumCurrStandbySIs++;
+	osafassert(saAmfSUNumCurrStandbySIs <= sg_of_su->saAmfSGMaxStandbySIsperSU);
 	TRACE("%s saAmfSUNumCurrStandbySIs=%u", name.value,
 		saAmfSUNumCurrStandbySIs);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, this, AVSV_CKPT_SU_SI_CURR_STBY);

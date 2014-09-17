@@ -1302,6 +1302,9 @@ uint32_t avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 			TRACE_1("SI fully assigned, next SI");
 			continue;
 		}
+
+		curr_su = NULL;
+
 		/* we've an unassigned si.. find su for active assignment */
 		/* first, scan based on su rank for this si */
 		for (std::map<std::pair<std::string, uint32_t>, AVD_SUS_PER_SI_RANK*>::const_iterator
