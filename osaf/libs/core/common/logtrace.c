@@ -93,7 +93,6 @@ static void output(const char *file, unsigned int line, int priority, int catego
 
 	/* Create a nice syslog looking date string */
 	gettimeofday(&tv, NULL);
-	tzset();
 	tstamp_data = localtime_r(&tv.tv_sec, &tm_info);
 	osafassert(tstamp_data);
 	
@@ -189,6 +188,8 @@ int logtrace_init(const char *_ident, const char *_pathname, unsigned int _mask)
 	ident = _ident;
 	pathname = strdup(_pathname);
 	category_mask = _mask;
+
+	tzset();
 
 	if (_mask != 0) {
 		trace_fd = open(pathname, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
