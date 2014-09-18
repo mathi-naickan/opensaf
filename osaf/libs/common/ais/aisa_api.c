@@ -105,14 +105,11 @@ SaConstStringT saAisNameBorrow(const SaNameT* name)
 
 void ais_name_lend(SaConstStringT value, SaNameT* name)
 {
-	TRACE_ENTER();
 	osaf_extended_name_lend(value, name);
-	TRACE_LEAVE();
 }
 
 SaConstStringT ais_name_borrow(const SaNameT* name)
 {
-	TRACE_ENTER();
 	SaConstStringT value = osaf_extended_name_borrow(name);
 	size_t length = name->_opaque[0];
 	if (length != kExtendedNameMagic) {
@@ -135,6 +132,5 @@ SaConstStringT ais_name_borrow(const SaNameT* name)
 			value[length] == '\0';
 		if (!valid) value = NULL;
 	}
-	TRACE_LEAVE();
 	return value;
 }
