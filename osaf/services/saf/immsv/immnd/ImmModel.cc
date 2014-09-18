@@ -11256,7 +11256,8 @@ ImmModel::resourceDisplay(const struct ImmsvAdminOperationParam *reqparams,
                     }
                                         
                 } else {
-                    LOG_NO("The Number of implementers are greater than 128, displaying the implementers informati                                                        on to syslog");                
+                    LOG_NO("The Number of implementers are greater than 128, displaying the implementers" 
+                                   "information to syslog");                
                     ImplementerVector::iterator i;
                     for(i = sImplementerVector.begin(); i != sImplementerVector.end(); ++i) {
                         ImplementerInfo* info = (*i);
@@ -11288,14 +11289,16 @@ ImmModel::resourceDisplay(const struct ImmsvAdminOperationParam *reqparams,
                             resparams=res;
                         }
                     }
-                }
-                LOG_NO("The Number of AdminOwners are greater than 128, displaying the adminowner information                                                         to syslog");       
-                AdminOwnerVector::iterator i;
-                for(i = sOwnerVector.begin(); i != sOwnerVector.end(); ++i) {
-                    AdminOwnerInfo* adminOwner = (*i);
-                    LOG_IN("Implementer name %s and location of the implementer is %u", 
+                } else {
+                    LOG_NO("The Number of AdminOwners are greater than 128, displaying the adminowner" 
+                                   "information to syslog");       
+                    AdminOwnerVector::iterator i;
+                    for(i = sOwnerVector.begin(); i != sOwnerVector.end(); ++i) {
+                        AdminOwnerInfo* adminOwner = (*i);
+                        LOG_IN("Implementer name %s and location of the implementer is %u", 
                                     adminOwner->mAdminOwnerName.c_str(), adminOwner->mNodeId);    
                     }
+                }
             }
         } else {
             LOG_WA("Verbose display of reourcename %s is unsupported", resourceName);

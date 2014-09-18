@@ -1133,6 +1133,17 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 				LOG_WA("Operation Name is not provided for operation ID %llu", (SaUint64T) opId);
 				rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
 		}
+		i=0;
+		while (rparams[i]) {
+			resparams = rparams[i];
+			if(resparams->paramName)
+					free(resparams->paramName);
+			if(resparams->paramBuffer) 
+					free(resparams->paramBuffer);
+			free(resparams);
+			i++;
+		}
+		free(rparams);
 	} else {
 		LOG_WA("Invalid operation ID %llu", (SaUint64T) opId);
 		rc = immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
