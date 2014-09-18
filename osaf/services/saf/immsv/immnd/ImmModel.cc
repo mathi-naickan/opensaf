@@ -8490,6 +8490,7 @@ ImmModel::ccbWaitForDeleteImplAck(SaUint32T ccbId, SaAisErrorT* err, bool augDel
     if(i1 == sCcbVector.end() || (!(*i1)->isActive()) ) {
         TRACE_5("CCb %u terminated during ccbObjectDelete processing, "
             "ccb must be aborted", ccbId);
+        *err = SA_AIS_ERR_FAILED_OPERATION;
         return false;
     }
     CcbInfo* ccb = *i1;
