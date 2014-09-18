@@ -12302,11 +12302,14 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
 
                         ismIter = sObjAppliersMap.find(omit->first);
                         if(ismIter != sObjAppliersMap.end()) {
-                            TRACE("TRY_AGAIN: ccb %u is active on object '%s' "
-                                  "bound to object applier '%s'. Can not re-attach applier",
-                                   ccb->mId, omit->first.c_str(), implName.c_str());
-                            err = SA_AIS_ERR_TRY_AGAIN;
-                            goto done;
+                            ImplementerSet *implSet = ismIter->second;
+                            if(implSet->find(info) != implSet->end()) {
+                                TRACE("TRY_AGAIN: ccb %u is active on object '%s' "
+                                      "bound to object applier '%s'. Can not re-attach applier",
+                                       ccb->mId, omit->first.c_str(), implName.c_str());
+                                err = SA_AIS_ERR_TRY_AGAIN;
+                                goto done;
+                            }
                         }
                     }
                 }
