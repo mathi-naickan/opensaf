@@ -3234,7 +3234,7 @@ static void immnd_evt_proc_ccb_obj_delete_rsp(IMMND_CB *cb,
 
 	immModel_ccbObjDelContinuation(cb, &(evt->info.ccbUpcallRsp), &reqConn, &augDelete);
 
-	SaAisErrorT err;
+	SaAisErrorT err = SA_AIS_OK;
 
 	if (!immModel_ccbWaitForDeleteImplAck(cb, evt->info.ccbUpcallRsp.ccbId, &err, augDelete)
 	    && reqConn) {
@@ -3296,7 +3296,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	IMMND_IMM_CLIENT_NODE *oi_cl_node = NULL;
-	SaAisErrorT err;
+	SaAisErrorT err = SA_AIS_OK;
 	SaUint32T reqConn = 0;
 	SaUint32T pbeConn = 0;
 	NCS_NODE_ID pbeNodeId = 0;
