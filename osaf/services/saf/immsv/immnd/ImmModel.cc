@@ -11195,6 +11195,13 @@ ImmModel::resourceDisplay(const struct ImmsvAdminOperationParam *reqparams,
                 goto done;
             }
         }
+    } else {
+        LOG_WA("The Operation name is not present in the requested parameters for displaying IMM resources");
+        err = SA_AIS_ERR_INVALID_PARAM;
+        int len= strlen("Operation name is not present in the requested parameters")+1;
+        errStr = (SaStringT)malloc (len);
+        strcpy(errStr, "Operation name is not present in the requested parameters");
+        goto done;
     }
 
     if ((strcmp(opName,"display")==0)) {
