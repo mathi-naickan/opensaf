@@ -807,7 +807,19 @@ uint32_t mds_tmr_mailbox_processing(void)
 				mdtm_process_reassem_timer_event(tmr_req_info->info.reassembly_tmr_info.seq_no,
 								 tmr_req_info->info.reassembly_tmr_info.id);
 				break;
-
+			case MDS_DOWN_TMR: {
+				MDS_PROCESS_INFO *info = mds_process_info_get(
+						tmr_req_info->info.down_event_tmr_info.adest,
+						tmr_req_info->info.down_event_tmr_info.svc_id);
+				/* only delete if process not exist to avoid race with a client
+				 * that re-registers immediately after unregister */
+				if ((info != NULL) && (kill(info->pid, 0) == -1)) {
+					TRACE("TIMEOUT, deleting entry for %lx, pid:%d",
+						info->mds_dest, info->pid);
+					(void)mds_process_info_del(info);
+				}
+				break;
+			}
 			default:
 				m_MDS_LOG_ERR("MDTM: Tmr Mailbox Processing:JunkTmr Hdl=0x%08x",
 					      mbx_evt_info->info.tmr_info_hdl);

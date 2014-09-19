@@ -2469,6 +2469,32 @@ else (entry exists)
 	return NCSCC_RC_SUCCESS;
 }
 
+static void start_mds_down_tmr(MDS_DEST adest, MDS_SVC_ID svc_id)
+{
+	MDS_TMR_REQ_INFO *tmr_req_info = calloc(1, sizeof(MDS_TMR_REQ_INFO));
+	if (tmr_req_info == NULL) {
+		m_MDS_LOG_ERR("mds_mcm_svc_down out of memory\n");
+		abort();
+	}
+
+	tmr_req_info->type = MDS_DOWN_TMR;
+	tmr_req_info->info.down_event_tmr_info.adest = adest;
+	tmr_req_info->info.down_event_tmr_info.svc_id = svc_id;
+
+	tmr_t tmr_id = ncs_tmr_alloc(__FILE__, __LINE__);
+	if (tmr_id == NULL) {
+		m_MDS_LOG_ERR("mds_mcm_svc_down out of memory\n");
+		abort();
+	}
+
+	uint32_t tmr_hdl = ncshm_create_hdl(NCS_HM_POOL_ID_COMMON,
+		NCS_SERVICE_ID_COMMON, (NCSCONTEXT)(tmr_req_info));
+
+	tmr_id = ncs_tmr_start(tmr_id, (uint32_t)(1000), // 10ms unit
+		(TMR_CALLBACK) mds_tmr_callback, (void *)(long)(tmr_hdl), __FILE__, __LINE__);
+	assert(tmr_id != NULL);
+}
+
 /*********************************************************
 
   Function NAME: mds_mcm_svc_down
@@ -2587,14 +2613,11 @@ else (entry exists)
     }
 */
 
+	/* potentially clean up the process info database */
 	MDS_PROCESS_INFO *info = mds_process_info_get(adest, svc_id);
 	if (info != NULL) {
-		info->count--;
-		TRACE("svc %d DOWN cnt:%d, adest:%"PRIx64, svc_id, info->count, adest);
-		if (info->count == 0) {
-			mds_process_info_del(info);
-			free(info);
-		}
+		/* Process info exist, delay the cleanup with a timeout to avoid race */
+		start_mds_down_tmr(adest, svc_id);
 	}
 
 	status = mds_svc_tbl_query(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(local_svc_hdl),

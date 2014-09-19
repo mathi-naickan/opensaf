@@ -239,7 +239,7 @@ typedef enum {
 	MDS_SUBTN_TMR,
 	MDS_AWAIT_ACTIVE_TMR,
 	MDS_REASSEMBLY_TMR,
-	MDS_CACHED_EVENTS_TMR	/* No more used, after deleting the PCON related stuff */
+	MDS_DOWN_TMR
 } TMR_TYPE;
 
 typedef struct mds_tmr_req_info {
@@ -266,8 +266,9 @@ typedef struct mds_tmr_req_info {
 		} reassembly_tmr_info;
 
 		struct {
-			NCSCONTEXT adest_list_entry_ptr;
-		} cached_events_tmr_info;
+			MDS_DEST adest;
+			MDS_SVC_ID svc_id;
+		} down_event_tmr_info;
 
 	} info;
 
