@@ -181,6 +181,7 @@ CcbUtilOperationData_t *ccbutil_ccbAddCreateOperation_2(struct CcbUtilCcbData *c
 	operation->param.create.attrValues = dupSaImmAttrValuesT_array(clist, attrValues);
 
 	str = saAisNameBorrow(objectName);
+	assert(str != NULL);
 	len = strlen(str);
 	saAisNameLend(len < SA_MAX_UNEXTENDED_NAME_LENGTH ? str : strdup(str), &operation->objectName);
 
@@ -196,6 +197,7 @@ void ccbutil_ccbAddDeleteOperation(struct CcbUtilCcbData *ccb, const SaNameT *ob
 	operation->param.deleteOp.objectName = dupSaNameT(clist, objectName);
 
 	str = saAisNameBorrow(objectName);
+	assert(str != NULL);
 	len = strlen(str);
 	saAisNameLend(len < SA_MAX_UNEXTENDED_NAME_LENGTH ? str : strdup(str), &operation->objectName);
 }
@@ -217,6 +219,7 @@ int ccbutil_ccbAddModifyOperation(struct CcbUtilCcbData *ccb,
 	operation->param.modify.attrMods = dupSaImmAttrModificationT_array(clist, attrMods);
 
 	str = saAisNameBorrow(objectName);
+	assert(str != NULL);
 	len = strlen(str);
 	saAisNameLend(len < SA_MAX_UNEXTENDED_NAME_LENGTH ? str : strdup(str), &operation->objectName);
 
@@ -225,26 +228,28 @@ int ccbutil_ccbAddModifyOperation(struct CcbUtilCcbData *ccb,
 
 CcbUtilOperationData_t *ccbutil_getNextCcbOp(SaImmOiCcbIdT ccbId, CcbUtilOperationData_t *opData)
 {
-        if (opData == NULL) {
-                CcbUtilCcbData_t *ccb = ccbutil_getCcbData(ccbId);
-                return ccb->operationListHead;
-        }
-        else
-                return opData->next;
+	if (opData == NULL) {
+		CcbUtilCcbData_t *ccb = ccbutil_getCcbData(ccbId);
+		return ccb->operationListHead;
+	}
+	else
+		return opData->next;
 }
 
 CcbUtilOperationData_t *ccbutil_getCcbOpDataByDN(SaImmOiCcbIdT ccbId, const SaNameT *dn)
 {
-        CcbUtilOperationData_t *opData = ccbutil_getNextCcbOp(ccbId, NULL);
+	CcbUtilOperationData_t *opData = ccbutil_getNextCcbOp(ccbId, NULL);
+	const char *dnStr = saAisNameBorrow(dn);
+	assert(dnStr != NULL);
 
-        while (opData != NULL) {
-		if (strcmp(saAisNameBorrow(dn), saAisNameBorrow(&opData->objectName)) == 0)
-                        break;
+	while (opData != NULL) {
+		if (strcmp(dnStr, saAisNameBorrow(&opData->objectName)) == 0)
+			break;
 
-                opData = ccbutil_getNextCcbOp(ccbId, opData);
-        }
+		opData = ccbutil_getNextCcbOp(ccbId, opData);
+	}
 
-        return opData;
+	return opData;
 }
 
 /* ----------------------------------------------------------------------
@@ -296,6 +301,7 @@ char const *immutil_getStringValue(char const *key, SaNameT const *name)
 	unsigned int klen;
 	char *cp;
 
+	assert(buffer != NULL);
 	assert(key != NULL);
 	klen = strlen(key);
 	assert(klen > 1 || key[klen - 1] == '=');
@@ -322,10 +328,13 @@ char const *immutil_getDnItem(SaNameT const *name, unsigned int index)
 	static char* buffer = NULL;
 	char *cp;
 	char *value;
-	size_t size = strlen(saAisNameBorrow(name)) + 1;
+	size_t size;
+	const char *objName = saAisNameBorrow(name);
+	assert(objName != NULL);
 
+	size = strlen(objName) + 1;
 	buffer = realloc(buffer, size);
-	memcpy(buffer, saAisNameBorrow(name), size);
+	memcpy(buffer, objName, size);
 	value = buffer;
 	cp = strchr(value, ',');
 	while (index > 0) {
@@ -518,6 +527,7 @@ int immutil_matchName(SaNameT const *name, regex_t const *preg)
 	const char* buffer;
 	assert(name != NULL && preg != NULL);
 	buffer = saAisNameBorrow(name);
+	assert(buffer != NULL);
 	return regexec(preg, buffer, 0, NULL, 0);
 }
 
@@ -548,13 +558,18 @@ SaImmClassNameT immutil_get_className(const SaNameT *objectName)
 	SaImmAttrValuesT_2 **attributes;
 	SaImmAttrNameT attributeNames[] = { "SaImmAttrClassName", NULL };
 
-	(void)immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
-	(void)immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
+	if(immutil_saImmOmInitialize(&omHandle, NULL, &immVersion) != SA_AIS_OK)
+		goto done;
+	if(immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle) != SA_AIS_OK)
+		goto finalize_om_handle;
 	if (immutil_saImmOmAccessorGet_2(accessorHandle, objectName, attributeNames, &attributes) == SA_AIS_OK)
 		className = strdup(*((char **)attributes[0]->attrValues[0]));
 	(void)immutil_saImmOmAccessorFinalize(accessorHandle);
+
+finalize_om_handle:
 	(void)immutil_saImmOmFinalize(omHandle);
 
+done:
 	return className;
 }
 
@@ -568,7 +583,9 @@ SaAisErrorT immutil_get_attrValueType(const SaImmClassNameT className,
 	SaImmAttrDefinitionT_2 **attrDefinitions;
 	int i = 0;
 
-	(void)immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
+	if((rc = immutil_saImmOmInitialize(&omHandle, NULL, &immVersion)) != SA_AIS_OK) {
+		return rc;
+	}
 
 	if ((rc = saImmOmClassDescriptionGet_2(omHandle, className, &classCategory, &attrDefinitions)) != SA_AIS_OK)
 		goto done;
@@ -756,6 +773,7 @@ static const SaNameT *dupSaNameT(struct Chunk *clist, const SaNameT *original)
 	if (original == NULL)
 		return NULL;
 	const char* value = saAisNameBorrow(original);
+	assert(value != NULL);
 	copy = (SaNameT *)clistMalloc(clist, sizeof(SaNameT));
 	saAisNameLend(strlen(value) < SA_MAX_UNEXTENDED_NAME_LENGTH ? value : dupStr(clist, value), copy);
 	return copy;
@@ -842,6 +860,7 @@ static void copySaImmAttrValuesT(struct Chunk *clist, SaImmAttrValuesT_2 *copy, 
 			SaNameT* cporig = (SaNameT*) original->attrValues[i];
 			SaNameT* cpdest = (SaNameT*) copy->attrValues[i];
 			const char* value = saAisNameBorrow(cporig);
+			assert(value != NULL);
 			saAisNameLend(strlen(value) < SA_MAX_UNEXTENDED_NAME_LENGTH ? value :
 				dupStr(clist, value), cpdest);
 		} else if(original->attrValueType == SA_IMM_ATTR_SAANYT) {
