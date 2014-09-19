@@ -3127,7 +3127,9 @@ int imma_oi_resurrect(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, bool *locked, SaAi
 		TRACE_3("client_node_get failed");
 	}
 
-	timeout = cl_node->syncr_timeout;
+	if(cl_node) {
+		timeout = cl_node->syncr_timeout;
+	}
 
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 	*locked = false;
