@@ -137,7 +137,7 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 		goto done;
 	}
 
-	if (n != 12) {
+	if (n != 16) {
 		syslog(LOG_ERR, "%s: recv failed - %d bytes", __FUNCTION__, n);
 		goto done;
 	}
@@ -148,24 +148,29 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 		goto done;
 	}
 
+	NCSMDS_SVC_ID svc_id = ncs_decode_32bit(&p);
+
 	MDS_DEST mds_dest = ncs_decode_64bit(&p);
 	TRACE("mds: received %d from %"PRIx64", pid %d", type, mds_dest, creds->pid);
 
 	osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 
-	MDS_PROCESS_INFO *info = mds_process_info_get(mds_dest);
+	MDS_PROCESS_INFO *info = mds_process_info_get(mds_dest, svc_id);
 	if (info == NULL) {
 		MDS_PROCESS_INFO *info = calloc(1, sizeof(MDS_PROCESS_INFO));
 		osafassert(info);
 		info->mds_dest = mds_dest;
+		info->svc_id = svc_id;
 		info->uid = creds->uid;
 		info->pid = creds->pid;
 		info->gid = creds->gid;
+		info->count = 1;
 		int rc = mds_process_info_add(info);
 		osafassert(rc == NCSCC_RC_SUCCESS);
 	} else {
-		/* this happens in clients that uses both OM and OI */
-		TRACE("dest %"PRIx64" already exist", mds_dest);
+		/* when can this happen? */
+		LOG_NO("%s: dest %"PRIx64" already exist", __FUNCTION__, mds_dest);
+
 		// just update credentials
 		info->uid = creds->uid;
 		info->pid = creds->pid;
@@ -215,7 +220,7 @@ int mds_auth_server_create(const char *name)
  * @param timeout max time to wait for a response in ms unit
  * @return 0 - OK, negated errno otherwise
  */
-int mds_auth_server_connect(const char *name, MDS_DEST mds_dest, int timeout)
+int mds_auth_server_connect(const char *name, MDS_DEST mds_dest, int svc_id, int timeout)
 {
 	uint32_t rc;
 	uint8_t msg[32];
@@ -224,10 +229,10 @@ int mds_auth_server_connect(const char *name, MDS_DEST mds_dest, int timeout)
 	int n;
 
 	sz = ncs_encode_32bit(&p, MDS_REGISTER_REQ);
+	sz += ncs_encode_32bit(&p, svc_id);
 	sz += ncs_encode_64bit(&p, mds_dest);
 
-	n = osaf_auth_server_connect(name, msg, sz, msg,
-			sizeof(msg), timeout);
+	n = osaf_auth_server_connect(name, msg, sz, msg, sizeof(msg), timeout);
 
 	if (n < 0) {
 		TRACE_3("err n:%d", n);

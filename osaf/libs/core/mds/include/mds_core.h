@@ -306,19 +306,20 @@ extern uint32_t MDS_SUBSCRIPTION_TMR_VAL;
 extern uint32_t gl_mds_checksum;
 
 typedef struct mds_process_info {
-       NCS_PATRICIA_NODE patnode;  // mds_dest is key
+       NCS_PATRICIA_NODE patnode;
+       uint64_t key;
        MDS_DEST mds_dest;
+       NCSMDS_SVC_ID svc_id;
        uid_t uid;
        gid_t gid;
        pid_t pid;
        int count;  // ref count, entry deleted at zero
 } MDS_PROCESS_INFO;
 
-MDS_PROCESS_INFO *mds_process_info_get(MDS_DEST mds_dest);
+MDS_PROCESS_INFO *mds_process_info_get(MDS_DEST mds_dest, NCSMDS_SVC_ID svc_id);
 int mds_process_info_add(MDS_PROCESS_INFO *info);
 int mds_process_info_del(MDS_PROCESS_INFO *info);
 int mds_process_info_db_init(void);
-int mds_process_info_enabled(void);
 
 
 /* ******************************************** */

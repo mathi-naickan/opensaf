@@ -1585,28 +1585,6 @@ else (entry exists)
     }
 */
 
-	MDS_PROCESS_INFO *info = mds_process_info_get(adest);
-	if (info != NULL) {
-		info->count++;
-		TRACE("svc UP process_info EXIST, svc:%d cnt:%d, adest:%"PRIx64,
-				svc_id, info->count, adest);
-	} else if (mds_process_info_enabled()) {
-		/* If process_info does not exist, create and fill in what we have.
-		 * Especially count is later needed to garbage collect.
-		 */
-		MDS_PROCESS_INFO *info = calloc(1, sizeof(MDS_PROCESS_INFO));
-		osafassert(info);
-		info->mds_dest = adest;
-		info->count = 1;
-		TRACE("svc UP process_info NOTEXIST, svc:%d, adest:%"PRIx64, svc_id, adest);
-		int rc = mds_process_info_add(info);
-		osafassert(rc == NCSCC_RC_SUCCESS);
-	} else {
-		/* do nothing, this happens in library code or in servers not using
-		 * the authentication service in MDS. */
-		;
-	}
-
 	status = mds_svc_tbl_query(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(local_svc_hdl),
 				   m_MDS_GET_SVC_ID_FROM_SVC_HDL(local_svc_hdl));
 
@@ -2609,7 +2587,7 @@ else (entry exists)
     }
 */
 
-	MDS_PROCESS_INFO *info = mds_process_info_get(adest);
+	MDS_PROCESS_INFO *info = mds_process_info_get(adest, svc_id);
 	if (info != NULL) {
 		info->count--;
 		TRACE("svc %d DOWN cnt:%d, adest:%"PRIx64, svc_id, info->count, adest);

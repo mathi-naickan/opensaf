@@ -422,7 +422,7 @@ static uint32_t imma_mds_svc_evt(IMMA_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_e
 
 			/* (Re-)connect and register our MDS dest with auth server in immnd */
 			if (mds_auth_server_connect(sockname,
-					cb->imma_mds_adest, 10000) != NCSCC_RC_SUCCESS) {
+					cb->imma_mds_adest, cb->sv_id, 10000) != NCSCC_RC_SUCCESS) {
 				/* server UP indication yet this does not work... */
 				LOG_WA("%s: mds_auth_server_connect failed", __FUNCTION__);
 			}

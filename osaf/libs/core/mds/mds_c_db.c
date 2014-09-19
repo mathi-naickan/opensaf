@@ -2511,29 +2511,34 @@ uint32_t mds_subtn_res_tbl_cleanup(void)
 
 static NCS_PATRICIA_TREE process_info_db; /* all known local MDS dests */
 
-MDS_PROCESS_INFO *mds_process_info_get(MDS_DEST mds_dest)
+MDS_PROCESS_INFO *mds_process_info_get(MDS_DEST mds_dest, NCSMDS_SVC_ID svc_id)
 {
-	if (process_info_db.n_nodes > 0)
+	if (process_info_db.n_nodes > 0) {
+		uint64_t key = ((mds_dest & 0xffffffff) << 32) | svc_id;
 		return (MDS_PROCESS_INFO *) ncs_patricia_tree_get(&process_info_db,
-				(uint8_t *)&mds_dest);
+				(uint8_t *)&key);
+	}
 	return NULL;
 }
 
 int mds_process_info_add(MDS_PROCESS_INFO *info)
 {
-       TRACE_ENTER2("dest:%"PRIx64", pid:%d", info->mds_dest, info->pid);
-       info->patnode.key_info = (uint8_t *)&info->mds_dest;
-       int rc = ncs_patricia_tree_add(&process_info_db,
-    		   (NCS_PATRICIA_NODE *)&info->patnode);
-       return rc;
+	TRACE_ENTER2("dest:%"PRIx64", pid:%d, svc:%d",
+			info->mds_dest, info->pid, info->svc_id);
+	info->key = ((info->mds_dest & 0xffffffff) << 32) | info->svc_id;
+	info->patnode.key_info = (uint8_t *)&info->key;
+	int rc = ncs_patricia_tree_add(&process_info_db,
+			(NCS_PATRICIA_NODE *)&info->patnode);
+	return rc;
 }
 
 int mds_process_info_del(MDS_PROCESS_INFO *info)
 {
-       TRACE_ENTER2("dest:%"PRIx64", pid:%d", info->mds_dest, info->pid);
-       int rc = ncs_patricia_tree_del(&process_info_db,
-    		   (NCS_PATRICIA_NODE *)&info->patnode);
-       return rc;
+	TRACE_ENTER2("dest:%"PRIx64", pid:%d, svc:%d",
+			info->mds_dest, info->pid, info->svc_id);
+	int rc = ncs_patricia_tree_del(&process_info_db,
+			(NCS_PATRICIA_NODE *)&info->patnode);
+	return rc;
 }
 
 int mds_process_info_db_init(void)
@@ -2541,7 +2546,7 @@ int mds_process_info_db_init(void)
 	NCS_PATRICIA_PARAMS pat_tree_params = {0};
 
 	/* locking not needed */
-	pat_tree_params.key_size = sizeof(MDS_DEST);
+	pat_tree_params.key_size = sizeof(uint64_t);
 	if (NCSCC_RC_SUCCESS != ncs_patricia_tree_init(
 			&process_info_db, &pat_tree_params)) {
 		syslog(LOG_ERR, "%s: patricia_tree_init failed", __FUNCTION__);
@@ -2549,11 +2554,6 @@ int mds_process_info_db_init(void)
 	}
 
 	return NCSCC_RC_SUCCESS;
-}
-
-int mds_process_info_enabled(void)
-{
-	return process_info_db.params.key_size > 0;
 }
 
 /*********************************************************

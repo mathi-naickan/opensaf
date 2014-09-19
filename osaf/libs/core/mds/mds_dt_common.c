@@ -428,7 +428,7 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer, uint16_
 		reassem_queue->recv.src_seq_num = svc_seq_num;
 
 		/* fill in credentials (if any) */
-		MDS_PROCESS_INFO *info = mds_process_info_get(adest);
+		MDS_PROCESS_INFO *info = mds_process_info_get(adest, src_svc_id);
 		if (info != NULL) {
 			reassem_queue->recv.pid = info->pid;
 			reassem_queue->recv.uid = info->uid;
