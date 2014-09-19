@@ -718,8 +718,8 @@ SmfImmUtils::read_IMM_long_DN_config_and_set_control_block(smfd_cb_t * cb)
 {
 	TRACE_ENTER();
 
-	//here is the only place where "kMaxDnLength" constant is directly used
-	uint32_t maxDnLength = kMaxDnLength;
+	//here is the only place where "kOsafMaxDnLength" constant is directly used
+	uint32_t maxDnLength = kOsafMaxDnLength;
 
 	/* First check if long DNs already enabled.
 	 * If enabled then there is no need to check it again,

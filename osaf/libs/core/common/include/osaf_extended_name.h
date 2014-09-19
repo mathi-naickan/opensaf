@@ -42,13 +42,13 @@ enum {
    *  stored immediately after the first 16-bit word (typically in the first
    *  four or eight bytes of the .value field of the legacy SaNameT type.
    */
-  kExtendedNameMagic = 0xcd2b,
+  kOsafExtendedNameMagic = 0xcd2b,
 
   /**
    *  Maximum length of a distinguished name, not counting the terminating NUL
    *  character.
    */
-  kMaxDnLength = 2048
+  kOsafMaxDnLength = 2048
 };
 
 /**
@@ -90,7 +90,7 @@ void osaf_extended_name_lend(SaConstStringT value, SaNameT* name);
  *
  *  This function returns a pointer to the string value in the legacy SaNameT @a
  *  name. If the .length field of the legacy SaNameT structure is not equal to
- *  the magic number @a kExtendedNameMagic, the returned pointer points to a
+ *  the magic number @a kOsafExtendedNameMagic, the returned pointer points to a
  *  copy of the string stored inside @a name. Otherwise, the returned pointer
  *  points to memory outside @a name.
  *
@@ -120,10 +120,10 @@ bool osaf_is_an_extended_name(const SaNameT* name);
  *
  *  This function returns true if the SaNameT @a name passes some sanity checks,
  *  e.g. that the length field is either equal to the magic number @a
- *  kExtendedNameMagic, or strictly less than SA_MAX_UNEXTENDED_NAME_LENGTH. It
- *  returns false if @a name failed some of the sanity checks. It may of course
- *  also crash the process if @a name is severly corrupted, e.g. if the pointer
- *  stored inside @a name points to inaccessible memory.
+ *  kOsafExtendedNameMagic, or strictly less than SA_MAX_UNEXTENDED_NAME_LENGTH.
+ *  It returns false if @a name failed some of the sanity checks. It may of
+ *  course also crash the process if @a name is severely corrupted, e.g. if the
+ *  pointer stored inside @a name points to inaccessible memory.
  *
  *  NOTE: This function is intended to be used in agent libraries to read
  *  SaNameT structures that may have been set by legacy application

@@ -1763,7 +1763,7 @@ static void charactersHandler(void* userData,
 		break;
 	case DN:
 		/* Copy the distinguished name */
-		if (len > kMaxDnLength) {
+		if (len > kOsafMaxDnLength) {
 			LOG_ER("DN is too long (%d characters)", len);
 			stopParser(state);
 			state->parsingStatus = 1;
@@ -2474,7 +2474,7 @@ static int charsToValueHelper(SaImmAttrValueT* value,
 		break;
 	case SA_IMM_ATTR_SANAMET:
 		len = strlen(str);
-		if (len > kMaxDnLength) {
+		if (len > kOsafMaxDnLength) {
 			LOG_ER("SaNameT value is too long: %d characters", len);
 			return 1;
 		}

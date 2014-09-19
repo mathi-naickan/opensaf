@@ -2505,9 +2505,9 @@ int syncObjectsOfClass(std::string className, SaImmHandleT& immHandle, int maxBa
 		exit(1);
 	}
 
-	if (objectNameLength > kMaxDnLength) {
+	if (objectNameLength > kOsafMaxDnLength) {
 		LOG_ER("syncObjectsOfClass: objectName.length(%zu) > %zu",
-			objectNameLength, static_cast<size_t>(kMaxDnLength));
+			objectNameLength, static_cast<size_t>(kOsafMaxDnLength));
 		exit(1);
 	}
 

@@ -167,8 +167,8 @@ done:
 
 	/* Allocate string for attribute name */
 	name_len = strlen(info_value);
-	if (name_len > kMaxDnLength)
-		name_len = kMaxDnLength;
+	if (name_len > kOsafMaxDnLength)
+		name_len = kOsafMaxDnLength;
 	rc = saNtfPtrValAllocate(
 			notificationHandle,
 			name_len + 1,

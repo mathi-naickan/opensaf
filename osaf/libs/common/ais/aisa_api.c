@@ -112,7 +112,7 @@ SaConstStringT ais_name_borrow(const SaNameT* name)
 {
 	SaConstStringT value = osaf_extended_name_borrow(name);
 	size_t length = name->_opaque[0];
-	if (length != kExtendedNameMagic) {
+	if (length != kOsafExtendedNameMagic) {
 		/*
 		 * Check that the string inside SaNameT is properly
 		 * NUL-terminated. If not, we return a NULL pointer. We allow

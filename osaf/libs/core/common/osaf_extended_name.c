@@ -60,7 +60,7 @@ static inline void set_ptr(SaConstStringT value, SaNameT* name)
 		SaUint8T bytes[sizeof(SaConstStringT)];
 	} tmp;
 	tmp.pointer = value;
-	name->_opaque[0] = kExtendedNameMagic;
+	name->_opaque[0] = kOsafExtendedNameMagic;
 	memcpy(name->_opaque + kExtendedNamePointerOffset, tmp.bytes,
 		sizeof(SaConstStringT));
 }
@@ -93,7 +93,7 @@ SaConstStringT osaf_extended_name_borrow(const SaNameT* name)
 {
 	size_t length = name->_opaque[0];
 	SaConstStringT value;
-	if (length != kExtendedNameMagic) {
+	if (length != kOsafExtendedNameMagic) {
 		value = (SaConstStringT) (name->_opaque + 1);
 	} else {
 		value = get_ptr(name);
@@ -103,14 +103,14 @@ SaConstStringT osaf_extended_name_borrow(const SaNameT* name)
 
 bool osaf_is_an_extended_name(const SaNameT* name)
 {
-	return name->_opaque[0] == kExtendedNameMagic;
+	return name->_opaque[0] == kOsafExtendedNameMagic;
 }
 
 bool osaf_is_extended_name_valid(const SaNameT* name)
 {
 	size_t length = name->_opaque[0];
 	bool is_valid;
-	if (length != kExtendedNameMagic) {
+	if (length != kOsafExtendedNameMagic) {
 		is_valid = length < SA_MAX_UNEXTENDED_NAME_LENGTH;
 	} else {
 		is_valid = osaf_extended_names_enabled &&
@@ -124,7 +124,7 @@ bool osaf_is_extended_name_empty(const SaNameT* name)
 {
 	size_t length = name->_opaque[0];
 	bool is_empty;
-	if (length != kExtendedNameMagic) {
+	if (length != kOsafExtendedNameMagic) {
 		is_empty = length == 0;
 	} else {
 		is_empty = *get_ptr(name) == '\0';
@@ -135,7 +135,7 @@ bool osaf_is_extended_name_empty(const SaNameT* name)
 size_t osaf_extended_name_length(const SaNameT* name)
 {
 	size_t length = name->_opaque[0];
-	if (length != kExtendedNameMagic) {
+	if (length != kOsafExtendedNameMagic) {
 		osafassert(length < SA_MAX_UNEXTENDED_NAME_LENGTH);
 		length = strnlen((const char*) (name->_opaque + 1), length);
 	} else {
@@ -191,7 +191,7 @@ void osaf_extended_name_alloc(SaConstStringT value, SaNameT* name)
 void osaf_extended_name_free(SaNameT* name)
 {
 	if (name != NULL) {
-		if (name->_opaque[0] == kExtendedNameMagic) {
+		if (name->_opaque[0] == kOsafExtendedNameMagic) {
 			free((SaStringT*) get_ptr(name));
 		}
 		name->_opaque[0] = 0xffff;

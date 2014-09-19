@@ -318,7 +318,7 @@ int main(int argc, char *argv[]) {
 			filterAlarm = false;
 			break;
 		case 'N':
-			if (strlen(optarg) > kMaxDnLength) {
+			if (strlen(optarg) > kOsafMaxDnLength) {
 				fprintf(stderr, "notifyingObject too long\n");
 				exit(EXIT_FAILURE);
 			}		
@@ -326,7 +326,7 @@ int main(int argc, char *argv[]) {
 			nNyObj = 1;
 			break;
 		case 'n':
-			if (strlen(optarg) > kMaxDnLength) {
+			if (strlen(optarg) > kOsafMaxDnLength) {
 				fprintf(stderr, "notificationObject too long\n");
 				exit(EXIT_FAILURE);
 			}

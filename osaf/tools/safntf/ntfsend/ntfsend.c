@@ -832,14 +832,14 @@ int main(int argc, char *argv[])
 				getVendorId(&myNotificationParams.notificationClassId);
 				break;
 			case 'n':
-				if (strlen(optarg) > kMaxDnLength) {
+				if (strlen(optarg) > kOsafMaxDnLength) {
 					fprintf(stderr, "notificationObject too long\n");
 					exit(EXIT_FAILURE);
 				}			
 				saAisNameLend(optarg, &myNotificationParams.notificationObject);
 				break;
 			case 'N':
-				if (strlen(optarg) > kMaxDnLength) {
+				if (strlen(optarg) > kOsafMaxDnLength) {
 					fprintf(stderr, "notifyingObject too long\n");
 					exit(EXIT_FAILURE);
 				}				

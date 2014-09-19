@@ -361,7 +361,7 @@ static uint32_t decodeSaNameT(NCS_UBAID *uba, uint8_t *p8, SaNameT *name)
 	uint32_t rv;
 	p8 = ncs_dec_flatten_space(uba, local_data, 2);
 	size_t length = ncs_decode_16bit(&p8);
-	if (length > kMaxDnLength) {
+	if (length > kOsafMaxDnLength) {
 		LOG_ER("SaNameT length too long: %zu", length);
 		/* this should not happen */
 		osafassert(0);

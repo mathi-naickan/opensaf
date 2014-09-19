@@ -1275,9 +1275,9 @@ bool ntfsv_sanamet_is_valid(const SaNameT* pName)
 			"is not set, or not using extended name api");
 		return false;
 	}
-	if (osaf_extended_name_length(pName) > kMaxDnLength) {
+	if (osaf_extended_name_length(pName) > kOsafMaxDnLength) {
 		LOG_ER("Exceeding maximum of extended name length(%u)"
-			,kMaxDnLength);
+			,kOsafMaxDnLength);
 		return false;
 	}
 	return true;

@@ -3057,7 +3057,7 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
                         attNm, v->val.x.size - 1);
                     err = SA_AIS_ERR_LIBRARY;
                     illegal = 1;
-                } else if (v->val.x.size > kMaxDnLength) {
+                } else if (v->val.x.size > kOsafMaxDnLength) {
                     LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
                         attNm, v->val.x.size - 1);
                     err = SA_AIS_ERR_LIBRARY;
@@ -6878,9 +6878,9 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
         objectName.append(parentName);
     }
     
-    if (objectName.size() > ((longDnsPermitted) ? kMaxDnLength : (SA_MAX_UNEXTENDED_NAME_LENGTH - 1))) {
+    if (objectName.size() > ((longDnsPermitted) ? kOsafMaxDnLength : (SA_MAX_UNEXTENDED_NAME_LENGTH - 1))) {
         TRACE_7("ERR_NAME_TOO_LONG: DN is too long, size:%u, max size is:%u",
-            (unsigned int) objectName.size(), kMaxDnLength);
+            (unsigned int) objectName.size(), kOsafMaxDnLength);
         err = SA_AIS_ERR_NAME_TOO_LONG;
         goto ccbObjectCreateExit;
     }
@@ -6998,7 +6998,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
             }
 
             if(attr->mValueType == SA_IMM_ATTR_SANAMET) {
-                if(p->n.attrValue.val.x.size > kMaxDnLength) {
+                if(p->n.attrValue.val.x.size > kOsafMaxDnLength) {
                     LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
                         attrName.c_str(), p->n.attrValue.val.x.size - 1);
                     err = SA_AIS_ERR_LIBRARY;
@@ -7928,7 +7928,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                 }
             }
 
-            if(p->attrValue.attrValue.val.x.size > kMaxDnLength) {
+            if(p->attrValue.attrValue.val.x.size > kOsafMaxDnLength) {
                 LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
                     attrName.c_str(), p->attrValue.attrValue.val.x.size - 1);
                 err = SA_AIS_ERR_LIBRARY;
@@ -13783,9 +13783,9 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
         objectName.append(parentName);
     }
     
-    if (objectName.size() > ((longDnsPermitted) ? kMaxDnLength : (SA_MAX_UNEXTENDED_NAME_LENGTH -1))) {
+    if (objectName.size() > ((longDnsPermitted) ? kOsafMaxDnLength : (SA_MAX_UNEXTENDED_NAME_LENGTH -1))) {
         TRACE_7("ERR_NAME_TOO_LONG: DN is too long, size:%u, max size is:%u", 
-            (unsigned int) objectName.size(), kMaxDnLength);
+            (unsigned int) objectName.size(), kOsafMaxDnLength);
         err = SA_AIS_ERR_NAME_TOO_LONG;     
         goto rtObjectCreateExit;
     }
@@ -13892,7 +13892,7 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
                 break; //out of for-loop
             }
             if(attr->mValueType == SA_IMM_ATTR_SANAMET) {
-                if(p->n.attrValue.val.x.size > kMaxDnLength) {
+                if(p->n.attrValue.val.x.size > kOsafMaxDnLength) {
                     LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
                         attrName.c_str(), p->n.attrValue.val.x.size - 1);
                     err = SA_AIS_ERR_LIBRARY;
@@ -15093,7 +15093,7 @@ ImmModel::rtObjectUpdate(const ImmsvOmCcbObjectModify* req,
                     }
                 }
 
-                if (p->attrValue.attrValue.val.x.size > kMaxDnLength) {
+                if (p->attrValue.attrValue.val.x.size > kOsafMaxDnLength) {
                     LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u",
                         attrName.c_str(), p->attrValue.attrValue.val.x.size - 1);
                     err = SA_AIS_ERR_LIBRARY;
