@@ -3337,7 +3337,6 @@ ImmModel::migrateObj(ObjectInfo* object,
                 TRACE_5("Schema change adjusted attribute %s in object:%s "
                     "to be multivalued", oavi->first.c_str(), objectDn.c_str());
                 delete oavi->second;
-                object->mAttrValueMap.erase(oavi);
                 object->mAttrValueMap[ai->first] = attrValue;
             }
         }
