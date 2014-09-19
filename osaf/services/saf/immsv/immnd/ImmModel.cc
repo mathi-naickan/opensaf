@@ -2514,7 +2514,7 @@ ImmModel::adjustEpoch(int suggestedEpoch,
     ImmAttrValueMap::iterator avi;
     ObjectInfo* immObject = NULL;
     ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
-    osafassert(oi != sObjectMap.end());
+    osafassert(oi != sObjectMap.end() && oi->second);
 
     immObject = oi->second;
     avi = immObject->mAttrValueMap.find(immAttrEpoch);
