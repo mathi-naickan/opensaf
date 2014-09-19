@@ -5481,14 +5481,18 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
                 for(omuti=ccb->mMutations.begin();omuti != ccb->mMutations.end();++omuti) {
                     if(omuti->second->mContinuationId == rsp->inv) {break;}
                 }
-                obj = omuti->second->mAfterImage;    
+                if(omuti != ccb->mMutations.end()){
+                    obj = omuti->second->mAfterImage;    
+                }
                 break;
 
             case IMM_CCB_MODIFY_OP:
                 TRACE("Augment CCB in state MODIFY_OP");
 
                 omuti =  ccb->mMutations.find(objectName);
-                obj = omuti->second->mAfterImage;
+                if(omuti != ccb->mMutations.end()){
+                    obj = omuti->second->mAfterImage;
+                }
                 break;
                 
             case IMM_CCB_DELETE_OP:
