@@ -4277,7 +4277,7 @@ static void immnd_evt_pbe_rt_obj_deletes_rsp(IMMND_CB *cb,
 	IMMSV_EVT send_evt;
 	SaUint32T reqConn = 0;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	SaStringT *objNameArr;
+	SaStringT *objNameArr = NULL;
 	SaUint32T arrSize = 0;
 	SaUint32T spApplConn=0;
 	SaUint32T pbe2BConn = 0;
@@ -6628,7 +6628,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 
 	SaUint32T *implConnArr = NULL;
 	SaUint32T *invocArr = NULL;
-	SaStringT *objNameArr;
+	SaStringT *objNameArr = NULL;
 	SaUint32T arrSize = 0;
 	SaBoolT delayedReply = SA_FALSE;
 
@@ -6951,7 +6951,7 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb,
 	NCS_NODE_ID pbeNodeId = 0;
 	NCS_NODE_ID *pbeNodeIdPtr = NULL;
 	SaUint32T continuationId = 0;
-	SaStringT *objNameArr;
+	SaStringT *objNameArr = NULL;
 	SaUint32T arrSize = 0;
 	SaUint32T spApplConn=0;
 	TRACE_ENTER();
