@@ -407,6 +407,7 @@ bool createImmObject(SaImmClassNameT className,
     SaAisErrorT errorCode = SA_AIS_OK;
     int i;
     size_t RDNlen;
+    bool rc = true;
 
     TRACE_ENTER2("CREATE IMM OBJECT %s, %s", className, objectName);
 
@@ -510,8 +511,8 @@ bool createImmObject(SaImmClassNameT className,
 	LOG_ER("Failed to create object err: %d, class: %s, dn: '%s'. "
 		"Check for duplicate attributes, or trace osafimmloadd",
 		errorCode, className, objectName);
-        TRACE_LEAVE();
-        return false;
+        rc = false;
+        goto freemem;
     }
 
     if(!opensafObjectCreated && 
@@ -522,13 +523,8 @@ bool createImmObject(SaImmClassNameT className,
 
     TRACE_8("CREATE DONE");
 
-    /* Free used parameters - moved to endElementHandler
-    free(state->objectClass);
-    state->objectClass = NULL;
-    free(state->objectName);
-    state->objectName = NULL;
-    */
 
+freemem:
     /* Free the RDN attrName later since it's re-used */
     /*free(attrValues[i]->attrValues);*/
     free(attrValues[i]);
@@ -542,7 +538,10 @@ bool createImmObject(SaImmClassNameT className,
         free(it->attrValues);
     }
     attrValuesList->clear();
-    return true;
+
+    TRACE_LEAVE();
+
+    return rc;
 }
 
 /**
@@ -556,6 +555,7 @@ bool createImmClass(SaImmHandleT immHandle,
     SaImmAttrDefinitionT_2** attrDefinition;
     SaAisErrorT errorCode = SA_AIS_OK;
     int i;
+    bool rc = true;
 
     TRACE_ENTER2("CREATING IMM CLASS %s", className);
 
@@ -600,7 +600,8 @@ bool createImmClass(SaImmHandleT immHandle,
     if (SA_AIS_OK != errorCode)
     {
         LOG_ER("FAILED to create IMM class %s, err:%d", className, errorCode);
-        return false;
+        rc = false;
+        goto freemem;
     }
 
     if(!opensafClassCreated && 
@@ -611,6 +612,7 @@ bool createImmClass(SaImmHandleT immHandle,
 
     TRACE_8("CREATED IMM CLASS %s", className);
 
+freemem:
     /* Free each attrDefinition */
     it = attrDefinitions->begin();
 
@@ -631,7 +633,7 @@ bool createImmClass(SaImmHandleT immHandle,
     attrDefinitions->clear();
 
     TRACE_LEAVE();
-    return true;
+    return rc;
 }
 
 /**
