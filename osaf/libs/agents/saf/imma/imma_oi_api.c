@@ -3504,7 +3504,7 @@ SaAisErrorT saImmOiAugmentCcbInitialize(
 		if(rc != SA_AIS_OK) {
 			TRACE("ERR_TRY_AGAIN: failed to obtain internal om handle rc:%u", rc);
 			rc = SA_AIS_ERR_TRY_AGAIN;
-			goto done;
+			goto lock_fail; /* We are not locked and nothing to de-allocate.  */
 		}
 
 		osafassert(m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS);
