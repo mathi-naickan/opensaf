@@ -279,6 +279,7 @@ typedef struct
 typedef struct plms_cb
 {             
         SaNameT                   comp_name;     /* Component name - "PLMS"               */
+	SaStringT                 my_entity_path;
         SaAmfHAStateT             ha_state;      /* present AMF HA state of the component */
 	bool                  csi_assigned;
 	SaHpiDomainIdT     	  domain_id;

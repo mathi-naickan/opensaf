@@ -119,7 +119,6 @@ char * plmc_get_listening_ip_addr(char *plmc_config_file)
   s = socket(PF_INET, SOCK_DGRAM, 0);
   for(i = 0; i < nifaces; i++)
   {
-    strncpy(ifreqs[i].ifr_name, ifreqs[i].ifr_name, sizeof(ifreqs[i].ifr_name));
     if (ioctl(s, SIOCGIFADDR, &ifreqs[i]) >= 0) {
       struct sockaddr_in addr;
 

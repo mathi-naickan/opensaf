@@ -39,6 +39,10 @@
 #include "plms_hrb.h"
 #include <SaHpi.h>
 
+/* These two macros exist to get around the use of typecast in SaHpi.h */
+#define EMPTY(x)
+#define HPI_VERSION(x) EMPTY x
+
 static PLMS_HSM_CB _hsm_cb;
 PLMS_HSM_CB     *hsm_cb = &_hsm_cb;
 
@@ -562,6 +566,11 @@ static void *plms_hsm(void)
 
 		TRACE("HSM:Receieved event for res_id:%u Evt type:%u ",rpt_entry.ResourceId,event.EventType);
 
+		if (event.EventType == SAHPI_ET_OEM) {
+			/* not currently supporting OEM events */
+			continue;
+		}
+
 		/* Get the Hotswap State model for this resource */
 		rc = hsm_get_hotswap_model(&rpt_entry,&hotswap_state_model);
 		if(rc == NCSCC_RC_FAILURE){
@@ -671,6 +680,9 @@ static void *plms_hsm(void)
 static SaUint32T hsm_discover_and_dispatch()
 {
 	PLMS_HSM_CB       *cb = hsm_cb;
+	PLMS_CB           *plmscb = plms_cb;
+	SaErrorT          hpirc = SA_OK;
+	SaHpiEntityPathT  my_entity_path;
 	SaHpiDomainInfoT  prev_domain_info;
 	SaHpiDomainInfoT  latest_domain_info;
 	SaHpiEntryIdT     current;
@@ -709,6 +721,24 @@ static SaUint32T hsm_discover_and_dispatch()
 				ret val:%d",rc); 
 		prev_domain_op_status = NCSCC_RC_FAILURE;
 	}
+
+#if (HPI_VERSION(SAHPI_INTERFACE_VERSION) >= 0x020301)
+	/* get our entity path */
+	hpirc = saHpiMyEntityPathGet(cb->session_id, &my_entity_path);
+
+	if (hpirc != SA_OK) {
+		LOG_ER("saHpiMyEntityPathGet failed: %d", hpirc);
+	}
+	else {
+		rc = convert_entitypath_to_string(&my_entity_path,
+                                               &plmscb->my_entity_path);
+		if (NCSCC_RC_FAILURE == rc) {
+			LOG_ER("failed to convert my_entity_path");
+		}
+	}
+#else
+	plmscb->my_entity_path = 0;
+#endif
 
 	/* Process the list of RPT entries on this session */
 	next = SAHPI_FIRST_ENTRY;
@@ -1069,7 +1099,7 @@ static SaUint32T hsm_get_idr_chassis_info(SaHpiRptEntryT  *rpt_entry,
         area_id = SAHPI_FIRST_ENTRY;
 
 	/* First make sure that we find the chassis info area */
-        while ((err == SA_OK) && (area_id != SAHPI_LAST_ENTRY)) {
+        while (area_id != SAHPI_LAST_ENTRY) {
                 /* get the chassis_info_area header */
                 err = saHpiIdrAreaHeaderGet(cb->session_id,
                                         rpt_entry->ResourceId,
@@ -1078,6 +1108,10 @@ static SaUint32T hsm_get_idr_chassis_info(SaHpiRptEntryT  *rpt_entry,
                                         area_id,
                                         &next_area,
                                         &area_info);
+
+		if (err != SA_OK)
+			return NCSCC_RC_FAILURE;
+
                 /* Check out what Area it is */
                 if (area_info.Type == SAHPI_IDR_AREATYPE_CHASSIS_INFO) {
                         break;
@@ -1156,7 +1190,7 @@ static SaUint32T hsm_get_idr_board_info(SaHpiRptEntryT  *rpt_entry,
 
 	/* get the BOARD_INFO area header for the given resource */
 	/* First we need to make sure we can find the board info */
-        while ((err == SA_OK) && (area_id != SAHPI_LAST_ENTRY)) {
+        while (area_id != SAHPI_LAST_ENTRY) {
                 err = saHpiIdrAreaHeaderGet(cb->session_id,
                                         rpt_entry->ResourceId,
                                         idr_id,
@@ -1164,6 +1198,10 @@ static SaUint32T hsm_get_idr_board_info(SaHpiRptEntryT  *rpt_entry,
                                         area_id,
                                         &next_area,
                                         &area_info);
+
+		if (err != SA_OK)
+			return NCSCC_RC_FAILURE;
+
                 /* Check out what Area it is */
                 if (area_info.Type == SAHPI_IDR_AREATYPE_BOARD_INFO) {
                         break;
@@ -1260,7 +1298,7 @@ static SaUint32T hsm_get_idr_product_info(SaHpiRptEntryT  *rpt_entry,
 
 	/* get the PRODUCT_INFO area header for the given resource */
 	/* First we need to make sure we can find the product info */
-        while ((err == SA_OK) && (area_id != SAHPI_LAST_ENTRY)) {
+        while (area_id != SAHPI_LAST_ENTRY) {
                 /* get the chassis_info_area header */
                 err = saHpiIdrAreaHeaderGet(cb->session_id,
                                         rpt_entry->ResourceId,
@@ -1269,6 +1307,10 @@ static SaUint32T hsm_get_idr_product_info(SaHpiRptEntryT  *rpt_entry,
                                         area_id,
                                         &next_area,
                                         &area_info);
+
+		if (err != SA_OK)
+			return NCSCC_RC_FAILURE;
+
                 /* Check out what Area it is */
                 if (area_info.Type == SAHPI_IDR_AREATYPE_PRODUCT_INFO) {
                         break;

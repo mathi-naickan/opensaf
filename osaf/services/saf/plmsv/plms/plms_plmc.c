@@ -2282,6 +2282,7 @@ SaUint32T plms_ee_reboot(PLMS_ENTITY *ent, SaUint32T is_adm_op,SaUint32T mngt_cb
 SaUint32T plms_ee_instantiate(PLMS_ENTITY *ent,SaUint32T is_adm_op,SaUint32T mngt_cbk)
 {
 	SaUint32T ret_err,cbk = 0;
+	PLMS_CB *cb = plms_cb;
 	PLMS_ENTITY *parent_he;
 
 	if (PLMS_EE_ENTITY != ent->entity_type)
@@ -2309,6 +2310,18 @@ SaUint32T plms_ee_instantiate(PLMS_ENTITY *ent,SaUint32T is_adm_op,SaUint32T mng
 						ent->dn_name_str);
 		ret_err = NCSCC_RC_FAILURE; 
 	}else{
+		/* don't reset if this is myself -- obviously we are already
+		running; just return success.  PLMCD message will handle
+		EE */
+		if (parent_he->entity_type == PLMS_HE_ENTITY &&
+			cb->my_entity_path &&
+			!strcmp(parent_he->entity.he_entity.saPlmHECurrEntityPath,
+				cb->my_entity_path))
+		{
+			TRACE("not resetting myself");
+			return NCSCC_RC_SUCCESS;
+		}
+
 		/* Reset the parent_he.*/
 		TRACE("Reset the parent HE %s(ee_inst).",
 						parent_he->dn_name_str);
