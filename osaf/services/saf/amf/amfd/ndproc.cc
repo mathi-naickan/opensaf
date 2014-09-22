@@ -347,6 +347,16 @@ static void su_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 					su->name.value);
 		}
 		break;
+	case SA_AMF_ADMIN_UNLOCK:
+		if ((su->saAmfSUPreInstantiable == false) && (pres == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+			report_admin_op_error(cb->immOiHandle,
+					su->pend_cbk.invocation,
+					SA_AIS_ERR_REPAIR_PENDING,
+					&su->pend_cbk,
+					"SU '%s' moved to 'termination failed' state",
+					su->name.value);
+		}
+		break;
 	case SA_AMF_ADMIN_REPAIRED:
 		if (pres == SA_AMF_PRESENCE_UNINSTANTIATED) {
 			avd_saImmOiAdminOperationResult(cb->immOiHandle,
