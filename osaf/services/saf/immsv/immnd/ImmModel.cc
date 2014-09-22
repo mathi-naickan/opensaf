@@ -11216,7 +11216,7 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
     iem=sImplDetachTime.begin();
     while(iem!=sImplDetachTime.end()) {
         if(now - iem->second.mCreateTime >= DEFAULT_TIMEOUT_SEC) {
-            TRACE_5("Timeout on sImplDetachTime implid:%u", ci2->second.mConn);
+            TRACE_5("Timeout on sImplDetachTime implid:%u", iem->first->mId);
             sImplDetachTime.erase(iem);
             iem=sImplDetachTime.begin();
         } else {
