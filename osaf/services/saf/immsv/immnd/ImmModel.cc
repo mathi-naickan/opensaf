@@ -14119,6 +14119,7 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 if((info->mDying) && (!(info->mReleaseOnFinalize))) {
                     LOG_ER("finalizeSync client: Admo is dying yet releaseOnFinalize is false");
                     err = SA_AIS_ERR_FAILED_OPERATION;
+                    delete info;
                     goto done;
                 }
                 
@@ -14134,6 +14135,7 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                         LOG_ER("Sync client failed to locate object: "
                             "%s, will restart.", objectName.c_str());
                         err = SA_AIS_ERR_FAILED_OPERATION;
+                        delete info;
                         goto done;
                     }
                     info->mTouchedObjects.insert(oi->second);
@@ -14350,13 +14352,13 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 if(newCcb->mWaitStartTime <= ((time_t) 0)) {
                     LOG_ER("newCcb->mWaitStartTime <= 0");
                     err = SA_AIS_ERR_FAILED_OPERATION;
+                    delete newCcb;
                     goto done;
                 }
                 newCcb->mOpCount=0;
                 newCcb->mPbeRestartId=0;
                 newCcb->mErrorStrings=NULL;
                 newCcb->mAugCcbParent = NULL;
-                sCcbVector.push_back(newCcb);
     
                 TRACE_5("CCB %u state %s", newCcb->mId, 
                     (newCcb->mState == IMM_CCB_COMMITTED)?"COMMITTED":
@@ -14364,8 +14366,10 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 if((newCcb->isActive())) {
                     LOG_ER("Can not sync Ccb that is active");
                     err = SA_AIS_ERR_FAILED_OPERATION;
+                    delete newCcb;
                     goto done;
                 }
+                sCcbVector.push_back(newCcb);
                 ol = ol->next;
             }
 
