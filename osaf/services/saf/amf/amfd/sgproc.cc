@@ -1763,7 +1763,7 @@ void avd_node_down_appl_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd)
 					   saAmfSINumCurrActiveAssignments was increased when active
 					   assignment had been sent. So decrement the count in SI before
 					   deleting the SUSI. */
-					susi->si->dec_curr_act_ass();
+					avd_si_dec_curr_act_ass(susi->si);
 				}
 				else if ((susi->fsm == AVD_SU_SI_STATE_MODIFY) &&
 						(susi->state == SA_AMF_HA_STANDBY)) {
@@ -1771,7 +1771,8 @@ void avd_node_down_appl_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd)
 					   saAmfSINumCurrStandbyAssignments was increased when standby 
 					   assignment had been sent. So decrement the count in SI before
 					   deleting the SUSI. */
-					susi->si->dec_curr_stdby_ass();
+					avd_si_dec_curr_stdby_ass(susi->si);
+
 				}
 
 
