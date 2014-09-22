@@ -962,8 +962,10 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_OPER_STATE);
 		}
 
-		/* instantiating -> inst-failed */
-		if ((SA_AMF_PRESENCE_INSTANTIATING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)) {
+		/* instantiating -> inst-failed/term-failed */
+		if ((SA_AMF_PRESENCE_INSTANTIATING == prv_st) && 
+				((final_st == SA_AMF_PRESENCE_INSTANTIATION_FAILED) ||
+				 (final_st == SA_AMF_PRESENCE_TERMINATION_FAILED))) {
 			/* instantiation failed.. log it */
 			m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
 			m_AVND_COMP_OPER_STATE_AVD_SYNC(cb, comp, rc);
@@ -1177,8 +1179,10 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			}
 		}
 
-		/* Instantiating -> Instantiationfailed */
-		if ((SA_AMF_PRESENCE_INSTANTIATING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)) {
+		/* Instantiating -> Instantiationfailed/Terminationfailed */
+		if ((SA_AMF_PRESENCE_INSTANTIATING == prv_st) && 
+				((final_st == SA_AMF_PRESENCE_INSTANTIATION_FAILED) ||
+				 (final_st == SA_AMF_PRESENCE_TERMINATION_FAILED))) {
 			m_AVND_COMP_FAILED_SET(comp);
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
 			m_AVND_COMP_OPER_STATE_SET(comp, SA_AMF_OPERATIONAL_DISABLED);
