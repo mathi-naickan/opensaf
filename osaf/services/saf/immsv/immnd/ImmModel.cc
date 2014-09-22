@@ -13194,7 +13194,7 @@ SaAisErrorT ImmModel::setImplementer(std::string objectName,
                     TRACE_7("ERR_EXIST: Object '%s' already has class implementer %s "
                             "conflicts with setting object implementer",
                         objectName.c_str(),
-                        obj->mImplementer->mImplementerName.c_str());
+                        classInfo->mImplementer->mImplementerName.c_str());
                 } else if(immNotWritable()) {
                     if(obj->mImplementer != info) {
                         /* This was not the idempotency case for object-implementer set
