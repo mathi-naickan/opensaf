@@ -543,6 +543,7 @@ node_walk:
 		} else {
 			goto done;
 		}
+		node = NULL;
 	}
 
 	if (node == NULL) {
