@@ -250,9 +250,8 @@ int main(int argc, char *argv[])
 	};
 	SaAisErrorT error;
 	SaImmHandleT immHandle;
-	SaImmAdminOwnerNameT adminOwnerName = basename(argv[0]);
+	SaImmAdminOwnerNameT adminOwnerName = NULL;
 	bool releaseAdmo=true;
-	bool explicitAdmo=false;
 	SaImmAdminOwnerHandleT ownerHandle;
 	SaNameT objectName;
 	const SaNameT *objectNames[] = { &objectName, NULL };
@@ -290,7 +289,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'o':
 			if(operationId != -1) {
-				fprintf(stderr, "Cannot set admin operation more then once");
+				fprintf(stderr, "Cannot set admin operation more than once\n");
 				exit(EXIT_FAILURE);
 			}
 			operationId = strtoll(optarg, (char **)NULL, 10);
@@ -301,7 +300,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'O':
 			if(operationId != -1) {
-				fprintf(stderr, "Cannot set admin operation more then once");
+				fprintf(stderr, "Cannot set admin operation more than once\n");
 				exit(EXIT_FAILURE);
 			}
 			operationId = SA_IMM_PARAM_ADMOP_ID_ESC;
@@ -336,10 +335,13 @@ int main(int argc, char *argv[])
 			}
 			break;
 		case 'a':
+			if(adminOwnerName) {
+				fprintf(stderr, "Cannot set admin owner name more than once\n");
+				exit(EXIT_FAILURE);
+			}
 			adminOwnerName = (SaImmAdminOwnerNameT)malloc(strlen(optarg) + 1);
 			strcpy(adminOwnerName, optarg);
 			releaseAdmo=false;
-			explicitAdmo=true;
 			break;
 		case 'h':
 			usage(basename(argv[0]));
@@ -379,7 +381,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if((optind < argc) && (!explicitAdmo)) {
+	if((optind < argc) && (!adminOwnerName)) {
 		saAisNameLend(argv[optind], &objectName);
 
 		if(strcmp(saAisNameBorrow(&objectName), OPENSAF_IMM_OBJECT_DN)==0) {
@@ -388,6 +390,11 @@ int main(int argc, char *argv[])
 			strcpy(adminOwnerName, OPENSAF_IMM_SERVICE_NAME);
 			printf("[using admin-owner: '%s']\n", adminOwnerName);
 		}
+	}
+
+	/* set default admin owner name */
+	if(!adminOwnerName) {
+		adminOwnerName = basename(argv[0]);
 	}
 
 	error = immutil_saImmOmAdminOwnerInitialize(immHandle, adminOwnerName, releaseAdmo?SA_TRUE:SA_FALSE, &ownerHandle);
@@ -494,6 +501,10 @@ retry:
 	if (SA_AIS_OK != error) {
 		fprintf(stderr, "error - saImmOmFinalize FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
+	}
+
+	if(adminOwnerName && !releaseAdmo) {
+		free(adminOwnerName);
 	}
 
 	exit(EXIT_SUCCESS);
