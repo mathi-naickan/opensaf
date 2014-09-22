@@ -1748,6 +1748,24 @@ void avd_node_down_appl_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd)
 					avd_susi_update_assignment_counters(susi, AVSV_SUSI_ACT_MOD,
 							SA_AMF_HA_QUIESCING, SA_AMF_HA_QUIESCED);
 				}
+				else if ((susi->fsm == AVD_SU_SI_STATE_MODIFY) &&
+						(susi->state == SA_AMF_HA_ACTIVE)) {
+					/* SUSI is undergoing active modification. For active state
+					   saAmfSINumCurrActiveAssignments was increased when active
+					   assignment had been sent. So decrement the count in SI before
+					   deleting the SUSI. */
+					susi->si->dec_curr_act_ass();
+				}
+				else if ((susi->fsm == AVD_SU_SI_STATE_MODIFY) &&
+						(susi->state == SA_AMF_HA_STANDBY)) {
+					/* SUSI is undergoing standby modification. For standby state
+					   saAmfSINumCurrStandbyAssignments was increased when standby 
+					   assignment had been sent. So decrement the count in SI before
+					   deleting the SUSI. */
+					susi->si->dec_curr_stdby_ass();
+				}
+
+
 			}
 
 			/* Now analyze the service group for the new HA state
