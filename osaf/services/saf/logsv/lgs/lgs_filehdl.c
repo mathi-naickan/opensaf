@@ -34,11 +34,11 @@
 #include <logtrace.h>
 #include <ncsgl_defs.h>
 #include <osaf_utility.h>
+#include <osaf_time.h>
 
 #include "lgs.h"
 #include "lgs_util.h"
 #include "lgs_file.h"
-
 
 extern pthread_mutex_t lgs_ftcom_mutex;	/* For locking communication */
 
@@ -67,6 +67,8 @@ int path_is_writeable_dir_hdl(void *indata, void *outdata, size_t max_outsize)
 	
 	TRACE("%s - pathname \"%s\"",__FUNCTION__,pathname);
 
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section */
+
 	/* Check if the pathname violates security rules e.g. contains ../ */
 	if (lgs_relative_path_check_ts(pathname) || stat(pathname, &pathstat) != 0) {
 		LOG_NO("Path %s not allowed", pathname);
@@ -87,6 +89,8 @@ int path_is_writeable_dir_hdl(void *indata, void *outdata, size_t max_outsize)
 		goto done;
 	}
 
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
+	
 	is_writeable_dir = 1;
 done:
 	TRACE_LEAVE2("is_writeable_dir = %d",is_writeable_dir);
@@ -107,9 +111,14 @@ int check_path_exists_hdl(void *indata, void *outdata, size_t max_outsize)
 	char *path_str = (char *) indata;
 	int rc = 0;
 	
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section */
+
 	rc = stat(path_str, &pathstat);
 	TRACE("%s - path_str \"%s\", rc=%d",__FUNCTION__,path_str,rc);
 	TRACE("%s - errno \"%s\"",__FUNCTION__,strerror(errno));
+	
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
+
 	return rc;
 }
 
@@ -130,8 +139,12 @@ int rename_file_hdl(void *indata, void *outdata, size_t max_outsize)
 	char *old_path = (char *) indata + sizeof(size_t);
 	char *new_path = old_path + old_path_size;
 	
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section */
+	
 	if ((rc = rename(old_path, new_path)) == -1)
 		LOG_NO("rename: FAILED - %s", strerror(errno));
+	
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 
 	TRACE_LEAVE();
 	return rc;
@@ -157,11 +170,15 @@ int create_config_file_hdl(void *indata, void *outdata, size_t max_outsize)
 	TRACE_ENTER();
 	
 	TRACE("%s - file_path \"%s\"",__FUNCTION__,file_path);
-fopen_retry:
-	if ((filp = fopen(file_path, "w")) == NULL) {
-		if (errno == EINTR)
-			goto fopen_retry;
 
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section */
+	
+	/* Create the config file */
+	do {
+		if ((filp = fopen(file_path, "w")) != NULL)
+			break;
+	} while (errno == EINTR);
+	if (filp == NULL) {
 		LOG_NO("Could not open '%s' - %s", file_path, strerror(errno));
 		rc = -1;
 		goto done;
@@ -204,15 +221,14 @@ fopen_retry:
 	if (rc == -1)
 		LOG_NO("Could not write to \"%s\"", file_path);
 
-fclose_retry:
-	if ((rc = fclose(filp)) == -1) {
-		if (errno == EINTR)
-			goto fclose_retry;
-
+	/* Close the file */
+	rc = fclose(filp);
+	if (rc == -1) {
 		LOG_NO("Could not close \"%s\" - \"%s\"", file_path, strerror(errno));
 	}
-
+	
 done:
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 	TRACE_LEAVE2("rc = %d", rc);
 	return rc;	
 }
@@ -246,6 +262,8 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 	
 	TRACE_ENTER();
 	
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section */
+	
  retry:
 	rc = write(params_in->fd, &logrecord[bytes_written],
 		 params_in->record_size - bytes_written);
@@ -262,6 +280,7 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 		if (bytes_written < params_in->record_size)
 			goto retry;
 	}
+ 
 #ifdef LLD_DELAY_WRTST /* LLDTEST Wait first time thread is used */
 	if (strstr(logrecord, "xxx")) {
 		if (lld_once_f == true) {
@@ -277,12 +296,12 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 		TRACE("LLDTEST yyy Rearmed Hang write");
 	}
 #endif
- 
+ 	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
+
 	/* If the thread was hanging and has timed out and the log record was
 	 * written it is invalid and shall be removed from file (log service has
 	 * returned SA_AIS_TRY_AGAIN). 
 	 */
-	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK */
 	if (*timeout_f == true) {
 		TRACE("Timeout, removing last log record");
 		file_length = lseek(params_in->fd, -bytes_written, SEEK_END);
@@ -300,7 +319,6 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 					__FUNCTION__,strerror(errno));			
 		}
 	}
-	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK */
  
 done:
 	TRACE_LEAVE2("rc = %d",rc);
@@ -343,6 +361,7 @@ int make_log_dir_hdl(void *indata, void *outdata, size_t max_outsize)
 	TRACE("rootpath \"%s\"",rootpath);
 	TRACE("relpath \"%s\"",relpath);
 	
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section */
 	/* 
 	 * Create root directory if it does not exists.
 	 * TBD. Handle via separate ticket
@@ -420,6 +439,7 @@ int make_log_dir_hdl(void *indata, void *outdata, size_t max_outsize)
 	TRACE("%s - Dir \"%s\" created",__FUNCTION__, mpath);
 	
 done:
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 	TRACE_LEAVE2("mldh_rc = %u", mldh_rc);
 	return mldh_rc;
 }
@@ -437,7 +457,7 @@ done:
  * @param max_outsize[in], always sizeof(int)
  * @return file descriptor or -1 if error
  */
-int fileopen_hdl(void *indata, void *outdata, size_t max_outsize)
+int fileopen_hdl(void *indata, void *outdata, size_t max_outsize, bool *timeout_f)
 {
 	int errno_save = 0;
 	char *filepath = (char *) indata;
@@ -447,6 +467,7 @@ int fileopen_hdl(void *indata, void *outdata, size_t max_outsize)
 	TRACE_ENTER();
 	
 	TRACE("%s - filepath \"%s\"",__FUNCTION__,filepath);
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section  */
 open_retry:
 	fd = open(filepath, O_CREAT | O_RDWR | O_APPEND | O_NONBLOCK,
 							S_IRUSR | S_IWUSR | S_IRGRP);
@@ -460,8 +481,20 @@ open_retry:
 		 * Can be called in context of log_stream_write */
 		LOG_IN("Could not open: %s - %s", filepath, strerror(errno));
 	}
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 
 	*errno_out_p = errno_save;
+	
+	/* If the file was opened but thread was hanging and has timed out than
+	 * opening the file is reported as failed. This means that the file has to
+	 * be closed again in order to not get a stray fd.
+	 */
+	if ((*timeout_f == true) && (fd != -1)) {
+		(void) close(fd);
+		fd = -1;
+		errno_save = 0;
+	}
+	
 	TRACE_LEAVE();
 	return fd;
 }
@@ -481,11 +514,25 @@ int fileclose_hdl(void *indata, void *outdata, size_t max_outsize)
 	fd = *(int *) indata;
 	TRACE_ENTER2("fd=%d", fd);
 
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK critical section */
+	/* Flush and synchronize the file before closing to guaranty that the file
+	 * is not written to after it's closed
+	 */
+	if ((rc = fdatasync(fd)) == -1) {
+		if ((errno == EROFS) || (errno == EINVAL)) {
+			TRACE("Synchronization is not supported for this file");
+		} else {
+			LOG_NO("%s: fdatasync() error \"%s\"",__FUNCTION__, strerror(errno));
+		}
+	}
+ 
+	/* Close the file */
 	rc = close(fd);
-
 	if (rc == -1) {
 		LOG_ER("fileclose() %s",strerror(errno));
 	}
+	
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 	TRACE_LEAVE2("rc=%d", rc);
 	return rc;
 }
@@ -504,6 +551,7 @@ int delete_file_hdl(void *indata, void *outdata, size_t max_outsize)
 	
 	TRACE_ENTER();
 	
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK critical section */
 	if ((rc = unlink(pathname)) == -1) {
 		if (errno == ENOENT)
 			rc = 0;
@@ -511,6 +559,7 @@ int delete_file_hdl(void *indata, void *outdata, size_t max_outsize)
 			LOG_NO("could not unlink: %s - %s", pathname, strerror(errno));
 	}
 
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 	TRACE_LEAVE();
 	return rc;
 }
@@ -608,7 +657,10 @@ int get_number_of_log_files_hdl(void *indata, void *outdata, size_t max_outsize)
 		goto done_exit;
 	}
 
+	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK critical section */
 	files = n = scandir(path, &namelist, filter_func, alphasort);
+
+	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 	if (n == -1 && errno == ENOENT) {
 		rc = 0;
 		goto done_exit;
