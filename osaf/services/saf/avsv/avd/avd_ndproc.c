@@ -348,6 +348,12 @@ static void su_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pres)
 			su->pend_cbk.admin_oper = 0;
 		}
 		break;
+	case SA_AMF_ADMIN_UNLOCK:
+		if ((su->saAmfSUPreInstantiable == false) && (pres == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+			avd_saImmOiAdminOperationResult(cb->immOiHandle,
+				su->pend_cbk.invocation, SA_AIS_ERR_REPAIR_PENDING);
+		}
+		break;
 	case SA_AMF_ADMIN_REPAIRED:
 		if (pres == SA_AMF_PRESENCE_UNINSTANTIATED) {
 			avd_saImmOiAdminOperationResult(cb->immOiHandle,
