@@ -2095,11 +2095,12 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	}
 
 	/*
-	 *  su-sis may be in assigning/removing state. signal csi
-	 * assign/remove done so that su-si assignment/removal algo can proceed.
+	 *  su-sis may be in assigning/removing state. Except su-failover case, 
+	 *  signal csi assign/remove done so that su-si assignment/removal algo
+	 *  can proceed.
 	 */
-	avnd_comp_cmplete_all_assignment(cb, comp);
-
+	if (sufailover_in_progress(su) == false) 
+		avnd_comp_cmplete_all_assignment(cb, comp);
 	avnd_comp_curr_info_del(cb, comp);
 
 	/* reset the comp-reg & instantiate params */
