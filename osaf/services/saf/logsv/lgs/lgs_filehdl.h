@@ -159,7 +159,7 @@ int rename_file_hdl(void *indata, void *outdata, size_t max_outsize);
 int create_config_file_hdl(void *indata, void *outdata, size_t max_outsize);
 int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *timeout_f);
 int make_log_dir_hdl(void *indata, void *outdata, size_t max_outsize);
-int fileopen_hdl(void *indata, void *outdata, size_t max_outsize);
+int fileopen_hdl(void *indata, void *outdata, size_t max_outsize, bool *timeout_f);
 int fileclose_hdl(void *indata, void *outdata, size_t max_outsize);
 int delete_file_hdl(void *indata, void *outdata, size_t max_outsize);
 int get_number_of_log_files_hdl(void *indata, void *outdata, size_t max_outsize);

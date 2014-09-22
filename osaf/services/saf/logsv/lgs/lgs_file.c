@@ -130,14 +130,17 @@ static void *file_hndl_thread(void *noparam)
 			 * The handler is supposed to know the format of it's own in and
 			 * out data. The data is given to the corresponding API that also is
 			 * assumed to know the data format.
+			 * Note:
+			 * Mutex is unlocked inside the _hdl functions while calling
+			 * file I/O functions. Mutex is locked when _hdl function returns.
 			 */
-			osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK */
-		
+
 			/* Invoke requested handler function */
 			switch (lgs_com_data.request_code)	{
 			case LGSF_FILEOPEN:
 				hndl_rc = fileopen_hdl(lgs_com_data.indata_ptr, 
-						lgs_com_data.outdata_ptr, lgs_com_data.outdata_size);
+						lgs_com_data.outdata_ptr, lgs_com_data.outdata_size,
+						&lgs_com_data.timeout_f);
 				break;
 			case LGSF_FILECLOSE:
 				hndl_rc = fileclose_hdl(lgs_com_data.indata_ptr,
@@ -179,8 +182,6 @@ static void *file_hndl_thread(void *noparam)
 				break;
 			}
 			
-			osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK */
-
 			/* Handle answer flag and return data
 			 * Note: This must be done after handler is done (handler may hang)
 			 */
@@ -264,6 +265,76 @@ uint32_t lgs_file_init(void)
 	return rc;
 }
 
+/* 
+ * List for saving file descriptors.
+ * A file descriptor is added to the list if a close request fails because
+ * the file thread is busy. If the thread is busy the close function is never
+ * called. A new attempt to close is made the next time the file API is used.
+ */
+
+typedef struct fd_list {
+	struct fd_list *fd_next_p;
+	int32_t fd;
+} fd_list_t;
+
+static fd_list_t *fd_first_p = NULL;
+static fd_list_t *fd_last_p = NULL;
+
+/**
+ * Add stream file descriptor to list
+ * @param fd
+ */
+void lgs_fd_list_add(int32_t fd)
+{
+	fd_list_t *fd_new_p;
+	
+	TRACE_ENTER2("fd = %d", fd);
+	
+	fd_new_p = (fd_list_t *) malloc(sizeof(fd_list_t));
+	osafassert(fd_new_p);
+	
+	if (fd_first_p == NULL) {
+		/* First in list */
+		fd_first_p = fd_new_p;
+		fd_last_p = fd_new_p;
+	} else {
+		fd_last_p->fd_next_p = fd_new_p;
+		fd_last_p = fd_new_p;
+	}
+	
+	fd_new_p->fd = fd;
+	fd_new_p->fd_next_p = NULL;
+	
+	TRACE_LEAVE();
+}
+
+/**
+ * Get and remove file descriptor from list 
+ * @return fd If list empty return -1
+ */
+int32_t lgs_fd_list_get(void)
+{
+	int32_t r_fp;
+	fd_list_t *fd_rem_p;
+	
+	if (fd_first_p == NULL) {
+		/* List empty */
+		return -1;
+	}
+	
+	r_fp = fd_first_p->fd; /* fd to return */
+	fd_rem_p = fd_first_p;
+	fd_first_p = fd_rem_p->fd_next_p;
+	if (fd_first_p == NULL) {
+		/* List is empty */
+		fd_last_p = NULL;
+	}
+
+	free(fd_rem_p);
+
+	return r_fp;
+}
+
 /**
  * Generic file API handler
  * Handles everything that is generic thread handling for the APIs
@@ -276,6 +347,10 @@ lgsf_retcode_t log_file_api(lgsf_apipar_t *apipar_in)
 	lgsf_retcode_t api_rc = LGSF_SUCESS;
 	int rc = 0;
 	struct timespec timeout_time;
+	int fd = 0;
+	
+	/* If this flag is true always return LGSF_BUSY */
+	bool busy_close_flag = false;
 	
 	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK */
 	
@@ -286,6 +361,20 @@ lgsf_retcode_t log_file_api(lgsf_apipar_t *apipar_in)
 		api_rc = LGSF_BUSY;
 		TRACE("%s - LGSF_BUSY",__FUNCTION__);
 		goto api_exit;
+	}
+	
+	/* Close files in fd list if any
+	 * The original request is overridden. Always return busy
+	 */
+	if ((fd = lgs_fd_list_get()) != -1) {
+		TRACE("Closing files in fd list. fd = %d, replaced req code = %d", 
+				fd, apipar_in->req_code_in);
+		apipar_in->req_code_in = LGSF_FILECLOSE;
+		apipar_in->data_in_size = sizeof(int);
+		apipar_in->data_in = (void*) &fd;
+		apipar_in->data_out_size = 0;
+		apipar_in->data_out = NULL;
+		busy_close_flag = true;
 	}
 	
 	/* Free request data before allocating new memeory */
@@ -365,6 +454,10 @@ api_timeout:
 	
 api_exit:
 	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK */
+
+	if (busy_close_flag == true) {
+		api_rc = LGSF_BUSY;
+	}
 
 	return api_rc;	
 }

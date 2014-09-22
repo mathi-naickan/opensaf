@@ -95,9 +95,9 @@ done:
 
 /**
  * Close with retry at EINTR
- * @param fd
- *
- * @return int
+ * 
+ * @param fd [in]
+ * @return -1 on error
  */
 static int fileclose_h(int fd)
 {
@@ -115,7 +115,12 @@ static int fileclose_h(int fd)
 	apipar.data_out = NULL;
 	
 	api_rc = log_file_api(&apipar);
-	if (api_rc != LGSF_SUCESS) {
+	if (api_rc == LGSF_BUSY) {
+		/* The fd is not invalidated. Save to close later */
+		TRACE("%s - API error %s",__FUNCTION__,lgsf_retcode_str(api_rc));
+		lgs_fd_list_add(fd);
+		rc = -1;
+	} else if (api_rc != LGSF_SUCESS) {
 		TRACE("%s - API error %s",__FUNCTION__,lgsf_retcode_str(api_rc));
 		rc = -1;
 	} else {
@@ -224,7 +229,7 @@ static int rotate_if_needed(log_stream_t *stream)
 	 */
 	while (file_cnt >= stream->maxFilesRotated) {
 		if ((rc = file_unlink_h(oldest_file)) == -1) {
-			LOG_NO("could not delete: %s - %s", oldest_file, strerror(errno));
+			LOG_NO("Could not delete: %s - %s", oldest_file, strerror(errno));
 			goto done;
 		}
 
@@ -838,11 +843,7 @@ void log_stream_close(log_stream_t **s, time_t *close_time_ptr)
 			
 			/* Close the log file */
 			rc = fileclose_h(*stream->p_fd);
-			while ((rc == -1) && (msecs_waited < max_waiting_time)) {
-				usleep(sleep_delay_ms * 1000);
-				msecs_waited += sleep_delay_ms;
-				rc = fileclose_h(*stream->p_fd);
-			}
+			*stream->p_fd = -1;
 			if (rc == -1) {
 				LOG_ER("Could not close log files: %s", strerror(errno));
 				goto done_files;
@@ -918,9 +919,8 @@ int log_stream_file_close(log_stream_t *stream)
 	if (*stream->p_fd != -1) {
 		if ((rc = fileclose_h(*stream->p_fd)) == -1) {
 			LOG_ER("log_stream_file_close FAILED: %s", strerror(errno));
-			*stream->p_fd = -1; /* Force reset the fd, otherwise fd will be stale. */
-		} else
-			*stream->p_fd = -1;
+		}
+		*stream->p_fd = -1;
 	}
 
 	TRACE_LEAVE2("%d", rc);
@@ -1054,11 +1054,12 @@ static int log_rotation_stb(log_stream_t *stream, size_t count)
 		 */
 		
 		/* Close current log file */
-		if ((rc = fileclose_h(*stream->p_fd)) == -1) {
+		rc = fileclose_h(*stream->p_fd);
+		*stream->p_fd = -1;
+		if (rc == -1) {
 			LOG_IN("close FAILED: %s", strerror(errno));
 			goto done;
 		}
-		*stream->p_fd = -1;
 		
 		/* Rename file to give it the "close timestamp" */
 		rc = lgs_file_rename_h(stream->pathName, stream->stb_logFileCurrent,
@@ -1067,9 +1068,8 @@ static int log_rotation_stb(log_stream_t *stream, size_t count)
 			goto done;
 
 		/* Remove oldest file if needed */
-		if ((rc = rotate_if_needed(stream)) == -1) {
-			TRACE("rotate_if_needed failed");
-			goto done;
+		if (rotate_if_needed(stream) == -1) {
+			TRACE("Old file removal failed");
 		}
 		
 		/* Save new name for current log file and open it */
@@ -1114,11 +1114,12 @@ static int log_rotation_act(log_stream_t *stream, size_t count)
 		char *current_time = lgs_get_time(&closetime);
 
 		/* Close current log file */
-		if ((rc = fileclose_h(*stream->p_fd)) == -1) {
+		rc = fileclose_h(*stream->p_fd);
+		*stream->p_fd = -1;
+		if (rc == -1) {
 			LOG_IN("close FAILED: %s", strerror(errno));
 			goto done;
 		}
-		*stream->p_fd = -1;
 
 		/* Rename file to give it the "close timestamp" */
 		rc = lgs_file_rename_h(stream->pathName, stream->logFileCurrent,
@@ -1132,15 +1133,14 @@ static int log_rotation_act(log_stream_t *stream, size_t count)
 		/* Invalidate logFileCurrent for this stream */
 		stream->logFileCurrent[0] = 0;
 		
+		/* Reset file size for current log file */
+		stream->curFileSize = 0;
+		
 		/* Remove oldest file if needed */
-		if ((rc = rotate_if_needed(stream)) == -1)
-			goto done;
-#if 0
-		/* LLDTEST XXX Must be wrong. Should be time when stream was created.
-		 * Why change this time here???
-		 */
-		stream->creationTimeStamp = lgs_get_SaTime();
-#endif		
+		if (rotate_if_needed(stream) == -1) {
+			TRACE("Old file removal failed");
+		}
+
 		/* Create a new file name that includes "open time stamp" and open the file */
 		snprintf(stream->logFileCurrent, NAME_MAX, "%s_%s", stream->fileName,
 				current_time);
@@ -1151,8 +1151,6 @@ static int log_rotation_act(log_stream_t *stream, size_t count)
 			rc = -1;
 			goto done;
 		}
-		
-		stream->curFileSize = 0;
 	}
 	
 done:	
@@ -1185,7 +1183,7 @@ int log_stream_write_h(log_stream_t *stream, const char *buf, size_t count)
 
 	osafassert(stream != NULL && buf != NULL);
 	TRACE_ENTER2("%s", stream->name);
-
+	
 	/* Open files on demand e.g. on new active after fail/switch-over. This
 	 * enables LOG to cope with temporary file system problems. */
 	if (*stream->p_fd == -1) {
@@ -1250,8 +1248,10 @@ int log_stream_write_h(log_stream_t *stream, const char *buf, size_t count)
 		}
 	
 		if (*stream->p_fd != -1) {
-			/* Try to close the file and invalidate the stream fd */
-			fileclose_h(*stream->p_fd);
+			/* Close the file and invalidate the stream fd */
+			if (fileclose_h(*stream->p_fd) == -1) {
+				TRACE("fileclose failed");
+			}
 			*stream->p_fd = -1;
 		}
 		
@@ -1460,9 +1460,10 @@ int log_stream_config_change(bool create_files_f, log_stream_t *stream,
 		/* close the existing log file, and only when there is a valid fd */
 
 		if ((rc = fileclose_h(*stream->p_fd)) == -1) {
-			LOG_ER("log_stream_config_change file close  FAILED: %s", strerror(errno));
+			LOG_ER("log_stream log file close  FAILED: %s", strerror(errno));
 			goto done;
 		}
+		*stream->p_fd = -1;
 
 		rc = lgs_file_rename_h(stream->pathName, current_logfile_name,
 				current_time, LGS_LOG_FILE_EXT, NULL);

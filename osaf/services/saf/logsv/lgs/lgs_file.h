@@ -62,6 +62,8 @@ typedef struct {
 char *lgsf_retcode_str(lgsf_retcode_t rc);
 uint32_t lgs_file_init(void);
 lgsf_retcode_t log_file_api(lgsf_apipar_t *param_in);
+void lgs_fd_list_add(int32_t fd);
+int32_t lgs_fd_list_get(void);
 
 #ifdef	__cplusplus
 }

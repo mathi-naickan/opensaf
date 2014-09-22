@@ -382,11 +382,16 @@ void saLogOi_22(void)
 void saLogOi_23()
 {
     int rc;
+	int i;
     char command[256];
 
     sprintf(command, "immcfg -c SaLogStreamConfig safLgStrCfg=strA,safApp=safLogService "
 			"-a saLogStreamFileName=strA -a saLogStreamPathName=strAdir");
-    rc = system(command);
+	/* Make more than one attempt */
+	for (i=0; i<3; i++) {
+		if ((rc = system(command)) == 0)
+			break;
+	}
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
@@ -396,11 +401,16 @@ void saLogOi_23()
 void saLogOi_24()
 {
     int rc;
+	int i;
     char command[256];
 
     sprintf(command, "immcfg -c SaLogStreamConfig safLgStrCfg=strB,safApp=safLogService "
 			"-a saLogStreamFileName=strB -a saLogStreamPathName=strBdir");
-    rc = system(command);
+	/* Make more than one attempt */
+	for (i=0; i<3; i++) {
+		if ((rc = system(command)) == 0)
+			break;
+	}
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
@@ -410,11 +420,16 @@ void saLogOi_24()
 void saLogOi_25()
 {
     int rc;
+	int i;
     char command[256];
 
     sprintf(command, "immcfg -c SaLogStreamConfig safLgStrCfg=strC,safApp=safLogService "
 			"-a saLogStreamFileName=strC -a saLogStreamPathName=strCdir");
-    rc = system(command);
+	/* Make more than one attempt */
+	for (i=0; i<3; i++) {
+		if ((rc = system(command)) == 0)
+			break;
+	}
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
