@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
 	};
 	SaAisErrorT error;
 	SaImmHandleT immHandle;
-	SaImmAdminOwnerNameT adminOwnerName = basename(argv[0]);
+	SaImmAdminOwnerNameT adminOwnerName = NULL;
 	bool releaseAdmo=true;
 	SaImmAdminOwnerHandleT ownerHandle;
 	SaNameT objectName;
@@ -235,6 +235,10 @@ int main(int argc, char *argv[])
 			}
 			break;
 		case 'a':
+			if(adminOwnerName) {
+				fprintf(stderr, "Cannot set admin owner name more than once\n");
+				exit(EXIT_FAILURE);
+			}
 			adminOwnerName = (SaImmAdminOwnerNameT)malloc(strlen(optarg) + 1);
 			strcpy(adminOwnerName, optarg);
 			releaseAdmo=false;
@@ -272,6 +276,11 @@ int main(int argc, char *argv[])
 	if (error != SA_AIS_OK) {
 		fprintf(stderr, "error - saImmOmInitialize FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
+	}
+
+	/* set default admin owner name */
+	if(!adminOwnerName) {
+		adminOwnerName = basename(argv[0]);
 	}
 
 	error = immutil_saImmOmAdminOwnerInitialize(immHandle, adminOwnerName, releaseAdmo?SA_TRUE:SA_FALSE, &ownerHandle);
@@ -353,6 +362,10 @@ retry:
 	if (SA_AIS_OK != error) {
 		fprintf(stderr, "error - saImmOmFinalize FAILED: %s\n", saf_error(error));
 		exit(EXIT_FAILURE);
+	}
+
+	if(adminOwnerName && !releaseAdmo) {
+		free(adminOwnerName);
 	}
 
 	exit(EXIT_SUCCESS);
