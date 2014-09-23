@@ -3612,7 +3612,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 			if(pbeConn) {
 				TRACE_5("PBE is LOCAL - send completed upcall for %u", evt->info.ccbUpcallRsp.ccbId);
 				/* The PBE is connected at THIS node. Make the completed upcall. 
-				   If the PBE decides to commit it soes so immediately. 
+				   If the PBE decides to commit it does so immediately. 
 				   It does not wait for the apply upcall.
 				 */
 				SaImmOiHandleT implHandle = m_IMMSV_PACK_HANDLE(pbeConn, pbeNodeId);
@@ -3630,6 +3630,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 					   But actually we know here that we have not sent the completed call to
 					   the pbe. This means it should be easy to abort!
 					 */
+					goto done;
 				}
 
 				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
@@ -3837,6 +3838,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 			/* There is really not much we can do here. */
 		}
 	}
+ done:
 	TRACE_LEAVE();
 }
 
