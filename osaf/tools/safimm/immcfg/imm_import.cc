@@ -433,6 +433,7 @@ static int base64_decode(char *in, char *out) {
 static void log_stderr_int(int priority, const char *format, va_list args)
 {
 	char log_string[1024];
+	char *log_str = log_string;
 
 	if (priority == LOG_INFO && !imm_import_verbose) {
 		// only printout INFO statements if -v (verbose) flag is set
@@ -441,11 +442,21 @@ static void log_stderr_int(int priority, const char *format, va_list args)
 
 	/* Add line feed if not there already */
 	if (format[strlen(format) - 1] != '\n') {
-		sprintf(log_string, "%s\n", format);
-		format = log_string;
+		int size = snprintf(log_str, 1024, "%s\n", format);
+		if(size >= 1024) {
+			/* if format cannot fit in log_string,
+			 * then we need to allocate enough memory for the format */
+			log_str = (char *)malloc(size + 1);
+			sprintf(log_str, "%s\n", format);
+		}
+		format = log_str;
 	}
 
 	vfprintf(stderr, format, args);
+
+	if(log_str != log_string) {
+		free(log_str);
+	}
 }
 
 static void log_stderr(int priority, const char *format, ...)
