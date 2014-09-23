@@ -83,10 +83,10 @@ Check for denied access:
 $ grep "access denied" /var/log/auth.log | grep osafimmnd
 
 
-At build time the default access control mode can be changed (to ENFORCING) 
-after the configure step by adding to config.h:
+At build time the default access control mode can be changed by defining the
+make variable CXXFLAGS as in this example (mode changed to ENFORCING):
 
-#define IMM_ACCESS_CONTROL_MODE 2
+$./configure CXXFLAGS="-DIMM_ACCESS_CONTROL_MODE=2"
 
 
 Logging
