@@ -773,6 +773,7 @@ sendNotification(const saNotificationAllocationParamsT *notificationAllocationPa
 int main(int argc, char *argv[])
 {
 	long value;
+	long long valuell;
 	char *endptr;
 	int current_option;
 	SaBoolT optionFlag = SA_FALSE;
@@ -849,12 +850,28 @@ int main(int argc, char *argv[])
 				myNotificationParams.eventType = (SaNtfEventTypeT)atoi(optarg);
 				/* No default value */
 				myNotificationFlags = 0x0000;
+				if ((myNotificationParams.eventType < SA_NTF_ALARM_NOTIFICATIONS_START) ||
+						(myNotificationParams.eventType > SA_NTF_ALARM_ENVIRONMENT)) {
+					fprintf(stderr,"invalid value for eventType\n");
+					exit(EXIT_FAILURE);
+				}
+	
 				break;
 			case 'E':
-				myNotificationParams.eventTime = (SaTimeT)atoll(optarg);
+				if (get_long_long_digit(optarg, &valuell)) {
+					myNotificationParams.eventTime = valuell;
+				} else {
+					fprintf(stderr,"invalid input for time\n");
+					exit(EXIT_FAILURE);
+				}
 				break;
 			case 'p':
 				myNotificationParams.probableCause = (SaNtfProbableCauseT)atoi(optarg);
+				if ((myNotificationParams.probableCause < SA_NTF_ADAPTER_ERROR) ||
+					(myNotificationParams.probableCause > SA_NTF_UNSPECIFIED_REASON)) {
+					fprintf(stderr,"invalid value for probableCause\n");
+					exit(EXIT_FAILURE);
+				}
 				break;
 			case 'r':
 				if (get_long_digit(optarg, &value)) {
@@ -871,10 +888,23 @@ int main(int argc, char *argv[])
 			case 's':
 				myNotificationParams.perceivedSeverity = (SaNtfSeverityT)atoi(optarg);
 				myNotificationParams.severity = (SaNtfSeverityT)atoi(optarg);
+				if ((myNotificationParams.severity < SA_NTF_SEVERITY_CLEARED) ||
+						(myNotificationParams.severity > SA_NTF_SEVERITY_CRITICAL)) {
+					fprintf(stderr,"invalid value for perceivedSeverity/severity\n");
+					exit(EXIT_FAILURE);
+				}
 				break;
 			case 'T':
-				value = strtol(optarg, &endptr, 16);
-				myNotificationParams.notificationType = (SaNtfNotificationTypeT)value;
+				value = (SaNtfNotificationTypeT)strtol(optarg, &endptr, 16);
+				if ((value != SA_NTF_TYPE_OBJECT_CREATE_DELETE) && 
+						(value != SA_NTF_TYPE_ATTRIBUTE_CHANGE) && 
+						(value != SA_NTF_TYPE_STATE_CHANGE) && 
+						(value != SA_NTF_TYPE_ALARM) && 
+						(value != SA_NTF_TYPE_SECURITY_ALARM)) {
+					fprintf(stderr,"invalid value for notificationType\n");
+					exit(EXIT_FAILURE);
+				}
+				myNotificationParams.notificationType = value;
 				break;
 			case ':':
 				(void)printf("Option -%c requires an argument!!!!\n", optopt);

@@ -130,5 +130,6 @@ typedef SaUint16T saNotificationFlagsT;
 /* used by ntfread and ntfsend */
 void getVendorId(SaNtfClassIdT *notificationClassId);
 int get_long_digit(char *str, long *val);
+int get_long_long_digit(char *str, long long *val);
 
 #endif
