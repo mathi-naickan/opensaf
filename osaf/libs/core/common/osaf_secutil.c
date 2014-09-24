@@ -238,7 +238,7 @@ bool osaf_user_is_member_of_group(uid_t uid, const char *groupname)
 		return false;
 	}
 
-	// get user name
+	// get password file entry for user
 	errno = 0;
 	struct passwd *client_pwd = getpwuid(uid);
 	if (client_pwd == NULL) {
@@ -247,17 +247,18 @@ bool osaf_user_is_member_of_group(uid_t uid, const char *groupname)
 		return false;
 	}
 
+	// check the primary group of the user
+	if (client_pwd->pw_gid == grp.gr_gid)
+		return true;
+
 	/* loop list of usernames that are members of the group trying find a
 	 * match with the specified user name */
 	for (member = grp.gr_mem; *member != NULL; member++) {
 		if (strcmp(client_pwd->pw_name, *member) == 0)
-			break;
+			return true;
 	}
 
-	if (*member != NULL)
-		return true;
-	else
-		return false;
+	return false;
 }
 
 /* used in libraries, do not log. Only trace */
