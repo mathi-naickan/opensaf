@@ -3330,19 +3330,21 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 				SaImmOiHandleT implHandle = m_IMMSV_PACK_HANDLE(pbeConn, pbeNodeId);
 				/*Fetch client node for OI ! */
 				immnd_client_node_get(cb, implHandle, &oi_cl_node);
-				if (oi_cl_node == NULL || oi_cl_node->mIsStale) {
+				osafassert(oi_cl_node);
+				if (oi_cl_node->mIsStale) {
 					LOG_WA("PBE went down");
-					/* ###TODO need to ABORT ccb in CRITICAL. or set CRITICAL below*/
 					/* This is a bad case. The immnds have just delegated the decision
-					   to commit or abort this ccb to the PBE, yet it has just crashed.
-					   I should mark the ccb being in limbo until a new PBE has attached,
-					   then resend the completed upcall, which should generate an aborted 
-					   reply to all IMMNDs. 
-					   err = SA_AIS_ERR_FAILED_OPERATION;
-					   But actually we know here that we have not sent the completed call to
-					   the pbe. This means it should be easy to abort!
+					   to commit or abort this ccb to the PBE, yet it has just detached.
+					   We know here that we have not sent the completed call to the pbe,
+					   so in principle the abort should be simple. But the Ccb has just
+					   entered the critical state in ImmModel, so we would need to undo
+					   that critical state. Problem is it would have to be undone at all
+					   IMMNDs which is complicated. Instead of optimizing this error case
+					   with complex logic and messaging, we unify it with the case of
+					   having sent completed to the PBE, not getting any response and
+					   let ccb-recovery sort it out.
 					 */
-					goto done;
+					goto skip_send;
 				}
 
 				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
@@ -3356,13 +3358,17 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 				TRACE_2("MAKING PBE-IMPLEMENTER CCB COMPLETED upcall");
 				if(immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMA_OI,
 					    oi_cl_node->agent_mds_dest, &send_evt) != NCSCC_RC_SUCCESS) {
-					LOG_ER("CCB COMPLETED UPCALL SEND TO PBE FAILED");
+					LOG_WA("CCB COMPLETED UPCALL SEND TO PBE FAILED");
+					/* If the send to PBE fails in Mds then we *dont* know for sure
+					   that the message did not reach the PBE. Therefore act as if
+					   send succceeded and let ccb-recovery sort it out.
+					*/
 				} else {
 					TRACE_5("IMMND UPCALL TO PBE for ccb %u, SEND SUCCEEDED", 
 						evt->info.ccbUpcallRsp.ccbId);
 				}
-
 			}
+			skip_send:
 			reqConn = 0; /* Ensure we dont reply to OM client yet. */
 		}
 	} else {
@@ -3549,7 +3555,6 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 			/* There is really not much we can do here. */
 		}
 	}
- done:
 	TRACE_LEAVE();
 }
 
@@ -6626,7 +6631,7 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 			delayedReply = SA_TRUE;
 			if(pbeNodeId) {
 				/* There is be a PBE. */
-				osafassert(err == SA_AIS_OK); /* I not OK then we should not be waiting. */
+				osafassert(err == SA_AIS_OK); /* If not OK then we should not be waiting. */
 				TRACE_5("Wait for PBE commit decision for ccb %u", evt->info.ccbId);
 				if(pbeConn) {
 					TRACE_5("PBE is LOCAL - send completed upcall for %u", evt->info.ccbId);
@@ -6637,11 +6642,21 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 					SaImmOiHandleT implHandle = m_IMMSV_PACK_HANDLE(pbeConn, pbeNodeId);
 					/*Fetch client node for OI ! */
 					immnd_client_node_get(cb, implHandle, &oi_cl_node);
-					if (oi_cl_node == NULL || oi_cl_node->mIsStale) {
-						LOG_WA("PBE went down");
-						/* TODO need to ABORT ccb in CRITICAL. or set CRITICAL below*/
-						err = SA_AIS_ERR_FAILED_OPERATION;
-						abort();
+					osafassert(oi_cl_node);
+					if (oi_cl_node->mIsStale) {
+						LOG_WA("PBE-OI has detached");
+						/* This is a bad case. The immnds have just delegated the decision
+						   to commit or abort this ccb to the PBE, yet it has just detached.
+						   We know here that we have not sent the completed call to the pbe,
+						   so in principle the abort should be simple. But the Ccb has just
+						   entered the critical state in ImmModel, so we would need to undo
+						   that critical state. Problem is it would have to be undone at all
+						   IMMNDs which is complicated. Instead of optimizing this error case
+						   with complex logic and messaging, we unify it with the case of
+						   having sent completed to the PBE, not getting any response and
+						   let ccb-recovery sort it out.
+						*/
+						goto skip_send;
 					}
 
 					memset(&send_evt, '\0', sizeof(IMMSV_EVT));
@@ -6655,8 +6670,11 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 					TRACE_2("MAKING PBE-IMPLEMENTER CCB COMPLETED upcall");
 					if(immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMA_OI,
 						   oi_cl_node->agent_mds_dest, &send_evt) != NCSCC_RC_SUCCESS) {
-						LOG_ER("CCB COMPLETED UPCALL SEND TO PBE FAILED");
-						abort();
+						LOG_WA("CCB COMPLETED UPCALL SEND TO PBE FAILED");
+						/* If the send to PBE fails in Mds then we *dont* know for sure
+						   that the message did not reach the PBE. Therefore act as if
+						   send succceeded and let ccb-recovery sort it out.
+						 */
 					} else {
 						TRACE_5("IMMND UPCALL TO PBE for ccb %u, SEND SUCCEEDED", 
 							evt->info.ccbId);
@@ -6667,6 +6685,8 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb,
 			TRACE_2("NO IMPLEMENTERS AT ALL AND NO PBE. for ccb:%u err:%u sz:%u", evt->info.ccbId, err, arrSize);
 		}
 	}
+
+ skip_send:
 	/* err != SA_AIS_OK or no implementers => immediate reply. */
 	if (arrSize) {
 		free(implConnArr);
