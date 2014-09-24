@@ -636,6 +636,7 @@ static void print_header(const SaNtfNotificationHeaderT * notificationHeader,
 		  SaNtfNotificationTypeT notificationType)
 {
 	char tmpObj[SA_MAX_NAME_LENGTH + 1];
+	static char time[32];
 
 	if (verbose) {
 		printf("notificationID = %d\n",
@@ -685,8 +686,12 @@ static void print_header(const SaNtfNotificationHeaderT * notificationHeader,
 		       notificationHeader->notificationClassId->minorId);
 	}
 
-	if (verbose)
-		printf("eventTime = %lld\n", *notificationHeader->eventTime);
+	if (verbose) { 
+		time_t time_in_secs = *notificationHeader->eventTime/SA_TIME_ONE_SECOND;
+		/*Print time in human readable form also .*/
+		(void)strftime(time, sizeof(time), "%a %b %d %T %Z %Y", localtime(&time_in_secs));	
+		printf("eventTime = %lld (%s)\n",*notificationHeader->eventTime, time);
+	}
 
 	if (notificationHeader->lengthAdditionalText > 0)
 		printf("additionalText = \"%s\"\n",
@@ -1013,4 +1018,34 @@ void getVendorId(SaNtfClassIdT * notificationClassId)
 		exit(EXIT_FAILURE);
 	}
 	free(p);
+}
+
+/**
+ * @brief         Converts string to long long and also validates if string
+ *                contains numeric characters or not.
+ *
+ * @param [in]    char * (ptr to string)r.  
+ * @param [out]   long long * (to set log long value).  
+ * 
+ * @Return        0: if validation fails. 
+ *		  1: if validation passes.
+ */
+
+int get_long_long_digit(char *str, long long *val)
+{
+	char *endptr;
+	errno = 0;	
+	*val = strtoll(str, &endptr, 0);
+
+	if ((errno == ERANGE ) || (errno != 0 && *val == 0)) {
+		perror("strtoll");
+		return 0;
+	}
+	if (endptr == str) {
+		fprintf(stderr, "No digits were found\n");
+		return 0;
+	}
+	if (*endptr != '\0')	/* other chars than digits */
+		return 0;
+	return 1;
 }
