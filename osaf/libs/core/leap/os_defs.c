@@ -955,6 +955,8 @@ uint32_t ncs_os_process_execute_timed(NCS_OS_PROC_EXECUTE_TIMED_INFO *req)
 	osaf_mutex_lock_ordie(&s_cloexec_mutex);
 
 	if ((pid = fork()) == 0) {
+		/* child part */
+
 		/*
 		 ** Make sure forked processes have default scheduling class
 		 ** independent of the callers scheduling class.
@@ -989,28 +991,6 @@ uint32_t ncs_os_process_execute_timed(NCS_OS_PROC_EXECUTE_TIMED_INFO *req)
 				syslog(LOG_ERR, "%s: freopen stderr failed - %s", __FUNCTION__, strerror(errno));
 		}
 
-		/* RUNASROOT gives the OpenSAF user a possibility to maintain the < 4.2 behaviour.
-		 * For example the UML environment needs this because of its simplified user management.
-		 * OpenSAF processes will otherwise be started as the real host user and will
-		 * have problems e.g. writing PID files to the root owned directory.
-		 */
-#ifndef RUNASROOT
-		/* Check owner user ID of file and change group and user accordingly */
-		{
-			struct stat buf;
-			if (stat(req->i_script, &buf) == 0) {
-				if (setgid(buf.st_gid) == -1)
-					syslog(LOG_ERR, "setgid %u failed - %s", buf.st_gid, strerror(errno));
-				if (setuid(buf.st_uid) == -1)
-					syslog(LOG_ERR, "setuid %u failed - %s", buf.st_uid, strerror(errno));
-			} else {
-				syslog(LOG_ERR, "Could not stat %s - %s", req->i_script, strerror(errno));
-				exit(128);
-			}
-		}
-#endif
-
-		/* child part */
 		if (execvp(req->i_script, req->i_argv) == -1) {
 			syslog(LOG_ERR, "%s: execvp '%s' failed - %s", __FUNCTION__, req->i_script, strerror(errno));
 			exit(128);
