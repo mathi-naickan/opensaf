@@ -38,7 +38,7 @@
 #define IMMND_SEARCH_BUNDLE_SIZE ((MDS_DIRECT_BUF_MAXSIZE / 100) * 90)   
 #define IMMND_MAX_SEARCH_RESULT (IMMND_SEARCH_BUNDLE_SIZE / 300)  
 
-static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, uid_t uid);
+static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, const IMMSV_SEND_INFO *sinfo);
 static uint32_t immnd_evt_proc_cb_dump(IMMND_CB *cb);
 static uint32_t immnd_evt_proc_imm_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo, SaBoolT isOm);
 static uint32_t immnd_evt_proc_imm_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo, SaBoolT isOm);
@@ -2835,7 +2835,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 	}
 
 	if(newMsg) {
-		error = immnd_fevs_local_checks(cb, &(evt->info.fevsReq), (sinfo)?(sinfo->uid):0);
+		error = immnd_fevs_local_checks(cb, &(evt->info.fevsReq), sinfo);
 		if(error != SA_AIS_OK) {
 			/*Fevs request will NOT be forwarded to IMMD.
 			  Return directly with error or OK for idempotent requests.
@@ -3046,9 +3046,13 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
   set class/object implementer in a way that is already set should be
   allowed. Such an idempotency case must be resolved locally at veteran
   nodes and not propagated over fevs, because sync clients may not yet
-  have synced the implementer setting and thus reject the idempotent case. 
+  have synced the implementer setting and thus reject the idempotent case.
+
+  sinfo - only valid for synchronous calls, can be NULL
+
 */
-static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, uid_t uid)
+static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
+		const IMMSV_SEND_INFO *sinfo)
 {
 	SaAisErrorT error = SA_AIS_OK;
 	osafassert(fevsReq);
@@ -3104,24 +3108,46 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, ui
 	switch (frwrd_evt.info.immnd.type) {
 
 	case IMMND_EVT_A2ND_OBJ_MODIFY:
-		if((strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf, OPENSAF_IMM_OBJECT_DN) == 0) ||
-			(strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf, "safRdn=immManagement,safApp=safImmService") == 0))
-		{
-			/* Modifications to:
-			   opensafImm=opensafImm,safApp=safImmService
-			   or:
-			   safRdn=immManagement,safApp=safImmService
-			   are only allowed for root users.
+		if ((sinfo != NULL) &&
+			((strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf,
+				OPENSAF_IMM_OBJECT_DN) == 0) ||
+			(strcmp(frwrd_evt.info.immnd.info.objModify.objectName.buf,
+				"safRdn=immManagement,safApp=safImmService") == 0))) {
+			/* Modifications to IMM service objects are only allowed for root
+			 * users and same group as me. Except for access control settings
+			 * which are only allowed by root.
 			*/
-			if(uid) {
-				struct passwd *pwd = getpwuid(uid);
+			if ((sinfo->uid > 0) && (sinfo->gid != getgid())) {
+				struct passwd *pwd = getpwuid(sinfo->uid);
 				if (pwd != NULL) {
-					syslog(LOG_AUTH, "Modifications to imm service objects denied for %s(uid=%d)",
-						pwd->pw_name, uid);
+					syslog(LOG_AUTH,
+						"Modifications to imm service objects denied for %s(uid=%d)",
+						pwd->pw_name, sinfo->uid);
 				}
 				error = SA_AIS_ERR_ACCESS_DENIED;
 				goto done;
-			}
+			} else if (sinfo->uid > 0) {
+				// non root and same group as me, disallow access control changes
+				const IMMSV_ATTR_MODS_LIST *attrMod =
+					frwrd_evt.info.immnd.info.objModify.attrMods;
+				while (attrMod != NULL) {
+					if ((strcmp(attrMod->attrValue.attrName.buf,
+							OPENSAF_IMM_ACCESS_CONTROL_MODE) == 0) ||
+						(strcmp(attrMod->attrValue.attrName.buf,
+							OPENSAF_IMM_AUTHORIZED_GROUP) == 0)) {
+						struct passwd *pwd = getpwuid(sinfo->uid);
+						if (pwd != NULL)
+							syslog(LOG_AUTH,
+								"change of %s denied for %s(uid=%d)",
+								attrMod->attrValue.attrName.buf, pwd->pw_name,
+								sinfo->uid);
+						error = SA_AIS_ERR_ACCESS_DENIED;
+						goto done;
+					}
+					attrMod = attrMod->next;
+				}
+			} else
+				; // modifications by root are OK
 		}
 		/* intentional fall through. */
 	case IMMND_EVT_A2ND_OBJ_CREATE:
@@ -3349,11 +3375,11 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq, ui
 			  Because of the very special and powerful nature of this operation, only
 			  root users should be allowed to use it, when acces control is enabled.
 			*/
-			if(uid) {
-				struct passwd *pwd = getpwuid(uid);
+			if ((sinfo != NULL) && (sinfo->uid > 0)) {
+				struct passwd *pwd = getpwuid(sinfo->uid);
 				if (pwd != NULL) {
 					syslog(LOG_AUTH, "saImmOmAdminOwnerClear denied for %s(uid=%d)",
-						pwd->pw_name, uid);
+						pwd->pw_name, sinfo->uid);
 				}
 				error = SA_AIS_ERR_ACCESS_DENIED;
 				goto done;
