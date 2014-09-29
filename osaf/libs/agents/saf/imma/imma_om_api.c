@@ -6204,13 +6204,21 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 	evt.info.immnd.type = IMMND_EVT_A2ND_SEARCHINIT;
 	IMMSV_OM_SEARCH_INIT *req = &(evt.info.immnd.info.searchInit);
 	req->client_hdl = immHandle;
-	if (rootName && rootName->length && (rootName->length < SA_MAX_NAME_LENGTH)) {
-		req->rootName.size = strlen((char *)rootName->value) + 1;
-		if (rootName->length + 1 < req->rootName.size)
-			req->rootName.size = rootName->length + 1;
+
+	int rootNameLength = 0;
+	if(rootName) {
+		if(rootName->length >= SA_MAX_NAME_LENGTH) {
+			rc = SA_AIS_ERR_INVALID_PARAM;
+			TRACE_3("ERR_INVALID_PARAM: root name length is too long: %u bytes", rootName->length);
+			goto bad_sync;
+		}
+		rootNameLength = strnlen((char *)rootName->value, rootName->length);
+	}
+	if (rootNameLength) {
+		req->rootName.size = rootNameLength + 1;
 		req->rootName.buf = malloc(req->rootName.size);	/* alloc-1 */
-		strncpy(req->rootName.buf, (char *)rootName->value, (size_t)req->rootName.size);
-		req->rootName.buf[req->rootName.size - 1] = 0;
+		memcpy(req->rootName.buf, (char *)rootName->value, (size_t)rootNameLength);
+		req->rootName.buf[rootNameLength] = 0;
 	} else {
 		req->rootName.size = 0;
 		req->rootName.buf = NULL;
@@ -6265,7 +6273,7 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 		}
 	}
 
-	if (rootName && rootName->length) {
+	if (rootName && rootNameLength) {
 		TRACE("root: %s param:%p", rootName->value, searchParam);
 	}
 
