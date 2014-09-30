@@ -6344,9 +6344,6 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 			goto bad_sync;
 		}
 		rootNameLength = osaf_extended_name_length(rootName);
-		if(!osaf_is_an_extended_name(rootName)) {
-			rootNameLength = strnlen(osaf_extended_name_borrow(rootName), rootNameLength);
-		}
 	}
 	if (rootNameLength) {
 		req->rootName.size = rootNameLength + 1;
