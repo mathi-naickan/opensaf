@@ -6335,13 +6335,25 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 	evt.info.immnd.type = IMMND_EVT_A2ND_SEARCHINIT;
 	IMMSV_OM_SEARCH_INIT *req = &(evt.info.immnd.info.searchInit);
 	req->client_hdl = immHandle;
-	if (rootName && !osaf_is_extended_name_empty(rootName) &&
-		osaf_is_extended_name_valid(rootName)) {
-		req->rootName.size = osaf_extended_name_length(rootName) + 1;
+
+	int rootNameLength = 0;
+	if(rootName) {
+		if(!osaf_is_extended_name_valid(rootName)) {
+			rc = SA_AIS_ERR_INVALID_PARAM;
+			TRACE_3("ERR_INVALID_PARAM: root name is not valid");
+			goto bad_sync;
+		}
+		rootNameLength = osaf_extended_name_length(rootName);
+		if(!osaf_is_an_extended_name(rootName)) {
+			rootNameLength = strnlen(osaf_extended_name_borrow(rootName), rootNameLength);
+		}
+	}
+	if (rootNameLength) {
+		req->rootName.size = rootNameLength + 1;
 		req->rootName.buf = malloc(req->rootName.size);	/* alloc-1 */
 		memcpy(req->rootName.buf, osaf_extended_name_borrow(rootName),
-			(size_t) req->rootName.size - 1);
-		req->rootName.buf[req->rootName.size - 1] = 0;
+			(size_t) rootNameLength);
+		req->rootName.buf[rootNameLength] = 0;
 	} else {
 		req->rootName.size = 0;
 		req->rootName.buf = NULL;
@@ -6396,7 +6408,7 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 		}
 	}
 
-	if (rootName && !osaf_is_extended_name_empty(rootName)) {
+	if (rootName && rootNameLength) {
 		TRACE("root: %s param:%p", osaf_extended_name_borrow(rootName), searchParam);
 	}
 
