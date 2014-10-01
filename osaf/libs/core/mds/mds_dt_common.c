@@ -814,7 +814,7 @@ uint32_t mds_tmr_mailbox_processing(void)
 				/* only delete if process not exist to avoid race with a client
 				 * that re-registers immediately after unregister */
 				if ((info != NULL) && (kill(info->pid, 0) == -1)) {
-					TRACE("TIMEOUT, deleting entry for %lx, pid:%d",
+					TRACE("TIMEOUT, deleting entry for %"PRIx64", pid:%d",
 						info->mds_dest, info->pid);
 					(void)mds_process_info_del(info);
 				}
