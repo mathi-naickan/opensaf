@@ -30,11 +30,11 @@
      (ver->majorVersion == CPA_MAJOR_VERSION || ver->majorVersion == 0xff) && \
      (ver->minorVersion == CPA_MINOR_VERSION || ver->minorVersion == 0xff) )
 
-#define CPSV_WAIT_TIME  1000	/* MDS wait time in case of syncronous call */
+#define CPSV_WAIT_TIME  1400	/* MDS wait time in case of syncronous call */
 
 #define CPSV_MIN_DATA_SIZE  10000
 #define CPSV_AVG_DATA_SIZE  1000000
-#define CPA_WAIT_TIME(datasize) ((datasize<CPSV_MIN_DATA_SIZE)?400:600+((datasize/CPSV_AVG_DATA_SIZE)*400))
+#define CPA_WAIT_TIME(datasize) ((datasize<CPSV_MIN_DATA_SIZE)?1400:1600+((datasize/CPSV_AVG_DATA_SIZE)*400))
 
 #define m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(t)      (t)/(10000000)	/* 10^7 */
 

@@ -35,11 +35,11 @@ extern uint32_t gl_cpnd_cb_hdl;
 
 #define CPND_MAX_REPLICAS 1000
 #define CPSV_GEN_SECTION_ID_SIZE 4
-#define CPSV_WAIT_TIME  100
+#define CPSV_WAIT_TIME  1000
 
 #define CPSV_MIN_DATA_SIZE  10000
 #define CPSV_AVG_DATA_SIZE  1000000
-#define CPND_WAIT_TIME(datasize) ((datasize<CPSV_MIN_DATA_SIZE)?300:500+((datasize/CPSV_AVG_DATA_SIZE)*200))
+#define CPND_WAIT_TIME(datasize) ((datasize<CPSV_MIN_DATA_SIZE)?1300:1500+((datasize/CPSV_AVG_DATA_SIZE)*200))
 
 #define m_CPND_IS_LOCAL_NODE(m,n)   memcmp(m,n,sizeof(MDS_DEST))
 

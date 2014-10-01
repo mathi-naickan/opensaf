@@ -27,7 +27,7 @@
 #define m_CPD_IS_LOCAL_NODE(m,n)   (m == n) ? 1 : 0
 #define m_NCS_MDS_DEST_NODEID_EQUAL(m,n) (m == n) ? 1 : 0
 #define m_CPND_NODE_ID_CMP(m,n) (m==n) ? 1 : 0
-#define CPSV_WAIT_TIME  100
+#define CPSV_WAIT_TIME  1000
 
 /*30B Versioning Changes */
 #define CPD_MDS_PVT_SUBPART_VERSION 3
