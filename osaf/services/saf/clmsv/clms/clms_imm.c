@@ -918,7 +918,7 @@ static void clms_create_track_resp_list(CLMS_CLUSTER_NODE * node, CLMS_CLIENT_IN
 * @param[in] node    pointer to cluster node
 * @param[in] step    CLM step for which to send the callback 
 */
-void clms_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, SaClmChangeStepT step)
+void clms_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, SaClmChangeStepT step, bool node_reboot)
 {
 	CLMS_CLIENT_INFO *rec;
 	uint32_t client_id = 0;
@@ -1037,17 +1037,33 @@ void clms_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, SaClmChangeStepT st
 						/*Implies the change is on this local node */
 						rc = clms_send_track_local(node,rec,SA_CLM_CHANGE_COMPLETED);
 					}
-				} else
-					rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_COMPLETED,
-							      notify_changes_only);
+				} else {
+					/* In the COMPLETED step and when the trigger is node reboot,
+					 * we shouldn't send track to agents on the same node that left the cluster.
+					 */
+					if ((node_id == node->node_id) && (node_reboot)) {
+						LOG_NO("Node %u went down. Not sending track callback for agents on that node", node_id);
+					} else {
+						rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_COMPLETED,
+							notify_changes_only);
+					}
+				}
 			}else if (rec->track_flags & SA_TRACK_CHANGES){
 				if(rec->track_flags & SA_TRACK_LOCAL){
 					if(node_id == node->node_id){
 						/*Implies the change is on this local node */
 						rc = clms_send_track_local(node,rec,SA_CLM_CHANGE_COMPLETED);
 					}       
-				} else
-					rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_COMPLETED, notify_changes);
+				} else {
+					/* In the COMPLETED step and when there is no admin op in progress,
+					 * we shouldn't send track to agents on the same node that left the cluster.
+					 */
+					if ((node_id == node->node_id) && (node_reboot)) {
+						LOG_NO("Node %u went down. Not sending track callback for agents on that node", node_id);
+					} else {
+						rc = clms_prep_and_send_track(cb, node, rec, SA_CLM_CHANGE_COMPLETED, notify_changes);
+					}
+				}
 			}
 
 			if (rc != NCSCC_RC_SUCCESS) {
@@ -1582,7 +1598,7 @@ SaAisErrorT clms_node_ccb_apply_modify(CcbUtilOperationData_t * opdata)
 	node->admin_op = IMM_RECONFIGURED;
 	++(clms_cb->cluster_view_num);
 	/*Send track callback with saClmClusterChangesT= SA_CLM_NODE_RECONFIGURED */
-	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED);
+	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED, false);
 	/*Clear admin_op and stat_change */
 	node->admin_op = 0;
 	node->stat_change = SA_FALSE;
@@ -1910,7 +1926,7 @@ static uint32_t clms_lock_send_no_start_cbk(CLMS_CLUSTER_NODE * nodeop)
 	clms_node_update_rattr(nodeop);
 	clms_cluster_update_rattr(osaf_cluster);
 
-	clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED);
+	clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false);
 
 	/*Clear admin_op and stat_change */
 	nodeop->admin_op = 0;
@@ -2047,7 +2063,7 @@ uint32_t clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop)
 				clms_cluster_update_rattr(osaf_cluster);
 
 				/*Send Callback to its clienst */
-				clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED);
+				clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false);
 
 				/*Send node join notification */
 				clms_node_join_ntf(clms_cb, nodeop);
@@ -2078,7 +2094,7 @@ uint32_t clms_imm_node_unlock(CLMS_CLUSTER_NODE * nodeop)
 				clms_cluster_update_rattr(osaf_cluster);
 
 				/*Send Callback to its clients */
-				clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED);
+				clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false);
 
 				/*Send node join notification */
 				clms_node_join_ntf(clms_cb, nodeop);
@@ -2163,7 +2179,7 @@ uint32_t clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop)
 			nodeop->admin_state = SA_CLM_ADMIN_SHUTTING_DOWN;
 			nodeop->stat_change = SA_TRUE;
 			nodeop->change = SA_CLM_NODE_SHUTDOWN;
-			clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START);
+			clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START, false);
 
 			clms_node_admin_state_change_ntf(clms_cb, nodeop, SA_CLM_ADMIN_SHUTTING_DOWN);
 			
@@ -2187,7 +2203,7 @@ uint32_t clms_imm_node_shutdown(CLMS_CLUSTER_NODE * nodeop)
 			clms_node_update_rattr(nodeop);
 			clms_cluster_update_rattr(osaf_cluster);
 
-			clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED);
+			clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_COMPLETED, false);
 
 			/*Clear Admin_op and stat_change */
 			nodeop->admin_op = 0;
@@ -2241,7 +2257,7 @@ static void clms_lock_send_start_cbk(CLMS_CLUSTER_NODE * nodeop)
 	nodeop->change = SA_CLM_NODE_LEFT;
 	nodeop->stat_change = SA_TRUE;
 
-	clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START);
+	clms_send_track(clms_cb, nodeop, SA_CLM_CHANGE_START, false);
 	if (sigaction(SIGALRM, &act, NULL) != 0) {
 		TRACE("Sigaction failed");
 		osafassert(0);

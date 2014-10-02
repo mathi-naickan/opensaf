@@ -246,7 +246,7 @@ static void clms_plm_readiness_track_callback(SaPlmEntityGroupHandleT entityGrpH
 				if (step == SA_PLM_CHANGE_COMPLETED){
 					clms_cluster_update_rattr(osaf_cluster);
 				}
-				clms_send_track(clms_cb, node, step);	/*dude you need to checkpoint admin_op admin_state when track is complete or not decide */
+				clms_send_track(clms_cb, node, step, false);	/*dude you need to checkpoint admin_op admin_state when track is complete or not decide */
 			}
 		}
 	}

@@ -349,7 +349,7 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 			node->init_view = ++(clms_cb->cluster_view_num);
 			TRACE("node->init_view %llu", node->init_view);
 			node->change = SA_CLM_NODE_JOINED;
-			clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED);
+			clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED, false);
 			/* Clear node->stat_change after sending the callback to its clients */
 			node->stat_change = SA_FALSE;
 
@@ -425,7 +425,7 @@ void clms_track_send_node_down(CLMS_CLUSTER_NODE *node)
 	node->stat_change = SA_TRUE;
 	node->change = SA_CLM_NODE_LEFT;
 	++(clms_cb->cluster_view_num);
-	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED);
+	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED, true);
 	/* Clear node->stat_change after sending the callback to its clients */
 	node->stat_change = SA_FALSE;
 
