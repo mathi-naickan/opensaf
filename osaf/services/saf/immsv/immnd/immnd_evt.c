@@ -8343,10 +8343,10 @@ static uint32_t immnd_evt_proc_fevs_rcv(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
 	if ((cb->highestProcessed + 1) < msgNo) {
 		/*We received an out-of-order (higher msgNo than expected) message */
 		if (cb->mAccepted) {
-			LOG_WA("MESSAGE:%llu OUT OF ORDER my highest processed:%llu, exiting", msgNo, cb->highestProcessed);
+			LOG_ER("MESSAGE:%llu OUT OF ORDER my highest processed:%llu - exiting", msgNo, cb->highestProcessed);
 			exit(1);
 		}else if(cb->mSync){ /* If we receive out of sync message at the time of syncing */
-			LOG_WA("Sync MESSAGE:%llu OUT OF ORDER my highest processed:%llu", msgNo, cb->highestProcessed);
+			LOG_ER("Sync MESSAGE:%llu OUT OF ORDER my highest processed:%llu - exiting", msgNo, cb->highestProcessed);
 			immnd_ackToNid(NCSCC_RC_FAILURE);
 			exit(1);
 		} else if(cb->mState < IMM_SERVER_LOADING_PENDING) {
