@@ -492,6 +492,12 @@ static uint32_t proc_rda_evt(CLMSV_CLMS_EVT * evt)
 
 			/* fail over, become implementer */
 			clms_imm_impl_set(clms_cb);
+			
+			/* Process agent down first. It is quite possible that the agent
+			 * downs are for the agents that were running on the same node
+			 * which went down and which will be processed in the next line
+			 */
+			clms_process_clma_down_list();
 
 			/* Process node downs during failover */
 			proc_downs_during_rolechange();
@@ -499,7 +505,6 @@ static uint32_t proc_rda_evt(CLMSV_CLMS_EVT * evt)
 		}
 
 	}
-	clms_process_clma_down_list();
  done:
 	TRACE_LEAVE();
 	return rc;
@@ -518,6 +523,7 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT * evt)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	CLMS_CLUSTER_NODE *node = NULL;
 	SaUint32T node_id = evt->info.node_mds_info.node_id;
+	TRACE_ENTER();
 
 	node = clms_node_get_by_id(node_id);
 
@@ -531,6 +537,7 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT * evt)
 		clms_track_send_node_down(node);
 
 	} else if (clms_cb->ha_state == SA_AMF_HA_STANDBY) {
+		TRACE("Adding the node_down record for node: %u to the list", node_id);
 		NODE_DOWN_LIST *node_down_rec = NULL;
 		if (NULL == (node_down_rec = (NODE_DOWN_LIST *) malloc(sizeof(NODE_DOWN_LIST)))) {
 			rc = SA_AIS_ERR_NO_MEMORY;
@@ -592,6 +599,7 @@ static uint32_t proc_clma_updn_mds_msg(CLMSV_CLMS_EVT * evt)
 				}
 			}
 		} else if (clms_cb->ha_state == SA_AMF_HA_STANDBY) {
+			TRACE("Adding to the clma down list");
 			CLMA_DOWN_LIST *clma_down_rec = NULL;
 			if (clms_clma_entry_valid(clms_cb, evt->fr_dest)) {
 				if (NULL == (clma_down_rec = (CLMA_DOWN_LIST *) malloc(sizeof(CLMA_DOWN_LIST)))) {
@@ -1566,6 +1574,7 @@ void clms_remove_node_down_rec(SaClmNodeIdT node_id)
 	NODE_DOWN_LIST *node_down_rec = clms_cb->node_down_list_head;
 	NODE_DOWN_LIST *prev_rec = NULL;
 	bool record_found = false;
+	TRACE_ENTER();
 
 	while (node_down_rec) {
 		if (node_down_rec->node_id == node_id) {
@@ -1599,6 +1608,7 @@ void clms_remove_node_down_rec(SaClmNodeIdT node_id)
 	}
 
 	if (!record_found) {
+		TRACE("MDS node down for: %u not yet reached. Adding to the list", node_id);
 		/* MDS node_down has not yet reached the STANDBY,
 		 * Just add this checkupdate record to the list. MDS_DOWN processing will delete it.
 		 * If role change happens before MDS_DOWN is recieved,
@@ -1621,6 +1631,8 @@ void clms_remove_node_down_rec(SaClmNodeIdT node_id)
 		clms_cb->node_down_list_tail = node_down_rec;
 		node_down_rec->ndown_status = CHECKPOINT_PROCESSED;
 	}
+
+	TRACE_LEAVE();
 }
 
 /**
@@ -1667,6 +1679,7 @@ void proc_downs_during_rolechange (void)
 	NODE_DOWN_LIST *node_down_rec = NULL;
 	NODE_DOWN_LIST *temp_node_down_rec = NULL;
 	CLMS_CLUSTER_NODE *node = NULL;
+	TRACE_ENTER();
 
 	/* Process The NodeDowns that occurred during the role change */
 	node_down_rec = clms_cb->node_down_list_head;
@@ -1689,5 +1702,6 @@ void proc_downs_during_rolechange (void)
 	clms_cb->node_down_list_head = NULL;
 	clms_cb->node_down_list_tail = NULL;
 
+	TRACE_LEAVE();
 }
 
