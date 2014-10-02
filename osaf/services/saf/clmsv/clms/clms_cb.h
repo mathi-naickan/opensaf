@@ -35,6 +35,11 @@ typedef enum {
 	IMM_RECONFIGURED = 5
 } ADMIN_OP;
 
+typedef enum {
+	CHECKPOINT_PROCESSED = 1,
+	MDS_DOWN_PROCESSED
+} NODE_DOWN_STATUS;
+
 /* Cluster Properties */
 typedef struct cluster_db_t {
 	SaNameT name;
@@ -122,6 +127,7 @@ typedef struct clma_down_list_tag {
 
 typedef struct node_down_list_tag {
 	SaClmNodeIdT node_id;
+	NODE_DOWN_STATUS ndown_status;
 	struct node_down_list_tag *next;
 } NODE_DOWN_LIST;
 

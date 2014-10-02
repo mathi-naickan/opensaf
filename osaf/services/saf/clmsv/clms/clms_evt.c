@@ -546,6 +546,7 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT * evt)
 				clms_cb->node_down_list_tail->next = node_down_rec;
 		}
 		clms_cb->node_down_list_tail = node_down_rec;
+		node_down_rec->ndown_status = MDS_DOWN_PROCESSED;
 	}
 
  done:
@@ -1564,6 +1565,7 @@ void clms_remove_node_down_rec(SaClmNodeIdT node_id)
 {
 	NODE_DOWN_LIST *node_down_rec = clms_cb->node_down_list_head;
 	NODE_DOWN_LIST *prev_rec = NULL;
+	bool record_found = false;
 
 	while (node_down_rec) {
 		if (node_down_rec->node_id == node_id) {
@@ -1589,10 +1591,35 @@ void clms_remove_node_down_rec(SaClmNodeIdT node_id)
 			/* Free the NODE_DOWN_REC */
 			free(node_down_rec);
 			node_down_rec = NULL;
+			record_found = true;
 			break;
 		}
 		prev_rec = node_down_rec;	/* Remember address of this entry */
 		node_down_rec = node_down_rec->next;	/* Go to next entry */
+	}
+
+	if (!record_found) {
+		/* MDS node_down has not yet reached the STANDBY,
+		 * Just add this checkupdate record to the list. MDS_DOWN processing will delete it.
+		 * If role change happens before MDS_DOWN is recieved,
+		 * then role change processing just ignores the record and removes it 
+		 * from the list.
+		 */
+		node_down_rec = NULL;
+		if ((node_down_rec = (NODE_DOWN_LIST *) malloc(sizeof(NODE_DOWN_LIST))) == NULL) {
+			LOG_CR("Memory Allocation for NODE_DOWN_LIST failed");
+			return;
+		}
+		memset(node_down_rec, 0, sizeof(NODE_DOWN_LIST));
+		node_down_rec->node_id = node_id;
+		if (clms_cb->node_down_list_head == NULL) {
+			clms_cb->node_down_list_head = node_down_rec;
+		} else {
+			if (clms_cb->node_down_list_tail)
+				clms_cb->node_down_list_tail->next = node_down_rec;
+		}
+		clms_cb->node_down_list_tail = node_down_rec;
+		node_down_rec->ndown_status = CHECKPOINT_PROCESSED;
 	}
 }
 
@@ -1647,7 +1674,13 @@ void proc_downs_during_rolechange (void)
 		/*Remove NODE_DOWN_REC from the NODE_DOWN_LIST */
 		node = clms_node_get_by_id(node_down_rec->node_id);
 		temp_node_down_rec = node_down_rec;
-		if (node != NULL)
+		/* If nodedown status is CHECKPOINT_PROCESSED, it means that
+		 * a checkpoint update was received when this node was STANDBY, but
+		 * the MDS node_down did not reach the STANDBY. An extremely rare chance,
+		 * but good to have protection for it, by ignoring the record
+		 * if the record is in CHECKPOINT_PROCESSED state.
+		 */
+		if ((node != NULL) && (temp_node_down_rec->ndown_status != CHECKPOINT_PROCESSED))
 			clms_track_send_node_down(node);
 		node_down_rec = node_down_rec->next;
 		/*Free the NODE_DOWN_REC */
