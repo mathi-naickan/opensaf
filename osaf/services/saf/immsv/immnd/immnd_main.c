@@ -261,6 +261,11 @@ int main(int argc, char *argv[])
 
 	daemonize(argc, argv);
 
+	if(setenv("SA_ENABLE_EXTENDED_NAMES", "1", 1)) {
+		LOG_ER("failed to set SA_ENABLE_EXTENDED_NAMES");
+		goto done;
+	}
+
 	if (immnd_initialize(argv[0]) != NCSCC_RC_SUCCESS) {
 		LOG_ER("initialize_immd failed");
 		goto done;

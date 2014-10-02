@@ -3050,7 +3050,7 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
 
             if(attr->attrValueType == SA_IMM_ATTR_SANAMET) {
                 immsv_edu_attr_val* v = attr->attrDefaultValue;
-                if(!(osaf_is_extended_names_enabled() && getLongDnsAllowed())
+                if(!getLongDnsAllowed()
                         && v->val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
                     LOG_NO("ERR_LIBRARY: attr '%s' of type SaNameT is too long:%u. "
                         "Extended names is not enabled",
@@ -6572,7 +6572,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     bool rdnAttFound=false;
     bool isAugAdmo=false;
     bool isSpecialApplForClass=false;
-    bool longDnsPermitted = osaf_is_extended_names_enabled() && getLongDnsAllowed();
+    bool longDnsPermitted = getLongDnsAllowed();
 
     ObjectSet refObjectSet;
 
@@ -7661,7 +7661,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
     bool chainedOp = false;
     immsv_attr_mods_list* p = req->attrMods;
     bool modifiedNotifyAttr=false;
-    bool longDnsPermitted = osaf_is_extended_names_enabled() && getLongDnsAllowed();
+    bool longDnsPermitted = getLongDnsAllowed();
 
     ObjectNameSet afimPreOpNDRefs;  // Set of NO_DANGLING references from after image before CCB operation
     bool hasNoDanglingRefs = false;
@@ -8325,11 +8325,10 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                For opensafImmSyncBatchSize we accept anything.
             */
 
-            bool longDnsAllowedBefore = getLongDnsAllowed();
             bool longDnsAllowedAfter =  getLongDnsAllowed(afim);
 
             /* Check if *this* ccb is attempting to alter longDnsAllowed.*/
-            if(longDnsAllowedBefore != longDnsAllowedAfter) {
+            if(longDnsPermitted != longDnsAllowedAfter) {
                 if(ccbIdLongDnGuard) {
                     /* This case should never happen since it is guarded by regular ccb handling. */
                     setCcbErrorString(ccb, "ERR_BUSY: Other Ccb (%u) already using %s",
@@ -8548,7 +8547,7 @@ ImmModel::ccbObjectDelete(const ImmsvOmCcbObjectDelete* req,
     ObjectMap::iterator oi, oi2;
     ObjectInfo* deleteRoot=NULL;
     
-    if(!(osaf_is_extended_names_enabled() && getLongDnsAllowed())
+    if(!getLongDnsAllowed()
             && sz >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
         LOG_NO("ERR_NAME_TOO_LONG: Object name is too long. "
             "Not allowed by IMM service or extended names are disabled");
@@ -13558,7 +13557,7 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
     bool nameCorrected = false;
     bool rdnAttFound=false;
     bool isSpecialApplForClass=false;
-    bool longDnsPermitted = osaf_is_extended_names_enabled() && getLongDnsAllowed();
+    bool longDnsPermitted = getLongDnsAllowed();
     
     /*Should rename member adminOwnerId. Used to store implid here.*/
     ImplementerInfo* info = findImplementer(req->adminOwnerId);
@@ -13786,7 +13785,7 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
         objectName.append(parentName);
     }
     
-    if (objectName.size() > ((longDnsPermitted) ? kOsafMaxDnLength : (SA_MAX_UNEXTENDED_NAME_LENGTH -1))) {
+    if (objectName.size() > ((longDnsPermitted) ? kOsafMaxDnLength : (SA_MAX_UNEXTENDED_NAME_LENGTH - 1))) {
         TRACE_7("ERR_NAME_TOO_LONG: DN is too long, size:%u, max size is:%u", 
             (unsigned int) objectName.size(), kOsafMaxDnLength);
         err = SA_AIS_ERR_NAME_TOO_LONG;     
@@ -14821,7 +14820,7 @@ ImmModel::rtObjectUpdate(const ImmsvOmCcbObjectModify* req,
     ImplementerInfo* info = NULL;
     bool wasLocal = *isPureLocal;
     bool isSyncClient = (sImmNodeState == IMM_NODE_W_AVAILABLE);
-    bool longDnsPermitted = osaf_is_extended_names_enabled() && getLongDnsAllowed();
+    bool longDnsPermitted = getLongDnsAllowed();
     if(wasLocal) {osafassert(conn);} 
     
     if (objectName.empty()) {
