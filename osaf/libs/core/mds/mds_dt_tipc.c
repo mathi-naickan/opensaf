@@ -2042,6 +2042,8 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 
 				if (len > frag_size) {
 					/* Packet needs to be fragmented and send */
+					m_MDS_LOG_DBG("MDTM: User fragment and Sending Data lenght=%d From svc_id = %s to svc_id = %s\n", len,
+                                               ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
 					return mdtm_frag_and_send(req, frag_seq_num, tipc_id, frag_size);
 				} else {
 					uint8_t *p8;

@@ -102,6 +102,8 @@ typedef struct send_msg {
 
 	/* The following part is used only for the BCAST and Red BCAST sends only  and no where it is used */
 	MDS_BCAST_BUFF_LIST *mds_bcast_list_hdr;
+    /* Parameter only used in case of bcast to determine whether to send mcast or multi unicast*/
+    uint32_t bcast_buff_len;
 } SEND_MSG;
 
 /* Functions for bcast list add, search and free all the list */
@@ -1514,6 +1516,9 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 	}
 	m_MDS_LOG_INFO("MDS_SND_RCV: Sending the data to MDTM layer\n");
 	m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_encode_full_or_flat_and_send\n");
+
+	/* used only for case of bcast with full encode */ 
+	to_msg->bcast_buff_len = m_MMGR_LINK_DATA_LEN(msg_send.msg.data.fullenc_uba.start);
 	return mds_mdtm_send(&msg_send);
 }
 
@@ -3809,7 +3814,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 	} 
 
 
-
+	to_msg.bcast_buff_len = 0;
 	/* Get each destination and send */
 	while (1) {
 		if (flag == 0) {
@@ -3849,37 +3854,16 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 			break;
 		}
 
-		/* If Mcast allwasy send full encode */
-		if ((svc_cb->subtn_info->prev_ver_sub_count == 0) && (strcmp(tipc_or_tcp, "TIPC") == 0)
-				&& (to_msg.data.info.len < MDS_DIRECT_BUF_MAXSIZE)) {
-			to = DESTINATION_OFF_NODE;
-		} else {
-			mcm_query_for_node_dest_on_archword(info_result->key.adest, &to, info_result->rem_svc_arch_word);
-		}
-
-		if (to == DESTINATION_SAME_PROCESS) {
-			if (to_msg.msg_type != MSG_NCSCONTEXT) {
-				SEND_MSG t_msg;
-				memset(&t_msg, 0, sizeof(t_msg));
-				t_msg.msg_type = MSG_DIRECT_BUFF;
-				t_msg.data.info.buff = mds_alloc_direct_buff(to_msg.data.info.len);
-				memcpy(t_msg.data.info.buff, to_msg.data.info.buff, to_msg.data.info.len);
-				t_msg.data.info.len = to_msg.data.info.len;
-				t_msg.msg_fmt_ver = to_msg.msg_fmt_ver;
-
-				mds_mcm_send_msg_enc(to, svc_cb, &t_msg, to_svc_id, info_result->key.vdest_id,
-						     req, 0, info_result->key.adest, pri);
-				continue;
-			}
-		}
+		/* Bcast allwasy send full encode */
+		to = DESTINATION_OFF_NODE;
 
 		status = mds_mcm_send_msg_enc(to, svc_cb, &to_msg, to_svc_id, info_result->key.vdest_id,
 				req, 0, info_result->key.adest, pri);
 		if ((svc_cb->subtn_info->prev_ver_sub_count == 0) && (strcmp(tipc_or_tcp, "TIPC") == 0)
-				&& (to_msg.data.info.len < MDS_DIRECT_BUF_MAXSIZE)) {
-				m_MDS_LOG_DBG("MDTM: Break while(1) prev_ver_sub_count: %d  svc_id =%s  data.len: %d ",
+				&& (to_msg.bcast_buff_len < MDS_DIRECT_BUF_MAXSIZE)) {
+				m_MDS_LOG_DBG("MDTM: Break while(1) prev_ver_sub_count: %d  svc_id =%s  to_msg.bcast_buff_len: %d ",
 					svc_cb->subtn_info->prev_ver_sub_count,
-					ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl)], to_msg.data.info.len);	
+					ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl)], to_msg.bcast_buff_len);	
 			if (status == NCSCC_RC_SUCCESS) {
 				/* Break after one successful Mcast message */
 				break;
@@ -3887,6 +3871,9 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 			else
 				m_MDS_LOG_ERR("MDTM:Continue while(1) status = mds_mcm_send_msg_enc = NCSCC_RC_FAILURE");
 		}
+		
+		m_MDS_LOG_DBG("MDTM: Continue multi-unicast  svc_id =%s  to_msg.bcast_buff_len: %d ",
+				ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl)], to_msg.bcast_buff_len);
 	}			/* While Loop */
 
 #if 1
