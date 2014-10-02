@@ -610,7 +610,7 @@ void clms_clmresp_error_timeout(CLMS_CB * cb, CLMS_CLUSTER_NODE * node)
 	clms_admin_state_update_rattr(node);
 	clms_cluster_update_rattr(osaf_cluster);
 
-	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED);
+	clms_send_track(clms_cb, node, SA_CLM_CHANGE_COMPLETED, false);
 
 	node->stat_change = SA_FALSE;
 	node->admin_op = 0;
@@ -1035,7 +1035,8 @@ void clms_adminop_pending(void)
 	while (NULL != (node = clms_node_getnext_by_id(nodeid))) {
 		nodeid = node->node_id;
 		if ((node->admin_op != PLM) && (node->admin_op != 0)) {
-			clms_send_track(clms_cb, node, SA_CLM_CHANGE_ABORTED);
+			/* force set flag to true, the node might have rebooted and come up again */
+			clms_send_track(clms_cb, node, SA_CLM_CHANGE_ABORTED, true);
 			node->admin_op = 0;
 		}
 	}

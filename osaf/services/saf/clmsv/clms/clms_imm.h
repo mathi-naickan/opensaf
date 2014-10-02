@@ -25,7 +25,7 @@ extern void clms_admin_state_update_rattr(CLMS_CLUSTER_NODE * nd);
 extern uint32_t clms_chk_sub_exist(SaUint8T track_flag);
 extern void clms_imm_impl_set(CLMS_CB * cb);
 extern CLMS_CLUSTER_NODE *clms_node_new(SaNameT *name, const SaImmAttrValuesT_2 **attrs);
-extern void clms_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, SaClmChangeStepT step);
+extern void clms_send_track(CLMS_CB * cb, CLMS_CLUSTER_NODE * node, SaClmChangeStepT step, bool node_reboot);
 extern uint32_t clms_node_dn_chk(SaNameT *objName);
 extern SaAisErrorT clms_cluster_config_get(void);
 extern SaAisErrorT clms_node_create_config(void);
