@@ -1471,6 +1471,16 @@ static void startElementHandler(void* userData,
 
 		/* <dn> */
 	} else if (strcmp((const char*)name, "dn") == 0) {
+		assert(state->depth > 0);
+		assert(state->objectName == NULL);
+
+		if (state->state[state->depth - 1] != OBJECT) {
+			LOG_ER("DN not immediately inside an object tag");
+			stopParser(state);
+			state->parsingStatus = 1;
+			return;
+		}
+
 		state->state[state->depth] = DN;
 		/* <attr> */
 	} else if (strcmp((const char*)name, "attr") == 0) {
@@ -1485,6 +1495,16 @@ static void startElementHandler(void* userData,
 		state->attrDefaultValueSet = 0;
 		/* <name> */
 	} else if (strcmp((const char*)name, "name") == 0) {
+		assert(state->depth > 0);
+		assert(state->attrName == NULL);
+
+		if (state->state[state->depth - 1] != ATTRIBUTE && state->state[state->depth - 1] != RDN) {
+			LOG_ER("Name not immediately inside an attribute tag");
+			stopParser(state);
+			state->parsingStatus = 1;
+			return;
+		}
+
 		state->state[state->depth] = NAME;
 		/* <value> */
 	} else if (strcmp((const char*)name, "value") == 0) {
@@ -1775,19 +1795,31 @@ static void charactersHandler(void* userData,
 			state->parsingStatus = 1;
 			return;
 		}
-		state->objectName = (char*)malloc((size_t)len + 1);
 
-		strncpy(state->objectName, (const char*)chars, (size_t)len);
-
-		state->objectName[len] = '\0';
+		if(state->objectName) {
+			state->objectName = (char *)realloc(state->objectName, strlen(state->objectName) + len + 1);
+			if (state->attrName == NULL) {
+				LOG_ER("Failed to realloc state->objectName");
+				stopParser(state);
+				state->parsingStatus = 1;
+				return;
+			}
+			strncat(state->objectName, (const char*)chars, (size_t)len);
+		} else {
+			state->objectName = (char*)malloc((size_t)len + 1);
+			if (state->attrName == NULL) {
+				LOG_ER("Failed to malloc state->objectName");
+				stopParser(state);
+				state->parsingStatus = 1;
+				return;
+			}
+			strncpy(state->objectName, (const char*)chars, (size_t)len);
+			state->objectName[len] = '\0';
+		}
 
 		break;
 	case NAME:
-		/* The attrName must be NULL */
-		assert(!state->attrName);
-
-		if (state->state[state->depth - 1] == ATTRIBUTE ||
-			state->state[state->depth - 1] == RDN) {
+		if (!state->attrName) {
 			state->attrName = (char*)malloc((size_t)len + 1);
 			if (state->attrName == NULL) {
 				LOG_ER("Failed to malloc state->attrName");
@@ -1799,10 +1831,15 @@ static void charactersHandler(void* userData,
 			strncpy(state->attrName, (const char*)chars, (size_t)len);
 			state->attrName[len] = '\0';
 		} else {
-			LOG_ER("Name not immediately inside an attribute tag");
-			stopParser(state);
-			state->parsingStatus = 1;
-			return;
+			state->attrName = (char*)realloc(state->attrName, strlen(state->attrName) + len + 1);
+			if (state->attrName == NULL) {
+				LOG_ER("Failed to realloc state->attrName");
+				stopParser(state);
+				state->parsingStatus = 1;
+				return;
+			}
+
+			strncat(state->attrName, (const char*)chars, len);
 		}
 		break;
 	case VALUE:
