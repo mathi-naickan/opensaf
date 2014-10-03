@@ -822,6 +822,7 @@ SaAisErrorT ntfsv_ptr_val_alloc(v_data * vd, SaNtfValueT *nv, SaUint16T data_siz
 		nv->ptrVal.dataOffset = vd->size;
 		nv->ptrVal.dataSize = data_size;
 		*data_ptr = vd->p_base + vd->size;
+		memset(*data_ptr, 0, data_size);
 		vd->size += data_size;
 	} else {
 		TRACE("SA_AIS_ERR_NO_SPACE\n");

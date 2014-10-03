@@ -137,10 +137,16 @@ static SaAisErrorT ntfa_alloc_callback_notification(SaNtfNotificationsT *notific
 	SaAisErrorT rc = SA_AIS_OK;
 	ntfa_notification_hdl_rec_t *notification_hdl_rec;
 	notification->notificationType = not_cbk->notificationType;
-
+	SaNtfNotificationHeaderT *not_cbk_header;
 	switch (not_cbk->notificationType) {
 	case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
 		TRACE_2("type: SA_NTF_TYPE_OBJECT_CREATE_DELETE");
+		not_cbk_header = &not_cbk->notification.objectCreateDelete.notificationHeader;
+		if (!ntfsv_sanamet_is_valid(not_cbk_header->notificationObject) 
+			|| !ntfsv_sanamet_is_valid(not_cbk_header->notifyingObject)) {
+			rc = SA_AIS_ERR_NAME_TOO_LONG;
+			break;
+		}
 		rc = saNtfObjectCreateDeleteNotificationAllocate(hdl_rec->local_hdl,
 								 &notification->notification.
 								 objectCreateDeleteNotification,
@@ -175,6 +181,12 @@ static SaAisErrorT ntfa_alloc_callback_notification(SaNtfNotificationsT *notific
 		break;
 	case SA_NTF_TYPE_ATTRIBUTE_CHANGE:
 		TRACE_2("type: SA_NTF_TYPE_ATTRIBUTE_CHANGE");
+		not_cbk_header = &not_cbk->notification.attributeChange.notificationHeader;
+		if (!ntfsv_sanamet_is_valid(not_cbk_header->notificationObject) 
+			|| !ntfsv_sanamet_is_valid(not_cbk_header->notifyingObject)) {
+			rc = SA_AIS_ERR_NAME_TOO_LONG;
+			break;
+		}	
 		rc = saNtfAttributeChangeNotificationAllocate(hdl_rec->local_hdl,
 							      &notification->notification.attributeChangeNotification,
 							      not_cbk->notification.attributeChange.notificationHeader.
@@ -208,6 +220,12 @@ static SaAisErrorT ntfa_alloc_callback_notification(SaNtfNotificationsT *notific
 		break;
 	case SA_NTF_TYPE_STATE_CHANGE:
 		TRACE_2("type: SA_NTF_TYPE_STATE_CHANGE");
+		not_cbk_header = &not_cbk->notification.stateChange.notificationHeader;
+		if (!ntfsv_sanamet_is_valid(not_cbk_header->notificationObject) 
+			|| !ntfsv_sanamet_is_valid(not_cbk_header->notifyingObject)) {
+			rc = SA_AIS_ERR_NAME_TOO_LONG;
+			break;
+		}	
 		rc = saNtfStateChangeNotificationAllocate(hdl_rec->local_hdl,
 							  &notification->notification.stateChangeNotification,
 							  not_cbk->notification.stateChange.notificationHeader.
@@ -240,6 +258,13 @@ static SaAisErrorT ntfa_alloc_callback_notification(SaNtfNotificationsT *notific
 		}
 		break;
 	case SA_NTF_TYPE_ALARM:
+		TRACE_2("type: SA_NTF_TYPE_ALARM");
+		not_cbk_header = &not_cbk->notification.alarm.notificationHeader;
+		if (!ntfsv_sanamet_is_valid(not_cbk_header->notificationObject) 
+			|| !ntfsv_sanamet_is_valid(not_cbk_header->notifyingObject)) {
+			rc = SA_AIS_ERR_NAME_TOO_LONG;
+			break;
+		}
 		rc = saNtfAlarmNotificationAllocate(hdl_rec->local_hdl,
 						    &notification->notification.alarmNotification,
 						    not_cbk->notification.alarm.
@@ -273,6 +298,12 @@ static SaAisErrorT ntfa_alloc_callback_notification(SaNtfNotificationsT *notific
 		break;
 	case SA_NTF_TYPE_SECURITY_ALARM:
 		TRACE_2("type: SA_NTF_TYPE_SECURITY_ALARM");
+		not_cbk_header = &not_cbk->notification.securityAlarm.notificationHeader;
+		if (!ntfsv_sanamet_is_valid(not_cbk_header->notificationObject) 
+			|| !ntfsv_sanamet_is_valid(not_cbk_header->notifyingObject)) {
+			rc = SA_AIS_ERR_NAME_TOO_LONG;
+			break;
+		}		
 		rc = saNtfSecurityAlarmNotificationAllocate(hdl_rec->local_hdl,
 							    &notification->notification.securityAlarmNotification,
 							    not_cbk->notification.securityAlarm.notificationHeader.
@@ -347,6 +378,12 @@ static SaAisErrorT ntfa_hdl_cbk_rec_prc(ntfa_cb_t *cb, ntfsv_msg_t *msg, ntfa_cl
 				rc = ntfa_alloc_callback_notification(notification,
 								      cbk_info->param.notification_cbk, hdl_rec);
 				if (rc != SA_AIS_OK) {
+					/* Returned code ERR_NAME_TOO_LONG is due to receiving longDn notification
+					 * in unadapted-longDN subscriber, need to return OK here in order to
+					 * avoid consumer exit() in case that saNtfDispatch() returns non-OK
+					 */
+					if (rc == SA_AIS_ERR_NAME_TOO_LONG)
+						rc = SA_AIS_OK;
 					/* not in handle struct */
 					free(notification);
 					goto done;

@@ -39,6 +39,194 @@ ntfa_cb_t ntfa_cb = {
 /* list of subscriptions for this process */
 ntfa_subscriber_list_t *subscriberNoList = NULL;
 
+static SaAisErrorT checkNtfValueTypeRange(SaNtfValueTypeT type)
+{
+	return (type < SA_NTF_VALUE_UINT8 || type > SA_NTF_VALUE_ARRAY)? SA_AIS_ERR_INVALID_PARAM
+																	: SA_AIS_OK;
+}
+
+static SaAisErrorT checkNtfValue(v_data* pvdata, SaNtfValueTypeT type, SaNtfValueT* value)
+{
+	SaAisErrorT rc = SA_AIS_OK;
+	SaNameT *ptr;
+	if ((rc = checkNtfValueTypeRange(type)) != SA_AIS_OK) {
+		TRACE_1("Invalid value type(%d)", type);
+		return rc;
+	}
+	
+	if (type == SA_NTF_VALUE_LDAP_NAME) {
+		/* SaNameT must have length > 2 */
+		if (value->ptrVal.dataSize <= 2)
+			return SA_AIS_ERR_INVALID_PARAM;
+
+		/* Check SaNameT */
+		ptr = pvdata->p_base + value->ptrVal.dataOffset;
+		if (!ntfsv_sanamet_is_valid(ptr))
+			return SA_AIS_ERR_INVALID_PARAM;
+
+		/* Refill the extended SaNameT into variable data */
+		if (osaf_is_an_extended_name(ptr)) {
+			size_t length_to_copy;
+			void *p;
+			if (value->ptrVal.dataSize < (osaf_extended_name_length(ptr) + 2)) {
+				LOG_ER("The allocated memory is not large enough,"
+						" the object will be truncated (%s)"
+						, osaf_extended_name_borrow(ptr));
+				length_to_copy = value->ptrVal.dataSize - 2;		
+			} else
+				length_to_copy = osaf_extended_name_length(ptr);
+
+			p = pvdata->p_base + value->ptrVal.dataOffset + 2;
+			memcpy(p, osaf_extended_name_borrow(ptr), length_to_copy);
+		} else {
+			if (value->ptrVal.dataSize > SA_MAX_UNEXTENDED_NAME_LENGTH + 2)
+				value->ptrVal.dataSize = SA_MAX_UNEXTENDED_NAME_LENGTH + 2;
+		}
+	}
+
+	return rc;
+}
+
+static SaAisErrorT getTypeFromValue(ntfa_notification_hdl_rec_t *not_hdl, const SaNtfValueT *value
+									, SaNtfValueTypeT* type)
+{
+	SaAisErrorT rc = SA_AIS_ERR_NOT_EXIST;
+	SaNtfNotificationHeaderT *not_header = NULL;
+	SaNtfAlarmNotificationT* not_alarm;
+	SaNtfSecurityAlarmNotificationT* not_sec_alarm;
+	SaNtfAttributeChangeNotificationT* not_att_change;
+	SaNtfObjectCreateDeleteNotificationT* not_obj;
+	int i;
+	
+	if (not_hdl == NULL || value == NULL || type == NULL)
+		return SA_AIS_ERR_INVALID_PARAM;
+	
+	switch (not_hdl->ntfNotificationType) {
+		case SA_NTF_TYPE_ALARM:
+			not_alarm = &not_hdl->ntfNotification.ntfAlarmNotification;
+			not_header = &not_alarm->notificationHeader;
+			for (i=0 ; i<not_alarm->numSpecificProblems ; i++)
+				if (value == &not_alarm->specificProblems[i].problemValue) {
+					*type = not_alarm->specificProblems[i].problemType;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+					
+			for (i=0 ; i<not_alarm->numMonitoredAttributes ; i++)
+				if (value == &not_alarm->monitoredAttributes[i].attributeValue) {
+					*type = not_alarm->monitoredAttributes[i].attributeType;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+					
+			for (i=0 ; i<not_alarm->numProposedRepairActions ; i++)
+				if (value == &not_alarm->proposedRepairActions[i].actionValue) {
+					*type = not_alarm->proposedRepairActions[i].actionValueType;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+					
+			if (not_alarm->thresholdInformation != NULL &&
+				(value == &not_alarm->thresholdInformation->thresholdValue ||
+					value == &not_alarm->thresholdInformation->thresholdHysteresis ||
+					value == &not_alarm->thresholdInformation->observedValue)) {
+					*type = not_alarm->thresholdInformation->thresholdValueType;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+			break;
+		case SA_NTF_TYPE_SECURITY_ALARM:
+			not_sec_alarm = &not_hdl->ntfNotification.ntfSecurityAlarmNotification;
+			not_header = &not_sec_alarm->notificationHeader;
+			if (not_sec_alarm->securityAlarmDetector != NULL &&
+				value == &not_sec_alarm->securityAlarmDetector->value) {
+					*type = not_sec_alarm->securityAlarmDetector->valueType;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+					
+			if (not_sec_alarm->serviceUser != NULL &&
+				value == &not_sec_alarm->serviceUser->value) {
+					*type = not_sec_alarm->serviceUser->valueType;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+					
+			if (not_sec_alarm->serviceProvider != NULL &&
+				value == &not_sec_alarm->serviceProvider->value) {
+					*type = not_sec_alarm->serviceProvider->valueType;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+			break;
+		case SA_NTF_TYPE_STATE_CHANGE:
+			not_header = &not_hdl->ntfNotification.ntfStateChangeNotification.notificationHeader;
+			break;
+			
+		case SA_NTF_TYPE_ATTRIBUTE_CHANGE:
+			not_att_change = &not_hdl->ntfNotification.ntfAttributeChangeNotification;
+			not_header = &not_att_change->notificationHeader;
+			for (i=0 ; i<not_att_change->numAttributes ; i++) {
+				if (value == &not_att_change->changedAttributes[i].oldAttributeValue ||
+					value == &not_att_change->changedAttributes[i].newAttributeValue) {
+					*type = not_att_change->changedAttributes[i].attributeType;
+					/* NTFIMCN has being used SA_NTF_VALUE_LDAP_NAME as SA_NTF_VALUE_STRING
+					 * for changeAttributes, so it must return SA_NTF_VALUE_STRING due to
+					 * backward compatibility
+					 */
+					if (*type == SA_NTF_VALUE_LDAP_NAME)
+						*type = SA_NTF_VALUE_STRING;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+			}
+			break;
+			
+		case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
+			not_obj = &not_hdl->ntfNotification.ntfObjectCreateDeleteNotification;
+			not_header = &not_obj->notificationHeader;
+			for (i=0 ; i<not_obj->numAttributes ; i++) {
+				if (value == &not_obj->objectAttributes[i].attributeValue) {
+					*type = not_obj->objectAttributes[i].attributeType;
+					/* NTFIMCN has being used SA_NTF_VALUE_LDAP_NAME as SA_NTF_VALUE_STRING
+					 * for objectAttributes, so it must return SA_NTF_VALUE_STRING due to
+					 * backward compatibility
+					 */
+					if (*type == SA_NTF_VALUE_LDAP_NAME)
+						*type = SA_NTF_VALUE_STRING;
+					rc = SA_AIS_OK;
+					goto done;
+				}
+			}
+			break;
+		default:
+			TRACE_1("Unknown notification type");
+			return SA_AIS_ERR_INVALID_PARAM;
+	}
+	
+	for (i=0 ; i<not_header->numAdditionalInfo ; i++)
+		if (value == &not_header->additionalInfo[i].infoValue) {
+			*type = not_header->additionalInfo[i].infoType;
+			rc = SA_AIS_OK;
+			goto done;
+		}
+done:
+	return rc;
+}
+
+static SaAisErrorT checkFilterHeader(SaNtfNotificationFilterHeaderT *nfh) {
+
+	SaUint16T i;
+	for (i = 0; i != nfh->numNotificationObjects; ++i)
+		if (!ntfsv_sanamet_is_valid(&nfh->notificationObjects[i]))
+			return SA_AIS_ERR_INVALID_PARAM;
+	for (i = 0; i != nfh->numNotifyingObjects; ++i)
+		if (!ntfsv_sanamet_is_valid(&nfh->notifyingObjects[i]))
+			return SA_AIS_ERR_INVALID_PARAM;
+
+	return SA_AIS_OK;
+}
+
 static SaAisErrorT checkAttributeChangeFilterParameters(ntfa_filter_hdl_rec_t *attributeChangeFilterData)
 {
 	SaUint16T i;
@@ -72,8 +260,8 @@ static SaAisErrorT checkAttributeChangeFilterParameters(ntfa_filter_hdl_rec_t *a
 		}
 	}
 
-	TRACE_1("Returning SA_AIS_OK!");
-	return SA_AIS_OK;
+	return checkFilterHeader(&attributeChangeFilterData->notificationFilter.
+								attributeChangeNotificationfilter.notificationFilterHeader);
 
 }
 
@@ -111,8 +299,8 @@ static SaAisErrorT checkObjectCreateDeleteFilterParameters(ntfa_filter_hdl_rec_t
 		}
 	}
 
-	TRACE_1("Returning SA_AIS_OK!");
-	return SA_AIS_OK;
+	return checkFilterHeader(&objectCreateDeleteFilterData->notificationFilter.
+								objectCreateDeleteNotificationfilter.notificationFilterHeader);
 
 }
 
@@ -155,9 +343,8 @@ static SaAisErrorT checkStateChangeFilterParameters(ntfa_filter_hdl_rec_t *state
 			return SA_AIS_ERR_INVALID_PARAM;
 		}
 	}
-
-	TRACE_1("Returning SA_AIS_OK!");
-	return SA_AIS_OK;
+	return checkFilterHeader(&stateChangeFilterData->notificationFilter.
+								stateChangeNotificationfilter.notificationFilterHeader);
 }
 
 static SaAisErrorT checkAlarmFilterParameters(ntfa_filter_hdl_rec_t *alarmFilterData)
@@ -209,8 +396,8 @@ static SaAisErrorT checkAlarmFilterParameters(ntfa_filter_hdl_rec_t *alarmFilter
 		}
 	}
 
-	TRACE_1("Returning SA_AIS_OK!");
-	return SA_AIS_OK;
+	return checkFilterHeader(&alarmFilterData->notificationFilter.
+								alarmNotificationfilter.notificationFilterHeader);
 }
 
 static SaAisErrorT checkSecurityAlarmFilterParameters(ntfa_filter_hdl_rec_t *securityAlarmFilterData)
@@ -260,11 +447,9 @@ static SaAisErrorT checkSecurityAlarmFilterParameters(ntfa_filter_hdl_rec_t *sec
 	for (i = 0;
 	     i < securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.numSecurityAlarmDetectors;
 	     i++) {
-		if (securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
-		    securityAlarmDetectors[i].valueType < SA_NTF_VALUE_UINT8
-		    || securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
-		    securityAlarmDetectors[i].valueType > SA_NTF_VALUE_ARRAY) {
-			TRACE_1("Invalid PercievedSeverity value = %d",
+		if (checkNtfValueTypeRange(securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
+									securityAlarmDetectors[i].valueType) != SA_AIS_OK) {
+			TRACE_1("Invalid securityAlarmDetectors value type = %d",
 				(int)securityAlarmFilterData->notificationFilter.
 				securityAlarmNotificationfilter.securityAlarmDetectors[i].valueType);
 			return SA_AIS_ERR_INVALID_PARAM;
@@ -273,11 +458,9 @@ static SaAisErrorT checkSecurityAlarmFilterParameters(ntfa_filter_hdl_rec_t *sec
 
 	for (i = 0; i < securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.numServiceUsers;
 	     i++) {
-		if (securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
-		    serviceUsers[i].valueType < SA_NTF_VALUE_UINT8
-		    || securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
-		    serviceUsers[i].valueType > SA_NTF_VALUE_ARRAY) {
-			TRACE_1("Invalid PercievedSeverity value = %d",
+		if (checkNtfValueTypeRange(securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
+									serviceUsers[i].valueType) != SA_AIS_OK) {
+			TRACE_1("Invalid serviceUsers value type = %d",
 				(int)securityAlarmFilterData->notificationFilter.
 				securityAlarmNotificationfilter.serviceUsers[i].valueType);
 			return SA_AIS_ERR_INVALID_PARAM;
@@ -286,26 +469,24 @@ static SaAisErrorT checkSecurityAlarmFilterParameters(ntfa_filter_hdl_rec_t *sec
 
 	for (i = 0; i < securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.numServiceProviders;
 	     i++) {
-		if (securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
-		    serviceProviders[i].valueType < SA_NTF_VALUE_UINT8
-		    || securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
-		    serviceProviders[i].valueType > SA_NTF_VALUE_ARRAY) {
-			TRACE_1("Invalid PercievedSeverity value = %d",
+		if (checkNtfValueTypeRange(securityAlarmFilterData->notificationFilter.securityAlarmNotificationfilter.
+									serviceProviders[i].valueType) != SA_AIS_OK) {
+			TRACE_1("Invalid serviceProviders value type = %d",
 				(int)securityAlarmFilterData->notificationFilter.
 				securityAlarmNotificationfilter.serviceProviders[i].valueType);
 			return SA_AIS_ERR_INVALID_PARAM;
 		}
 	}
 
-	TRACE_1("Returning SA_AIS_OK!");
-	return SA_AIS_OK;
+	return checkFilterHeader(&securityAlarmFilterData->notificationFilter.
+								securityAlarmNotificationfilter.notificationFilterHeader);
 }
 
 /* help functions */
-static SaAisErrorT checkHeader(SaNtfNotificationHeaderT *nh)
+static SaAisErrorT checkHeader(v_data *pvdata, SaNtfNotificationHeaderT *nh)
 {
 	int i =0;
-
+	SaAisErrorT rc;
 	if (!ntfsv_sanamet_is_valid(nh->notificationObject) ||
 		!ntfsv_sanamet_is_valid(nh->notifyingObject)) {
 		TRACE_1("SaNameT is invaild");
@@ -313,80 +494,81 @@ static SaAisErrorT checkHeader(SaNtfNotificationHeaderT *nh)
 	}
 
 	for(i=0 ; i < nh->numAdditionalInfo ; i++ ) {
-		if(nh->additionalInfo[i].infoType < SA_NTF_VALUE_UINT8 || 
-			nh->additionalInfo[i].infoType > SA_NTF_VALUE_ARRAY) {
-			TRACE_1("Invalid numAdditionalInfo type value");
-			return SA_AIS_ERR_INVALID_PARAM;
-		}
+		if ((rc = checkNtfValue(pvdata, 
+								nh->additionalInfo[i].infoType, 
+								&nh->additionalInfo[i].infoValue)) != SA_AIS_OK)
+			return rc;
 	}
 
 	return SA_AIS_OK;
 }
 
-static SaAisErrorT checkAlarmParameters(SaNtfAlarmNotificationT *alarmNotification)
+static SaAisErrorT checkAlarmParameters(ntfa_notification_hdl_rec_t *not_hdl_rec, v_data *pvdata)
 {
 	int i = 0;
-
-	if (*alarmNotification->probableCause < SA_NTF_ADAPTER_ERROR ||
-	    *alarmNotification->probableCause > SA_NTF_UNSPECIFIED_REASON) {
+	SaNtfAlarmNotificationT *notification = &not_hdl_rec->ntfNotification.ntfAlarmNotification;
+	if (*notification->probableCause < SA_NTF_ADAPTER_ERROR ||
+	    *notification->probableCause > SA_NTF_UNSPECIFIED_REASON) {
 		TRACE_1("Invalid probableCause value");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
-	if (*alarmNotification->perceivedSeverity < SA_NTF_SEVERITY_CLEARED ||
-	    *alarmNotification->perceivedSeverity > SA_NTF_SEVERITY_CRITICAL) {
+	if (*notification->perceivedSeverity < SA_NTF_SEVERITY_CLEARED ||
+	    *notification->perceivedSeverity > SA_NTF_SEVERITY_CRITICAL) {
 		TRACE_1("Invalid perceivedSeverity value");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
-	if (*alarmNotification->trend < SA_NTF_TREND_MORE_SEVERE ||
-	    *alarmNotification->trend > SA_NTF_TREND_LESS_SEVERE) {
+	if (*notification->trend < SA_NTF_TREND_MORE_SEVERE ||
+	    *notification->trend > SA_NTF_TREND_LESS_SEVERE) {
 		TRACE_1("Invalid trend value");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
-	for (i = 0; i < alarmNotification->numSpecificProblems; i++) {
-		if (alarmNotification->specificProblems[i].problemType < SA_NTF_VALUE_UINT8 ||
-		    alarmNotification->specificProblems[i].problemType > SA_NTF_VALUE_ARRAY) {
-			TRACE_1("Invalid specific problem type value");
+	for (i = 0; i < notification->numSpecificProblems; i++) {
+		if (checkNtfValue(pvdata
+							, notification->specificProblems[i].problemType
+							, &notification->specificProblems[i].problemValue) != SA_AIS_OK) {
+			TRACE_1("Invalid specificProblems");
 			return SA_AIS_ERR_INVALID_PARAM;
 		}
 	}
 
-	for (i = 0; i < alarmNotification->numMonitoredAttributes; i++) {
-		if (alarmNotification->monitoredAttributes[i].attributeType < SA_NTF_VALUE_UINT8 ||
-		    alarmNotification->monitoredAttributes[i].attributeType > SA_NTF_VALUE_ARRAY) {
-			TRACE_1("Invalid monitoredAttributes type value");
+	for (i = 0; i < notification->numMonitoredAttributes; i++) {
+		if (checkNtfValue(pvdata
+							, notification->monitoredAttributes[i].attributeType
+							, &notification->monitoredAttributes[i].attributeValue) != SA_AIS_OK) {
+			TRACE_1("Invalid monitoredAttributes");
 			return SA_AIS_ERR_INVALID_PARAM;
-		}
+		}	
 	}
 
-	for (i = 0; i < alarmNotification->numProposedRepairActions; i++) {
-		if (alarmNotification->proposedRepairActions[i].actionValueType < SA_NTF_VALUE_UINT8 ||
-		    alarmNotification->proposedRepairActions[i].actionValueType > SA_NTF_VALUE_ARRAY) {
-			TRACE_1("Invalid proposedRepairActions type value");
+	for (i = 0; i < notification->numProposedRepairActions; i++) {
+		if (checkNtfValue(pvdata
+							, notification->proposedRepairActions[i].actionValueType
+							, &notification->proposedRepairActions[i].actionValue) != SA_AIS_OK) {
+			TRACE_1("Invalid proposedRepairActions");
 			return SA_AIS_ERR_INVALID_PARAM;
-		}
+		}	
 	}
 
-	if(alarmNotification->thresholdInformation->thresholdValueType < SA_NTF_VALUE_UINT8 ||
-		alarmNotification->thresholdInformation->thresholdValueType > SA_NTF_VALUE_ARRAY) {
+	if(checkNtfValueTypeRange(notification->thresholdInformation->thresholdValueType) != SA_AIS_OK) {
 		TRACE_1("Invalid thresholdInformation type value");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
-	if (*alarmNotification->notificationHeader.eventType < SA_NTF_ALARM_NOTIFICATIONS_START ||
-	    *alarmNotification->notificationHeader.eventType > SA_NTF_ALARM_ENVIRONMENT) {
-		TRACE_1("Invalid eventType value = %d", (int)*alarmNotification->notificationHeader.eventType);
+	if (*notification->notificationHeader.eventType < SA_NTF_ALARM_NOTIFICATIONS_START ||
+	    *notification->notificationHeader.eventType > SA_NTF_ALARM_ENVIRONMENT) {
+		TRACE_1("Invalid eventType value = %d", (int)*notification->notificationHeader.eventType);
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
-	return checkHeader(&alarmNotification->notificationHeader);
+	return checkHeader(pvdata, &notification->notificationHeader);
 }
 
-static SaAisErrorT checkSecurityAlarmParameters(SaNtfSecurityAlarmNotificationT *notification)
+static SaAisErrorT checkSecurityAlarmParameters(ntfa_notification_hdl_rec_t *not_hdl_rec, v_data *pvdata)
 {
-
+	SaNtfSecurityAlarmNotificationT *notification = &not_hdl_rec->ntfNotification.ntfSecurityAlarmNotification;
 	if (*notification->notificationHeader.eventType < SA_NTF_SECURITY_ALARM_NOTIFICATIONS_START ||
 	    *notification->notificationHeader.eventType > SA_NTF_TIME_VIOLATION) {
 		TRACE_1("Invalid eventType value");
@@ -399,23 +581,39 @@ static SaAisErrorT checkSecurityAlarmParameters(SaNtfSecurityAlarmNotificationT 
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
-	if (notification->securityAlarmDetector->valueType < SA_NTF_VALUE_UINT8 ||
-	    notification->securityAlarmDetector->valueType > SA_NTF_VALUE_ARRAY) {
-		TRACE_1("Invalid securityAlarmDetector valueType");
+	if (checkNtfValue(pvdata
+						, notification->securityAlarmDetector->valueType
+						, &notification->securityAlarmDetector->value) != SA_AIS_OK) {
+		TRACE_1("Invalid securityAlarmDetector");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
+	
+	if (checkNtfValue(pvdata
+						, notification->serviceUser->valueType
+						, &notification->serviceUser->value) != SA_AIS_OK) {
+		TRACE_1("Invalid serviceUser");
+		return SA_AIS_ERR_INVALID_PARAM;
+	}
+
+	if (checkNtfValue(pvdata
+						, notification->serviceProvider->valueType
+						, &notification->serviceProvider->value) != SA_AIS_OK) {
+		TRACE_1("Invalid serviceProvider");
+		return SA_AIS_ERR_INVALID_PARAM;
+	}	
 	
 	if (*notification->severity < SA_NTF_SEVERITY_CLEARED || *notification->severity > SA_NTF_SEVERITY_CRITICAL) {
 		TRACE_1("Invalid Severity value");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
-	return checkHeader(&notification->notificationHeader);
+	return checkHeader(pvdata, &notification->notificationHeader);
 }
 
-static SaAisErrorT checkStateChangeParameters(SaNtfStateChangeNotificationT *notification)
+static SaAisErrorT checkStateChangeParameters(ntfa_notification_hdl_rec_t *not_hdl_rec, v_data *pvdata)
 {
 	int i;
+	SaNtfStateChangeNotificationT *notification = &not_hdl_rec->ntfNotification.ntfStateChangeNotification;
 	if (*notification->notificationHeader.eventType < SA_NTF_STATE_CHANGE_NOTIFICATIONS_START ||
 	    (*notification->notificationHeader.eventType > SA_NTF_OBJECT_STATE_CHANGE &&
 	     *notification->notificationHeader.eventType < SA_NTF_MISCELLANEOUS_NOTIFICATIONS_START) ||
@@ -435,12 +633,13 @@ static SaAisErrorT checkStateChangeParameters(SaNtfStateChangeNotificationT *not
 		if (sp != SA_FALSE && sp != SA_TRUE)
 			return SA_AIS_ERR_INVALID_PARAM;
 	}
-	return checkHeader(&notification->notificationHeader);
+	return checkHeader(pvdata, &notification->notificationHeader);
 }
 
-static SaAisErrorT checkAttributeChangeParameters(SaNtfAttributeChangeNotificationT *notification)
+static SaAisErrorT checkAttributeChangeParameters(ntfa_notification_hdl_rec_t *not_hdl_rec, v_data *pvdata)
 {
 	int i;
+	SaNtfAttributeChangeNotificationT *notification = &not_hdl_rec->ntfNotification.ntfAttributeChangeNotification;
 	if (*notification->notificationHeader.eventType < SA_NTF_ATTRIBUTE_NOTIFICATIONS_START ||
 	    *notification->notificationHeader.eventType > SA_NTF_ATTRIBUTE_RESET) {
 		TRACE_1("Invalid eventType value");
@@ -457,18 +656,17 @@ static SaAisErrorT checkAttributeChangeParameters(SaNtfAttributeChangeNotificati
 		SaBoolT sp = notification->changedAttributes[i].oldAttributePresent;
 		if (sp != SA_FALSE && sp != SA_TRUE)
 			return SA_AIS_ERR_INVALID_PARAM;
-		if(notification->changedAttributes[i].attributeType < SA_NTF_VALUE_UINT8 ||
-		   notification->changedAttributes[i].attributeType > SA_NTF_VALUE_ARRAY)
+		if(checkNtfValueTypeRange(notification->changedAttributes[i].attributeType) != SA_AIS_OK)
 			return SA_AIS_ERR_INVALID_PARAM;
 	}
-	return checkHeader(&notification->notificationHeader);
+	return checkHeader(pvdata, &notification->notificationHeader);
 }
 
-static SaAisErrorT checkObjectCreateDeleteParameters(SaNtfObjectCreateDeleteNotificationT *notification)
+static SaAisErrorT checkObjectCreateDeleteParameters(ntfa_notification_hdl_rec_t *not_hdl_rec, v_data *pvdata)
 {
 
 	int i = 0;
-
+	SaNtfObjectCreateDeleteNotificationT *notification = &not_hdl_rec->ntfNotification.ntfObjectCreateDeleteNotification;
 	if (*notification->notificationHeader.eventType < SA_NTF_OBJECT_NOTIFICATIONS_START ||
 	    *notification->notificationHeader.eventType > SA_NTF_OBJECT_DELETION) {
 		TRACE_1("Invalid eventType value");
@@ -482,14 +680,13 @@ static SaAisErrorT checkObjectCreateDeleteParameters(SaNtfObjectCreateDeleteNoti
 	}
 
 	for (i = 0; i < notification->numAttributes; i++) {
-		if (notification->objectAttributes[i].attributeType < SA_NTF_VALUE_UINT8 ||
-		    notification->objectAttributes[i].attributeType > SA_NTF_VALUE_ARRAY) {
+		if (checkNtfValueTypeRange(notification->objectAttributes[i].attributeType) != SA_AIS_OK) {
 			TRACE_1("Invalid attributeType value");
 			return SA_AIS_ERR_INVALID_PARAM;
 		}
 	}
 
-	return checkHeader(&notification->notificationHeader);
+	return checkHeader(pvdata, &notification->notificationHeader);
 }
 
 /**
@@ -1228,7 +1425,8 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 	msg.info.api_info.param.send_notification = send_param;
 	send_param->client_id = client_rec->ntfs_client_id;
 	send_param->notificationType = notification_hdl_rec->ntfNotificationType;
-
+	ntfsv_v_data_cp(&send_param->variable_data, &notification_hdl_rec->variable_data);	
+	
 	osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 	/* Check parameters, depending on type */
 	switch (notification_hdl_rec->ntfNotificationType) {
@@ -1237,36 +1435,34 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 		/* TODO: assign send_param for all */
 		send_param->notification.alarm = notification_hdl_rec->ntfNotification.ntfAlarmNotification;
 		ntfHeader = &notification_hdl_rec->ntfNotification.ntfAlarmNotification.notificationHeader;
-		rc = checkAlarmParameters(&notification_hdl_rec->ntfNotification.ntfAlarmNotification);
+		rc = checkAlarmParameters(notification_hdl_rec, &send_param->variable_data);
 		break;
 	case SA_NTF_TYPE_SECURITY_ALARM:
 		TRACE_1("Checking Security Alarm Notification Parameters");
 		send_param->notification.securityAlarm =
 		    notification_hdl_rec->ntfNotification.ntfSecurityAlarmNotification;
 		ntfHeader = &notification_hdl_rec->ntfNotification.ntfSecurityAlarmNotification.notificationHeader;
-		rc = checkSecurityAlarmParameters(&notification_hdl_rec->ntfNotification.ntfSecurityAlarmNotification);
+		rc = checkSecurityAlarmParameters(notification_hdl_rec, &send_param->variable_data);
 		break;
 	case SA_NTF_TYPE_STATE_CHANGE:
 		TRACE_1("Checking State Change Notification Parameters");
 		send_param->notification.stateChange = notification_hdl_rec->ntfNotification.ntfStateChangeNotification;
 		ntfHeader = &notification_hdl_rec->ntfNotification.ntfStateChangeNotification.notificationHeader;
-		rc = checkStateChangeParameters(&notification_hdl_rec->ntfNotification.ntfStateChangeNotification);
+		rc = checkStateChangeParameters(notification_hdl_rec, &send_param->variable_data);
 		break;
 	case SA_NTF_TYPE_ATTRIBUTE_CHANGE:
 		TRACE_1("Checking Attribute Change Notification Parameters");
 		send_param->notification.attributeChange =
 		    notification_hdl_rec->ntfNotification.ntfAttributeChangeNotification;
 		ntfHeader = &notification_hdl_rec->ntfNotification.ntfAttributeChangeNotification.notificationHeader;
-		rc = checkAttributeChangeParameters(&notification_hdl_rec->ntfNotification.
-						    ntfAttributeChangeNotification);
+		rc = checkAttributeChangeParameters(notification_hdl_rec, &send_param->variable_data);
 		break;
 	case SA_NTF_TYPE_OBJECT_CREATE_DELETE:
 		TRACE_1("Checking Object Create/Delete Notification Parameters");
 		send_param->notification.objectCreateDelete =
 		    notification_hdl_rec->ntfNotification.ntfObjectCreateDeleteNotification;
 		ntfHeader = &notification_hdl_rec->ntfNotification.ntfObjectCreateDeleteNotification.notificationHeader;
-		rc = checkObjectCreateDeleteParameters(&notification_hdl_rec->ntfNotification.
-						       ntfObjectCreateDeleteNotification);
+		rc = checkObjectCreateDeleteParameters(notification_hdl_rec, &send_param->variable_data);
 		break;
 	default:
 		TRACE_1("Unkown notification type");
@@ -1278,7 +1474,6 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 		TRACE_1("Invalid parameter");
 		goto done_give_hdls;
 	}
-
 	rc = fillSendStruct(ntfHeader, send_param);
 	if (rc != SA_AIS_OK) {
 		goto done_give_hdls;
@@ -1290,33 +1485,7 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto done_give_hdls;
 	}
-	send_param->variable_data = notification_hdl_rec->variable_data;
-	SaUint16T i = 0;
-	for(i=0 ; i < ntfHeader->numAdditionalInfo ; i++ ) {
-		if (ntfHeader->additionalInfo[i].infoType == SA_NTF_VALUE_LDAP_NAME) {
-			SaNameT *ptr = send_param->variable_data.p_base +
-							ntfHeader->additionalInfo[i].infoValue.ptrVal.dataOffset;
-			if (!ntfsv_sanamet_is_valid(ptr)) {
-				rc = SA_AIS_ERR_INVALID_PARAM;
-				goto done_give_hdls;
-			}
-			if (osaf_is_an_extended_name(ptr)) {
-				size_t length_to_copy;
-				void *p;
-				if (ntfHeader->additionalInfo[i].infoValue.ptrVal.dataSize
-						< (osaf_extended_name_length(ptr) + 2)) {
-					LOG_ER("The allocated memory is not large enough,"
-							" the object will be truncated (%s)"
-							, osaf_extended_name_borrow(ptr));
-					length_to_copy = ntfHeader->additionalInfo[i].infoValue.ptrVal.dataSize - 2;
-				} else
-					length_to_copy = osaf_extended_name_length(ptr);
-				p = send_param->variable_data.p_base +
-					ntfHeader->additionalInfo[i].infoValue.ptrVal.dataOffset + 2;
-				memcpy(p, osaf_extended_name_borrow(ptr), length_to_copy);
-			}
-		}
-	}
+
 	osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 	/* Send a sync MDS message to obtain a notification id */
 	mds_rc = ntfa_mds_msg_sync_send(&ntfa_cb, &msg, &o_msg, timeout);
@@ -1392,6 +1561,8 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
  done_give_hdl:
 	ncshm_give_hdl(notificationHandle);
  err_free:
+	if (send_param->variable_data.p_base != NULL)
+		free(send_param->variable_data.p_base);
 	free(send_param);
  done:
 	TRACE_LEAVE();
@@ -1976,6 +2147,7 @@ SaAisErrorT saNtfPtrValGet(SaNtfNotificationHandleT notificationHandle,
 	unsigned int client_handle;
 	ntfa_client_hdl_rec_t *client_rec;
 	ntfa_notification_hdl_rec_t *notification_hdl_rec;
+	SaNtfValueTypeT type;
 	TRACE_ENTER();
 	if (notificationHandle == 0) {
 		rc = SA_AIS_ERR_BAD_HANDLE;
@@ -1992,6 +2164,30 @@ SaAisErrorT saNtfPtrValGet(SaNtfNotificationHandleT notificationHandle,
 		TRACE("ncshm_take_hdl notificationHandle failed");
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		goto done;
+	}
+
+	if (getTypeFromValue(notification_hdl_rec, value, &type) != SA_AIS_OK) {
+		TRACE("SaNtfValueT@value is not found in notification");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done_give_hdl;
+	}
+
+	if (type != SA_NTF_VALUE_LDAP_NAME && type != SA_NTF_VALUE_STRING &&
+		type != SA_NTF_VALUE_IPADDRESS && type != SA_NTF_VALUE_BINARY) {
+		TRACE("type(%d) of SaNtfValueT@value is not valid for saNtfPtrValGet()", type);
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done_give_hdl;
+	}
+
+	if (type == SA_NTF_VALUE_LDAP_NAME) {
+		SaNameT name;
+		osaf_extended_name_lend((SaConstStringT)notification_hdl_rec->variable_data.p_base
+									+ value->ptrVal.dataOffset + 2, &name);
+		if (!ntfsv_sanamet_is_valid(&name)) {
+			TRACE("Invalid value of type(%d)", type);
+			rc = SA_AIS_ERR_NAME_TOO_LONG;
+			goto done_give_hdl;
+		}
 	}
 
 	client_handle = notification_hdl_rec->parent_hdl->local_hdl;
@@ -2854,7 +3050,7 @@ SaAisErrorT saNtfNotificationReadNext(SaNtfReadHandleT readHandle,
 	uint32_t timeout = NTFS_WAIT_TIME;
 	ntfsv_send_not_req_t *read_not = NULL;
 	ntfa_notification_hdl_rec_t *notification_hdl_rec = NULL;
-
+	SaNtfNotificationHeaderT *read_not_header = NULL;
 	TRACE_ENTER();
 
 	if(searchDirection < SA_NTF_SEARCH_OLDER || searchDirection > SA_NTF_SEARCH_YOUNGER) {
@@ -2902,26 +3098,47 @@ SaAisErrorT saNtfNotificationReadNext(SaNtfReadHandleT readHandle,
 		goto done_give_hdls;
 	}
 
-	/* Send a sync MDS message */
-	rc = ntfa_mds_msg_sync_send(&ntfa_cb, &msg, &o_msg, timeout);
-	if (rc != NCSCC_RC_SUCCESS) {
-		rc = SA_AIS_ERR_TRY_AGAIN;
-		goto done_give_hdls;
-	}
+	do {
+		/* Send a sync MDS message */
+		rc = ntfa_mds_msg_sync_send(&ntfa_cb, &msg, &o_msg, timeout);
+		if (rc != NCSCC_RC_SUCCESS) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			goto done_give_hdls;
+		}
 
-	osafassert(o_msg != NULL);
-	if (SA_AIS_OK != o_msg->info.api_resp_info.rc) {
-		rc = o_msg->info.api_resp_info.rc;
-		TRACE("error: response msg rc = %d", rc);
-		goto done_give_hdls;
-	}
-	if (o_msg->info.api_resp_info.type != NTFSV_READ_NEXT_RSP) {
-		TRACE("msg type (%d) failed", (int)o_msg->info.api_resp_info.type);
-		rc = SA_AIS_ERR_LIBRARY;
-		goto done_give_hdls;
-	}
+		osafassert(o_msg != NULL);
+		if (SA_AIS_OK != o_msg->info.api_resp_info.rc) {
+			rc = o_msg->info.api_resp_info.rc;
+			TRACE("error: response msg rc = %d", rc);
+			goto done_give_hdls;
+		}
+		if (o_msg->info.api_resp_info.type != NTFSV_READ_NEXT_RSP) {
+			TRACE("msg type (%d) failed", (int)o_msg->info.api_resp_info.type);
+			rc = SA_AIS_ERR_LIBRARY;
+			goto done_give_hdls;
+		}
 
-	read_not = o_msg->info.api_resp_info.param.read_next_rsp.readNotification;
+		read_not = o_msg->info.api_resp_info.param.read_next_rsp.readNotification;
+		if (read_not->notificationType == SA_NTF_TYPE_ALARM)
+			read_not_header = &read_not->notification.alarm.notificationHeader;
+		else if (read_not->notificationType == SA_NTF_TYPE_SECURITY_ALARM)
+			read_not_header = &read_not->notification.securityAlarm.notificationHeader;
+		else {
+			TRACE_1("Notification type (%d) is not alarm!", (int)read_not->notificationType);
+			rc = SA_AIS_ERR_NOT_SUPPORTED;
+			goto done_give_hdls;
+		}
+		
+		/* Skip notification having longDns if this is unadapted longDns consumer,
+		 * continue reading next. Otherwise, any return code differs SA_AIS_OK may stop
+		 * the consumer reading then miss out the remaining notifications (shortDns)
+		 */
+		if (!ntfsv_sanamet_is_valid(read_not_header->notificationObject) 
+			|| !ntfsv_sanamet_is_valid(read_not_header->notifyingObject)) {
+			ntfa_msg_destroy(o_msg);
+		} else
+			break;
+	} while (1);
 
 	/* Only alarm supported */
 	if (read_not->notificationType == SA_NTF_TYPE_ALARM) {
@@ -2996,9 +3213,6 @@ SaAisErrorT saNtfNotificationReadNext(SaNtfReadHandleT readHandle,
 		ntfsv_copy_ntf_security_alarm(&notification->notification.securityAlarmNotification,
 						&read_not->notification.securityAlarm);
 		osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
-	} else {
-		TRACE_1("Notification type (%d) is not alarm!", (int)read_not->notificationType);
-		rc = SA_AIS_ERR_NOT_SUPPORTED;
 	}
 
  done_give_hdls:
