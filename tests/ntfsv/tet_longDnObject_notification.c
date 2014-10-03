@@ -457,6 +457,11 @@ void extFillHeader(SaNtfNotificationHeaderT *head)
 	ok_ids.ids[ok_ids.length++] = *myAlarmNotification.notificationHeader.notificationId;
 	poll_until_received(ntfHandle, *myAlarmNotification.notificationHeader.notificationId);
 
+	/* Resend notification with short dn object header */
+	saAisNameLend(DEFAULT_NOTIFICATION_OBJECT, head->notificationObject);
+	saAisNameLend(DEFAULT_NOTIFYING_OBJECT, head->notifyingObject);
+	safassert(saNtfNotificationSend(myAlarmNotification.notificationHandle), SA_AIS_OK);
+
 	if(ntfRecieved.alarmFilterHandle != 1 ||
 		ntfRecieved.attributeChangeFilterHandle != 0 ||
 		ntfRecieved.objectCreateDeleteFilterHandle !=0 ||
