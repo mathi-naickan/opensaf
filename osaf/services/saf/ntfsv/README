@@ -49,6 +49,30 @@ are created or deleted and when attributes are changed.
 This is an OpenSAF feature that is not a part of the AIS standard.
 For more information see README file in the ntfimcnd directory.
 
+Support for long DNs (4.5)
+==========================
+https://sourceforge.net/p/opensaf/tickets/873/
+This enhancement ticket #873 adds support for long DNs in NTF Service, that is part of supporting 
+long DNs in OpenSAF tracked by ticket #191.
+
+The implementation of #873 will use the SaNameT tunneling primitives to allow any SaNameT elements
+in a notification longer than 255 bytes, which is currently applicable for notificationObject(s), 
+notifyingObject(s) and any SaNtfValue elements as SA_NTF_VALUE_LDAP_NAME.
+
+In order to utilize the long DNs support in NTF, the NTF client (producer, consumer) must also use 
+the SaNameT tunneling primitives provided by ticket #191 to manipulate SaNameT elements, and the 
+environment variable SA_ENABLE_EXTENDED_NAMES is set to "1" in the NTF client process. Otherwise, 
+the producer will fail to send long DNs notification with returned code SA_AIS_ERR_INVALID_PARAM,
+and any long DNs notification will be invisible to the consumer.
+
+The support long DNs in IMM (#886) must also be enabled so that the NTF IMCN can send notification 
+when long DNs objects are created, deleted, or their attributes are changed. 
+
+Since LOG service has not (yet) supported long DNs in OpenSAF 4.5, so any Alarm Log having either 
+notificationObject or notifyingObject as long DN will be truncated to at most 255 bytes length.
+
+Using SA_NTF_VALUE_LDAP_NAME as long DNs, please see "IMPLEMENTATION NOTES"
+
 DEPENDENCIES
 ntfsv depends of the following other OpenSAF services:
 - MBCSV
@@ -131,6 +155,52 @@ linked list with descriptors for notifications, filters and readers.
 - subscriberNoList struct mapping subscription Id to client handle to be able
 to send unsubscribe to server. 
 
+IMPLEMENTATION NOTES
+
+(1) Using SA_NTF_VALUE_LDAP_NAME as long DNs in saNtfPtrValAllocate() in OpenSAF 4.5
+------------------------------------------------------------------------------------
+SaAisErrorT saNtfPtrValAllocate(SaNtfNotificationHandleT handle,
+								SaUint16T dataSize, 
+								void **dataPtr, 
+								SaNtfValueT *value)
+	
+Provided that producer has adapted long DNs, and prior than #873 the saNTfPtrValAllocate has
+normally being used as the way below:
+
+	saNtfPtrValAllocate(handle, sizeof(SaNameT)+1, (void**)&destPtr, &value);
+	memcpy(destPtr, &name, sizeof(name)); /* which @name as SaNameT, @destPtr as char* */
+
+Due to the long DNs string is not fully aligned in @name, so the above codes will make the 
+string in @name (as long DN) truncated to fix the size of allocated memory. In OpenSAF 4.5,
+if a NTF producer has supported long DNs, it's recommended to use the SaNameT tunneling API
+to pass SaNameT into @destPtr as below:
+	
+	if (saNtfPtrValAllocate(handle, 
+						strlen(saAisNameBorrow(&name) + 3,
+						(void**)&destPtr, &value) == SA_AIS_OK) {
+		saAisNameLend(saAisNameBorrow(&name), (SaNameT*)destPtr);
+	}
+
+This should work for both short and long DNs
+
+(2) Using SA_NTF_VALUE_LDAP_NAME as long DNs in saNtfPtrValGet() in OpenSAF 4.5
+-------------------------------------------------------------------------------
+SaAisErrorT saNtfPtrValGet(SaNtfNotificationHandleT handle,
+							const SaNtfValueT *value, 
+							void **dataPtr, 
+							SaUint16T *dataSize)
+							
+Provided that consumer has adapted long DNs, otherwise the saNtfPtrValGet will return error code
+SA_AIS_ERR_NAME_TOO_LONG if the @value is type of SA_NTF_VALUE_LDAP_NAME as a long DN. In OpenSAF
+4.5, if a NTF consumer has supported long DNs, it's recommended to use the SaNameT tunneling API
+retrieve SaNameT via @dataPtr as below:
+
+	if (saNtfPtrValGet(handle, &value, &destPtr, &size) == SA_AIS_OK) { /* destPtr as char* */
+		saAisNameLend((SaConstStringT)destPtr + 2, &name); /* name as SaNameT */
+	}
+
+This should work for both short and long DNs
+	
 CONFIGURATION
 Implementation defined configuration is done using a configuration
 file with environment variables. This config file is typically:
