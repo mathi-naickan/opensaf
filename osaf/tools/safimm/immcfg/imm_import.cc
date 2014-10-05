@@ -1798,7 +1798,7 @@ static void charactersHandler(void* userData,
 
 		if(state->objectName) {
 			state->objectName = (char *)realloc(state->objectName, strlen(state->objectName) + len + 1);
-			if (state->attrName == NULL) {
+			if (state->objectName == NULL) {
 				LOG_ER("Failed to realloc state->objectName");
 				stopParser(state);
 				state->parsingStatus = 1;
@@ -1807,7 +1807,7 @@ static void charactersHandler(void* userData,
 			strncat(state->objectName, (const char*)chars, (size_t)len);
 		} else {
 			state->objectName = (char*)malloc((size_t)len + 1);
-			if (state->attrName == NULL) {
+			if (state->objectName == NULL) {
 				LOG_ER("Failed to malloc state->objectName");
 				stopParser(state);
 				state->parsingStatus = 1;
