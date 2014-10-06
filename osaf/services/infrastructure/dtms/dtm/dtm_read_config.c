@@ -131,6 +131,9 @@ char *dtm_validate_listening_ip_addr(DTM_INTERNODE_CB * config)
 
 			TRACE("Interface name : %s", if_addr->ifa_name);
 
+			if (if_addr->ifa_addr = NULL)
+				continue;
+
 			// Address
 			if (if_addr->ifa_addr->sa_family == AF_INET) {
 				tmp = &((struct sockaddr_in *)if_addr->ifa_addr)->sin_addr;
