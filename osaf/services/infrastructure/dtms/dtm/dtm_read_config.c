@@ -129,7 +129,7 @@ char *dtm_validate_listening_ip_addr(DTM_INTERNODE_CB * config)
 
 			TRACE("Interface name : %s", if_addr->ifa_name);
 
-			if (if_addr->ifa_addr = NULL)
+			if (if_addr->ifa_addr == NULL)
 				continue;
 
 			// Address
