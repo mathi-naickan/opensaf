@@ -258,7 +258,7 @@ The following software is required to build OpenSAF:
     * autoconf (2.61 or later)
     * libtool
     * pkg-config
-    * gcc/g++
+    * gcc/g++ (4.3 or later)
     * GNU make
     * python-dev(el)
     * Optionally:
@@ -802,6 +802,17 @@ immcfg --ignore-duplicates -f /usr/share/opensaf/immxml/services/smfsv_classes.x
 3) Disable the schema change support in the IMM:  
 immadm -o 2 -p opensafImmNostdFlags:SA_UINT32_T:1 opensafImm=opensafImm,safApp=safImmService
 
+When using MDS over TIPC, note that starting with OpenSAF 4.5, the TIPC
+multicast feature is being used. Due to TIPC bugs present in old versions of the
+Linux kernel, please make sure to use Linux kernel version 3.16 or later, or
+alternatively make sure that the relevant TIPC bug-fixes have been backported to
+the Linux kernel version you are using.
+
+New configration attributes have been added to the class OpensafImm in OpenSAF
+4.5, which means that the class schema has to be updated when upgrading from an
+older release of OpenSAF. An imm xml file containing the extended class
+definition for OpensafImm has been added at
+samples/immsv/OpensafImm_Upgrade_4.5.xml
 
 Admin Operations on OpenSAF SUs
 ===============================

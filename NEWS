@@ -1,2 +1,98 @@
-4.2 enhancements: http://devel.opensaf.org/report/61
+OpenSAF 4.5.0 (released 2014-10-07)
+-----------------------------------
 
+This is an enhancements release. Before installing or upgrading to OpenSAF
+4.5.0, make sure your system has the minimum version of some system components:
+
+- Linux kernel, version 2.6.32 or later (see note below regarding TIPC, though)
+- GNU C Library (Glibc), version 2.11 or later
+- GNU Compiler Collection (GCC), version 4.3 or later
+- Libxml2, version 2.7 or later
+- Libsqlite3, version 3.6 or later (only needed when configuring with
+  --enable-imm-pbe)
+
+When using MDS over TIPC, note that starting with this release of OpenSAF, the
+TIPC multicast feature is being used. Due to TIPC bugs present in old versions
+of the Linux kernel, please make sure to use Linux kernel version 3.16 or later,
+or alternatively make sure that the relevant TIPC bug-fixes have been backported
+to the Linux kernel version you are using.
+
+New configration attributes have been added to the class OpensafImm in OpenSAF
+4.5, which means that the class schema has to be updated when upgrading from an
+older release of OpenSAF. An imm xml file containing the extended class
+definition for OpensafImm has been added at
+samples/immsv/OpensafImm_Upgrade_4.5.xml
+
+A list of the major enhancements are:
+-------------------------------------
+
+**General OpenSAF enhancements**
+
+- Support for DNs longer than 255 bytes and RDNs longer than 64 bytes in IMM,
+  NTF and SMF [#191], [#886], [#873], [#930]
+
+- Enhanced security using local user authentication and IMM access authorization
+  [#554], [#938]
+
+
+**AMF enhancements**
+
+- Improvements to the notifications and alarms sent by AMF [#106], [#108]
+
+- Modification of some AMF configuration attributes take immediate effect [#819]
+
+- Allow creation/deletion of unlocked SUs [#911]
+
+
+**CKPT enhancements**
+
+- Improved performance [#770]
+
+
+**IMM enhancements**
+
+- Configigurable OI callback server-side timeout per OI-handle [#16]
+
+- AdminOp on immsv for dumping resource utilization data [#35]
+
+- Auto relase of lingering search handles [#47]
+
+- Support for explicit ccb-validate and explicit ccb-abort [#798]
+
+- Allow admin-operations directly targeting an implementer/applier [#799]
+
+- Allow class schema change to add attribute default [#895]
+
+- Allow modifications of opensafImmSyncBatchSize config atttribute [#934]
+
+
+**LOG enhancements**
+
+- Make log record queue limits configurable in runtime [#921]
+
+
+**MDS enhancements**
+
+- Use TIPC multicast [#851]
+
+
+**SMF enhancements**
+
+- Single step procedures shall only reboot affected nodes [#140]
+
+
+* The complete list of enhancements in the 4.5.0 release is available in this
+  report:
+
+https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A%284.5.FC+4.5.0%29+AND+_type%3Aenhancement
+
+* The list of all enhancements and defects included in 4.5.0 can be found in
+  this report:
+
+https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A%284.5.FC+4.5.0%29+AND+_type%3A%28enhancement+defect%29
+
+* The corresponding documentation can be downloaded here:
+
+http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-4.5.0.tar.gz/download
+
+You can also check the README of the respective OpenSAF service.
