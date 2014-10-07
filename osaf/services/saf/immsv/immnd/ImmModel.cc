@@ -8321,7 +8321,9 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                we need to guard against race on long DN creation allowed. Such long DNs
                are themselves created in CCBs or RTO creates.
                For longDnsAllowed we must check for interference and if setting to 0,
-               i.e. not allowed, then verify that no long DNs *exis*t in the IMM DB.
+               i.e. not allowed, then verify (a) that no long DNs exist; and (b) that
+	       no regular RDN attribute value is longer than 64 bytes.
+
                For opensafImmSyncBatchSize we accept anything.
             */
 
@@ -8348,24 +8350,45 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                                 goto bypass_impl;
                             }
                             /* Check any attributes of type SaNameT that could be dangling, i.e. does NOT
-                               have the SA_IMM_ATTR_NO_DANGLING flag set. Skip checking the RDN atribute
-                               because it is covered by the DN check above. Implementation below is not the
+                               have the SA_IMM_ATTR_NO_DANGLING flag set. RDN atribute does not need check
+                               for long DN because it is covered by the DN check above, but RDN attribute
+                               does need check on RDN lenght less than 65. Implementation below is not the
                                most optimal as it iterates over the attribute definitions of the class for
                                each object. But THIS CASE, of turning OFF longDnsAllowed, must be extreemely
                                rare. The implication is that the turning ON of longDnsAllowed was a mistake.
                             */
                             for(i4 = omi->second->mClassInfo->mAttrMap.begin();
                                 i4 != omi->second->mClassInfo->mAttrMap.end(); ++i4) {
-                                if((i4->second->mValueType == SA_IMM_ATTR_SANAMET) && 
-                                    !(i4->second->mFlags & SA_IMM_ATTR_RDN) &&
-                                    !(i4->second->mFlags & SA_IMM_ATTR_NO_DANGLING))
+                                if(i4->second->mFlags & SA_IMM_ATTR_RDN) {
+                                    /* 64 byte limit check for RDN attribute ....*/
+                                    if(i4->second->mValueType != SA_IMM_ATTR_SANAMET) {
+                                        /* ...that is not an association object.*/
+                                        oavi = omi->second->mAttrValueMap.find(i4->first);
+                                        osafassert(oavi !=  omi->second->mAttrValueMap.end());
+                                        ImmAttrValue *av = oavi->second;
+                                        const char* rdn = av->getValueC_str();
+                                        if(rdn && strlen(rdn) > 64) {
+                                            LOG_WA("Setting attr %s to 0 in %s not allowed when long RDN exists "
+                                                "inside object: %s", immLongDnsAllowed.c_str(), 
+                                                immObjectDn.c_str(), omi->first.c_str());
+                                            err = SA_AIS_ERR_BAD_OPERATION;
+                                            goto bypass_impl;
+                                        }
+                                    }
+                                } else if((i4->second->mValueType == SA_IMM_ATTR_SANAMET) && 
+                                             !(i4->second->mFlags & SA_IMM_ATTR_NO_DANGLING))
                                 {
+                                    /* DN limit check for attribute that is:
+                                       not the RDN attribute (else branch here)
+                                       not of type SaNameT 
+                                       not flagged as NO_DANGLING (i.e. could be dangling).
+                                    */
                                     oavi = omi->second->mAttrValueMap.find(i4->first);
                                     osafassert(oavi !=  omi->second->mAttrValueMap.end());
                                     ImmAttrValue *av = oavi->second;
                                     do {
                                         const char* dn = av->getValueC_str();
-                                        if((dn && strlen(dn) >= SA_MAX_UNEXTENDED_NAME_LENGTH)) {
+                                        if(dn && (strlen(dn) >= SA_MAX_UNEXTENDED_NAME_LENGTH)) {
                                             LOG_WA("Setting attr %s to 0 in %s not allowed when long DN exists "
                                                 "inside object: %s", immLongDnsAllowed.c_str(), 
                                                 immObjectDn.c_str(), omi->first.c_str());
