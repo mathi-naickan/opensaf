@@ -3881,6 +3881,12 @@ static void immnd_evt_pbe_rt_obj_create_rsp(IMMND_CB *cb,
 	TRACE("Returned from pbePrtObjCreateContinuation err: %u reqConn:%x applConn:%x", 
 		evt->info.ccbUpcallRsp.result, reqConn, spApplConn);
 
+	if(evt->info.ccbUpcallRsp.result != SA_AIS_OK) {
+		/* If 2PBE-slave restarts in close proximity to PRT problems,
+		   then it should regenerate the pbe-file.*/
+		cb->mPbeVeteranB = SA_FALSE;
+	}
+
 	if(spApplConn) {
 		SaImmHandleT implHandle = m_IMMSV_PACK_HANDLE(spApplConn, cb->node_id);
 		cl_node = 0LL;
@@ -3974,6 +3980,12 @@ static void immnd_evt_pbe_rt_attr_update_rsp(IMMND_CB *cb,
 		&(send_evt.info.imma.info.objModify));
 	TRACE("Returned from pbePrtAttrUpdateContinuation err: %u reqConn:%x applConn:%x", 
 		evt->info.ccbUpcallRsp.result, reqConn, spApplConn);
+
+	if(evt->info.ccbUpcallRsp.result != SA_AIS_OK) {
+		/* If 2PBE-slave restarts in close proximity to PRT problems,
+		   then it should regenerate the pbe-file.*/
+		cb->mPbeVeteranB = SA_FALSE;
+	}
 
 	if(spApplConn) {
 		SaImmHandleT implHandle = m_IMMSV_PACK_HANDLE(spApplConn, cb->node_id);
@@ -4169,6 +4181,12 @@ static void immnd_evt_pbe_rt_obj_deletes_rsp(IMMND_CB *cb,
 		&objNameArr, &arrSize, &spApplConn, &pbe2BConn);
 	TRACE("Returned from pbePrtObjDeletesContinuation err: %u reqConn:%x", 
 		evt->info.ccbUpcallRsp.result, reqConn);
+
+	if(evt->info.ccbUpcallRsp.result != SA_AIS_OK) {
+		/* If 2PBE-slave restarts in close proximity to PRT problems,
+		   then it should regenerate the pbe-file.*/
+		cb->mPbeVeteranB = SA_FALSE;
+	}
 
 	if(pbe2BConn && (evt->info.ccbUpcallRsp.result==SA_AIS_OK)) {
 		SaImmHandleT tmp_hdl = m_IMMSV_PACK_HANDLE(pbe2BConn, cb->node_id);
