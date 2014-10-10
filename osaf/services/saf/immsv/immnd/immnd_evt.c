@@ -911,7 +911,7 @@ static uint32_t immnd_evt_proc_search_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_S
 				LOG_WA("ERR_NO_RESOURCES: Active Ccbs still exist in the system");
 				/*Not sure this is a problem though. These ccbs are dommed. 
 				  They will not be allowed to apply untill we are 2-safe.
-				  And any ccbs that created ops before w-safe will fail in the apply
+				  And any ccbs that created ops before 2-safe will fail in the apply
 				  because object count does not match at slave. 
 				  May need a way to get out of this state, such as starting a sync
 				  despite that we dont really need a sync. 
@@ -2856,7 +2856,7 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 			}
 
 			if(asyncReq) {
-				LOG_ER("Asyncronous FEVS message failed verification - dropping message!");
+				LOG_WA("Asyncronous FEVS message failed verification - dropping message!");
 				return NCSCC_RC_FAILURE;
 			}
 			goto agent_rsp; //Fevs request is not forwarded to IMMD
@@ -3071,7 +3071,7 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 	immnd_client_node_get(cb, clnt_hdl, &cl_node);
 	if(cl_node == NULL || cl_node->mIsStale) {
 		error = SA_AIS_ERR_BAD_HANDLE;
-		goto unpack_failure;
+		goto client_down;
 	}
 
 	/*Unpack the embedded message */
@@ -3125,9 +3125,10 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 						pwd->pw_name, sinfo->uid);
 				}
 				error = SA_AIS_ERR_ACCESS_DENIED;
-				goto done;
+				break; /* out of switch */
 			} else if (sinfo->uid > 0) {
 				// non root and same group as me, disallow access control changes
+				bool ac_failed=false;
 				const IMMSV_ATTR_MODS_LIST *attrMod =
 					frwrd_evt.info.immnd.info.objModify.attrMods;
 				while (attrMod != NULL) {
@@ -3142,10 +3143,12 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 								attrMod->attrValue.attrName.buf, pwd->pw_name,
 								sinfo->uid);
 						error = SA_AIS_ERR_ACCESS_DENIED;
-						goto done;
+						ac_failed = true;
+						break; /* out of while */
 					}
 					attrMod = attrMod->next;
 				}
+				if(ac_failed) {break;} /* out of switch */
 			} else
 				; // modifications by root are OK
 		}
@@ -3382,7 +3385,7 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 						pwd->pw_name, sinfo->uid);
 				}
 				error = SA_AIS_ERR_ACCESS_DENIED;
-				goto done;
+				break;
 			}
 		}
 		/* intentional fall through. */
@@ -3482,15 +3485,16 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 		m_MMGR_FREE_BUFR_LIST(uba.start);
 	}
 
-	immnd_evt_destroy(&frwrd_evt, SA_FALSE, __LINE__);
-
 	if ((error != SA_AIS_OK) && (error != SA_AIS_ERR_NO_BINDINGS) && 
 		(error != SA_AIS_ERR_TRY_AGAIN)) {
 		LOG_NO("Precheck of fevs message of type <%u> failed with ERROR:%u", 
 			frwrd_evt.info.immnd.type, error);
 	}
 
-done:
+	immnd_evt_destroy(&frwrd_evt, SA_FALSE, __LINE__); 
+
+ client_down:
+
 	TRACE_LEAVE();
 	return error;
 }

@@ -269,7 +269,7 @@ static bool pbe2_start_prepare_ccb_A_to_B(SaImmOiCcbIdT ccbId, SaUint32T numOps)
 			LOG_WA("Start prepare for ccb: %llx/%llu towards slave PBE returned: '%u' from Immsv", ccbId, ccbId, rc2B);
 		}
 	} else if(slavePbeRtReply != SA_AIS_OK) {
-		LOG_WA("Start prepare for ccb: %llx/%llu towards slave PBE returned: '%u' from sttandby PBE", ccbId, ccbId, slavePbeRtReply);
+		LOG_WA("Start prepare for ccb: %llx/%llu towards slave PBE returned: '%u' from standby PBE", ccbId, ccbId, slavePbeRtReply);
 	} else {
 		LOG_IN("Slave PBE replied with OK on attempt to start prepare of ccb:%llx/%llu", ccbId, ccbId);
 		retval=true;
@@ -1214,9 +1214,9 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		if((s2PbeBCcbToCompleteAtB != ccbId) ||
 			(s2PbeBCcbOpCountNowAtB == 0) ||
 			(!pbeTransIsPrepared())) {
-			LOG_NO("Slave PBE time-out in waiting on porepare for PRTA update ccb:%llx dn:%s", ccbId,
+			LOG_NO("Slave PBE time-out in waiting on prepare for PRTA update ccb:%llx dn:%s", ccbId,
 				osaf_extended_name_borrow(objectName));
-			rc = SA_AIS_ERR_FAILED_OPERATION;
+			rc = SA_AIS_ERR_NO_RESOURCES;
 			goto done;
 		}
 		goto commit_prta_trans;
@@ -1228,7 +1228,7 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		LOG_IN("Starting distributed PBE commit for PRTA update Ccb:%llx/%llu", ccbId, ccbId);
 		if(!pbe2_start_prepare_ccb_A_to_B(ccbId, (SaUint32T) numOps)) { /* Order slave to prepare */
 			LOG_WA("PBE-A failed to prepare PRTA update Ccb:%llx/%llu towards PBE-B", ccbId, ccbId);
-			rc = SA_AIS_ERR_BAD_OPERATION;
+			rc = SA_AIS_ERR_NO_RESOURCES;
 			goto done;
 		}
 	}
@@ -1265,8 +1265,8 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 
 	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
 		/* Remove any PRTA update from immutils for 1PBE or 2PBE.
-		   For 2PBE removing immutildata *before* resetting 2PBE syncronisation
-		   variables minimzes risk of derailing 2PBE multithreaded use of immutils.
+		   For 2PBE removing immutildata *before* resetting syncronisation
+		   variables minimzes risk of derailing multithreaded use in immutils.
 		*/
 		ccbutil_deleteCcbData(ccbUtilCcbData);
 		ccbUtilCcbData = NULL;
@@ -1385,14 +1385,14 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 				LOG_ER("PBE-B got completed callback for Ccb:%llx/%llu while still bussy "
 					"with Ccb:%llx/%llufrom PBE-A", ccbId, ccbId, s2PbeBCcbToCompleteAtB,
 					s2PbeBCcbToCompleteAtB);
-				rc = SA_AIS_ERR_BAD_OPERATION;
+				rc = SA_AIS_ERR_NO_RESOURCES;
 				goto done; /* This ccb has not even prepared yet. Dont abort the prior ccb! */
 			}
 
 			if(s2PbeBCcbOpCountToExpectAtB != numOps) {
 				LOG_ER("PBE-B got completed callback for Ccb:%llx/%llu but numOps:%llu should be: %u",
 					ccbId, ccbId, numOps, s2PbeBCcbOpCountToExpectAtB);
-				rc = SA_AIS_ERR_BAD_OPERATION;
+				rc = SA_AIS_ERR_NO_RESOURCES;
 				goto abort_trans; /* This ccb has passed prepare, but obj-count is wrong. */
 			}
 			goto commit_trans; /* Jump over begin-trans & prepare. Done already at PBESlave/B */
@@ -1401,14 +1401,14 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 			LOG_IN("Starting distributed PBE commit for Ccb:%llx/%llu", ccbId, ccbId);
 			if(!pbe2_start_prepare_ccb_A_to_B(ccbId, (SaUint32T) numOps)) { /* Order slave to start preparing. */
 				LOG_WA("PBE-A failed to prepare Ccb:%llx/%llu towards PBE-B", ccbId, ccbId);
-				rc = SA_AIS_ERR_BAD_OPERATION;
+				rc = SA_AIS_ERR_NO_RESOURCES;
 				goto done;
 			}
 		}
 	}
 
 	if((rc =  pbeBeginTrans(sDbHandle)) != SA_AIS_OK) { 
-		LOG_WA("pbeBeginTrans returned error: %u", rc);
+		LOG_WA("pbeBEginTrans returned error: %u", rc);
 		goto done;
 	}
 
@@ -1564,7 +1564,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 	operation = ccbutil_ccbAddCreateOperation(ccbUtilCcbData, className, parentName, attr);
 	if(operation == NULL) {
 		LOG_ER("ccbutil_ccbAddCreateOperation returned NULL");
-		rc = SA_AIS_ERR_BAD_OPERATION;
+		rc = SA_AIS_ERR_NO_RESOURCES;
 		goto done;
 	}
 
@@ -1645,9 +1645,9 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 			(s2PbeBCcbOpCountNowAtB == 0) ||
 			(!pbeTransIsPrepared()))
 		{
-			LOG_NO("Slave PBE time-out in waiting on porepare for PRTO create ccb:%llx dn:%s", ccbId,
+			LOG_NO("Slave PBE time-out in waiting on prepare for PRTO create ccb:%llx dn:%s", ccbId,
 				osaf_extended_name_borrow(&operation->objectName));
-			rc = SA_AIS_ERR_BAD_OPERATION;
+			rc = SA_AIS_ERR_NO_RESOURCES;
 			goto done;
 		}
 		goto commit_prto_trans;
@@ -1659,7 +1659,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 		LOG_IN("Starting distributed PBE commit for PRTO create Ccb:%llx/%llu", ccbId, ccbId);
 		if(!pbe2_start_prepare_ccb_A_to_B(ccbId, (SaUint32T) numOps)) { /* Order slave to prepare */
 			LOG_WA("PBE-A failed to prepare PRTO create Ccb:%llx/%llu towards PBE-B", ccbId, ccbId);
-			rc = SA_AIS_ERR_BAD_OPERATION;
+			rc = SA_AIS_ERR_NO_RESOURCES;
 			goto done;
 		}
 	}

@@ -1957,7 +1957,7 @@ unsigned int purgeInstancesOfClassToPBE(SaImmHandleT immHandle, std::string clas
 
 		TRACE_5("Search initialize returned %u", errorCode);
  
-	} while ((errorCode == SA_AIS_ERR_TRY_AGAIN) &&
+	} while ((errorCode == SA_AIS_ERR_TRY_AGAIN || errorCode == SA_AIS_ERR_NO_RESOURCES) &&
 		(tryCount < maxTries)); 
 
 	if (SA_AIS_OK != errorCode)
@@ -2034,7 +2034,7 @@ int dumpInstancesOfClassToPBE(SaImmHandleT immHandle, ClassMap *classIdMap,
 			&searchParam,
 			NULL, 
 			&searchHandle);
-	} while ((errorCode == SA_AIS_ERR_TRY_AGAIN) &&
+	} while ((errorCode == SA_AIS_ERR_TRY_AGAIN || errorCode == SA_AIS_ERR_NO_RESOURCES) &&
 		(tryCount < maxTries)); 
 
 	if (SA_AIS_OK != errorCode)
@@ -2557,7 +2557,7 @@ int dumpObjectsToPbe(SaImmHandleT immHandle, ClassMap* classIdMap,
 			NULL, 
 			&searchHandle);
  
-	} while ((errorCode == SA_AIS_ERR_TRY_AGAIN) &&
+	} while ((errorCode == SA_AIS_ERR_TRY_AGAIN || errorCode == SA_AIS_ERR_NO_RESOURCES) &&
 		(tryCount < maxTries)); /* Can happen if imm is syncing. */
 
 	TRACE_1("After searchInitialize rc:%u", errorCode);
@@ -2856,7 +2856,6 @@ void pbeAbortTrans(void* db_handle)
             default:
                 LOG_ER("Illegal value on sqliteTransLock:%u", sqliteTransLock);
                 abort();
-
         }
 }
 
