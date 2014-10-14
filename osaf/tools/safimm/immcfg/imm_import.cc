@@ -731,12 +731,16 @@ static void createImmObject(ParserState* state)
 		attrValues[i] = (SaImmAttrValuesT_2*)calloc(1, sizeof(SaImmAttrValuesT_2));
 		getDNForClass(state, className, attrValues[i]);
 
-		if(state->ctxt->instate != XML_PARSER_EOF)
+		if(state->ctxt->instate != XML_PARSER_EOF){
 			errorCode = immutil_saImmOmCcbObjectCreate_2(state->ccbHandle,
 														 className,
 														 &parentName,
 														 (const SaImmAttrValuesT_2**)
 														 attrValues);
+		} else {
+	
+			goto done;
+		}
 	} else
 		attrValues = NULL;
 
