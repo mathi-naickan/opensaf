@@ -49,7 +49,7 @@
 #include "mds_dt.h"
 
 uint32_t mds_mcm_global_exchange_id = 0;
-extern char *tipc_or_tcp;
+extern bool tipc_mode_enabled;
 #define SUCCESS 0
 #define FAILURE 1
 
@@ -1353,7 +1353,7 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 	m_MDS_LOG_DBG("MDS_SND_RCV : Entering mcm_msg_encode_full_or_flat_and_send prev_ver_sub_count :%d \n",
 			svc_cb->subtn_info->prev_ver_sub_count);
 
-	if ((svc_cb->subtn_info->prev_ver_sub_count > 0) || (strcmp(tipc_or_tcp, "TCP") == 0)) {
+	if ((svc_cb->subtn_info->prev_ver_sub_count > 0) || (!tipc_mode_enabled)) {
 		/* The following is for the bcast case, where once enc or enc_flat callback is called, those callbacks
 		   shallnot be called again.  */
 		if ((snd_type == MDS_SENDTYPE_BCAST) || (snd_type == MDS_SENDTYPE_RBCAST)) {
@@ -1442,7 +1442,7 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 			m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_encode_full_or_flat_and_send\n");
 			return NCSCC_RC_FAILURE;
 		} else if ((snd_type == MDS_SENDTYPE_BCAST) || (snd_type == MDS_SENDTYPE_RBCAST)) {
-			if ((svc_cb->subtn_info->prev_ver_sub_count > 0) || (strcmp(tipc_or_tcp, "TCP") == 0)) {
+			if ((svc_cb->subtn_info->prev_ver_sub_count > 0) || (!tipc_mode_enabled)) {
 				if (NCSCC_RC_FAILURE ==
 						mds_mcm_add_bcast_list(to_msg, BCAST_ENC, msg_send.msg.data.fullenc_uba.start,
 							to_msg->rem_svc_sub_part_ver, cbinfo.info.enc.o_msg_fmt_ver,
@@ -1459,7 +1459,7 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 			m_MDS_LOG_DBG("MDS_SND_RCV : Leaving mcm_msg_encode_full_or_flat_and_send\n");
 			return NCSCC_RC_FAILURE;
 		} else if ((snd_type == MDS_SENDTYPE_BCAST) || (snd_type == MDS_SENDTYPE_RBCAST)) {
-			if ((svc_cb->subtn_info->prev_ver_sub_count > 0) || (strcmp(tipc_or_tcp, "TCP") == 0)) {
+			if ((svc_cb->subtn_info->prev_ver_sub_count > 0) || (!tipc_mode_enabled)) {
 				if (NCSCC_RC_FAILURE ==
 						mds_mcm_add_bcast_list(to_msg, BCAST_ENC_FLAT, msg_send.msg.data.flat_uba.start,
 							to_msg->rem_svc_sub_part_ver, cbinfo.info.enc_flat.o_msg_fmt_ver,
@@ -1498,7 +1498,7 @@ static uint32_t mcm_msg_encode_full_or_flat_and_send(uint8_t to, SEND_MSG *to_ms
 
 	if ((((svc_cb->subtn_info->prev_ver_sub_count > 0)) 
 				&& (snd_type == MDS_SENDTYPE_BCAST || snd_type == MDS_SENDTYPE_RBCAST))
-			&& (strcmp(tipc_or_tcp, "TIPC") == 0)){
+			&& (tipc_mode_enabled)){
 		/* Mark as Previous version arch_word */
 		msg_send.msg_arch_word = ((to_msg->rem_svc_arch_word) & 0x8); 
 	} else {
@@ -3859,7 +3859,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 
 		status = mds_mcm_send_msg_enc(to, svc_cb, &to_msg, to_svc_id, info_result->key.vdest_id,
 				req, 0, info_result->key.adest, pri);
-		if ((svc_cb->subtn_info->prev_ver_sub_count == 0) && (strcmp(tipc_or_tcp, "TIPC") == 0)
+		if ((svc_cb->subtn_info->prev_ver_sub_count == 0) && (tipc_mode_enabled)
 				&& (to_msg.bcast_buff_len < MDS_DIRECT_BUF_MAXSIZE)) {
 				m_MDS_LOG_DBG("MDTM: Break while(1) prev_ver_sub_count: %d  svc_id =%s  to_msg.bcast_buff_len: %d ",
 					svc_cb->subtn_info->prev_ver_sub_count,

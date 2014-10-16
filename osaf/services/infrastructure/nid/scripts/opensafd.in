@@ -182,6 +182,11 @@ generate_nodeid() {
 
 check_transport() {
 	rm -f $pkglocalstatedir/osaf_dtm_intra_server
+	if [ $MDS_TRANSPORT != "TCP" ] && [ $MDS_TRANSPORT != "TIPC" ]
+	then
+		export MDS_TRANSPORT=TCP
+	fi
+
 	if [ "$MDS_TRANSPORT" = "TIPC" ]; then
 		# Transport TIPC
 		check_tipc
@@ -201,17 +206,18 @@ start() {
 		return $RETVAL
 	fi
 
-	logger -t $prog "Starting OpenSAF Services"
 
 	[ -x $daemon ] || exit 5
 
 	check_env
 	check_transport
 
+	logger -t $prog "Starting OpenSAF Services (Using $MDS_TRANSPORT)"
+
 	# Comment/Uncomment if you want cores disabled/enabled
 	#enable_coredump
 
-	echo -n "Starting OpenSAF Services: "
+	echo -n "Starting OpenSAF Services (Using $MDS_TRANSPORT):"
 	start_daemon $binary $args
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then

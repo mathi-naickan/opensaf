@@ -26,7 +26,7 @@
 #include "mds_core.h"
 #include "mds_log.h"
 #include "ncs_main_papi.h"
-extern char *tipc_or_tcp;
+extern bool tipc_mode_enabled;
 extern uint32_t mds_mcm_check_intranode(MDS_DEST adest);
 /*****************************************************
 Function NAME: get_adest_details()
@@ -45,7 +45,7 @@ void get_adest_details(MDS_DEST adest, char* adest_details)
  
         m_NCS_GET_PHYINFO_FROM_NODE_ID(m_NCS_NODE_ID_FROM_MDS_DEST(adest), NULL, &phy_slot, &sub_slot);
  
-        if (strcmp(tipc_or_tcp, "TCP") == 0) {
+        if (!tipc_mode_enabled) {
                 process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
                 if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
                         sprintf(name, "/proc/%d/cmdline", process_id);
@@ -76,7 +76,7 @@ void get_adest_details(MDS_DEST adest, char* adest_details)
                         sprintf(process_name, "dest_pid[%u]", process_id);
                         remote = true;
                 }
-        } else  if (strcmp(tipc_or_tcp, "TIPC") == 0) {
+        } else  if (tipc_mode_enabled) {
                 process_id = getpid();
                 if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
                         sprintf(name, "/proc/%d/cmdline", process_id);
@@ -146,7 +146,7 @@ void get_subtn_adest_details(MDS_PWE_HDL pwe_hdl, MDS_SVC_ID svc_id, MDS_DEST ad
                 if (NCSCC_RC_SUCCESS == mds_svc_tbl_get(pwe_hdl, svc_id, (NCSCONTEXT)&svc_info)) {
                         strcpy(adest_details, svc_info->adest_details);
                         goto done;
-                } else if (strcmp(tipc_or_tcp, "TCP") == 0) {
+                } else if (!tipc_mode_enabled) {
  
                         sprintf(name, "/proc/%d/cmdline", process_id);
                         if(stat(name, &s) != 0) {
@@ -176,7 +176,7 @@ void get_subtn_adest_details(MDS_PWE_HDL pwe_hdl, MDS_SVC_ID svc_id, MDS_DEST ad
                         sprintf(process_name, "tipc_id_ref[%u]", process_id);
                 }
         } else {
-                if (strcmp(tipc_or_tcp, "TCP") == 0) {
+                if (!tipc_mode_enabled) {
                         sprintf(process_name, "dest_pid[%u]", process_id);
                         remote = true;
                 } else {

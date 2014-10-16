@@ -54,7 +54,7 @@
 
 extern uint32_t mds_socket_domain;
 void mds_init_transport(void);
-char *tipc_or_tcp = NULL;
+bool tipc_mode_enabled = false;
 
 /* MDS Control Block */
 MDS_MCM_CB *gl_mds_mcm_cb = NULL;
@@ -593,12 +593,12 @@ void mds_init_transport(void)
 	struct stat sockStat;
 
 	rc = stat(MDS_MDTM_CONNECT_PATH, &sockStat);
-	if (rc == 0)  /* dtm intra server not exists */
-		tipc_or_tcp = "TCP";
-	else
-		tipc_or_tcp = "TIPC";
+	if (rc != 0) {
+		/* dtm intra server not exists */
+		tipc_mode_enabled = true;
+	}
 
-	if (strcmp(tipc_or_tcp, "TIPC") == 0) {
+	if (tipc_mode_enabled) {
 		mds_mdtm_init = mdtm_tipc_init;
 		mds_mdtm_destroy = mdtm_tipc_destroy;
 		mds_mdtm_svc_subscribe = mds_mdtm_svc_subscribe_tipc;
@@ -618,7 +618,6 @@ void mds_init_transport(void)
 
 	} else {
 #endif
-		tipc_or_tcp = "TCP";
 		mds_mdtm_init = mds_mdtm_init_tcp;
 		mds_mdtm_destroy = mds_mdtm_destroy_tcp;
 		mds_mdtm_svc_subscribe = mds_mdtm_svc_subscribe_tcp;
