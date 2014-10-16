@@ -146,11 +146,16 @@ uint32_t smfnd_up(SaClmNodeIdT i_node_id, MDS_DEST i_smfnd_dest, MDS_SVC_PVT_SUB
 	}
 
 	/* Get Clm info about the node */
+	SaClmClusterNodeT clmInfo;
 	rc = saClmClusterNodeGet(clmHandle, i_node_id,
-				 10000000000LL, &smfnd->clmInfo);
+				 10000000000LL, &clmInfo);
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saClmClusterNodeGet failed, rc=%s", saf_error(rc));
-		free(smfnd);
+		if (newNode) free(smfnd);
+		rc = saClmFinalize(clmHandle);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("saClmFinalize failed, rc=%s", saf_error(rc));
+		}
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -160,6 +165,9 @@ uint32_t smfnd_up(SaClmNodeIdT i_node_id, MDS_DEST i_smfnd_dest, MDS_SVC_PVT_SUB
 	}
 
         pthread_mutex_lock(&smfnd_list_lock);
+
+	/* Store cluster node info */
+	memcpy(&smfnd->clmInfo, &clmInfo, sizeof(clmInfo));
 
 	/* Store the destination to the smfnd */
 	smfnd->dest = i_smfnd_dest;
