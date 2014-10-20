@@ -184,11 +184,11 @@ def BYREF(data):
 	"""
 	return None if data == None else byref(data)
 
-def marshalNullArray(plist):
+def marshalNullArray(plist, type_name=c_void_p):
 	"""Convert Python list to null-terminated c array.
 	"""
 	if not plist:
-		return None if plist == None else (c_void_p*1)()
+		return None if plist == None else (type_name*1)()
 	ctype = plist[0].__class__
 	if ctype is SaStringT:
 		return marshalSaStringTArray(plist)
