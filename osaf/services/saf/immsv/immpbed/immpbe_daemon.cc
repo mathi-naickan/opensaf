@@ -1149,7 +1149,7 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 			LOG_NO("Slave PBE time-out in waiting on porepare for PRTA update ccb:%llx dn:%s", ccbId,
 				(const char *) objectName->value);
 			rc = SA_AIS_ERR_FAILED_OPERATION;
-			goto abort_prta_trans;
+			goto done;
 		}
 		goto commit_prta_trans;
 
@@ -1188,6 +1188,22 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
  commit_prta_trans:
 	rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
 
+	if(rc != SA_AIS_OK) {
+		LOG_WA("PBE failed to commit sqlite transaction (ccb:%llx) for PRT attr update", ccbId);
+		rc = SA_AIS_ERR_NO_RESOURCES;
+		goto done;
+	}
+	TRACE("Commit PBE transaction %llx for rt attr update OK", ccbId);
+
+	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
+		/* Remove any PRTA update from immutils for 1PBE or 2PBE.
+		   For 2PBE removing immutildata *before* resetting 2PBE syncronisation
+		   variables minimzes risk of derailing 2PBE multithreaded use of immutils.
+		*/
+		ccbutil_deleteCcbData(ccbUtilCcbData);
+		ccbUtilCcbData = NULL;
+	}
+
 	/* Reset 2pbe-ccb-syncronization variables at slave. */
 	if(sPbe2B) {
 		s2PbeBCcbToCompleteAtB=0; 
@@ -1196,17 +1212,19 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		s2PbeBCcbUtilCcbData = NULL;
 	}
 
-	if(rc != SA_AIS_OK) {
-		LOG_WA("PBE failed to commit sqlite transaction (ccb:%llx) for PRT attr update", ccbId);
-		rc = SA_AIS_ERR_NO_RESOURCES;
-		goto done;
-	}
-	TRACE("Commit PBE transaction %llx for rt attr update OK", ccbId);
-
 	goto done;
 
  abort_prta_trans:
 	pbeAbortTrans(sDbHandle);
+
+	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
+		/* Remove any PRTA update from immutils for 1PBE or 2PBE.
+		   For 2PBE removing immutildata *before* resetting syncronisation
+		   variables minimzes risk of derailing multithreaded use in immutils.
+		*/
+		ccbutil_deleteCcbData(ccbUtilCcbData);
+		ccbUtilCcbData = NULL;
+	}
 
 	/* Reset 2pbe-ccb-syncronization variables at slave. */
 	if(sPbe2B) {
@@ -1221,11 +1239,6 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 		LOG_NO("2PBE Error (%u) in PRTA update (ccbId:%llx)", rc, ccbId);
 	}
 
-	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
-		/* Remove any PRTA update. */
-		ccbutil_deleteCcbData(ccbUtilCcbData);
-		ccbUtilCcbData = NULL;
-	}
 	TRACE_LEAVE();
 	return rc;
 }
@@ -1301,16 +1314,18 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 		osafassert(numOps < 0xffffffff);
 		if(sPbe2B) { /* PbeB == slave */
 			if(s2PbeBCcbToCompleteAtB != ccbId) {
-				LOG_ER("PBE-B got completed callback for Ccb:%llx/%llu before prepare from PBE-A", ccbId, ccbId);
+				LOG_ER("PBE-B got completed callback for Ccb:%llx/%llu while still bussy "
+					"with Ccb:%llx/%llufrom PBE-A", ccbId, ccbId, s2PbeBCcbToCompleteAtB,
+					s2PbeBCcbToCompleteAtB);
 				rc = SA_AIS_ERR_BAD_OPERATION;
-				goto abort_trans;
+				goto done; /* This ccb has not even prepared yet. Dont abort the prior ccb! */
 			}
 
 			if(s2PbeBCcbOpCountToExpectAtB != numOps) {
 				LOG_ER("PBE-B got completed callback for Ccb:%llx/%llu but numOps:%llu should be: %u",
 					ccbId, ccbId, numOps, s2PbeBCcbOpCountToExpectAtB);
 				rc = SA_AIS_ERR_BAD_OPERATION;
-				goto abort_trans;
+				goto abort_trans; /* This ccb has passed prepare, but obj-count is wrong. */
 			}
 			goto commit_trans; /* Jump over begin-trans & prepare. Done already at PBESlave/B */
 
@@ -1319,12 +1334,15 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 			if(!pbe2_start_prepare_ccb_A_to_B(ccbId, (SaUint32T) numOps)) { /* Order slave to start preparing. */
 				LOG_WA("PBE-A failed to prepare Ccb:%llx/%llu towards PBE-B", ccbId, ccbId);
 				rc = SA_AIS_ERR_BAD_OPERATION;
-				goto abort_trans;
+				goto done;
 			}
 		}
 	}
 
-	if((rc =  pbeBeginTrans(sDbHandle)) != SA_AIS_OK) { goto done;}
+	if((rc =  pbeBeginTrans(sDbHandle)) != SA_AIS_OK) { 
+		LOG_WA("pbeBeginTrans returned error: %u", rc);
+		goto done;
+	}
 
 	TRACE("Begin PBE transaction for CCB %llu OK", ccbId);
 	rc = sqlite_prepare_ccb(immOiHandle, ccbId, ccbUtilCcbData->operationListHead);
@@ -1357,11 +1375,10 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 	goto done;
 
  abort_trans:
-	if(pbeTransStarted()) {
-		pbeAbortTrans(sDbHandle);
-	}
-	if(sPbe2B) { /* PBE-B slave can not abort unilateraly. */
-		LOG_WA("PBE slave exiting in prepare for ccb %llx/%llu, file should be regenerated.", ccbId, ccbId);
+	pbeAbortTrans(sDbHandle);
+
+	if(sPbe2B) { /* PBE-B slave can not abort unilateraly in completed callback. */
+		LOG_WA("PBE slave exiting in completed callback for ccb %llx/%llu, file should be regenerated.", ccbId, ccbId);
 		exit(0);
 	}
  done:
@@ -1573,8 +1590,8 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
 		{
 			LOG_NO("Slave PBE time-out in waiting on porepare for PRTO create ccb:%llx dn:%s", ccbId,
 				(const char *) operation->objectName.value);
-			rc = SA_AIS_ERR_FAILED_OPERATION;
-			goto abort_prto_trans;
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
 		}
 		goto commit_prto_trans;
 
@@ -1612,14 +1629,6 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
  commit_prto_trans:
 	rc = pbeCommitTrans(sDbHandle, ccbId, sEpoch, &sLastCcbCommitTime);
 
-	/* Reset 2pbe-ccb-syncronization variables at slave. */
-	if(sPbe2B) {
-		s2PbeBCcbToCompleteAtB=0; 
-		s2PbeBCcbOpCountToExpectAtB=0;
-		s2PbeBCcbOpCountNowAtB=0;
-		s2PbeBCcbUtilCcbData = NULL;
-	}
-
 	if(rc != SA_AIS_OK) {
 		LOG_WA("PBE failed to commit sqlite transaction (ccbId:%llx) for PRTO create", ccbId);
 		rc = SA_AIS_ERR_NO_RESOURCES;
@@ -1633,25 +1642,27 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle, Sa
  abort_prto_trans:
 	pbeAbortTrans(sDbHandle);
 
-	/* Reset 2pbe-ccb-syncronization variables at slave. */
-	if(sPbe2B) {
-		s2PbeBCcbToCompleteAtB=0; 
-		s2PbeBCcbOpCountToExpectAtB=0;
-		s2PbeBCcbOpCountNowAtB=0;
-		s2PbeBCcbUtilCcbData = NULL;
-	}
-
  done:
 	if((rc != SA_AIS_OK) && sPbe2 && (ccbId > 0x100000000LL)) {
 		LOG_NO("2PBE Error (%u) in PRTO create (ccbId:%llx)", rc, ccbId);
 	}
 
 	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
-		/* Remove any PRTO create */
+		/* Remove PRTO create from immutils for 1PBE or 2PBE.
+		   For 2PBE removing immutildata *before* resetting syncronisation
+		   variables minimzes risk of derailing multithreaded use in immutils.
+		*/
 		ccbutil_deleteCcbData(ccbUtilCcbData);
 		ccbUtilCcbData = NULL;
 	}
 
+	/* Reset 2pbe-ccb-syncronization variables at slave. */
+	if(sPbe2B && (s2PbeBCcbToCompleteAtB == ccbId)) {
+		s2PbeBCcbToCompleteAtB=0; 
+		s2PbeBCcbOpCountToExpectAtB=0;
+		s2PbeBCcbOpCountNowAtB=0;
+		s2PbeBCcbUtilCcbData = NULL;
+	}
 
 	TRACE_LEAVE();
 	return rc;
