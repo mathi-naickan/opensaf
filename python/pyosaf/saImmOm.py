@@ -619,12 +619,12 @@ def saImmOmAdminOperationInvoke_2(ownerHandle,
 		SaAisErrorT
 
 	"""
-	c_params = marshalNullArray(params)
+	c_params = marshalNullArray(params, POINTER(SaImmAdminOperationParamsT_2))
 	omdll.saImmOmAdminOperationInvoke_2.argtypes = [SaImmAdminOwnerHandleT,
 						POINTER(SaNameT),
 						SaImmContinuationIdT,
 						SaImmAdminOperationIdT,
-						POINTER(POINTER(SaImmAdminOperationParamsT)),
+						POINTER(POINTER(SaImmAdminOperationParamsT_2)),
 						POINTER(SaAisErrorT),
 						SaTimeT]
 
