@@ -110,8 +110,9 @@ class SmfCampaign {
 	std::string m_cmpgError;
 	SmfUpgradeCampaign *m_upgradeCampaign;
 	std::string m_campaignXmlDir;
-        bool m_adminOpBusy;
-        SaTimeT m_previousUpdateTime;
+	bool m_adminOpBusy;
+	SaTimeT m_previousUpdateTime;
+	bool smfRestartIndicatorExists();
 };
 
 ///

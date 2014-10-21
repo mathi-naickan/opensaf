@@ -69,7 +69,7 @@ static void smfApplDN_instance_constructor(void) __attribute__ ((constructor));
 
 static void smfApplDN_instance_constructor(void)
 {
-	osaf_extended_name_lend("safApp=safSmfService", &smfApplDN_instance);
+	osaf_extended_name_lend(SMF_SAF_APP_DN, &smfApplDN_instance);
 }
 
 const SaNameT *smfApplDN = &smfApplDN_instance;

@@ -561,6 +561,7 @@ class SmfUpgradeProcedure {
 
 
 	friend class SmfProcState;
+	friend class SmfCampStateSuspendingExec;
 
  private:
 
