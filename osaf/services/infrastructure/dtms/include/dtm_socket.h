@@ -19,10 +19,7 @@
 
 #define SOCKET_ERROR()  -1
 #define SDDR_IN_USE (errno == EADDRINUSE)
-#define IS_BLOCKIN_ERROR(a) ((a == EALREADY) || (a == EINPROGRESS) || (a == EAGAIN))
 #define IS_CONNECTED(a) 0
 #define SOCKET_RESET(a) ((a == EPIPE) || (a == ECONNRESET))
-#define SR_SOCKET_NON_BLOCKING(a) \
- fcntl(m_sockfd,F_SETFL,fcntl(a,F_GETFD) | O_NONBLOCK)
 
 #endif

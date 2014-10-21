@@ -127,40 +127,6 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 
 }
 
-/**
- * Set the non blocking for socket
- *
- * @param sock_desc bNb
- *
- * @return NCSCC_RC_SUCCESS
- * @return NCSCC_RC_FAILURE
- *
- */
-static uint8_t set_nonblocking(int sock_desc, uint8_t bNb)
-{
-	TRACE_ENTER();
-	int flags;
-	if ((flags = fcntl(sock_desc, F_GETFL, NULL)) < 0) {
-		LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
-		return false;
-	}
-	if (bNb) {
-		flags |= O_NONBLOCK;
-		if (fcntl(sock_desc, F_SETFL, flags) < 0) {
-			LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
-			return false;
-		}
-	} else {
-		flags &= (~O_NONBLOCK);
-		if (fcntl(sock_desc, F_SETFL, flags) < 0) {
-			LOG_ER("DTM :fcntl(F_SETFL, 0) err :%s", strerror(errno));
-			return false;
-		}
-	}
-	TRACE_LEAVE();
-	return true;
-
-}
 
 /**
  * Enable the dgram bcast
@@ -406,13 +372,9 @@ uint32_t dtm_comm_socket_close(int *comm_socket)
 
 	if (close(*comm_socket) != 0) {
 		err = errno;
-		if (!IS_BLOCKIN_ERROR(err)) {
-
-			LOG_ER("DTM : dtm_sockdesc_close err :%s ", strerror(err));
-			rc = NCSCC_RC_FAILURE;
-			goto done;
-		}
-
+		LOG_ER("DTM : dtm_sockdesc_close err :%s ", strerror(err));
+		rc = NCSCC_RC_FAILURE;
+		goto done;
 	}
 	*comm_socket = -1;
 
@@ -440,11 +402,8 @@ uint32_t dtm_comm_socket_send(int sock_desc, const void *buffer, int buffer_len)
 	rtn = send(sock_desc, (raw_type *) buffer, buffer_len, MSG_NOSIGNAL);
 	err = errno;
 	if (rtn < 0) {
-		if (!IS_BLOCKIN_ERROR(err)) {
 			LOG_ER("DTM :dtm_comm_socket_send failed  err :%s", strerror(err));
 			rc = NCSCC_RC_FAILURE;
-		}
-
 	}
 	TRACE_LEAVE2("rc :%d", rc);
 	return rc;
@@ -466,11 +425,8 @@ uint32_t dtm_comm_socket_recv(int sock_desc, void *buffer, int buffer_len)
 	TRACE_ENTER();
 	if ((rtn = recv(sock_desc, (raw_type *) buffer, buffer_len, 0)) < 0) {
 		err = errno;
-		if (!IS_BLOCKIN_ERROR(err)) {
-			LOG_ER("DTM :dtm_comm_socket_recv failed err :%s", strerror(err));
-			rc = NCSCC_RC_FAILURE;
-		}
-
+		LOG_ER("DTM :dtm_comm_socket_recv failed err :%s", strerror(err));
+		rc = NCSCC_RC_FAILURE;
 	}
 	TRACE_LEAVE2("rc : %d", rc);
 	return rc;
@@ -566,12 +522,6 @@ int comm_socket_setup_new(DTM_INTERNODE_CB * dtms_cb, const char *foreign_addres
 		goto done;
 	}
 
-	if (set_nonblocking(sock_desc, true) != true) {
-		LOG_ER("DTM :set_nonblocking failed ");
-		dtm_comm_socket_close(&sock_desc);
-		goto done;
-	}
-	
 	if ((rcvbuf_size > 0) && (setsockopt(sock_desc, SOL_SOCKET, SO_RCVBUF, &rcvbuf_size, sizeof(rcvbuf_size)) != 0)) {
 		LOG_ER("DTM:Socket rcv buf size set failed err :%s", strerror(errno));
 		dtm_comm_socket_close(&sock_desc);
@@ -600,12 +550,8 @@ int comm_socket_setup_new(DTM_INTERNODE_CB * dtms_cb, const char *foreign_addres
 	/* Try to connect to the given port */
 	if (connect(sock_desc, addr_list->ai_addr, addr_list->ai_addrlen) < 0) {
 		err = errno;
-		if (!IS_BLOCKIN_ERROR(err)) {
-			LOG_ER("DTM :Connect failed (connect()) err :%s", strerror(err));
-			dtm_comm_socket_close(&sock_desc);
-
-		}
-
+		LOG_ER("DTM :Connect failed (connect()) err :%s", strerror(err));
+		dtm_comm_socket_close(&sock_desc);
 	}
 
 	/* Free address structure(s) allocated by getaddrinfo() */
@@ -714,13 +660,6 @@ uint32_t dtm_stream_nonblocking_listener(DTM_INTERNODE_CB * dtms_cb)
 	/* Create socket for sending multicast datagrams */
 	if ((dtms_cb->stream_sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == SOCKET_ERROR()) {
 		LOG_ER("DTM:Socket creation failed (socket()) err :%s", strerror(errno));
-		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
-		return NCSCC_RC_FAILURE;
-	}
-
-	if (set_nonblocking(dtms_cb->stream_sock, true) != NCSCC_RC_SUCCESS) {
-		LOG_ER("DTM : set_nonblocking() failed");
-		dtm_sockdesc_close(dtms_cb->stream_sock);
 		TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
@@ -1392,12 +1331,9 @@ int dtm_process_accept(DTM_INTERNODE_CB * dtms_cb, int stream_sock)
 	if ((new_conn_sd = accept(stream_sock, (struct sockaddr *)&clnt_addr, &clnt_addrLen)) < 0) {
 
 		err = errno;
-		if (!IS_BLOCKIN_ERROR(err)) {
-			LOG_ER("DTM:Accept failed (accept()) err :%s", strerror(err));
-			new_conn_sd = -1;
-			goto done;
-		}
-
+		LOG_ER("DTM:Accept failed (accept()) err :%s", strerror(err));
+		new_conn_sd = -1;
+		goto done;
 	}
 
 	if ((rcvbuf_size > 0) && (setsockopt(new_conn_sd, SOL_SOCKET, SO_RCVBUF, &rcvbuf_size, sizeof(rcvbuf_size)) != 0)) {

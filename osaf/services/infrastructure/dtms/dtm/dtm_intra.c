@@ -99,7 +99,6 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 	NCS_PATRICIA_PARAMS pat_tree_params;
 	struct sockaddr_in serveraddr;
 	struct sockaddr_in6 serveraddr6;
-	int flags;
 
 	TRACE_ENTER();
 	/* UNIX is default transport for intranode */
@@ -118,20 +117,6 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 
 	if (dtm_intranode_cb->server_sockfd < 0) {
 		LOG_ER("DTM: Socket creation failed err :%s ", strerror(errno));
-		free(dtm_intranode_cb);
-		return NCSCC_RC_FAILURE;
-	}
-
-	/*Make the socket Non-Blocking for accepting */
-	if ((flags = fcntl(dtm_intranode_cb->server_sockfd, F_GETFL, NULL)) < 0) {
-		LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
-		return false;
-	}
-	flags |= O_NONBLOCK;
-	if(fcntl(dtm_intranode_cb->server_sockfd, F_SETFL, flags) < 0) {
-		/*Non-Blocking Options hasnt been set, what shall we do now */
-		LOG_ER("DTM: Socket NON Block set failed err :%s ", strerror(errno));
-		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
 		return NCSCC_RC_FAILURE;
 	}
@@ -892,9 +877,8 @@ static uint32_t dtm_intranode_create_pid_info(int fd)
  */
 static uint32_t dtm_intranode_process_incoming_conn(void)
 {
-	 int flags;
 	/* Accept processing */
-	int accept_fd = 0,  retry_count = 0;
+	int accept_fd = 0;
 	int sndbuf_size = dtm_intranode_cb->sock_sndbuf_size, rcvbuf_size = dtm_intranode_cb->sock_rcvbuf_size;
 	socklen_t len = sizeof(struct sockaddr_un);
 	struct sockaddr_un cli_addr;
@@ -908,23 +892,6 @@ static uint32_t dtm_intranode_process_incoming_conn(void)
 		return NCSCC_RC_FAILURE;
 	}
 
-tryagain:
-	/*Make the socket Non-Blocking for accepting */
-	if ((flags = fcntl(accept_fd, F_GETFL, NULL)) < 0) {
-                LOG_ER("DTM :fcntl(F_SETFL, O_NONBLOCK) err :%s ", strerror(errno));
-                return false;
-        }
-	flags |= O_NONBLOCK;	
-	if (fcntl(accept_fd, F_SETFL, flags) < 0) {
-		LOG_ER("DTM: accept_fd Non-Blocking hasnt been Set");
-		retry_count++;
-		/* Non-Blocking Options hasnt been set */
-		if (retry_count > 3) {
-			osafassert(0);
-		} else {
-			goto tryagain;
-		}
-	}
 	if ((rcvbuf_size > 0) && (setsockopt(accept_fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf_size, sizeof(rcvbuf_size)) != 0)) {
 		LOG_ER("DTM: Unable to set the SO_RCVBUF ");
 		close(accept_fd);
