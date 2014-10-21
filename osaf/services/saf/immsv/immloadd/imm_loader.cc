@@ -1220,6 +1220,11 @@ static void endElementHandler(void* userData,
                 free(it->attrValues);
             }
             state->attrValuesList.clear();
+            /* Free used parameters */
+            free(state->objectClass);
+            state->objectClass = NULL;
+            free(state->objectName);
+            state->objectName = NULL;
 
             goto done;
         }
