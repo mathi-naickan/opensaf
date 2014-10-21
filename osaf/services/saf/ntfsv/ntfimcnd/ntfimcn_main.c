@@ -176,7 +176,7 @@ int main(int argc, char** argv)
 		LOG_ER("signal TERM failed: %s", strerror(errno));
 		_Exit(EXIT_FAILURE);
 	}
-
+	
 	/*
 	 * Initiate polling
 	 */
