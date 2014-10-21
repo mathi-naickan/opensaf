@@ -55,6 +55,7 @@
 extern uint32_t mds_socket_domain;
 void mds_init_transport(void);
 bool tipc_mode_enabled = false;
+bool tipc_mcast_enabled = true;
 
 /* MDS Control Block */
 MDS_MCM_CB *gl_mds_mcm_cb = NULL;
@@ -393,10 +394,18 @@ uint32_t mds_lib_req(NCS_LIB_REQ_INFO *req)
 			}
 		}
 
+		/* Get tipc_mcast_enabled */
+		if ((ptr = getenv("MDS_TIPC_MCAST_ENABLED")) != NULL) {
+			tipc_mcast_enabled = atoi(ptr);
+			if (tipc_mcast_enabled != false)
+				tipc_mcast_enabled = true;
+				
+			m_MDS_LOG_DBG("MDS_TIPC_MCAST_ENABLED: %d  Set argument \n",tipc_mcast_enabled);	
+		}
+
 		/*  to use cluster id in mds prefix? */
 
 		/* Get gl_mds_log_level */
-
 		/*  setting MDS_LOG_LEVEL from environment variable if given */
 		if ((ptr = getenv("MDS_LOG_LEVEL")) != NULL) {
 			gl_mds_log_level = atoi(ptr);

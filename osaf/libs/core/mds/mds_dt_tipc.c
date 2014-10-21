@@ -62,6 +62,7 @@ bool mds_use_network_order = 0;
 #define NTOHL(x) (mds_use_network_order?ntohl(x):x)
 #define HTONL(x) (mds_use_network_order?htonl(x):x)
 
+extern bool tipc_mcast_enabled;
 static uint32_t mdtm_tipc_check_for_endianness(void);
 
 uint32_t mdtm_tipc_init(NODE_ID node_id, uint32_t *mds_tipc_ref);
@@ -2075,7 +2076,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 
 					len += SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN;
 					if (((req->snd_type == MDS_SENDTYPE_RBCAST) || (req->snd_type == MDS_SENDTYPE_BCAST)) && 
-							(version > 0)) {
+							(version > 0) && (tipc_mcast_enabled)) {
 						m_MDS_LOG_DBG("MDTM: User Sending Multicast Data lenght=%d From svc_id = %s to svc_id = %s\n", len,
 								ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
 						if ( len > MDS_DIRECT_BUF_MAXSIZE) {
