@@ -26,9 +26,6 @@ uint16_t mdtm_num_subscriptions;
 MDS_SUBTN_REF_VAL mdtm_handle;
 extern pid_t mdtm_pid;
 
-extern MDTM_INTRANODE_UNSENT_MSGS *mds_mdtm_msg_unsent_hdr;
-extern MDTM_INTRANODE_UNSENT_MSGS *mds_mdtm_msg_unsent_tail;
-
 struct pollfd pfd[2];
 
 /* Encode function declarations */
@@ -95,8 +92,10 @@ uint32_t mds_mdtm_svc_subscribe_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_svc_subscribe(&subscr, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_SUBSCRIBE_BUFFER_SIZE);
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_SUBSCRIBE_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: SVC-SUBSCRIBE send Failed");
+	}
 
 	status = mdtm_add_to_ref_tbl(svc_hdl, *subtn_ref_val);
 
@@ -140,9 +139,11 @@ uint32_t mds_mdtm_svc_unsubscribe_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMD
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_svc_unsubscribe(&unsubscr, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_UNSUBSCRIBE_BUFFER_SIZE);
-
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_UNSUBSCRIBE_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: SVC-UNSUBSCRIBE send Failed");
+	}
+	
 	mdtm_del_from_ref_tbl(subtn_ref_val);
 	--mdtm_num_subscriptions;
 
@@ -217,8 +218,10 @@ uint32_t mds_mdtm_svc_install_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_SC
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_svc_install(&svc_install, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_SVC_INSTALL_BUFFER_SIZE);
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_SVC_INSTALL_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: SVC-INSTALL send Failed");
+	}
 
 	m_MDS_LOG_INFO("MDTM: SVC-INSTALL Success\n");
 	return NCSCC_RC_SUCCESS;
@@ -290,9 +293,10 @@ uint32_t mds_mdtm_svc_uninstall_tcp(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_svc_uninstall(&svc_uninstall, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_SVC_UNINSTALL_BUFFER_SIZE);
-
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_SVC_UNINSTALL_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: SVC-UNINSTALL send Failed");
+	}
 	m_MDS_LOG_INFO("MDTM: SVC-UNINSTALL Success\n");
 	return NCSCC_RC_SUCCESS;
 }
@@ -333,9 +337,10 @@ uint32_t mds_mdtm_vdest_install_tcp(MDS_VDEST_ID vdest_id)
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_vdest_install(&server_addr, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_SVC_INSTALL_BUFFER_SIZE);
-
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_SVC_INSTALL_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: VDEST-INSTALL send Failed");
+	}
 	m_MDS_LOG_INFO("MDTM: VDEST-INSTALL Success\n");
 	return NCSCC_RC_SUCCESS;
 }
@@ -375,8 +380,10 @@ uint32_t mds_mdtm_vdest_uninstall_tcp(MDS_VDEST_ID vdest_id)
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_vdest_uninstall(&server_addr, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_SVC_UNINSTALL_BUFFER_SIZE);
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_SVC_UNINSTALL_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: VDEST-UNINSTALL send Failed");
+	}
 
 	m_MDS_LOG_INFO("MDTM: VDEST-UNINSTALL Success\n");
 	return NCSCC_RC_SUCCESS;
@@ -429,8 +436,10 @@ uint32_t mds_mdtm_vdest_subscribe_tcp(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL *
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_vdest_subscribe(&subscr, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_SUBSCRIBE_BUFFER_SIZE);
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_SUBSCRIBE_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: VDEST-SUBSCRIBE send Failed");
+	}
 
 	++mdtm_num_subscriptions;
 
@@ -469,9 +478,10 @@ uint32_t mds_mdtm_vdest_unsubscribe_tcp(MDS_VDEST_ID vdest_id, MDS_SUBTN_REF_VAL
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_svc_unsubscribe(&unsubscr, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_UNSUBSCRIBE_BUFFER_SIZE);
-
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_UNSUBSCRIBE_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: VDEST-UNSUBSCRIBE send Failed");
+	}
 	mdtm_del_from_ref_tbl(subtn_ref_val);
 	--mdtm_num_subscriptions;
 
@@ -539,8 +549,10 @@ uint32_t mds_mdtm_node_subscribe_tcp(MDS_SVC_HDL svc_hdl, MDS_SUBTN_REF_VAL *sub
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_node_subscribe(&node_subscr, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_NODE_SUBSCRIBE_BUFFER_SIZE);
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_NODE_SUBSCRIBE_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: NODE-SUBSCRIBE send Failed");
+	}
 
 	status = mdtm_add_to_ref_tbl(svc_hdl, *subtn_ref_val);
 	++mdtm_num_subscriptions;
@@ -579,9 +591,10 @@ uint32_t mds_mdtm_node_unsubscribe_tcp(MDS_SUBTN_REF_VAL subtn_ref_val)
 	/* Convert into the encoded tcp_buffer before send */
 	mds_mdtm_enc_node_unsubscribe(&node_unsubscr, tcp_buffer);
 
-	/* Add the message to unsent queue if messages are already there otherwise send the message directly */
-	mds_mdtm_unsent_queue_add_send(tcp_buffer, MDS_MDTM_DTM_NODE_UNSUBSCRIBE_BUFFER_SIZE);
-
+	/* send the message directly */
+	if (NCSCC_RC_SUCCESS != mds_sock_send(tcp_buffer, MDS_MDTM_DTM_NODE_UNSUBSCRIBE_BUFFER_SIZE)) {
+			m_MDS_LOG_ERR("MDTM: NODE-UNSUBSCRIBE send Failed");
+	}
 	m_MDS_LOG_INFO("MDTM: In mds_mdtm_node_unsubscribe_tcp\n");
 
 	mdtm_del_from_ref_tbl(subtn_ref_val);

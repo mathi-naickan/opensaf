@@ -256,19 +256,6 @@ uint32_t mds_mdtm_init_tcp(NODE_ID nodeid, uint32_t *mds_tcp_ref)
 		return NCSCC_RC_FAILURE;
 	}
 
-	/* Convert the socket to a Non-blocking socket */
-	if ((flags = fcntl(tcp_cb->DBSRsock, F_GETFL, NULL)) < 0) {
-		syslog(LOG_ERR, "MDS:MDTM:TCP Unable to set the  F_GETFL O_NONBLOCK Flag on DBSRsock  err :%s", strerror(errno));
-		close(tcp_cb->DBSRsock);
-		return NCSCC_RC_FAILURE;	
-	}
-	flags |= O_NONBLOCK;
-	if (fcntl(tcp_cb->DBSRsock, F_SETFL, flags) < 0) {
-		syslog(LOG_ERR, "MDS:MDTM:TCP Unable to set the F_SETFL  O_NONBLOCK Flag on DBSRsock  err :%s", strerror(errno));		
-		close(tcp_cb->DBSRsock);
-		return NCSCC_RC_FAILURE;
-	}
-
 	/* Code for Tmr Mailbox Creation used for Tmr Msg Retrival */
 
 	if (m_NCS_IPC_CREATE(&tcp_cb->tmr_mbx) != NCSCC_RC_SUCCESS) {

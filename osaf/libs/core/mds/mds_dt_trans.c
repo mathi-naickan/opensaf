@@ -49,87 +49,6 @@ extern pid_t mdtm_pid;
 
 static uint32_t mds_mdtm_process_recvdata(uint32_t rcv_bytes, uint8_t *buffer);
 
-
-/**
- * Function contains the logic to add the message into the queue
- *
- * @param send_buffer, bufferlen
- *
- * @return NCSCC_RC_SUCCESS
- * @return NCSCC_RC_FAILURE
- *
- */
-static uint32_t mds_mdtm_queue_add_unsent_msg(uint8_t *tcp_buffer, uint32_t bufflen)
-{
-	/* If there is any message in queue the next message needs to queued only !! */
-	MDTM_INTRANODE_UNSENT_MSGS *tmp = NULL, *hdr = tcp_cb->mds_mdtm_msg_unsent_hdr, *tail =
-	    tcp_cb->mds_mdtm_msg_unsent_tail;
-	if (NULL == (tmp = calloc(1, sizeof(MDTM_INTRANODE_UNSENT_MSGS)))) {
-		TRACE("Calloc failed MDTM_INTRANODE_UNSENT_MSGS");
-		return NCSCC_RC_FAILURE;
-	}
-	if (NULL == (tmp->buffer = calloc(1, bufflen))) {
-		TRACE("Calloc failed for buffer");
-		free(tmp);;
-		return NCSCC_RC_FAILURE;
-	}
-	tmp->len = bufflen;
-	memcpy(tmp->buffer, tcp_buffer, bufflen);
-	tmp->next = NULL;
-
-	++tcp_cb->mdtm_tcp_unsent_counter;	/* Increment the counter to keep a tab on number of messages */
-	if (tcp_cb->mdtm_tcp_unsent_counter <= DTM_INTRANODE_UNSENT_MSG) {
-		if (NULL == hdr && NULL == tail) {
-			tcp_cb->mds_mdtm_msg_unsent_hdr = tmp;
-			tcp_cb->mds_mdtm_msg_unsent_tail = tmp;
-		} else {
-			tail->next = tmp;
-			tcp_cb->mds_mdtm_msg_unsent_tail = tmp;
-
-			/* Change the poll from POLLIN to POLLOUT */
-			pfd[0].events = pfd[0].events | POLLOUT;
-		}
-	} else {
-		syslog(LOG_ERR, " MDTM unsent message is more!=%d", DTM_INTRANODE_UNSENT_MSG);
-		assert(0);
-		return NCSCC_RC_FAILURE;
-	}
-	return NCSCC_RC_SUCCESS;
-}
-
-/**
- * Function contains the logic to delete the message from the queue
- *
- *
- * @return NCSCC_RC_SUCCESS
- * @return NCSCC_RC_FAILURE
- *
- */
-static uint32_t mds_mdtm_del_unsent_msg(void)
-{
-	MDTM_INTRANODE_UNSENT_MSGS *hdr = tcp_cb->mds_mdtm_msg_unsent_hdr, *del_ptr = NULL, *mov_ptr = NULL;
-	while (NULL != hdr) {
-		if (NULL == hdr->buffer) {
-			del_ptr = hdr;
-			mov_ptr = hdr->next;
-		} else {
-			break;
-		}
-		hdr = hdr->next;
-		free(del_ptr);
-	}
-	if (NULL == mov_ptr) {
-		tcp_cb->mds_mdtm_msg_unsent_hdr = NULL;
-		tcp_cb->mds_mdtm_msg_unsent_tail = NULL;
-	} else if (NULL == mov_ptr->next) {
-		tcp_cb->mds_mdtm_msg_unsent_hdr = mov_ptr;
-		tcp_cb->mds_mdtm_msg_unsent_tail = mov_ptr;
-	} else if (NULL != mov_ptr->next) {
-		tcp_cb->mds_mdtm_msg_unsent_hdr = mov_ptr;
-	}
-	return NCSCC_RC_SUCCESS;
-}
-
 /**
  * Function contains the logic to add the message to the queue based on counter
  *
@@ -139,56 +58,16 @@ static uint32_t mds_mdtm_del_unsent_msg(void)
  * @return NCSCC_RC_FAILURE
  *
  */
-uint32_t mds_mdtm_unsent_queue_add_send(uint8_t *tcp_buffer, uint32_t bufflen)
+uint32_t mds_sock_send(uint8_t *tcp_buffer, uint32_t bufflen)
 {
 	ssize_t send_len = 0;
+	send_len = send(tcp_cb->DBSRsock, tcp_buffer, bufflen, MSG_NOSIGNAL);
 
-	if (tcp_cb->mdtm_tcp_unsent_counter) {
-		return mds_mdtm_queue_add_unsent_msg(tcp_buffer, bufflen);
-	} else {
-		send_len = send(tcp_cb->DBSRsock, tcp_buffer, bufflen, MSG_NOSIGNAL);
-
-		/* In case of message send failed add to queue */
-		if ((send_len == -1) || (send_len != bufflen)) {
-			return mds_mdtm_queue_add_unsent_msg(tcp_buffer, bufflen);
-		}
+	/* message send failed */
+	if ((send_len == -1) || (send_len != bufflen)) {
+		LOG_ER("Failed to Send  Message bufflen :%d err :%s", bufflen, strerror(errno));	
+		return NCSCC_RC_FAILURE; 
 	}
-	return NCSCC_RC_SUCCESS;
-}
-
-/**
- * Function contains the logic to send the message from the queue
- *
- *
- * @return NCSCC_RC_SUCCESS
- * @return NCSCC_RC_FAILURE
- *
- */
-static uint32_t mds_mdtm_process_poll_out(void)
-{
-	ssize_t send_len = 0;
-	MDTM_INTRANODE_UNSENT_MSGS *mov_ptr = tcp_cb->mds_mdtm_msg_unsent_hdr;
-	/* Send the message from the queue */
-	if (NULL != mov_ptr) {
-		while ((0 != tcp_cb->mdtm_tcp_unsent_counter) && (NULL != mov_ptr)) {
-			send_len = send(tcp_cb->DBSRsock, mov_ptr->buffer, mov_ptr->len, MSG_NOSIGNAL);
-			if ((send_len == -1) || (send_len != mov_ptr->len)) {
-				syslog(LOG_ERR, "Failed to Send From the queue Message err :%s", strerror(errno));
-				/* free the deleted nodes and return */
-				mds_mdtm_del_unsent_msg();
-				return NCSCC_RC_SUCCESS;
-			} else {
-				free(mov_ptr->buffer);
-				mov_ptr->buffer = NULL;
-			}
-			--tcp_cb->mdtm_tcp_unsent_counter;
-			mov_ptr = mov_ptr->next;
-		}
-	}
-	mds_mdtm_del_unsent_msg();
-
-	/* Setting it to POLLIN for rcv of message */
-	pfd[0].events = POLLIN;
 	return NCSCC_RC_SUCCESS;
 }
 
@@ -414,7 +293,11 @@ static uint32_t mdtm_frag_and_send_tcp(MDTM_SEND_REQ *req, uint32_t seq_num, MDS
 				m_MDS_LOG_DBG
 				    ("MDTM:Sending message with Service Seqno=%d, Fragment Seqnum=%d, frag_num=%d, TO Dest_Tipc_id=<0x%08x:%u>",
 				     req->svc_seq_num, seq_num, frag_val, id.node_id, id.process_id);
-				mds_mdtm_unsent_queue_add_send(body, len_buf);
+
+				if (NCSCC_RC_SUCCESS != mds_sock_send(body, len_buf)) {
+					return NCSCC_RC_FAILURE;
+				}
+
 				m_MMGR_REMOVE_FROM_START(&usrbuf, len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP);
 				len = len - (len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP);
 			} else {
@@ -438,7 +321,11 @@ static uint32_t mdtm_frag_and_send_tcp(MDTM_SEND_REQ *req, uint32_t seq_num, MDS
 				m_MDS_LOG_DBG
 				    ("MDTM:Sending message with Service Seqno=%d, Fragment Seqnum=%d, frag_num=%d, TO Dest_Tipc_id=<0x%08x:%u>",
 				     req->svc_seq_num, seq_num, frag_val, id.node_id, id.process_id);
-				mds_mdtm_unsent_queue_add_send(body, len_buf);
+
+				if (NCSCC_RC_SUCCESS !=	mds_sock_send(body, len_buf)) {
+					return NCSCC_RC_FAILURE;
+				}
+
 				m_MMGR_REMOVE_FROM_START(&usrbuf, (len_buf - MDTM_FRAG_HDR_PLUS_LEN_2_TCP));
 				len = len - (len_buf - MDTM_FRAG_HDR_PLUS_LEN_2_TCP);
 				if (len == 0)
@@ -525,7 +412,11 @@ uint32_t mds_mdtm_send_tcp(MDTM_SEND_REQ *req)
 
 			m_MDS_LOG_DBG("MDTM:Sending message with Service Seqno=%d, TO Dest_Tipc_id=<0x%08x:%u> ",
 				      req->svc_seq_num, id.node_id, id.process_id);
-			mds_mdtm_unsent_queue_add_send(buffer_ack, len);
+
+			if (NCSCC_RC_SUCCESS != mds_sock_send(buffer_ack, len)) {
+				return NCSCC_RC_FAILURE;
+			}
+
 			return NCSCC_RC_SUCCESS;
 		}
 
@@ -589,10 +480,7 @@ uint32_t mds_mdtm_send_tcp(MDTM_SEND_REQ *req)
 					    ("MDTM:Sending message with Service Seqno=%d, TO Dest_Tipc_id=<0x%08x:%u> ",
 					     req->svc_seq_num, id.node_id, id.process_id);
 
-					if (NCSCC_RC_SUCCESS !=
-					    mds_mdtm_unsent_queue_add_send(body,
-									   (len +
-									    SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP))) {
+					if (NCSCC_RC_SUCCESS != mds_sock_send(body, (len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP))) {
 						m_MDS_LOG_ERR("MDTM: Unable to send the msg thru TIPC\n");
 						m_MMGR_FREE_BUFR_LIST(usrbuf);
 						return NCSCC_RC_FAILURE;
@@ -637,10 +525,7 @@ uint32_t mds_mdtm_send_tcp(MDTM_SEND_REQ *req)
 				memcpy(&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP], req->msg.data.buff_info.buff,
 				       req->msg.data.buff_info.len);
 
-				if (NCSCC_RC_SUCCESS !=
-				    mds_mdtm_unsent_queue_add_send(body,
-								   (req->msg.data.buff_info.len +
-								    SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP))) {
+				if (NCSCC_RC_SUCCESS != mds_sock_send(body, (req->msg.data.buff_info.len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP))) {
 					m_MDS_LOG_ERR("MDTM: Unable to send the msg thru TIPC\n");
 					mds_free_direct_buff(req->msg.data.buff_info.buff);
 					return NCSCC_RC_FAILURE;
@@ -835,6 +720,9 @@ void mdtm_process_poll_recv_data_tcp(void)
  */
 uint32_t mdtm_process_recv_events_tcp(void)
 {
+
+	pfd[0].fd = tcp_cb->DBSRsock;
+	pfd[1].fd = tcp_cb->tmr_fd;
 	/*
 	   STEP 1: Poll on the DBSRsock to get the events
 	   if data is received process the received data
@@ -844,8 +732,6 @@ uint32_t mdtm_process_recv_events_tcp(void)
 		unsigned int pollres;
 
 		pfd[0].events = POLLIN;
-		pfd[0].fd = tcp_cb->DBSRsock;
-		pfd[1].fd = tcp_cb->tmr_fd;
 		pfd[1].events = POLLIN;
 
 		pfd[0].revents = pfd[1].revents = 0;
@@ -859,12 +745,6 @@ uint32_t mdtm_process_recv_events_tcp(void)
 			if (pfd[0].revents & POLLIN) {
 				m_MDS_LOG_INFO("MDTM: Processing pollin events\n");
 				mdtm_process_poll_recv_data_tcp();
-			}
-
-			/* Check for Socket Write operation */
-			if (pfd[0].revents & POLLOUT) {
-				m_MDS_LOG_INFO("MDTM: Processing pollout events\n");
-				mds_mdtm_process_poll_out();
 			}
 
 			if (pfd[1].revents & POLLIN) {
