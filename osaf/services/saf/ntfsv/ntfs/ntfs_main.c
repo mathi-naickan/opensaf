@@ -244,7 +244,7 @@ static uint32_t initialize()
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
-
+	
 	initAdmin();
 
 	if (!ntfs_cb->nid_started && ntfs_amf_init() != SA_AIS_OK) {
@@ -321,6 +321,7 @@ int main(int argc, char *argv[])
 		}
 
 		if (fds[FD_TERM].revents & POLLIN) {
+			TRACE("Exit via FD_TERM calling stop_ntfimcn()");
 			(void) stop_ntfimcn();
 			daemon_exit();
 		}

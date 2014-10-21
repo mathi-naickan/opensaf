@@ -26,7 +26,7 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
-
+	
 #define NTFIMCN_INTERNAL_ERROR (-1)
 
 #define SA_NTF_VENDOR_ID_OSAF 32993
