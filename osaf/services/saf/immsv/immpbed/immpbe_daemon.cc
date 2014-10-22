@@ -287,6 +287,13 @@ static SaAisErrorT pbe2_ok_to_prepare_ccb_at_B(SaImmOiCcbIdT ccbId, SaUint32T ex
 	SaUint64T numReceivedOps = 0LL;
 
 	osafassert(sPbe2 && sPbe2B); /* Must be at slave PBE. */
+
+	if(pbeTransStarted()) {
+		TRACE("pbe2_ok_to_prepare_ccb_at_B: TRY_AGAIN Previous trans still active");
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		goto done;
+	}
+
 	if(s2PbeBCcbToCompleteAtB == 0) { 
 		TRACE("First try at prepare for ccb: %llu at slave PBE", ccbId);
 		s2PbeBCcbUtilCcbData = ccbutil_findCcbData(ccbId);
@@ -1498,6 +1505,12 @@ static void saImmOiCcbAbortCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 
 	/* Reset 2pbe-ccb-syncronization variables. */
 	if(s2PbeBCcbToCompleteAtB == ccbId) {
+		osafassert(sPbe2 && sPbe2B); /* Must be at slave PBE. */
+		if(pbeTransStarted()) {
+			/* Transaction may be active if abort is received before completed. */
+			LOG_IN("saImmOiCcbAbortCallback: aborting sqlite transaction for CCB %llu", ccbId);
+			pbeAbortTrans(sDbHandle);			
+		}
 		s2PbeBCcbToCompleteAtB=0; 
 		s2PbeBCcbOpCountToExpectAtB=0;
 		s2PbeBCcbOpCountNowAtB=0;
