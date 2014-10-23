@@ -2516,17 +2516,24 @@ int syncObjectsOfClass(std::string className, SaImmHandleT& immHandle, int maxBa
     while (err == SA_AIS_OK)
     {
         int retries = 0;
+	useconds_t usec = 10000;
 
         do
         {
             if(retries) {
-			  /* If we receive  TRY_AGAIN while sync  in progress means
-      		      IMMD might have been  reached IMMSV_DEFAULT_FEVS_MAX_PENDING  fevs_replies_pending.
-			    In general  fevs_replies_pending will be hit in the case of  the messages have accumulated in the sender queue
-     			(The most possible reason will be receiver disconnected  but the sender link is in TIPC link tolerance of 1.5 sec)
-   			  	So give enough time to recover as if sync is not a priority messages and possibility of hitting this case because of multicast messaging.
-			  */
-             sleep(2);
+		    /* TRY_AGAIN while sync is in progress means *this* IMMND most likely has reached IMMSV_DEFAULT_FEVS_MAX_PENDING.
+		       This means that *this* IMMND has sent its quota of fevs messages to IMMD without having received them back via
+		       broadcast from IMMD. 
+
+		       Thus fevs_replies_pending will be hit in the case of the messages accumulating either in local send queues
+		       at the MDS/TIPC/TCP level; OR at the IMMDs receivingg queue; OR at this IMMNDs MDS/TIPC_/TCP receiving
+		       queue (when the fevs message comes back). The most likely case is the IMMD receive buffers.
+
+		       IMMD is in general the fevs bottleneck in the system. This since it is one process serving an open ended number
+		       of IMMND clients. The larger the cluster the higher the risk of hitting fevs_max_pending at IMMNDs.
+		    */
+		    usleep(usec);
+		    if(usec < 500000) { usec = usec*2; } /* Increase wait time exponentially up to 0.5 seconds */
             }
 	    /* Synchronous for throttling sync */
 	    err = saImmOmSearchNext_2(searchHandle, &objectName, &attributes);
