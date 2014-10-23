@@ -3697,7 +3697,7 @@ static SaAisErrorT admin_op_invoke_common(
 						i = 0;
 						while((*returnParams)[i]) {
 							if((*returnParams)[i]->paramType == SA_IMM_ATTR_SANAMET
-									&& osaf_is_extended_name_valid((SaNameT *)(*returnParams)[i]->paramBuffer)) {
+									&& !osaf_is_extended_name_valid((SaNameT *)(*returnParams)[i]->paramBuffer)) {
 								if(*operationReturnValue == SA_AIS_OK) {
 									*operationReturnValue = SA_AIS_ERR_NAME_TOO_LONG;
 								}
