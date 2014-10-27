@@ -1495,7 +1495,26 @@ static void saImmOiCcbAbortCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 	TRACE_ENTER2("ABORT callback. Cleanup CCB %llu", ccbId);	
 
 	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) != NULL) {
-		/* Verify nok outcome with ccbUtilCcbData->userData */
+		if((s2PbeBCcbToCompleteAtB == ccbId) && pbeTransStarted() && !pbeTransIsPrepared()) {
+			osafassert(sPbe2 && sPbe2B); /* Must be slave PBE */
+			/* Avoid aborting ccb in main-thread while on-going prepare on same ccb in rt-thread */
+			/* Extra wait for max 3 seconds */
+			unsigned int try_count=0;
+			unsigned int max_tries=60;
+			do {
+				LOG_IN("Delaying ccb abort at slave PBE due to ongoing prepare of ccb:%llx/%llu",
+					s2PbeBCcbToCompleteAtB, s2PbeBCcbToCompleteAtB);
+				usleep(50000);
+				++try_count;
+			} while(!pbeTransIsPrepared() && (try_count < max_tries));
+
+			if(!pbeTransIsPrepared()) {
+				LOG_WA("Slave PBE main thread blocked in abort of ccb:%llx/%llu - exit/restart",
+					s2PbeBCcbToCompleteAtB, s2PbeBCcbToCompleteAtB);
+				exit(1);
+			}
+		}
+
 		ccbutil_deleteCcbData(ccbUtilCcbData);
 	} else {
 		/* changed from ER to WA. We can get here when PBE was restarted
