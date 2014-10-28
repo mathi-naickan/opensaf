@@ -47,6 +47,9 @@ extern "C" {
  * ========================================================================
  */
 
+#define SMF_SAF_APP_DN "safApp=safSmfService"
+#define SMF_CAMP_RESTART_INDICATOR_RDN "smfCampaignRestartIndicator=smf"
+
 /* ========================================================================
  *   TYPE DEFINITIONS
  * ========================================================================

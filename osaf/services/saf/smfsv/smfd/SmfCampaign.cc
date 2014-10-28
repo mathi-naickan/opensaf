@@ -29,6 +29,7 @@
 #include "SmfUpgradeCampaign.hh"
 #include "SmfUpgradeProcedure.hh"
 #include "SmfProcedureThread.hh"
+#include "SmfUtils.hh"
 
 #include <saSmf.h>
 #include <logtrace.h>
@@ -304,6 +305,7 @@ SmfCampaign::init(const SaImmAttrValuesT_2 ** attrValues)
 SaAisErrorT 
 SmfCampaign::adminOperation(const SaImmAdminOperationIdT opId, const SaImmAdminOperationParamsT_2 ** params)
 {
+	TRACE_ENTER();
 	if (SmfCampaignThread::instance() != NULL) {
 		if (SmfCampaignThread::instance()->campaign() != this) {
 			LOG_ER("Another campaign is executing %s",
@@ -313,6 +315,21 @@ SmfCampaign::adminOperation(const SaImmAdminOperationIdT opId, const SaImmAdminO
 	}
 
 	TRACE("Received admin operation %llu", opId);
+
+	/* Check if the SmfRestartIndicator exists or not:
+	 *    -if exists: return try again.
+	 *    -if not exists: continue
+	 *
+	 * Note: If the SmfRestartIndicator exists then the cluster reboot procedure is ongoing.
+	 * That could happen in 2 cases:
+	 *    -before cluster reboot command when the SmfRestartIndicator is already set
+	 *    -after cluster reboot command when the SmfRestartIndicator has not been removed yet by the checkSmfRestartIndicator method.
+	 */
+	if(smfRestartIndicatorExists()) {
+		LOG_NO("Cluster reboot is ongoing, admin operation is not allowed, returning SA_AIS_ERR_TRY_AGAIN");
+		TRACE_LEAVE();
+		return SA_AIS_ERR_TRY_AGAIN;
+	}
 
 	switch (opId) {
 	case SA_SMF_ADMIN_EXECUTE:
@@ -513,6 +530,7 @@ SmfCampaign::adminOperation(const SaImmAdminOperationIdT opId, const SaImmAdminO
 			return SA_AIS_ERR_BAD_OPERATION;
 		}
 	}
+	TRACE_LEAVE();
 	return SA_AIS_OK;
 }
 
@@ -874,6 +892,44 @@ SmfCampaign::stopElapsedTime()
 {
         this->updateElapsedTime();
         m_previousUpdateTime = 0;
+}
+
+/**
+ * Check if the SmfRestartIndicator exists.
+ *    -return true if exists
+ *    -return false if not exists
+ */
+bool
+SmfCampaign::smfRestartIndicatorExists()
+{
+	TRACE_ENTER();
+	SaAisErrorT rc = SA_AIS_OK;
+	bool returnValue = false;
+	SaImmAttrValuesT_2 **attributes;
+	std::string objDn    = std::string(SMF_CAMP_RESTART_INDICATOR_RDN) + "," + std::string(SMF_SAF_APP_DN);
+	SmfImmUtils immUtil;
+
+	// A restart might just occurred.
+	// If the result differs from the expected outcome, retry a couple of times
+
+	//Check if the object exist
+	unsigned int retries = 1;
+	rc = immUtil.getObjectAisRC(objDn, &attributes);
+
+	while (rc != SA_AIS_OK && rc != SA_AIS_ERR_NOT_EXIST && retries < 30) {
+		sleep(1);
+		rc = immUtil.getObjectAisRC(objDn, &attributes);
+		retries++;
+	}
+
+	if (rc == SA_AIS_OK)
+		// this is the only case where the return value is set to true
+		returnValue = true;
+	else if (rc != SA_AIS_ERR_NOT_EXIST)
+		LOG_ER("Could not get %s (%d)", objDn.c_str(), rc);
+
+	TRACE_LEAVE();
+	return returnValue;
 }
 
 /*====================================================================*/

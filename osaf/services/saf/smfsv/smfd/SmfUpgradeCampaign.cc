@@ -614,7 +614,7 @@ SmfUpgradeCampaign::disablePbe()
 	SmfImmRTCreateOperation icoSmfPbeIndicator;
 
 	icoSmfPbeIndicator.setClassName("OpenSafSmfPbeIndicator");
-	icoSmfPbeIndicator.setParentDn("safApp=safSmfService");
+	icoSmfPbeIndicator.setParentDn(SMF_SAF_APP_DN);
 	icoSmfPbeIndicator.setImmHandle(SmfCampaignThread::instance()->getImmHandle());
 
 	SmfImmAttribute attrsafRdn;
@@ -625,7 +625,7 @@ SmfUpgradeCampaign::disablePbe()
 
 	rc = icoSmfPbeIndicator.execute(); //Create the object
 	if (rc != SA_AIS_OK){
-		LOG_NO("Fail to create object OpenSafSmfPbeIndicator, rc=%s, dn=[%s]", saf_error(rc), "safRdn=smfPbeIndicator,safApp=safSmfService");
+		LOG_NO("Fail to create object OpenSafSmfPbeIndicator, rc=%s, dn=[%s,%s]", saf_error(rc), "safRdn=smfPbeIndicator", SMF_SAF_APP_DN);
 	}
 
 	TRACE_LEAVE();
@@ -656,7 +656,7 @@ SmfUpgradeCampaign::restorePbe()
 	//Get the saved state if IMM PBE, if smfPbeIndicator is not found IMM PBE shall not be touched.
 	//Note: When introducing SMF PBE on/off functionality (upgrade), the smfPbeIndicator will not be found and 
 	//      no action will be taken.
-	if (immUtil.getObject("safRdn=smfPbeIndicator,safApp=safSmfService", &attributes) == false) {
+	if (immUtil.getObject("safRdn=smfPbeIndicator," + std::string(SMF_SAF_APP_DN), &attributes) == false) {
 		LOG_NO("IMM PBE was not turned off at campaign start and was not turned on at PBE restore.");
 		TRACE_LEAVE();
 		return SA_AIS_ERR_ACCESS;
@@ -664,7 +664,7 @@ SmfUpgradeCampaign::restorePbe()
 
 	//The object was found i.e. the IMM PBE shall be activated.
 	//Delete the "safRdn=smfPbeIndicator,safApp=safSmfService" object
-	std::string dn("safRdn=smfPbeIndicator,safApp=safSmfService");
+	std::string dn = "safRdn=smfPbeIndicator," + std::string(SMF_SAF_APP_DN);
         SaNameT objectName;
 	objectName.length = dn.length();
 	strncpy((char *)objectName.value, dn.c_str(), objectName.length);
@@ -993,6 +993,21 @@ SmfUpgradeCampaign::continueExec()
 		return;
 	}
 
+        /*
+         * This case happens only when a single step cluster reboot campaign suspended at the time when the cluster reboot step was executed.
+         * After the reboot this function called to continue the campaign execution.
+         * The campaign state is now "SUSPENDING_EXECUTION" since:
+         * before the reboot the suspending event (sent to the procedure) remained pending and was not processed by the procedure thread
+         * which therefore did not change the campaign state to suspended.
+         * As a result: the campaign state remained suspending and the procedure state remained executing.
+         */
+        if(currentState == SA_SMF_CMPG_SUSPENDING_EXECUTION) {
+            // The following method changes the status of the campaign to "ExecSuspended" or "Executing".
+            execute();
+            // Refresh local variable.
+            currentState = m_state->getState();
+        }
+
         switch (currentState) {
         case SA_SMF_CMPG_EXECUTING:
                 SmfCampaignThread::instance()->campaign()->startElapsedTime();
@@ -1166,8 +1181,8 @@ SmfUpgradeCampaign::createSmfRestartIndicator()
 	TRACE_ENTER();
 	SaAisErrorT rc = SA_AIS_OK;
 	SaImmAttrValuesT_2 **attributes;
-	std::string parentDn = "safApp=safSmfService";
-	std::string rdn      = "smfCampaignRestartIndicator=smf";
+	std::string parentDn = SMF_SAF_APP_DN;
+	std::string rdn      = SMF_CAMP_RESTART_INDICATOR_RDN;
 	std::string objDn    = rdn + "," + parentDn;
 	SmfImmUtils immUtil;
 
@@ -1208,9 +1223,7 @@ SmfUpgradeCampaign::checkSmfRestartIndicator()
 	TRACE_ENTER();
 	SaAisErrorT rc = SA_AIS_OK;
 	SaImmAttrValuesT_2 **attributes;
-	std::string parentDn = "safApp=safSmfService";
-	std::string rdn      = "smfCampaignRestartIndicator=smf";
-	std::string objDn    = rdn + "," + parentDn;
+	std::string objDn    = std::string(SMF_CAMP_RESTART_INDICATOR_RDN) + "," + std::string(SMF_SAF_APP_DN);
 	SmfImmUtils immUtil;
 
 	//This is the place to be very patient regarding object access. A restart have just occured.

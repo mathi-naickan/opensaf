@@ -63,8 +63,8 @@ static smfd_cb_t _smfd_cb;
 smfd_cb_t *smfd_cb = &_smfd_cb;
 
 static const SaNameT _smfApplDN = {
-        .value = "safApp=safSmfService",
-        .length = sizeof("safApp=safSmfService") - 1
+        .value = SMF_SAF_APP_DN,
+        .length = sizeof(SMF_SAF_APP_DN) - 1
 };
 
 const SaNameT *smfApplDN = &_smfApplDN;

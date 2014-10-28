@@ -179,6 +179,8 @@ class SmfCampStateSuspendingExec:public SmfCampState {
 
 	virtual void toString(std::string & io_str) const;
 
+	virtual SmfCampResultT execute(SmfUpgradeCampaign * i_camp);
+
 	virtual SmfCampResultT procResult(SmfUpgradeCampaign *  i_camp,
                                           SmfUpgradeProcedure * i_procedure,
                                           SmfProcResultT        i_result);

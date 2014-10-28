@@ -1117,6 +1117,66 @@ SmfCampStateSuspendingExec::toString(std::string & io_str) const
 }
 
 //------------------------------------------------------------------------------
+// execute()
+//------------------------------------------------------------------------------
+SmfCampResultT
+SmfCampStateSuspendingExec::execute(SmfUpgradeCampaign * i_camp)
+{
+	/* This method handles a special case:
+	 *
+	 *    This method called only in case of continuing a campaign after cluster reboot,
+	 *    where the campaign state is "SuspendingExec".
+	 *    That special case only happens when the campaign suspended during execution of the cluster reboot step.
+	 *    Since that step is not able to set the "ExecSuspended" state after execution,
+	 *    the campaign remains in "SuspendingExec" state.
+	 *
+	 *    This method executes one of the following:
+	 *
+	 *       -if procedures left to execute:
+	 *          change camp state to "ExecSuspended",
+	 *          and change the status of procedures which have "Executing" to "Suspended"
+	 *
+	 *       -else (this was the last procedure, no more left):
+	 *          change camp state to "Executing"
+	 */
+	TRACE_ENTER();
+	TRACE("SmfCampStateSuspendingExec::execute implementation");
+	const std::vector < SmfUpgradeProcedure * >& procedures = i_camp->getProcedures();
+	std::vector < SmfUpgradeProcedure * >::const_iterator iter;
+	bool initialFound = false;
+
+	// Searching if any procedure is in initial status.
+	for (iter = procedures.begin(); iter != procedures.end(); iter++) {
+		if((*iter)->getState() == SA_SMF_PROC_INITIAL)	{
+			TRACE("SmfCampStateSuspendingExec::execute SA_SMF_PROC_INITIAL found");
+			initialFound = true;
+			break;
+		}
+	}
+
+	if(initialFound) {
+		TRACE("SmfCampStateSuspendingExec::execute this is not the last procedure, changing camp state to suspended");
+		changeState(i_camp, SmfCampStateExecSuspended::instance());
+
+		// Searching for all procedures which has executing status.
+		for (iter = procedures.begin(); iter != procedures.end(); iter++) {
+			if((*iter)->getState() == SA_SMF_PROC_EXECUTING) {
+				// The procedure did not change its status to ExecSuspended before cluster reboot.
+				// It can be done now, because no procedure is running at this point.
+				TRACE("SmfCampStateSuspendingExec::execute changing proc state to ExecSuspended");
+				(*iter)->changeState(SmfProcStateExecSuspended::instance());
+			}
+		}
+	}
+	else {
+		TRACE("SmfCampStateSuspendingExec::execute this is the last procedure, changing camp state to executing");
+		changeState(i_camp, SmfCampStateExecuting::instance());
+	}
+	TRACE_LEAVE();
+	return SMF_CAMP_DONE;
+}
+
+//------------------------------------------------------------------------------
 // procResult()
 //------------------------------------------------------------------------------
 SmfCampResultT 
