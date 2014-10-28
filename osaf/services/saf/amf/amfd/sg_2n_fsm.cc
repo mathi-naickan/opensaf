@@ -1632,14 +1632,39 @@ uint32_t SG_2N::susi_success_sg_realign(AVD_SU *su, AVD_SU_SI_REL *susi,
 					}
 				}
 			} else {
-
-				if ((l_su = avd_sg_2n_su_chose_asgn(cb, su->sg_of_su)) == NULL) {
-					/* all the assignments have already been done in the SG. */
-					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
-					avd_sidep_sg_take_action(su->sg_of_su);
-					avd_sg_app_su_inst_func(cb, su->sg_of_su);
+				a_susi = avd_sg_2n_act_susi(cb, su->sg_of_su, &s_susi);
+				if ((a_susi == NULL) && (s_susi != NULL) && (s_susi->su == su)) {
+					/* This means that when Standby assign-
+					   ment was undergoing, Act faulted.
+					   This means there is no Act now, so
+					   revert the state. */
+					if (avd_sidep_si_dependency_exists_within_su(su)) {
+						for (i_susi = su->list_of_susi; i_susi != NULL; i_susi = i_susi->su_next) {
+							if (avd_susi_role_failover(i_susi, su) == NCSCC_RC_FAILURE) {
+								LOG_NO(" %s: %u: Active role modification failed for  %s ",
+										__FILE__, __LINE__, i_susi->su->name.value);
+								goto done;
+							}
+						}
+					} else {
+						/* There is no dependency between SI's within SU, so trigger SU level
+						   failover */
+						if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_ACTIVE) == NCSCC_RC_FAILURE) {
+							LOG_ER("%s:%u: %s", __FILE__, __LINE__, su->name.value);
+							goto done;
+						}
+					}
+					avd_sg_su_oper_list_add(cb, su, false);
 				} else {
-					avd_sg_su_oper_list_add(cb, l_su, false);
+
+					if ((l_su = avd_sg_2n_su_chose_asgn(cb, su->sg_of_su)) == NULL) {
+						/* all the assignments have already been done in the SG. */
+						m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
+						avd_sidep_sg_take_action(su->sg_of_su);
+						avd_sg_app_su_inst_func(cb, su->sg_of_su);
+					} else {
+						avd_sg_su_oper_list_add(cb, l_su, false);
+					}
 				}
 			}
 
@@ -1713,18 +1738,46 @@ uint32_t SG_2N::susi_success_sg_realign(AVD_SU *su, AVD_SU_SI_REL *susi,
 				avd_sg_su_oper_list_del(cb, su, false);
 
 				if (su->sg_of_su->su_oper_list.su == NULL) {
-					if ((l_su = avd_sg_2n_su_chose_asgn(cb, su->sg_of_su)) == NULL) {
-						/* all the assignments have already been done in the SG. */
-						m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
-						avd_sidep_sg_take_action(su->sg_of_su); 
-						avd_sg_app_su_inst_func(cb, su->sg_of_su);
+					a_susi = avd_sg_2n_act_susi(cb, su->sg_of_su, &s_susi);
+					if ((a_susi == NULL) && (s_susi != NULL) && (s_susi->su == su)) {
+						/* This means that when Standby assign-
+						   ment was undergoing, Act faulted.
+						   This means there is no Act now, so
+						   revert the state. */
+						if (avd_sidep_si_dependency_exists_within_su(su)) {
+							for (i_susi = su->list_of_susi; i_susi != NULL;
+									i_susi = i_susi->su_next) {
+								if (avd_susi_role_failover(i_susi, su) ==
+										NCSCC_RC_FAILURE) {
+									LOG_NO(" %s: %u: Active role modification"
+											" failed for  %s ",
+											__FILE__, __LINE__,
+											i_susi->su->name.value);
+									goto done;
+								}
+							}
+						} else {
+							/* There is no dependency between SI's within SU, so trigger SU level
+							   failover */
+							if (avd_sg_su_si_mod_snd(cb, su, SA_AMF_HA_ACTIVE) ==
+									NCSCC_RC_FAILURE) {
+								LOG_ER("%s:%u: %s", __FILE__, __LINE__, su->name.value);
+								goto done;
+							}
+						}
+						avd_sg_su_oper_list_add(cb, su, false);
 					} else {
-						/* Add the SU to the list  */
-						avd_sg_su_oper_list_add(cb, l_su, false);
+						if ((l_su = avd_sg_2n_su_chose_asgn(cb, su->sg_of_su)) == NULL) {
+							/* all the assignments have already been done in the SG. */
+							m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
+							avd_sidep_sg_take_action(su->sg_of_su); 
+							avd_sg_app_su_inst_func(cb, su->sg_of_su);
+						} else {
+							/* Add the SU to the list  */
+							avd_sg_su_oper_list_add(cb, l_su, false);
+						}
 					}
-
 				}
-
 			} else {
 				if ((susi->state == SA_AMF_HA_ACTIVE) && (susi->si->num_dependents > 0))
 					avd_sidep_send_active_to_dependents(susi->si);
