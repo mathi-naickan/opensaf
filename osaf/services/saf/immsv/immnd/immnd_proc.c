@@ -904,7 +904,7 @@ static void immnd_pbePrtoPurgeMutations(IMMND_CB *cb)
 		return;
 	}
 
-	if(cb->mPbeVeteran) {
+	if(cb->mPbeVeteran || cb->mPbeVeteranB) {
 		/* Currently we can not recover results for PRTO create/delete/updates
 		   from restarted PBE. 
 		   If we have non completed PRTO ops toward PBE when it needs to
@@ -979,7 +979,7 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 			}
 		}
 
-		if(!(cb->mPbeVeteranB)) {
+		if(cb->m2Pbe && !(cb->mPbeVeteranB)) {
 			/*
 			  If we are coord then the PBE-B has to be remote.
 			  If we are SC but not coord then the PBE-B has to be LOCAL.
@@ -1541,7 +1541,7 @@ static int immnd_forkPbe(IMMND_CB *cb)
 
 	LOG_NO("pbe-db-file-path:%s VETERAN:%u B:%u", dbFilePath, cb->mPbeVeteran, cb->mPbeVeteranB);
 
-	if(cb->mPbeVeteran && !immModel_pbeIsInSync(cb, false)) {
+	if((cb->mPbeVeteran || cb->mPbeVeteranB) && !immModel_pbeIsInSync(cb, false)) {
 		/* Currently we can not recover results for PRTO create/delete/updates
 		   from restarted PBE. 
 		   If we have non completed PRTO ops toward PBE when it needs to
@@ -1588,7 +1588,7 @@ static int immnd_forkPbe(IMMND_CB *cb)
 		/* If pbe crashes again before succeeding to attach as PBE implementer
 		   then dont try to re-attach the DB file, instead regenerate it.
 		 */
-	} else if(!(cb->mIsCoord) && cb->mPbeVeteranB) {
+	} else if(cb->m2Pbe && cb->mPbeVeteranB) {
 		cb->mPbeVeteranB = SA_FALSE;
 	}
 
@@ -2166,6 +2166,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 						}
 					} else if(cb->pbePid2 <= 0) {
 						LOG_IN("Postponing start of SLAVE PBE until primary PBE has atached.");
+						cb->mPbeVeteranB = SA_FALSE;
 					}
 				} else if(cb->pbePid2 > 0) { 
 					/* PBE disabled, yet SLAVE PBE is running => STOP it. */
