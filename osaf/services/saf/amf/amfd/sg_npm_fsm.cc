@@ -4205,6 +4205,24 @@ void avd_sg_npm_node_fail_func(AVD_CL_CB *cb, AVD_SU *su)
 			/* Free all the SI assignments to this SU. */
 			avd_sg_su_asgn_del_util(cb, su, true, false);
 
+			/* sg_fsm_state is still STABLE if no standby SU is found to take role change. */
+			if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE) {
+				/* Try to engage susi assignment if the other su may still have enough 
+				 * capability (total ActiveSI not greater than saAmfSGMaxActiveSIsperSU)
+				 */
+				if (avd_sg_npm_su_chose_asgn(cb, su->sg_of_su) != NULL) {
+					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
+				} else {
+					/* No need to redistribute si here, since at this point in time
+					 * it lacks the IN-SERVICE SU to take the assignment, so there
+					 * will be no SU that can share the assignment from highloading
+					 * SU during SI redistribution. Only take action on sidep state.
+					 */
+					avd_sidep_sg_take_action(su->sg_of_su);
+				}
+			}
+
+
 		} else {	/* if (su->list_of_susi->state == SA_AMF_HA_ACTIVE) */
 
 			/* means standby */
