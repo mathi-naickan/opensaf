@@ -411,7 +411,7 @@ int main(int argc, char *argv[])
 		if (error != SA_AIS_OK) {
 			if (error == SA_AIS_ERR_NOT_EXIST) {
 				if(strcmp(adminOwnerName, saAisNameBorrow(&objectName))==0) {
-					fprintf(stderr, "AdminOwnerName == ImplementerName (%s) - Could be direct admin-op on OI\n", adminOwnerName);
+					/* AdminOwnerName == ImplementerName - Could be direct admin-op on OI */
 					goto retry;
 				}
 				fprintf(stderr, "error - saImmOmAdminOwnerSet - object '%s' does not exist\n",
