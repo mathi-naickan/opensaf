@@ -18,7 +18,7 @@ include $(top_srcdir)/Makefile.common
 
 MAINTAINERCLEANFILES = Makefile.in
 
-bin_PROGRAMS = logtest saflogtest
+bin_PROGRAMS = logtest saflogtest logtestfr
 
 noinst_HEADERS = \
 	logtest.h
@@ -43,7 +43,8 @@ logtest_SOURCES = \
 	tet_saLogFilterSetCallbackT.c \
 	tet_saLogStreamClose.c \
 	tet_saLogLimitGet.c \
-	tet_LogOiOps.c
+	tet_LogOiOps.c \
+	tet_Log_misc.c
 
 logtest_LDADD = \
 	$(top_builddir)/tests/unit_test_fw/src/libutest.la \
@@ -60,4 +61,19 @@ saflogtest_LDADD = \
 	$(top_builddir)/tests/unit_test_fw/src/libutest.la \
 	$(top_builddir)/osaf/tools/safimm/src/libimmutil.la \
 	$(top_builddir)/osaf/libs/saf/libSaLog/libSaLog.la \
+	$(top_builddir)/osaf/libs/core/libopensaf_core.la
+
+logtestfr_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/osaf/libs/common/immsv/include
+
+llogtestfr_SOURCES = \
+	logtestfr.c
+
+logtestfr_LDADD = \
+	$(top_builddir)/tests/unit_test_fw/src/libutest.la \
+	$(top_builddir)/osaf/tools/safimm/src/libimmutil.la \
+	$(top_builddir)/osaf/libs/saf/libSaLog/libSaLog.la \
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOi.la \
+	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOm.la \
 	$(top_builddir)/osaf/libs/core/libopensaf_core.la
