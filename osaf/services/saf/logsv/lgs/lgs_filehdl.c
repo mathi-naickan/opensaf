@@ -582,19 +582,9 @@ static int check_oldest(char *line, char *fname_prefix, int fname_prefix_size, i
 	name_format[fname_prefix_size] = '\0';
 	TRACE_3("fname: %s", name_format);
 	strncat(name_format, time_stamps, SA_MAX_NAME_LENGTH-1);
-	if (sscanf(line, name_format, &date, &time, &c, &d) == 4) {
-		TRACE_3("line: arg1: %d 2: %d 3: %d 4: %d ok", date, time, c, d);
-		if (date < *old_date || *old_date == -1) {
-			*old_date = date;
-			*old_time = time;
-			return 1;
-		} else if ((date == *old_date) && (time < *old_time)) {
-			*old_date = date;
-			*old_time = time;
-			return 1;
-		}
-	} else if (sscanf(line, name_format, &date, &time) == 2) {
-		TRACE_3("line: arg1: %d 2: %d ok", date, time);
+	if (sscanf(line, name_format, &date, &time, &c, &d) >= 2) {
+		TRACE_3("%s: line: arg 1: %d 2: %d 3: %d 4: %d ok", __FUNCTION__,
+				date, time, c, d);
 		if (date < *old_date || *old_date == -1) {
 			*old_date = date;
 			*old_time = time;
