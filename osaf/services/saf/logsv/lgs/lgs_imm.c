@@ -468,6 +468,13 @@ static void adminOperationCallback(SaImmOiHandleT immOiHandle,
 					"Admin op change filter for non app stream");
 			goto done;
 		}
+		
+		if (param == NULL) {
+			/* No parameters given in admin op */
+			report_om_error(immOiHandle, invocation,
+					"Admin op change filter: parameters are missing");
+			goto done;			
+		}
 
 		if (strcmp(param->paramName, "saLogStreamSeverityFilter") != 0) {
 			report_om_error(immOiHandle, invocation,
