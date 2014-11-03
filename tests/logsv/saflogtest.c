@@ -62,7 +62,6 @@ static char *progname = "saflogtest";
 static SaInvocationT cb_invocation;
 static SaAisErrorT cb_error;
 
-
 static SaTimeT get_current_SaTime(void)
 {
 	struct timeval tv;

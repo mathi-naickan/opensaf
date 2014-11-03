@@ -19,7 +19,6 @@
 #ifndef util_h
 #define util_h
 
-extern const char *saf_error[];
 extern SaTimeT getSaTimeT(void);
 extern void create_dn(char *rdn, char *parent, SaNameT *dn);
 extern void sa_namet_init(char *value, SaNameT *namet);

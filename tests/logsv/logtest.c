@@ -22,6 +22,7 @@
 #include <saImmOm.h>
 #include <immutil.h>
 #include <saImm.h>
+#include <saf_error.h>
 
 #include "logtest.h"
 
@@ -159,6 +160,62 @@ void init_logrootpath(void)
 		strncpy(log_root_path, PKGLOGDIR, PATH_MAX);
 	}
 	(void) immutil_saImmOmFinalize(omHandle);
+}
+
+/**
+ * Return info about which SC node that is Active
+ * 
+ * Note: Using immutil with default setting meaning abort if error
+ * 
+ * @return 1 SC-1, 2 SC-2
+ */
+int get_active_sc(void)
+{
+	int active_sc = 0;
+	SaImmHandleT omHandle;
+	SaNameT objectName1 = { /* Read object for SC-1 */
+		.value = "safSu=SC-1,safSg=2N,safApp=OpenSAF",
+		.length = strlen("safSu=SC-1,safSg=2N,safApp=OpenSAF") + 1
+	};
+	SaImmAccessorHandleT accessorHandle;
+	SaImmAttrValuesT_2 **attributes;
+	const char saAmfSUNumCurrActiveSIs[] = "saAmfSUNumCurrActiveSIs";
+	SaImmAttrNameT attributeNames[2] = {(char *) saAmfSUNumCurrActiveSIs, NULL};
+	SaUint32T curr_act_sis = 0;
+	
+	/* NOTE: immutil init osaf_assert if error
+	 */
+	(void) immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
+	(void) immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
+
+	/* Get attributes of the object
+	 * We may have to wait until a value is available
+	 */
+	int try_cnt = 0;
+	while (1) {
+		(void) immutil_saImmOmAccessorGet_2(accessorHandle, &objectName1,
+											attributeNames, &attributes);
+		if (attributes[0]->attrValuesNumber != 0)
+			break;
+		sleep(1);
+		if (try_cnt++ >= 10) {
+			fprintf(stderr ,"%s FAILED Attribute value could not be read\n",
+					__FUNCTION__);
+			abort();
+		}
+	}
+	
+	/* Checking SC-1 */
+	curr_act_sis = *((SaUint32T *) attributes[0]->attrValues[0]);
+	
+	if (curr_act_sis > 0) {
+		active_sc = 1;
+	} else {
+		active_sc = 2;
+	}
+	
+	(void) immutil_saImmOmFinalize(omHandle);
+	return active_sc;
 }
 
 int main(int argc, char **argv) 

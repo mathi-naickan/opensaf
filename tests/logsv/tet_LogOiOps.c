@@ -21,6 +21,7 @@
 #include <saImmOm.h>
 #include <limits.h>
 #include <unistd.h>
+#include <saf_error.h>
 #include "logtest.h"
 
 static SaLogFileCreateAttributesT_2 appStreamLogFileCreateAttributes =
@@ -372,8 +373,69 @@ void saLogOi_22(void)
     safassert(saLogStreamOpen_2(logHandle, &app1StreamName, &appStreamLogFileCreateAttributes,
         SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle), SA_AIS_OK);
     rc = system(command);
+
     safassert(saLogFinalize(logHandle), SA_AIS_OK);
     rc_validate(WEXITSTATUS(rc), 1);
+}
+
+/**
+ * Log Service Administration API, no parameters
+ */
+void saLogOi_116(void)
+{
+	int rc = 0;
+	SaAisErrorT ais_rc = SA_AIS_OK;
+	char command[256];
+	int active_sc_before_test = 0;
+	int active_sc_after_test = 0;
+
+	active_sc_before_test = get_active_sc();
+	
+	ais_rc = saLogInitialize(&logHandle, NULL, &logVersion);
+	if (ais_rc != SA_AIS_OK) {
+		fprintf(stderr, "saLogInitialize Fail: %s\n", saf_error(ais_rc));
+		rc = 255;
+		goto done;
+	}
+	
+	ais_rc = saLogStreamOpen_2(logHandle, &app1StreamName, &appStreamLogFileCreateAttributes,
+        SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle);
+	if (ais_rc != SA_AIS_OK) {
+		fprintf(stderr, "saLogStreamOpen_2 Fail: %s\n", saf_error(ais_rc));
+		rc = 255;
+		goto done;
+	}
+	
+	snprintf(command, 256, "immadm -o 1 %s 2> /dev/null", SA_LOG_STREAM_APPLICATION1);
+	rc = system(command);
+	rc = WEXITSTATUS(rc);
+	
+	int try_cnt = 0;
+	do {
+		ais_rc = saLogFinalize(logHandle);
+		if (ais_rc == SA_AIS_OK)
+			break; /* We don't have to TRY AGAIN */
+		if (try_cnt++ >= 10)
+			break; /* Don't wait any longer */
+		usleep(1000 * 100); /* Wait 100 ms */
+	} while (ais_rc == SA_AIS_ERR_TRY_AGAIN);
+	if (ais_rc != SA_AIS_OK) {
+		fprintf(stderr, "saLogFinalize Fail: %s\n", saf_error(ais_rc));
+		rc = 255;
+		goto done;
+	}
+	
+	done:
+	active_sc_after_test = get_active_sc();
+	
+	if (active_sc_before_test != active_sc_after_test) {
+		/* Fail over has been done */
+		fprintf(stderr, "\nnFailover during test:\nActive node before test was SC-%d\n"
+				"Active node after test is SC-%d\n",active_sc_before_test,
+				active_sc_after_test);
+		rc = 255;
+	}
+	rc_validate(rc, 1);
 }
 
 /**
@@ -1651,6 +1713,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
     test_case_add(4, saLogOi_20, "Log Service Administration API, change sev filter, ERR invalid param name");
     test_case_add(4, saLogOi_21, "Log Service Administration API, no change in sev filter, ERR NO OP");
     test_case_add(4, saLogOi_22, "Log Service Administration API, invalid opId");
+	test_case_add(4, saLogOi_116,"Log Service Administration API, no parameters");
 	test_case_add(4, saLogOi_23, "CCB Object Create, strA");
     test_case_add(4, saLogOi_24, "CCB Object Create, strB");
     test_case_add(4, saLogOi_25, "CCB Object Create, strC");

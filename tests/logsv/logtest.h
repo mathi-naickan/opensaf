@@ -63,4 +63,5 @@ extern SaNameT logSvcUsrName;
 extern SaLogRecordT genLogRecord;
 extern char log_root_path[];
 
+int get_active_sc(void);
 #endif

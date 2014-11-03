@@ -23,7 +23,7 @@
 #include <assert.h>
 #include <saAis.h>
 
-const char *saf_error[] =
+static const char *saf_error[] =
 {
     "SA_AIS_NOT_VALID",
     "SA_AIS_OK",
