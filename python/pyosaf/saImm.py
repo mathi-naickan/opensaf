@@ -15,7 +15,22 @@
 #
 ############################################################################
 
-from saAis import *
+'''
+Common IMM OM and OI type definitions
+'''
+
+from ctypes import cast, pointer, POINTER, Structure, Union
+
+from pyosaf.saAis import SaStringT, SaEnumT, SaInt32T, SaUint32T, SaInt64T, \
+    SaUint64T, SaTimeT, SaNameT, SaFloatT, SaDoubleT, SaStringT, SaAnyT
+from pyosaf.saEnumConst import Enumeration, Const
+from pyosaf.saAis import SaVoidPtr
+
+saImm = Const()
+
+SaImmClassNameT = SaStringT
+SaImmAttrNameT = SaStringT
+SaImmAdminOwnerNameT = SaStringT
 
 saImm = Const()
 
@@ -77,7 +92,7 @@ saImm.SA_IMM_ATTR_CACHED = 0x00040000
 
 SaImmAttrFlagsT = SaUint64T
 
-SaImmAttrValueT = SaVoidPtr;
+SaImmAttrValueT = SaVoidPtr
 
 class SaImmAttrDefinitionT_2(Structure):
 	"""Contain characteristics of an attribute belonging to an object class.
@@ -132,6 +147,8 @@ class SaImmSearchOneAttrT_2(Structure):
 		('attrValue', SaImmAttrValueT)]
 
 class SaImmSearchParametersT_2(Union):
+	""" used to provide the criteria parameters for search operations
+	"""
 	_fields_ = [('searchOneAttr', SaImmSearchOneAttrT_2)]
 
 saImm.SA_IMM_CCB_REGISTERED_OI = 0x00000001
@@ -149,8 +166,9 @@ class SaImmAdminOperationParamsT_2(Structure):
 	_fields_ = [('paramName', SaStringT),
 		('paramType', SaImmValueTypeT),
 		('paramBuffer', SaImmAttrValueT)]
-	def __init__(self, name, type, val):
+	def __init__(self, name, ptype, val):
 		pname = SaStringT(name)
-		pval = cast(pointer(SaImmValueTypeMap[type](val)), SaVoidPtr)
+		pval = cast(pointer(SaImmValueTypeMap[ptype](val)), SaVoidPtr)
 		super(SaImmAdminOperationParamsT_2, self).__init__(
-				pname, type, pval)
+				pname, ptype, pval)
+
