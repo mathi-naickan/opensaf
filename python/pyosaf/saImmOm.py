@@ -15,18 +15,36 @@
 #
 ############################################################################
 
-from saImm import *
+'''
+IMM OM interface
+'''
 
-omdll = CDLL('libSaImmOm.so.0')
+import ctypes
+from ctypes import POINTER, Structure
+from pyosaf import saAis
+from pyosaf.saAis import SaAisErrorT, SaBoolT, SaNameT, BYREF, SaTimeT, \
+    marshalNullArray, SaInvocationT, SaEnumT, SaVersionT, SaSelectionObjectT, \
+    SaDispatchFlagsT
+from pyosaf.saEnumConst import Enumeration, Const
+from pyosaf.saImm import SaImmClassNameT, SaImmContinuationIdT, \
+    SaImmAdminOperationIdT, SaImmAdminOperationParamsT_2, \
+    SaImmAttrModificationT_2, \
+    SaImmAttrDefinitionT_2, SaImmClassCategoryT, SaImmScopeT, \
+    SaImmAttrNameT, SaImmCcbFlagsT, SaImmAdminOwnerNameT, \
+    SaImmAttrValuesT_2, SaImmSearchOptionsT, SaImmSearchParametersT_2
 
-SaImmHandleT = SaUint64T
-SaImmAdminOwnerHandleT = SaUint64T
-SaImmCcbHandleT = SaUint64T
-SaImmSearchHandleT = SaUint64T
-SaImmAccessorHandleT = SaUint64T
 
-SaImmOmAdminOperationInvokeCallbackT = CFUNCTYPE(None,
+omdll = ctypes.CDLL('libSaImmOm.so.0')
+
+SaImmHandleT = saAis.SaUint64T
+SaImmAdminOwnerHandleT = saAis.SaUint64T
+SaImmCcbHandleT = saAis.SaUint64T
+SaImmSearchHandleT = saAis.SaUint64T
+SaImmAccessorHandleT = saAis.SaUint64T
+
+SaImmOmAdminOperationInvokeCallbackT = ctypes.CFUNCTYPE(None,
 	SaInvocationT, SaAisErrorT, SaAisErrorT)
+
 
 class SaImmCallbacksT(Structure):
 	"""Contain various callbacks IMM may invoke on registrant.
@@ -45,6 +63,7 @@ eSaImmRepositoryInitModeT = Enumeration((
 	('SA_IMM_KEEP_REPOSITORY', 1),
 	('SA_IMM_INIT_FROM_FILE', 2),
 ))
+
 
 def saImmOmInitialize(immHandle, immCallbacks, version):
 	"""Register invoking process with IMM.
@@ -69,6 +88,7 @@ def saImmOmInitialize(immHandle, immCallbacks, version):
 			BYREF(immCallbacks),
 			BYREF(version))
 
+
 def saImmOmSelectionObjectGet(immHandle, selectionObject):
 	"""Return operating system handle associated with IMM handle to detect
 	pending callbacks.
@@ -90,6 +110,7 @@ def saImmOmSelectionObjectGet(immHandle, selectionObject):
 	return omdll.saImmOmSelectionObjectGet(immHandle,
 			BYREF(selectionObject))
 
+
 def saImmOmDispatch(immHandle, dispatchFlags):
 	"""Invoke callbacks pending for the IMM handle.
 
@@ -102,11 +123,12 @@ def saImmOmDispatch(immHandle, dispatchFlags):
 
 	"""
 
-	omdll.saImmOmDispatch.argtypes = [SaImmHandleT,SaDispatchFlagsT]
+	omdll.saImmOmDispatch.argtypes = [SaImmHandleT, SaDispatchFlagsT]
 
 	omdll.saImmOmDispatch.restype = SaAisErrorT
 
 	return omdll.saImmOmDispatch(immHandle, dispatchFlags)
+
 
 def saImmOmFinalize(immHandle):
 	"""Close association between IMM and the handle.
@@ -124,6 +146,7 @@ def saImmOmFinalize(immHandle):
 	omdll.saImmOmFinalize.restype = SaAisErrorT
 
 	return omdll.saImmOmFinalize(immHandle)
+
 
 def saImmOmClassCreate_2(immHandle, className, classCategory, attrDefinitions):
 	"""Create new configuration or runtime object class.
@@ -148,6 +171,7 @@ def saImmOmClassCreate_2(immHandle, className, classCategory, attrDefinitions):
 
 	return omdll.saImmOmClassCreate_2(immHandle,
 			className, classCategory, c_attrDefinitions)
+
 
 def saImmOmClassDescriptionGet_2(immHandle,
 		className, classCategory, attrDefinitions):
@@ -176,6 +200,7 @@ def saImmOmClassDescriptionGet_2(immHandle,
 			BYREF(classCategory),
 			BYREF(attrDefinitions))
 
+
 def saImmOmClassDescriptionMemoryFree_2(immHandle, attrDefinitions):
 	"""Release memory allocated by previous call to
 	saImmOmClassDescriptionGet_2().
@@ -197,6 +222,7 @@ def saImmOmClassDescriptionMemoryFree_2(immHandle, attrDefinitions):
 	return omdll.saImmOmClassDescriptionMemoryFree_2(immHandle,
 			attrDefinitions)
 
+
 def saImmOmClassDelete(immHandle, className):
 	"""Delete named object class provided no instances exist.
 
@@ -215,6 +241,7 @@ def saImmOmClassDelete(immHandle, className):
 	omdll.saImmOmClassDelete.restype = SaAisErrorT
 
 	return omdll.saImmOmClassDelete(immHandle, className)
+
 
 def saImmOmSearchInitialize_2(immHandle,
 		rootName, scope, searchOptions, searchParams, attributeNames,
@@ -254,6 +281,7 @@ def saImmOmSearchInitialize_2(immHandle,
 			BYREF(attributeNames),
 			BYREF(searchHandle))
 
+
 def saImmOmSearchNext_2(searchHandle, objectName, attributes):
 	"""Get next object matching search criteria specified in corresponding
 	saImmOmSearchInitialize_2().
@@ -278,6 +306,7 @@ def saImmOmSearchNext_2(searchHandle, objectName, attributes):
 			BYREF(objectName),
 			BYREF(attributes))
 
+
 def saImmOmSearchFinalize(searchHandle):
 	"""Finalize search initialized by previous call to
 	saImmOmSearchInitialize().
@@ -295,6 +324,7 @@ def saImmOmSearchFinalize(searchHandle):
 	omdll.saImmOmSearchFinalize.restype = SaAisErrorT
 
 	return omdll.saImmOmSearchFinalize(searchHandle)
+
 
 def saImmOmAccessorInitialize(immHandle, accessorHandle):
 	"""Initialize an object accessor and return a handle for further
@@ -316,6 +346,7 @@ def saImmOmAccessorInitialize(immHandle, accessorHandle):
 
 	return omdll.saImmOmAccessorInitialize(immHandle,
 			BYREF(accessorHandle))
+
 
 def saImmOmAccessorGet_2(accessorHandle,
 		objectName, attributeNames, attributes):
@@ -344,6 +375,7 @@ def saImmOmAccessorGet_2(accessorHandle,
 			c_attributeNames,
 			BYREF(attributes))
 
+
 def saImmOmAccessorFinalize(accessorHandle):
 	"""Finalize object accessor.
 
@@ -360,6 +392,7 @@ def saImmOmAccessorFinalize(accessorHandle):
 	omdll.saImmOmAccessorFinalize.restype = SaAisErrorT
 
 	return omdll.saImmOmAccessorFinalize(accessorHandle)
+
 
 def saImmOmAdminOwnerInitialize(immHandle,
 		adminOwnerName, releaseOwnershipOnFinalize, ownerHandle):
@@ -387,6 +420,7 @@ def saImmOmAdminOwnerInitialize(immHandle,
 			adminOwnerName, releaseOwnershipOnFinalize,
 			BYREF(ownerHandle))
 
+
 def saImmOmAdminOwnerSet(ownerHandle, objectNames, scope):
 	"""Set the administrative owner of a set of objects identified by name
 	and scope.
@@ -410,6 +444,7 @@ def saImmOmAdminOwnerSet(ownerHandle, objectNames, scope):
 	return omdll.saImmOmAdminOwnerSet(ownerHandle,
 			c_objectNames,
 			scope)
+
 
 def saImmOmAdminOwnerRelease(ownerHandle, objectNames, scope):
 	"""Release administrative ownership of a set of objects identified by
@@ -435,6 +470,7 @@ def saImmOmAdminOwnerRelease(ownerHandle, objectNames, scope):
 			c_objectNames,
 			scope)
 
+
 def saImmOmAdminOwnerFinalize(ownerHandle):
 	"""Release owner handle.
 
@@ -451,6 +487,7 @@ def saImmOmAdminOwnerFinalize(ownerHandle):
 	omdll.saImmOmAdminOwnerFinalize.restype = SaAisErrorT
 
 	return omdll.saImmOmAdminOwnerFinalize(ownerHandle)
+
 
 def saImmOmAdminOwnerClear(immHandle, objectNames, scope):
 	"""Clear owner handle of the set of objects identified by name and
@@ -476,6 +513,7 @@ def saImmOmAdminOwnerClear(immHandle, objectNames, scope):
 			c_objectNames,
 			scope)
 
+
 def saImmOmCcbInitialize(ownerHandle, ccbFlags, ccbHandle):
 	"""Initialize a new CCB (change control block) handle.
 
@@ -497,6 +535,7 @@ def saImmOmCcbInitialize(ownerHandle, ccbFlags, ccbHandle):
 
 	return omdll.saImmOmCcbInitialize(ownerHandle, ccbFlags,
 			BYREF(ccbHandle))
+
 
 def saImmOmCcbObjectCreate_2(ccbHandle, className, parentName, attrValues):
 	"""Add creation of new configuration object to CCB requests.
@@ -524,6 +563,7 @@ def saImmOmCcbObjectCreate_2(ccbHandle, className, parentName, attrValues):
 			BYREF(parentName),
 			c_attrValues)
 
+
 def saImmOmCcbObjectDelete(ccbHandle, objectName):
 	"""Add deletion of named configuration object to CCB requests.
 
@@ -542,6 +582,7 @@ def saImmOmCcbObjectDelete(ccbHandle, objectName):
 	omdll.saImmOmCcbObjectDelete.restype = SaAisErrorT
 
 	return omdll.saImmOmCcbObjectDelete(ccbHandle, BYREF(objectName))
+
 
 def saImmOmCcbObjectModify_2(ccbHandle, objectName, attrMods):
 	"""Add modification of configuration object's attributes to CCB requests.
@@ -566,6 +607,7 @@ def saImmOmCcbObjectModify_2(ccbHandle, objectName, attrMods):
 			BYREF(objectName),
 			c_attrMods)
 
+
 def saImmOmCcbApply(ccbHandle):
 	"""Apply all CCB requests associated with handle.
 
@@ -583,6 +625,7 @@ def saImmOmCcbApply(ccbHandle):
 
 	return omdll.saImmOmCcbApply(ccbHandle)
 
+
 def saImmOmCcbFinalize(ccbHandle):
 	"""Finalize the handle associated with the CCB.
 
@@ -599,6 +642,7 @@ def saImmOmCcbFinalize(ccbHandle):
 	omdll.saImmOmCcbFinalize.restype = SaAisErrorT
 
 	return omdll.saImmOmCcbFinalize(ccbHandle)
+
 
 def saImmOmAdminOperationInvoke_2(ownerHandle,
 		objectName, continuationId, operationId, params,
@@ -638,6 +682,7 @@ def saImmOmAdminOperationInvoke_2(ownerHandle,
 			BYREF(operationReturnValue),
 			timeout)
 
+
 def saImmOmAdminOperationInvokeAsync_2(ownerHandle,
 		invocation, objectName, continuationId, operationId, params):
 	"""Request registered runtime owner of named object to perform the
@@ -673,6 +718,7 @@ def saImmOmAdminOperationInvokeAsync_2(ownerHandle,
 			operationId,
 			c_params)
 
+
 def saImmOmAdminOperationContinue(ownerHandle,
 		objectName, continuationId, operationReturnValue):
 	"""Continue invocation of an administrative operation initiated with
@@ -700,6 +746,7 @@ def saImmOmAdminOperationContinue(ownerHandle,
 			BYREF(objectName),
 			continuationId,
 			BYREF(operationReturnValue))
+
 
 def saImmOmAdminOperationContinueAsync(ownerHandle,
 		invocation, objectName, continuationId):
@@ -729,6 +776,7 @@ def saImmOmAdminOperationContinueAsync(ownerHandle,
 			BYREF(objectName),
 			continuationId)
 
+
 def saImmOmAdminOperationContinuationClear(ownerHandle,
 		objectName, continuationId):
 	"""Clear information associated with the identified continuation of an
@@ -744,9 +792,8 @@ def saImmOmAdminOperationContinuationClear(ownerHandle,
 
 	"""
 
-	omdll.saImmOmAdminOperationContinuationClear.argtypes = [SaImmAdminOwnerHandleT,
-						POINTER(SaNameT),
-						SaImmContinuationIdT]
+	omdll.saImmOmAdminOperationContinuationClear.argtypes = \
+        [SaImmAdminOwnerHandleT, POINTER(SaNameT), SaImmContinuationIdT]
 
 	omdll.saImmOmAdminOperationContinuationClear.restype = SaAisErrorT
 
