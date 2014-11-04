@@ -15,24 +15,29 @@
 #
 ############################################################################
 
-from ctypes import *
-from saEnumConst import Enumeration, Const
+'''
+Common types and prototypes used by all modules in pyosaf
+'''
 
-SaInt8T = c_char
-SaInt16T = c_short
-SaInt32T = c_int
-SaInt64T = c_longlong
-SaUint8T = c_ubyte
-SaUint16T = c_ushort
-SaUint32T = c_uint
-SaUint64T = c_ulonglong
+import ctypes
+from ctypes import pointer, POINTER, cast, byref, c_void_p, Structure, Union
+from pyosaf.saEnumConst import Enumeration, Const
+
+SaInt8T = ctypes.c_char
+SaInt16T = ctypes.c_short
+SaInt32T = ctypes.c_int
+SaInt64T = ctypes.c_longlong
+SaUint8T = ctypes.c_ubyte
+SaUint16T = ctypes.c_ushort
+SaUint32T = ctypes.c_uint
+SaUint64T = ctypes.c_ulonglong
 SaEnumT = SaInt32T
 SaVoidPtr = c_void_p
 
 # Types used by the NTF/IMMS service
-SaFloatT = c_float
-SaDoubleT = c_double
-SaStringT = c_char_p
+SaFloatT = ctypes.c_float
+SaDoubleT = ctypes.c_double
+SaStringT = ctypes.c_char_p
 
 SaTimeT = SaInt64T
 SaInvocationT = SaUint64T
@@ -144,6 +149,7 @@ eSaLogLimitIdT = Enumeration((
 	('SA_LOG_MAX_NUM_CLUSTER_APP_LOG_STREAMS_ID', 1),
 ))
 
+
 class SaAnyT(Structure):
 	"""Contain arbitrary set of octets.
 
@@ -153,15 +159,18 @@ class SaAnyT(Structure):
 	_fields_ = [('bufferSize', SaSizeT),
 		('bufferAddr', POINTER(SaInt8T))]
 
+
 class SaNameT(Structure):
 	"""Contain names.
 	"""
 	_fields_ = [('length', SaUint16T),
 		('value', (SaInt8T*saAis.SA_MAX_NAME_LENGTH))]
+
 	def __init__(self, name=''):
 		"""Construct instance with contents of 'name'.
 		"""
 		super(SaNameT, self).__init__(len(name), name)
+
 
 class SaVersionT(Structure):
 	"""Contain software versions of area implementation.
@@ -169,6 +178,7 @@ class SaVersionT(Structure):
 	_fields_ = [('releaseCode', SaInt8T),
 		('majorVersion', SaUint8T),
 		('minorVersion', SaUint8T)]
+
 
 class SaLimitValueT(Union):
 	"""Contain the value of an implementation-specific limit.
@@ -179,10 +189,12 @@ class SaLimitValueT(Union):
 		('floatValue', SaFloatT),
 		('doubleValue', SaDoubleT)]
 
+
 def BYREF(data):
 	""" Wrap function 'byref' to handle data == None.
 	"""
 	return None if data == None else byref(data)
+
 
 def marshalNullArray(plist, type_name=c_void_p):
 	"""Convert Python list to null-terminated c array.
@@ -197,6 +209,7 @@ def marshalNullArray(plist, type_name=c_void_p):
 		c_array[i] = pointer(plist[i])
 	return c_array
 
+
 def marshalSaStringTArray(plist):
 	"""Convert Python list of c-style strings to null-terminated c array.
 	"""
@@ -206,6 +219,7 @@ def marshalSaStringTArray(plist):
 	for i in range(len(plist)):
 		c_array[i] = plist[i]
 	return c_array
+
 
 def unmarshalNullArray(c_array):
 	"""Convert c array to Python list.
@@ -217,9 +231,11 @@ def unmarshalNullArray(c_array):
 		return unmarshalSaStringTArray(c_array)
 	val_list = []
 	for ptr in c_array:
-		if not ptr: break
+		if not ptr:
+			break
 		val_list.append(ptr[0])
 	return val_list
+
 
 def unmarshalSaStringTArray(c_array):
 	"""Convert c array of c-style strings to Python list.
@@ -228,9 +244,11 @@ def unmarshalSaStringTArray(c_array):
 		return []
 	val_list = []
 	for ptr in c_array:
-		if not ptr: break
+		if not ptr:
+			break
 		val_list.append(ptr)
 	return val_list
+
 
 def marshalNullArrayVoidPtrPtr(plist):
 	"""Convert Python list to null-terminated c array, cast as a pointer to
