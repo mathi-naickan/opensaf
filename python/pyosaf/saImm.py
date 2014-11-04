@@ -79,17 +79,6 @@ SaImmAttrFlagsT = SaUint64T
 
 SaImmAttrValueT = SaVoidPtr;
 
-#ifdef IMM_A_01_01
-class SaImmAttrDefinitionT(Structure):
-	"""Contain characteristics of an attribute belonging to an object class.
-	"""
-	_fields_ = [('attrName', SaImmAttrNameT),
-		('attrValueType', SaImmValueTypeT),
-		('attrFlags', SaImmAttrFlagsT),
-		('attrNtfId', SaUint32T),
-		('attrDefaultValue', SaImmAttrValueT)]
-#endif
-
 class SaImmAttrDefinitionT_2(Structure):
 	"""Contain characteristics of an attribute belonging to an object class.
 	"""
@@ -98,17 +87,6 @@ class SaImmAttrDefinitionT_2(Structure):
 		('attrFlags', SaImmAttrFlagsT),
 		('attrDefaultValue', SaImmAttrValueT)]
 
-#ifdef IMM_A_01_01
-class SaImmAttrValuesT(Structure):
-	"""Contain the values of one attribute of an object.
-	"""
-	_fields_ = [('attrName', SaImmAttrNameT),
-		#BUGBUG ABT REMOVE USE OF THIS TYPE */
-		('attrValueType', SaImmValueTypeT),
-		# Corrected by add of SaImmAttrValues_2 */
-		('attrValuesNumber', SaUint32T),
-		('attrValues', POINTER(SaImmAttrValueT))]
-#endif
 
 class SaImmAttrValuesT_2(Structure):
 	"""Contain the values of one attribute of an object.
@@ -124,14 +102,6 @@ eSaImmAttrModificationTypeT = Enumeration((
 	('SA_IMM_ATTR_VALUES_DELETE', 2),
 	('SA_IMM_ATTR_VALUES_REPLACE', 3),
 ))
-
-#ifdef IMM_A_01_01
-class SaImmAttrModificationT(Structure):
-	"""Contain the modification type and attribute to be modified.
-	"""
-	_fields_ = [('modType', SaImmAttrModificationTypeT),
-		('modAttr', SaImmAttrValuesT)]
-#endif
 
 class SaImmAttrModificationT_2(Structure):
 	"""Contain modification type and attribute to be modified.
@@ -153,21 +123,6 @@ saImm.SA_IMM_SEARCH_GET_SOME_ATTR = 0x0400
 
 SaImmSearchOptionsT = SaUint64T
 
-#ifdef IMM_A_01_01
-class SaImmSearchOneAttrT(Structure):
-	"""Contain the attribute description for SA_IMM_SEARCH_ONE_ATTR search
-	operations.
-	"""
-	_fields_ = [#('attrName', POINTER(SaImmAttrNameT)),
-		# BUGBUG ABT REMOVE USE OF THIS TYPE */
-		('attrName', SaImmAttrNameT),
-		('attrValueType', SaImmValueTypeT),
-		('attrValue', SaImmAttrValueT)]
-
-class SaImmSearchParametersT(Union):
-	_fields_ = [('searchOneAttr', SaImmSearchOneAttrT)]
-#endif
-
 class SaImmSearchOneAttrT_2(Structure):
 	"""Contain the attribute description for SA_IMM_SEARCH_ONE_ATTR search
 	operations.
@@ -186,22 +141,6 @@ SaImmCcbFlagsT = SaUint64T
 SaImmContinuationIdT = SaUint64T
 
 SaImmAdminOperationIdT = SaUint64T
-
-#ifdef IMM_A_01_01
-class SaImmAdminOperationParamsT(Structure):
-	"""Contain the parameters of an administrative operation performed on
-	an object.
-	"""
-	_fields_ = [('paramName', SaStringT),
-		('paramType', SaImmValueTypeT),
-		('paramBuffer', SaVoidPtr),
-		('paramSize', SaUint32T)]
-	def __init__(self, name, type, val, valsz):
-		pname = SaStringT(name)
-		pval = cast(pointer(SaImmValueTypeMap[type](val)), SaVoidPtr)
-		super(SaImmAdminOperationParamsT, self).__init__(
-				pname, type, pval, valsz)
-#endif
 
 class SaImmAdminOperationParamsT_2(Structure):
 	"""Contain the parameters of an administrative operation performed on
