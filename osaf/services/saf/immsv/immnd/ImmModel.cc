@@ -9259,6 +9259,7 @@ ImmModel::ccbWaitForCompletedAck(SaUint32T ccbId, SaAisErrorT* err,
             *err = SA_AIS_ERR_INTERRUPT;
         }
 
+        ccb->mWaitStartTime = 0;
         return false;
     }
 
