@@ -15,10 +15,15 @@
 #
 ############################################################################
 
+'''
+Common classes for pyosaf modules
+'''
+
 class EnumException(Exception):
 	"""Contain information on exceptions raised using Enumeration class.
 	"""
 	pass
+
 
 class Enumeration(object):
 	"""Contain table of enumerations.
@@ -42,28 +47,24 @@ class Enumeration(object):
 		"""
 		self.lookup = lookup = {}
 		self.reverse_lookup = reverse_lookup = {}
-	
+
 		i = 0
-		for x in enumlist:
-			if type(x) is tuple:
+		for node in enumlist:
+			if type(node) is tuple:
 				try:
-					x, i = x
+					node, i = node
 				except ValueError:
-					raise EnumException, '%r:' % (x,)
-			if type(x) is not str:
-				raise EnumException,\
-					'Enum name not a string: %r' % (x,)
+					raise EnumException('%r:' % (node,))
+			if type(node) is not str:
+				raise EnumException('Enum name not a string: %r' % (node,))
 			if type(i) is not int:
-				raise EnumException,\
-					'Enum value not integer: %r' % (x,)
-			if x in lookup:
-				raise EnumException,\
-					'Enum name not unique: %r' % (x,)
+				raise EnumException('Enum value not integer: %r' % (node,))
+			if node in lookup:
+				raise EnumException('Enum name not unique: %r' % (node,))
 			if are_unique and i in reverse_lookup:
-				raise EnumException,\
-					'Enum value %r not unique: %r' % (i, x)
-			lookup[x] = i
-			reverse_lookup[i] = x
+				raise EnumException('Enum value %r not unique: %r' % (i, node))
+			lookup[node] = i
+			reverse_lookup[i] = node
 			i += 1
 
 	def __getattr__(self, attr):
@@ -72,8 +73,10 @@ class Enumeration(object):
 		Enables notation 'enum.symbol'; i.e. eSaAisErrorT.SA_AIS_OK
 
 		"""
-		try: return self.lookup[attr]
-		except KeyError: raise AttributeError, attr
+		try:
+			return self.lookup[attr]
+		except KeyError:
+			raise AttributeError(attr)
 
 	def whatis(self, value):
 		"""Return string symbol of numeric literal.
@@ -83,15 +86,17 @@ class Enumeration(object):
 		"""
 		return self.reverse_lookup.get(value, 'UNKNOWN_ENUM')
 
+
 class Const(object):
-	class ConstError(TypeError): pass
+	class ConstError(TypeError):
+		pass
 
 	def __setattr__(self, name, value):
 		if name in self.__dict__:
-			raise self.ConstError, 'Cannot rebind "%s"' % name
-		self.__dict__[name] = value 
+			raise self.ConstError('Cannot rebind "%s"' % name)
+		self.__dict__[name] = value
 
 	def __delattr__(self, name):
 		if name in self.__dict__:
-			raise self.ConstError, 'Cannot unbind "%s"' % name
-		raise NameError, name
+			raise self.ConstError('Cannot unbind "%s"' % name)
+		raise NameError(name)
