@@ -15,6 +15,7 @@
 #
 ############################################################################
 
+from ctypes import *
 from saAis import *
 
 msgdll = CDLL('libSaMsg.so.1')

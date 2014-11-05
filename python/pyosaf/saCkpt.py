@@ -15,6 +15,7 @@
 #
 ############################################################################
 
+from ctypes import *
 from saAis import *
 
 ckptdll = CDLL('libSaCkpt.so.1')

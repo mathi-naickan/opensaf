@@ -15,6 +15,7 @@
 #
 ############################################################################
 
+from ctypes import *
 from saAis import *
 
 ntfdll = CDLL('libSaNtf.so.0')

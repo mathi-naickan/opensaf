@@ -15,6 +15,7 @@
 #
 ############################################################################
 
+from ctypes import *
 from saImm import *
 
 oidll = CDLL('libSaImmOi.so.0')
