@@ -15,6 +15,7 @@
 #
 ############################################################################
 
+from ctypes import *
 from saAis import *
 import saNtf
 

@@ -15,6 +15,7 @@
 #
 ############################################################################
 
+from ctypes import *
 from saAis import *
 
 # Only mirrors API calls implemented in osaf/libs/agents/saf/smfa/smfa_api.c
