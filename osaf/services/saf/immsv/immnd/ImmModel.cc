@@ -12954,7 +12954,7 @@ SaAisErrorT ImmModel::objectImplementerSet(const struct ImmsvOiImplSetReq* req,
     rootObj = i1->second;
     for(int doIt=0; doIt<2 && err == SA_AIS_OK; ++doIt) {
         //ObjectInfo* objectInfo = i1->second;
-        err = setImplementer(objectName, rootObj, info, doIt, ccbId);
+        err = setOneObjectImplementer(objectName, rootObj, info, doIt, ccbId);
         if(err == SA_AIS_ERR_NO_BINDINGS) {
             err = SA_AIS_OK;
         } else {
@@ -12974,7 +12974,7 @@ SaAisErrorT ImmModel::objectImplementerSet(const struct ImmsvOiImplSetReq* req,
                         if(scope==SA_IMM_SUBTREE || checkSubLevel(subObjName, pos)) {
                             --childCount;
                             ObjectInfo* subObj = i1->second;
-                            err = setImplementer(subObjName, subObj, info, doIt, ccbId);
+                            err = setOneObjectImplementer(subObjName, subObj, info, doIt, ccbId);
                             if(err == SA_AIS_ERR_NO_BINDINGS) {
                                 err = SA_AIS_OK;
                             } else {
@@ -13099,7 +13099,7 @@ SaAisErrorT ImmModel::objectImplementerRelease(
 /**
  * Helper function to set object implementer.
  */
-SaAisErrorT ImmModel::setImplementer(std::string objectName, 
+SaAisErrorT ImmModel::setOneObjectImplementer(std::string objectName, 
     ObjectInfo* obj, 
     ImplementerInfo* info,
     bool doIt, SaUint32T* ccbId)
@@ -13186,10 +13186,14 @@ SaAisErrorT ImmModel::setImplementer(std::string objectName,
                 goto done;
             } else if(immNotWritable()) {
                 /* Sync ongoing => Only idempotent object-applier set allowed */
-                if(implSet == NULL || implSet->find(info) == implSet->end()) {
+                if(implSet != NULL && implSet->find(info) != implSet->end()) {
+                    TRACE_5("Idempotent object-implset for applier '%s' during sync",
+                        info->mImplementerName.c_str());
+                    err = SA_AIS_ERR_NO_BINDINGS;
+                } else {
                     err = SA_AIS_ERR_TRY_AGAIN;;
-                    goto done;
                 }
+                goto done;
             }
         }
     } else { /* regular OI */
@@ -13232,8 +13236,8 @@ SaAisErrorT ImmModel::setImplementer(std::string objectName,
         }
     }
 
-    /*TRACE_LEAVE();*/
  done:
+    /*TRACE_LEAVE();*/
     return err;
 }
 
