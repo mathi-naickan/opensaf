@@ -587,7 +587,7 @@ public:
     SaUint32T          fetchSearchReqContinuation(SaInvocationT& inv);
     
     
-    SaAisErrorT         setImplementer(
+    SaAisErrorT         setOneObjectImplementer(
                                        std::string objectName,
                                        ObjectInfo* obj, 
                                        ImplementerInfo* info,
