@@ -157,6 +157,9 @@
 #include <susi.h>
 #include <proc.h>
 
+extern void avd_sg_npm_stdbysu_role_change(AVD_SU *su);
+extern uint32_t avd_sg_get_curr_act_cnt(AVD_SG *sg);
+
 /* static function prototypes */
 static bool avd_sidep_all_sponsors_active(AVD_SI *si);
 static void sidep_update_si_dep_state_for_spons_unassign(AVD_CL_CB *cb, AVD_SI *dep_si, AVD_SI_SI_DEP *si_dep_rec);
@@ -1762,7 +1765,7 @@ bool avd_sidep_is_si_failover_possible(AVD_SI *si, AVD_SU *su)
 	bool assignmemt_status = false;
 	bool valid_standby = false;
 
-	TRACE_ENTER2("SI: '%s'",si->name.value);
+	TRACE_ENTER2("SI: '%s', SU %s",si->name.value, su->name.value);
 
 	/* Role fail-over triggered because of node going down or role switch-over because 
 	   of node lock.*/
@@ -2127,7 +2130,8 @@ void avd_sidep_update_depstate_su_rolefailover(AVD_SU *su)
 static void sidep_dependentsi_role_failover(AVD_SI *si)
 {
 	AVD_SU *stdby_su = NULL, *actv_su = NULL;
-	AVD_SU_SI_REL *susi;
+	AVD_SU_SI_REL *susi, *std_susi = NULL;
+	uint32_t curr_pref_active_sus = 0;
 
 	TRACE_ENTER2(" for SI '%s'", si->name.value);
 
@@ -2180,6 +2184,7 @@ static void sidep_dependentsi_role_failover(AVD_SI *si)
 		for (susi = si->list_of_sisu;susi != NULL;susi = susi->si_next) {
 			if (susi->state == SA_AMF_HA_STANDBY) {
 				stdby_su = susi->su;
+				std_susi = susi;
 				break;
 			}
 		}
@@ -2198,7 +2203,36 @@ static void sidep_dependentsi_role_failover(AVD_SI *si)
 			/* All of the dependent's Sponsors's are in assigned state
 			 * So performing role modification for the stdby_su
 			 */
-			avd_sg_su_si_mod_snd(avd_cb, stdby_su, SA_AMF_HA_ACTIVE);
+
+			curr_pref_active_sus = avd_sg_get_curr_act_cnt(stdby_su->sg_of_su);
+			/* Check the possibility of assigning Active role to stdby_su */
+			if(curr_pref_active_sus >= stdby_su->sg_of_su->saAmfSGNumPrefActiveSUs ) {
+				/* Send a D2N-INFO_SU_SI_ASSIGN with remove all to the standby SU */
+				if (avd_sg_su_si_del_snd(avd_cb, stdby_su) == NCSCC_RC_FAILURE) {
+					LOG_ER("SU del failed :%s :%u :%s", __FILE__, __LINE__,
+							stdby_su->name.value);
+					goto done;
+				}
+			} else {
+				AVD_SU_SI_REL *susi;
+				for (susi = stdby_su->list_of_susi; susi != AVD_SU_SI_REL_NULL;
+						susi = susi->su_next) {
+					if (susi == std_susi) {
+						continue;
+					}
+					avd_susi_del_send(susi);
+				}/* for (susi = std_susi->su->list_of_susi; susi != AVD_SU_SI_REL_NULL;
+				    susi = susi->su_next) */
+
+				/* Now send active for all the remaining SUSIs */
+				avd_sg_su_si_mod_snd(avd_cb, std_susi->su, SA_AMF_HA_ACTIVE);
+			}
+
+			/* Add Standby SU to SU operlist */
+			avd_sg_su_oper_list_add(avd_cb, stdby_su, false);
+
+			/*Change state to SG_realign. */
+			m_AVD_SET_SG_FSM(avd_cb, stdby_su->sg_of_su, AVD_SG_FSM_SG_REALIGN);
 
 			avd_sidep_si_dep_state_set(si, AVD_SI_ASSIGNED);
 			if (si->sg_of_si->su_oper_list.su == NULL) {
@@ -2709,6 +2743,7 @@ void sidep_process_ready_to_unassign_depstate(AVD_SI *dep_si)
 	AVD_SI_SI_DEP_INDX si_indx;
 	AVD_SI_SI_DEP *si_dep_rec = NULL;
 	AVD_SPONS_SI_NODE *temp_spons_list = NULL;
+	bool all_spon_assigned = true;
 
 	TRACE_ENTER2("dep si:'%s'", dep_si->name.value);
 
@@ -2735,6 +2770,7 @@ void sidep_process_ready_to_unassign_depstate(AVD_SI *dep_si)
 					dep_si->tol_timer_count--;
 			}
 		} else {
+			all_spon_assigned = false;
 			if (si_dep_rec->saAmfToleranceTime) {
 				/*start the tolerance timer and set si_dep_state to AVD_SI_TOL_TIMER_RUNNING*/
 				sidep_update_si_dep_state_for_spons_unassign(avd_cb, dep_si, si_dep_rec);
@@ -2749,6 +2785,10 @@ void sidep_process_ready_to_unassign_depstate(AVD_SI *dep_si)
 				break;
 			}	
 		}
+	}
+	if (all_spon_assigned) {
+		/* Reassign dependent or failover it */
+		sidep_si_dep_state_evt_send(avd_cb, dep_si, AVD_EVT_ASSIGN_SI_DEP_STATE);
 	}
 done:
 	TRACE_LEAVE();
