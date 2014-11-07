@@ -2185,6 +2185,12 @@ SmfUpgradeStep::nodeReboot()
                 nodeList.push_back(getSwNode());
         }
 
+	if (true == nodeList.empty()) {
+		LOG_NO("SmfUpgradeStep::nodeReboot: No nodes to reboot.");
+		TRACE_LEAVE();
+		return result;
+	}
+
 	std::list<std::string>::iterator listIt;
         std::list<SmfNodeUpInfo> rebootedNodeList;
         std::list<SmfNodeUpInfo> cmdNodeList;
@@ -2219,10 +2225,10 @@ SmfUpgradeStep::nodeReboot()
 
 	//The nodes has been rebooted, wait for the nodes to come UP with stepped UP counter
 	timeout  = rebootTimeout; //seconds
-	interval = 5;
+	interval = 1;
 	LOG_NO("SmfUpgradeStep::nodeReboot: Waiting to get node destination with increased UP counter");
 
-	while (!rebootedNodeList.empty()) {
+	while (true) {
                 for (nodeIt = rebootedNodeList.begin(); nodeIt != rebootedNodeList.end();) {
                         if(getNodeDestination((*nodeIt).node_name, &nodeDest)) {
                                 /* Check if node UP counter have been stepped */
@@ -2235,6 +2241,9 @@ SmfUpgradeStep::nodeReboot()
                                 TRACE("SmfUpgradeStep::nodeReboot: Node not yet rebooted, check again in %d seconds", interval);
                        }
 		}
+                
+                if(true == rebootedNodeList.empty())
+                     break;
 
                 struct timespec time = { interval, 0 };
                 osaf_nanosleep(&time);
@@ -2254,9 +2263,9 @@ SmfUpgradeStep::nodeReboot()
 	cmd      = "true";              //Command "true" should be available on all Linux systems
 	timeout  = rebootTimeout / 2;   //Use half of the reboot timeout
 	interval = 5;
-	LOG_NO("SmfUpgradeStep::nodeReboot: Waiting for the node to accept command 'true'");
+	LOG_NO("SmfUpgradeStep::nodeReboot: Trying command 'true'");
 
-	while (!cmdNodeList.empty()) {
+	while (true) {
                 for (nodeIt = cmdNodeList.begin(); nodeIt != cmdNodeList.end();) {
                         if(getNodeDestination((*nodeIt).node_name, &nodeDest)) {
                                 if (smfnd_exec_remote_cmd(cmd.c_str(), &nodeDest, cliTimeout, 0) == 0) {
@@ -2267,6 +2276,10 @@ SmfUpgradeStep::nodeReboot()
                         }
                 }
 
+                if(true == cmdNodeList.empty())
+                      break;
+
+                LOG_NO("SmfUpgradeStep::nodeReboot: All nodes have not yet accepted command 'true', wait %d sec and retry", interval);
                 struct timespec time = { interval, 0 };
                 osaf_nanosleep(&time);
                 if (timeout <= 0) {
