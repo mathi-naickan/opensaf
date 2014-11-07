@@ -1619,8 +1619,8 @@ else (entry exists)
 	if (status == NCSCC_RC_FAILURE) {	/* Subscription result tabel entry doesn't exist */
 		
 		if (vdest_id == m_VDEST_ID_FOR_ADEST_ENTRY) {	/* Remote svc is on ADEST */
-			char to_adest_details[255];
-			memset(to_adest_details, 0, 255);
+			char to_adest_details[MDS_MAX_PROCESS_NAME_LEN];
+			memset(to_adest_details, 0, MDS_MAX_PROCESS_NAME_LEN);
 
 			get_subtn_adest_details(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(local_svc_hdl),
 					svc_id,	adest, to_adest_details);
@@ -1660,7 +1660,7 @@ else (entry exists)
 								       &tmr_running, &subtn_result_info, true);
 					/* check if any other active present */
 					 if (status == NCSCC_RC_FAILURE) {	/* No active present */
-						char to_adest_details[255];
+						char to_adest_details[MDS_MAX_PROCESS_NAME_LEN];
 						get_subtn_adest_details(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(local_svc_hdl),
 								svc_id, active_adest, to_adest_details);
 						/* Add entry to subscription result table */

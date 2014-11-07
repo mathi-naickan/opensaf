@@ -113,7 +113,7 @@ typedef struct mdtm_tipc_cb {
 	void *mdtm_hdle_task;
 	int hdle_mdtm;
 	uint64_t adest;
-	char adest_details[255];
+	char adest_details[MDS_MAX_PROCESS_NAME_LEN];
 
 	SYSF_MBX tmr_mbx;
 	int tmr_fd;
@@ -826,8 +826,8 @@ static uint32_t mdtm_process_discovery_events(uint32_t discovery_event, struct t
 			MDS_VDEST_ID vdest;
 			NCS_VDEST_TYPE policy = 0;
 			MDS_SVC_HDL svc_hdl;
-			char adest_details[255];
-			memset(adest_details, 0, 255);
+			char adest_details[MDS_MAX_PROCESS_NAME_LEN];
+			memset(adest_details, 0, MDS_MAX_PROCESS_NAME_LEN);
 
 			MDS_SVC_PVT_SUB_PART_VER svc_sub_part_ver;
 			MDS_SVC_ARCHWORD_TYPE archword_type;

@@ -195,6 +195,9 @@ extern "C" {
 	} NCSMDS_SVC_ID;
 
 #define MAX_SVC_NAME_LEN 30 /*NID_MAX_SVC_NAME_LEN is 15 so keeping some buffer*/
+
+#define MDS_MAX_PROCESS_NAME_LEN (255 + 32) /* Process Name + PID No/Slot info/Tipc reference */
+
 /**************************************************************************
  * SVC_NAME  of Service : A well known name that a service 
  ***************************************************************************/
@@ -798,7 +801,7 @@ unpack individual structure members. */
 		 */
 		MDS_HDL svc_pwe_hdl;
 		MDS_SVC_PVT_SUB_PART_VER i_rem_svc_pvt_ver;	/* Remote service id subpart version */
-		char i_dest_details[255]; /* <node[slotno]:processname[pid]> */
+		char i_dest_details[MDS_MAX_PROCESS_NAME_LEN]; /* <node[slotno]:processname[pid]> */
 
 	} MDS_CALLBACK_SVC_EVENT_INFO;
 

@@ -25,11 +25,10 @@
 #include "mds_log.h"
 #include "mds_dt2c.h"		/* Include for arch-word definitions */
 
-#define MAX_PROCESS_NAME 255
 static char *lf = NULL;
 
 static void log_mds(const char *str);
-static char process_name[MAX_PROCESS_NAME];
+static char process_name[MDS_MAX_PROCESS_NAME_LEN];
 
 /*****************************************************
  Function NAME: get_process_name()
@@ -37,28 +36,29 @@ static char process_name[MAX_PROCESS_NAME];
 *****************************************************/
 static void get_process_name(void)
 {
-	char name[1024];
+	char pid_path[1024];
 	uint32_t process_id = getpid();
-	char *token;
+	char *token, *saveptr;
+	char *pid_name;
 
-	sprintf(name, "/proc/%d/cmdline", process_id);
-	FILE* f = fopen(name,"r");
+	sprintf(pid_path, "/proc/%d/cmdline", process_id);
+	FILE* f = fopen(pid_path,"r");
 	if(f){
 		size_t size;
-		size = fread(name, sizeof(char), 1024, f);
+		size = fread(pid_path, sizeof(char), 1024, f);
 		if(size>0){
-			if('\n'==name[size-1])
-				name[size-1]='\0';
+			if('\n' == pid_path[size-1])
+				pid_path[size-1]='\0';
 		}
 		fclose(f);
 	}
-	token = strtok(name, "/");
+	token = strtok_r(pid_path, "/", &saveptr);
 	while( token != NULL )
 	{
-		strcpy(name,token);
-		token = strtok(NULL, "/");
+		pid_name = token;
+		token = strtok_r(NULL, "/", &saveptr);	
 	}
-	snprintf(process_name, MAX_PROCESS_NAME, "%s[%d]", name, process_id);
+	snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "%s[%d]", pid_name, process_id);
 	return;
 }
 /*******************************************************************************
@@ -75,7 +75,7 @@ static char mds_log_fname[MAX_MDS_FNAME_LEN];
 uint32_t mds_log_init(char *log_file_name, char *line_prefix)
 {
 	FILE *fh;
-	memset(process_name, 0, MAX_PROCESS_NAME);
+	memset(process_name, 0, MDS_MAX_PROCESS_NAME_LEN);
 	get_process_name();	
 
 	if (lf != NULL)
@@ -107,7 +107,7 @@ uint32_t mds_log_init(char *log_file_name, char *line_prefix)
 *******************************************************************************/
 void log_mds_critical(char *fmt, ...)
 {
-	char str[200];
+	char str[MDS_MAX_PROCESS_NAME_LEN + 32];
 	int i;
 	va_list ap;
 
@@ -128,7 +128,7 @@ void log_mds_critical(char *fmt, ...)
 *******************************************************************************/
 void log_mds_err(char *fmt, ...)
 {
-	char str[200];
+	char str[MDS_MAX_PROCESS_NAME_LEN + 32];
 	int i;
 	va_list ap;
 
@@ -149,7 +149,7 @@ void log_mds_err(char *fmt, ...)
 *******************************************************************************/
 void log_mds_notify(char *fmt, ...)
 {
-	char str[200];
+	char str[MDS_MAX_PROCESS_NAME_LEN + 32];
 	int i;
 	va_list ap;
 
@@ -170,7 +170,7 @@ void log_mds_notify(char *fmt, ...)
 *******************************************************************************/
 void log_mds_info(char *fmt, ...)
 {
-	char str[200];
+	char str[MDS_MAX_PROCESS_NAME_LEN + 32];
 	int i;
 	va_list ap;
 
@@ -192,7 +192,7 @@ void log_mds_info(char *fmt, ...)
 *******************************************************************************/
 void log_mds_dbg(char *fmt, ...)
 {
-	char str[200];
+	char str[MDS_MAX_PROCESS_NAME_LEN + 32];
 	int i;
 	va_list ap;
 

@@ -34,91 +34,90 @@ Returns : <node[slotno]:processname[pid]>
 *****************************************************/
 void get_adest_details(MDS_DEST adest, char* adest_details)
 {
-        char *token;
-        struct stat s;
-        uint32_t process_id = 0;
-        NCS_PHY_SLOT_ID phy_slot;
-        NCS_SUB_SLOT_ID sub_slot;
-        char name[1024];
-        char process_name[255];
-        bool remote = false;
- 
-        m_NCS_GET_PHYINFO_FROM_NODE_ID(m_NCS_NODE_ID_FROM_MDS_DEST(adest), NULL, &phy_slot, &sub_slot);
- 
-        if (!tipc_mode_enabled) {
-                process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
-                if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
-                        sprintf(name, "/proc/%d/cmdline", process_id);
-                        if(stat(name, &s) != 0) {
-                                sprintf(process_name, "pid[%u]", process_id);
-                        } else {
- 
-                                FILE* f = fopen(name,"r");
-                                if(f){
-                                        size_t size;
-                                        size = fread(name, sizeof(char), 1024, f);
-                                        if(size>0){
-                                                if('\n' == name[size-1])
-                                                        name[size-1]='\0';
-                                        }
-                                        fclose(f);
-                                }
-                                token = strtok(name, "/");
-                                while( token != NULL )
-                                {
-                                        strcpy(name,token);
-                                        token = strtok(NULL, "/");
-                                }
-                                sprintf(process_name, "%s[%u]", name, process_id);
-                        }
- 
-                } else {
-                        sprintf(process_name, "dest_pid[%u]", process_id);
-                        remote = true;
-                }
-        } else  if (tipc_mode_enabled) {
-                process_id = getpid();
-                if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
-                        sprintf(name, "/proc/%d/cmdline", process_id);
-                        if(stat(name, &s) != 0) {
-                                sprintf(process_name, "tipc_id_ref[%u]", process_id);
-                        } else {
- 
-                                FILE* f = fopen(name,"r");
-                                if(f){
-                                        size_t size;
-                                        size = fread(name, sizeof(char), 1024, f);
-                                        if(size>0){
-                                                if('\n' == name[size-1])
-                                                        name[size-1]='\0';
-                                        }
-                                        fclose(f);
-                                }
-                                token = strtok(name, "/");
-                                while( token != NULL )
-                                {
-                                        strcpy(name,token);
-                                        token = strtok(NULL, "/");
-                                }
-                                sprintf(process_name, "%s[%u]", name, process_id);
-                        }
- 
-                } else {
- 
-                        process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
-                        sprintf(process_name, "dest_tipc_id_ref[%u]",process_id);
-                        remote = true;
-                }
-        }
- 
-        if (remote == true)
-                sprintf(adest_details, "<rem_nodeid[%d]:%s>",
-                                phy_slot, process_name);
-        else
-                sprintf(adest_details, "<nodeid[%d]:%s>",
-                                phy_slot, process_name);
- 
-        m_MDS_LOG_DBG("MCM_DB : Leaving : F : get_adest_details adest_details: %s ", adest_details);
+	char *token, *saveptr;
+	struct stat s;
+	uint32_t process_id = 0;
+	NCS_PHY_SLOT_ID phy_slot;
+	NCS_SUB_SLOT_ID sub_slot;
+	char pid_path[1024];
+	char *pid_name;
+	char process_name[MDS_MAX_PROCESS_NAME_LEN];
+	bool remote = false;
+
+	m_NCS_GET_PHYINFO_FROM_NODE_ID(m_NCS_NODE_ID_FROM_MDS_DEST(adest), NULL, &phy_slot, &sub_slot);
+
+	if (!tipc_mode_enabled) {
+		process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
+		if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
+			sprintf(pid_path, "/proc/%d/cmdline", process_id);
+			if(stat(pid_path, &s) != 0) {
+				snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "pid[%d]", process_id);
+			} else {
+
+				FILE* f = fopen(pid_path, "r");
+				if(f){
+					size_t size;
+					size = fread(pid_path, sizeof(char), 1024, f);
+					if(size>0){
+						if('\n' == pid_path[size-1])
+							pid_path[size-1]='\0';
+					}
+					fclose(f);
+				}
+				token = strtok_r(pid_path, "/", &saveptr);
+				while( token != NULL ) {
+					pid_name = token;
+					token = strtok_r(NULL, "/", &saveptr);                                
+				}
+				snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "%s[%d]", pid_name, process_id);                        
+			}
+
+		} else {
+			snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "dest_pid[%d]", process_id);
+			remote = true;
+		}
+	} else  if (tipc_mode_enabled) {
+		process_id = getpid();
+		if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
+			sprintf(pid_path, "/proc/%d/cmdline", process_id);
+			if(stat(pid_path, &s) != 0) {
+				snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "tipc_id_ref[%d]", process_id);
+			} else {
+
+				FILE* f = fopen(pid_path, "r");
+				if(f){
+					size_t size;
+					size = fread(pid_path, sizeof(char), 1024, f);
+					if(size>0) {
+						if('\n' == pid_path[size-1])
+							pid_path[size-1]='\0';
+					}
+					fclose(f);
+				}
+				token = strtok_r(pid_path, "/", &saveptr);
+				while( token != NULL ) {
+					pid_name = token;					
+					token = strtok_r(NULL, "/", &saveptr);
+				}
+				snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "%s[%d]", pid_name, process_id);
+			}
+
+		} else {
+
+			process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
+			snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "dest_tipc_id_ref[%d]", process_id);
+			remote = true;
+		}
+	}
+
+	if (remote == true)
+		snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN, "<rem_nodeid[%d]:%s>",
+				phy_slot, process_name);
+	else
+		snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN, "<nodeid[%d]:%s>",
+				phy_slot, process_name);
+
+	m_MDS_LOG_DBG("MCM_DB : Leaving : F : get_adest_details adest_details: %s ", adest_details);
 }
  
  
@@ -128,71 +127,70 @@ void get_adest_details(MDS_DEST adest, char* adest_details)
  *****************************************************/
 void get_subtn_adest_details(MDS_PWE_HDL pwe_hdl, MDS_SVC_ID svc_id, MDS_DEST adest, char* adest_details)
 {
-        uint32_t process_id = 0;
-        NCS_PHY_SLOT_ID phy_slot;
-        NCS_SUB_SLOT_ID sub_slot;
-        char process_name[255];
-        bool remote = false;
-        MDS_SVC_INFO *svc_info = NULL;
- 
-        char name[1024];
-        char *token;
-        struct stat s;
- 
-        m_NCS_GET_PHYINFO_FROM_NODE_ID(m_NCS_NODE_ID_FROM_MDS_DEST(adest), NULL, &phy_slot, &sub_slot);
-        process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
- 
-        if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
-                if (NCSCC_RC_SUCCESS == mds_svc_tbl_get(pwe_hdl, svc_id, (NCSCONTEXT)&svc_info)) {
-                        strcpy(adest_details, svc_info->adest_details);
-                        goto done;
-                } else if (!tipc_mode_enabled) {
- 
-                        sprintf(name, "/proc/%d/cmdline", process_id);
-                        if(stat(name, &s) != 0) {
-                                sprintf(process_name, "pid[%u]", process_id);
-                        } else {
- 
-                                FILE* f = fopen(name,"r");
-                                if(f){
-                                        size_t size;
-                                        size = fread(name, sizeof(char), 1024, f);
-                                        if(size>0){
-                                                if('\n' == name[size-1])
-                                                        name[size-1]='\0';
-                                        }
-                                        fclose(f);
-                                }
-                                token = strtok(name, "/");
-                                while( token != NULL )
-                                {
-                                        strcpy(name,token);
-                                        token = strtok(NULL, "/");
-                                }
-                                sprintf(process_name, "%s[%u]", name, process_id);
-                        }
-                } else {
-                        /* Service Doesn't exist */
-                        sprintf(process_name, "tipc_id_ref[%u]", process_id);
-                }
-        } else {
-                if (!tipc_mode_enabled) {
-                        sprintf(process_name, "dest_pid[%u]", process_id);
-                        remote = true;
-                } else {
-                        sprintf(process_name, "dest_tipc_id_ref[%u]",process_id);
-                        remote = true;
-                }
-        }
- 
-        if (remote == true)
-                sprintf(adest_details, "<rem_node[%d]:%s>",
-                                phy_slot, process_name);
-        else
-                sprintf(adest_details, "<node[%d]:%s>",
-                                phy_slot, process_name);
+	uint32_t process_id = 0;
+	NCS_PHY_SLOT_ID phy_slot;
+	NCS_SUB_SLOT_ID sub_slot;
+	char process_name[MDS_MAX_PROCESS_NAME_LEN];
+	bool remote = false;
+	MDS_SVC_INFO *svc_info = NULL;
+	char pid_path[1024];
+	char *token, *saveptr;
+	char *pid_name;
+	struct stat s;
+
+	m_NCS_GET_PHYINFO_FROM_NODE_ID(m_NCS_NODE_ID_FROM_MDS_DEST(adest), NULL, &phy_slot, &sub_slot);
+	process_id = m_MDS_GET_PROCESS_ID_FROM_ADEST(adest);
+
+	if (NCSCC_RC_SUCCESS == mds_mcm_check_intranode(adest)) {
+		if (NCSCC_RC_SUCCESS == mds_svc_tbl_get(pwe_hdl, svc_id, (NCSCONTEXT)&svc_info)) {
+			strcpy(adest_details, svc_info->adest_details);
+			goto done;
+		} else if (!tipc_mode_enabled) {
+
+			sprintf(pid_path, "/proc/%d/cmdline", process_id);
+			if(stat(pid_path, &s) != 0) {
+				snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "pid[%u]", process_id);
+			} else {
+
+				FILE* f = fopen(pid_path, "r");
+				if(f){
+					size_t size;
+					size = fread(pid_path, sizeof(char), 1024, f);
+					if(size>0){
+						if('\n' == pid_path[size-1])
+							pid_path[size-1]='\0';
+					}
+					fclose(f);
+				}
+				token = strtok_r(pid_path, "/", &saveptr);
+				while( token != NULL ) {
+					pid_name = token;
+					token = strtok_r(NULL, "/", &saveptr);				
+				}
+				snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "%s[%u]", pid_name, process_id);
+			}
+		} else {
+			/* Service Doesn't exist */
+			snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "tipc_id_ref[%u]", process_id);
+		}
+	} else {
+		if (!tipc_mode_enabled) {
+			snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "dest_pid[%u]", process_id);
+			remote = true;
+		} else {
+			snprintf(process_name, MDS_MAX_PROCESS_NAME_LEN, "dest_tipc_id_ref[%u]",process_id);
+			remote = true;
+		}
+	}
+
+	if (remote == true)
+		snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN, "<rem_node[%d]:%s>",
+				phy_slot, process_name);
+	else
+		snprintf(adest_details, MDS_MAX_PROCESS_NAME_LEN, "<node[%d]:%s>",
+				phy_slot, process_name);
 done:
-        m_MDS_LOG_DBG("MCM_DB : Leaving : F : get_subtn_adest_details adest_details: %s ", adest_details);
+	m_MDS_LOG_DBG("MCM_DB : Leaving : F : get_subtn_adest_details adest_details: %s ", adest_details);
 }
 
 /* ******************************************** */

@@ -159,7 +159,7 @@ typedef struct mds_subscription_results_info {
 	MDS_SVC_ARCHWORD_TYPE rem_svc_arch_word;
 	uint32_t  msg_snd_cnt;			/* Message send count to this destination */
 	uint32_t  msg_rcv_cnt;			/* Message rcv count from this destination */
-	char sub_adest_details[255]; /* <node[slotno]:processname[pid]> */
+	char sub_adest_details[MDS_MAX_PROCESS_NAME_LEN]; /* <node[slotno]:processname[pid]> */
 
 } MDS_SUBSCRIPTION_RESULTS_INFO;
 
@@ -189,7 +189,7 @@ typedef struct mds_subscription_info {
 	  this is Mcast or Bcast differentiators if conut is ZERO mcast else
 	  count is grater than ZERO bcast (multi-unicast) */	
 	uint32_t prev_ver_sub_count; 
-	char sub_adest_details[255]; /* <node[slotno]:processname[pid]> */
+	char sub_adest_details[MDS_MAX_PROCESS_NAME_LEN]; /* <node[slotno]:processname[pid]> */
 
 } MDS_SUBSCRIPTION_INFO;
 
@@ -279,14 +279,14 @@ typedef struct mds_svc_info {
 	bool i_node_subscr;	/* suscription to node */
 	MDS_SUBTN_REF_VAL node_subtn_ref_val;  
 	bool i_msg_loss_indication;	/* message loss indication if set to 1 */
-	char adest_details[255]; /* <node[slotno]:processname[pid]> */
+	char adest_details[MDS_MAX_PROCESS_NAME_LEN]; /* <node[slotno]:processname[pid]> */
 } MDS_SVC_INFO;
 
 MDS_SVC_INFO *mds_get_svc_info_by_hdl(MDS_SVC_HDL hdl);
 
 typedef struct mds_mcm_cb {
 	MDS_DEST adest;
-	char adest_details[255]; /* <node[slotno]:processname[pid]> */
+	char adest_details[MDS_MAX_PROCESS_NAME_LEN]; /* <node[slotno]:processname[pid]> */
 
 	/* List of all subscription results MDS_SUBSCRIPTION_RESULTS_INFO */
 	NCS_PATRICIA_TREE subtn_results;
