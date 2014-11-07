@@ -139,6 +139,10 @@ uint32_t smfnd_up(SaClmNodeIdT i_node_id, MDS_DEST i_smfnd_dest, MDS_SVC_PVT_SUB
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saClmClusterNodeGet failed, rc=%s", saf_error(rc));
 		free(smfnd);
+		rc = saClmFinalize(clmHandle);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("saClmFinalize failed, rc=%s", saf_error(rc));
+		}
 		return NCSCC_RC_FAILURE;
 	}
 
