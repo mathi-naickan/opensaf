@@ -28,10 +28,10 @@
 
 #include <amfd.h>
 #include <si_dep.h>
+extern uint32_t avd_sg_get_curr_act_cnt(AVD_SG *sg);
 
 static void avd_sg_npm_screening_for_si_redistr(AVD_SG *avd_sg);
 static void avd_sg_npm_si_transfer_for_redistr(AVD_SG *avd_sg);
-static uint32_t avd_sg_get_curr_act_cnt(AVD_SG *sg);
 
 /*****************************************************************************
  * Function: avd_sg_npm_su_next_asgn
@@ -1520,7 +1520,7 @@ static uint32_t avd_sg_npm_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_
 					   AVSV_SUSI_ACT act, SaAmfHAStateT state)
 {
 	AVD_SU_SI_REL *i_susi, *o_susi;
-	bool flag;
+	bool flag, fover_progress = false;
 	AVD_AVND *su_node_ptr = NULL;
 
 	TRACE_ENTER();
@@ -1684,6 +1684,10 @@ static uint32_t avd_sg_npm_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_
 					 */
 					if (avd_sg_npm_su_chk_snd(cb, o_susi->su, su) == NCSCC_RC_SUCCESS)
 						avd_sg_su_oper_list_add(cb, o_susi->su, false);
+					else {
+						/* Primarily because of Si Dep. */
+						fover_progress = true;
+					}
 				}
 			}
 
@@ -1693,7 +1697,8 @@ static uint32_t avd_sg_npm_susi_sucss_sg_reln(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_
 			su->delete_all_susis();
 			avd_sg_su_oper_list_del(cb, su, false);
 
-			if ((su->sg_of_su->su_oper_list.su == NULL) && (su->sg_of_su->admin_si == AVD_SI_NULL)) {
+			if ((su->sg_of_su->su_oper_list.su == NULL) && (su->sg_of_su->admin_si == AVD_SI_NULL) &&
+					(fover_progress == false)) {
 				/* Both the SI admin pointer and SU oper list are empty. Do the
 				 * functionality as in stable state to verify if new assignments 
 				 * can be done. If yes stay in the same state. If no 
@@ -2267,7 +2272,7 @@ done:
  *
  * @return       curr_pref_active_sus - No of cureent Active SUs.
  */
-static uint32_t avd_sg_get_curr_act_cnt(AVD_SG *sg)
+uint32_t avd_sg_get_curr_act_cnt(AVD_SG *sg)
 {
 	AVD_SU *i_su = sg->list_of_su;
 	uint32_t curr_pref_active_sus = 0;
@@ -2296,7 +2301,7 @@ static uint32_t avd_sg_get_curr_act_cnt(AVD_SG *sg)
  *
  * @return       Returns nothing.
  */
-static void avd_sg_npm_stdbysu_role_change(AVD_SU *su)
+void avd_sg_npm_stdbysu_role_change(AVD_SU *su)
 {
 	AVD_SU_SI_REL *std_susi, *act_susi = su->list_of_susi;
 	uint32_t curr_pref_active_sus = 0;
@@ -2345,7 +2350,9 @@ static void avd_sg_npm_stdbysu_role_change(AVD_SU *su)
 						/* Check if there is any dependency for performing failover for this act_susi */
 						flag = avd_sidep_is_si_failover_possible(act_susi->si, su);
 					}
-					if (flag == true) {
+					/* Check si_dep_state as well because si dep underprogress SI should
+					   not be deleted. */
+					if ((flag == true) && (act_susi->si->si_dep_state != AVD_SI_FAILOVER_UNDER_PROGRESS)) {
 
 						/* Check if standby SU has standby SI assignment from another SU, if so
 					 	* send remove message for each of those SI assignments 
