@@ -319,12 +319,11 @@ typedef enum {
 struct AugCcbParent
 {
     AugCcbParent(): mOriginatingConn(0), mOriginatingNode(0), mState(IMM_CCB_ILLEGAL),
-                    mWaitStartTime((time_t) 0), mErrorStrings(NULL), mContinuationId(0),
+                    mErrorStrings(NULL), mContinuationId(0),
                     mImplId(0), mAugmentAdmo(0) {}
     SaUint32T         mOriginatingConn; //Deferred Originating conn
     unsigned int      mOriginatingNode; //Deferred originating node
     ImmCcbState       mState;           //Deferred state
-    time_t            mWaitStartTime;   //Deferred waitStartTime
     ImmsvAttrNameList* mErrorStrings;   //Deferred errorStrings
     SaUint32T         mContinuationId;  //Deferred continuationId
     SaUint32T         mImplId;  /* ImplId for augmenting implementer*/
@@ -5909,7 +5908,6 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
     ccb->mAugCcbParent->mOriginatingConn = ccb->mOriginatingConn;
     ccb->mAugCcbParent->mOriginatingNode = ccb->mOriginatingNode;
     ccb->mAugCcbParent->mState = ccb->mState;
-    ccb->mAugCcbParent->mWaitStartTime = ccb->mWaitStartTime;
     ccb->mAugCcbParent->mErrorStrings = ccb->mErrorStrings;
     ccb->mAugCcbParent->mContinuationId = rsp->inv;
     ccb->mAugCcbParent->mImplId = obj->mImplementer->mId;
@@ -5918,7 +5916,7 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
     ccb->mOriginatingConn = originatingConn;
     ccb->mOriginatingNode = originatingNode;
     ccb->mState = IMM_CCB_READY;
-    ccb->mWaitStartTime = 0; /* ???? !!!! */
+    ccb->mWaitStartTime = 0;
     ccb->mErrorStrings = NULL;
 
  done:
@@ -9370,7 +9368,6 @@ ImmModel::ccbObjDelContinuation(immsv_oi_ccb_upcall_rsp* rsp,
         ccb->mOriginatingConn = ccb->mAugCcbParent->mOriginatingConn;
         ccb->mOriginatingNode = ccb->mAugCcbParent->mOriginatingNode;
         ccb->mState = ccb->mAugCcbParent->mState;
-        ccb->mWaitStartTime = ccb->mAugCcbParent->mWaitStartTime;
         ccb->mErrorStrings = ccb->mAugCcbParent->mErrorStrings;
 
         ccb->mAugCcbParent->mErrorStrings = NULL;
@@ -9635,7 +9632,6 @@ ImmModel::ccbObjCreateContinuation(SaUint32T ccbId, SaUint32T invocation,
         ccb->mOriginatingConn = ccb->mAugCcbParent->mOriginatingConn;
         ccb->mOriginatingNode = ccb->mAugCcbParent->mOriginatingNode;
         ccb->mState = ccb->mAugCcbParent->mState;
-        ccb->mWaitStartTime = ccb->mAugCcbParent->mWaitStartTime;
         ccb->mErrorStrings = ccb->mAugCcbParent->mErrorStrings;
 
         ccb->mAugCcbParent->mErrorStrings = NULL;
@@ -9720,7 +9716,6 @@ ImmModel::ccbObjModifyContinuation(SaUint32T ccbId, SaUint32T invocation,
         ccb->mOriginatingConn = ccb->mAugCcbParent->mOriginatingConn;
         ccb->mOriginatingNode = ccb->mAugCcbParent->mOriginatingNode;
         ccb->mState = ccb->mAugCcbParent->mState;
-        ccb->mWaitStartTime = ccb->mAugCcbParent->mWaitStartTime;
         ccb->mErrorStrings = ccb->mAugCcbParent->mErrorStrings;
 
         ccb->mAugCcbParent->mErrorStrings = NULL;
