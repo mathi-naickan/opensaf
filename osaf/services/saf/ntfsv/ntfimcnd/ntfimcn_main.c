@@ -204,7 +204,7 @@ int main(int argc, char** argv)
 		if (fds[FD_IMM].revents & POLLIN) {
 			ais_error = saImmOiDispatch(ntfimcn_cb.immOiHandle, SA_DISPATCH_ALL);
 			if (ais_error != SA_AIS_OK) {
-				LOG_ER("saImmOiDispatch() Fail %s",saf_error(ais_error));
+				LOG_NO("saImmOiDispatch() Fail %s",saf_error(ais_error));
 				imcn_exit(EXIT_FAILURE);
 			}
 		}
