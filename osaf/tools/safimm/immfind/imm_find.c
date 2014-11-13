@@ -41,7 +41,7 @@
 #include <saf_error.h>
 #include "osaf_extended_name.h"
 
-static SaVersionT immVersion = { 'A', 2, 11 };
+static SaVersionT immVersion = { 'A', 2, 14 };
 extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 /* signal handler for SIGALRM */
