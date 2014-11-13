@@ -27,7 +27,7 @@ if [ $# -ne 2 -a  $# -ne 4 ]; then
 fi
 
 if [ $# -eq 4 ]; then
-	if [ "$1" == "-t"  ]; then
+	if [ "$1" = "-t"  ]; then
 		command=$3
 		args=$(echo "$1 $2 $4")
 	else
