@@ -101,8 +101,8 @@ uint32_t avd_ckpt_app(AVD_CL_CB *cb, AVD_APP *ckpt_app, NCS_MBCSV_ACT_TYPE actio
 
 	osafassert (action == NCS_MBCSV_ACT_UPDATE);
 
-	if (NULL == (app = avd_app_get(&ckpt_app->name))) {
-		LOG_ER("avd_app_get FAILED for '%s'", ckpt_app->name.value);
+	if (NULL == (app = avd_app_get_or_create(&ckpt_app->name))) {
+		LOG_ER("avd_app_get_or_create FAILED for '%s'", ckpt_app->name.value);
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}

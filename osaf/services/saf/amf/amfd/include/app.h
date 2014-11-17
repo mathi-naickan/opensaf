@@ -72,5 +72,6 @@ extern void avd_apptype_add_app(AVD_APP *app);
 extern void avd_apptype_remove_app(AVD_APP *app);
 extern SaAisErrorT avd_apptype_config_get(void);
 extern void avd_apptype_constructor(void);
+extern AVD_APP *avd_app_get_or_create(const SaNameT *dn);
 
 #endif

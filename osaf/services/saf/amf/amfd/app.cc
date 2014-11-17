@@ -254,6 +254,27 @@ done:
 	return app;
 }
 
+/**
+ * Return an APP object if it exist, otherwise create it and
+ * return a reference to the new object.
+ * @param dn
+ *
+ * @return AVD_APP*
+ */
+AVD_APP *avd_app_get_or_create(const SaNameT *dn)
+{
+        AVD_APP *app = avd_app_get(dn);
+
+        if (!app) {
+                TRACE("'%s' does not exist, creating it", dn->value);
+                app = avd_app_new(dn);
+                osafassert(app != NULL);
+                avd_app_db_add(app);
+        }
+
+        return app;
+}
+
 static SaAisErrorT app_ccb_completed_cb(CcbUtilOperationData_t *opdata)
 {
 	const SaImmAttrModificationT_2 *attr_mod;
