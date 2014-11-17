@@ -104,8 +104,10 @@ uint32_t avd_ckpt_app(AVD_CL_CB *cb, AVD_APP *ckpt_app, NCS_MBCSV_ACT_TYPE actio
 
 	AVD_APP *app = app_db->find(Amf::to_string(&ckpt_app->name));
 	if (app == NULL) {
-		LOG_ER("%s failed to find '%s'", __FUNCTION__, ckpt_app->name.value);
-		rc = NCSCC_RC_FAILURE;
+		TRACE("'%s' does not exist, creating it", ckpt_app->name.value);
+		app = new AVD_APP(&ckpt_app->name);
+		app_db->insert(Amf::to_string(&app->name), app);
+		osafassert(rc == NCSCC_RC_SUCCESS);
 		goto done;
 	}
 	/* Update all runtime attributes */	
