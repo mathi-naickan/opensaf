@@ -9509,6 +9509,7 @@ ImmModel::ccbCompletedContinuation(immsv_oi_ccb_upcall_rsp* rsp,
     if(ccb->mState == IMM_CCB_VALIDATED) {
         LOG_IN("GOING FROM IMM_CCB_VALIDATED to IMM_CCB_PREPARE Ccb:%u", ccbId);
         ccb->mState = IMM_CCB_PREPARE;
+        *reqConn = ccb->mOriginatingConn;
         goto done;
     }
     
