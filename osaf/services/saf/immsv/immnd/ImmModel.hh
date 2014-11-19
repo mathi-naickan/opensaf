@@ -201,7 +201,8 @@ public:
                                         SaUint32T* continuationId,
                                         SaUint32T* pbeConn,
                                         unsigned int* pbeNodeId,
-                                        std::string& objectName);
+                                        std::string& objectName,
+                                        bool* dnOrRdnIsLong);
 
     immsv_attr_values_list* specialApplierTrimCreate(
 						     SaUint32T clientId,

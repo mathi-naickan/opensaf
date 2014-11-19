@@ -39,7 +39,7 @@ static void imma_proc_ccbaug_setup(IMMA_CLIENT_NODE *cl_node, IMMA_CALLBACK_INFO
 extern SaAisErrorT immsv_om_augment_ccb_get_result (SaImmOiHandleT privateOmHandle, SaUint32T ccbId) __attribute__((weak));
 extern void  immsv_om_handle_finalize(SaImmHandleT privateOmHandle) __attribute__((weak));
 
-static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, 
+static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, 
 	IMMA_CALLBACK_INFO *callback, SaImmHandleT immHandle);
 
 static void imma_proc_free_callback(IMMA_CALLBACK_INFO *callback);
@@ -1067,7 +1067,7 @@ static void imma_proc_obj_delete(IMMA_CB *cb, IMMA_EVT *evt)
                   evt - IMMA_EVT.
   Return Values : None
 ******************************************************************************/
-static void imma_proc_obj_create(IMMA_CB *cb, IMMA_EVT *evt)
+static void imma_proc_obj_create(IMMA_CB *cb, bool dnOrRdnIsLong, IMMA_EVT *evt)
 {
 	IMMA_CALLBACK_INFO *callback;
 	IMMA_CLIENT_NODE *cl_node = NULL;
@@ -1126,6 +1126,11 @@ static void imma_proc_obj_create(IMMA_CB *cb, IMMA_EVT *evt)
 
 		callback->attrValues = evt->info.objCreate.attrValues;
 		evt->info.objCreate.attrValues = NULL;	/*steal attrValues list */
+
+		if(dnOrRdnIsLong) { /* @@@@ */
+			TRACE("Long DN/RDN detected for create callback.");
+			callback->hasLongRdnOrDn = true;
+		}
 
 		/* Send the event */
 		(void)m_NCS_IPC_SEND(&cl_node->callbk_mbx, callback, NCS_IPC_PRIORITY_NORMAL);
@@ -1274,6 +1279,7 @@ void imma_proc_free_pointers(IMMA_CB *cb, IMMA_EVT *evt)
 			evt->info.searchRemote.attributeNames = NULL;
 			break;
 
+		case IMMA_EVT_ND2A_OI_OBJ_CREATE_LONG_UC:
 		case IMMA_EVT_ND2A_OI_OBJ_CREATE_UC:
 			free(evt->info.objCreate.className.buf);
 			evt->info.objCreate.className.buf = NULL;
@@ -1341,8 +1347,12 @@ void imma_process_evt(IMMA_CB *cb, IMMSV_EVT *evt)
 			imma_proc_rt_attr_update(cb, &evt->info.imma);
 			break;
 
+		case IMMA_EVT_ND2A_OI_OBJ_CREATE_LONG_UC:
+			imma_proc_obj_create(cb, true, &evt->info.imma);
+			break;
+
 		case IMMA_EVT_ND2A_OI_OBJ_CREATE_UC:
-			imma_proc_obj_create(cb, &evt->info.imma);
+			imma_proc_obj_create(cb, false, &evt->info.imma);
 			break;
 
 		case IMMA_EVT_ND2A_OI_OBJ_DELETE_UC:
@@ -1616,7 +1626,21 @@ uint32_t imma_hdl_callbk_dispatch_one(IMMA_CB *cb, SaImmHandleT immHandle)
 			}
 			imma_proc_ccbaug_setup(cl_node, callback);
 			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
-			imma_process_callback_info(cb, cl_node, callback, immHandle);
+			if(!imma_process_callback_info(cb, cl_node, callback, immHandle)) {
+				/* Callback protocol could not be honored due to some lack
+				   of client capabilities. E.g. applier can not handle long DNs
+				   while regular OI can, or there is no regular OI. The capabilties
+				   of the main OI can not be termined in the context of the applier
+				   callback. 
+				*/
+				TRACE("client capability failure");
+				/* Not locked. But setting some flags in client_node should be safe
+				   assuming only the current thread is using this handle/client_node. 
+				*/
+				cl_node->stale = true;
+				cl_node->exposed = true;
+				return SA_AIS_ERR_BAD_HANDLE;
+			}
 			return SA_AIS_OK;
 		} else {
 			imma_proc_free_callback(callback);
@@ -1668,7 +1692,21 @@ uint32_t imma_hdl_callbk_dispatch_all(IMMA_CB *cb, SaImmHandleT immHandle)
 
 			imma_proc_ccbaug_setup(cl_node, callback);
 			m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
-			imma_process_callback_info(cb, cl_node, callback, immHandle);
+			if(!imma_process_callback_info(cb, cl_node, callback, immHandle)) {
+				/* Callback protocol could not be honored due to some lack
+				   of client capabilities. E.g. applier can not handle long DNs
+				   while regular OI can, or there is no regular OI. The capabilties
+				   of the main OI can not be termined in the context of the applier
+				   callback. 
+				*/
+				TRACE("client capability failure");
+				/* Not locked. But setting some flags in client_node should be safe
+				   assuming only the current thread is using this handle/client_node. 
+				*/
+				cl_node->stale = true;
+				cl_node->exposed = true;
+				return SA_AIS_ERR_BAD_HANDLE;
+			}
 		} else {
 			imma_proc_free_callback(callback);
 			break;
@@ -1747,7 +1785,21 @@ uint32_t imma_hdl_callbk_dispatch_block(IMMA_CB *cb, SaImmHandleT immHandle)
 
 				imma_proc_ccbaug_setup(client_info, callback);
 				m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
-				imma_process_callback_info(cb, client_info, callback, immHandle);
+				if(!imma_process_callback_info(cb, client_info, callback, immHandle)) {
+					/* Callback protocol could not be honored due to some lack
+					   of client capabilities. E.g. applier can not handle long DNs
+					   while regular OI can, or there is no regular OI. The capabilties
+					   of the main OI can not be termined in the context of the applier
+					   callback. 
+					*/
+					TRACE("client capability failure");
+					/* Not locked. But setting some flags in client_node should be safe
+					   assuming only the current thread is using this handle/client_node. 
+					 */
+					client_info->stale = true;
+					client_info->exposed = true;
+					return SA_AIS_ERR_BAD_HANDLE;
+				}
 			} else {
 				/* Another thread called Finalize? */
 				TRACE_3("Client dead?");
@@ -1829,17 +1881,19 @@ static void imma_proc_ccbaug_setup(IMMA_CLIENT_NODE *cl_node, IMMA_CALLBACK_INFO
                   callback - ptr to the registered callbacks
                   immHandle - handle used to re-fetch cl_node if necessary.
  
-  Return Values : None
+  Return Values : bool if false => capability error, break dispatch.
  
   Notes         : None
 ******************************************************************************/
-static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, 
+static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node, 
 	IMMA_CALLBACK_INFO *callback, SaImmHandleT immHandle)
 {
 	/* Not locked => the use of cl_node is a bit unsafe here. 
 	   We should at least have a dont-delete marking in the client node.
 	 */
 	TRACE_ENTER();
+	bool clientCapable = true; /* Used to break dispatching if client is found lacking in capability. */
+
 	/* invoke the corresponding callback */
 #ifdef IMMA_OM
 	switch (callback->type) {
@@ -2177,35 +2231,56 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 					}//for
 					attr[noOfAttributes] = NULL;	/*redundant */
 
-					/*Need a separate const pointer just to avoid an INCORRECT warning
-					  by the stupid compiler. This compiler warns when assigning 
-					  non-const to a const !!!! and it is not even possible to do the 
-					  cast in the function call. Note: const is MORE restrictive than 
-					  non-const so assigning to a const should ALWAYS be allowed. 
-					*/
-
 					TRACE("ccb-object-create make the callback");
-					/* Save a copy of the attrvals pointer  in the callback to allow
+					/* Save a copy of the attrvals pointer in the callback to allow
 					   saImmOiAugmentCcbInitialize to get access to the ccbCreateContext.
 					   We cant use callback->attrValues because it is partially stolen
 					   from (caused to be incomplete) in the loop above (see imma_copyAttrValue3).
 					 */
 					callback->attrValsForCreateUc = (const SaImmAttrValuesT_2 **)attr;
 
-					if (osaf_is_extended_name_valid(&(callback->name))) {
+					if (!osaf_is_extended_names_enabled() && (callback->hasLongRdnOrDn)) {
+						/* (callback->hasLongRdnOrDn) set above at '@@@@' here means
+						   that the create callback has one or more of the following
+						   properties:
+						   a) Parent DN is a longDN.
+						   b) RDN appended with parent DN, i.e. object DN, is a long DN.
+						   c) The RDN is of type SaStringT and longer than 64 bytes.
+						   d) One or more long DNs appear in attribute list.
+						   Any of these properties are not compatible for a client that
+						   does not support long DNs. These cases are detected in the server
+						   and communicated here to the generic client code.
+						*/
+						LOG_WA("Extended names not enabled. RDN, or ParentDN(%zu) or parentDN+RDN too long. ccb: %u", 
+							strlen(osaf_extended_name_borrow(&(callback->name))), callback->ccbID);
+						localEr = SA_AIS_ERR_BAD_OPERATION;
+						if(cl_node->isApplier) {
+							/* We cannot uphold the contract for an applier that is not long DN
+							   capable. For relgular OI this is not a problem since an error can
+							   be returned to the server aborting the CCB. But appliers can not
+							   reply. If the OI/OIs are capable but some applier(s) are not then
+							   we have a problem for those appliers. We can not just silently skip
+							   the applier callback while the CCB goes on to commit. Instead we
+							   break the dispatch loop.
+							 */
+							clientCapable = false; 
+						}
+
+					} else if (osaf_is_extended_name_valid(&(callback->name))) {  /* Only checks length of parent name. */
 						localEr = cl_node->o.iCallbk.saImmOiCcbObjectCreateCallback(callback->lcl_imm_hdl,
 							ccbid,
 							className,
 							&(callback->name),
 							callback->attrValsForCreateUc);
-					} else {
-						if (osaf_is_extended_names_enabled()) {
-							TRACE_3("Object name is too long: %s", osaf_extended_name_borrow(&(callback->name)));
-						} else {
-							TRACE_3("Extended name feature is disabled. Object name is too long: %s", osaf_extended_name_borrow(&(callback->name)));
-						}
+					}  else {
+						/* We should never get here. This should be caught already in the MDS thread
+						   for the obj-create case. Search for two times '@@@@' above.
+						 */
+						TRACE_3("Extended name feature is disabled. Parent name is too long: %zu ccb: %u", 
+							strlen(osaf_extended_name_borrow(&(callback->name))), callback->ccbID);
 						localEr = SA_AIS_ERR_BAD_OPERATION;
 					}
+
 
 					TRACE("ccb-object-create callback returned RC:%u", localEr);
 					if (!(localEr == SA_AIS_OK ||
@@ -2827,6 +2902,7 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 	   been set to NULL */
 	imma_proc_free_callback(callback);
 	TRACE_LEAVE();
+	return clientCapable;
 }
 
 static void imma_proc_free_callback(IMMA_CALLBACK_INFO *callback)

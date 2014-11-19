@@ -90,6 +90,7 @@ typedef enum imma_evt_type {
 
 	IMMA_EVT_ND2A_SEARCHBUNDLENEXT_RSP = 29,	/*Response from SearchNext with more results */
 	IMMA_EVT_ND2A_ACCESSOR_GET_RSP = 30,	/* Response from accessorGet */
+	IMMA_EVT_ND2A_OI_OBJ_CREATE_LONG_UC = 31,	/*OBJ CREATE UP-CALL with long DN. */
 
 	IMMA_EVT_MAX
 } IMMA_EVT_TYPE;

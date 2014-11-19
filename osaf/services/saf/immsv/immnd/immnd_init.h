@@ -163,7 +163,7 @@ extern "C" {
 	    immModel_ccbObjectCreate(IMMND_CB *cb,
 		    struct ImmsvOmCcbObjectCreate *req, SaUint32T *implConn, SaClmNodeIdT *implNodeId, 
 		    SaUint32T *continuationId, SaUint32T *pbeConn, SaClmNodeIdT *pbeNodeId, 
-                    SaNameT* objName);
+                    SaNameT* objName, bool* dnOrRdnIsLong);
 
 	SaUint32T immModel_getLocalAppliersForObj(IMMND_CB *cb, const SaNameT* objName, SaUint32T ccbId,
                 SaUint32T **aplConnArr, SaBoolT externalRep);

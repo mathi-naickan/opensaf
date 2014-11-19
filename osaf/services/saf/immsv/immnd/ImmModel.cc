@@ -603,12 +603,13 @@ immModel_ccbObjectCreate(IMMND_CB *cb,
     SaUint32T* continuationId,
     SaUint32T* pbeConn,
     SaClmNodeIdT* pbeNodeId,
-    SaNameT* objName)
+    SaNameT* objName,
+    bool* dnOrRdnIsLong)
 {
     std::string objectName;
     SaAisErrorT err = ImmModel::instance(&cb->immModel)->
         ccbObjectCreate(req, implConn, implNodeId, continuationId, 
-            pbeConn, pbeNodeId, objectName);
+            pbeConn, pbeNodeId, objectName, dnOrRdnIsLong);
 
     if(err == SA_AIS_OK) {
         osaf_extended_name_alloc(objectName.c_str(), objName);
@@ -2626,6 +2627,11 @@ ImmModel::getLongDnsAllowed(ObjectInfo* immObject)
     bool longDnsAllowed = false;
     if(ccbIdLongDnGuard)  {
         /* A ccb is currently mutating longDnsAllowed */
+        return false;
+    }
+
+    if((sImmNodeState > IMM_NODE_LOADING) && !protocol45Allowed()) {
+        LOG_IN("Long DNs not allowed before upgrade to OpenSAF 4.5 is complete");
         return false;
     }
 
@@ -6530,9 +6536,12 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     SaUint32T* continuationId,
     SaUint32T* pbeConnPtr,
     unsigned int* pbeNodeIdPtr,
-    std::string& objectName)
+    std::string& objectName,
+    bool* dnOrRdnIsLong)
 {
     TRACE_ENTER();
+    osafassert(dnOrRdnIsLong);
+    *dnOrRdnIsLong = false;
     SaAisErrorT err = SA_AIS_OK;
     //osafassert(!immNotWritable()); 
     //It should be safe to allow old ccbs to continue to mutate the IMM.
@@ -6577,12 +6586,21 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     //int isLoading = this->getLoader() > 0;
     int isLoading = (sImmNodeState == IMM_NODE_LOADING);
     
-    if(!longDnsPermitted && sz >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-        LOG_NO("ERR_NOT_EXIST: Parent name '%s' has a long DN. "
-            "Not allowed by IMM service or extended names are disabled",
-            parentName.c_str());
-        err = SA_AIS_ERR_NOT_EXIST;
-        goto ccbObjectCreateExit;
+    if(sz >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+        if(longDnsPermitted) {
+            /* The catch here of this long parent DN case is actually redundant. 
+               This since a long parent + rdn will be even longer than the long
+               parent name and that case is also caught below.
+            */
+            (*dnOrRdnIsLong) = true;
+        } else {
+            /* The case of this parent actually existing should not be impossible. */
+            LOG_NO("ERR_NAME_TOO_LONG: Parent name '%s' has a long DN. "
+                "Not allowed by IMM service or extended names are disabled",
+                parentName.c_str());
+            err = SA_AIS_ERR_NAME_TOO_LONG;
+            goto ccbObjectCreateExit;
+        }
     }
 
     if(!nameCheck(parentName)) {
@@ -6782,12 +6800,18 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
 
             /* size includes null termination byte. */
             if(((size_t)attrValues->n.attrValue.val.x.size > 65) &&  
-                (i4->second->mValueType == SA_IMM_ATTR_SASTRINGT) && !longDnsPermitted)
+                (i4->second->mValueType == SA_IMM_ATTR_SASTRINGT))
             {
-                LOG_NO("ERR_INVALID_PARAM: RDN attribute value %s is too large: %u. Max length is 64 "
-                    "for SaStringT", attrValues->n.attrValue.val.x.buf, (attrValues->n.attrValue.val.x.size -1));
-                err = SA_AIS_ERR_INVALID_PARAM;     
-                goto ccbObjectCreateExit;
+                if(longDnsPermitted) {
+                    (*dnOrRdnIsLong)=true;
+                    /* Triggers new message type for OI-create callback to enable imma-oi-lib 
+                       to protect legacy OI that does not support long DNs. */
+                } else {
+                    LOG_NO("ERR_INVALID_PARAM: RDN attribute value %s is too large: %u. Max length is 64 "
+                        "for SaStringT", attrValues->n.attrValue.val.x.buf, (attrValues->n.attrValue.val.x.size -1));
+                    err = SA_AIS_ERR_INVALID_PARAM;     
+                    goto ccbObjectCreateExit;
+                }
             }
 
             if(attrValues->n.attrValueType != (int) i4->second->mValueType) {
@@ -6805,46 +6829,42 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                 strnlen((const char*)attrValues->n.attrValue.val.x.buf,
                     (size_t)attrValues->n.attrValue.val.x.size));
         } else if (attrValues->n.attrValueType == SA_IMM_ATTR_SANAMET) {
-            if(!longDnsPermitted) {
-                AttrMap::iterator it = classInfo->mAttrMap.find(attrName);
-                if(it == classInfo->mAttrMap.end()) {
-                    LOG_ER("ERR_INVALID_PARAM: Cannot find attribute '%s'",
-                        attrName.c_str());
-                    err = SA_AIS_ERR_INVALID_PARAM;     //Should never happen!
-                    goto ccbObjectCreateExit;
-                }
-                if(attrValues->n.attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+            AttrMap::iterator it = classInfo->mAttrMap.find(attrName);
+            if(it == classInfo->mAttrMap.end()) {
+                LOG_ER("ERR_INVALID_PARAM: Cannot find attribute '%s'",
+                    attrName.c_str());
+                err = SA_AIS_ERR_INVALID_PARAM;     //Should never happen!
+                goto ccbObjectCreateExit;
+            }
+
+            if(attrValues->n.attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                if(longDnsPermitted) {
+                    (*dnOrRdnIsLong) = true;
+                    if(isLoading) {sIsLongDnLoaded = true;}
+                } else {
                     LOG_NO("ERR_NAME_TOO_LONG: Attribute '%s' has long name. "
                         "Not allowed by IMM service or extended names are disabled",
                         attrName.c_str());
                     err = SA_AIS_ERR_NAME_TOO_LONG;
                     goto ccbObjectCreateExit;
                 }
+            }
 
-                IMMSV_EDU_ATTR_VAL_LIST *value = attrValues->n.attrMoreValues;
-                while(value) {
-                    if(value->n.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+            IMMSV_EDU_ATTR_VAL_LIST *value = attrValues->n.attrMoreValues;
+            while(value) {
+                if(value->n.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                    if(longDnsPermitted) {
+                        (*dnOrRdnIsLong) = true;
+                        if(isLoading) {sIsLongDnLoaded = true;}
+                    } else {
                         LOG_NO("ERR_NAME_TOO_LONG: Attribute '%s' has long DN. "
                             "Not allowed by IMM service or extended names are disabled",
                             attrName.c_str());
                         err = SA_AIS_ERR_NAME_TOO_LONG;
                         goto ccbObjectCreateExit;
                     }
-                    value = value->next;
                 }
-            } else if (isLoading && !sIsLongDnLoaded) {
-                if(attrValues->n.attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-                    sIsLongDnLoaded = true;
-                } else {
-                    IMMSV_EDU_ATTR_VAL_LIST *value = attrValues->n.attrMoreValues;
-                    while(value) {
-                        if(value->n.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-                            sIsLongDnLoaded = true;
-                            break;
-                        }
-                        value = value->next;
-                    }
-                }
+                value = value->next;
             }
         }
 
@@ -6885,10 +6905,11 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
         err = SA_AIS_ERR_NAME_TOO_LONG;
         goto ccbObjectCreateExit;
     }
-    
-    if(isLoading && !sIsLongDnLoaded
-            && objectName.size() >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-        sIsLongDnLoaded = true;
+
+    if(objectName.size() >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+        TRACE_7("ccbObjectCreate DN is long, size:%u", (unsigned int) objectName.size());
+        if(isLoading) { sIsLongDnLoaded = true; }
+        (*dnOrRdnIsLong)=true;
     }
 
     if ((i5 = sObjectMap.find(objectName)) != sObjectMap.end()) {
@@ -8320,7 +8341,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                are themselves created in CCBs or RTO creates.
                For longDnsAllowed we must check for interference and if setting to 0,
                i.e. not allowed, then verify (a) that no long DNs exist; and (b) that
-	       no regular RDN attribute value is longer than 64 bytes.
+               no regular RDN attribute value is longer than 64 bytes.
 
                For opensafImmSyncBatchSize we accept anything.
             */

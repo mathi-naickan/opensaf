@@ -1390,7 +1390,8 @@ static uint32_t immsv_evt_enc_sublevels(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 			   else 
 			   { No attrValues }
 			 */
-		} else if (i_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_CREATE_UC) {
+		} else if ((i_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_CREATE_UC) || 
+			(i_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_CREATE_LONG_UC)){
 			int depth = 0;
 			/*Encode the className */
 			IMMSV_OCTET_STRING *os = &(i_evt->info.imma.info.objCreate.className);
@@ -2076,7 +2077,8 @@ static uint32_t immsv_evt_dec_sublevels(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 			} else {
 				o_evt->info.imma.info.searchNextRsp->attrValuesList = NULL;
 			}
-		} else if (o_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_CREATE_UC) {
+		} else if ((o_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_CREATE_UC) ||
+			(o_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_CREATE_LONG_UC)){
 			/*Decode the className */
 			IMMSV_OCTET_STRING *os = &(o_evt->info.imma.info.objCreate.className);
 			immsv_evt_dec_inline_string(i_ub, os);
@@ -2736,6 +2738,7 @@ static uint32_t immsv_evt_enc_toplevel(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 			break;
 
 		case IMMA_EVT_ND2A_OI_OBJ_CREATE_UC:	//OBJ CREATE UP-CALL
+		case IMMA_EVT_ND2A_OI_OBJ_CREATE_LONG_UC:   //OBJ CREATE UP-CALL for long DN/RDN
 			IMMSV_RSRV_SPACE_ASSERT(p8, o_ub, 4);
 			ncs_encode_32bit(&p8, immaevt->info.objCreate.ccbId);
 			ncs_enc_claim_space(o_ub, 4);
@@ -4101,6 +4104,7 @@ static uint32_t immsv_evt_dec_toplevel(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 			break;
 
 		case IMMA_EVT_ND2A_OI_OBJ_CREATE_UC:	//OBJ CREATE UP-CALL
+		case IMMA_EVT_ND2A_OI_OBJ_CREATE_LONG_UC://OBJ CREATE UP-CALL for long DN/RDN
 			IMMSV_FLTN_SPACE_ASSERT(p8, local_data, i_ub, 4);
 			immaevt->info.objCreate.ccbId = ncs_decode_32bit(&p8);
 			ncs_dec_skip_space(i_ub, 4);

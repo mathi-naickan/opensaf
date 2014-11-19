@@ -68,6 +68,7 @@ typedef struct imma_callback_info {
 	/* Extra pointer to create callback param needed in some cases
 	   inside getAdmoName() in imma_oi_api.c */
 	const SaImmAttrValuesT_2 **attrValsForCreateUc;
+	bool hasLongRdnOrDn; /* Allows lib to sheild client that is not longDn capable*/
 } IMMA_CALLBACK_INFO;
 
 void imma_process_evt(IMMA_CB *cb, IMMSV_EVT *evt);
