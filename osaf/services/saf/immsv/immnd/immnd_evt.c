@@ -4151,6 +4151,7 @@ static void immnd_evt_pbe_rt_attr_update_rsp(IMMND_CB *cb,
 		immnd_client_node_get(cb, implHandle, &cl_node);
 		osafassert(cl_node != NULL);
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
+		/* Assuming special applier is long DN capable. */
 		send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
 		send_evt.info.imma.info.objModify.adminOwnerId = 0;
 		send_evt.info.imma.info.objModify.immHandle = implHandle;
@@ -6021,7 +6022,7 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 	NCS_NODE_ID *pbeNodeIdPtr = NULL;
 	SaNameT objName;
 	osaf_extended_name_clear(&objName);
-
+	bool hasLongDns=false;
 	TRACE_ENTER();
 #if 0				/*ABT DEBUG PRINTOUTS START */
 	TRACE_2("ABT immnd_evt_proc_object_modify object:%s", evt->info.objModify.objectName.buf);
@@ -6051,7 +6052,7 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 	}
 
 	err = immModel_ccbObjectModify(cb, &(evt->info.objModify), &implConn, &implNodeId, 
-		&continuationId, &pbeConn, pbeNodeIdPtr, &objName);
+		&continuationId, &pbeConn, pbeNodeIdPtr, &objName, &hasLongDns);
 
 	if(pbeNodeIdPtr && pbeConn && err == SA_AIS_OK) {
 		/*The persistent back-end is present and executing at THIS node. */
@@ -6076,6 +6077,7 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 		} else {
 			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 			send_evt.type = IMMSV_EVT_TYPE_IMMA;
+			/* PBE is internal => can handle long DNs */
 			send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
 			send_evt.info.imma.info.objModify = evt->info.objModify;
 			send_evt.info.imma.info.objModify.adminOwnerId = 0; 
@@ -6116,7 +6118,8 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 			} else {
 				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 				send_evt.type = IMMSV_EVT_TYPE_IMMA;
-				send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
+				send_evt.info.imma.type = hasLongDns ?
+					IMMA_EVT_ND2A_OI_OBJ_MODIFY_LONG_UC : IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
 
 				send_evt.info.imma.info.objModify = evt->info.objModify;
 				/* shallow copy into stack alocated structure. */
@@ -6150,7 +6153,8 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 		if(arrSize) {
 			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 			send_evt.type = IMMSV_EVT_TYPE_IMMA;
-			send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
+			send_evt.info.imma.type = hasLongDns ? IMMA_EVT_ND2A_OI_OBJ_MODIFY_LONG_UC :
+				IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
 			send_evt.info.imma.info.objModify = evt->info.objModify;
 			send_evt.info.imma.info.objModify.adminOwnerId = 0;
 			/* Re-use the adminOwner member of the ccbModify message to hold the 
@@ -6374,6 +6378,7 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 			} else {
 				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 				send_evt.type = IMMSV_EVT_TYPE_IMMA;
+				/* PBE is internal => can handle long DNs */
 				send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
 				send_evt.info.imma.info.objModify = evt->info.objModify;
 				send_evt.info.imma.info.objModify.adminOwnerId = 
@@ -6416,6 +6421,7 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 			} else {
 				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 				send_evt.type = IMMSV_EVT_TYPE_IMMA;
+				/* PBE2B is internal => can handle long DNs */
 				send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
 				send_evt.info.imma.info.objModify = evt->info.objModify;
 				send_evt.info.imma.info.objModify.adminOwnerId = 
@@ -6474,6 +6480,7 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 		TRACE_2("Special applier needs to be notified of RTA update.");
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
+		/* Assuming special applier is long DN capable. */
 		send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
 		send_evt.info.imma.info.objModify = evt->info.objModify;
 		send_evt.info.imma.info.objModify.adminOwnerId = 0;
@@ -6895,6 +6902,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 						evt->info.objDelete.ccbId);
 
 					send_evt2.type = IMMSV_EVT_TYPE_IMMA;
+					/* Assuming special applier is long DN capable. */
 					send_evt2.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC;
 					send_evt2.info.imma.info.objModify.ccbId = evt->info.objDelete.ccbId;
 					send_evt2.info.imma.info.objModify.adminOwnerId = 

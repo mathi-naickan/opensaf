@@ -174,7 +174,7 @@ extern "C" {
 	    immModel_ccbObjectModify(IMMND_CB *cb,
 		    const struct ImmsvOmCcbObjectModify *req, SaUint32T *implConn, SaClmNodeIdT *implNodeId, 
 		    SaUint32T *continuationId, SaUint32T *pbeConn, SaClmNodeIdT *pbeNodeId,
-                    SaNameT* objName);
+                    SaNameT* objName, bool* hasLongDns);
 
 	void immModel_ccbCompletedContinuation(IMMND_CB *cb,
 					       struct immsv_oi_ccb_upcall_rsp *rsp, SaUint32T *reqConn);

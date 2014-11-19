@@ -726,12 +726,13 @@ immModel_ccbObjectModify(IMMND_CB *cb,
     SaUint32T* continuationId,
     SaUint32T* pbeConn,
     SaClmNodeIdT* pbeNodeId,
-    SaNameT* objName)
+    SaNameT* objName,
+    bool* hasLongDns)
 {
     std::string objectName;
     SaAisErrorT err = ImmModel::instance(&cb->immModel)->
         ccbObjectModify(req, implConn, implNodeId, continuationId,
-            pbeConn, pbeNodeId, objectName);
+        pbeConn, pbeNodeId, objectName, hasLongDns);
 
     if(err == SA_AIS_OK) {
         osaf_extended_name_alloc(objectName.c_str(), objName);
@@ -7644,9 +7645,12 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
     SaUint32T* continuationId,
     SaUint32T* pbeConnPtr,
     unsigned int* pbeNodeIdPtr,
-    std::string& objectName)
+    std::string& objectName,
+    bool* hasLongDns)
 {
     TRACE_ENTER();
+    osafassert(hasLongDns);
+    *hasLongDns = false;
     SaAisErrorT err = SA_AIS_OK;
     
     //osafassert(!immNotWritable());
@@ -7686,11 +7690,15 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
     bool hasNoDanglingRefs = false;
     bool modifiedImmMngt = false;  /* true => modification of the SAF immManagement object. */
     
-    if(!longDnsPermitted && sz >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-        LOG_NO("ERR_NAME_TOO_LONG: Object name has a long DN. "
-            "Not allowed by IMM service or extended names are disabled");
-        err = SA_AIS_ERR_NAME_TOO_LONG;
-        goto ccbObjectModifyExit;
+    if(sz >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+        if(longDnsPermitted) {
+            (*hasLongDns) = true;
+        } else {
+            LOG_NO("ERR_NAME_TOO_LONG: Object name has a long DN. "
+                "Not allowed by IMM service or extended names are disabled");
+            err = SA_AIS_ERR_NAME_TOO_LONG;
+            goto ccbObjectModifyExit;
+        }
     }
 
     if(! (nameCheck(objectName)||nameToInternal(objectName)) ) {
@@ -7924,8 +7932,10 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
         if(attr->mFlags & SA_IMM_ATTR_NOTIFY) {modifiedNotifyAttr=true;}
 
         if(attr->mValueType == SA_IMM_ATTR_SANAMET) {
-            if(!longDnsPermitted) {
-                if(p->attrValue.attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+            if(p->attrValue.attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                if(longDnsPermitted) {
+                    (*hasLongDns) = true;
+                } else {
                     LOG_NO("ERR_BAD_OPERATION: Attribute '%s' has long DN. "
                         "Not allowed by IMM service or extended names are disabled",
                         attrName.c_str());
@@ -7936,11 +7946,15 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                     IMMSV_EDU_ATTR_VAL_LIST *values = p->attrValue.attrMoreValues;
                     while(values) {
                         if(values->n.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-                            LOG_NO("ERR_BAD_OPERATION: Attribute '%s' has long DN. "
-                                "Not allowed by IMM service or extended names are disabled",
-                                attrName.c_str());
-                            err = SA_AIS_ERR_BAD_OPERATION;
-                            break;
+                            if(longDnsPermitted) {
+                                (*hasLongDns) = true;
+                            } else {
+                                LOG_NO("ERR_BAD_OPERATION: Attribute '%s' has long DN. "
+                                    "Not allowed by IMM service or extended names are disabled",
+                                    attrName.c_str());
+                                err = SA_AIS_ERR_BAD_OPERATION;
+                                break;
+                            }
                         }
                         values = values->next;
                     }

@@ -1152,7 +1152,7 @@ static void imma_proc_obj_create(IMMA_CB *cb, bool dnOrRdnIsLong, IMMA_EVT *evt)
                   evt - IMMA_EVT.
   Return Values : None
 ******************************************************************************/
-static void imma_proc_obj_modify(IMMA_CB *cb, IMMA_EVT *evt)
+static void imma_proc_obj_modify(IMMA_CB *cb, bool hasLongDNs, IMMA_EVT *evt)
 {
 	IMMA_CALLBACK_INFO *callback;
 	IMMA_CLIENT_NODE *cl_node = NULL;
@@ -1210,6 +1210,11 @@ static void imma_proc_obj_modify(IMMA_CB *cb, IMMA_EVT *evt)
 
 		callback->attrMods = evt->info.objModify.attrMods;
 		evt->info.objModify.attrMods = NULL;	/*steal attrMods list */
+
+		if(hasLongDNs) { /* #### */
+			TRACE("Long DN detected for modify callback.");
+			callback->hasLongRdnOrDn = true;
+		}
 
 		/* Send the event */
 		(void)m_NCS_IPC_SEND(&cl_node->callbk_mbx, callback, NCS_IPC_PRIORITY_NORMAL);
@@ -1300,6 +1305,7 @@ void imma_proc_free_pointers(IMMA_CB *cb, IMMA_EVT *evt)
 			break;
 
 		case IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC:
+		case IMMA_EVT_ND2A_OI_OBJ_MODIFY_LONG_UC:
 			free(evt->info.objModify.objectName.buf);
 			evt->info.objModify.objectName.buf = NULL;
 			evt->info.objModify.objectName.size = 0;
@@ -1360,7 +1366,11 @@ void imma_process_evt(IMMA_CB *cb, IMMSV_EVT *evt)
 			break;
 
 		case IMMA_EVT_ND2A_OI_OBJ_MODIFY_UC:
-			imma_proc_obj_modify(cb, &evt->info.imma);
+			imma_proc_obj_modify(cb, false, &evt->info.imma);
+			break;
+
+		case IMMA_EVT_ND2A_OI_OBJ_MODIFY_LONG_UC:
+			imma_proc_obj_modify(cb, true, &evt->info.imma);
 			break;
 
 		case IMMA_EVT_ND2A_OI_CCB_COMPLETED_UC:
@@ -2618,15 +2628,38 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 					const SaImmAttrModificationT_2 **constPtrForStupidCompiler =
 						(const SaImmAttrModificationT_2 **)attr;
 
-					if (osaf_is_extended_name_valid(&(callback->name))) {
+					if (!osaf_is_extended_names_enabled() && (callback->hasLongRdnOrDn)) {
+						/* (callback->hasLongRdnOrDn) set above at '####' here means
+						   that the modify callback has one or more of the following
+						   properties:
+						   a) Object DN is a longDN.
+						   b) One or more long DNs appear in attribute list.
+						   Any of these properties are not compatible for a client that
+						   does not support long DNs. These cases are detected in the server
+						   and communicated here to the generic client code.
+						*/
+						LOG_WA("Extended names not enabled. object-DN or SaNamet "
+							"attribute value too long. ccb: %u", callback->ccbID);
+						localEr = SA_AIS_ERR_BAD_OPERATION;
+						if(cl_node->isApplier) {
+							/* We cannot uphold the contract for an applier that is not long DN
+							   capable. For relgular OI this is not a problem since an error can
+							   be returned to the server aborting the CCB. But appliers can not
+							   reply. If the OI/OIs are capable but some applier(s) are not then
+							   we have a problem for those appliers. We can not just silently skip
+							   the applier callback while the CCB goes on to commit. Instead we
+							   break the dispatch loop.
+							 */
+							clientCapable = false; 
+						}
+					} else if (osaf_is_extended_name_valid(&(callback->name))) {
 						localEr = cl_node->o.iCallbk.saImmOiCcbObjectModifyCallback(callback->lcl_imm_hdl,
 								ccbid, &(callback->name), constPtrForStupidCompiler);
 					} else {
-						if (osaf_is_extended_names_enabled()) {
-							TRACE_3("Object name is too long: %s", osaf_extended_name_borrow(&(callback->name)));
-						} else {
-							TRACE_3("Extended name feature is disabled. Object name is too long: %s", osaf_extended_name_borrow(&(callback->name)));
-						}
+						/* We should never get here. This should be caught already in the MDS thread
+						   for the obj-create case. Search for two times '####' above.
+						 */
+						TRACE_3("Object name is too long: %s", osaf_extended_name_borrow(&(callback->name)));
 						localEr = SA_AIS_ERR_BAD_OPERATION;
 					}
 
