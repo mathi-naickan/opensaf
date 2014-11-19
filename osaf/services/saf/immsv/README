@@ -1907,6 +1907,31 @@ http://sourceforge.net/p/opensaf/tickets/957/
 This enhancement is part of the general enhancement for supporting long DNs in
 OpenSAF tracked by ticket: #191. Ticket #886 adds support for long DNs to IMM.
 
+The long DN enhancement results possibility that the error code:
+
+     SA_AIS_ERR_NAME_TOO_LONG 
+
+can be returned by the following APIs:
+
+    saImmOmSearchInitialize_2
+    saImmOmSearchNext_2
+    saImmOmAccessorGet_2
+    saImmOmAdminOperationInvoke_2
+    saImmOmAdminOperationInvokeAsync_2
+    saImmOmAdminOperationInvoke_o2
+
+or be returned in the parameter 'error' by the following callbacks:
+
+   SaImmOmAdminOperationInvokeCallbackT
+   SaImmOmAdminOperationInvokeCallbackT_o2
+
+This error will be returned if:
+
+ - The OM request contains a long DN and the OI is not long DN capable.
+ - The reply (from imm-server on search, or from OI on admin-op) contains
+   a long DN and the OM-client is not long DN capable.
+
+
 The library implementation of the existing IMM API has been addapted to the 
 "tunneling" solution  provided by the OpenSAF generic patch for ticket #191.
 See the document: 
