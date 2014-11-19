@@ -253,7 +253,8 @@ public:
                                         IdVector& continuations,
                                         SaUint32T* pbeConn,
                                         unsigned int* pbeNodeId,
-                                        bool* augDelete);
+                                        bool* augDelete,
+                                        bool* hasLongDn);
 
     SaAisErrorT         deleteObject(
                                      ObjectMap::iterator& oi,

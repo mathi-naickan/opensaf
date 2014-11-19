@@ -752,7 +752,8 @@ immModel_ccbObjectDelete(IMMND_CB *cb,
     SaStringT** objNameArr,
     SaUint32T* pbeConn,
     SaClmNodeIdT* pbeNodeId,
-    bool* augDelete)
+    bool* augDelete,
+    bool* hasLongDn)
     
 {
     ConnVector cv;
@@ -765,7 +766,7 @@ immModel_ccbObjectDelete(IMMND_CB *cb,
     
     SaAisErrorT err = 
         ImmModel::instance(&cb->immModel)->ccbObjectDelete(req,
-            reqConn, ov, cv, iv, pbeConn, pbeNodeId, augDelete);
+            reqConn, ov, cv, iv, pbeConn, pbeNodeId, augDelete, hasLongDn);
     *arrSize = (SaUint32T) cv.size();
     osafassert(*arrSize == iv.size());
     osafassert(*arrSize == ov.size());
@@ -1583,9 +1584,9 @@ immModel_ccbCompletedContinuation(IMMND_CB *cb,
 void
 immModel_ccbObjDelContinuation(IMMND_CB *cb, 
     struct immsv_oi_ccb_upcall_rsp* rsp,
-    SaUint32T* reqConn, bool* augDelete)
+	SaUint32T* reqConn, bool* augDelete)
 {
-    ImmModel::instance(&cb->immModel)->ccbObjDelContinuation(rsp, reqConn, augDelete);
+	ImmModel::instance(&cb->immModel)->ccbObjDelContinuation(rsp, reqConn, augDelete);
 }
 
 void
@@ -8580,9 +8581,15 @@ ImmModel::ccbObjectDelete(const ImmsvOmCcbObjectDelete* req,
     IdVector& continuations,
     SaUint32T* pbeConnPtr,
     unsigned int* pbeNodeIdPtr,
-    bool* augDelete)
+    bool* augDelete,
+    bool* hasLongDn)
+
 {
     TRACE_ENTER();
+    osafassert(augDelete);
+    *augDelete=false;
+    osafassert(hasLongDn);
+    *hasLongDn=false;
     SaAisErrorT err = SA_AIS_OK;
     
     //osafassert(!immNotWritable()); 
@@ -8603,12 +8610,15 @@ ImmModel::ccbObjectDelete(const ImmsvOmCcbObjectDelete* req,
     ObjectMap::iterator oi, oi2;
     ObjectInfo* deleteRoot=NULL;
     
-    if(!getLongDnsAllowed()
-            && sz >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-        LOG_NO("ERR_NAME_TOO_LONG: Object name is too long. "
-            "Not allowed by IMM service or extended names are disabled");
-        err = SA_AIS_ERR_NAME_TOO_LONG;
-        goto ccbObjectDeleteExit;
+    if(sz >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+        if(getLongDnsAllowed()) {
+            *hasLongDn = true;
+        } else {
+            LOG_NO("ERR_NAME_TOO_LONG: Object name is too long. "
+                "Not allowed by IMM service or extended names are disabled");
+            err = SA_AIS_ERR_NAME_TOO_LONG;
+            goto ccbObjectDeleteExit;
+        }
     }
 
     if(! (nameCheck(objectName)||nameToInternal(objectName)) ) {

@@ -1439,7 +1439,8 @@ static uint32_t immsv_evt_enc_sublevels(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 				LOG_ER("TOO MANY attribute modifications line:%u", __LINE__);
 				return NCSCC_RC_OUT_OF_MEM;
 			}
-		} else if (i_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_DELETE_UC) {
+		} else if ((i_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_DELETE_UC) ||
+			(i_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_DELETE_LONG_UC)) {
 			/*Encode the objectName */
 			IMMSV_OCTET_STRING *os = &(i_evt->info.imma.info.objDelete.objectName);
 			if(!immsv_evt_enc_inline_text(__LINE__, o_ub, os)) {
@@ -2106,7 +2107,8 @@ static uint32_t immsv_evt_dec_sublevels(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 				immsv_evt_dec_attrmods(i_ub, &p);
 				o_evt->info.imma.info.objModify.attrMods = p;
 			}
-		} else if (o_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_DELETE_UC) {
+		} else if ((o_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_DELETE_UC) ||
+			(o_evt->info.imma.type == IMMA_EVT_ND2A_OI_OBJ_DELETE_LONG_UC)) {
 			/*Decode the objectName */
 			IMMSV_OCTET_STRING *os = &(o_evt->info.imma.info.objDelete.objectName);
 			immsv_evt_dec_inline_string(i_ub, os);
@@ -2767,6 +2769,7 @@ static uint32_t immsv_evt_enc_toplevel(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 			break;
 
 		case IMMA_EVT_ND2A_OI_OBJ_DELETE_UC:	//OBJ DELETE UP-CALL.
+		case IMMA_EVT_ND2A_OI_OBJ_DELETE_LONG_UC:
 			IMMSV_RSRV_SPACE_ASSERT(p8, o_ub, 4);
 			ncs_encode_32bit(&p8, immaevt->info.objDelete.ccbId);
 			ncs_enc_claim_space(o_ub, 4);
@@ -4137,6 +4140,7 @@ static uint32_t immsv_evt_dec_toplevel(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 			break;
 
 		case IMMA_EVT_ND2A_OI_OBJ_DELETE_UC:	//OBJ DELETE UP-CALL.
+		case IMMA_EVT_ND2A_OI_OBJ_DELETE_LONG_UC:
 			IMMSV_FLTN_SPACE_ASSERT(p8, local_data, i_ub, 4);
 			immaevt->info.objDelete.ccbId = ncs_decode_32bit(&p8);
 			ncs_dec_skip_space(i_ub, 4);

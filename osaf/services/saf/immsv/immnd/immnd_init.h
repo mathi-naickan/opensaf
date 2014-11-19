@@ -156,7 +156,7 @@ extern "C" {
 	    immModel_ccbObjectDelete(IMMND_CB *cb,
 		    const struct ImmsvOmCcbObjectDelete *req,
 		    SaUint32T reqConn, SaUint32T *arrSize, SaUint32T **implConnArr, SaUint32T **implIdArr, 
-		    SaStringT **objNameArr, SaUint32T *pbeConn, SaClmNodeIdT *pbeNodeId, bool* augDelete);
+		    SaStringT **objNameArr, SaUint32T *pbeConn, SaClmNodeIdT *pbeNodeId, bool* augDelete, bool* hasLongDn);
 
 
 	SaAisErrorT

@@ -6706,6 +6706,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 	NCS_NODE_ID pbeNodeId = 0;
 	NCS_NODE_ID *pbeNodeIdPtr = NULL;
 	bool augDelete=false;
+	bool hasLongDn=false;
 	TRACE_ENTER();
 
 #if 0				/*ABT DEBUG PRINTOUTS START */
@@ -6722,7 +6723,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 
 	err = immModel_ccbObjectDelete(cb, &(evt->info.objDelete),
 		originatedAtThisNd ? conn : 0, &arrSize, &implConnArr, &invocArr, &objNameArr,
-		&pbeConn, pbeNodeIdPtr, &augDelete);
+		&pbeConn, pbeNodeIdPtr, &augDelete, &hasLongDn);
 
 
 	/* Before generating implementer upcalls for any local implementers,
@@ -6741,6 +6742,7 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 		implHandle = m_IMMSV_PACK_HANDLE(pbeConn, pbeNodeId);
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
+		/* PBE is internal => can handle long DNs */
 		send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_DELETE_UC;
 		send_evt.info.imma.info.objDelete.ccbId = evt->info.objDelete.ccbId;
 		send_evt.info.imma.info.objDelete.immHandle = implHandle;
@@ -6795,7 +6797,8 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 			/*We have local implementer(s) for deleted object(s) */
 			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 			send_evt.type = IMMSV_EVT_TYPE_IMMA;
-			send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_DELETE_UC;
+			send_evt.info.imma.type = hasLongDn ? 
+				IMMA_EVT_ND2A_OI_OBJ_DELETE_LONG_UC : IMMA_EVT_ND2A_OI_OBJ_DELETE_UC;
 			send_evt.info.imma.info.objDelete.ccbId = evt->info.objDelete.ccbId;
 			int ix = 0;
 			for (; ix < arrSize && err == SA_AIS_OK; ++ix) {
@@ -6858,7 +6861,8 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 	/* Generate applier delete upcalls. */
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
-		send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_DELETE_UC;
+		send_evt.info.imma.type = hasLongDn ? IMMA_EVT_ND2A_OI_OBJ_DELETE_LONG_UC :
+			IMMA_EVT_ND2A_OI_OBJ_DELETE_UC;
 		send_evt.info.imma.info.objDelete.ccbId = evt->info.objDelete.ccbId;
 		send_evt.info.imma.info.objDelete.adminOwnerId = 0;
 		/* Re-use the adminOwner member of the ccbDelete message to hold the 
@@ -7057,6 +7061,7 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb,
 			implHandle = m_IMMSV_PACK_HANDLE(pbeConn, pbeNodeId);
 			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 			send_evt.type = IMMSV_EVT_TYPE_IMMA;
+			/* PBE is internal => can handle long DNs */
 			send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_DELETE_UC;
 			send_evt.info.imma.info.objDelete.ccbId = 0;
 			send_evt.info.imma.info.objDelete.adminOwnerId = continuationId;
@@ -7137,6 +7142,7 @@ static void immnd_evt_proc_rt_object_delete(IMMND_CB *cb,
 
 			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 			send_evt.type = IMMSV_EVT_TYPE_IMMA;
+
 			send_evt.info.imma.type = IMMA_EVT_ND2A_OI_OBJ_DELETE_UC;
 			send_evt.info.imma.info.objDelete.ccbId = 0;
 			send_evt.info.imma.info.objDelete.adminOwnerId = continuationId;
