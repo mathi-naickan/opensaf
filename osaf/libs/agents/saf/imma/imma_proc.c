@@ -1920,6 +1920,21 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 		case IMMA_CALLBACK_OM_ADMIN_OP_RSP:	/*Async reply via OM. */
 			/* ABT decide if it is A.2.1 or A.2.11 callback. */
 			if (cl_node->isImmA2bCbk) {
+				if(!osaf_is_extended_names_enabled()) {
+					int i = 0;
+					while(callback->params[i]) {
+						if(callback->params[i]->paramType == SA_IMM_ATTR_SANAMET
+								&& !osaf_is_extended_name_valid((SaNameT *)callback->params[i]->paramBuffer)) {
+							if(callback->retval == SA_AIS_OK) {
+								callback->retval = SA_AIS_ERR_NAME_TOO_LONG;
+							}
+							osaf_extended_name_free((SaNameT *)callback->params[i]->paramBuffer);
+							osaf_extended_name_clear((SaNameT *)callback->params[i]->paramBuffer);
+						}
+						i++;
+					}
+				}
+
 				cl_node->o.mCallbkA2b.saImmOmAdminOperationInvokeCallback(callback->invocation,
 					callback->retval, callback->sa_err, 
 					(const SaImmAdminOperationParamsT_2 **)	callback->params);
@@ -1953,6 +1968,7 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 #ifdef IMMA_OI
 	bool isPbeOp = false;
 	bool isExtendedNameValid = false;
+	bool isAttrExtendedName = false;
 	switch (callback->type) {
 		case IMMA_CALLBACK_PBE_ADMIN_OP:
 			isPbeOp = true;
@@ -1960,7 +1976,16 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 			TRACE("PBE Admin OP callback");
 		case IMMA_CALLBACK_OM_ADMIN_OP:
 			isExtendedNameValid = osaf_is_extended_name_valid(&(callback->name));
-			if (cl_node->o.iCallbk.saImmOiAdminOperationCallback && isExtendedNameValid) {
+			if(isExtendedNameValid && !osaf_is_extended_names_enabled() && callback->params) {
+				SaImmAdminOperationParamsT_2 **params = (SaImmAdminOperationParamsT_2 **)callback->params;
+				int i;
+				for(i=0; !isAttrExtendedName && params[i]; i++) {
+					if(params[i]->paramType == SA_IMM_ATTR_SANAMET && params[i]->paramBuffer) {
+						isAttrExtendedName = osaf_is_an_extended_name((SaNameT *)params[i]->paramBuffer);
+					}
+				}
+			}
+			if (cl_node->o.iCallbk.saImmOiAdminOperationCallback && isExtendedNameValid && !isAttrExtendedName) {
 				cl_node->o.iCallbk.saImmOiAdminOperationCallback(callback->lcl_imm_hdl,
 					callback->invocation,
 					&(callback->name),
@@ -1976,6 +2001,9 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 						TRACE_3("Extended name feature is disabled. Object name is too long: %s", osaf_extended_name_borrow(&callback->name));
 					}
 					error = SA_AIS_ERR_BAD_OPERATION;
+				} else if(isAttrExtendedName) {
+					TRACE_3("At least one SaNameT attribute has extended name");
+					error = SA_AIS_ERR_NAME_TOO_LONG;
 				}
 				/*No callback registered for admin-op!! */
 				SaAisErrorT localErr = saImmOiAdminOperationResult(callback->lcl_imm_hdl,
