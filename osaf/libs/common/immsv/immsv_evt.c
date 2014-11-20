@@ -1865,7 +1865,9 @@ static uint32_t immsv_evt_enc_sublevels(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 			}
 
 			if (i_evt->info.immnd.info.searchInit.searchParam.present ==
-			    ImmOmSearchParameter_PR_oneAttrParam) {
+						ImmOmSearchParameter_PR_oneAttrParam
+					|| i_evt->info.immnd.info.searchInit.searchParam.present ==
+						ImmOmSearchParameter_PR_nonExtendedName_oneAttrParam) {
 				os = &(i_evt->info.immnd.info.searchInit.searchParam.choice.oneAttrParam.attrName);
 				if (!immsv_evt_enc_inline_text(__LINE__, o_ub, os)) {
 					return NCSCC_RC_OUT_OF_MEM;
@@ -1877,7 +1879,9 @@ static uint32_t immsv_evt_enc_sublevels(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 						      attrValueType);
 			} else {
 				osafassert(i_evt->info.immnd.info.searchInit.searchParam.present ==
-				       ImmOmSearchParameter_PR_NOTHING);
+							ImmOmSearchParameter_PR_NOTHING
+				       || i_evt->info.immnd.info.searchInit.searchParam.present ==
+				    		ImmOmSearchParameter_PR_nonExtendedName_NOTHING);
 			}
 
 			/*Encode the list of attribute names */
@@ -2405,7 +2409,9 @@ static uint32_t immsv_evt_dec_sublevels(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 			}
 
 			if (o_evt->info.immnd.info.searchInit.searchParam.present ==
-			    ImmOmSearchParameter_PR_oneAttrParam) {
+						ImmOmSearchParameter_PR_oneAttrParam
+					|| o_evt->info.immnd.info.searchInit.searchParam.present ==
+						ImmOmSearchParameter_PR_nonExtendedName_oneAttrParam) {
 				os = &(o_evt->info.immnd.info.searchInit.searchParam.choice.oneAttrParam.attrName);
 				if (os->size) {
 					immsv_evt_dec_inline_string(i_ub, os);
@@ -2417,7 +2423,9 @@ static uint32_t immsv_evt_dec_sublevels(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 						      attrValueType);
 			} else {
 				if (o_evt->info.immnd.info.searchInit.searchParam.present !=
-				    ImmOmSearchParameter_PR_NOTHING) {
+							ImmOmSearchParameter_PR_NOTHING
+				    	&& o_evt->info.immnd.info.searchInit.searchParam.present !=
+				    		ImmOmSearchParameter_PR_nonExtendedName_NOTHING) {
 					LOG_ER("DECODE IMMND_EVT_A2ND_SEARCHINIT WRONG ENUM VALUE");
 				}
 			}
@@ -3221,7 +3229,8 @@ static uint32_t immsv_evt_enc_toplevel(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 			ncs_encode_32bit(&p8, immndevt->info.searchInit.searchParam.present);
 			ncs_enc_claim_space(o_ub, 4);
 
-			if (immndevt->info.searchInit.searchParam.present == ImmOmSearchParameter_PR_oneAttrParam) {
+			if (immndevt->info.searchInit.searchParam.present == ImmOmSearchParameter_PR_oneAttrParam
+					|| immndevt->info.searchInit.searchParam.present == ImmOmSearchParameter_PR_nonExtendedName_oneAttrParam) {
 				IMMSV_RSRV_SPACE_ASSERT(p8, o_ub, 4);
 				ncs_encode_32bit(&p8,
 						 immndevt->info.searchInit.searchParam.choice.oneAttrParam.attrName.
@@ -4598,7 +4607,8 @@ static uint32_t immsv_evt_dec_toplevel(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 			immndevt->info.searchInit.searchParam.present = ncs_decode_32bit(&p8);
 			ncs_dec_skip_space(i_ub, 4);
 
-			if (immndevt->info.searchInit.searchParam.present == ImmOmSearchParameter_PR_oneAttrParam) {
+			if (immndevt->info.searchInit.searchParam.present == ImmOmSearchParameter_PR_oneAttrParam
+					|| immndevt->info.searchInit.searchParam.present == ImmOmSearchParameter_PR_nonExtendedName_oneAttrParam) {
 				IMMSV_FLTN_SPACE_ASSERT(p8, local_data, i_ub, 4);
 				immndevt->info.searchInit.searchParam.choice.oneAttrParam.attrName.size =
 				    ncs_decode_32bit(&p8);

@@ -1014,6 +1014,7 @@ void search_req_continue(IMMND_CB *cb, IMMSV_OM_RSP_SEARCH_REMOTE *reply, SaUint
 	IMMND_OM_SEARCH_NODE *sn = NULL;
 	SaAisErrorT err = reply->result;
 	SaBoolT isAccessor = SA_FALSE;
+	SaBoolT nonExtendedName = SA_FALSE;
 	TRACE_ENTER();
 	osafassert(reply->requestNodeId == cb->node_id);
 	memset(&send_evt, '\0', sizeof(IMMSV_EVT));
@@ -1043,6 +1044,7 @@ void search_req_continue(IMMND_CB *cb, IMMSV_OM_RSP_SEARCH_REMOTE *reply, SaUint
 		immModel_fetchLastResult(sn->searchOp, &rsp);
 		immModel_clearLastResult(sn->searchOp);
 		isAccessor = immModel_isSearchOpAccessor(sn->searchOp);
+		nonExtendedName = immModel_isSearchOpNonExtendedNameSet(sn->searchOp);
 	} else {
 		LOG_ER("Could not find search node for search-ID:%u", reply->searchId);
 		if (err == SA_AIS_OK) {
@@ -1065,6 +1067,38 @@ void search_req_continue(IMMND_CB *cb, IMMSV_OM_RSP_SEARCH_REMOTE *reply, SaUint
 		       (const char *)reply->runtimeAttrs.objectName.buf, rsp->objectName.size) == 0);
 	/* Iterate through reply->runtimeAttrs.attrValuesList */
 	/* Update value in rsp->attrValuesList */
+
+	if(nonExtendedName == SA_TRUE) {
+		IMMSV_ATTR_VALUES *att;
+		IMMSV_EDU_ATTR_VAL_LIST *attrList;
+
+		if(reply->runtimeAttrs.objectName.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+			err = SA_AIS_ERR_NAME_TOO_LONG;
+			goto agent_rsp;
+		}
+
+		fetchedRsp = reply->runtimeAttrs.attrValuesList;
+		while (fetchedRsp) {
+			att = &(fetchedRsp->n);
+			if(att->attrValueType == SA_IMM_ATTR_SANAMET && att->attrValuesNumber > 0) {
+				if(att->attrValue.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+					err = SA_AIS_ERR_NAME_TOO_LONG;
+					goto agent_rsp;
+				}
+				if(att->attrValuesNumber > 1) {
+					attrList = att->attrMoreValues;
+					while(attrList) {
+						if(attrList->n.val.x.size >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+							err = SA_AIS_ERR_NAME_TOO_LONG;
+							goto agent_rsp;
+						}
+						attrList = attrList->next;
+					}
+				}
+			}
+			fetchedRsp = fetchedRsp->next;
+		}
+	}
 
 	fetchedRsp = reply->runtimeAttrs.attrValuesList;
 	while (fetchedRsp) {	//For each fetched rt-attr-value

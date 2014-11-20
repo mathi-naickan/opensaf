@@ -5471,7 +5471,11 @@ SaAisErrorT saImmOmAccessorGet_2(SaImmAccessorHandleT accessorHandle,
 	req->rootName.buf[req->rootName.size - 1] = 0;
 
 	req->scope = SA_IMM_ONE;
-	req->searchParam.present = ImmOmSearchParameter_PR_NOTHING;
+	if(osaf_is_extended_names_enabled()) {
+		req->searchParam.present = ImmOmSearchParameter_PR_NOTHING;
+	} else {
+		req->searchParam.present = ImmOmSearchParameter_PR_nonExtendedName_NOTHING;
+	}
 
 	req->attributeNames = NULL;
 	if(attributeNames) {
@@ -6359,9 +6363,17 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 	req->scope = scope;
 	req->searchOptions = searchOptions;
 	if (!searchParam || (!searchParam->searchOneAttr.attrName && !isNoDanglingSearch)) {
-		req->searchParam.present = ImmOmSearchParameter_PR_NOTHING;
+		if(osaf_is_extended_names_enabled()) {
+			req->searchParam.present = ImmOmSearchParameter_PR_NOTHING;
+		} else {
+			req->searchParam.present = ImmOmSearchParameter_PR_nonExtendedName_NOTHING;
+		}
 	} else {
-		req->searchParam.present = ImmOmSearchParameter_PR_oneAttrParam;
+		if(osaf_is_extended_names_enabled()) {
+			req->searchParam.present = ImmOmSearchParameter_PR_oneAttrParam;
+		} else {
+			req->searchParam.present = ImmOmSearchParameter_PR_nonExtendedName_oneAttrParam;
+		}
 
 		if(searchParam->searchOneAttr.attrName) {
 			req->searchParam.choice.oneAttrParam.attrName.size = strlen(searchParam->searchOneAttr.attrName) + 1;
@@ -6460,7 +6472,8 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 		req->rootName.buf = NULL;
 		req->rootName.size = 0;
 	}
-	if (req->searchParam.present == ImmOmSearchParameter_PR_oneAttrParam) {
+	if (req->searchParam.present == ImmOmSearchParameter_PR_oneAttrParam
+			|| req->searchParam.present == ImmOmSearchParameter_PR_nonExtendedName_oneAttrParam) {
 		free(req->searchParam.choice.oneAttrParam.attrName.buf);	/*free-2 */
 		req->searchParam.choice.oneAttrParam.attrName.buf = NULL;
 		req->searchParam.choice.oneAttrParam.attrName.size = 0;

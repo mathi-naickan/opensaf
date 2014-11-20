@@ -212,6 +212,8 @@ extern "C" {
 
 	SaBoolT immModel_isSearchOpAccessor(void* searchOp);
 
+	SaBoolT immModel_isSearchOpNonExtendedNameSet(void* searchOp);
+
 	void immModel_setAdmReqContinuation(IMMND_CB *cb, SaInvocationT invoc, SaUint32T reqCon);
 
 	void immModel_setSearchReqContinuation(IMMND_CB *cb, SaInvocationT invoc, SaUint32T reqCon, SaUint32T implTimeout);

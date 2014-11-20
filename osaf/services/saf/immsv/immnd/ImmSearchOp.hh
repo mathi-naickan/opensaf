@@ -80,8 +80,10 @@ public:
     void          clearLastResult() {mLastResult = NULL;}
     void          setIsSync() {mIsSync = true;}
     void          setIsAccessor() {mIsAccessor = true;}
+    void          setNonExtendedName() {mNonExtendedName = true;}
     bool          isSync() {return mIsSync;}
     bool          isAccessor() {return mIsAccessor;}
+    bool          isNonExtendedNameSet() {return mNonExtendedName;}
     time_t        getLastSearchTime() { return mLastSearch; }
     void          updateSearchTime() { mLastSearch = time(NULL); }
     void*         syncOsi;
@@ -95,6 +97,7 @@ private:
     bool mIsSync;
     bool mIsAccessor;
     time_t mLastSearch;
+    bool mNonExtendedName;
 };
 
 #endif

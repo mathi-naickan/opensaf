@@ -83,6 +83,10 @@ void dumpObjectsXMLw(SaImmHandleT immHandle,
                                         &objectName, 
                                         &attrs);
 
+        if(errorCode == SA_AIS_ERR_NAME_TOO_LONG) {
+        	printf("Name too long. Continue\n");
+        	continue;
+        }
         if (SA_AIS_OK != errorCode)
         {
             break;

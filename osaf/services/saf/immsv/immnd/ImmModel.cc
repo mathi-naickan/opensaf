@@ -1457,6 +1457,13 @@ immModel_isSearchOpAccessor(void* searchOp)
     return op->isAccessor() ? SA_TRUE : SA_FALSE;
 }
 
+SaBoolT
+immModel_isSearchOpNonExtendedNameSet(void* searchOp)
+{
+    ImmSearchOp* op = (ImmSearchOp *) searchOp;
+    return op->isNonExtendedNameSet() ? SA_TRUE : SA_FALSE;
+}
+
 void
 immModel_setAdmReqContinuation(IMMND_CB *cb, SaInvocationT invoc, 
     SaUint32T reqConn)
@@ -9817,10 +9824,18 @@ ImmModel::accessorGet(const ImmsvOmSearchInit* req, ImmSearchOp& op)
     int matchedAttributes=0;
     int soughtAttributes=0;
     SaImmSearchOptionsT notAllowedOptions = 0LL;
+    bool nonExtendedNameCheck = req->searchParam.present > ImmOmSearchParameter_PR_oneAttrParam;
+    bool checkAttribute = false;
     
     if (objectName.empty()) {
         LOG_NO("ERR_INVALID_PARAM: Empty DN is not allowed");
         err = SA_AIS_ERR_INVALID_PARAM;     
+        goto accessorExit;
+    }
+
+    if(nonExtendedNameCheck && objectName.size() >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+        LOG_NO("ERR_NAME_TOO_LONG: Object name is too long");
+        err = SA_AIS_ERR_NAME_TOO_LONG;
         goto accessorExit;
     }
 
@@ -9862,6 +9877,10 @@ ImmModel::accessorGet(const ImmsvOmSearchInit* req, ImmSearchOp& op)
         LOG_ER("ERR_LIBRARY: Invalid search criteria - library problem ?");
         err = SA_AIS_ERR_LIBRARY;
         goto accessorExit;
+    }
+
+    if(nonExtendedNameCheck) {
+        op.setNonExtendedName();
     }
 
     //TODO: Reverse the order of matching attribute names.
@@ -9923,6 +9942,9 @@ ImmModel::accessorGet(const ImmsvOmSearchInit* req, ImmSearchOp& op)
             if(!j->second->empty()) {
                 //Config attributes always accessible
                 op.addAttrValue(*j->second);
+                checkAttribute = true;
+            } else {
+                checkAttribute = false;
             }
         } else { //Runtime attributes
             if(obj->mImplementer && obj->mImplementer->mNodeId ) {
@@ -9944,19 +9966,33 @@ ImmModel::accessorGet(const ImmsvOmSearchInit* req, ImmSearchOp& op)
                     op.setImplementer(obj->mImplementer);
                     implNotSet = false;
                 }
+
+                checkAttribute = true;
             } else {
                 //There is no implementer
                 if((k->second->mFlags & SA_IMM_ATTR_PERSISTENT) &&
                     !(j->second->empty())) {
                     op.addAttrValue(*j->second);
+                    checkAttribute = true;
                     //Persistent rt attributes still accessible
                     //If they have been given any value
-                } 
+                } else {
+                    checkAttribute = false;
+                }
                 //No implementer and the rt attribute is not persistent 
                 //then attribute name, but no value is to be returned.
                 //Se spec p 42.
             }//No-impl
         }//Rt-attr
+
+        if(nonExtendedNameCheck && checkAttribute
+                && k->second->mValueType == SA_IMM_ATTR_SANAMET && !j->second->empty()
+                && strlen(j->second->getValueC_str()) >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+            TRACE("SEARCH_NON_EXTENDED_NAMES filter: %s has long DN value: %s",
+                j->first.c_str(), j->second->getValueC_str());
+            err = SA_AIS_ERR_NAME_TOO_LONG;
+            goto accessorExit;
+        }
     }//for
     
     if((searchOptions & SA_IMM_SEARCH_GET_SOME_ATTR) &&
@@ -10088,6 +10124,7 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
     bool filter=false;
     bool isDumper=false;
     bool isSyncer=false;
+    bool nonExtendedNameCheck = req->searchParam.present > ImmOmSearchParameter_PR_oneAttrParam;
     ClassInfo* classInfo = NULL;
     SaImmScopeT scope = (SaImmScopeT)req->scope;
     std::string objectName;
@@ -10102,6 +10139,10 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
     
     /* Reset search time */
     op.updateSearchTime();
+
+    if(nonExtendedNameCheck) {
+        op.setNonExtendedName();
+    }
 
     if(scope == SA_IMM_ONE) {
         if(noDanglingSearch) {
@@ -10331,6 +10372,12 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
 
         if (objectName.length() >= rootlen) {
             size_t pos = objectName.length() - rootlen;
+            if(nonExtendedNameCheck && objectName.length() >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                TRACE("SEARCH_NON_EXTENDED_NAMES filter: Object name is too long: %s",
+                    objectName.c_str());
+                err = SA_AIS_ERR_NAME_TOO_LONG;
+                goto searchInitializeExit;
+            }
             if((objectName.rfind(rootName, pos) == pos)&&
                 (!pos //Object IS the current root
                     || !rootlen //Empty root => all objects are sub-root.
@@ -10359,6 +10406,7 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
                            SA_IMM_SEARCH_GET_CONFIG_ATTR)) {
                         ImmAttrValueMap::iterator j;
                         bool implNotSet = true;
+                        bool checkAttribute = false;
                         for (j = obj->mAttrValueMap.begin(); 
                              j != obj->mAttrValueMap.end(); 
                              j++) {
@@ -10422,6 +10470,9 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
                                 if(!j->second->empty()) {
                                     //Config attributes always accessible
                                     op.addAttrValue(*j->second);
+                                    checkAttribute = true;
+                                } else {
+                                    checkAttribute = false;
                                 }
                             } else { //Runtime attributes
                                 if(obj->mImplementer && 
@@ -10450,6 +10501,8 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
                                         op.setImplementer(obj->mImplementer);
                                         implNotSet = false;
                                     }
+
+                                    checkAttribute = true;
                                 } else {
                                     //There is no implementer
                                     if(!(j->second->empty())
@@ -10465,13 +10518,26 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
                                         //sync cached values even when there
                                         //is no implementer currently. 
                                         op.addAttrValue(*j->second);
-                                    } 
+                                        checkAttribute = true;
+                                    } else {
+                                        checkAttribute = false;
+                                    }
                                     //No implementer and the rt attribute is
                                     //not persistent, then attribute name, but
                                     //no value is to be returned. 
                                     //Se spec p 42.
                                 }//No-imp
                             }//Runtime
+
+                            if(nonExtendedNameCheck && checkAttribute
+                                    && k->second->mValueType == SA_IMM_ATTR_SANAMET
+                                    && !j->second->empty()
+                                    && strlen(j->second->getValueC_str()) >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                                TRACE("SEARCH_NON_EXTENDED_NAMES filter: %s has long DN value",
+                                    j->first.c_str());
+                                err = SA_AIS_ERR_NAME_TOO_LONG;
+                                goto searchInitializeExit;
+                            }
                         }//for(..
                     }
                 }

@@ -185,6 +185,8 @@ extern "C" {
 	typedef enum {
 		ImmOmSearchParameter_PR_NOTHING = 1,	/* No components present */
 		ImmOmSearchParameter_PR_oneAttrParam = 2,
+		ImmOmSearchParameter_PR_nonExtendedName_NOTHING = 3,
+		ImmOmSearchParameter_PR_nonExtendedName_oneAttrParam = 4,
 	} ImmsvOmSearchParm_PR;
 
 	typedef struct ImmsvSearchParam {

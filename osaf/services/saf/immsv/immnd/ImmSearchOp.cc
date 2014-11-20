@@ -28,6 +28,7 @@ ImmSearchOp::ImmSearchOp()
     attrNameList=NULL;
     classInfo=NULL;
     mLastSearch = 0;
+    mNonExtendedName = false;
 }
 
 ImmSearchOp::~ImmSearchOp()
