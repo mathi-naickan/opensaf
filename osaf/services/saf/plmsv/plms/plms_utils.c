@@ -240,6 +240,13 @@ void plms_aff_dep_ent_list_get(PLMS_ENTITY *root_ent,
 	
 	if (NULL == ent)
 		return;
+
+	/* if the root is the same as the entity then return */
+	if (!strcmp(root_ent->dn_name_str, ent->plm_entity->dn_name_str)) {
+		TRACE("plms_aff_dep_ent_list_get root_ent is same as ent");
+		return;
+	}
+
 	plms_aff_dep_ent_list_get(root_ent,ent->next,ent_list,
 						ent_fg_list,is_insvc);
 	if (is_insvc){
@@ -601,7 +608,12 @@ void plms_aff_chld_ent_list_get(PLMS_ENTITY *root_ent,
 	if (NULL == ent){
 		return;
 	}
-	
+
+	if (!strcmp(root_ent->dn_name_str, ent->dn_name_str)) {
+		TRACE("plms_aff_chld_ent_list_get root_ent is same as ent");
+		return;
+	}
+
 	plms_aff_chld_ent_list_get(root_ent,ent->right_sibling,ent_list,
 							ent_fg_list,is_insvc);
 	

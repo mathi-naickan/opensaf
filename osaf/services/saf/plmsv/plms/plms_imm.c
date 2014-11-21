@@ -122,6 +122,7 @@ static void plms_delete_ee_type_obj(SaNameT *);
 static void plms_delete_dep_obj(SaNameT *);
 static void plms_delete_domain_obj();
 static void plms_delete_hpi_cfg_obj();
+static SaUint32T create_he_obj(PLMS_ENTITY **he, const SaNameT *obj_name);
 static SaInt32T add_ent2_to_dep_list_of_ent1(PLMS_ENTITY *, PLMS_ENTITY *);
 static SaInt32T add_ent1_to_rev_dep_list_of_ent2(PLMS_ENTITY *, PLMS_ENTITY *);
 static void plms_update_he_idr_data(PLMS_HE_TYPE_INFO *, SaStringT *);
@@ -1272,8 +1273,6 @@ static SaAisErrorT plms_imm_ccb_obj_modify_cbk(SaImmOiHandleT imm_oi_hdl,
 		}
 	}
 	else if (memcmp(obj_name->value, "safDependency", 13)==0) {
-		/* This object can be modified only if the associated HE/EE 
-		   is out-of-service. */
 		/* Get the parent DN and parent object in patricia tree */
 		(void)strtok(dn_name, ",");
 		parent_dn = strtok(NULL, "\0");
@@ -1286,16 +1285,6 @@ static SaAisErrorT plms_imm_ccb_obj_modify_cbk(SaImmOiHandleT imm_oi_hdl,
 					(SaUint8T *)&key_dn);
 		/* plm_ent cannot be null, otherwise IMM would not have sent
 		   the request to PLM */
-		if (((plm_ent->entity_type == PLMS_HE_ENTITY) &&
-			(plm_ent->entity.he_entity.saPlmHEReadinessState 
-			!= SA_PLM_READINESS_OUT_OF_SERVICE)) || 
-			((plm_ent->entity_type == PLMS_EE_ENTITY) &&
-			(plm_ent->entity.ee_entity.saPlmEEReadinessState 
-			!= SA_PLM_READINESS_OUT_OF_SERVICE))) {
-			TRACE_LEAVE2("Entity's readiness state is not OOS, \
-				modify cannot be done");
-			return SA_AIS_ERR_BAD_OPERATION;
-		}
 		/* Check the existing no of dep names */
 		tmp_dep = plm_ent->dependency_list;
 		while (tmp_dep != NULL) {
@@ -1303,6 +1292,8 @@ static SaAisErrorT plms_imm_ccb_obj_modify_cbk(SaImmOiHandleT imm_oi_hdl,
 			tmp_dep = tmp_dep->next;
 		}
 		dep_min_num = plm_ent->min_no_dep;
+		/* if there are no passed in deps, then use what we have */
+		dep_names_num = cur_names_num;
 		for (j=0; attr_mods[j] != NULL; j++) {	
 			if(strcmp(attr_mods[j]->modAttr.attrName, 
 				"saPlmDepNames") == 0) {
@@ -2373,15 +2364,22 @@ static void plms_create_he_obj(SaNameT *obj_name, SaImmAttrValuesT_2 **attrs)
 	SaInt8T dn_name[SA_MAX_NAME_LENGTH+1] = {0};
 	SaInt8T parent_dn[SA_MAX_NAME_LENGTH+1] = {0};
 	TRACE_ENTER();	
-	he = (PLMS_ENTITY *) calloc(1, sizeof(PLMS_ENTITY));
-	if (he == NULL) {
-		LOG_CR("memory allocation failed for he, calling assert now");
-		TRACE_LEAVE();
-		assert(0);
+
+	/* First see if the entry is already there.  We may have created it as a
+		parent earlier...
+	*/
+	he = (PLMS_ENTITY *)ncs_patricia_tree_get(
+		&plms_cb->entity_info, (SaUint8T *)obj_name);
+
+	if (!he) {
+		rc = create_he_obj(&he, obj_name);
+
+		if (rc == NCSCC_RC_FAILURE) {
+			TRACE_LEAVE();
+			assert(0);
+		}
 	}
-	he->entity_type = PLMS_HE_ENTITY;
-	memcpy(&he->dn_name, obj_name, sizeof(SaNameT));
-	he->pat_node.key_info = (SaUint8T *)&he->dn_name;
+
 	/* set the default values for state attributes */
 	he->entity.he_entity.saPlmHEAdminState = SA_PLM_HE_ADMIN_UNLOCKED;
 	he->entity.he_entity.saPlmHEReadinessState = SA_PLM_READINESS_OUT_OF_SERVICE;
@@ -2489,13 +2487,6 @@ static void plms_create_he_obj(SaNameT *obj_name, SaImmAttrValuesT_2 **attrs)
 				he->entity.he_entity.saPlmHEOperationalState);
 		}
 	}
-	/* Add the node to patricia tree */
-	rc = ncs_patricia_tree_add(&plms_cb->entity_info, &he->pat_node);
-	if (rc == NCSCC_RC_FAILURE) {
-		LOG_CR("ncs_patricia_tree_add() failed, calling assert now");
-		TRACE_LEAVE();
-		assert(0);
-	}
 	memcpy(dn_name, obj_name->value, obj_name->length);
 	he->dn_name_str = calloc(SA_MAX_NAME_LENGTH+1, sizeof(SaInt8T));
 	if (he->dn_name_str == NULL) {
@@ -2543,6 +2534,17 @@ static void plms_create_he_obj(SaNameT *obj_name, SaImmAttrValuesT_2 **attrs)
 		memcpy(key_dn.value, parent_dn, key_dn.length);
 		parent_ent=(PLMS_ENTITY *)ncs_patricia_tree_get(
 		&plms_cb->entity_info, (SaUint8T *)&key_dn);
+
+		/* parent might not be here yet, create it */
+		if (!parent_ent) {
+			rc = create_he_obj(&parent_ent, &key_dn);
+
+			if (rc != NCSCC_RC_SUCCESS) {
+				LOG_ER("create_he_obj failed: calling assert now");
+				assert(0);
+			}
+		}
+
 		if (parent_ent->leftmost_child == NULL) {
 			parent_ent->leftmost_child = he;
 		}
@@ -3164,6 +3166,23 @@ static void plms_modify_dependency_obj(SaNameT *obj_name,
 			TRACE_2("new attr value: %u", plm_ent->min_no_dep);
 		}
 	}
+
+	if (plms_min_dep_is_ok(plm_ent) != NCSCC_RC_SUCCESS) {
+		if (plm_ent->entity.he_entity.saPlmHEReadinessState ==
+			SA_PLM_READINESS_IN_SERVICE)
+		{
+			/* TODO handle this */
+			LOG_ER("plms_min_dep_is_ok failed for %s: need to do something: probably take the entity OOS", plm_ent->dn_name.value);
+		}
+		else {
+			TRACE("plms_min_dep_is_ok failed for %s: but HE"
+				"is not in-service", plm_ent->dn_name.value);
+		}
+	}
+	else {
+		TRACE("plms_min_dep_is_ok succeeded");
+	}
+
 	TRACE_LEAVE2("Dependency object modified");
 }
 static void plms_modify_he_obj(SaNameT *obj_name, 
@@ -4006,6 +4025,33 @@ static void plms_delete_hpi_cfg_obj()
 	TRACE_LEAVE();
 	return;
 }
+
+static SaUint32T create_he_obj(PLMS_ENTITY **he, const SaNameT *obj_name)
+{
+	SaUint32T rc;
+
+	*he = (PLMS_ENTITY *) calloc(1, sizeof(PLMS_ENTITY));
+	if (*he == NULL) {
+		LOG_CR("memory allocation failed for he, calling assert now");
+		TRACE_LEAVE();
+		assert(0);
+	}
+
+	(*he)->entity_type = PLMS_HE_ENTITY;
+	memcpy(&(*he)->dn_name, obj_name, sizeof(SaNameT));
+	(*he)->pat_node.key_info = (SaUint8T *)&((*he)->dn_name);
+
+	/* Add the node to patricia tree */
+	rc = ncs_patricia_tree_add(&plms_cb->entity_info, &(*he)->pat_node);
+	if (rc == NCSCC_RC_FAILURE) {
+		LOG_CR("ncs_patricia_tree_add() failed, calling assert now");
+		TRACE_LEAVE();
+		assert(0);
+	}
+
+	return rc;
+}
+
 void plms_proc_active_quiesced_role_change()
 {
 	TRACE_ENTER();
