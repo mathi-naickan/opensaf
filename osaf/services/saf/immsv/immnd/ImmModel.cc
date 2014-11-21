@@ -9986,12 +9986,28 @@ ImmModel::accessorGet(const ImmsvOmSearchInit* req, ImmSearchOp& op)
         }//Rt-attr
 
         if(nonExtendedNameCheck && checkAttribute
-                && k->second->mValueType == SA_IMM_ATTR_SANAMET && !j->second->empty()
-                && strlen(j->second->getValueC_str()) >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-            TRACE("SEARCH_NON_EXTENDED_NAMES filter: %s has long DN value: %s",
-                j->first.c_str(), j->second->getValueC_str());
-            err = SA_AIS_ERR_NAME_TOO_LONG;
-            goto accessorExit;
+                && k->second->mValueType == SA_IMM_ATTR_SANAMET) {
+            if(!j->second->empty()
+                    && strlen(j->second->getValueC_str()) >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                TRACE("SEARCH_NON_EXTENDED_NAMES filter: %s has long DN value: %s",
+                    j->first.c_str(), j->second->getValueC_str());
+                err = SA_AIS_ERR_NAME_TOO_LONG;
+                goto accessorExit;
+            }
+
+            if(j->second->isMultiValued()) {
+                ImmAttrMultiValue *multi = ((ImmAttrMultiValue *)j->second)->getNextAttrValue();
+                while(multi) {
+                    if(!multi->empty()
+                            && strlen(multi->getValueC_str()) >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                        TRACE("SEARCH_NON_EXTENDED_NAMES filter: %s has long DN value",
+                            j->first.c_str());
+                        err = SA_AIS_ERR_NAME_TOO_LONG;
+                        goto accessorExit;
+                    }
+                    multi = multi->getNextAttrValue();
+                }
+            }
         }
     }//for
     
@@ -10530,13 +10546,28 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
                             }//Runtime
 
                             if(nonExtendedNameCheck && checkAttribute
-                                    && k->second->mValueType == SA_IMM_ATTR_SANAMET
-                                    && !j->second->empty()
-                                    && strlen(j->second->getValueC_str()) >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-                                TRACE("SEARCH_NON_EXTENDED_NAMES filter: %s has long DN value",
-                                    j->first.c_str());
-                                err = SA_AIS_ERR_NAME_TOO_LONG;
-                                goto searchInitializeExit;
+                                    && k->second->mValueType == SA_IMM_ATTR_SANAMET) {
+                                if(!j->second->empty()
+                                        && strlen(j->second->getValueC_str()) >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                                    TRACE("SEARCH_NON_EXTENDED_NAMES filter: %s has long DN value",
+                                        j->first.c_str());
+                                    err = SA_AIS_ERR_NAME_TOO_LONG;
+                                    goto searchInitializeExit;
+                                }
+
+                                if(j->second->isMultiValued()) {
+                                    ImmAttrMultiValue *multi = ((ImmAttrMultiValue *)j->second)->getNextAttrValue();
+                                    while(multi) {
+                                        if(!multi->empty()
+                                                && strlen(multi->getValueC_str()) >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                                            TRACE("SEARCH_NON_EXTENDED_NAMES filter: %s has long DN value",
+                                                j->first.c_str());
+                                            err = SA_AIS_ERR_NAME_TOO_LONG;
+                                            goto searchInitializeExit;
+                                        }
+                                        multi = multi->getNextAttrValue();
+                                    }
+                                }
                             }
                         }//for(..
                     }
