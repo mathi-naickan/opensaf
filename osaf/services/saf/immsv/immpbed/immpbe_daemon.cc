@@ -298,7 +298,9 @@ static SaAisErrorT pbe2_ok_to_prepare_ccb_at_B(SaImmOiCcbIdT ccbId, SaUint32T ex
 		TRACE("First try at prepare for ccb: %llu at slave PBE", ccbId);
 		s2PbeBCcbUtilCcbData = ccbutil_findCcbData(ccbId);
 		if(s2PbeBCcbUtilCcbData == NULL) {
-			TRACE("First ccb-op for ccb:%llu not yet received at slave PBE", ccbId);
+			TRACE("First ccb-op not yet received or time-out in waiting on prepare, for ccb:%llu at slave PBE", ccbId);
+			return SA_AIS_ERR_TRY_AGAIN;
+			goto done;
 		} else if(s2PbeBCcbUtilCcbData->ccbId != ccbId) {
 			/* This should never happen, but since we dont use any locking and since the applier
 			   thread may mutate ccb-utils concurrently with this lookup for a specific ccb-record,
@@ -1270,28 +1272,17 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 	}
 	TRACE("Commit PBE transaction %llx for rt attr update OK", ccbId);
 
-	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
-		/* Remove any PRTA update from immutils for 1PBE or 2PBE.
-		   For 2PBE removing immutildata *before* resetting syncronisation
-		   variables minimzes risk of derailing multithreaded use in immutils.
-		*/
-		ccbutil_deleteCcbData(ccbUtilCcbData);
-		ccbUtilCcbData = NULL;
-	}
-
-	/* Reset 2pbe-ccb-syncronization variables at slave. */
-	if(sPbe2B) {
-		s2PbeBCcbToCompleteAtB=0; 
-		s2PbeBCcbOpCountToExpectAtB=0;
-		s2PbeBCcbOpCountNowAtB=0;
-		s2PbeBCcbUtilCcbData = NULL;
-	}
 
 	goto done;
 
  abort_prta_trans:
 	pbeAbortTrans(sDbHandle);
 
+ done:
+	if((rc != SA_AIS_OK) && sPbe2 && (ccbId > 0x100000000LL)) {
+		LOG_NO("2PBE Error (%u) in PRTA update (ccbId:%llx)", rc, ccbId);
+	}
+
 	if(ccbUtilCcbData && (ccbId > 0x100000000LL)) {
 		/* Remove any PRTA update from immutils for 1PBE or 2PBE.
 		   For 2PBE removing immutildata *before* resetting syncronisation
@@ -1302,17 +1293,13 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
 	}
 
 	/* Reset 2pbe-ccb-syncronization variables at slave. */
-	if(sPbe2B) {
+	if(sPbe2B && (s2PbeBCcbToCompleteAtB == ccbId)) {
 		s2PbeBCcbToCompleteAtB=0; 
 		s2PbeBCcbOpCountToExpectAtB=0;
 		s2PbeBCcbOpCountNowAtB=0;
 		s2PbeBCcbUtilCcbData = NULL;
 	}
 
- done:
-	if((rc != SA_AIS_OK) && sPbe2 && (ccbId > 0x100000000LL)) {
-		LOG_NO("2PBE Error (%u) in PRTA update (ccbId:%llx)", rc, ccbId);
-	}
 
 	TRACE_LEAVE();
 	return rc;

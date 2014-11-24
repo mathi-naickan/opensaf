@@ -14634,8 +14634,10 @@ void ImmModel::pbePrtAttrUpdateContinuation(SaUint32T invocation,
     }
 
     if(i2 == sPbeRtMutations.end()) {
-        LOG_ER("PBE PRTAttrs Update continuation missing! invoc:%u",
+        if(error == SA_AIS_OK) {
+            LOG_ER("PBE PRTAttrs Update continuation missing! invoc:%u",
             invocation);
+        }
         return;
     }
 
