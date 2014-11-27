@@ -1928,7 +1928,9 @@ SaAisErrorT saAmfResponse(SaAmfHandleT hdl, SaInvocationT inv, SaAisErrorT error
 	if (hdl_rec)
 		ncshm_give_hdl(hdl);
 
-	/* free the contents of the request message */
+	/* free the contents of the request/response message */
+	if (msg_rsp)
+		avsv_nda_ava_msg_free(msg_rsp);
 	avsv_nda_ava_msg_content_free(&msg);
 
 	TRACE_LEAVE2("rc:%u", rc);
