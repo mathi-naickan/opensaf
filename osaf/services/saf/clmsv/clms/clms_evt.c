@@ -556,6 +556,61 @@ static uint32_t proc_rda_evt(CLMSV_CLMS_EVT * evt)
 	return rc;
 }
 
+static bool delete_existing_nodedown_records(SaClmNodeIdT node_id)
+{
+	NODE_DOWN_LIST *node_down_rec = clms_cb->node_down_list_head;
+	NODE_DOWN_LIST *prev_rec = NULL;
+	bool found = false;
+	TRACE_ENTER();
+
+	/**
+	 * Walk through the list to find all matching records
+	 * and delete them. If a record already exists, it just means
+	 * it is either duplicate node_down or node_down added
+	 * by checkpoint_down processing. Return true
+	 * Only if a CHECKPOINT_PROCESSED record exists, this will
+	 * enable the calling function to add a new record
+	 * in the case when only duplicate and no CHECKPOINT_PROCESSED
+	 * records were found.
+	 */
+	while (node_down_rec) {
+		if (node_down_rec->node_id == node_id) {
+			TRACE("Record found");
+			if (node_down_rec->ndown_status == CHECKPOINT_PROCESSED)
+				found = true;
+			else
+				LOG_ER("Duplicate MDS Node Downs received, Check connectivity!");
+			/* Remove the node down entry */
+			if (node_down_rec == clms_cb->node_down_list_head) {
+				if (node_down_rec->next == NULL) {
+					/* Only one in the list? */
+					clms_cb->node_down_list_head = NULL;
+					clms_cb->node_down_list_tail = NULL;
+				} else {
+					/* 1st but not only one */
+					clms_cb->node_down_list_head = node_down_rec->next;
+				}
+			} else {
+				if (prev_rec) {
+					if (node_down_rec->next == NULL)
+						clms_cb->node_down_list_tail = prev_rec;
+					prev_rec->next = node_down_rec->next;
+				}
+			}
+
+			/* Free the NODE_DOWN_REC */
+			free(node_down_rec);
+			node_down_rec = NULL;
+		} /* Matching record found */
+		/* Check the next record */
+		prev_rec = node_down_rec;
+		node_down_rec = node_down_rec->next;
+	}
+
+	TRACE_LEAVE();
+	return found;
+}
+
 /**
  * This is the function which is called when clms receives any
  * a Cluster Node UP/DN message via MDS subscription.
@@ -583,6 +638,15 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT * evt)
 		clms_track_send_node_down(node);
 
 	} else if (clms_cb->ha_state == SA_AMF_HA_STANDBY) {
+		/**
+		 * Check if already a matching entry exists, if so delete that entry
+		 * and do nothing. It means that there is already an entry added
+		 * by checkpoint processing of node_down.
+		 */
+		if (delete_existing_nodedown_records(node_id) == true) {
+			TRACE_LEAVE();
+			return rc;
+		} else {
 		TRACE("Adding the node_down record for node: %u to the list", node_id);
 		NODE_DOWN_LIST *node_down_rec = NULL;
 		if (NULL == (node_down_rec = (NODE_DOWN_LIST *) malloc(sizeof(NODE_DOWN_LIST)))) {
@@ -600,6 +664,7 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT * evt)
 		}
 		clms_cb->node_down_list_tail = node_down_rec;
 		node_down_rec->ndown_status = MDS_DOWN_PROCESSED;
+		}
 	}
 
  done:
