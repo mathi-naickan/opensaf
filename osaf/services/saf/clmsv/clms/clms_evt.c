@@ -579,7 +579,7 @@ static bool delete_existing_nodedown_records(SaClmNodeIdT node_id)
 			if (node_down_rec->ndown_status == CHECKPOINT_PROCESSED)
 				found = true;
 			else
-				LOG_ER("Duplicate MDS Node Downs received, Check connectivity!");
+				LOG_IN("Duplicate MDS Node Downs received!");
 			/* Remove the node down entry */
 			if (node_down_rec == clms_cb->node_down_list_head) {
 				if (node_down_rec->next == NULL) {
@@ -600,7 +600,6 @@ static bool delete_existing_nodedown_records(SaClmNodeIdT node_id)
 
 			/* Free the NODE_DOWN_REC */
 			free(node_down_rec);
-			node_down_rec = NULL;
 		} /* Matching record found */
 		/* Check the next record */
 		prev_rec = node_down_rec;
