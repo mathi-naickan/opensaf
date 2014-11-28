@@ -584,25 +584,30 @@ static bool delete_existing_nodedown_records(SaClmNodeIdT node_id)
 			if (node_down_rec == clms_cb->node_down_list_head) {
 				if (node_down_rec->next == NULL) {
 					/* Only one in the list? */
+					free(node_down_rec);
 					clms_cb->node_down_list_head = NULL;
 					clms_cb->node_down_list_tail = NULL;
+					node_down_rec = NULL;
+					break;
 				} else {
 					/* 1st but not only one */
 					clms_cb->node_down_list_head = node_down_rec->next;
-				}
-			} else {
-				if (prev_rec) {
+					prev_rec = clms_cb->node_down_list_head;
 					if (node_down_rec->next == NULL)
 						clms_cb->node_down_list_tail = prev_rec;
-					prev_rec->next = node_down_rec->next;
+					free(node_down_rec);
+					node_down_rec = prev_rec;
+					continue;
 				}
+			} else {
+					if (node_down_rec->next == NULL)
+						clms_cb->node_down_list_tail = prev_rec;
+					prev_rec = node_down_rec->next;
+					free(node_down_rec);
+					node_down_rec = prev_rec;
+					continue;
 			}
-
-			/* Free the NODE_DOWN_REC */
-			free(node_down_rec);
-		} /* Matching record found */
-		/* Check the next record */
-		prev_rec = node_down_rec;
+		}
 		node_down_rec = node_down_rec->next;
 	}
 
