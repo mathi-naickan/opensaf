@@ -560,6 +560,7 @@ static bool delete_existing_nodedown_records(SaClmNodeIdT node_id)
 {
 	NODE_DOWN_LIST *node_down_rec = clms_cb->node_down_list_head;
 	NODE_DOWN_LIST *prev_rec = NULL;
+	NODE_DOWN_LIST *remove_rec = NULL;
 	bool found = false;
 	TRACE_ENTER();
 
@@ -580,36 +581,23 @@ static bool delete_existing_nodedown_records(SaClmNodeIdT node_id)
 				found = true;
 			else
 				LOG_IN("Duplicate MDS Node Downs received!");
+
 			/* Remove the node down entry */
-			if (node_down_rec == clms_cb->node_down_list_head) {
-				if (node_down_rec->next == NULL) {
-					/* Only one in the list? */
-					free(node_down_rec);
-					clms_cb->node_down_list_head = NULL;
-					clms_cb->node_down_list_tail = NULL;
-					node_down_rec = NULL;
-					break;
-				} else {
-					/* 1st but not only one */
-					clms_cb->node_down_list_head = node_down_rec->next;
-					prev_rec = clms_cb->node_down_list_head;
-					if (node_down_rec->next == NULL)
-						clms_cb->node_down_list_tail = prev_rec;
-					free(node_down_rec);
-					node_down_rec = prev_rec;
-					continue;
-				}
-			} else {
-					if (node_down_rec->next == NULL)
-						clms_cb->node_down_list_tail = prev_rec;
-					prev_rec = node_down_rec->next;
-					free(node_down_rec);
-					node_down_rec = prev_rec;
-					continue;
+			if (prev_rec == NULL) { /* Must be the first entry that is removed */
+				clms_cb->node_down_list_head = node_down_rec->next;
+			} else { /* Not first entry removed, link previous next to current next */
+				prev_rec->next = node_down_rec->next;
 			}
+			remove_rec = node_down_rec;
+			node_down_rec = node_down_rec->next;
+			free(remove_rec);
+		} else { /* entry not removed, try next one */
+			prev_rec = node_down_rec; /* remember current entry as previous */
+			node_down_rec = node_down_rec->next;
 		}
-		node_down_rec = node_down_rec->next;
 	}
+	/* prev_rec points to the last entry or NULL in case list is empty or the only entry was removed */
+	clms_cb->node_down_list_tail = prev_rec;
 
 	TRACE_LEAVE();
 	return found;
