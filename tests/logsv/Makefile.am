@@ -67,7 +67,7 @@ logtestfr_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/osaf/libs/common/immsv/include
 
-llogtestfr_SOURCES = \
+logtestfr_SOURCES = \
 	logtestfr.c
 
 logtestfr_LDADD = \
