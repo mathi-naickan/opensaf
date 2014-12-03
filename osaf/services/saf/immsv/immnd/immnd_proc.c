@@ -1701,7 +1701,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 			}
 		}
 
-		if (jobDuration > 50) {	/* No progress in 50 secs */
+		if (jobDuration > 50 && jobDuration > cb->mWaitSecs) {	/* No progress in 50 secs */
 			LOG_ER("Failed to load/sync. Giving up after %u seconds, restarting..", jobDuration);
 			rc = NCSCC_RC_FAILURE;	/*terminate. */
 			immnd_ackToNid(rc);
