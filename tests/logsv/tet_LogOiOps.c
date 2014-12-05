@@ -42,11 +42,25 @@ static SaLogFileCreateAttributesT_2 appStreamLogFileCreateAttributes =
 void saLogOi_01(void)
 {
     int rc;
+	int rc_tmp = 0;
     char command[256];
 
     sprintf(command, "immcfg -a saLogStreamFileName=notification %s",
         SA_LOG_STREAM_NOTIFICATION);
     rc = system(command);
+	
+	if (WEXITSTATUS(rc) == 0) {
+		/* Clean up after test by ssetting name back to original
+		 * Note: Has to be done only if name change succeeded
+		 */
+		sprintf(command, "immcfg -a saLogStreamFileName=saLogNotification %s",
+			SA_LOG_STREAM_NOTIFICATION);
+		rc_tmp = system(command);
+		if (WEXITSTATUS(rc_tmp) != 0) {
+			fprintf(stderr, "Failed to modify filename back to saLogNotification\n");
+		}
+	}
+	
     rc_validate(WEXITSTATUS(rc), 0);
 }
 
