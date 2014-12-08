@@ -820,7 +820,7 @@ SaBoolT immnd_syncComplete(IMMND_CB *cb, SaBoolT coordinator, SaUint32T jobDurat
 		   (or extreeemely slow) sync.
 		 */
 		if(cb->syncPid > 0) {
-			LOG_WA("STOPPING sync process pid %u after three minutes", cb->syncPid);
+			LOG_WA("STOPPING sync process pid %u after five minutes", cb->syncPid);
 			kill(cb->syncPid, SIGTERM);
 		}
 	}
