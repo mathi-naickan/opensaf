@@ -748,20 +748,14 @@ SmfImmUtils::read_IMM_long_DN_config_and_set_control_block(smfd_cb_t * cb)
 	const SaUint32T *longDnsAllowed = immutil_getUint32Attr((const SaImmAttrValuesT_2 **)attributes, IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, 0);
 	if(longDnsAllowed) {
 		TRACE("%s=%u", IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, *longDnsAllowed);
-		if(*longDnsAllowed == 0) {
+		if(*longDnsAllowed == 0)
 			cb->maxDnLength = DEFAULT_MAX_DN_LENGTH;
-			TRACE_LEAVE();
-			return true;
-		}
-		if(*longDnsAllowed == 1) {
+		else
 			cb->maxDnLength = maxDnLength;
-			TRACE_LEAVE();
-			return true;
-		}
-	}
-	LOG_ER("Could not get long DN config from IMM attr %s %s", IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, IMM_CONFIG_OBJECT_DN);
+	} else
+		LOG_NO("Could not get long DN config [%s %s], use default DN length", IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, IMM_CONFIG_OBJECT_DN);
 	TRACE_LEAVE();
-	return false;
+	return true;
 }
 
 // ------------------------------------------------------------------------------
