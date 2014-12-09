@@ -97,9 +97,10 @@ done:
  * Close with retry at EINTR
  * 
  * @param fd [in]
+ * @param errno_save [out], errno if error
  * @return -1 on error
  */
-static int fileclose_h(int fd)
+static int fileclose_h(int fd, int *errno_save)
 {
 	lgsf_apipar_t apipar;
 	lgsf_retcode_t api_rc;
@@ -120,9 +121,15 @@ static int fileclose_h(int fd)
 		TRACE("%s - API error %s",__FUNCTION__,lgsf_retcode_str(api_rc));
 		lgs_fd_list_add(fd);
 		rc = -1;
+		*errno_save = EBUSY;
+	} else if (api_rc == LGSF_TIMEOUT) {
+		TRACE("%s - API error %s",__FUNCTION__,lgsf_retcode_str(api_rc));
+		rc = -1;
+		*errno_save = ETIMEDOUT;
 	} else if (api_rc != LGSF_SUCESS) {
 		TRACE("%s - API error %s",__FUNCTION__,lgsf_retcode_str(api_rc));
 		rc = -1;
+		*errno_save = errno;
 	} else {
 		rc = apipar.hdl_ret_code_out;
 	}
@@ -813,6 +820,7 @@ void log_stream_open_fileinit(log_stream_t *stream)
 void log_stream_close(log_stream_t **s, time_t *close_time_ptr)
 {
 	int rc = 0;
+	int errno_ret;
 	log_stream_t *stream = *s;
 	char *file_to_rename = NULL;
 	char *timeString = NULL;
@@ -842,10 +850,10 @@ void log_stream_close(log_stream_t **s, time_t *close_time_ptr)
 			 */
 			
 			/* Close the log file */
-			rc = fileclose_h(*stream->p_fd);
+			rc = fileclose_h(*stream->p_fd, &errno_ret);
 			*stream->p_fd = -1;
 			if (rc == -1) {
-				LOG_ER("Could not close log files: %s", strerror(errno));
+				LOG_NO("Could not close log files: %s", strerror(errno_ret));
 				goto done_files;
 			}
 
@@ -910,6 +918,7 @@ void log_stream_close(log_stream_t **s, time_t *close_time_ptr)
 int log_stream_file_close(log_stream_t *stream)
 {
 	int rc = 0;
+	int errno_ret;
 
 	osafassert(stream != NULL);
 	TRACE_ENTER2("%s", stream->name);
@@ -917,8 +926,8 @@ int log_stream_file_close(log_stream_t *stream)
 	osafassert(stream->numOpeners > 0);
 
 	if (*stream->p_fd != -1) {
-		if ((rc = fileclose_h(*stream->p_fd)) == -1) {
-			LOG_ER("log_stream_file_close FAILED: %s", strerror(errno));
+		if ((rc = fileclose_h(*stream->p_fd, &errno_ret)) == -1) {
+			LOG_NO("log_stream_file_close FAILED: %s", strerror(errno_ret));
 		}
 		*stream->p_fd = -1;
 	}
@@ -1004,6 +1013,7 @@ static int log_rotation_stb(log_stream_t *stream, size_t count)
 {
 	int rc = 0;
 	int errno_save;
+	int errno_ret;
 	char *current_time_str;
 	char new_current_log_filename[NAME_MAX];
 	bool do_rotate = false;
@@ -1054,10 +1064,10 @@ static int log_rotation_stb(log_stream_t *stream, size_t count)
 		 */
 		
 		/* Close current log file */
-		rc = fileclose_h(*stream->p_fd);
+		rc = fileclose_h(*stream->p_fd, &errno_ret);
 		*stream->p_fd = -1;
 		if (rc == -1) {
-			LOG_IN("close FAILED: %s", strerror(errno));
+			LOG_NO("close FAILED: %s", strerror(errno_ret));
 			goto done;
 		}
 		
@@ -1101,6 +1111,7 @@ static int log_rotation_act(log_stream_t *stream, size_t count)
 {
 	int rc;
 	int errno_save;
+	int errno_ret;
 	
 	/* If file size > max file size:
 	 *  - Close the log file and create a new.
@@ -1114,10 +1125,10 @@ static int log_rotation_act(log_stream_t *stream, size_t count)
 		char *current_time = lgs_get_time(&closetime);
 
 		/* Close current log file */
-		rc = fileclose_h(*stream->p_fd);
+		rc = fileclose_h(*stream->p_fd, &errno_ret);
 		*stream->p_fd = -1;
 		if (rc == -1) {
-			LOG_IN("close FAILED: %s", strerror(errno));
+			LOG_NO("close FAILED: %s", strerror(errno_ret));
 			goto done;
 		}
 
@@ -1173,6 +1184,7 @@ done:
 int log_stream_write_h(log_stream_t *stream, const char *buf, size_t count)
 {
 	int rc = 0;
+	int errno_ret;
 	lgsf_apipar_t apipar;
 	void *params_in;
 	wlrh_t *header_in_p;
@@ -1249,8 +1261,8 @@ int log_stream_write_h(log_stream_t *stream, const char *buf, size_t count)
 	
 		if (*stream->p_fd != -1) {
 			/* Close the file and invalidate the stream fd */
-			if (fileclose_h(*stream->p_fd) == -1) {
-				TRACE("fileclose failed");
+			if (fileclose_h(*stream->p_fd, &errno_ret) == -1) {
+				LOG_NO("fileclose failed %s", strerror(errno_ret));
 			}
 			*stream->p_fd = -1;
 		}
@@ -1445,6 +1457,7 @@ int log_stream_config_change(bool create_files_f, log_stream_t *stream,
 		const char *current_logfile_name, time_t *cur_time_in)
 {
 	int rc;
+	int errno_ret;
 	char *current_time = lgs_get_time(cur_time_in);
 
 	TRACE_ENTER2("%s", stream->name);
@@ -1459,8 +1472,8 @@ int log_stream_config_change(bool create_files_f, log_stream_t *stream,
 	} else {
 		/* close the existing log file, and only when there is a valid fd */
 
-		if ((rc = fileclose_h(*stream->p_fd)) == -1) {
-			LOG_ER("log_stream log file close  FAILED: %s", strerror(errno));
+		if ((rc = fileclose_h(*stream->p_fd, &errno_ret)) == -1) {
+			LOG_NO("log_stream log file close  FAILED: %s", strerror(errno_ret));
 			goto done;
 		}
 		*stream->p_fd = -1;

@@ -254,12 +254,6 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 	int *errno_out_p = (int *) outdata;
 	*errno_out_p = 0;
 
-//#define LLD_DELAY_WRTST /* LLDTEST */
-#ifdef LLD_DELAY_WRTST /* Make "file system" hang for n sec at first write */
-	static bool lld_once_f = true;
-	const unsigned int lld_sleep_sec = 10;
-#endif
-	
 	TRACE_ENTER();
 	
 	osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK  Critical section */
@@ -281,21 +275,6 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 			goto retry;
 	}
  
-#ifdef LLD_DELAY_WRTST /* LLDTEST Wait first time thread is used */
-	if (strstr(logrecord, "xxx")) {
-		if (lld_once_f == true) {
-			lld_once_f = false;
-			TRACE("LLDTEST xxx Hang write");
-			//TRACE("LLDTEST: logrecord \"%s\"",logrecord);
-			sleep(lld_sleep_sec);
-			TRACE("LLDTEST End of sleep");
-		}
-	}
-	if (strstr(logrecord, "yyy")) {
-		lld_once_f = true;
-		TRACE("LLDTEST yyy Rearmed Hang write");
-	}
-#endif
  	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 
 	/* If the thread was hanging and has timed out and the log record was
@@ -531,7 +510,7 @@ int fileclose_hdl(void *indata, void *outdata, size_t max_outsize)
 	if (rc == -1) {
 		LOG_ER("fileclose() %s",strerror(errno));
 	}
-	
+
 	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 	TRACE_LEAVE2("rc=%d", rc);
 	return rc;
