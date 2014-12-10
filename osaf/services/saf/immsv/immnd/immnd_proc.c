@@ -24,6 +24,7 @@
 
 ******************************************************************************/
 
+#define _GNU_SOURCE
 #include <libgen.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -363,6 +364,7 @@ uint32_t immnd_introduceMe(IMMND_CB *cb)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	IMMSV_EVT send_evt;
+	char * mdirDup = NULL;
 	memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 	send_evt.type = IMMSV_EVT_TYPE_IMMD;
@@ -391,8 +393,16 @@ uint32_t immnd_introduceMe(IMMND_CB *cb)
 			(cb->mPbeFile)?((cb->mRim == SA_IMM_KEEP_REPOSITORY)?4:3):2;
 		TRACE("First immnd_introduceMe, sending pbeEnabled:%u WITH params",
 			send_evt.info.immd.info.ctrl_msg.pbeEnabled);
-		send_evt.info.immd.info.ctrl_msg.dir.size = strlen(cb->mDir)+1;
-		send_evt.info.immd.info.ctrl_msg.dir.buf = (char *) cb->mDir;
+		if(cb->mDir) {
+			int len = strlen(cb->mDir);
+			if( cb->mDir[len-1] == '/') {
+				mdirDup = strndup((char *)cb->mDir, len-1);
+			} else {
+				mdirDup = strdup(cb->mDir);
+			}	
+		}
+		send_evt.info.immd.info.ctrl_msg.dir.size = strlen(mdirDup)+1;
+		send_evt.info.immd.info.ctrl_msg.dir.buf = (char *) mdirDup;
 		send_evt.info.immd.info.ctrl_msg.xmlFile.size = strlen(cb->mFile)+1;
 		send_evt.info.immd.info.ctrl_msg.xmlFile.buf = (char *) cb->mFile;
 		send_evt.info.immd.info.ctrl_msg.pbeFile.size = strlen(cb->mPbeFile)+1;
@@ -417,6 +427,7 @@ uint32_t immnd_introduceMe(IMMND_CB *cb)
 	}
 
 	rc = immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt);
+	free(mdirDup);
 	return rc;
 }
 
