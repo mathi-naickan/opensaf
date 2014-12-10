@@ -1388,9 +1388,11 @@ AVD_SU* su_to_terminate(AVD_SG *sg)
 		if ((su->saAmfSuReadinessState == SA_AMF_READINESS_OUT_OF_SERVICE) &&
 				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) &&
 				(su->list_of_susi == NULL)) {
+			delete su_rank;
 			return su;
 		}
 	}
+	delete su_rank;
 	return NULL;
 }
 
