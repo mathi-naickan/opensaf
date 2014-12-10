@@ -1888,17 +1888,21 @@ SaAisErrorT saAmfResponse(SaAmfHandleT hdl, SaInvocationT inv, SaAisErrorT error
 		rc = SA_AIS_ERR_TRY_AGAIN;
 
 	if (rec->cbk_info->type == AVSV_AMF_COMP_TERM) {
-		if (msg_rsp->type != AVSV_AVND_AMF_API_RESP_MSG) {
-			TRACE_2("ERR_LIBRARY: wrong type");
-			rc = SA_AIS_ERR_LIBRARY;
-			goto done;
+		if (msg_rsp == NULL) {
+			rc = SA_AIS_OK;
+		} else {
+			if (msg_rsp->type != AVSV_AVND_AMF_API_RESP_MSG) {
+				TRACE_2("ERR_LIBRARY: wrong type");
+				rc = SA_AIS_ERR_LIBRARY;
+				goto done;
+			}
+			if (msg_rsp->info.api_resp_info.type != AVSV_AMF_COMP_TERM_RSP) {
+				TRACE_2("ERR_LIBRARY: wrong msg type");
+				rc = SA_AIS_ERR_LIBRARY;
+				goto done;
+			}
+			rc = msg_rsp->info.api_resp_info.rc;
 		}
-		if (msg_rsp->info.api_resp_info.type != AVSV_AMF_COMP_TERM_RSP) {
-			TRACE_2("ERR_LIBRARY: wrong msg type");
-			rc = SA_AIS_ERR_LIBRARY;
-			goto done;
-		}
-		rc = msg_rsp->info.api_resp_info.rc;
 	}
 
 	/* if we are done with this rec, free it */
