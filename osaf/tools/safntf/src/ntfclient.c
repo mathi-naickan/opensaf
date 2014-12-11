@@ -683,6 +683,10 @@ static void print_header(const SaNtfNotificationHeaderT * notificationHeader,
 		printf("eventTime = %lld (%s)\n",*notificationHeader->eventTime, time);
 	}
 
+	if (verbose)
+		printf("lengthAdditionalText = %u\n",
+				notificationHeader->lengthAdditionalText);
+
 	if (notificationHeader->lengthAdditionalText > 0)
 		printf("additionalText = \"%s\"\n",
 		       notificationHeader->additionalText);
