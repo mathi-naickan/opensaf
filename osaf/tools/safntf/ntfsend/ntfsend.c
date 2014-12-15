@@ -85,9 +85,9 @@ static void usage(void)
 	printf("  -T or --notificationType=0x1000...0x5000  numeric value of SaNtfNotificationTypeT\n");
 	printf
 	    ("                                            (obj_create_del=0x1000,attr_ch,state_ch,al,sec_al=0x5000)\n");
-	printf("  -e or --eventType=16384...16389           numeric value of SaNtfEventTypeT\n");
+	printf("  -e or --eventType=4096...24589           numeric value of SaNtfEventTypeT\n");
 	printf
-	    ("                                            (SA_NTF_ALARM_NOTIFICATIONS_START...SA_NTF_ALARM_ENVIRONMENT)\n");
+	    ("                                            (SA_NTF_OBJECT_NOTIFICATIONS_START...SA_NTF_HPI_EVENT_OTHER)\n");
 	printf("  -E or --eventTime=TIME                    numeric value of SaTimeT\n");
 	printf("  -c or --notificationClassId=VE,MA,MI      vendorid, majorid, minorid\n");
 	printf("  -n or --notificationObject=NOT_OBJ        notification object (string value)\n");
@@ -787,6 +787,7 @@ int main(int argc, char *argv[])
 	saNotificationFilterAllocationParamsT myNotificationFilterAllocationParams;
 	saNotificationParamsT myNotificationParams;
 	saNotificationFlagsT myNotificationFlags = DEFAULT_FLAG;
+	bool nType = false;
 
 	static struct option long_options[] = {
 		{"additionalText", required_argument, 0, 'a'},
@@ -853,8 +854,8 @@ int main(int argc, char *argv[])
 				myNotificationParams.eventType = (SaNtfEventTypeT)atoi(optarg);
 				/* No default value */
 				myNotificationFlags = 0x0000;
-				if ((myNotificationParams.eventType < SA_NTF_ALARM_NOTIFICATIONS_START) ||
-						(myNotificationParams.eventType > SA_NTF_ALARM_ENVIRONMENT)) {
+				if ((myNotificationParams.eventType < SA_NTF_OBJECT_NOTIFICATIONS_START) ||
+						(myNotificationParams.eventType > SA_NTF_HPI_EVENT_OTHER)) {
 					fprintf(stderr,"invalid value for eventType\n");
 					exit(EXIT_FAILURE);
 				}
@@ -908,6 +909,7 @@ int main(int argc, char *argv[])
 					exit(EXIT_FAILURE);
 				}
 				myNotificationParams.notificationType = value;
+				nType = true;
 				break;
 			case ':':
 				(void)printf("Option -%c requires an argument!!!!\n", optopt);
@@ -930,11 +932,20 @@ int main(int argc, char *argv[])
 		}
 		if ((optionFlag == SA_FALSE) && (argc >= 3)) {
 			usage();
-		} else {
-			if (sendNotification(&myNotificationAllocationParams,
-					     &myNotificationParams, &myNotificationFlags) != SA_AIS_OK)
+		} else if ((nType == true) && (myNotificationFlags != DEFAULT_FLAG)) {
+			if (validate_nType_eType(myNotificationParams.notificationType, 
+						myNotificationParams.eventType) == false) {
+				fprintf(stderr,"invalid combination of notificationType and eventType\n");
 				exit(EXIT_FAILURE);
+			}
+		} else if ((nType == false) && (myNotificationFlags != DEFAULT_FLAG )) {
+			// Adjust the value of notificationType
+			set_nType_for_eType(&myNotificationParams.notificationType,
+					&myNotificationParams.eventType); 
 		}
+		if (sendNotification(&myNotificationAllocationParams,
+					&myNotificationParams, &myNotificationFlags) != SA_AIS_OK)
+			exit(EXIT_FAILURE);
 	} else {
 		usage();
 	}
