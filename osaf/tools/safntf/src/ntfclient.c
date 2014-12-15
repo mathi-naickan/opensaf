@@ -965,6 +965,9 @@ void saNtfNotificationCallback(SaNtfSubscriptionIdT subscriptionId,
 		assert(0);
 	}
 	printf("\n");
+	if (fflush(NULL) != 0)
+		syslog(LOG_ERR,"fflush() failed %s:",strerror(errno));
+		
 }
 
 int get_long_digit(char *str, long *val)

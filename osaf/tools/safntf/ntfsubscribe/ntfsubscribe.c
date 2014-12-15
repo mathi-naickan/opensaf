@@ -42,8 +42,19 @@
 #include <ntfconsumer.h>
 
 static SaNtfHandleT ntfHandle;
+static SaNtfSubscriptionIdT my_subscriptionId = 1;
 static SaSelectionObjectT selObj;
+static NCS_SEL_OBJ term_sel_obj; 
+static NCS_SEL_OBJ int_sel_obj; 
 
+enum {
+        FD_NTF = 0,
+        FD_TERM, // For term signal
+        FD_INT, // For int signal (Ctrl+c)
+        FD_MAX
+} NTFSUB_FDS;
+
+static nfds_t fds_num = FD_MAX;
 /* Name of current testproxy (argv[0]) */
 static char *progname;
 
@@ -58,6 +69,29 @@ static struct s_filters_T {
 	int st_ch;
 	int sec_al;
 } used_filters = {1,0,0,0,0,0};
+
+
+/**
+ * @brief handler for TERM signal.
+ *
+ * @param signal value 
+ */
+static void sigterm_handler(int sig)
+{
+        signal(SIGTERM, SIG_IGN);
+        ncs_sel_obj_ind(&term_sel_obj);
+}
+
+/**
+ * @brief handler for INT (Ctrl+c) signal.
+ *
+ * @param signal value 
+ */
+static void sigint_handler(int sig)
+{
+        signal(SIGINT, SIG_IGN);
+        ncs_sel_obj_ind(&int_sel_obj);
+}
 
 static void saNtfNotificationDiscardedCallback(SaNtfSubscriptionIdT subscriptionId,
 					       SaNtfNotificationTypeT notificationType,
@@ -84,13 +118,17 @@ static SaAisErrorT waitForNotifications(SaNtfHandleT myHandle, int selectionObje
 {
 	SaAisErrorT error;
 	int rv;
-	struct pollfd fds[1];
+	struct pollfd fds[FD_MAX];
 
-	fds[0].fd = (int)selectionObject;
-	fds[0].events = POLLIN;
+	fds[FD_NTF].fd = (int)selectionObject;
+	fds[FD_NTF].events = POLLIN;
+	fds[FD_TERM].fd = term_sel_obj.rmv_obj;
+	fds[FD_TERM].events = POLLIN;
+	fds[FD_INT].fd = int_sel_obj.rmv_obj;
+	fds[FD_INT].events = POLLIN;
 
 	for (;;) {
-		rv = poll(fds, 1, timeout_ms);
+		rv = poll(fds, fds_num, timeout_ms);
 
 		if (rv == -1) {
 			if (errno == EINTR)
@@ -103,15 +141,39 @@ static SaAisErrorT waitForNotifications(SaNtfHandleT myHandle, int selectionObje
 			printf("poll timeout\n");
 			return SA_AIS_OK;
 		}
+		//Process notification callbacks.
+		if (fds[FD_NTF].revents & POLLIN) {
 
-		do {
+			do {
+				error = saNtfDispatch(myHandle, SA_DISPATCH_ALL);
+				if (SA_AIS_ERR_TRY_AGAIN == error)
+					sleep(1);
+			} while (SA_AIS_ERR_TRY_AGAIN == error);
+
+			if (error != SA_AIS_OK)
+				fprintf(stderr, "saNtfDispatch Error %d\n", error);
+		}
+		if ((fds[FD_TERM].revents & POLLIN) || (fds[FD_INT].revents & POLLIN)) {
+
 			error = saNtfDispatch(myHandle, SA_DISPATCH_ALL);
-			if (SA_AIS_ERR_TRY_AGAIN == error)
-				sleep(1);
-		} while (SA_AIS_ERR_TRY_AGAIN == error);
+			if (error != SA_AIS_OK) {
+				fprintf(stderr, "saNtfDispatch Error %d\n", error);
+				exit(EXIT_FAILURE);
+			}
 
-		if (error != SA_AIS_OK)
-			fprintf(stderr, "saNtfDispatch Error %d\n", error);
+			error = saNtfNotificationUnsubscribe(my_subscriptionId);
+			if (error != SA_AIS_OK) {
+				fprintf(stderr, "saNtfNotificationUnsubscribe failed - %d\n", error);
+				exit(EXIT_FAILURE);
+			}
+
+			error = saNtfFinalize(ntfHandle);
+			if (error != SA_AIS_OK) {
+				fprintf(stderr, "saNtfFinalize failed - %d\n", error);
+				exit(EXIT_FAILURE);
+			}
+			_Exit(0);
+		}
 	}
 
 	return error;
@@ -267,7 +329,6 @@ int main(int argc, char *argv[])
 	SaAisErrorT error;
 	int timeout = -1;	/* block indefintively in poll */
 	saNotificationFilterAllocationParamsT notificationFilterAllocationParams = {0};
-	SaNtfSubscriptionIdT subscriptionId = 1;
 	struct option long_options[] = {
 		{"alarm", no_argument, 0, 'a'},
 		{"attributeChange", no_argument, 0, 'c'},
@@ -287,6 +348,27 @@ int main(int argc, char *argv[])
 		LOG_ER("Failed to enable Extended SaNameT");
 		exit(EXIT_FAILURE);
 	}	
+
+	/* Termination signal with handler */
+        if (ncs_sel_obj_create(&term_sel_obj) != NCSCC_RC_SUCCESS) {
+                LOG_ER("ncs_sel_obj_create failed");
+                exit(EXIT_FAILURE);
+        }
+        if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
+                LOG_ER("signal TERM failed: %s", strerror(errno));
+                exit(EXIT_FAILURE);
+        }
+
+	/* INT signal with handler */
+	if (ncs_sel_obj_create(&int_sel_obj) != NCSCC_RC_SUCCESS) {
+		LOG_ER("ncs_sel_obj_create failed");
+		exit(EXIT_FAILURE);
+	}
+        if (signal(SIGINT, sigint_handler) == SIG_ERR) {
+                LOG_ER("signal INT failed: %s", strerror(errno));
+                exit(EXIT_FAILURE);
+        }
+
 	/* Check options */
 	while (1) {
 		c = getopt_long(argc, argv, "acosyht:v", long_options, NULL);
@@ -340,7 +422,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	error = subscribeForNotifications(&notificationFilterAllocationParams, subscriptionId);
+	error = subscribeForNotifications(&notificationFilterAllocationParams, my_subscriptionId);
 	if (SA_AIS_OK != error) {
 		fprintf(stderr, "subscribeForNotifications failed - %s\n", error_output(error));
 		exit(EXIT_FAILURE);
@@ -352,7 +434,7 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	error = saNtfNotificationUnsubscribe(subscriptionId);
+	error = saNtfNotificationUnsubscribe(my_subscriptionId);
 	if (SA_AIS_OK != error) {
 		fprintf(stderr, "waitForNotifications failed - %s\n", error_output(error));
 		exit(EXIT_FAILURE);
