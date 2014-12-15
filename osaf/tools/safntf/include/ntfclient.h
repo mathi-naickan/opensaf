@@ -131,5 +131,7 @@ typedef SaUint16T saNotificationFlagsT;
 void getVendorId(SaNtfClassIdT *notificationClassId);
 int get_long_digit(char *str, long *val);
 int get_long_long_digit(char *str, long long *val);
+bool validate_nType_eType(SaNtfNotificationTypeT nType, SaNtfEventTypeT eType);
+void set_nType_for_eType(SaNtfNotificationTypeT *nType, SaNtfEventTypeT *eType);
 
 #endif

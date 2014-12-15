@@ -1049,3 +1049,77 @@ int get_long_long_digit(char *str, long long *val)
 		return 0;
 	return 1;
 }
+
+
+/**
+ * @brief         Verify value of evenType is correct for notificationType. 
+ *
+ * @param [in]    char * (ptr to string)r.  
+ * 
+ * @Return        0: event can be sent with the notificationType. 
+ *		  1: event can be sent with the notificationType.
+ */
+
+bool validate_nType_eType(SaNtfNotificationTypeT nType, SaNtfEventTypeT eType)
+{
+	switch(nType) {
+	case SA_NTF_TYPE_OBJECT_CREATE_DELETE :
+			return ((eType >= SA_NTF_OBJECT_NOTIFICATIONS_START) &&
+					(eType <= SA_NTF_OBJECT_DELETION));
+		break;
+	case SA_NTF_TYPE_ATTRIBUTE_CHANGE :
+			return ((eType >= SA_NTF_ATTRIBUTE_NOTIFICATIONS_START) &&
+					(eType <= SA_NTF_ATTRIBUTE_RESET));
+		break;
+	case SA_NTF_TYPE_STATE_CHANGE :
+			return (((eType >= SA_NTF_STATE_CHANGE_NOTIFICATIONS_START) &&
+					(eType <= SA_NTF_OBJECT_STATE_CHANGE)) ||
+					((eType >= SA_NTF_MISCELLANEOUS_NOTIFICATIONS_START) &&
+					(eType <= SA_NTF_HPI_EVENT_OTHER)));
+		break;
+	case SA_NTF_TYPE_ALARM:
+			return ((eType >= SA_NTF_ALARM_NOTIFICATIONS_START) &&
+					(eType <= SA_NTF_ALARM_ENVIRONMENT));
+		break;
+	case SA_NTF_TYPE_SECURITY_ALARM:
+			return ((eType >= SA_NTF_SECURITY_ALARM_NOTIFICATIONS_START) &&
+					(eType <= SA_NTF_TIME_VIOLATION));
+		break;
+	default :
+		return false;
+	}
+}
+
+/**
+ * @brief         set notificationType for evenType. 
+ *
+ * @param [in]    ptr to SaNtfEventTypeT.  
+ * @param [out]   value is set in ptr to SaNtfNotificationTypeT.  
+ * 
+ */
+
+void set_nType_for_eType(SaNtfNotificationTypeT *nType, SaNtfEventTypeT *eType)
+{
+	if ((*eType >= SA_NTF_OBJECT_NOTIFICATIONS_START) &&
+			(*eType <= SA_NTF_OBJECT_DELETION)) 
+		*nType = SA_NTF_TYPE_OBJECT_CREATE_DELETE;
+		
+	if ((*eType >= SA_NTF_ATTRIBUTE_NOTIFICATIONS_START) &&
+			(*eType <= SA_NTF_ATTRIBUTE_RESET))
+		*nType = SA_NTF_TYPE_ATTRIBUTE_CHANGE;
+
+	if (((*eType >= SA_NTF_STATE_CHANGE_NOTIFICATIONS_START) &&
+				(*eType <= SA_NTF_OBJECT_STATE_CHANGE)) ||
+			((*eType >= SA_NTF_MISCELLANEOUS_NOTIFICATIONS_START) &&
+			 (*eType <= SA_NTF_HPI_EVENT_OTHER)))
+		*nType = SA_NTF_TYPE_STATE_CHANGE;
+
+	if ((*eType >= SA_NTF_ALARM_NOTIFICATIONS_START) &&
+			(*eType <= SA_NTF_ALARM_ENVIRONMENT))
+		*nType = SA_NTF_TYPE_ALARM;
+
+	if ((*eType >= SA_NTF_SECURITY_ALARM_NOTIFICATIONS_START) &&
+			(*eType <= SA_NTF_TIME_VIOLATION))
+		*nType = SA_NTF_TYPE_SECURITY_ALARM;
+
+}
