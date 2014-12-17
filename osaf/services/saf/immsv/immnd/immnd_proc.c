@@ -572,7 +572,7 @@ void immnd_announceDump(IMMND_CB *cb)
 		   Reduces risk of epoch race with dump.
 		 */
 		cb->mJobStart = time(NULL);
-		osafassert(cb->mJobStart > ((time_t) 0));
+		osafassert(cb->mJobStart >= ((time_t) 0));
 	}
 }
 
@@ -1623,7 +1623,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 	int32_t coord, newEpoch;
 	int32_t printFrq = (*timeout > 100) ? 5 : 50;
 	time_t now = time(NULL);
-	osafassert(now > ((time_t) 0));
+	osafassert(now >= ((time_t) 0));
 	uint32_t jobDuration = (uint32_t) now - cb->mJobStart;
 	SaBoolT pbeImmndDeadlock=SA_FALSE;
 	if(!jobDuration) {++jobDuration;} /* Avoid jobDuraton of zero */

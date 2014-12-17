@@ -41,7 +41,7 @@ struct ContinuationInfo2
     ContinuationInfo2():mCreateTime(0), mConn(0), mTimeout(0), mImplId(0){}
     ContinuationInfo2(SaUint32T conn, SaUint32T timeout):mConn(conn), mTimeout(timeout),
          mImplId(0)
-        {mCreateTime = time(NULL);osafassert(mCreateTime > ((time_t) 0));}
+        {mCreateTime = time(NULL);osafassert(mCreateTime >= ((time_t) 0));}
     
     time_t  mCreateTime;
     SaUint32T mConn;
@@ -1000,6 +1000,7 @@ immModel_cleanTheBasement(IMMND_CB *cb,
     }
 
     time_t now = time(NULL);
+    osafassert(now >= ((time_t) 0));
     time_t nextSearch = 0;
     time_t opSearchTime;
     ImmSearchOp *op;
@@ -4927,7 +4928,7 @@ ImmModel::ccbApply(SaUint32T ccbId,
                 implAssoc->mContinuationId = sLastContinuationId;/* incremented above */
                 if(ccb->mWaitStartTime == 0) {
                     ccb->mWaitStartTime = time(NULL);
-                    osafassert(ccb->mWaitStartTime > ((time_t) 0));
+                    osafassert(ccb->mWaitStartTime >= ((time_t) 0));
                     TRACE("Wait timer for completed started for ccb:%u", 
                         ccb->mId);
                 }
@@ -5736,7 +5737,7 @@ ImmModel::ccbTerminate(SaUint32T ccbId)
 
         if(ccb->mWaitStartTime == 0)  {
             ccb->mWaitStartTime = time(NULL); 
-            osafassert(ccb->mWaitStartTime > ((time_t) 0));
+            osafassert(ccb->mWaitStartTime >= ((time_t) 0));
             TRACE_5("Ccb Wait-time for GC set. State: %u/%s", ccb->mState,
                 (ccb->mState == IMM_CCB_COMMITTED)?"COMMITTED":
                 ((ccb->mState == IMM_CCB_ABORTED)?"ABORTED":"OTHER"));
@@ -7372,7 +7373,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                     object->mImplementer->mId, *implConn, *implNodeId,
                     object->mImplementer->mImplementerName.c_str());
                 ccb->mWaitStartTime = time(NULL);
-                osafassert(ccb->mWaitStartTime > ((time_t) 0));
+                osafassert(ccb->mWaitStartTime >= ((time_t) 0));
             } else if(className == immMngtClass) {
                 if(sImmNodeState == IMM_NODE_LOADING) {
                     if(objectName != immManagementDn) {
@@ -8498,7 +8499,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                 object->mImplementer->mImplementerName.c_str());
             
             ccb->mWaitStartTime = time(NULL);
-            osafassert(ccb->mWaitStartTime > ((time_t) 0));
+            osafassert(ccb->mWaitStartTime >= ((time_t) 0));
         } else if(ccb->mCcbFlags & SA_IMM_CCB_REGISTERED_OI) {
             if((object->mImplementer == NULL) && 
                (ccb->mCcbFlags & SA_IMM_CCB_ALLOW_NULL_OI)) {
@@ -9062,7 +9063,7 @@ ImmModel::deleteObject(ObjectMap::iterator& oi,
             SaUint32T implConn = oi->second->mImplementer->mConn;
             
             ccb->mWaitStartTime = time(NULL);
-            osafassert(ccb->mWaitStartTime > ((time_t) 0));
+            osafassert(ccb->mWaitStartTime >= ((time_t) 0));
             /* TODO: Resetting the ccb timer for each deleted object here. 
                Not so efficient. Should set it only when all objects
                are processed.
@@ -9364,7 +9365,7 @@ ImmModel::ccbWaitForCompletedAck(SaUint32T ccbId, SaAisErrorT* err,
                Restart the timer to catch ccbs hung waiting on PBE.
             */
              ccb->mWaitStartTime = time(NULL);
-             osafassert(ccb->mWaitStartTime > ((time_t) 0));
+             osafassert(ccb->mWaitStartTime >= ((time_t) 0));
             return true; /* Wait for PBE commit*/
         } else {
             /* But there is not any PBE up currently => abort.  */
@@ -11956,7 +11957,7 @@ ImmModel::getOldCriticalCcbs(IdVector& cv, SaUint32T *pbeConnPtr,
     *pbeIdPtr = 0;
     CcbVector::iterator i;
     time_t now = time(NULL);
-    osafassert(now > ((time_t) 0));
+    osafassert(now >= ((time_t) 0));
     for(i=sCcbVector.begin(); i!=sCcbVector.end(); ++i) {
         if((*i)->mState == IMM_CCB_CRITICAL && 
            (((*i)->mWaitStartTime && 
@@ -12177,7 +12178,7 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
     bool iAmCoord)
 {
     time_t now = time(NULL);
-    osafassert(now > ((time_t) 0));
+    osafassert(now >= ((time_t) 0));
     ContinuationMap2::iterator ci2;
     ImplementerEvtMap::iterator iem;
     CcbVector::iterator i3;
@@ -12558,7 +12559,7 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
                                 TRACE_7("Replaced implid %u with %u", oldImplId, info->mId);
                                 ccb->mPbeRestartId = info->mId;
                                 ccb->mWaitStartTime = time(NULL);/*Reset timer on new impl*/
-                                osafassert(ccb->mWaitStartTime > ((time_t) 0));
+                                osafassert(ccb->mWaitStartTime >= ((time_t) 0));
                                 /* Can only be one PBE impl asoc*/
                                 break;  /* out of for(isi = ccb->mImplementers....*/
                         }
@@ -16876,8 +16877,8 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 newCcb->mVeto = SA_AIS_OK;
                 newCcb->mState = (ImmCcbState) (prt45allowed ? ol->ccbState : (ol->ccbState + 2));
                 newCcb->mWaitStartTime = time(NULL);
-                if(newCcb->mWaitStartTime <= ((time_t) 0)) {
-                    LOG_ER("newCcb->mWaitStartTime <= 0");
+                if(newCcb->mWaitStartTime < ((time_t) 0)) {
+                    LOG_ER("newCcb->mWaitStartTime < 0");
                     err = SA_AIS_ERR_FAILED_OPERATION;
                     delete newCcb;
                     goto done;
