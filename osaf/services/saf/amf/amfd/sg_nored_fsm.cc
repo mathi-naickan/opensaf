@@ -310,6 +310,7 @@ uint32_t avd_sg_nored_su_fault_func(AVD_CL_CB *cb, AVD_SU *su)
 			}
 
 			avd_sg_su_oper_list_add(cb, su, false);
+			avd_si_admin_state_set(su->sg_of_su->admin_si, SA_AMF_ADMIN_LOCKED);
 			m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 			m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SU_OPER);
 		} else {	/* if (su->sg_of_su->admin_si == su->list_of_susi->si) */
