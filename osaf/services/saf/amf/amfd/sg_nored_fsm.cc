@@ -252,6 +252,7 @@ uint32_t SG_NORED::su_fault(AVD_CL_CB *cb, AVD_SU *su) {
 			}
 
 			su_oper_list_add(su);
+			su->sg_of_su->admin_si->set_admin_state(SA_AMF_ADMIN_LOCKED);
 			m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 			set_fsm_state(AVD_SG_FSM_SU_OPER);
 		} else {	/* if (su->sg_of_su->admin_si == su->list_of_susi->si) */
