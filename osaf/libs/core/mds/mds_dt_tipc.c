@@ -539,6 +539,90 @@ static uint32_t mdtm_destroy_rcv_task(void)
 }
 
 /*********************************************************
+  Function NAME: recvfrom_connectionless 
+  DESCRIPTION: The following routines have been created to assist to determine why an 
+  undelivered message has been returned to its sender. 
+
+  ARGUMENTS: Similer to recvfrom() of TIPC
+ 
+  RETURNS: Similer to recvfrom() of TIPC  
+ *********************************************************/ 
+ssize_t recvfrom_connectionless (int sd, void *buf, size_t nbytes, int flags,
+		struct sockaddr *from, socklen_t *addrlen)
+{
+	struct msghdr msg;
+	struct iovec iov;
+	char anc_buf[CMSG_SPACE(8) + CMSG_SPACE(1024) + CMSG_SPACE(12)];
+	struct cmsghdr *anc;
+	unsigned char *cptr;
+	int i;
+	int has_addr;
+	ssize_t sz;
+
+	has_addr = (from != NULL) && (addrlen != NULL);
+
+	iov.iov_base = buf;
+	iov.iov_len = nbytes;
+
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	msg.msg_name = from;
+	msg.msg_namelen = (has_addr) ? *addrlen : 0;
+	msg.msg_control = anc_buf;
+	msg.msg_controllen = sizeof(anc_buf);
+
+	sz = recvmsg(sd, &msg, flags);
+	if (sz >= 0) {
+		anc = CMSG_FIRSTHDR(&msg);
+		if (anc == NULL) {
+			m_MDS_LOG_DBG("MDTM: size: %d  anc is NULL", sz);
+		}
+		while (anc != NULL) {
+			cptr = CMSG_DATA(anc);
+
+			/* Receipt of a normal data message never creates the TIPC_ERRINFO
+			   and TIPC_RETDATA objects, and only creates the TIPC_DESTNAME object 
+			   if the message was sent using a TIPC name or name sequence as the 
+			   destination rather than a TIPC port ID So abort for TIPC_ERRINFO and TIPC_RETDATA*/
+			if (anc->cmsg_type == TIPC_ERRINFO) {
+				/* TIPC_ERRINFO - TIPC error code associated with a returned data message or a connection termination message  so abort */
+				m_MDS_LOG_CRITICAL("MDTM: undelivered message condition ancillary data: TIPC_ERRINFO abort err :%s", strerror(errno) );
+				abort();
+			} else if (anc->cmsg_type == TIPC_RETDATA) {
+				/* If we set TIPC_DEST_DROPPABLE off messge (configure TIPC to return rejected messages to the sender )
+				   we will hit this when we implement MDS retransmit lost messages  abort can be replaced with flow control logic*/
+				for (i = anc->cmsg_len - sizeof(*anc); i > 0; i--) {
+					m_MDS_LOG_DBG("MDTM: returned byte 0x%02x\n", *cptr);
+					cptr++;
+				}
+				/* TIPC_RETDATA -The contents of a returned data message  so abort */
+				m_MDS_LOG_CRITICAL("MDTM: undelivered message condition ancillary data: TIPC_RETDATA abort err :%s", strerror(errno) );
+				abort();
+			} else if (anc->cmsg_type == TIPC_DESTNAME) {
+				if (sz == 0) {
+					m_MDS_LOG_DBG("MDTM: recd bytes=0 on received on sock, abnormal/unknown  condition. Ignoring");
+				}
+			} else {
+				m_MDS_LOG_INFO("MDTM: unrecognized ancillary data type %u\n",	anc->cmsg_type);
+				if (sz == 0) {
+					m_MDS_LOG_DBG("MDTM: recd bytes=0 on received on sock, abnormal/unkown  condition. Ignoring");
+				}
+			}
+
+			anc = CMSG_NXTHDR(&msg, anc);
+		}
+
+		if (has_addr)
+			*addrlen = msg.msg_namelen;
+	} else {
+		/* -1 indicates connection termination connectionless this not possible */
+		abort();
+	}
+
+	return sz;
+}
+
+/*********************************************************
 
   Function NAME: mdtm_process_recv_events
 
@@ -547,9 +631,9 @@ static uint32_t mdtm_destroy_rcv_task(void)
   ARGUMENTS:
 
   RETURNS:  1 - NCSCC_RC_SUCCESS
-            2 - NCSCC_RC_FAILURE
+	    2 - NCSCC_RC_FAILURE
 
-*********************************************************/
+ *********************************************************/
 static uint32_t mdtm_process_recv_events(void)
 {
 	/*
@@ -645,12 +729,11 @@ static uint32_t mdtm_process_recv_events(void)
 				uint16_t recd_buf_len = 0;
 				m_MDS_LOG_INFO("MDTM: Data received: Processing data ");
 
-				recd_bytes = recvfrom(tipc_cb.BSRsock, inbuf, TIPC_MAX_USER_MSG_SIZE, 0,
-						      (struct sockaddr *)&client_addr, &alen);
-				if (recd_bytes == 0) {	/* As we had disabled the feature of receving the bounced messages, recd_bytes==0 indicates a fatal condition so abort */
-					m_MDS_LOG_CRITICAL
-					    ("MDTM: recd bytes=0 on receive sock, fatal condition. Exiting the process  err :%s",strerror(errno) );
-					abort();
+				recd_bytes = recvfrom_connectionless(tipc_cb.BSRsock, inbuf, TIPC_MAX_USER_MSG_SIZE, 0,
+						(struct sockaddr *)&client_addr, &alen);
+				if (recd_bytes == 0) {
+					m_MDS_LOG_DBG("MDTM: recd bytes=0 on received on sock, abnormal/unknown/hack  condition. Ignoring");
+					continue;
 				}
 				data = inbuf;
 
