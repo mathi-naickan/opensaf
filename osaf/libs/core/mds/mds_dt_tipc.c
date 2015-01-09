@@ -2218,7 +2218,7 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num, struct tipc_po
 								  (char *)&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN]);
 
 				if (p8 != &body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN])
-					memcpy(&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN], p8, len_buf);
+					memcpy(&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN], p8, (len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN));
 
 				if (NCSCC_RC_SUCCESS != mdtm_add_mds_hdr(body, req)) {
 					m_MDS_LOG_ERR("MDTM: frg MDS hdr addition failed\n");
