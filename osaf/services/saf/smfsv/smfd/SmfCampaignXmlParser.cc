@@ -843,13 +843,14 @@ SmfCampaignXmlParser::parseParentTypeElements(SmfTargetNodeTemplate * io_templ, 
 		if ((!strcmp((char *)cur->name, "parent")) && (cur->ns == ns))	//Fetch parent/type pair
 		{
 			TRACE("xmlTag parent found");
-                        if ( parentFound == true ) { //Two parent tag was in sequence
+                        if (parentFound || typeFound) { //Two parent tag was in sequence or type followed by parent
                                 io_templ->addActivationUnitTemplate(pt); //Save the previous found parent
                         }
 
                         pt = new(std::nothrow) SmfParentType;    //Create a new parent/type pair for the new parent
                         osafassert(pt != NULL);
                         parentFound = true;
+                        typeFound   = false;
 
 			if ((s = (char *)xmlGetProp(cur, (const xmlChar *)"objectDN"))) {
 				TRACE("objectDN = %s\n", s);
