@@ -35,21 +35,23 @@ fi
 
 mkdir -p /var/lib/opensaf
 mkdir -p /var/run/opensaf
+chown opensaf:opensaf /var/lib/opensaf
+chown opensaf:opensaf /var/run/opensaf
 
 rm /etc/opensaf/node_type
 
+# Simulate a replicated partition (DRBD)
+rm -f /var/lib/opensaf/immsv_store
+ln -s /hostfs/$REPL_DIR/immsv_store /var/lib/opensaf/
+
+rm -f /var/lib/opensaf/log
+ln -s /hostfs/$REPL_DIR/log /var/lib/opensaf/log
+
+ln -s /hostfs/repl-opensaf /repl_opensaf
+
+mkdir -p /repl_opensaf/saflog
+
 if [ $hostnumber -lt 3 ]; then
-    # Simulate a replicated partition (DRBD)
-    rm -f /var/lib/opensaf/immsv_store
-    ln -s /hostfs/$REPL_DIR/immsv_store /var/lib/opensaf/
-
-    rm -f /var/lib/opensaf/log
-    ln -s /hostfs/$REPL_DIR/log /var/lib/opensaf/log
-
-    ln -s /hostfs/repl-opensaf /repl_opensaf
-
-    mkdir -p /repl_opensaf/saflog
-
     ln -sf /etc/opensaf/nodeinit.conf.controller /etc/opensaf/nodeinit.conf
     echo controller > /etc/opensaf/node_type
 else

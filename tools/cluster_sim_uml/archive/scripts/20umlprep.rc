@@ -30,5 +30,4 @@ fi
 echo "$COREDUMP_PATH/core_%t_%e_%p" > /proc/sys/kernel/core_pattern
 ulimit -c unlimited
 
-mkdir /dev/shm
 rm /bin/killall

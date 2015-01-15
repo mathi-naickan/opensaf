@@ -19,7 +19,7 @@
 
 cd uml
 rm -rf root linux* tipcutils* uml_utilities* busybox* tools-*
-rm -f bin/tipc-config bin/busybox bin/uml_switch bin/uml_mconsole
+rm -f bin/tipc-config bin/busybox bin/uml_switch bin/uml_mconsole bin/uml_net
 rm -f bin/tunctl bin/port-helper bin/linux
 cd - > /dev/null
 
