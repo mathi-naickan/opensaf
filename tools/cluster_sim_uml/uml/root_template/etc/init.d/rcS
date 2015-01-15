@@ -29,6 +29,8 @@ mount /tmp
 mount -ttmpfs mdev /dev
 mkdir /dev/pts
 mount -tdevpts pts /dev/pts
+mkdir /dev/shm
+mount -ttmpfs none /dev/shm
 
 PATH="/bin:/sbin:/usr/bin:/usr/sbin"
 export PATH

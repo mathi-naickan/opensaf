@@ -32,6 +32,7 @@ fi
 
 /bin/busybox --install -s
 mount /sys
+mount /dev/shm
 mount /tmp
 mount /dev/pts
 hostdircmd=`tr ' ' '\n' < /proc/cmdline | grep hostdir`

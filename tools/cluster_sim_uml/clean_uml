@@ -17,7 +17,7 @@
 #
 #
 
-rm -rf rootfs usr
+rm -rf rootfs
 rm -rf repl-opensaf
 uml/clean_uml
 

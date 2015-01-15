@@ -46,15 +46,16 @@
 
 pgm=`basename $0`
 dir=`dirname $0`; dir=`cd $dir; pwd`
-tmp=/tmp/${pgm}$$
+tmp=$(mktemp -d /tmp/${pgm}$$.XXXXXXXXXX)
 
 die() {
     echo "ERROR: $*" >&2
-    rm -rf $tmp
+    rm -rf "$tmp"
     exit 1
 }
 help() {
     grep '^##' $0 | cut -c3-
+    rm -rf "$tmp"
     exit 0
 }
 test -n "$1" || help
@@ -62,9 +63,12 @@ cd $dir
 archive=${ARCHIVE:-$dir/archive}
 configd=${CONFIGD:-$dir/config}
 
-kver=${KVER:-3.13.1}
-if [ `echo $kver | cut -d. -f1` -ge 3 ]
-then
+if [ $(uname -r | cut -d. -f1) -ge 3 ]; then
+    kver=${KVER:-3.18.2}
+else
+    kver=${KVER:-3.13.1}
+fi
+if [ $(echo $kver | cut -d. -f1) -ge 3 ]; then
     kbasedir=`echo $kver | cut -d. -f1`.x
 else
     kbasedir=`echo $kver | cut -d. -f1-2`
@@ -74,18 +78,32 @@ kurlbase=${KURLBASE:-"http://ftp.sunet.se/pub/Linux/kernel.org/linux/kernel/v$kb
 if [ -n "$(type xz 2> /dev/null)" ]; then
     kernel_decompress=xz
     kurl="$kurlbase/linux-$kver.tar.xz"
+    if [ "$kver" = "3.13.1" ]; then
+	kernel_sha1sum='6cbd5f9fc748dcc2def65c053ca2b4776b82a386  linux-3.13.1.tar.xz'
+    else
+	kernel_sha1sum='9f39cf27b7d8cd584dae04f31d6a51867a7b140a  linux-3.18.2.tar.xz'
+    fi
 else
     kernel_decompress=gzip
     kurl="$kurlbase/linux-$kver.tar.gz"
+    if [ "$kver" = "3.13.1" ]; then
+	kernel_sha1sum='0e4c138bfdf5e3257e6c66a82e0ff922c1c298c7  linux-3.13.1.tar.gz'
+    else
+	kernel_sha1sum='d2376ed8e6e61239f0d3b2131005f01790fe2b2e  linux-3.18.2.tar.gz'
+    fi
 fi
 
 tipcutilsver=${TIPCUTILSVER:-2.0.3}
 tipcutilsurl="http://prdownloads.sourceforge.net/tipc/tipcutils-$tipcutilsver.tar.gz"
+tipcutils_sha1sum='5216075ccfd778bb938a9b7387c42d8fb328742e  tipcutils-2.0.3.tar.gz'
 
-bbver=${BBVER:-1.21.1}
+bbver=${BBVER:-1.22.1}
 bburl="http://busybox.net/downloads/busybox-$bbver.tar.bz2"
+bb_sha1sum='d6e96fefb6f0fb8079f27468b9bf22d8dd96108e  busybox-1.22.1.tar.bz2'
+
 umlutilsver=20070815
 umlutilsurl="http://user-mode-linux.sourceforge.net/uml_utilities_$umlutilsver.tar.bz2"
+umlutils_sha1sum='4e10de8e0f5bf681fa295572009518b77fd8a1dd  uml_utilities_20070815.tar.bz2'
 
 arch=$(uname -m)
 gid=$(id -g)
@@ -124,6 +142,22 @@ cmd_info() {
     echo "    $umlutilsurl"
 }
 
+##   gen_initramfs_list
+##     Generate the file linux-$kver/initramfs_list which describes the contens
+##     of the initramfs
+##
+cmd_gen_initramfs_list() {
+    chmod +x linux-$kver/scripts/gen_initramfs_list.sh
+    ./linux-$kver/scripts/gen_initramfs_list.sh -u $UID -g $gid \
+        $dir/root $dir/root/dev/initramfs_list \
+        > linux-$kver/initramfs_list
+    rm -f linux-$kver/usr/initramfs_data.cpio.gz
+    sed -ie '/^file \/usr\/bin\/busybox /s/ [0-7][0-7]* 0 0$/ 4755 0 0/' linux-$kver/initramfs_list
+    sed -ie '/^dir \/var\/lib\/opensaf /s/ [0-7][0-7]* 0 0$/ 755 '"$UID $gid/" linux-$kver/initramfs_list
+    sed -ie '/^dir \/var\/log\/opensaf /s/ [0-7][0-7]* 0 0$/ 755 '"$UID $gid/" linux-$kver/initramfs_list
+    sed -ie '/^dir \/var\/run\/opensaf /s/ [0-7][0-7]* 0 0$/ 755 '"$UID $gid/" linux-$kver/initramfs_list
+}
+
 ##   download
 ##     Download all necessary packaget from the net using "wget". Make
 ##     sure that your proxy-settings are correct.
@@ -136,9 +170,36 @@ cmd_download() {
 	    echo "Already downloaded [$f]"
 	    continue
 	fi
+	rm -f $archive/.checksum_ok
 	wget -O "$archive/$f.part" "$a" || die "Download failed [$a]"
 	mv -f "$archive/$f.part" "$archive/$f"
     done
+    if [ ! -e $archive/.checksum_ok ]; then
+	: > $archive/SHA1SUMS
+	echo "$tipcutils_sha1sum" >> $archive/SHA1SUMS
+	echo "$bb_sha1sum" >> $archive/SHA1SUMS
+	echo "$umlutils_sha1sum" >> $archive/SHA1SUMS
+	echo "$kernel_sha1sum" >> $archive/SHA1SUMS
+	(cd $archive; sha1sum -c SHA1SUMS) || die "Bad file checksum(s)"
+	touch $archive/.checksum_ok
+    fi
+}
+
+##   clean_if_needed
+##     Clean up built binaries if any tool version has changed.
+##
+cmd_clean_if_needed() {
+    cd $dir
+    clean_needed=0
+    test -d linux-$kver || clean_needed=1
+    test -d busybox-$bbver || clean_needed=1
+    test -d tipcutils-$tipcutilsver || clean_needed=1
+    test -d tools-$umlutilsver || clean_needed=1
+    if [ "$clean_needed" -eq "1" ]; then
+	cd "$dir/.."
+	./uml/clean_uml
+	cd "$dir"
+    fi
 }
 
 ##   extract_kernel
@@ -172,13 +233,10 @@ cmd_refresh_root() {
     rm -f root/$lib_dir/modules/$kver/build \
         root/$lib_dir/modules/$kver/source \
         linux-$kver/initramfs_list
-    ./linux-$kver/scripts/gen_initramfs_list.sh -u $UID -g $gid \
-        $dir/root $dir/root/dev/initramfs_list \
-        > linux-$kver/initramfs_list
-    rm -f linux-$kver/usr/initramfs_data.cpio.gz
+    cmd_gen_initramfs_list
     make -C linux-$kver -j4 ARCH=um
 
-    cp linux-$kver/vmlinux bin/linux
+    cp linux-$kver/vmlinux bin/linux || die "Could not build linux"
     strip bin/linux
 }
 
@@ -207,10 +265,7 @@ cmd_build_linux()
     cfg=$configd/linux-$kver-$arch
     test -r $cfg || cfg=config/linux-config-$arch
     cp -L $cfg linux-$kver/.config
-    chmod +x linux-$kver/scripts/gen_initramfs_list.sh
-    ./linux-$kver/scripts/gen_initramfs_list.sh -u $UID -g $gid \
-        $dir/root $dir/root/dev/initramfs_list \
-        > linux-$kver/initramfs_list
+    cmd_gen_initramfs_list
 
     cmd_patch_tipc_tolerance
     make -C linux-$kver -j3 ARCH=um oldconfig
@@ -239,7 +294,8 @@ cmd_build_busybox()
     test -r $cfg || cfg=config/busybox-config
     cp -L $cfg busybox-$bbver/.config
     make -C busybox-$bbver -j4
-    cp busybox-$bbver/busybox bin
+    cp busybox-$bbver/busybox bin || die "Could not build busybox"
+    strip bin/busybox
 }
 
 ##   create_initramfs
@@ -256,18 +312,26 @@ cmd_create_initramfs()
     rm -rf root
     cp -rL root_template root
     if [ $(uname -m) = x86_64 ]; then
-      rm -Rf root/lib
+      rm -Rf root/lib root/usr/lib
       ln -s lib64 root/lib
+      ln -s lib64 root/usr/lib
     fi
-    cp -L bin/tipc-config root/sbin
-    cp -L bin/busybox root/bin
-    for n in bin/sh sbin/init; do
-        ln -fs /bin/busybox root/$n
+    rm -Rf root/bin root/sbin
+    ln -s usr/bin root/bin
+    ln -s usr/sbin root/sbin
+    cp -L bin/tipc-config root/usr/sbin
+    cp -L bin/busybox root/usr/bin
+    for n in usr/bin/sh usr/sbin/init; do
+        ln -fs /usr/bin/busybox root/$n
     done
     cp -L `ldd ./bin/busybox | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,'` root/$lib_dir
     local all_dirs=`ldd ./bin/busybox | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,' | sed -e 's:/[^/]*$::'`
     for d in $all_dirs; do
 	cp -L $d/libnss_files.so.? $d/libpthread.so.? $d/libm.so.? root/$lib_dir 2> /dev/null
+    done
+    for n in passwd group; do
+	sed -i -e "s/OPENSAF_USER/$UID/g" root/etc/$n
+	sed -i -e "s/OPENSAF_GROUP/$gid/g" root/etc/$n
     done
     chown -hR $UID:$gid root
 }
@@ -289,15 +353,15 @@ cmd_build_umlutils()
 
     make -C tools-$umlutilsver/lib
     make -C tools-$umlutilsver/uml_switch
-    cp tools-${umlutilsver}/uml_switch/uml_switch bin
+    cp tools-${umlutilsver}/uml_switch/uml_switch bin || die "Could not build uml_switch"
     make -C tools-$umlutilsver/port-helper
-    cp tools-${umlutilsver}/port-helper/port-helper bin
+    cp tools-${umlutilsver}/port-helper/port-helper bin || die "Could not build port-helper"
     make -C tools-$umlutilsver/tunctl
-    cp tools-${umlutilsver}/tunctl/tunctl bin
+    cp tools-${umlutilsver}/tunctl/tunctl bin || die "Could not build tunctl"
     make -C tools-$umlutilsver/mconsole
-    cp tools-${umlutilsver}/mconsole/uml_mconsole bin
+    cp tools-${umlutilsver}/mconsole/uml_mconsole bin || die "Could not build uml_mconsole"
     make -C tools-$umlutilsver/uml_net
-    cp tools-${umlutilsver}/uml_net/uml_net bin
+    cp tools-${umlutilsver}/uml_net/uml_net bin || die "Could not build uml_net"
 }
 
 ##   build_tipcutils
@@ -318,10 +382,10 @@ cmd_build_tipcutils()
 	./configure CFLAGS="-I$dir/linux-$kver/usr/include"
 	make -j4
 	cd $dir
-	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin
+	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin || die "Could not build tipc-config"
     else
 	make -C tipcutils-$tipcutilsver INCLUDE_PATH="$dir/linux-$kver/include" EXTRAS="-I$dir/linux-$kver/arch/x86/include"
-	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin
+	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin || die "Could not build tipc-config"
     fi
 }
 
@@ -331,7 +395,7 @@ cmd_build_tipcutils()
 cmd_clean() {
     rm -rf linux-$kver busybox-$bbver root tipcutils-$tipcutilsver\
         tools-$umlutilsver linux-extract-dir
-    for n in busybox tipc-config uml_mconsole uml_switch\
+    for n in busybox tipc-config uml_mconsole uml_switch uml_net\
         linux port-helper tunctl; do
 	rm -f bin/$n
     done
@@ -343,6 +407,7 @@ cmd_clean() {
 ##
 cmd_all() {
     cmd_download
+    cmd_clean_if_needed
     cmd_extract_kernel
     cmd_build_tipcutils
     cmd_build_busybox
@@ -354,7 +419,6 @@ cmd_all() {
 cmd=$1; shift
 grep -q cmd_$cmd $dir/$pgm || die "Invalid command [$cmd]"
 trap "die Interrupted" INT TERM
-mkdir -p $tmp
 cmd_$cmd "$@"
 rc=$?
 rm -rf $tmp

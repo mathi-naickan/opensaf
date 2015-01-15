@@ -1,0 +1,4 @@
+#!/bin/sh
+
+sync
+exec /usr/bin/busybox reboot -d 1 $*

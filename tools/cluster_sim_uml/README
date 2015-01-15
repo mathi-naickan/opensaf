@@ -1,7 +1,7 @@
 #
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2008-2009 The OpenSAF Foundation
+# (C) Copyright 2008-2015 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -74,12 +74,18 @@ uml	  This directory contains the UML kernel build, the busybox build and
 HOW TO BUILD
 
 When the UML root file system is generated it will use 'make install' with
-DESTDIR set to the UML root file system. Make sure you have a default 
-configured Opensaf like this:
+DESTDIR set to the UML root file system. Therefore, you must first configure and
+build OpenSAF before you can build the UML environment. If you have enabled TIPC
+using the --enable-tipc option to the ./configure script when configuring
+OpenSAF, then OpenSAF will be configured to use TIPC in the generated UML
+environment. Otherwise TCP will be used. If you have built OpenSAF with the
+-DRUNASROOT option, then OpenSAF will be configured to run as the root user in
+the generated UML environment. Otherwise OpenSAF will be configured to run as
+user 'opensaf' and group 'opensaf'.
 
-$ ./configure CPPFLAGS=-DRUNASROOT
-
-- Execute './build_uml'.
+- Once you have configured and built OpenSAF, go to the UML cluster simulator
+  directory (the directory containing this README file) and execute
+  './build_uml' to build the UML environment.
 
 Building means downloading, configuring & building packages from the
 internet, creating shadow a root file system for OpenSAF nodes.
@@ -177,18 +183,32 @@ CLI use the command 'clishut'.
 
 SOFTWARE REQUIREMENTS
 
-UML should run on any 2.6 host kernel. If the host kernel is patched for SKAS3
+UML should run on any 3.x host kernel. If the host kernel is patched for SKAS3
 mode, you will get better guest (UML) kernel performance.
 
 32 and 64 bit are verified.
 
-GNU C Library version 2.4 or later
+GNU C Library version 2.11 or later
 
 The following packages are known to work:
 
-- bash-3.1-24.4 (needed by opensaf scripts)
-- readline-5.1-24.4 (needed by bash)
-- ncurses-5.5-18.2 (needed by bash)
-- libgcc-4.1.0-28.4 (needed by scap)
-- libstdc++-4.1.0-28.4 (needed by scap)
+- bash 4.3 (needed by opensaf scripts)
+- readline 6.3 (needed by bash)
+- ncurses 5.9 (needed by bash)
+- libgcc 4.9.1 (needed by scap)
+- libstdc++ 4.8.2 (needed by scap)
 
+OPTIONAL DEVELOPMENT TOOLS
+
+Before running ./build_uml, you can optionally install any of the following
+development tools on your host system:
+
+ltrace
+strace
+gdb
+python
+python3
+valgrind
+
+If these tools are found on the build host, they will automatically be installed
+in the generated UML environment.

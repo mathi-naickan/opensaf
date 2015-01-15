@@ -28,11 +28,11 @@
 
 prg=`basename $0`
 dir=`dirname $0`; dir=`cd $dir; pwd`
-tmp=/tmp/${prg}$$
+tmp=$(mktemp -d /tmp/${prg}$$.XXXXXXXXXX)
 
 die() {
     echo "ERROR: $*" >&2
-    rm -rf $tmp
+    rm -rf "$tmp"
     exit 1
 }
 
@@ -121,14 +121,16 @@ cmd_create_rootfs()
     cd $root
     echo "Setup dirs and links..."
     if test "$(uname -m)" = "x86_64"; then
-	mkdir -p sbin bin lib64 usr/lib64 usr/sbin usr/bin
+	mkdir -p lib64 usr/lib64 usr/sbin usr/bin
 	mkdir -p etc/default etc/init.d
 	ln -s lib64 usr/lib
 	ln -s lib64 lib
     else
-	mkdir -p sbin bin lib usr/lib usr/sbin usr/bin
+	mkdir -p lib usr/lib usr/sbin usr/bin
 	mkdir -p etc/default etc/init.d
     fi
+    ln -s usr/bin bin
+    ln -s usr/sbin sbin
 
     echo "Installing OpenSAF (takes some time)..."
     if ! make -C $opensaf_home DESTDIR=$root -j3 install>$tmp/install.log 2>&1
@@ -146,23 +148,62 @@ cmd_create_rootfs()
 
     install -m 755 $archive/scripts/*.rc etc/init.d
     cp $scripts/profile etc
-    cp $scripts/shutdown sbin
+    cp $scripts/reboot $scripts/shutdown usr/sbin
     mkdir -p root/www/cgi-bin
     cp $scripts/rshd root/www/cgi-bin
-    cp $scripts/rsh $scripts/rcp usr/bin
-    chmod +x usr/bin/rsh usr/bin/rcp root/www/cgi-bin/rshd
+    cp $scripts/rsh $scripts/rcp $scripts/sudo usr/bin
+    chmod +x usr/sbin/shutdown root/www/cgi-bin/rshd usr/bin/rsh usr/bin/rcp usr/bin/sudo
 
     echo "Copy some needed extra programs (bash, ...)"
-    install /bin/bash bin
-    install /usr/bin/pgrep usr/bin
-    install /usr/bin/pkill usr/bin
-    install /usr/bin/killall usr/bin
+    install /bin/bash usr/bin
+    install /usr/bin/getent usr/bin
+    test -e /bin/ltrace && install /bin/ltrace usr/bin
+    test -e /bin/strace && install /bin/strace usr/bin
+    test -e /usr/bin/ltrace && install /usr/bin/ltrace usr/bin
+    test -e /usr/bin/strace && install /usr/bin/strace usr/bin
+    if test -e /usr/bin/gdb; then
+	install /usr/bin/gdb usr/bin
+	if test -d /usr/share/gdb; then
+	    tar -C / -cf - usr/share/gdb | tar xf -
+	fi
+    fi
+    if test -e /usr/bin/python; then
+	install /usr/bin/python usr/bin
+	python_version=$(/usr/bin/python --version 2>&1 | cut -d " " -f 2 | cut -d "." -f 1,2)
+	python_lib=$(find /usr/lib/python$python_version -maxdepth 0 2>/dev/null | cut -d " " -f 1 | cut -c2-)
+	python_lib64=$(find /usr/lib64/python$python_version -maxdepth 0 2>/dev/null | cut -d " " -f 1 | cut -c2-)
+	python_include=$(find /usr/include/python${python_version}*/pyconfig.h -maxdepth 0 2>/dev/null | cut -d " " -f 1 | cut -c2-)
+	tar -C / --exclude=site-packages -cf - $python_lib $python_lib64 $python_include | tar xf -
+    fi
+    if test -e /usr/bin/python3; then
+	install /usr/bin/python3 usr/bin
+	python_version=$(/usr/bin/python3 --version 2>&1 | cut -d " " -f 2 | cut -d "." -f 1,2)
+	python_lib=$(find /usr/lib/python$python_version -maxdepth 0 2>/dev/null | cut -d " " -f 1 | cut -c2-)
+	python_lib64=$(find /usr/lib64/python$python_version -maxdepth 0 2>/dev/null | cut -d " " -f 1 | cut -c2-)
+	python_include=$(find /usr/include/python${python_version}*/pyconfig.h -maxdepth 0 2>/dev/null | cut -d " " -f 1 | cut -c2-)
+	tar -C / --exclude=site-packages -cf - $python_lib $python_lib64 $python_include | tar xf -
+    fi
+    if test -e /usr/bin/valgrind; then
+	install /usr/bin/valgrind usr/bin
+	test -e /usr/bin/valgrind.bin && install /usr/bin/valgrind.bin usr/bin
+        valgrind_lib=lib
+        test -d /usr/$valgrind_lib/valgrind || valgrind_lib=lib64
+	tar -C / -cf - usr/$valgrind_lib/valgrind | tar xf -
+	cat >> usr/$valgrind_lib/valgrind/default.supp <<EOF
+{
+   ld index
+   Memcheck:Cond
+   fun:index
+   obj:/hostfs/rootfs/lib*/ld-linux*.so*
+}
+EOF
+    fi
 
     # Some distros use startproc/killproc, others start-stop-daemon
-    test -e /sbin/startproc && install /sbin/startproc sbin
-    test -e /sbin/killproc && install /sbin/killproc sbin
-    test -e /sbin/pidofproc && install /sbin/pidofproc sbin
-    test -e /sbin/start-stop-daemon && install /sbin/start-stop-daemon sbin
+    test -e /sbin/startproc && install /sbin/startproc usr/sbin
+    test -e /sbin/killproc && install /sbin/killproc usr/sbin
+    test -e /sbin/pidofproc && install /sbin/pidofproc usr/sbin
+    test -e /sbin/start-stop-daemon && install /sbin/start-stop-daemon usr/sbin
 
     mkdir -p lib/lsb
     install /lib/lsb/init-functions lib/lsb
@@ -172,12 +213,8 @@ cmd_create_rootfs()
     test -e /etc/redhat-lsb && \
        mkdir -p etc/redhat-lsb && install /etc/redhat-lsb/* etc/redhat-lsb 
     test -e /etc/init.d/functions && install /etc/init.d/functions etc/init.d
-    test -e /sbin/consoletype && install /sbin/consoletype sbin 
+    test -e /sbin/consoletype && install /sbin/consoletype usr/sbin 
 
-    # Needed for archive rotation
-    install /bin/tar bin
-    install $(which nice) usr/bin
-    
 	# Configure LOG root path depending of logFileSysConfig setting
 	if grep -A 3 logFileSysConfig usr/local/share/opensaf/immxml/services/logsv_objects.xml | \
        grep -q -o "<value>2</value>"; then
@@ -195,13 +232,17 @@ cmd_create_rootfs()
     # Change core pattern, uml cannot write cores to hostfs
     sed -i 's/var\/crash\/opensaf/tmp/g' etc/init.d/opensafd
 
-    # UML can only runas root
-    sed -i '/export\ OPENSAF_GROUP/d' etc/opensaf/nid.conf
-    sed -i '/export\ OPENSAF_USER/d' etc/opensaf/nid.conf
+    # Run OpenSAF as root if it was built to run as root
+    if grep -q RUNASROOT $opensaf_home/config.log; then
+	sed -i '/export\ OPENSAF_GROUP/d' etc/opensaf/nid.conf
+	sed -i '/export\ OPENSAF_USER/d' etc/opensaf/nid.conf
+    fi
 
     # Select TIPC transport if OpenSAF was configured with it.
     if grep -q "define ENABLE_TIPC_TRANSPORT 1" ../../../config.h; then
 	sed -i 's/MDS_TRANSPORT=TCP/MDS_TRANSPORT=TIPC/g' etc/opensaf/nid.conf
+        # Increase RDE peer discovery timeout to match the TIPC link tolerance
+        sed -i 's/#export RDE_DISCOVER_PEER_TIMEOUT=5000/export RDE_DISCOVER_PEER_TIMEOUT=4000/' etc/opensaf/rde.conf
     fi
 
     # The var directory structure is setup from within each UML
@@ -246,13 +287,16 @@ cmd_installibs() {
     local deplib=$tmp/deplib
     cd $root
     cmd_getlibs \
-	$(find . -name osafimmloadd -or -name libopensaf_core.so) ./bin/* ./usr/bin/* ./usr/sbin/* |\
+	$(find . -name osafimmloadd -or -name libopensaf_core.so) ./usr/bin/* ./usr/sbin/* |\
 	grep -v -e 'libSa\|libimmsv\|libsaf' \
 	-e "^/$lib_dir/ld-\|^/$lib_dir/libc.so" > $deplib
     local all_dirs=`ldd $top/uml/bin/busybox | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,' | sed -e 's:/[^/]*$::'`
     for d in $all_dirs; do
 	if [ -e $d/libnss_files.so.? ]; then
 	    echo $d/libnss_files.so.? >> $deplib
+	fi
+	if [ -e $d/libthread_db.so.? ]; then
+	    echo $d/libthread_db.so.? >> $deplib
 	fi
     done
 
@@ -264,8 +308,17 @@ cmd_installibs() {
         dst=usr/$lib_dir
         echo $n | grep -q '^/lib' && dst=$lib_dir
         echo "  $n -> rootfs/$dst/$(basename $n)"
-        cp -L $n $dst || die "Failed [cp -R $n $dst]"
+        cp -L $n $dst || die "Failed [cp -L $n $dst]"
     done
+    mkdir -p $lib_dir/.debug
+    if test -d /usr/lib/debug; then
+	find /usr/lib/debug -name "ld-*.so" -exec cp -L {} $lib_dir/.debug \;
+	find /usr/lib/debug -name "libc-*.so" -exec cp -L {} $lib_dir/.debug \;
+	find /usr/lib/debug -name "libm-*.so" -exec cp -L {} $lib_dir/.debug \;
+	find /usr/lib/debug -name "libpthread-*.so" -exec cp -L {} $lib_dir/.debug \;
+	find /usr/lib/debug -name "librt-*.so" -exec cp -L {} $lib_dir/.debug \;
+	find /usr/lib/debug -name "libdl-*.so" -exec cp -L {} $lib_dir/.debug \;
+    fi
 }
 
 ##   installextra
@@ -312,7 +365,13 @@ cmd_mklndircpio() {
     echo $archive | grep -q "^/" || $archive=$top/$archive
     rm -f $archive
     cd $1
-    items=`find ./ | sed -e 's,./,,'`
+    lndirs=$(find ./usr/include ./usr/lib ./usr/lib64 -mindepth 1 -maxdepth 1 -type d)
+    excludedirs=
+    for n in $lndirs; do
+	excludedirs="$excludedirs -path $n -prune -o"
+	echo $excludedirs
+    done
+    items=`find ./ $excludedirs -true | sed -e 's,./,,'`
     for n in $items; do
 	if test -d $n; then
 	    mkdir -p $tmpd/$n || die "Can't create dir [$tmpd/$n]"
@@ -321,6 +380,10 @@ cmd_mklndircpio() {
 	fi
     done
     cd $tmpd
+    for n in $lndirs; do
+	rm -rf $tmpd/$n
+	ln -s $prefix/$n $tmpd/$n || die "Can't create link [$tmpd/$n]"
+    done
     echo $items | tr ' ' '\n' | cpio -o -H newc > $archive
 }
 
@@ -394,8 +457,7 @@ else
 fi
 grep -q "^cmd_$cmd()" $0 || die "Invalid command [$cmd]"
 trap "die Interrupted" INT TERM
-mkdir -p $tmp
 cmd_$cmd "$@"
 status=$?
-rm -rf $tmp
+rm -rf "$tmp"
 exit $status

@@ -1,7 +1,7 @@
 #
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2008 The OpenSAF Foundation
+# (C) Copyright 2008-2015 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -110,10 +110,10 @@ Consider applying the SKAS3 patch to the host.
 
 SOFTWARE REQUIREMENTS
 
-UML should run on any 2.6 host kernel. If the host kernel is patched for SKAS3
+UML should run on any 3.x host kernel. If the host kernel is patched for SKAS3
 mode, you will get better guest (UML) kernel performance.
 
-GNU C Library version 2.4 or later
+GNU C Library version 2.11 or later
 
 
 REFERENCES

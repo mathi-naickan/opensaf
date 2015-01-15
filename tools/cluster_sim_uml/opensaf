@@ -38,11 +38,17 @@ PIDFILEDIR=/tmp/${USER}_opensaf
 OSAF_UML_MEMSIZE=${OSAF_UML_MEMSIZE:-128M}
 uid=`id -u`
 
+check_binaries() {
+    for i in tipc-config busybox linux uml_switch port-helper tunctl uml_mconsole uml_net; do
+	test -x $UML_DIR/bin/$i || die "Not executable [$UML_DIR/bin/$i]"
+    done
+}
+
 cluster_start() {
 	numnodes=$1
-	x=5
-	y=5
-	dy=340
+	x=65
+	y=24
+	dy=293
 
 	echo "Starting opensaf services"
 
@@ -62,7 +68,7 @@ cluster_start() {
 	# Start network if necessary
 	if ! pgrep -U $uid uml_switch > /dev/null; then
 		rm -f /tmp/uml-${uid}.ctl
-		xterm -iconic -geometry 60x8-0+110 \
+		xterm -iconic -geometry 60x8-0+5 \
 			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
 		echo $! > $PIDFILEDIR/uml_switch
 		while [ ! -S /tmp/uml-${uid}.ctl ]; do
@@ -76,8 +82,8 @@ cluster_start() {
 	for ((p=1; p <= $numnodes; p++)); do
 		# First two nodes are system controllers, the rest are payloads
 		if ((p == 3)); then
-			x=660
-			y=5
+			x=910
+			y=24
 			node_name_prefix=PL-
 		fi
 		hostname=$node_name_prefix$p
@@ -118,13 +124,14 @@ delete_persistent_store() {
 # Start a single node, referenced by number
 node_start() {
 	node=$1
+	dy=293
 
 	test -d $PIDFILEDIR || mkdir -p $PIDFILEDIR
 
 	# Start network if necessary
 	if ! pgrep -U $uid uml_switch > /dev/null; then
 		rm -f /tmp/uml-${uid}.ctl
-		xterm -iconic -geometry 60x8-0+110 \
+		xterm -iconic -geometry 60x8-0+5 \
 			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
 		echo $! > $PIDFILEDIR/uml_switch
 		while [ ! -S /tmp/uml-${uid}.ctl ]; do
@@ -150,8 +157,10 @@ node_start() {
 	hostname=$node_name_prefix$p
 
 	# start the uml vm in its own xterm
-	xterm -hold -geometry 140x20 -T $hostname -e \
-		$UML_DIR/bin/uml_start $p umid=$hostname mem=128M hostname=$hostname shadowroot=$rootdir $$ &
+	x=$((p < 3 ? 65 : 910))
+	y=$((24 + (p < 3 ? p - 1 : p - 3) * dy))
+	xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
+		$UML_DIR/bin/uml_start $p umid=$hostname mem=${OSAF_UML_MEMSIZE} hostname=$hostname shadowroot=$rootdir $$ &
 	echo $! > $PIDFILEDIR/$hostname
 
 	# Append host to /etc/hosts file
@@ -184,6 +193,7 @@ node_stop() {
 
 case "$1" in
 	start)
+		check_binaries
 		cluster_stop
 		cluster_start $NUMNODES
 		;;
@@ -192,6 +202,7 @@ case "$1" in
 		;;
 	nodestart)
 		test $# -eq 2 || die "wrong number of arguments"
+		check_binaries
 		node_start $2
 		;;
 	nodestop)
