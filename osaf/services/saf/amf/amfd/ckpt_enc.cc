@@ -1948,6 +1948,8 @@ static uint32_t entire_data_update(AVD_CL_CB *cb, NCS_MBCSV_CB_ENC *enc, bool c_
 			saflog(LOG_NOTICE, amfSvcUsrName, "Cold sync complete of %x", cb->node_id_avd_other);
 		} else
 			enc->io_msg_type = NCS_MBCSV_MSG_DATA_RESP_COMPLETE;
+		TRACE("Marking sync_state as in_sync");
+		cb->stby_sync_state = AVD_STBY_IN_SYNC;
 	} else
 		enc->io_reo_type++;
 

@@ -408,6 +408,11 @@ ignore_msg:
 				TRACE("invalid init state (%u) for cold sync req", cb->init_state);
 				status = NCSCC_RC_FAILURE;
 			}
+			/* Marking Act amfd as out of sync with standy amfd when
+			   cold sync starts. It should be marked in-sync when
+			   standby completes cold sync */
+			TRACE("Marking sync_state as out_of_sync");
+			cb->stby_sync_state = AVD_STBY_OUT_OF_SYNC;
 		}
 		break;
 

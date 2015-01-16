@@ -766,7 +766,7 @@ SaAisErrorT SG_2N::si_swap(AVD_SI *si, SaInvocationT invocation) {
 	if (avd_cb->init_state != AVD_APP_STATE) {
 		LOG_ER("%s SWAP failed - not in app state (%u)", si->name.value,
 			avd_cb->init_state);
-		rc = SA_AIS_ERR_BAD_OPERATION;
+		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto done;
 	}
 
@@ -782,10 +782,18 @@ SaAisErrorT SG_2N::si_swap(AVD_SI *si, SaInvocationT invocation) {
 		rc = SA_AIS_ERR_BAD_OPERATION;
 		goto done;
 	}
-	
+
+	if (si->sg_of_si->sg_ncs_spec) {
+		if (avd_cb->stby_sync_state == AVD_STBY_OUT_OF_SYNC) {
+			LOG_ER("%s SWAP failed - Cold sync in progress", si->name.value);
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			goto done;
+		}
+	}
+
 	if (si->list_of_sisu->si_next == NULL) {
 		LOG_ER("%s SWAP failed - only one assignment", si->name.value);
-		rc = SA_AIS_ERR_BAD_OPERATION;
+		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto done;
 	}
 

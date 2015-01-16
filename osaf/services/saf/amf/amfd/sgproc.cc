@@ -1681,7 +1681,13 @@ void avd_node_down_mw_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd)
 		if ((i_su->sg_of_su->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL) &&
 				(i_su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE))
 			(void) avd_clm_track_start();
-
+		/* If Std ctlr went down in middle of Cold sync, then we need
+		   to reset the sync state to IN_SYNC. */
+		if ((i_su->sg_of_su->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL) &&
+				(cb->stby_sync_state == AVD_STBY_OUT_OF_SYNC)) {
+			TRACE("Marking sync_state as in_sync");
+			cb->stby_sync_state = AVD_STBY_IN_SYNC;
+		}
 		/* Free all the SU SI assignments*/ 
 		i_su->delete_all_susis();
 

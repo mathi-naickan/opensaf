@@ -905,7 +905,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		rc = si->sg_of_si->si_swap(si, invocation);
 		if (rc != SA_AIS_OK) {
 			report_admin_op_error(immOiHandle, invocation,
-				SA_AIS_ERR_BAD_OPERATION, NULL,
+				rc, NULL,
 				"SI Swap of %s failed", objectName->value);
 			goto done;
 		} else
