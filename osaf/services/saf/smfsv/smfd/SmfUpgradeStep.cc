@@ -2272,7 +2272,7 @@ SmfUpgradeStep::nodeReboot()
                                         nodeIt = cmdNodeList.erase(nodeIt);  //The node have accepted the command
                                 }
                         } else {
-                                ++listIt;
+                                ++nodeIt;
                         }
                 }
 
