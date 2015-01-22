@@ -3588,7 +3588,8 @@ SaAisErrorT saImmOiAugmentCcbInitialize(
 	osafassert(out_evt);
 	/* Process the received Event */
 	osafassert(out_evt->type == IMMSV_EVT_TYPE_IMMA);
-	osafassert(out_evt->info.imma.type == IMMA_EVT_ND2A_CCB_AUG_INIT_RSP);
+	osafassert((out_evt->info.imma.type == IMMA_EVT_ND2A_CCB_AUG_INIT_RSP) 
+		  || (out_evt->info.imma.type == IMMA_EVT_ND2A_IMM_ERROR));
 	adminOwnerId = out_evt->info.imma.info.admInitRsp.ownerId;
 	rc = out_evt->info.imma.info.admInitRsp.error;
 
