@@ -122,7 +122,7 @@ extern uint32_t lgs_mds_msg_send(lgs_cb_t *cb,
 			      lgsv_msg_t *msg,
 			      MDS_DEST *dest, MDS_SYNC_SND_CTXT *mds_ctxt, MDS_SEND_PRIORITY_TYPE prio);
 
-extern SaAisErrorT lgs_imm_activate(lgs_cb_t *cb);
+extern SaAisErrorT lgs_imm_create_configStream(lgs_cb_t *cb);
 extern void lgs_imm_impl_set(lgs_cb_t *cb);
 extern SaAisErrorT lgs_imm_init(lgs_cb_t *cb);
 extern const void *lgs_imm_logconf_get(lgs_logconfGet_t param, bool *noteflag);

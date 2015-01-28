@@ -63,9 +63,6 @@ typedef struct lgs_cb {
 	V_DEST_RL mds_role;	/* Current MDS role - ACTIVE/STANDBY         */
 	MDS_DEST vaddr;		/* My identification in MDS                  */
 	SaVersionT log_version;	/* The version currently supported           */
-	log_stream_t *alarmStream;	/* Alarm log stream */
-	log_stream_t *notificationStream;	/* Notification log stream */
-	log_stream_t *systemStream;	/* System log stream */
 	NCS_PATRICIA_TREE client_tree;	/* LGA/Library/Client instantiation pat. tree */
 	SaNameT comp_name;	/* Components's name LGS                     */
 	SaAmfHandleT amf_hdl;	/* AMF handle, obtained thru AMF init        */
