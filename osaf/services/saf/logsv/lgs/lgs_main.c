@@ -336,8 +336,8 @@ static uint32_t log_initialize(void)
 	}
 
 	if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) {
-		if (lgs_imm_activate(lgs_cb) != SA_AIS_OK) {
-			LOG_ER("lgs_imm_activate FAILED");
+		if (lgs_imm_create_configStream(lgs_cb) != SA_AIS_OK) {
+			LOG_ER("lgs_imm_create_configStream FAILED");
 			rc = NCSCC_RC_FAILURE;
 			goto done;
 		}
