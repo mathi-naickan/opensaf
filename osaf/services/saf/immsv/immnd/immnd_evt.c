@@ -3064,8 +3064,8 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 			 */
 			error = SA_AIS_ERR_NO_RESOURCES;
 			if (cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) {
-				TRACE_2("ERR_TRY_AGAIN: Too many pending FEVS message replies (> %u) rejecting request 
-					for CcbApply", IMMSV_DEFAULT_FEVS_MAX_PENDING);
+				TRACE_2("ERR_TRY_AGAIN: Too many pending FEVS message replies (> %u) rejecting request" 
+					"for CcbApply", IMMSV_DEFAULT_FEVS_MAX_PENDING);
                        }
 		}
 		break;
