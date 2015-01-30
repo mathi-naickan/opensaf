@@ -801,8 +801,9 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 		case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP:
 			break;
 		default:
-			osafassert(0);
-			break;
+			LOG_ER("Ignoring event '%s' for '%s' during node failover",
+					pres_state_evt[ev], comp->name.value);
+			goto done;
 		}
 	}
 
