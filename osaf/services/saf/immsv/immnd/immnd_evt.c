@@ -3053,7 +3053,8 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 		break;
 
 	case IMMND_EVT_A2ND_CCB_APPLY:
-		if(immModel_pbeNotWritable(cb)) {
+		if(immModel_pbeNotWritable(cb) || (cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) 
+			|| !immnd_is_immd_up(cb)) {
 			/* NO_RESOURCES is here imm internal proxy for TRY_AGAIN.
 			   The library code for saImmOmCcbApply will translate NO_RESOURCES
 			   to TRY_AGAIN towards the user. That library code (for ccbApply)
@@ -3062,6 +3063,10 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq)
 			   towards that particular library code. 
 			 */
 			error = SA_AIS_ERR_NO_RESOURCES;
+			if (cb->fevs_replies_pending >= IMMSV_DEFAULT_FEVS_MAX_PENDING) {
+				TRACE_2("ERR_TRY_AGAIN: Too many pending FEVS message replies (> %u) rejecting request 
+					for CcbApply", IMMSV_DEFAULT_FEVS_MAX_PENDING);
+                       }
 		}
 		break;
 
