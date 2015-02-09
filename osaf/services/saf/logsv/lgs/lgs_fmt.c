@@ -868,6 +868,10 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		}
 		break;
 
+	case N_EVENT_TIME_DAY_LETTER:
+		characters = snprintf(dest, dest_size, "%02d", (eventTimeData->tm_mday));
+		break;
+
 	case N_EVENT_TIME_DAYN_LETTER:
 		switch (eventTimeData->tm_wday) {
 		case DAY_SUNDAY:
