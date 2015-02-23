@@ -2131,17 +2131,19 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 					return mdtm_frag_and_send(req, frag_seq_num, tipc_id, frag_size);
 				} else {
 					uint8_t *p8;
-					uint8_t body[len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN];
+					uint8_t *body = NULL;
+					body = calloc(1, len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN);
 
 					p8 = (uint8_t *)m_MMGR_DATA_AT_START(usrbuf, len, (char *)
-									  &body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN]);
+									  (body + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN));
 
-					if (p8 != &body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN])
-						memcpy(&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN], p8, len);
+					if (p8 != (body + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN))
+						memcpy((body + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN), p8, len);
 
 					if (NCSCC_RC_SUCCESS != mdtm_add_mds_hdr(body, req)) {
 						m_MDS_LOG_ERR("MDTM: Unable to add the mds Hdr to the send msg\n");
 						m_MMGR_FREE_BUFR_LIST(usrbuf);
+						free(body);
 						return NCSCC_RC_FAILURE;
 					}
 
@@ -2150,6 +2152,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 							      frag_seq_num, 0)) {
 						m_MDS_LOG_ERR("MDTM: Unable to add the frag Hdr to the send msg\n");
 						m_MMGR_FREE_BUFR_LIST(usrbuf);
+						free(body);
 						return NCSCC_RC_FAILURE;
 					}
 
@@ -2164,6 +2167,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 								ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
 						if ( len > MDS_DIRECT_BUF_MAXSIZE) {
 							m_MMGR_FREE_BUFR_LIST(usrbuf);
+							free(body);
 							LOG_NO("MDTM: Not possible to send size:%d TIPC multicast to svc_id = %s",
 									len, ncsmds_svc_names[req->dest_svc_id]);
 							return NCSCC_RC_FAILURE;
@@ -2174,16 +2178,19 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 									len, ncsmds_svc_names[req->src_svc_id],
 									ncsmds_svc_names[req->dest_svc_id], strerror(errno));
 							m_MMGR_FREE_BUFR_LIST(usrbuf);
+							free(body);
 							return NCSCC_RC_FAILURE;
 						}
 					} else {
 						if (NCSCC_RC_SUCCESS !=	mdtm_sendto(body, len, tipc_id)) {
 							m_MDS_LOG_ERR("MDTM: Unable to send the msg thru TIPC\n");
 							m_MMGR_FREE_BUFR_LIST(usrbuf);
+							free(body);
 							return NCSCC_RC_FAILURE;
 						}
 					}
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
+					free(body);
 					return NCSCC_RC_SUCCESS;
 				}
 			}
@@ -2322,17 +2329,19 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 			frag_val = NO_FRAG_BIT | i;
 		}
 		{
-			uint8_t body[len_buf];
+			uint8_t *body = NULL;
+			body = calloc(1, len_buf);
 			if (i == 1) {
 				p8 = (uint8_t *)m_MMGR_DATA_AT_START(usrbuf,
 								  (len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN),
-								  (char *)&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN]);
+								  (char *)(body + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN));
 
-				if (p8 != &body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN])
-					memcpy(&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN], p8, (len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN));
+				if (p8 != (body + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN))
+					memcpy((body + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN), p8, (len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN));
 
 				if (NCSCC_RC_SUCCESS != mdtm_add_mds_hdr(body, req)) {
 					m_MDS_LOG_ERR("MDTM: frg MDS hdr addition failed\n");
+					free(body);
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
 					return NCSCC_RC_FAILURE;
 				}
@@ -2340,6 +2349,7 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 				if (NCSCC_RC_SUCCESS != mdtm_add_frag_hdr(body, len_buf, seq_num, frag_val)) {
 					m_MDS_LOG_ERR("MDTM: Frag hdr addition failed\n");
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
+					free(body);
 					return NCSCC_RC_FAILURE;
 				}
 				m_MDS_LOG_DBG
@@ -2347,16 +2357,18 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 				     req->svc_seq_num, seq_num, frag_val, id.node, id.ref);
 				mdtm_sendto(body, len_buf, id);
 				m_MMGR_REMOVE_FROM_START(&usrbuf, len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN);
+				free(body);
 				len = len - (len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN);
 			} else {
 				p8 = (uint8_t *)m_MMGR_DATA_AT_START(usrbuf, len_buf - MDTM_FRAG_HDR_PLUS_LEN_2,
-								  (char *)&body[MDTM_FRAG_HDR_PLUS_LEN_2]);
-				if (p8 != &body[MDTM_FRAG_HDR_PLUS_LEN_2])
-					memcpy(&body[MDTM_FRAG_HDR_PLUS_LEN_2], p8, len_buf - MDTM_FRAG_HDR_PLUS_LEN_2);
+								  (char *)(body + MDTM_FRAG_HDR_PLUS_LEN_2));
+				if (p8 != (body + MDTM_FRAG_HDR_PLUS_LEN_2))
+					memcpy((body + MDTM_FRAG_HDR_PLUS_LEN_2), p8, len_buf - MDTM_FRAG_HDR_PLUS_LEN_2);
 
 				if (NCSCC_RC_SUCCESS != mdtm_add_frag_hdr(body, len_buf, seq_num, frag_val)) {
 					m_MDS_LOG_ERR("MDTM: Frag hde addition failed\n");
 					m_MMGR_FREE_BUFR_LIST(usrbuf);
+					free(body);
 					return NCSCC_RC_FAILURE;
 				}
 				m_MDS_LOG_DBG
@@ -2364,6 +2376,7 @@ uint32_t mdtm_frag_and_send(MDTM_SEND_REQ *req, uint32_t seq_num,
 				     req->svc_seq_num, seq_num, frag_val, id.node, id.ref);
 				mdtm_sendto(body, len_buf, id);
 				m_MMGR_REMOVE_FROM_START(&usrbuf, (len_buf - MDTM_FRAG_HDR_PLUS_LEN_2));
+				free(body);
 				len = len - (len_buf - MDTM_FRAG_HDR_PLUS_LEN_2);
 				if (len == 0)
 					break;
