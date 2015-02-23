@@ -398,7 +398,7 @@ static uint32_t mdtm_frag_and_send_tcp(MDTM_SEND_REQ *req, uint32_t seq_num, MDS
 								  &body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP]);
 
 				if (p8 != &body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP])
-					memcpy(&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP], p8, len_buf);
+					memcpy(&body[SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP], p8, (len_buf - SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP));
 
 				if (NCSCC_RC_SUCCESS != mdtm_add_mds_hdr_tcp(body, req, len_buf)) {
 					m_MDS_LOG_ERR("MDTM: frg MDS hdr addition failed\n");
