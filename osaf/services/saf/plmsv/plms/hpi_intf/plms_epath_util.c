@@ -411,7 +411,7 @@ SaUint32T convert_string_to_epath(SaInt8T *epath_str,
         }
         memset(epath_ptr, 0, sizeof(SaHpiEntityPathT));
 
-	epath_len = strlen(epath_str);
+	epath_len = strlen(epath_str) + 1;
         /* allocate memory to make a duplicate of epath_str */
         if (NULL == (epath = (SaInt8T *)malloc(epath_len)))
         {

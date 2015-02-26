@@ -1439,6 +1439,7 @@ SaUint32T plms_HE_adm_reset_op(PLMS_EVT *evt)
 		plms_aff_ent_exp_rdness_status_clear(act_aff_ent_list);
 		plms_ent_exp_rdness_status_clear(ent);
 		plms_ent_grp_list_free(trk_info->group_info_list);
+		trk_info->group_info_list = NULL;
 	}else if (is_flag_aff){
 		/*Fill the expected readiness state of the root ent.*/
 		plms_ent_exp_rdness_state_ow(ent);
@@ -1457,7 +1458,7 @@ SaUint32T plms_HE_adm_reset_op(PLMS_EVT *evt)
 	
 		plms_ent_exp_rdness_status_clear(ent);
 		plms_ent_grp_list_free(trk_info->group_info_list);
-		
+		trk_info->group_info_list = NULL;
 	}
 
 	/**********************************************************************/	
@@ -1488,7 +1489,6 @@ SaUint32T plms_HE_adm_reset_op(PLMS_EVT *evt)
 		trk_info->root_entity = ent;
 		trk_info->track_count = count;
 		trk_info->aff_ent_list = aff_ent_list;
-		trk_info->group_info_list = NULL;
 	}
 	else {
 		ret_err = saImmOiAdminOperationResult(cb->oi_hdl,
