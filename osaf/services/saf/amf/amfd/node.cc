@@ -1078,7 +1078,8 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 
 		if (su->sg_of_su->sg_fsm_state != AVD_SG_FSM_STABLE) {
 			report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_TRY_AGAIN, NULL,
-					"SG of SU on this node not in STABLE state (%s)", su->name.value);
+					"SG'%s' of SU'%s' on this node not in STABLE state",
+					su->sg_of_su->name.value, su->name.value);
 			goto done;
 		}
 		su = su->avnd_list_su_next;
