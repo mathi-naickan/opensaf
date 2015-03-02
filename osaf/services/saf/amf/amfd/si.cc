@@ -510,7 +510,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	SaAisErrorT rc;
 	SaNameT aname;
 	SaAmfAdminStateT admstate;
-	char *parent;
+	char *parent, *app;
 
 	if ((parent = strchr((char*)dn->value, ',')) == NULL) {
 		report_ccb_validation_error(opdata, "No parent to '%s' ", dn->value);
@@ -554,6 +554,17 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 			report_ccb_validation_error(opdata, "'%s' does not exist in existing model or in CCB", aname.value);
 			return 0;
 		}
+	}
+
+	/* saAmfSIProtectedbySG and SI should belong to the same applicaion. */
+	if ((app = strchr((char*)aname.value, ',')) == NULL) {
+		report_ccb_validation_error(opdata, "No parent to '%s' ", aname.value);
+		return 0;
+	}
+	if (strcmp(parent, ++app)) {
+		report_ccb_validation_error(opdata, "SI '%s' and SG '%s' belong to different application",
+				dn->value, aname.value);
+		return 0;
 	}
 
 	if ((immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSIAdminState"), attributes, 0, &admstate) == SA_AIS_OK) &&
