@@ -1035,9 +1035,16 @@ and care by OI designers. The feature allows the OI to add side
 effects to a CCB, which the originator of the CCB typically is
 unaware of. It may also impact the performance characteristics
 of the ccb use-case, or prevent the ccb from being committed,
-e.g. by causing timeout during processing. OI augmentations to
-the same objects operated on by the original OM client could
-subvert or interfere with the intended effect.
+e.g. by causing timeout of the OM client during processing.
+Default timeout for an OM client is 10 seconds. Note also that
+the OI-side callback timeout monitoring (by default 6 seconds)
+is disabled during an augmentation. OI augmentations to the
+same objects operated on by the original OM client could subvert
+or interfere with the effect intended by the originating OM client.
+The OI should keep the augmentation activity "pure"in the sense of
+only doing the ccb-augmentations based on the OIs internal state.
+For example, it should not performe extraneous blocking operations
+such as invoking synchronous admin-operations during the augmentation. 
 
 The OI designer also needs to take care in avoiding deadlocks
 with other OIs. More on this below.
