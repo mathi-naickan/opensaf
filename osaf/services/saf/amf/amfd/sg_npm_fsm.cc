@@ -2090,7 +2090,8 @@ static void avd_sg_npm_screening_for_si_redistr(AVD_SG *avd_sg)
 			}
 		}
 	} else {
-                LOG_ER("Screening for SI transfer FAILED  as there are no assignments yet %s:%u ", __FILE__,__LINE__);
+		TRACE("No max assigned SU, so no redistribution of SIs for SG:'%s'",
+				avd_sg->name.value);
 		goto done;
 	}	
 
@@ -2143,7 +2144,8 @@ static void avd_sg_npm_screening_for_si_redistr(AVD_SG *avd_sg)
 				}
 			}
 		} else {
-                	LOG_ER("Screening for SI transfer FAILED  as there are no assignments yet %s:%u ", __FILE__,__LINE__);
+			TRACE("No max assigned SU, so no redistribution of SIs for SG:'%s'",
+					avd_sg->name.value);
 			goto done;
 		}	
 
