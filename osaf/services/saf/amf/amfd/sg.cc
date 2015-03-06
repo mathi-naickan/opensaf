@@ -554,6 +554,7 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 	AVD_SG *sg;
 	const SaImmAttrModificationT_2 *attr_mod;
 	int i = 0;
+	bool value_is_deleted = false;
 
 	TRACE_ENTER2("'%s'", opdata->objectName.value);
 
@@ -651,15 +652,18 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 			/* Attribute value removed */
 			if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
 					(attribute->attrValues == NULL))
-				continue;
-
-			value = attribute->attrValues[0];
-
+				value_is_deleted = true;
+			else {
+				value_is_deleted = false;
+				value = attribute->attrValues[0];
+			}
 			if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartProb")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGCompRestartMax")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefInserviceSUs")) {
+				if (value_is_deleted == true)
+					continue;
 				uint32_t pref_inservice_su;
 				pref_inservice_su = *((SaUint32T *)value);
 
@@ -673,6 +677,8 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 					goto done;
 				}
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoRepair")) {
+				if (value_is_deleted == true)
+					continue;
 				uint32_t sg_autorepair = *((SaUint32T *)attribute->attrValues[0]);
 				if (sg_autorepair > SA_TRUE) {
 					report_ccb_validation_error(opdata,
@@ -681,11 +687,15 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 					goto done;
 				}
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuHostNodeGroup")) {
+				if (value_is_deleted == true)
+					continue;
 				if (ng_change_is_valid(sg, (SaNameT *)value, opdata) == false) {
 					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
 				}
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefActiveSUs")) {
+				if (value_is_deleted == true)
+					continue;
 				uint32_t pref_active_su = *static_cast<SaUint32T *>(value);
 
 				if (sg->sg_redundancy_model != SA_AMF_NPM_REDUNDANCY_MODEL) {
