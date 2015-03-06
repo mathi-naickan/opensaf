@@ -1640,4 +1640,25 @@ void avd_comp_constructor(void)
 	avd_class_impl_set(const_cast<SaImmClassNameT>("SaAmfComp"), comp_rt_attr_cb, comp_admin_op_cb,
 		comp_ccb_completed_cb, comp_ccb_apply_cb);
 }
+/**
+ * @brief  Returns true if the component is assigned any CSI.
+ *         Note:comp->assign_flag is not always reliable to
+ *         check if a component is assigned or not as this flag
+ *         is always reset before going for new assignments.
+ * @param comp.
+ * @return true/false.
+ */
+bool is_comp_assigned_any_csi(AVD_COMP *comp)
+{
+	for (AVD_SI *si = comp->su->sg_of_su->list_of_si; si != NULL; si = si->sg_list_of_si_next) {
+		for (AVD_CSI *csi = si->list_of_csi; csi; csi = csi->si_list_of_csi_next) {
+			for (AVD_COMP_CSI_REL *compcsi = csi->list_compcsi; compcsi;
+					compcsi = compcsi->csi_csicomp_next) {
+				if (compcsi->comp == comp)
+					return true;
+			}
+		}
+	}
+	return false;
+}
 

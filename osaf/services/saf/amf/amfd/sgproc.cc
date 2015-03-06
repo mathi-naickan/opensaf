@@ -100,16 +100,8 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 
 	l_csi = si->list_of_csi;
 	while (l_csi != NULL) {
-		/* find the component that has to be assigned this CSI */
-
-		l_comp = su->list_of_comp;
-		while (l_comp != NULL) {
-			if ((l_comp->assign_flag == false) &&
-			    (NULL != (cst = avd_compcstype_find_match(&l_csi->saAmfCSType, l_comp))))
-				break;
-
-			l_comp = l_comp->su_comp_next;
-		}
+		/* find a component that can be assigned this CSI */
+                l_comp = find_unassigned_comp_that_provides_cstype(su, &l_csi->saAmfCSType);
 
 		if (l_comp == NULL) {
 			/* This means either - 1. l_csi cann't be assigned to any comp or 2. some comp got assigned 
@@ -150,7 +142,9 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 			/* Assign to only those comps, which have assignment. Those comps, which could not have assignment 
 			   before, cann't find compcsi here also.*/
 			while (l_comp != NULL) { 
-				if (true == l_comp->assign_flag) {
+				AVD_COMP_TYPE *comptype = avd_comptype_get(&l_comp->saAmfCompType);
+				osafassert(comptype);
+				if ((true == l_comp->assign_flag) && (comptype->saAmfCtCompCategory != SA_AMF_COMP_LOCAL)) {
 					if (NULL != (cst = avd_compcstype_find_match(&l_csi->saAmfCSType, l_comp))) {
 						if (SA_AMF_HA_ACTIVE == ha_state) {
 							if (cst->saAmfCompNumCurrActiveCSIs < cst->saAmfCompNumMaxActiveCSIs) {
