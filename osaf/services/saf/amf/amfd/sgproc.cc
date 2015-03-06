@@ -137,7 +137,9 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 			/* Assign to only those comps, which have assignment. Those comps, which could not have assignment 
 			   before, cann't find compcsi here also.*/
 			while (l_comp != NULL) { 
-				if (true == l_comp->assign_flag) {
+				AVD_COMP_TYPE *comptype = comptype_db->find(Amf::to_string(&l_comp->saAmfCompType));
+				osafassert(comptype);
+				if ((true == l_comp->assign_flag) && (comptype->saAmfCtCompCategory != SA_AMF_COMP_LOCAL)) {
 					if (NULL != (cst = avd_compcstype_find_match(&l_csi->saAmfCSType, l_comp))) {
 						if (SA_AMF_HA_ACTIVE == ha_state) {
 							if (cst->saAmfCompNumCurrActiveCSIs < cst->saAmfCompNumMaxActiveCSIs) {

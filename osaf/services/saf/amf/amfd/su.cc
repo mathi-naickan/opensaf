@@ -2034,7 +2034,13 @@ void AVD_SU::reset_all_comps_assign_flag() {
 AVD_COMP *AVD_SU::find_unassigned_comp_that_provides_cstype(const SaNameT *cstype) {
 	AVD_COMP *l_comp = list_of_comp;
 	while (l_comp != NULL) {
-		if (l_comp->assign_flag == false) {
+		bool npi_is_assigned = false;
+		AVD_COMP_TYPE *comptype = comptype_db->find(Amf::to_string(&l_comp->saAmfCompType));
+		osafassert(comptype);
+		if ((comptype->saAmfCtCompCategory == SA_AMF_COMP_LOCAL) && is_comp_assigned_any_csi(l_comp))
+			npi_is_assigned = true;
+		
+		if ((l_comp->assign_flag == false) && (npi_is_assigned == false)) {
 			AVD_COMPCS_TYPE *cst = avd_compcstype_find_match(cstype, l_comp);
 			if (cst != NULL)
 				break;
