@@ -2209,10 +2209,12 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 				m_MDS_LOG_INFO("MDTM: User Sending Data len=%d From svc_id = %s to svc_id = %s\n",
 					       req->msg.data.buff_info.len, ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
 
-				uint8_t body[req->msg.data.buff_info.len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN];
+				uint8_t *body = NULL;
+				body = calloc(1, (req->msg.data.buff_info.len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN));
 
 				if (NCSCC_RC_SUCCESS != mdtm_add_mds_hdr(body, req)) {
 					m_MDS_LOG_ERR("MDTM: Unable to add the mds Hdr to the send msg\n");
+					free(body);
 					mds_free_direct_buff(req->msg.data.buff_info.buff);
 					return NCSCC_RC_FAILURE;
 				}
@@ -2221,6 +2223,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 						      req->msg.data.buff_info.len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN,
 						      frag_seq_num, 0)) {
 					m_MDS_LOG_ERR("MDTM: Unable to add the frag Hdr to the send msg\n");
+					free(body);
 					mds_free_direct_buff(req->msg.data.buff_info.buff);
 					return NCSCC_RC_FAILURE;
 				}
@@ -2232,6 +2235,7 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 						(req->msg.data.buff_info.len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN),
 						tipc_id)) {
 					m_MDS_LOG_ERR("MDTM: Unable to send the msg thru TIPC\n");
+					free(body);
 					mds_free_direct_buff(req->msg.data.buff_info.buff);
 					return NCSCC_RC_FAILURE;
 				}
@@ -2239,9 +2243,10 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 				/* If Direct Send is bcast it will be done at bcast function */
 				if (req->snd_type == MDS_SENDTYPE_BCAST || req->snd_type == MDS_SENDTYPE_RBCAST) {
 					/* Dont free Here */
-				} else
+				} else {
 					mds_free_direct_buff(req->msg.data.buff_info.buff);
-
+				}
+				free(body);
 				return NCSCC_RC_SUCCESS;
 			}
 			break;
