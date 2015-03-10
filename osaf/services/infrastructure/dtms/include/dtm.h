@@ -38,7 +38,6 @@ extern uint8_t initial_discovery_phase;
 #define m_NODE_DISCOVERY_STACKSIZE       NCS_STACKSIZE_HUGE
 
 /* The default value of SO_RCVBUF & SO_SNDBUF , it is set by the rmem_default/wmem_default  */
-#define DTM_SOCK_SND_RCV_BUF_SIZE 65536 
 #define DTM_MAX_TAG_LEN	256
 
 typedef enum {

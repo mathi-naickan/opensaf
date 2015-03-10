@@ -120,6 +120,7 @@ typedef struct dtm_intranode_cb {
 	int sock_domain;
 	int32_t sock_sndbuf_size; /* The value of SO_SNDBUF */
 	int32_t sock_rcvbuf_size; /* The value of SO_RCVBUF*/
+	int32_t max_processes;
 } DTM_INTRANODE_CB;
 
 extern DTM_INTRANODE_CB *dtm_intranode_cb;

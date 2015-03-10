@@ -40,7 +40,6 @@
 
 DTM_INTRANODE_CB *dtm_intranode_cb = NULL;
 
-#define DTM_INTRANODE_MAX_PROCESSES   100
 #define DTM_INTRANODE_POLL_TIMEOUT 20000
 #define DTM_INTRANODE_TASKNAME  "DTM_INTRANODE"
 #define DTM_INTRANODE_STACKSIZE  NCS_STACKSIZE_HUGE
@@ -51,9 +50,9 @@ DTM_INTRANODE_CB *dtm_intranode_cb = NULL;
 #define DTM_INTRA_SERVER_PORT MDS_PORT_NUMBER
 #endif
 
-
-static struct pollfd dtm_intranode_pfd[DTM_INTRANODE_MAX_PROCESSES];
-static struct pollfd pfd_list[DTM_INTRANODE_MAX_PROCESSES];
+uint32_t intranode_max_processes; 
+static struct pollfd *dtm_intranode_pfd;
+static struct pollfd *pfd_list;
 
 static int  dtm_intranode_max_fd;
 
@@ -111,6 +110,16 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 	dtm_intranode_cb->sock_domain = dtm_socket_domain;
 	dtm_intranode_cb->sock_sndbuf_size = sndbuf_size;
 	dtm_intranode_cb->sock_rcvbuf_size = rcvbuf_size;
+	dtm_intranode_cb->max_processes = intranode_max_processes;
+
+	if (NULL == (dtm_intranode_pfd = calloc(dtm_intranode_cb->max_processes, sizeof(struct pollfd)))) {
+		LOG_ER("DTM: Memory allocation failed for dtm_intranode_pfd");
+		return NCSCC_RC_FAILURE;
+	}
+	if (NULL == (pfd_list = calloc(dtm_intranode_cb->max_processes, sizeof(struct pollfd)))) {
+		LOG_ER("DTM: Memory allocation failed for pfd_list");
+		return NCSCC_RC_FAILURE;
+	}
 
 	/* Open a socket, If socket opens to fail return Error */
 	dtm_intranode_cb->server_sockfd = socket(dtm_socket_domain, SOCK_STREAM, 0);
@@ -118,6 +127,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 	if (dtm_intranode_cb->server_sockfd < 0) {
 		LOG_ER("DTM: Socket creation failed err :%s ", strerror(errno));
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -126,12 +137,16 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 		LOG_ER("DTM: Unable to set the SO_RCVBUF err :%s ", strerror(errno)); 
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	}
 	if ((sndbuf_size > 0) && (setsockopt(dtm_intranode_cb->server_sockfd, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size)) != 0)) {
 		LOG_ER("DTM: Unable to set the SO_SNDBUF err :%s ", strerror(errno));
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -158,6 +173,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 			LOG_ER("DTM: Bind failed err :%s ", strerror(errno));
 			close(dtm_intranode_cb->server_sockfd);
 			free(dtm_intranode_cb);
+			free(dtm_intranode_pfd);
+			free(pfd_list);
 			return NCSCC_RC_FAILURE;
 		}
 
@@ -165,6 +182,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 			LOG_ER("chmod %s failed - %s", UX_SOCK_NAME_PREFIX, strerror(errno));
 			close(dtm_intranode_cb->server_sockfd);
 			free(dtm_intranode_cb);
+			free(dtm_intranode_pfd);
+			free(pfd_list);
 			return NCSCC_RC_FAILURE;
 		}
 	} else {
@@ -177,7 +196,9 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
  			if (bind(dtm_intranode_cb->server_sockfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr) ) < 0) {
  				LOG_ER("DTM: Bind failed err :%s ", strerror(errno));
  				close(dtm_intranode_cb->server_sockfd);
- 				free(dtm_intranode_cb);
+				free(dtm_intranode_cb);
+				free(dtm_intranode_pfd);
+				free(pfd_list);
  				return NCSCC_RC_FAILURE;
  			}
  		} else {
@@ -190,6 +211,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
  				LOG_ER("DTM_INTRA: Bind failed");
  				close(dtm_intranode_cb->server_sockfd);
  				free(dtm_intranode_cb);
+				free(dtm_intranode_pfd);
+				free(pfd_list);
  				return NCSCC_RC_FAILURE;
  			}
  		}
@@ -202,6 +225,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 		LOG_ER("DTM: ncs_patricia_tree_init failed for dtm_intranode_pid_list");
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -210,6 +235,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 		LOG_ER("DTM: ncs_patricia_tree_init failed for dtm_intranode_pid_list");
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -218,6 +245,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 		LOG_ER("DTM: ncs_patricia_tree_init failed for dtm_intranode_pid_list");
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -226,6 +255,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 		LOG_ER("DTM: ncs_patricia_tree_init failed for dtm_intranode_pid_list");
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -236,6 +267,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 		LOG_ER("DTM : Intranode Mailbox Creation failed");
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	} else {
 
@@ -246,6 +279,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 			m_NCS_IPC_RELEASE(&dtm_intranode_cb->mbx, NULL);
 			close(dtm_intranode_cb->server_sockfd);
 			free(dtm_intranode_cb);
+			free(dtm_intranode_pfd);
+			free(pfd_list);
 			LOG_ER("DTM: Intranode Mailbox  Attach failed");
 			return NCSCC_RC_FAILURE;
 		}
@@ -263,6 +298,8 @@ uint32_t dtm_intra_processing_init(char *node_ip, DTM_IP_ADDR_TYPE i_addr_family
 		LOG_ER("MDS:MDTM: Receive Task Creation Failed in MDTM_INIT\n");
 		close(dtm_intranode_cb->server_sockfd);
 		free(dtm_intranode_cb);
+		free(dtm_intranode_pfd);
+		free(pfd_list);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -653,6 +690,8 @@ static void dtm_intranode_processing(void)
 			}
 		}
 	}			/* While loop */
+	free(dtm_intranode_pfd);
+	free(pfd_list);
 	TRACE_LEAVE();
 }
 

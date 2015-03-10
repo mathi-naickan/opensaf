@@ -25,7 +25,7 @@
 #include "dtm_node.h"
 
 char match_ip[INET6_ADDRSTRLEN];
-
+extern uint32_t intranode_max_processes; 
 /* Socket timeout values */
 #define SOCK_KEEPALIVE  1
 #define KEEPIDLE_TIME   7200
@@ -50,7 +50,9 @@ typedef enum dtm_config_tags {
 	DTM_SKEEPALIVE,
 	DTM_TCP_KEEPIDLE_TIME,
 	DTM_TCP_KEEPALIVE_INTVL,
-	DTM_TCP_KEEPALIVE_PROBES
+	DTM_TCP_KEEPALIVE_PROBES,
+	DTM_SOCK_SND_RCV_BUF_SIZE,
+	DTM_INTRANODE_MAX_PROCESSES,
 } DTM_CONFIG_TAGS;
 
 
@@ -100,6 +102,8 @@ void dtm_print_config(DTM_INTERNODE_CB * config)
 	TRACE("  %d", config->sock_sndbuf_size);
 	TRACE("  DTM_SOCK_RCV_BUF_SIZE: ");
 	TRACE("  %d", config->sock_rcvbuf_size);
+	TRACE("  DTM_INTRANODE_MAX_PROCESSES: ");
+	TRACE("  %d", intranode_max_processes);
 
  	TRACE("DTM : ");
 }
@@ -230,6 +234,7 @@ int dtm_read_config(DTM_INTERNODE_CB * config, char *dtm_config_file)
 	config->mcast_flag = false;
 	config->scope_link = false;
 	config->node_id = m_NCS_GET_NODE_ID;
+	intranode_max_processes = 100;
 	fp = fopen(PKGSYSCONFDIR "/node_name", "r");
 	if (fp == NULL) {
 		LOG_ER("DTM: Could not open file  node_name ");
@@ -454,6 +459,16 @@ int dtm_read_config(DTM_INTERNODE_CB * config, char *dtm_config_file)
 					config->sock_sndbuf_size = atoi(&line[tag_len]);
 				}  
 
+				tag = 0;
+				tag_len = 0;
+			}
+			if (strncmp(line, "DTM_INTRANODE_MAX_PROCESSES=", strlen("DTM_INTRANODE_MAX_PROCESSES=")) == 0) {
+				tag_len = strlen("DTM_INTRANODE_MAX_PROCESSES=");
+				intranode_max_processes = atoi(&line[tag_len]);
+				if (intranode_max_processes < 100) {
+					LOG_WA("DTM: intranode_max_processes must be higher than 100, setting it to default");
+					intranode_max_processes = 100;
+				}
 				tag = 0;
 				tag_len = 0;
 			}
