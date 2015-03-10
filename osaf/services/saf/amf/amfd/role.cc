@@ -44,6 +44,9 @@
 #include <cluster.h>
 #include <clm.h>
 #include <si_dep.h>
+#include "osaf_utility.h"
+
+extern pthread_mutex_t imm_reinit_mutex;
 
 static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role);
 static uint32_t avd_role_failover_qsd_actv(AVD_CL_CB *cb, SaAmfHAStateT role);
@@ -298,18 +301,30 @@ static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role)
 	 */
 	avsv_dequeue_async_update_msgs(cb, false);
 
+	/* Take mutex before changing role as it may impact logic 
+	   in avd_imm_reinit_bg_thread. If mutex is taken for imm 
+	   initialization, then wait for its completion before changing role.*/
+	osaf_mutex_lock_ordie(&imm_reinit_mutex);
 	cb->avail_state_avd = role;
+	osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 
 	/* Declare this standby as Active. Set Vdest role and MBCSv role */
 	if (NCSCC_RC_SUCCESS != (status = avd_mds_set_vdest_role(cb, role))) {
 		LOG_ER("FAILOVER StandBy --> Active, VDEST Change role failed ");
 		goto done;
 	}
-
+	/* There is no need to take mutex in ImplClear because if imm
+	   initialization were undergoing, above mutex took care. */
 	/* Give up our IMM OI Applier role */
 	if ((rc = immutil_saImmOiImplementerClear(cb->immOiHandle)) != SA_AIS_OK) {
 		LOG_ER("FAILOVER StandBy --> Active FAILED, ImplementerClear failed %u", rc);
-		goto done;
+		/* If it fails with BAD HANDLE, reinit imm intf and continue.
+		   Let imm intf reinit take care of setting Impl/Applr based
+		   on Avd role. */
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			avd_imm_reinit_bg();
+		} else
+			goto done;
 	}
 
 	/* Time to send fail-over messages to all the AVND's */
@@ -325,11 +340,22 @@ static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role)
 
 	/* We have successfully changed role to Active. */
 	cb->node_id_avd_other = 0;
-
+	/* Take mutex here, to sync with above avd_imm_reinit_bg call. */
+	osaf_mutex_lock_ordie(&imm_reinit_mutex);
 	if ((rc = immutil_saImmOiImplementerSet(avd_cb->immOiHandle, const_cast<SaImmOiImplementerNameT>("safAmfService"))) != SA_AIS_OK) {
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 		LOG_ER("FAILOVER StandBy --> Active FAILED, ImplementerSet failed %u", rc);
-		goto done;
-	}
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			avd_imm_reinit_bg();
+		} else if (rc == SA_AIS_ERR_EXIST) {
+			/* This may arise if immutil_saImmOiImplementerClear
+			   failed and amf reinitializes imm interface and
+			   set impl in avd_imm_reinit_bg_thread.*/
+		} else
+			goto done;
+	} else
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+
 	avd_cb->is_implementer = true;
 
 
@@ -486,12 +512,18 @@ static uint32_t avd_role_failover_qsd_actv(AVD_CL_CB *cb, SaAmfHAStateT role)
 
 	cb->node_id_avd_other = 0;
 
+	/* Take mutex to be in sync with imm intf initialization.*/
+	osaf_mutex_lock_ordie(&imm_reinit_mutex);
 	/* Give up our IMM OI applier role */
 	if ((rc = immutil_saImmOiImplementerClear(cb->immOiHandle)) != SA_AIS_OK) {
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 		LOG_ER("FAILOVER Quiesced --> Active FAILED, ImplementerClear failed %u", rc);
-		return NCSCC_RC_FAILURE;
-	}
-
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			avd_imm_reinit_bg();
+		} else
+			return NCSCC_RC_FAILURE;
+	} else
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 
 	avd_imm_impl_set_task_create();
 
@@ -577,20 +609,40 @@ void avd_mds_qsd_role_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		_exit(EXIT_FAILURE); // should never get here...
 	}
 
+	/* Take mutex here to sync with imm reinit thread.*/
+	osaf_mutex_lock_ordie(&imm_reinit_mutex);
+
 	/* Give up IMM OI implementer role */
 	if ((rc = immutil_saImmOiImplementerClear(cb->immOiHandle)) != SA_AIS_OK) {
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 		LOG_ER("FAILOVER Active --> Quiesced FAILED, ImplementerClear failed %u", rc);
-		osafassert(0);
-	}
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			avd_imm_reinit_bg();
+		} else
+			osafassert(0);
+	} else
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+
 	cb->is_implementer = false;
 
 	/* Throw away all pending IMM updates, no longer implementer */
 	Fifo::empty();
 
-	if (avd_imm_applier_set() != SA_AIS_OK) {
-		LOG_ER("avd_imm_applier_set FAILED");
-		osafassert(0);
-	}
+	/* Take mutex here, to sync with above avd_imm_reinit_bg call. */
+	osaf_mutex_lock_ordie(&imm_reinit_mutex);
+	if ((rc = avd_imm_applier_set()) != SA_AIS_OK) {
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+		LOG_ER("avd_imm_applier_set FAILED, %u", rc);
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			avd_imm_reinit_bg();
+		} else if (rc == SA_AIS_ERR_EXIST) {
+			/* This may arise if immutil_saImmOiImplementerClear
+			   failed and amf reinitializes imm interface and
+			   set applier in avd_imm_reinit_bg_thread.*/
+		} else
+			osafassert(0);
+	} else
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 
 	/* Now set the MBCSv role to quiesced, */
 	if (NCSCC_RC_SUCCESS != (status = avsv_set_ckpt_role(cb, SA_AMF_HA_QUIESCED))) {
@@ -981,7 +1033,12 @@ uint32_t amfd_switch_stdby_actv(AVD_CL_CB *cb)
 	 */
 	avsv_dequeue_async_update_msgs(cb, false);
 
+	/* Take mutex before changing role as it may impact logic 
+	   in avd_imm_reinit_bg_thread. If mutex is taken for imm 
+	   initialization, then wait for its completion before changing role.*/
+	osaf_mutex_lock_ordie(&imm_reinit_mutex);
 	cb->avail_state_avd = SA_AMF_HA_ACTIVE;
+	osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 
 	/* Declare this standby as Active. Set Vdest role role */
 	if (NCSCC_RC_SUCCESS != (status = avd_mds_set_vdest_role(cb, SA_AMF_HA_ACTIVE))) {
@@ -1004,18 +1061,36 @@ uint32_t amfd_switch_stdby_actv(AVD_CL_CB *cb)
 	cb->swap_switch = false;
 
 	/* Give up our IMM OI Applier role */
+	/* There is no need to take mutex in ImplClear because if imm
+	   initialization were undergoing, above mutex took care. */
 	if ((rc = immutil_saImmOiImplementerClear(cb->immOiHandle)) != SA_AIS_OK) {
 		LOG_ER("Switch Standby --> Active FAILED, ImplementerClear failed %u", rc);
-		cb->swap_switch = false;
-		avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
-		return NCSCC_RC_FAILURE;
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			avd_imm_reinit_bg();
+		} else {
+			cb->swap_switch = false;
+			avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
+			return NCSCC_RC_FAILURE;
+		}
 	}
 
+	/* Take mutex here, to sync with above avd_imm_reinit_bg call. */
+	osaf_mutex_lock_ordie(&imm_reinit_mutex);
 	if ((rc = immutil_saImmOiImplementerSet(avd_cb->immOiHandle, const_cast<SaImmOiImplementerNameT>("safAmfService"))) != SA_AIS_OK) {
 		LOG_ER("Switch Standby --> Active, ImplementerSet failed %u", rc);
-		avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
-		return NCSCC_RC_FAILURE;
-	}
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			avd_imm_reinit_bg();
+		} else if (rc == SA_AIS_ERR_EXIST) {
+			/* This may arise if immutil_saImmOiImplementerClear
+			   failed and amf reinit imm interface and set impl
+			   in avd_imm_reinit_bg_thread.*/
+		} else {
+			avd_d2d_chg_role_rsp(cb, NCSCC_RC_FAILURE, SA_AMF_HA_ACTIVE);
+			return NCSCC_RC_FAILURE;
+		}
+	} else
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 
 	avd_cb->is_implementer = true;
 	avd_cb->active_services_exist = true;

@@ -47,6 +47,7 @@
 #include <si.h>
 #include <csi.h>
 #include <si_dep.h>
+#include "osaf_utility.h"
 
 
 
@@ -54,7 +55,13 @@
  *   DEFINITIONS
  * ========================================================================
  */
-
+/* mutex for synchronising  imm initialization and role change events. */
+pthread_mutex_t imm_reinit_mutex = PTHREAD_MUTEX_INITIALIZER;
+/* mutex for synchronising  amfd thread and imm initialization thread startup 
+   to make sure that imm initialization thread executes first and take
+   imm_reinit_mutex and then proceeds for initialization. */
+static pthread_mutex_t imm_reinit_thread_startup_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t imm_reinit_thread_startup_cond = PTHREAD_COND_INITIALIZER;
 //
 // TODO(HANO) Temporary use this function instead of strdup which uses malloc.
 // Later on remove this function and use std::string instead
@@ -1605,16 +1612,23 @@ static void *avd_imm_reinit_bg_thread(void *_cb)
 	uint32_t status;
 
 	TRACE_ENTER();
+	osaf_mutex_lock_ordie(&imm_reinit_mutex);
+	/* Send signal that imm_reinit_mutex has been taken. */
+	osaf_mutex_lock_ordie(&imm_reinit_thread_startup_mutex);
+	pthread_cond_signal(&imm_reinit_thread_startup_cond);
+	osaf_mutex_unlock_ordie(&imm_reinit_thread_startup_mutex);
 
 	immutilWrapperProfile.errorsAreFatal = 0;
 
 	if ((rc = immutil_saImmOiInitialize_2(&cb->immOiHandle, &avd_callbacks, &immVersion)) != SA_AIS_OK) {
 		LOG_ER("saImmOiInitialize failed %u", rc);
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 		exit(EXIT_FAILURE);
 	}
 
 	if ((rc = immutil_saImmOiSelectionObjectGet(cb->immOiHandle, &cb->imm_sel_obj)) != SA_AIS_OK) {
 		LOG_ER("saImmOiSelectionObjectGet failed %u", rc);
+		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 		exit(EXIT_FAILURE);
 	}
 
@@ -1622,17 +1636,20 @@ static void *avd_imm_reinit_bg_thread(void *_cb)
 	if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
 		if (avd_imm_impl_set() != SA_AIS_OK) {
 			LOG_ER("exiting since avd_imm_impl_set failed");
+			osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 			exit(EXIT_FAILURE);
 		}
 	} else {
 		/* become applier and re-read the config */
 		if (avd_imm_applier_set() != SA_AIS_OK) {
 			LOG_ER("exiting since avd_imm_applier_set failed");
+			osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 			exit(EXIT_FAILURE);
 		}
 
 		if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
 			LOG_ER("avd_imm_config_get FAILED");
+			osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -1645,6 +1662,8 @@ static void *avd_imm_reinit_bg_thread(void *_cb)
 	osafassert(status == NCSCC_RC_SUCCESS);
 
 	LOG_NO("Finished re-initializing with IMM");
+	/* Release mutex taken.*/
+	osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 	TRACE_LEAVE();
 	return NULL;
 }
@@ -1656,10 +1675,13 @@ void avd_imm_reinit_bg(void)
 {
 	pthread_t thread;
 	pthread_attr_t attr;
+	int rc = 0;
 
 	TRACE_ENTER();
 
 	LOG_NO("Re-initializing with IMM");
+
+	osaf_mutex_lock_ordie(&imm_reinit_thread_startup_mutex);
 
 	(void) saImmOiFinalize(avd_cb->immOiHandle);
 
@@ -1671,8 +1693,14 @@ void avd_imm_reinit_bg(void)
 
 	if (pthread_create(&thread, &attr, avd_imm_reinit_bg_thread, avd_cb) != 0) {
 		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		osaf_mutex_unlock_ordie(&imm_reinit_thread_startup_mutex);
 		exit(EXIT_FAILURE);
 	}
+
+	rc = pthread_cond_wait(&imm_reinit_thread_startup_cond, &imm_reinit_thread_startup_mutex);
+	if (rc != 0) osaf_abort(rc);
+	osaf_mutex_unlock_ordie(&imm_reinit_thread_startup_mutex);
+
 	pthread_attr_destroy(&attr);
 
 	TRACE_LEAVE();
