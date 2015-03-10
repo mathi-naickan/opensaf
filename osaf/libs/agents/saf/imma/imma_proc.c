@@ -1964,7 +1964,7 @@ static void imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 						  yet failing in imma_oi_ccb_record_set_critical below after the
 						  PBE transaction. */
 						if(!imma_oi_ccb_record_ok_for_critical(cl_node, ccbid, callback->inv)) {
-							LOG_ER("ERROR: CCB record for %u does not have correct op-count",
+							LOG_WA("WARNING: CCB record for %u does not have correct op-count",
 								callback->ccbID);
 							localEr = SA_AIS_ERR_FAILED_OPERATION;
 							goto skip_completed_upcall;

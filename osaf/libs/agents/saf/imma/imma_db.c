@@ -336,7 +336,7 @@ int imma_oi_ccb_record_ok_for_critical(IMMA_CLIENT_NODE *cl_node, SaImmOiCcbIdT 
 						" - opcount not reliable for appliers. => Need a fix for #1795",  
 					    tmp->opCount, inv, ccbId);
 				} else {
-					LOG_ER("Mismatch in PBE op-count %u should be %u for Ccbid:0x%llx",  
+					LOG_WA("Mismatch in PBE op-count %u should be %u for Ccbid:0x%llx",
 					    tmp->opCount, inv, ccbId);
 					rs = 0;
 				}
