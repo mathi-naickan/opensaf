@@ -326,7 +326,8 @@ static uint32_t vda_instantiate(NCS_LIB_REQ_INFO *req)
 	uint32_t policy;
 	uint32_t attr_num;
 
-	memset(&new_vdest, 0, sizeof(new_vdest));
+	memset(&new_vdest, 0, sizeof(MDS_DEST));
+	memset(&vdest_id, 0, sizeof(uint32_t));
 
 	/* STEP : Check for "reserved" instance names */
 	switch (mda_get_inst_name_type(&req->info.inst.i_inst_name)) {
@@ -386,7 +387,7 @@ static uint32_t vda_uninstantiate(NCS_LIB_REQ_INFO *req)
 	MDS_DEST gone_vdest;
 	bool is_named_vdest;
 
-	memset(&gone_vdest, 0, sizeof(gone_vdest));
+	memset(&gone_vdest, 0, sizeof(MDS_DEST));
 
 	/* STEP : Check for "reserved" instance names */
 	switch (mda_get_inst_name_type(&req->info.uninst.i_inst_name)) {

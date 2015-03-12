@@ -1087,7 +1087,8 @@ uint32_t mds_subtn_tbl_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, NCSMDS
 	status = mds_subtn_tbl_query(svc_hdl, subscr_svc_id);
 	if (status == NCSCC_RC_SUCCESS || status == NCSCC_RC_NO_CREATION) {
 		/* Service already subscribed IMPLICITLY */
-		m_MDS_LOG_INFO("MCM_DB : subtn_tbl_add : IMPLICIT SUBSCRIPTION of svc_id = %s  ALREADY EXIST", ncsmds_svc_names[subscr_svc_id]);
+		m_MDS_LOG_INFO("MCM_DB : subtn_tbl_add : IMPLICIT SUBSCRIPTION of svc_id = %s(%d)  ALREADY EXIST", 
+		get_svc_names(subscr_svc_id), subscr_svc_id);
 		m_MDS_LOG_DBG("MCM_DB : Leaving : F : mds_subtn_tbl_add");
 		return NCSCC_RC_FAILURE;
 	}
@@ -1134,7 +1135,7 @@ uint32_t mds_subtn_tbl_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, NCSMDS
 	m_NCS_TMR_START(subtn_info->discovery_tmr, MDS_SUBSCRIPTION_TMR_VAL,
 			(TMR_CALLBACK)mds_tmr_callback, (void *)(long)subtn_info->tmr_req_info_hdl);
 	m_MDS_LOG_DBG("MCM_DB:mds_subtn_tbl_add:TimerStart:SubTmr:Hdl=0x%08x:SvcHdl=%"PRIu64":sbscr-svcid=%s\n",
-		      subtn_info->tmr_req_info_hdl, svc_hdl, ncsmds_svc_names[subscr_svc_id]);
+		      subtn_info->tmr_req_info_hdl, svc_hdl, get_svc_names(subscr_svc_id), subscr_svc_id);
 
 	m_MDS_LOG_DBG("MCM_DB : Leaving : S : mds_subtn_tbl_add sub_adest_details : %s",subtn_info->sub_adest_details);
 	return NCSCC_RC_SUCCESS;
@@ -1984,7 +1985,7 @@ uint32_t mds_subtn_res_tbl_remove_active(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_
 				(TMR_CALLBACK)mds_tmr_callback,
 				(void *)(long)(subtn_res_info->info.active_vdest.active_route_info->tmr_req_info_hdl));
 		m_MDS_LOG_DBG("MCM_DB:RemoveActive:TimerStart:AwaitActiveTmri:Hdl=0x%08x:SvcHdl=%"PRIu64":sbscr-svcid=%s,vdest=%d\n",
-		     subtn_res_info->info.active_vdest.active_route_info->tmr_req_info_hdl, svc_hdl, ncsmds_svc_names[subscr_svc_id],
+		     subtn_res_info->info.active_vdest.active_route_info->tmr_req_info_hdl, svc_hdl, get_svc_names(subscr_svc_id), subscr_svc_id,
 		     vdest_id);
 
 	}

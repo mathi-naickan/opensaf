@@ -451,8 +451,8 @@ uint32_t mds_mdtm_send_tcp(MDTM_SEND_REQ *req)
 				uint32_t len = 0;
 				len = m_MMGR_LINK_DATA_LEN(usrbuf);	/* Getting total len */
 
-				m_MDS_LOG_INFO("MDTM: User Sending Data lenght=%d From svc_id = %s to svc_id = %s\n", len,
-					       ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
+				m_MDS_LOG_INFO("MDTM: User Sending Data lenght=%d From svc_id = %s(%d) to svc_id = %s(%d)\n", len,
+					       get_svc_names(req->src_svc_id), req->src_svc_id, get_svc_names(req->dest_svc_id), req->dest_svc_id);
 
 				if (len > MDS_DIRECT_BUF_MAXSIZE) {
 					/* Packet needs to be fragmented and send */
@@ -516,8 +516,8 @@ uint32_t mds_mdtm_send_tcp(MDTM_SEND_REQ *req)
 					return NCSCC_RC_FAILURE;
 				}
 
-				m_MDS_LOG_INFO("MDTM: User Sending Data len=%d From svc_id = %s to svc_id = %s\n",
-					       req->msg.data.buff_info.len, ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
+				m_MDS_LOG_INFO("MDTM: User Sending Data len=%d From svc_id = %s(%d) to svc_id = %s(%d)\n",
+					       req->msg.data.buff_info.len, get_svc_names(req->src_svc_id), req->src_svc_id, get_svc_names(req->dest_svc_id), req->dest_svc_id);
 
 				uint8_t *body = NULL;
 				body = calloc(1, (req->msg.data.buff_info.len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN_TCP));

@@ -42,47 +42,88 @@
  ***************************************************************************/
 const char ncsmds_svc_names[NCSMDS_SVC_ID_NCSMAX][MAX_SVC_NAME_LEN] =
 {
-        "UNKNOWN(0)",
-        "DTS(1)",
-        "DTA(2)",
-        "GLA(3)",
-        "GLND(4)",
-        "GLD(5)",
-        "VDA(6)",
-        "EDS(7)",
-        "EDA(8)",
-        "MQA(9)",
-        "MQND(10)",
-        "MQD(11)",
-        "AVD(12)",
-        "AVND(13)",
-        "AVA(14)",
-        "CLA(15)",
-        "CPD(16)",
-        "CPND(17)",
-        "CPA(18)",
-        "MBCSV(19)",
-        "LGS(20)",
-        "LGA(21)",
-        "AVND_CNTLR(22)",
-        "GFM(23)",
-        "IMMD(24)",
-        "IMMND(25)",
-        "IMMA_OM(26)",
-        "IMMA_OI(27)",
-        "NTFS(28)",
-        "NTFA(29)",
-        "SMFD(30)",
-        "SMFND(31)",
-        "SMFA(32)",
-        "RDE(33)",
-        "CLMS(34)",
-        "CLMA(35)",
-        "CLMNA(36)",
-        "PLMS(37)",
-        "PLMS_HRB(38)",
-        "PLMA(39)",
+        "UNKNOWN",
+        "DTS",
+        "DTA",
+        "GLA",
+        "GLND",
+        "GLD",
+        "VDA",
+        "EDS",
+        "EDA",
+        "MQA",
+        "MQND",
+        "MQD",
+        "AVD",
+        "AVND",
+        "AVA",
+        "CLA",
+        "CPD",
+        "CPND",
+        "CPA",
+        "MBCSV",
+        "LGS",
+        "LGA",
+        "AVND_CNTLR",
+        "GFM",
+        "IMMD",
+        "IMMND",
+        "IMMA_OM",
+        "IMMA_OI",
+        "NTFS",
+        "NTFA",
+        "SMFD",
+        "SMFND",
+        "SMFA",
+        "RDE",
+        "CLMS",
+        "CLMA",
+        "CLMNA",
+        "PLMS",
+        "PLMS_HRB",
+        "PLMA",
 };
+
+/**************************************************************************
+ * INTERNAL SVC_NAME  of Service : A User defined internal name that a service 
+ ***************************************************************************/
+const char ncsmds_internal_svc_names[NCSMDS_SVC_ID_INTMAX - NCSMDS_SVC_ID_INTERNAL_MIN][MAX_SVC_NAME_LEN] =
+{
+	"INTERNAL",
+};
+
+/**************************************************************************
+ * EXTERNAL SVC_NAME  of Service : A User defined external name that a service
+ ***************************************************************************/
+const char ncsmds_external_svc_names[NCSMDS_SVC_ID_EXTMAX - NCSMDS_SVC_ID_EXTERNAL_MIN][MAX_SVC_NAME_LEN] =
+{
+	"EXTERNAL",
+};
+
+const char *get_svc_names(int svc_id) {
+
+	if ( svc_id < NCSMDS_SVC_ID_INTERNAL_MIN)
+	{
+		if (svc_id < NCSMDS_SVC_ID_NCSMAX) 
+			return ncsmds_svc_names[svc_id];
+		else
+			return ncsmds_svc_names[0];
+	}
+	else if ((svc_id >= NCSMDS_SVC_ID_INTERNAL_MIN) && (svc_id < NCSMDS_SVC_ID_EXTERNAL_MIN)) {
+		if ( svc_id < NCSMDS_SVC_ID_INTMAX)	
+			return ncsmds_internal_svc_names[svc_id - NCSMDS_SVC_ID_INTERNAL_MIN]; 
+		else
+			return	ncsmds_internal_svc_names[0];
+	} else if ((svc_id >= NCSMDS_SVC_ID_EXTERNAL_MIN) && (svc_id <=  NCSMDS_MAX_SVCS)) {
+		if ( svc_id < NCSMDS_SVC_ID_EXTMAX)
+			return ncsmds_external_svc_names[svc_id - NCSMDS_SVC_ID_EXTERNAL_MIN];
+		else
+			return ncsmds_external_svc_names[0];
+	}
+ 
+	return ncsmds_svc_names[0]; 
+} 
+
 /****************************************************************************
  *
  * Function Name: ncsmds_api

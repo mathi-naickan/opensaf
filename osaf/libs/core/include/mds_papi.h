@@ -189,9 +189,10 @@ extern "C" {
 
 		/* The range below is for OpenSAF internal use */
 		NCSMDS_SVC_ID_INTERNAL_MIN = 256,
-
+		NCSMDS_SVC_ID_INTMAX,
 		/* The range below is for OpenSAF external use */
 		NCSMDS_SVC_ID_EXTERNAL_MIN = 512,
+		NCSMDS_SVC_ID_EXTMAX,
 	} NCSMDS_SVC_ID;
 
 #define MAX_SVC_NAME_LEN 30 /*NID_MAX_SVC_NAME_LEN is 15 so keeping some buffer*/
@@ -202,7 +203,9 @@ extern "C" {
  * SVC_NAME  of Service : A well known name that a service 
  ***************************************************************************/
 extern const char ncsmds_svc_names[NCSMDS_SVC_ID_NCSMAX][MAX_SVC_NAME_LEN];
-
+extern const char ncsmds_internal_svc_names[NCSMDS_SVC_ID_INTMAX - NCSMDS_SVC_ID_INTERNAL_MIN][MAX_SVC_NAME_LEN];
+extern const char ncsmds_external_svc_names[NCSMDS_SVC_ID_EXTMAX - NCSMDS_SVC_ID_EXTERNAL_MIN][MAX_SVC_NAME_LEN];
+extern const char *get_svc_names(int svc_id);
 /*
  * NCSMDS_MAX_PWES
  *

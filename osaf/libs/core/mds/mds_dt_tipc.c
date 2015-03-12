@@ -971,36 +971,36 @@ static uint32_t mdtm_process_discovery_events(uint32_t discovery_event, struct t
 			if (NCSCC_RC_SUCCESS == node_status) {
 				adest = ((((uint64_t)(m_MDS_GET_NCS_NODE_ID_FROM_TIPC_NODE_ID(node))) << 32) | ref);
 			} else {
-				m_MDS_LOG_ERR("MDTM: Dropping  the svc event for svc_id = %s, subscribed by \
-						svc_id = %s as the TIPC NODEid is not in the prescribed range=0x%08x, SVC Event type=%d",
-				     ncsmds_svc_names[svc_id], ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)], node, discovery_event);
+				m_MDS_LOG_ERR("MDTM: Dropping  the svc event for svc_id = %s(%d), subscribed by " 
+						"svc_id = %s(%d) as the TIPC NODEid is not in the prescribed range=0x%08x, SVC Event type=%d",
+				     get_svc_names(svc_id), svc_id, get_svc_names(m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl), node, discovery_event);
 				return NCSCC_RC_FAILURE;
 			}
 			get_subtn_adest_details(m_MDS_GET_PWE_HDL_FROM_SVC_HDL(svc_hdl), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl),
 					adest, adest_details);
 
 			if (TIPC_PUBLISHED == discovery_event) {
-				m_MDS_LOG_NOTIFY("MDTM: svc up event for svc_id = %s, subscri. by svc_id = %s pwe_id=%d Adest = %s",
-				     ncsmds_svc_names[svc_id], ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)], pwe_id, adest_details);
+				m_MDS_LOG_NOTIFY("MDTM: svc up event for svc_id = %s(%d), subscri. by svc_id = %s(%d) pwe_id=%d Adest = %s",
+				     get_svc_names(svc_id), svc_id, get_svc_names(m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl), pwe_id, adest_details);
 
 				if (NCSCC_RC_SUCCESS != mds_mcm_svc_up(pwe_id, svc_id, role, scope,
 								       vdest, policy, adest, 0, svc_hdl, subtn_ref_val,
 								       svc_sub_part_ver, archword_type)) {
-					m_MDS_LOG_ERR("SVC-UP Event processsing failed for svc_id = %s, subscribed by svc_id = %s",
-					     ncsmds_svc_names[svc_id], ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)]);
+					m_MDS_LOG_ERR("SVC-UP Event processsing failed for svc_id = %s(%d), subscribed by svc_id = %s(%d)",
+					     get_svc_names(svc_id), svc_id, get_svc_names(m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl));
 					return NCSCC_RC_FAILURE;
 				}
 				return NCSCC_RC_SUCCESS;
 			} else if (TIPC_WITHDRAWN == discovery_event) {
-				m_MDS_LOG_NOTIFY("MDTM: svc down event for svc_id = %s, subscri. by svc_id = %s pwe_id=%d Adest = %s",
-				     ncsmds_svc_names[svc_id], ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)], pwe_id, adest_details);
+				m_MDS_LOG_NOTIFY("MDTM: svc down event for svc_id = %s(%d), subscri. by svc_id = %s(%d) pwe_id=%d Adest = %s",
+				     get_svc_names(svc_id), svc_id, get_svc_names(m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl), pwe_id, adest_details);
 
 				if (NCSCC_RC_SUCCESS != mds_mcm_svc_down(pwe_id, svc_id, role, scope,
 									 vdest, policy, adest, 0, svc_hdl,
 									 subtn_ref_val, svc_sub_part_ver,
 									 archword_type)) {
-					m_MDS_LOG_ERR("MDTM: SVC-DOWN Event processsing failed for svc_id = %s, subscribed by svc_id = %s\n",
-					     ncsmds_svc_names[svc_id], ncsmds_svc_names[m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)]);
+					m_MDS_LOG_ERR("MDTM: SVC-DOWN Event processsing failed for svc_id = %s(%d), subscribed by svc_id = %s(%d)\n",
+					     get_svc_names(svc_id), svc_id, get_svc_names(m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl));
 					return NCSCC_RC_FAILURE;
 				}
 				return NCSCC_RC_SUCCESS;
@@ -1388,7 +1388,8 @@ uint32_t mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_S
 			m_MDS_LOG_ERR("MDTM: Can't set socket option TIPC_IMP err :%s\n", strerror(errno));
 			assert(0);
 		} else {
-			m_MDS_LOG_INFO("MDTM: Successfully set socket option TIPC_IMP, svc_id = %s", ncsmds_svc_names[svc_id]);
+			m_MDS_LOG_INFO("MDTM: Successfully set socket option TIPC_IMP, svc_id = %s(%d)",
+			 get_svc_names(svc_id), svc_id);
 		}
 	}
 
@@ -1441,7 +1442,7 @@ uint32_t mds_mdtm_svc_install_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS_S
 		m_MDS_LOG_ERR("MDTM: SVC-INSTALL Failure err :%s\n", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
-	m_MDS_LOG_NOTIFY("MDTM: install_tipc : svc_id = %s, vdest=%d", ncsmds_svc_names[svc_id], vdest_id);
+	m_MDS_LOG_NOTIFY("MDTM: install_tipc : svc_id = %s(%d), vdest=%d", get_svc_names(svc_id), svc_id, vdest_id);
 	m_MDS_LOG_INFO("MDTM: SVC-INSTALL Success\n");
 	return NCSCC_RC_SUCCESS;
 }
@@ -1532,7 +1533,8 @@ uint32_t mds_mdtm_svc_uninstall_tipc(PW_ENV_ID pwe_id, MDS_SVC_ID svc_id, NCSMDS
 		m_MDS_LOG_ERR("MDTM: SVC-UNINSTALL Failure err :%s \n", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
-	m_MDS_LOG_NOTIFY("MDTM: uninstall_tipc : svc_id = %s,vdest_id = %d", ncsmds_svc_names[svc_id], vdest_id);
+	m_MDS_LOG_NOTIFY("MDTM: uninstall_tipc : svc_id = %s(%d),vdest_id = %d",
+	 get_svc_names(svc_id), svc_id, vdest_id);
 	m_MDS_LOG_INFO("MDTM: SVC-UNINSTALL Success\n");
 	return NCSCC_RC_SUCCESS;
 }
@@ -2110,8 +2112,8 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 				uint32_t len = 0;
 				len = m_MMGR_LINK_DATA_LEN(usrbuf);	/* Getting total len */
 
-				m_MDS_LOG_INFO("MDTM: User Sending Data lenght=%d From svc_id = %s to svc_id = %s\n", len,
-					       ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
+				m_MDS_LOG_INFO("MDTM: User Sending Data lenght=%d From svc_id = %s(%d) to svc_id = %s(%d)\n", len,
+					       get_svc_names(req->src_svc_id), req->src_svc_id, get_svc_names(req->dest_svc_id), req->dest_svc_id);
 
 				// determine fragment limit using a bit in destination archword
 				int frag_size;
@@ -2126,8 +2128,8 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 
 				if (len > frag_size) {
 					/* Packet needs to be fragmented and send */
-					m_MDS_LOG_DBG("MDTM: User fragment and Sending Data lenght=%d From svc_id = %s to svc_id = %s\n", len,
-                                               ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
+					m_MDS_LOG_DBG("MDTM: User fragment and Sending Data lenght=%d From svc_id = %s(%d) to svc_id = %s(%d)\n", len,
+                                              get_svc_names(req->src_svc_id), req->src_svc_id, get_svc_names(req->dest_svc_id), req->dest_svc_id);
 					return mdtm_frag_and_send(req, frag_seq_num, tipc_id, frag_size);
 				} else {
 					uint8_t *p8;
@@ -2163,20 +2165,20 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 					len += SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN;
 					if (((req->snd_type == MDS_SENDTYPE_RBCAST) || (req->snd_type == MDS_SENDTYPE_BCAST)) && 
 							(version > 0) && (tipc_mcast_enabled)) {
-						m_MDS_LOG_DBG("MDTM: User Sending Multicast Data lenght=%d From svc_id = %s to svc_id = %s\n", len,
-								ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
+						m_MDS_LOG_DBG("MDTM: User Sending Multicast Data lenght=%d From svc_id = %s(%d) to svc_id = %s(%d)\n", len,
+								get_svc_names(req->src_svc_id), req->src_svc_id, get_svc_names(req->dest_svc_id), req->dest_svc_id);
 						if ( len > MDS_DIRECT_BUF_MAXSIZE) {
 							m_MMGR_FREE_BUFR_LIST(usrbuf);
 							free(body);
-							LOG_NO("MDTM: Not possible to send size:%d TIPC multicast to svc_id = %s",
-									len, ncsmds_svc_names[req->dest_svc_id]);
+							LOG_NO("MDTM: Not possible to send size:%d TIPC multicast to svc_id = %s(%d)",
+									len, get_svc_names(req->dest_svc_id), req->dest_svc_id);
 							return NCSCC_RC_FAILURE;
 						}
 						if (NCSCC_RC_SUCCESS != mdtm_mcast_sendto(body, len, req)) {
-							m_MDS_LOG_ERR("MDTM: Failed to send Multicast message Data lenght=%d \
-									From svc_id = %s to svc_id = %s err :%s",
-									len, ncsmds_svc_names[req->src_svc_id],
-									ncsmds_svc_names[req->dest_svc_id], strerror(errno));
+							m_MDS_LOG_ERR("MDTM: Failed to send Multicast message Data lenght=%d " 
+									"From svc_id = %s(%d) to svc_id = %s(%d) err :%s",
+									len, get_svc_names(req->src_svc_id), req->src_svc_id,
+									get_svc_names(req->dest_svc_id), req->dest_svc_id, strerror(errno));
 							m_MMGR_FREE_BUFR_LIST(usrbuf);
 							free(body);
 							return NCSCC_RC_FAILURE;
@@ -2206,8 +2208,8 @@ uint32_t mds_mdtm_send_tipc(MDTM_SEND_REQ *req)
 					return NCSCC_RC_FAILURE;
 				}
 
-				m_MDS_LOG_INFO("MDTM: User Sending Data len=%d From svc_id = %s to svc_id = %s\n",
-					       req->msg.data.buff_info.len, ncsmds_svc_names[req->src_svc_id], ncsmds_svc_names[req->dest_svc_id]);
+				m_MDS_LOG_INFO("MDTM: User Sending Data len=%d From svc_id = %s(%d) to svc_id = %s(%d)\n",
+					       req->msg.data.buff_info.len, get_svc_names(req->src_svc_id), req->src_svc_id, get_svc_names(req->dest_svc_id), req->dest_svc_id);
 
 				uint8_t *body = NULL;
 				body = calloc(1, (req->msg.data.buff_info.len + SUM_MDS_HDR_PLUS_MDTM_HDR_PLUS_LEN));

@@ -327,7 +327,7 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer, uint16_
 		if (NCSCC_RC_SUCCESS != mds_svc_tbl_get_svc_hdl(pwe_hdl, dest_svc_id, &dest_svc_hdl)) {
 			*buff_dump = 0;	/* For future hack */
 			m_MDS_LOG_ERR("MDTM: svc_id = %s Doesnt exists for the message recd, Adest = <%"PRId64">\n",
-				      ncsmds_svc_names[dest_svc_id], transport_adest);
+				      get_svc_names(dest_svc_id), dest_svc_id, transport_adest);
 			return NCSCC_RC_FAILURE;
 		}
 
@@ -365,7 +365,7 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer, uint16_
 			case MDS_SENDTYPE_SNDACK:
 			case MDS_SENDTYPE_BCAST:
 				m_MDS_LOG_ERR("MDTM: Recd Message SVC is in standby so dropping the message:Dest svc_id = %s, dest_vdest_id = %d\n",
-				     ncsmds_svc_names[dest_svc_id], dest_vdest_id);
+				     get_svc_names(dest_svc_id), dest_svc_id, dest_vdest_id);
 				/* Increment the recd counter as this is normal */
 				mds_incr_subs_res_recvd_msg_cnt(dest_svc_hdl, src_svc_id, 
 						src_vdest_id, adest, svc_seq_num);
@@ -549,7 +549,8 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer, uint16_
 		pwe_hdl = m_MDS_GET_PWE_HDL_FROM_VDEST_HDL_AND_PWE_ID((MDS_VDEST_HDL)dest_vdest_id, pwe_id);
 		if (NCSCC_RC_SUCCESS != mds_svc_tbl_get_svc_hdl(pwe_hdl, dest_svc_id, &dest_svc_hdl)) {
 			*buff_dump = 0;	/* For future hack */
-			m_MDS_LOG_ERR("MDTM: svc_id = %s Doesnt exists for the message recd\n", ncsmds_svc_names[dest_svc_id]);
+			m_MDS_LOG_ERR("MDTM: svc_id = %s Doesnt exists for the message recd\n",
+			 get_svc_names(dest_svc_id), dest_svc_id);
 			return NCSCC_RC_FAILURE;
 		}
 
@@ -592,7 +593,7 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer, uint16_
 			case MDS_SENDTYPE_BCAST:
 				m_MDS_LOG_ERR
 				    ("MDTM: Recd Message svc_id = %s is in standby so dropping the message: Dest = %d\n",
-				     ncsmds_svc_names[dest_svc_id], dest_vdest_id);
+				     get_svc_names(dest_svc_id), dest_svc_id, dest_vdest_id);
 				/* Increment the recd counter as this is normal */
 				mds_incr_subs_res_recvd_msg_cnt(dest_svc_hdl, src_svc_id, 
 						src_vdest_id, adest, svc_seq_num);
@@ -698,7 +699,7 @@ uint32_t mdtm_process_recv_message_common(uint8_t flag, uint8_t *buffer, uint16_
 		m_NCS_TMR_START(reassem_queue->tmr, MDTM_REASSEMBLE_TMR_VAL,
 				(TMR_CALLBACK)mds_tmr_callback, (void *)(long)(reassem_queue->tmr_hdl));
 		m_MDS_LOG_DBG("MCM_DB:RecvMessage:TimerStart:Reassemble:Hdl=0x%08x:SrcSvcId=%s:SrcVdest=%d,DestSvcHdl=%"PRId64"\n",
-		     reassem_queue->tmr_hdl, ncsmds_svc_names[src_svc_id], src_vdest_id, dest_svc_hdl);
+		     reassem_queue->tmr_hdl, get_svc_names(src_svc_id), src_svc_id, src_vdest_id, dest_svc_hdl);
 	}
 	return NCSCC_RC_SUCCESS;
 }
