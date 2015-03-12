@@ -105,9 +105,9 @@ uint32_t dtm_process_node_info(DTM_INTERNODE_CB * dtms_cb, int stream_sock, uint
 			strncpy((char *)&node->node_name, nodename, nodename_len);
 			node->comm_status = true;
 			if (dtm_node_add(node, 0) != NCSCC_RC_SUCCESS) {
+				LOG_ER("DTM:  Node already exit in the cluster with smiler configuration , correct the other joining Node configuration ");				
 				osafassert(0);
-				rc = NCSCC_RC_FAILURE;
-				goto done;
+			
 			}
 
 		} else if (node->node_id == node_id) {
@@ -121,8 +121,10 @@ uint32_t dtm_process_node_info(DTM_INTERNODE_CB * dtms_cb, int stream_sock, uint
 			}
 			node->comm_status = true;
 
-		} else
+		} else {
+			LOG_ER("DTM: Node already exit in the cluster with smiler configuration , correct the other joining Node configuration ");
 			osafassert(0);
+		}
 
 		TRACE("DTM: dtm_process_node_info node_ip:%s, node_id:%u i_addr_family:%d ", node->node_ip, node->node_id, node->i_addr_family);
 		rc = dtm_process_node_up_down(node->node_id, node->node_name, node->node_ip , node->i_addr_family, node->comm_status);
@@ -132,7 +134,7 @@ uint32_t dtm_process_node_info(DTM_INTERNODE_CB * dtms_cb, int stream_sock, uint
 			rc = NCSCC_RC_FAILURE;
 		}
 	} else {
-		LOG_ER(" conn details msg recd when conn_status is true");
+		LOG_ER("DTM: Node down already  received  for this node ");
 		osafassert(0);
 	}
 
@@ -393,6 +395,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 					dtm_internode_process_poll_rcv_msg_common(node, local_len_buf, node_info_hrd,
 										  node_info_buffer_len, fd, close_conn);
 				} else {
+					LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 					osafassert(0);
 				}
 			} else {
@@ -404,6 +407,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 					/* We recd one byte of the length part */
 					node->num_by_read_for_len_buff = recd_bytes;
 				} else {
+					LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 					osafassert(0);
 				}
 			}
@@ -424,6 +428,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 				*close_conn = true;
 				return;
 			} else {
+				LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 				osafassert(0);	/* This should never occur */
 			}
 		} else if (2 == node->num_by_read_for_len_buff) {
@@ -432,7 +437,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 			if (NULL == (node->buffer = calloc(1, (node->buff_total_len + 3)))) {
 				/* Length + 2 is done to reuse the same buffer 
 				   while sending to other nodes */
-				LOG_ER("\nMemory allocation failed in dtm_internode_processing");
+				LOG_ER("DTM :Memory allocation failed in dtm_internode_processing \n");
 				return;
 			}
 			recd_bytes = recv(fd, &node->buffer[2], node->buff_total_len, 0);
@@ -453,9 +458,11 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 				dtm_internode_process_poll_rcv_msg_common(node, node->buff_total_len, node_info_hrd,
 									  node_info_buffer_len, fd, close_conn);
 			} else {
+				LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 				osafassert(0);
 			}
 		} else {
+			LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 			osafassert(0);
 		}
 
@@ -481,6 +488,7 @@ void dtm_internode_process_poll_rcv_msg(int fd, int *close_conn, uint8_t *node_i
 			dtm_internode_process_poll_rcv_msg_common(node, node->buff_total_len, node_info_hrd,
 								  node_info_buffer_len, fd, close_conn);
 		} else {
+			LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 			osafassert(0);
 		}
 	}

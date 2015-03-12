@@ -88,7 +88,7 @@ uint32_t dtm_intranode_process_pid_msg(uint8_t *buffer, int fd)
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 
 	if (NULL == pid_node) {
-		LOG_ER("DTM INTRA : PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);
 		osafassert(0);
 		return NCSCC_RC_FAILURE;
 	}
@@ -102,6 +102,7 @@ uint32_t dtm_intranode_process_pid_msg(uint8_t *buffer, int fd)
 	if (0 == pid_node->pid) {
 	pid_node->pid = process_id;
 	} else {
+		LOG_ER("DTM INTRA: Node already exit in the cluster with same PID");
 		osafassert(0);
 	}
 	pid_node->node_id = m_NCS_GET_NODE_ID;
@@ -132,6 +133,7 @@ uint32_t dtm_intranode_process_pid_down(int fd)
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	TRACE_ENTER();
 	if (NULL == pid_node) {
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);		
 		osafassert(0);	/* This condition should never come,database mismatch */
 	} else {
 		DTM_PID_SVC_INSTALLED_INFO *svc_list = pid_node->svc_installed_list, *del_ptr = NULL;
@@ -145,7 +147,7 @@ uint32_t dtm_intranode_process_pid_down(int fd)
 			subscr_tmp = dtm_intranode_get_subscr_node(subscr_data->server_type);
 
 			if (NULL == subscr_tmp) {
-				/* Data base mismatch, unsubscribe without subscribe , is this possible */
+				LOG_ER("DTM INTRA: Database mismatch, unsubscribe without subscrib \ne");
 				osafassert(0);
 			} else {
 				/* Now Delete the entry */
@@ -270,6 +272,7 @@ uint32_t dtm_intranode_process_bind_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);		
 		osafassert(0);	/* This condition should never come */
 	} else {
 		/* Decode the message  */
@@ -396,6 +399,7 @@ uint32_t dtm_intranode_process_unbind_msg(uint8_t *buff, int fd)
 	install_scope = install_scope + 1;
 
 	if (NULL == pid_node) {
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);		
 		osafassert(0);	/* This condition should never come */
 	} else {
 		DTM_SVC_INSTALL_INFO *svc_node = NULL;
@@ -412,6 +416,7 @@ uint32_t dtm_intranode_process_unbind_msg(uint8_t *buff, int fd)
 		svc_node = dtm_intranode_get_svc_node(server_type);
 		if (NULL == svc_node) {
 			/* Data base mismatch */
+			LOG_ER("DTM INTRA: Data base mismatch, svc_node doesn't exist \n");
 			osafassert(0);
 		}
 
@@ -472,6 +477,7 @@ uint32_t dtm_intranode_process_subscribe_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);		
 		osafassert(0);	/* This condition should never come */
 	} else {
 		/* Decode the message  */
@@ -583,6 +589,7 @@ uint32_t dtm_intranode_process_unsubscribe_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);		
 		osafassert(0);	/* This condition should never come */
 	} else {
 		/* Decode the message  */
@@ -595,6 +602,7 @@ uint32_t dtm_intranode_process_unsubscribe_msg(uint8_t *buff, int fd)
 
 		data_subscr = dtm_intranode_get_subscr_from_pid_info(pid_node, ref_val);
 		if (NULL == data_subscr) {
+			LOG_ER("DTM INTRA:  Data base mismatch, unsubscribe without subscrib \n");
 			osafassert(0);
 		} else {
 			server_type = data_subscr->server_type;
@@ -605,7 +613,7 @@ uint32_t dtm_intranode_process_unsubscribe_msg(uint8_t *buff, int fd)
 		subscr_node = dtm_intranode_get_subscr_node(server_type);
 
 		if (NULL == subscr_node) {
-			/* Data base mismatch, unsubscribe without subscribe , is this possible */
+			LOG_ER("DTM INTRA:  Data base mismatch, unsubscribe without subscrib \n");
 			osafassert(0);
 		} else {
 			/* Now Delete the entry */
@@ -634,6 +642,7 @@ uint32_t dtm_intranode_process_node_subscribe_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);		
 		osafassert(0);	/* This condition should never come */
 	} else {
 		uint8_t *data = buff;
@@ -689,6 +698,7 @@ uint32_t dtm_intranode_process_node_unsubscribe_msg(uint8_t *buff, int fd)
 	TRACE_ENTER();
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);		
 		osafassert(0);	/* This condition should never come */
 	} else {
 		uint8_t *data = buff;
@@ -1438,7 +1448,7 @@ uint32_t dtm_intranode_process_node_up(NODE_ID node_id, char *node_name, char *n
 
 	if (NCSCC_RC_SUCCESS != (dtm_add_to_node_db_list(node_db_info))) {
 		/* This is critical */
-		TRACE("DTM : Unable to add the node to node_db_list");
+		TRACE("DTM INTRA : Unable to add the node to node_db_list");
 		osafassert(0);
 	} else {
 		/* Deliver node UP */
@@ -1534,7 +1544,7 @@ static uint32_t dtm_deliver_svc_down(NODE_ID node_id)
 	dtm_get_from_node_db_list(&node_info, node_id);
 
 	if (NULL == node_info) {
-		/* This should not occur, database mismatch */
+		LOG_ER("DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%u", node_id);		
 		osafassert(0);
 	} else {
 		dtm_intranode_process_svc_down_common(node_info);
@@ -1684,7 +1694,7 @@ uint32_t dtm_process_internode_service_up_msg(uint8_t *buffer, uint16_t len, NOD
 	dtm_get_from_node_db_list(&node_info, node_id);
 
 	if (NULL == node_info) {
-		/* This should not occur, database mismatch */
+		LOG_ER("DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%u", node_id);		
 		osafassert(0);
 	} else {
 
@@ -1811,7 +1821,7 @@ uint32_t dtm_process_internode_service_down_msg(uint8_t *buffer, uint16_t len, N
 	dtm_get_from_node_db_list(&node_info, node_id);
 
 	if (NULL == node_info) {
-		/* This should not occur, database mismatch */
+		LOG_ER("DTM INTRA: node_info of coressponding to node_id doesnt exist, database mismatch.node_id=%u", node_id);		
 		osafassert(0);
 	} else {
 
@@ -1839,7 +1849,7 @@ uint32_t dtm_process_internode_service_down_msg(uint8_t *buffer, uint16_t len, N
 				/* local node delete */
 				local_svc_node = dtm_intranode_get_svc_node(server_type);
 				if (NULL == local_svc_node) {
-					/* Data base mismatch */
+					LOG_ER("DTM INTRA:  Data base mismatch, local_svc_node doesn't exist \n");
 					osafassert(0);
 				}
 
@@ -1918,7 +1928,7 @@ uint32_t dtm_intranode_add_self_node_to_node_db(NODE_ID node_id,char *node_ip, D
 	TRACE("DTM: node_ip:%s, node_id:%u i_addr_family:%d ",node_db_info->node_ip,node_db_info->node_id,node_db_info->i_addr_family);
 	if (NCSCC_RC_SUCCESS != (dtm_add_to_node_db_list(node_db_info))) {
 		/* This is critical */
-		TRACE("DTM : Unable to add the node to node_db_list");
+		LOG_ER("DTM INTRA: Unable to add the node to node_db_list");
 		osafassert(0);
 	}
 	TRACE_LEAVE();

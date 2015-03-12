@@ -152,7 +152,7 @@ uint32_t dtm_intranode_process_pollout(int fd)
 	DTM_INTRANODE_PID_INFO *pid_node = NULL;
 	pid_node = dtm_intranode_get_pid_info_using_fd(fd);
 	if (NULL == pid_node) {
-		TRACE("DTM:Destination PID not found : %d", fd);
+		LOG_ER("DTM INTRA: PID info coressponding to fd doesnt exist, database mismatch. fd :%d",fd);
 		osafassert(0);
 		return NCSCC_RC_FAILURE;
 	} else {

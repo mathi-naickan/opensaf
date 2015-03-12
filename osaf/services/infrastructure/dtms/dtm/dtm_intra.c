@@ -495,6 +495,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 					/* Call the common rcv function */
 					dtm_intranode_process_poll_rcv_msg_common(node);
 				} else {
+					LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 					osafassert(0);
 				}
 			} else {
@@ -506,6 +507,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 					/* We recd one byte of the length part */
 					node->num_by_read_for_len_buff = recd_bytes;
 				} else {
+					LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 					osafassert(0);
 				}
 			}
@@ -528,6 +530,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 				dtm_intranode_del_poll_fdlist(fd);
 				return;
 			} else {
+				LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 				osafassert(0);	/* This should never occur */
 			}
 		} else if (2 == node->num_by_read_for_len_buff) {
@@ -558,9 +561,11 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 				/* Call the common rcv function */
 				dtm_intranode_process_poll_rcv_msg_common(node);
 			} else {
+				LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 				osafassert(0);
 			}
 		} else {
+			LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 			osafassert(0);
 		}
 
@@ -588,6 +593,7 @@ void dtm_intranode_process_poll_rcv_msg(int fd)
 			/* Call the common rcv function */
 			dtm_intranode_process_poll_rcv_msg_common(node);
 		} else {
+			LOG_ER("DTM :unknown corrupted data received on this file descriptor \n");
 			osafassert(0);
 		}
 	}

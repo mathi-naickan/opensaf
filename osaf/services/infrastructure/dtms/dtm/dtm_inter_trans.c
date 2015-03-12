@@ -259,7 +259,7 @@ uint32_t dtm_internode_process_pollout(int fd)
 	TRACE_ENTER();
 	node = dtm_node_get_by_comm_socket((uint32_t)fd);
 	if (NULL == node) {
-		TRACE("DTM :No node matching the fd for pollout, delete this fd from fd list ");
+		LOG_ER("DTM :No node matching the fd for pollout, delete this fd from fd list ");
 		osafassert(0);
 		return NCSCC_RC_FAILURE;
 	} else {
