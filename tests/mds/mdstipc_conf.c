@@ -50,6 +50,7 @@ uint32_t adest_get_handle(void)
 uint32_t create_pwe_on_adest(MDS_HDL mds_adest_hdl,
                           PW_ENV_ID  pwe_id)
 {
+  memset(&ada_info,'\0', sizeof(ada_info));
   ada_info.req=NCSADA_PWE_CREATE;
 
   ada_info.info.pwe_create.i_mds_adest_hdl=mds_adest_hdl;
@@ -74,7 +75,7 @@ uint32_t create_pwe_on_adest(MDS_HDL mds_adest_hdl,
 
 uint32_t destroy_pwe_on_adest(MDS_HDL mds_pwe_hdl)
 {
-
+  memset(&ada_info,'\0', sizeof(ada_info));
   ada_info.req=NCSADA_PWE_DESTROY;    
 
   ada_info.info.pwe_destroy.i_mds_pwe_hdl=mds_pwe_hdl; 
@@ -462,6 +463,7 @@ uint32_t mds_service_uninstall(MDS_HDL mds_hdl,
 {
   int i,j,k,FOUND;
   uint32_t YES_ADEST;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   /*Find whether this Service is on Adest or Vdest*/
   YES_ADEST=is_service_on_adest(mds_hdl,svc_id);
 
@@ -557,6 +559,7 @@ uint32_t mds_service_subscribe(MDS_HDL mds_hdl,
 {
   int i,j,k,l,FOUND;
   uint32_t YES_ADEST;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   /*Find whether this Service is on Adest or Vdest*/
   YES_ADEST=is_service_on_adest(mds_hdl,svc_id);
 
@@ -685,6 +688,7 @@ uint32_t mds_service_redundant_subscribe(MDS_HDL mds_hdl,
 {
   int i,j,k,l,FOUND;
   uint32_t YES_ADEST;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   /*Find whether this Service is on Adest or Vdest*/
   YES_ADEST=is_service_on_adest(mds_hdl,svc_id);
 
@@ -812,7 +816,7 @@ uint32_t mds_service_cancel_subscription(MDS_HDL mds_hdl,
                                       MDS_SVC_ID *svc_ids)
 {
   int i,j,k,FOUND;
-
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_CANCEL;    
@@ -883,6 +887,7 @@ uint32_t mds_just_send(MDS_HDL mds_hdl,
                     TET_MDS_MSG *message)
 {
   uint32_t rs;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_SEND;    
@@ -935,7 +940,7 @@ uint32_t mds_send_get_ack(MDS_HDL mds_hdl,
                        TET_MDS_MSG *message)
 {
   uint32_t rs;
-
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_SEND;    
@@ -981,6 +986,7 @@ uint32_t mds_send_get_response(MDS_HDL mds_hdl,
                             TET_MDS_MSG *message)
 {
   uint32_t rs;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   TET_MDS_MSG *rsp;
 
   svc_to_mds_info.i_mds_hdl=mds_hdl;
@@ -1041,6 +1047,7 @@ uint32_t mds_send_get_redack(MDS_HDL mds_hdl,
                           TET_MDS_MSG *message)
 {
   uint32_t rs;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_SEND;    
@@ -1084,6 +1091,7 @@ uint32_t mds_broadcast_to_svc(MDS_HDL mds_hdl,
                            TET_MDS_MSG *message)
 {
 
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_SEND;    
@@ -1111,6 +1119,7 @@ uint32_t mds_send_response(MDS_HDL mds_hdl,
                         TET_MDS_MSG *response)
 {
   uint32_t rs;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_SEND;    
@@ -1155,6 +1164,7 @@ uint32_t mds_sendrsp_getack(MDS_HDL mds_hdl,
                          TET_MDS_MSG *response)
 {
   uint32_t rs;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_SEND;    
@@ -1201,6 +1211,7 @@ uint32_t mds_send_redrsp_getack(MDS_HDL mds_hdl,
                              TET_MDS_MSG *response)
 {
   uint32_t rs;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_SEND;    
@@ -1251,6 +1262,7 @@ uint32_t mds_direct_send_message(MDS_HDL mds_hdl,
 {
   uint32_t rs;
   uint16_t direct_buff_len=0;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   if(message)
     {
       /*Allocating memory for the direct buffer*/
@@ -1352,6 +1364,7 @@ uint32_t mds_direct_response(MDS_HDL mds_hdl,
   uint32_t rs;
   char msg[]="Resp Message";
   uint16_t direct_buff_len;
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   /*Before Sending the Message: Allocate the Direct Buffer*/
   direct_buff=m_MDS_ALLOC_DIRECT_BUFF(strlen(msg)+1);
   memset(direct_buff, 0, strlen(msg)+1);
@@ -1438,6 +1451,7 @@ uint32_t mds_direct_broadcast_message(MDS_HDL mds_hdl,
                                    MDS_SEND_PRIORITY_TYPE priority)
 {
   char msg[]="Direct Message";
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   uint16_t direct_buff_len = 0;
  /* if(msg)*/
     {
@@ -1575,6 +1589,7 @@ uint32_t mds_service_retrieve(MDS_HDL mds_hdl,
                            SaDispatchFlagsT dispatchFlags)
 {
 
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_RETRIEVE;    
@@ -1605,7 +1620,7 @@ uint32_t mds_query_vdest_for_role(MDS_HDL mds_hdl,
                                MDS_SVC_ID query_svc_id,
                                V_DEST_QA anc)
 {
-
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_QUERY_DEST;    
@@ -1647,7 +1662,7 @@ uint32_t mds_query_vdest_for_anchor(MDS_HDL mds_hdl,
                                  MDS_SVC_ID query_svc_id,
                                  V_DEST_RL vdest_rl)
 {
-
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_QUERY_DEST;    
@@ -1689,6 +1704,7 @@ SUCCESSFULL");
 uint32_t is_service_on_adest(MDS_HDL mds_hdl,
                           MDS_SVC_ID svc_id)
 {
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_QUERY_PWE;    
@@ -1703,7 +1719,7 @@ uint32_t is_service_on_adest(MDS_HDL mds_hdl,
 uint32_t mds_service_query_for_pwe(MDS_HDL mds_hdl,
                                 MDS_SVC_ID svc_id)
 {
-
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info));
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_op=MDS_QUERY_PWE;    
 
@@ -2173,6 +2189,7 @@ uint32_t mds_service_system_subscribe(MDS_HDL mds_hdl,MDS_SVC_ID svc_id,
                                    EVT_FLTR evt_map)
 {
   /*request*/
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info))
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_SYS_SUBSCRIBE;    
@@ -2195,6 +2212,7 @@ uint32_t mds_service_system_subscribe(MDS_HDL mds_hdl,MDS_SVC_ID svc_id,
 uint32_t change_role(MDS_HDL mds_hdl,MDS_SVC_ID svc_id,V_DEST_RL new_role)
 {
   /*request*/
+  memset(&svc_to_mds_info, 0, sizeof(svc_to_mds_info))
   svc_to_mds_info.i_mds_hdl=mds_hdl;
   svc_to_mds_info.i_svc_id=svc_id;
   svc_to_mds_info.i_op=MDS_CHG_ROLE;

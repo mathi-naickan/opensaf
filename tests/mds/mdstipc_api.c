@@ -6129,8 +6129,8 @@ void tet_Dadest_all_rcvr_thread()
         printf("\nFail\n");
       }
       if(mds_direct_response(gl_tet_adest.mds_pwe1_hdl,
-                             NCSMDS_SVC_ID_EXTERNAL_MIN,0,
-                             MDS_SENDTYPE_RSP, gl_set_msg_fmt_ver)!=NCSCC_RC_SUCCESS)
+                             NCSMDS_SVC_ID_EXTERNAL_MIN,gl_set_msg_fmt_ver,
+                             MDS_SENDTYPE_RSP,0)!=NCSCC_RC_SUCCESS)
       {
         printf("\nFail\n");
       }
@@ -6165,8 +6165,8 @@ void tet_Dadest_all_chgrole_rcvr_thread()
         printf("\nFail\n");
       }
       if(mds_direct_response(gl_tet_adest.mds_pwe1_hdl,
-                             NCSMDS_SVC_ID_EXTERNAL_MIN,1500,
-                             MDS_SENDTYPE_RSP,gl_set_msg_fmt_ver)!=NCSCC_RC_SUCCESS)
+                             NCSMDS_SVC_ID_EXTERNAL_MIN, gl_set_msg_fmt_ver,
+                             MDS_SENDTYPE_RSP, 1500)!=NCSCC_RC_SUCCESS)
       {
         printf("\nFail\n");
       }
@@ -6303,8 +6303,8 @@ void tet_adest_all_rcvrack_thread()
         printf("\nFail\n");
       }
 
-      rs=mds_sendrsp_getack(gl_tet_adest.mds_pwe1_hdl,0,
-                            NCSMDS_SVC_ID_EXTERNAL_MIN,mesg);
+      rs=mds_sendrsp_getack(gl_tet_adest.mds_pwe1_hdl, NCSMDS_SVC_ID_EXTERNAL_MIN,
+                            0,mesg);
                
       printf("\nResponse code is %d",rs);
       gl_rcvdmsginfo.rsp_reqd=0;
@@ -6348,8 +6348,8 @@ void tet_adest_all_rcvrack_chgrole_thread()
       {
         printf("\tTask has been Created\n");fflush(stdout); 
       }
-      rs=mds_sendrsp_getack(gl_tet_adest.mds_pwe1_hdl,0,
-                            NCSMDS_SVC_ID_EXTERNAL_MIN,mesg);
+      rs=mds_sendrsp_getack(gl_tet_adest.mds_pwe1_hdl, NCSMDS_SVC_ID_EXTERNAL_MIN,
+                            0,mesg);
       if(m_NCS_TASK_RELEASE(gl_tet_adest.svc[1].task.t_handle)
          ==NCSCC_RC_SUCCESS)
         printf("\tTASK is released\n");
@@ -6391,8 +6391,8 @@ void tet_Dadest_all_rcvrack_chgrole_thread()
         printf("\tTask has been Created\n");fflush(stdout);
       }
       if(mds_direct_response(gl_tet_vdest[1].mds_pwe1_hdl,
-                             NCSMDS_SVC_ID_EXTERNAL_MIN,0,
-                             MDS_SENDTYPE_SNDRACK,gl_set_msg_fmt_ver)!=NCSCC_RC_SUCCESS)
+                             NCSMDS_SVC_ID_EXTERNAL_MIN, gl_set_msg_fmt_ver,
+                             MDS_SENDTYPE_SNDRACK, 0)!=NCSCC_RC_SUCCESS)
       {      
         printf("Response Fail\n");
       }
@@ -7970,8 +7970,8 @@ void tet_broadcast_to_svc_tp_6()
   else
   {
     printf("\nTest Case 6: Svc INTMIN on VDEST=200 Broadcasting a VERY HIGH Priority message (>MDS_DIRECT_BUF_MAXSIZE) to Svc EXTMIN\n");
-    memset(mesg->send_data,'S',2*MSG_SIZE+2 );
-    mesg->send_len=2*MSG_SIZE+2;
+    memset(mesg->send_data,'S',MSG_SIZE+512 );
+    mesg->send_len=MSG_SIZE+512;
     if(mds_service_subscribe(gl_tet_vdest[1].mds_pwe1_hdl,
                              NCSMDS_SVC_ID_INTERNAL_MIN,
                              NCSMDS_SCOPE_NONE,1,
@@ -11016,7 +11016,7 @@ void tet_direct_send_ack_tp_12()
                                NCSMDS_SVC_ID_EXTERNAL_MIN,
                                NCSMDS_SVC_ID_EXTERNAL_MIN,1,
                                MDS_SENDTYPE_SNDACK,gl_tet_vdest[1].vdest,
-                               NCSMDS_SVC_ID_INTERNAL_MIN,
+                               20,
                                MDS_SEND_PRIORITY_LOW,
                                message)!=NCSCC_RC_REQ_TIMOUT)
     {    
@@ -11093,7 +11093,7 @@ void tet_direct_send_ack_tp_13()
                                NCSMDS_SVC_ID_EXTERNAL_MIN,
                                NCSMDS_SVC_ID_EXTERNAL_MIN,1,
                                MDS_SENDTYPE_SNDACK,gl_tet_vdest[1].vdest,
-                               NCSMDS_SVC_ID_INTERNAL_MIN,
+                               20,
                                MDS_SEND_PRIORITY_MEDIUM,
                                    message))!=NCSCC_RC_REQ_TIMOUT)
     {    
@@ -11226,8 +11226,8 @@ void tet_Dvdest_rcvr_all_thread()
     if(gl_direct_rcvmsginfo.rsp_reqd)
     {
       if(mds_direct_response(gl_tet_vdest[1].mds_pwe1_hdl,
-                             NCSMDS_SVC_ID_EXTERNAL_MIN,0,
-                             MDS_SENDTYPE_RSP,gl_set_msg_fmt_ver)!=NCSCC_RC_SUCCESS)
+                             NCSMDS_SVC_ID_EXTERNAL_MIN, gl_set_msg_fmt_ver,
+                             MDS_SENDTYPE_RSP, 0)!=NCSCC_RC_SUCCESS)
       {      
         printf("Response Fail\n");
       }
@@ -11258,8 +11258,8 @@ void tet_Dvdest_rcvr_all_chg_role_thread()
     if(gl_direct_rcvmsginfo.rsp_reqd)
     {
       if(mds_direct_response(gl_tet_vdest[1].mds_pwe1_hdl,
-                             NCSMDS_SVC_ID_EXTERNAL_MIN,0,
-                             MDS_SENDTYPE_RSP,gl_set_msg_fmt_ver)!=NCSCC_RC_SUCCESS)
+                             NCSMDS_SVC_ID_EXTERNAL_MIN, gl_set_msg_fmt_ver,
+                             MDS_SENDTYPE_RSP, 0)!=NCSCC_RC_SUCCESS)
       {      
         printf("Response Fail\n");
       }
