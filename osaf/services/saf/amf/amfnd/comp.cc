@@ -1558,6 +1558,17 @@ uint32_t avnd_comp_csi_assign_done(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_R
 				rc = avnd_su_si_oper_done(cb, comp->su, m_AVND_SU_IS_ALL_SI(comp->su) ? NULL : csi->si);
 			}
 		}
+
+		/*
+		   If this CSI was in assigning state due to component restart and that time removal
+		   request came from AMFD, AMFND waits for the completion of assignment.
+		   After successful assignment, AMFND will start removal of CSI.
+		 */
+		if ((csi->pending_removal == true) &&
+				(csi->si->curr_assign_state == AVND_SU_SI_ASSIGN_STATE_REMOVING)) {
+			rc = avnd_comp_csi_remove(cb, csi->comp, csi);
+			csi->pending_removal = false;
+		}
 	} else {		/* assign all the csis belonging to the next rank in one shot */
 		/* get the first csi-record for this comp */
 		curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
@@ -1578,6 +1589,19 @@ uint32_t avnd_comp_csi_assign_done(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_R
 done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
+}
+
+static bool all_csis_in_si_removed(const AVND_SU_SI_REC *si)
+{
+	AVND_COMP_CSI_REC *csi;
+	for (csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si->csi_list);
+		csi; 
+		csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&csi->si_dll_node)) {
+
+		if (csi->curr_assign_state != AVND_COMP_CSI_ASSIGN_STATE_REMOVED)
+			return false;
+	}
+	return true;
 }
 /**
  * @brief       Checks if all csis of all the sis in this su are in removed state
@@ -1679,18 +1703,30 @@ uint32_t avnd_comp_csi_remove_done(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_R
 				goto done;
 		}
 		else {
-			curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&csi->si_dll_node);
+			for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_LAST(&csi->si->csi_list);
+				curr_csi;
+				curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&curr_csi->si_dll_node)) {
+				if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVED(curr_csi)) 
+					continue;
+				else if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(curr_csi)) 
+					break;
+				else if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr_csi)) {
+					TRACE("'%s' is getting assigned, remove it after assignment",
+							curr_csi->name.value);
+					curr_csi->pending_removal = true;	
+					break;
+				}
+				else  {
+					rc = avnd_comp_csi_remove(cb, curr_csi->comp, curr_csi);
+					break;
+				}
+			}
 
-			/* assign the csi */
-			if (curr_csi)
-				rc = avnd_comp_csi_remove(cb, curr_csi->comp, curr_csi);
-			else
-				/* all csis belonging to the si are removed */
+			/* all csis belonging to the si are removed */
+			if ((all_csis_in_si_removed(csi->si) == true) &&
+					(m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVING(csi->si)))
 				rc = avnd_su_si_oper_done(cb, comp->su,
 						m_AVND_SU_IS_ALL_SI(comp->su) ? NULL : csi->si);
-
-			if (NCSCC_RC_SUCCESS != rc)
-				goto done;
 		}
 	} else {		
 		/* Issue remove callback with TARGET_ALL for CSIs belonging to prv rank.*/
