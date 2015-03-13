@@ -765,8 +765,10 @@ bool si_assignment_state_check(AVD_SI *si)
 	bool assignmemt_status = false;
 
 	for (sisu = si->list_of_sisu;sisu;sisu = sisu->si_next) {
-		if (((sisu->state == SA_AMF_HA_ACTIVE) || (sisu->state == SA_AMF_HA_QUIESCING)) &&
-			(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
+		if (((sisu->state == SA_AMF_HA_ACTIVE) || 
+					(sisu->state == SA_AMF_HA_QUIESCING) ||
+					(sisu->state == SA_AMF_HA_QUIESCED)) &&
+				(sisu->fsm != AVD_SU_SI_STATE_UNASGN)) {
 			assignmemt_status = true;
 			break;
 		}
