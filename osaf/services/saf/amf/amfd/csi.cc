@@ -1265,3 +1265,34 @@ bool csi_assignment_validate(AVD_SG *sg)
 				return true;
 	return false;
 }
+
+
+/**
+ * @brief       Checks if sponsor CSIs of any CSI are assigned to any comp in this SU.
+ *
+ * @param[in]   ptr to CSI.
+ * @param[in]   ptr to SU.
+ *
+ * @return      true/false.
+ */
+bool are_sponsor_csis_assigned_in_su(AVD_CSI *csi, AVD_SU *su)
+{
+        for (AVD_CSI_DEPS *spons_csi = csi->saAmfCSIDependencies; spons_csi != NULL;
+                spons_csi = spons_csi->csi_dep_next) {
+		bool is_sponsor_assigned = false;
+		
+                AVD_CSI *tmp_csi =  csi_db->find(Amf::to_string(&spons_csi->csi_dep_name_value));
+
+		//Check if this sponsor csi is assigned to any comp in this su.
+		for (AVD_COMP_CSI_REL *compcsi = tmp_csi->list_compcsi; compcsi;
+				compcsi = compcsi->csi_csicomp_next) {	
+			if (compcsi->comp->su == su)
+				is_sponsor_assigned = true;
+		}
+		//Return false if this sponsor is not assigned to this SU.
+		if (is_sponsor_assigned == false)
+			return false;
+        }
+        return true;
+}
+
