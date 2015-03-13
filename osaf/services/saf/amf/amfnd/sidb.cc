@@ -423,6 +423,7 @@ AVND_COMP_CSI_REC *avnd_su_si_csi_rec_add(AVND_CB *cb,
 	csi_rec->comp_name = comp->name;
 	csi_rec->si_name = si_rec->name;
 	csi_rec->su_name = su->name;
+	csi_rec->pending_removal = false;
 
 	return csi_rec;
 

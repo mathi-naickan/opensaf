@@ -187,6 +187,11 @@ typedef struct avnd_comp_csi_rec {
 	SaNameT su_name;	/* For Checkpointing */
 	AVSV_SUSI_ACT single_csi_add_rem_in_si; /* To detect whether single csi removal is going on.*/
 
+	bool pending_removal; /*Flag is used when AMFND gets removal of assignments from AMFD
+				when a CSI is still in assigning state. In such case, AMFND can issue 
+				removal callback only after CSI gets assigned. AMFND will mark this flag 
+				so that it can start removal after CSI is assigned.
+			       */
 } AVND_COMP_CSI_REC;
 
 #define AVND_COMP_CSI_REC_NULL ((AVND_COMP_CSI_REC *)0)
