@@ -145,6 +145,16 @@ static void clm_node_exit_start(AVD_AVND *node, SaClmClusterChangesT change)
 		goto done;
 	}
 
+	/* According to AMF B.04.01 spec: Section 3.2.6.2:
+	   "If a node is enabled and not in the locked-instantiation administrative
+	   state when it leaves the cluster membership, the node becomes disabled 
+	   while it is out of the cluster and becomes enabled again when it rejoins
+	   the cluster."	
+	 */
+	if ((node->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) && 
+		(node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION))
+			avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_DISABLED);
+
 	if (node->saAmfNodeAdminState != SA_AMF_ADMIN_UNLOCKED) {
 		LOG_NO("Amf Node is not in unlocked state, amf admin state is '%u'", node->saAmfNodeAdminState);
 		if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED) {
