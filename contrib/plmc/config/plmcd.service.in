@@ -1,6 +1,7 @@
 [Unit]
 Description=OpenSAF PLMC Daemon
 After=local-fs.target remote-fs.target syslog.target network.target plmcboot.service
+Before=opensafd.service
 Wants=plmcboot.service
 
 [Service]
