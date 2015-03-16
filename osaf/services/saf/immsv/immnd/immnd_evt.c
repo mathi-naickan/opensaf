@@ -358,7 +358,8 @@ uint32_t immnd_evt_destroy(IMMSV_EVT *evt, SaBoolT onheap, uint32_t line)
 		evt->info.immnd.info.searchInit.rootName.buf = NULL;
 		evt->info.immnd.info.searchInit.rootName.size = 0;
 
-		if (evt->info.immnd.info.searchInit.searchParam.present == ImmOmSearchParameter_PR_oneAttrParam) {
+		if (evt->info.immnd.info.searchInit.searchParam.present == ImmOmSearchParameter_PR_oneAttrParam
+				|| evt->info.immnd.info.searchInit.searchParam.present == ImmOmSearchParameter_PR_nonExtendedName_oneAttrParam) {
 			free(evt->info.immnd.info.searchInit.searchParam.choice.oneAttrParam.attrName.buf);
 			evt->info.immnd.info.searchInit.searchParam.choice.oneAttrParam.attrName.buf = NULL;
 			evt->info.immnd.info.searchInit.searchParam.choice.oneAttrParam.attrName.size = 0;
