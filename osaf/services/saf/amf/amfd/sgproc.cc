@@ -36,6 +36,39 @@
 #include <clm.h>
 #include <si_dep.h>
 
+
+/**
+ * @brief       While creating compcsi relationship in SUSI, AMF may assign
+ * 		a dependent csi to a component in the SU when its one or more 
+ *              sponsor csi remains unassigned in the same SU. This function 
+ *              deletes compcsi which belongs to such a dependent csi.
+ *              This function should be used before sending assignment list to AMFND.
+ *
+ * @param[in]   ptr to AVD_SU_SI_REL.
+ *
+ */
+
+static void verify_csi_deps_and_delete_invalid_compcsi(AVD_SU_SI_REL *susi)	
+{
+	for (AVD_CSI *csi = susi->si->list_of_csi; csi; csi = csi->si_list_of_csi_next)
+	{
+		if (are_sponsor_csis_assigned_in_su(csi,susi->su) == false) {
+			for (AVD_COMP_CSI_REL *compcsi = susi->list_of_csicomp; compcsi;
+					compcsi = compcsi->susi_csicomp_next) {
+				if (compcsi->csi == csi) {
+					TRACE("sponsor csi unassigned: delete compcsi "
+							"between '%s' and '%s'",
+							compcsi->comp->comp_info.name.value,
+							compcsi->csi->name.value);
+					compcsi->csi->assign_flag = false;
+					compcsi->comp->assign_flag = false;
+					avd_compcsi_from_csi_and_susi_delete(susi, compcsi, true);
+					break;
+				}
+			}
+		}
+	}
+}
 /*****************************************************************************
  * Function: avd_new_assgn_susi
  *
@@ -177,6 +210,13 @@ uint32_t avd_new_assgn_susi(AVD_CL_CB *cb, AVD_SU *su, AVD_SI *si,
 	}/* while (l_csi != NULL) */
 
 npisu_done:
+	
+	/* Check from csi deps perspective, dependent csi should be assigned only if all the sponsors
+	   are assigned. Delete all those compcsi in which dependent csi is getting assigned even if 
+	   anyone of the sponsors is unassigned.
+	 */
+	verify_csi_deps_and_delete_invalid_compcsi(susi);
+	
 	l_csi = si->list_of_csi;
 	while (l_csi != NULL) {
 		if (l_csi->assign_flag == false) {

@@ -161,5 +161,6 @@ extern void csi_cmplt_delete(struct avd_csi_tag *csi, SaBoolT ckpt);
 extern AVD_CSI *csi_create(const SaNameT *csi_name);
 extern bool csi_assignment_validate(struct avd_sg_tag *sg);
 extern SaAisErrorT csi_assign_hdlr(AVD_CSI *csi);
+extern bool are_sponsor_csis_assigned_in_su(AVD_CSI *dep_csi, AVD_SU *su);
 
 #endif
