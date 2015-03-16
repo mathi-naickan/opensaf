@@ -408,6 +408,12 @@ static void handle_event_in_failover_state(AVD_EVT *evt)
 				avd_node_failover(node);
 			}
 		}
+		/* Since we are sending lots of async update to its peer from
+		   avd_node_failover, let us send commit message from here.
+		   Otherwise, if warm sync message comes at this point of time,
+		   Standby Amfd will crash. */
+		if (cb->sync_required == true)
+			m_AVSV_SEND_CKPT_UPDT_SYNC(cb, NCS_MBCSV_ACT_UPDATE, 0);
 	}
 
 	TRACE_LEAVE();
