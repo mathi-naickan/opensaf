@@ -61,6 +61,7 @@
 #include "clms_evt.h"
 #include "clms_imm.h"
 #include "clms_ntf.h"
+#include "saf_error.h"
 
 /* ========================================================================
  *   DEFINITIONS
