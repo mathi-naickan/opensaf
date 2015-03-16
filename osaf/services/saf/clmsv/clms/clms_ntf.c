@@ -27,6 +27,9 @@ static const char *clm_adm_state_name[] = {
 	"SHUTTING_DOWN"
 };
 
+const unsigned int delay_ms = 500;
+const unsigned int max_wait_time_ms = 5 * 1000;     /* 5 seconds */
+
 static void fill_ntf_header_part_clms(SaNtfNotificationHeaderT *notificationHeader,
 				      SaNtfEventTypeT eventType,
 				      SaNameT node_name,
@@ -57,6 +60,7 @@ static uint32_t sendStateChangeNotificationClms(CLMS_CB * clms_cb,
 					     uint32_t sourceIndicator, SaUint32T stateId, SaUint32T newState)
 {
 	uint32_t status = NCSCC_RC_FAILURE;
+	int msecs_waited;
 	SaNtfStateChangeNotificationT myStateNotification;
 
 	status = saNtfStateChangeNotificationAllocate(clms_cb->ntf_hdl,	/* handle to Notification Service instance */
@@ -73,7 +77,7 @@ static uint32_t sendStateChangeNotificationClms(CLMS_CB * clms_cb,
 						      0);
 
 	if (status != SA_AIS_OK) {
-		/* log the error code here */
+		LOG_ER("saNtfStateChangeNotificationAllocate() returned: %s", saf_error(status));
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -85,18 +89,27 @@ static uint32_t sendStateChangeNotificationClms(CLMS_CB * clms_cb,
 	myStateNotification.changedStates->oldStatePresent = SA_FALSE;
 	myStateNotification.changedStates->newState = newState;
 
+	msecs_waited = 0;
 	status = saNtfNotificationSend(myStateNotification.notificationHandle);
+	while ((status == SA_AIS_ERR_TRY_AGAIN) &&
+						(msecs_waited < max_wait_time_ms)) {
+		usleep(delay_ms * 1000);
+		msecs_waited += delay_ms;
+		status = saNtfNotificationSend(myStateNotification.notificationHandle);
+	}
 
 	if (status != SA_AIS_OK) {
-		saNtfNotificationFree(myStateNotification.notificationHandle);
-		/* log the error code here */
+		LOG_ER("saNtfNotificationSend() returned: %s", saf_error(status));
+		status = saNtfNotificationFree(myStateNotification.notificationHandle);
+		if (status != SA_AIS_OK)
+			LOG_ER("saNtfNotificationFree() returned: %s", saf_error(status));
 		return NCSCC_RC_FAILURE;
 	}
 
 	status = saNtfNotificationFree(myStateNotification.notificationHandle);
 
 	if (status != SA_AIS_OK) {
-		/* log the error code here */
+		LOG_ER("saNtfNotificationFree() returned: %s", saf_error(status));
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -118,7 +131,6 @@ static uint32_t sendStateChangeNotificationClms(CLMS_CB * clms_cb,
 *****************************************************************************/
 void clms_node_join_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 {
-	uint32_t status = NCSCC_RC_FAILURE;
 	SaNameT dn;
 	SaUint8T add_text[SA_MAX_NAME_LENGTH];
 
@@ -133,16 +145,13 @@ void clms_node_join_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 	memset(&add_text, '\0', sizeof(add_text));
 	sprintf((SaInt8T *)add_text, "CLM node %s Joined", dn.value);
 
-	status = sendStateChangeNotificationClms(clms_cb,
-						 dn,
-						 add_text,
-						 SA_SVC_CLM,
-						 SA_CLM_NTFID_NODE_JOIN,
-						 SA_NTF_OBJECT_OPERATION,
-						 SA_CLM_CLUSTER_CHANGE_STATUS, SA_CLM_NODE_JOINED);
-
-	if(status == NCSCC_RC_FAILURE)
-		LOG_ER("clms_node_join_ntf FAILED: status= %u",status);
+	sendStateChangeNotificationClms(clms_cb,
+					dn,
+					add_text,
+					SA_SVC_CLM,
+					SA_CLM_NTFID_NODE_JOIN,
+					SA_NTF_OBJECT_OPERATION,
+					SA_CLM_CLUSTER_CHANGE_STATUS, SA_CLM_NODE_JOINED);
 
 }
 
@@ -160,7 +169,6 @@ void clms_node_join_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 *****************************************************************************/
 void clms_node_exit_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 {
-	uint32_t status = NCSCC_RC_FAILURE;
 	SaNameT dn;
 	SaUint8T add_text[SA_MAX_NAME_LENGTH];
 
@@ -175,16 +183,13 @@ void clms_node_exit_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 	memset(&add_text, '\0', sizeof(add_text));
 	sprintf((SaInt8T *)add_text, "CLM node %s Exit", dn.value);
 
-	status = sendStateChangeNotificationClms(clms_cb,
-						 dn,
-						 add_text,
-						 SA_SVC_CLM,
-						 SA_CLM_NTFID_NODE_LEAVE,
-						 SA_NTF_OBJECT_OPERATION,
-						 SA_CLM_CLUSTER_CHANGE_STATUS, SA_CLM_NODE_LEFT);
-
-	if(status == NCSCC_RC_FAILURE)
-		LOG_ER("clms_node_exit_ntf failed %u",status);		
+	sendStateChangeNotificationClms(clms_cb,
+					dn,
+					add_text,
+					SA_SVC_CLM,
+					SA_CLM_NTFID_NODE_LEAVE,
+					SA_NTF_OBJECT_OPERATION,
+					SA_CLM_CLUSTER_CHANGE_STATUS, SA_CLM_NODE_LEFT);
 
 }
 
@@ -202,7 +207,6 @@ void clms_node_exit_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 *****************************************************************************/
 void clms_node_reconfigured_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 {
-	uint32_t status = NCSCC_RC_FAILURE;
 	SaNameT dn;
 	SaUint8T add_text[SA_MAX_NAME_LENGTH];
 
@@ -215,16 +219,13 @@ void clms_node_reconfigured_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 	memset(&add_text, '\0', sizeof(add_text));
 	sprintf((SaInt8T *)add_text, "CLM node %s Reconfigured", dn.value);
 
-	status = sendStateChangeNotificationClms(clms_cb,
-						 dn,
-						 add_text,
-						 SA_SVC_CLM,
-						 SA_CLM_NTFID_NODE_RECONFIG,
-						 SA_NTF_OBJECT_OPERATION,
-						 SA_CLM_CLUSTER_CHANGE_STATUS, SA_CLM_NODE_RECONFIGURED);
-
-	if(status == NCSCC_RC_FAILURE)
-                LOG_ER("clms_node_reconfigured_ntf failed %u",status);
+	sendStateChangeNotificationClms(clms_cb,
+					dn,
+					add_text,
+					SA_SVC_CLM,
+					SA_CLM_NTFID_NODE_RECONFIG,
+					SA_NTF_OBJECT_OPERATION,
+					SA_CLM_CLUSTER_CHANGE_STATUS, SA_CLM_NODE_RECONFIGURED);
 
 }
 
@@ -242,7 +243,6 @@ void clms_node_reconfigured_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node)
 *****************************************************************************/
 void clms_node_admin_state_change_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * node, SaUint32T newState)
 {
-	uint32_t status = NCSCC_RC_FAILURE;
 	SaNameT dn;
 	SaUint8T add_text[SA_MAX_NAME_LENGTH];
 
@@ -258,14 +258,12 @@ void clms_node_admin_state_change_ntf(CLMS_CB * clms_cb, CLMS_CLUSTER_NODE * nod
 	memset(&add_text, '\0', sizeof(add_text));
 	sprintf((SaInt8T *)add_text, "CLM node %s Admin State Change", dn.value);
 
-	status = sendStateChangeNotificationClms(clms_cb,
-						 dn,
-						 add_text,
-						 SA_SVC_CLM,
-						 SA_CLM_NTFID_NODE_ADMIN_STATE,
-						 SA_NTF_MANAGEMENT_OPERATION, SA_CLM_ADMIN_STATE, newState);
-	if (status == NCSCC_RC_FAILURE)
-		LOG_ER("clms_node_admin_state_change_ntf failed %u",status);
+	sendStateChangeNotificationClms(clms_cb,
+					dn,
+					add_text,
+					SA_SVC_CLM,
+					SA_CLM_NTFID_NODE_ADMIN_STATE,
+					SA_NTF_MANAGEMENT_OPERATION, SA_CLM_ADMIN_STATE, newState);
 
 	TRACE_LEAVE();
 }
