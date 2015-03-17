@@ -1991,24 +1991,11 @@ static uint32_t immsv_evt_enc_sublevels(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 			 */
 		} else if ((i_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_COMPLETED_RSP_2) ||
 			(i_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_MODIFY_RSP_2) ||
-			(i_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP_2)) {
+			(i_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP_2) ||
+			(i_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2))
+		{
 			IMMSV_OCTET_STRING *os = 
 				&(i_evt->info.immnd.info.ccbUpcallRsp.errorString);
-			if(!immsv_evt_enc_inline_text(__LINE__, o_ub, os)) {
-				return NCSCC_RC_OUT_OF_MEM;
-			}
-		} else if (i_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2) {
-			IMMSV_OCTET_STRING *os = &(i_evt->info.immnd.info.ccbUpcallRsp.errorString);
-			if(!immsv_evt_enc_inline_text(__LINE__, o_ub, os)) {
-				return NCSCC_RC_OUT_OF_MEM;
-			}
-			os = &(i_evt->info.immnd.info.ccbUpcallRsp.name);
-			if(!immsv_evt_enc_inline_text(__LINE__, o_ub, os)) {
-				return NCSCC_RC_OUT_OF_MEM;
-			}
-		} else if ((i_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP) ||
-			(i_evt->info.immnd.type == IMMND_EVT_A2ND_OI_CCB_AUG_INIT)) {
-			IMMSV_OCTET_STRING *os = &(i_evt->info.immnd.info.ccbUpcallRsp.name);
 			if(!immsv_evt_enc_inline_text(__LINE__, o_ub, os)) {
 				return NCSCC_RC_OUT_OF_MEM;
 			}
@@ -2539,18 +2526,11 @@ static uint32_t immsv_evt_dec_sublevels(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 			}
 		} else if ((o_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_COMPLETED_RSP_2) ||
 			(o_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_MODIFY_RSP_2) ||
-			(o_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP_2)) {
+			(o_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP_2) ||
+			(o_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2)) 
+		{
 			IMMSV_OCTET_STRING *os = 
 				&(o_evt->info.immnd.info.ccbUpcallRsp.errorString);
-			immsv_evt_dec_inline_string(i_ub, os);
-		} else if (o_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2) {
-			IMMSV_OCTET_STRING *os = &(o_evt->info.immnd.info.ccbUpcallRsp.errorString);
-			immsv_evt_dec_inline_string(i_ub, os);
-			os = &(o_evt->info.immnd.info.ccbUpcallRsp.name);
-			immsv_evt_dec_inline_string(i_ub, os);
-		} else if ((o_evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP) ||
-			(o_evt->info.immnd.type == IMMND_EVT_A2ND_OI_CCB_AUG_INIT)) {
-			IMMSV_OCTET_STRING *os = &(o_evt->info.immnd.info.ccbUpcallRsp.name);
 			immsv_evt_dec_inline_string(i_ub, os);
 		} else if (o_evt->info.immnd.type == IMMND_EVT_A2ND_IMM_ADMINIT) {
 			IMMSV_OCTET_STRING *os = &(o_evt->info.immnd.info.adminitReq.i.adminOwnerName.octetString);
@@ -3681,13 +3661,27 @@ static uint32_t immsv_evt_enc_toplevel(IMMSV_EVT *i_evt, NCS_UBAID *o_ub)
 			ncs_encode_32bit(&p8, immndevt->info.ccbUpcallRsp.result);
 			ncs_enc_claim_space(o_ub, 4);
 
+			IMMSV_RSRV_SPACE_ASSERT(p8, o_ub, 2);
+			const char* value = osaf_extended_name_borrow(&immndevt->info.ccbUpcallRsp.name);
+			size_t length = strlen(value);
+			osafassert(length <= 0xffff);
+			ncs_encode_16bit(&p8, length);
+			ncs_enc_claim_space(o_ub, 2);
+
+			/* name.value is top level because type is SaNameT */
 			if((immndevt->type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP) ||
 				(immndevt->type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2) ||
 				(immndevt->type == IMMND_EVT_A2ND_OI_CCB_AUG_INIT)) {
-				IMMSV_RSRV_SPACE_ASSERT(p8, o_ub, 4);
-				ncs_encode_32bit(&p8, immndevt->info.ccbUpcallRsp.name.size);
-				ncs_enc_claim_space(o_ub, 4);
-				/* immndevt->info.ccbUpcallRsp.name.buf encoded by sublevel */
+				if (length) {
+					if(ncs_encode_n_octets_in_uba(o_ub,
+						   (uint8_t*) value,
+						   length)
+						!= NCSCC_RC_SUCCESS) {
+						LOG_WA("Failure inside ncs_encode_n_octets_in_uba");
+						rc = NCSCC_RC_FAILURE;
+						break;
+					}
+				}
 			}
 
 			if((immndevt->type == IMMND_EVT_A2ND_CCB_COMPLETED_RSP_2) ||
@@ -5072,13 +5066,29 @@ static uint32_t immsv_evt_dec_toplevel(NCS_UBAID *i_ub, IMMSV_EVT *o_evt)
 			immndevt->info.ccbUpcallRsp.result = ncs_decode_32bit(&p8);
 			ncs_dec_skip_space(i_ub, 4);
 
+			IMMSV_FLTN_SPACE_ASSERT(p8, local_data, i_ub, 2);
+			size_t length = ncs_decode_16bit(&p8);
+			ncs_dec_skip_space(i_ub, 2);
+
+			osaf_extended_name_clear(&immndevt->info.ccbUpcallRsp.name);
 			if((immndevt->type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP) ||
 				(immndevt->type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2) ||
 				(immndevt->type == IMMND_EVT_A2ND_OI_CCB_AUG_INIT)) {
-				IMMSV_FLTN_SPACE_ASSERT(p8, local_data, i_ub, 4);
-				immndevt->info.ccbUpcallRsp.name.size = ncs_decode_32bit(&p8);
-				ncs_dec_skip_space(i_ub, 4);
-				/* immndevt->info.ccbUpcallRsp.name.buf decoded by sublevel */
+				/* name.value is top level because type is SaNameT */
+				if (length) {
+					char* value = (char*) malloc(length + 1);
+					if (value == NULL || ncs_decode_n_octets_from_uba(i_ub,
+						   (uint8_t*) value,
+						   length) !=
+						NCSCC_RC_SUCCESS) {
+						free(value);
+						LOG_WA("Failure inside ncs_decode_n_octets_from_uba");
+						rc = NCSCC_RC_FAILURE;
+						break;
+					}
+					value[length] = '\0';
+					osaf_extended_name_steal(value, &immndevt->info.ccbUpcallRsp.name);
+				}
 			}
 
 			if((immndevt->type == IMMND_EVT_A2ND_CCB_COMPLETED_RSP_2) ||

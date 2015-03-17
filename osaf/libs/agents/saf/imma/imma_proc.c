@@ -2618,17 +2618,7 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 					ccbObjDelRpl.info.immnd.info.ccbUpcallRsp.oi_client_hdl = callback->lcl_imm_hdl;
 					ccbObjDelRpl.info.immnd.info.ccbUpcallRsp.ccbId = callback->ccbID;
 					ccbObjDelRpl.info.immnd.info.ccbUpcallRsp.inv = callback->inv;
-
-					IMMSV_OCTET_STRING *objectName = &ccbObjDelRpl.info.immnd.info.ccbUpcallRsp.name;
-					size_t length = osaf_extended_name_length(&callback->name);
-					objectName->buf = (char*) malloc((length + 1) * sizeof(char));
-					if (!objectName->buf) { /* Just log error and drop this reply. */
-						LOG_ER("Failed to allocate memory, drop this reply");
-						break;
-					}
-					memcpy(objectName->buf, osaf_extended_name_borrow(&callback->name), length);
-					objectName->buf[length] = '\0';
-					objectName->size = length + 1;
+					osaf_extended_name_lend(osaf_extended_name_borrow(&(callback->name)), &(ccbObjDelRpl.info.immnd.info.ccbUpcallRsp.name));
 
 					osafassert(m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) == NCSCC_RC_SUCCESS);
 					locked = true;
@@ -2676,10 +2666,6 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 						/*Cant do anything but log error and drop this reply. */
 						TRACE_3("CcbObjectDeleteCallback: send reply to IMMND failed");
 					}
-
-					free(objectName->buf);
-					objectName->buf = NULL;
-					objectName->size = 0;
 				} else {
 					/* callback->inv == 0 means PBE (CCB or PRTO) or applier upcall, no reply. */
 					osafassert(cl_node->isPbe || cl_node->isApplier);

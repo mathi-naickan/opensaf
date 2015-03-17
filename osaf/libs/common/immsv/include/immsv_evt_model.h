@@ -288,7 +288,7 @@ extern "C" {
 		SaUint32T implId;
 		SaUint32T inv;
 		SaAisErrorT result;
-		IMMSV_OCTET_STRING name;
+		SaNameT name;
 		IMMSV_OCTET_STRING errorString;
 	} IMMSV_OI_CCB_UPCALL_RSP;
 

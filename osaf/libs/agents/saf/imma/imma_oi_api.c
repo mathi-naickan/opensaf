@@ -3621,7 +3621,6 @@ SaAisErrorT saImmOiAugmentCcbInitialize(
 	SaVersionT version = {'A', 2, 11};
 	SaUint32T adminOwnerId = 0;
 	SaUint32T ccbId = 0;
-	IMMSV_OCTET_STRING *objectName = NULL;
 
 	TRACE_ENTER();
 
@@ -3745,17 +3744,7 @@ SaAisErrorT saImmOiAugmentCcbInitialize(
 	init_evt.info.immnd.info.ccbUpcallRsp.ccbId = ccbId;
 	init_evt.info.immnd.info.ccbUpcallRsp.implId = cbi->implId;
 	init_evt.info.immnd.info.ccbUpcallRsp.inv = cbi->inv;
-
-	objectName = &init_evt.info.immnd.info.ccbUpcallRsp.name;
-	size_t length = osaf_extended_name_length(&cbi->name);
-	objectName->buf = (char*) malloc((length + 1) * sizeof(char));
-	if (!objectName->buf) {
-		rc = SA_AIS_ERR_NO_MEMORY;
-		goto done;
-	}
-	memcpy(objectName->buf, osaf_extended_name_borrow(&cbi->name), length);
-	objectName->buf[length] = '\0';
-	objectName->size = length + 1;
+	init_evt.info.immnd.info.ccbUpcallRsp.name = cbi->name;
 	
 	/* Note that we register using the new OM handle as client for the aug-ccb */
 	rc = imma_evt_fake_evs(cb, &init_evt, &out_evt, cl_node->syncr_timeout,
@@ -3879,12 +3868,6 @@ SaAisErrorT saImmOiAugmentCcbInitialize(
 	if(out_evt) {
 		free(out_evt);
 		out_evt = NULL;
-	}
-
-	if (objectName && objectName->buf) {
-		free(objectName->buf);
-		objectName->buf = NULL;
-		objectName->size = 0;
 	}
 
  lock_fail:

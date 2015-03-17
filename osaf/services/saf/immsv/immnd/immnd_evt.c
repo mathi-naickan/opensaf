@@ -470,23 +470,12 @@ uint32_t immnd_evt_destroy(IMMSV_EVT *evt, SaBoolT onheap, uint32_t line)
 		immsv_evt_free_name_list(evt->info.immnd.info.admReq.objectNames);
 		evt->info.immnd.info.admReq.objectNames = NULL;
 	} else if ((evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP_2) ||
+		   (evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2) ||
 		   (evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_MODIFY_RSP_2) ||
 		   (evt->info.immnd.type == IMMND_EVT_A2ND_CCB_COMPLETED_RSP_2)) {
 		free(evt->info.immnd.info.ccbUpcallRsp.errorString.buf);
 		evt->info.immnd.info.ccbUpcallRsp.errorString.buf = NULL;
 		evt->info.immnd.info.ccbUpcallRsp.errorString.size = 0;
-	} else if (evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP_2) {
-		free(evt->info.immnd.info.ccbUpcallRsp.errorString.buf);
-		evt->info.immnd.info.ccbUpcallRsp.errorString.buf = NULL;
-		evt->info.immnd.info.ccbUpcallRsp.errorString.size = 0;
-		free(evt->info.immnd.info.ccbUpcallRsp.name.buf);
-		evt->info.immnd.info.ccbUpcallRsp.name.buf = NULL;
-		evt->info.immnd.info.ccbUpcallRsp.name.size = 0;
-	} else if ((evt->info.immnd.type == IMMND_EVT_A2ND_CCB_OBJ_DELETE_RSP) ||
-		(evt->info.immnd.type == IMMND_EVT_A2ND_OI_CCB_AUG_INIT)) {
-		free(evt->info.immnd.info.ccbUpcallRsp.name.buf);
-		evt->info.immnd.info.ccbUpcallRsp.name.buf = NULL;
-		evt->info.immnd.info.ccbUpcallRsp.name.size = 0;
 	} else if (evt->info.immnd.type == IMMND_EVT_A2ND_IMM_ADMINIT) {
 		free(evt->info.immnd.info.adminitReq.i.adminOwnerName.octetString.buf);
 		evt->info.immnd.info.adminitReq.i.adminOwnerName.octetString.buf = NULL;
