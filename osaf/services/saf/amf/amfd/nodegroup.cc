@@ -528,7 +528,9 @@ static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 		}
 		case SA_IMM_ATTR_VALUES_DELETE: {
 			/* find node to delete */
-			ng->saAmfNGNodeList.erase(Amf::to_string((SaNameT*)mod->modAttr.attrValues[j]));
+			for (j = 0; j < mod->modAttr.attrValuesNumber; j++) {
+				ng->saAmfNGNodeList.erase(Amf::to_string((SaNameT*)mod->modAttr.attrValues[j]));
+			}
 
 			TRACE("number_nodes %u", ng->number_nodes());
 			break;
