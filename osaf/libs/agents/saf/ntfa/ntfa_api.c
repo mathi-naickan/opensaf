@@ -1398,23 +1398,25 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 		goto done;
 	}
 
+	osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 	notification_hdl_rec = ncshm_take_hdl(NCS_SERVICE_ID_NTFA, notificationHandle);
 	if (notification_hdl_rec == NULL) {
+		osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 		TRACE("ncshm_take_hdl notificationHandle failed");
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		goto err_free;
 	}
 	notification_hdl_rec->is_longdn_agent_owner = false;
-	osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 	client_handle = notification_hdl_rec->parent_hdl->local_hdl;
-	osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 	/* retrieve client hdl rec */
 	client_rec = ncshm_take_hdl(NCS_SERVICE_ID_NTFA, client_handle);
 	if (client_rec == NULL) {
+		osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 		TRACE("ncshm_take_hdl client_handle failed");
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		goto done_give_hdl;
 	}
+	osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 
     /**
      ** Populate a sync MDS message
@@ -1427,7 +1429,6 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 	send_param->notificationType = notification_hdl_rec->ntfNotificationType;
 	ntfsv_v_data_cp(&send_param->variable_data, &notification_hdl_rec->variable_data);	
 	
-	osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 	/* Check parameters, depending on type */
 	switch (notification_hdl_rec->ntfNotificationType) {
 	case SA_NTF_TYPE_ALARM:
@@ -1486,7 +1487,6 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 		goto done_give_hdls;
 	}
 
-	osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 	/* Send a sync MDS message to obtain a notification id */
 	mds_rc = ntfa_mds_msg_sync_send(&ntfa_cb, &msg, &o_msg, timeout);
 	switch (mds_rc) {
@@ -1506,7 +1506,6 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 		TRACE("ntfa_mds_msg_sync_send FAILED: %u", rc);
 		rc = SA_AIS_ERR_TRY_AGAIN;
 	}
-	osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);	
 	if (mds_rc != NCSCC_RC_SUCCESS) {
 		goto done_give_hdls;
 	}
@@ -1556,7 +1555,6 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
  done_give_hdls:
 	 if (o_msg)
 		 ntfa_msg_destroy(o_msg);
-	osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);	 
 	ncshm_give_hdl(client_handle);
  done_give_hdl:
 	ncshm_give_hdl(notificationHandle);
