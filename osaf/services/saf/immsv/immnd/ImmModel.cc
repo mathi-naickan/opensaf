@@ -10688,7 +10688,7 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
                                 obj->mClassInfo->mAttrMap.find(j->first);
                             osafassert(k != obj->mClassInfo->mAttrMap.end());
 
-                            if((searchOptions & SA_IMM_SEARCH_NO_RDN) && k->second->mFlags) {
+                            if((searchOptions & SA_IMM_SEARCH_NO_RDN) && (k->second->mFlags & SA_IMM_ATTR_RDN)) {
                                 /* NO_RDN flag is set. RDN will be excluded from the result */
                                 continue;
                             }
