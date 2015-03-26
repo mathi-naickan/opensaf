@@ -12555,8 +12555,11 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
 
     ci2=sPbeRtReqContinuationMap.begin(); 
     while(ci2!=sPbeRtReqContinuationMap.end()) {
-        //TODO the timeout should not be hardwired, but for now it is.
-        if(now - ci2->second.mCreateTime >= DEFAULT_TIMEOUT_SEC) {
+        //Timeout on PRT request continuation is hardwired but long.
+        //It needs to be long to allow reply on larger batch jobs such as a
+        //schema/class change with instance migration and slow file system.
+        //It can not be infinite as that could cause a memory leak.
+	    if(now - ci2->second.mCreateTime >= (DEFAULT_TIMEOUT_SEC * 20)) {
             TRACE_5("Timeout on PbeRtReqContinuation %llu", ci2->first);
             pbePrtoReqs.push_back(ci2->second.mConn);
             sPbeRtReqContinuationMap.erase(ci2);
