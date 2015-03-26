@@ -2281,28 +2281,6 @@ The main points are (a) that the handle gets cleared in the server when
 the continuation times out in the server; and (b) that the CCB OM client
 receives an error reply when that om client has NOT also timed out.
 
-Remove all use of SaNameT from IMM server side and messages (4.6)
-=================================================================
-http://sourceforge.net/p/opensaf/tickets/969
-
-All usage of SaNameT has been removed from the IMM server side code with these
-exceptions:
-
-	a) When interfacing AMF, since the AMF APIs use SaNameT.
-	b) In message packing/unpacking code that has to be backwards compatible.
-
-One instance of SaNameT occurs as a union member in the message type for
-saImmOmAdminOwnerInitialize. That is a bit unfortunate since it logically keeps
-the SaNameT type dependency also in the new code. This could be fixed by creating 
-a separate new struct for the ADMO_INITIALIZE message type, a minor future enhancement.
-
-For message types we need backwards compatibility. But the current 4.6 versions of all
-server side messaging should now be free from the SaNameT type (except the union 
-mentioned).
-
-The protocol46Allowed bit in noStdFlags is used to toggle on/off support for the old
-server side messages containing SaNameT.
-
 
 Improve error diagnostics when PBE is misconfigured.
 ====================================================
