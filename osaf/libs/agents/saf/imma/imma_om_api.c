@@ -1838,7 +1838,13 @@ static SaAisErrorT ccb_object_create_common(SaImmCcbHandleT ccbHandle,
 		}
 
 		evt.info.immnd.info.objCreate.parentOrObjectDn.size = parentNameLength + 1;
-		evt.info.immnd.info.objCreate.parentOrObjectDn.buf = (char *)osaf_extended_name_borrow(parentName);
+		evt.info.immnd.info.objCreate.parentOrObjectDn.buf = (char*) malloc((parentNameLength + 1) * sizeof(char));
+		if (!evt.info.immnd.info.objCreate.parentOrObjectDn.buf) {
+			rc = SA_AIS_ERR_NO_MEMORY;
+			goto mds_send_fail;
+		}
+		memcpy(evt.info.immnd.info.objCreate.parentOrObjectDn.buf, osaf_extended_name_borrow(parentName), parentNameLength);
+		evt.info.immnd.info.objCreate.parentOrObjectDn.buf[parentNameLength] = '\0';
 	} else if (objectName) {
 		size_t objectNameLength = strlen(objectName);
 		if(!osaf_is_extended_names_enabled() && objectNameLength >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
@@ -1985,6 +1991,11 @@ static SaAisErrorT ccb_object_create_common(SaImmCcbHandleT ccbHandle,
 	if (evt.info.immnd.info.objCreate.className.buf) {	/*free-1 */
 		free(evt.info.immnd.info.objCreate.className.buf);
 		evt.info.immnd.info.objCreate.className.buf = NULL;
+	}
+
+	if (parentName && evt.info.immnd.info.objCreate.parentOrObjectDn.buf) {
+		free(evt.info.immnd.info.objCreate.parentOrObjectDn.buf);
+		evt.info.immnd.info.objCreate.parentOrObjectDn.buf = NULL;
 	}
 
 	while (evt.info.immnd.info.objCreate.attrValues) {
