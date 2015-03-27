@@ -1006,8 +1006,8 @@ SaAisErrorT saImmOmAdminOwnerInitialize(SaImmHandleT immHandle,
 	evt.type = IMMSV_EVT_TYPE_IMMND;
 	evt.info.immnd.type = IMMND_EVT_A2ND_IMM_ADMINIT;
 	evt.info.immnd.info.adminitReq.client_hdl = immHandle;
-	evt.info.immnd.info.adminitReq.i.adminOwnerName.octetString.size = strlen(adminOwnerName) + 1;
-	evt.info.immnd.info.adminitReq.i.adminOwnerName.octetString.buf = adminOwnerName;
+	osaf_extended_name_alloc(adminOwnerName,
+			&evt.info.immnd.info.adminitReq.i.adminOwnerName);
 	if (releaseOwnershipOnFinalize) {
 		evt.info.immnd.info.adminitReq.i.releaseOwnershipOnFinalize = true;
 		/* Release on finalize can not be undone in case of IMMND crash.
@@ -8641,8 +8641,8 @@ static SaBoolT imma_re_initialize_admin_owners(IMMA_CB *cb, SaImmHandleT immHand
 	evt.type = IMMSV_EVT_TYPE_IMMND;
 	evt.info.immnd.type = IMMND_EVT_A2ND_IMM_ADMINIT;
 	evt.info.immnd.info.adminitReq.client_hdl = immHandle;
-	evt.info.immnd.info.adminitReq.i.adminOwnerName.octetString.size = strlen(adm_found_node->mAdminOwnerName) + 1;
-	evt.info.immnd.info.adminitReq.i.adminOwnerName.octetString.buf = adm_found_node->mAdminOwnerName;
+	osaf_extended_name_alloc(adm_found_node->mAdminOwnerName,
+			&evt.info.immnd.info.adminitReq.i.adminOwnerName);
 	evt.info.immnd.info.adminitReq.i.releaseOwnershipOnFinalize = false;
 	
 	temp_hdl = adm_found_node->admin_owner_hdl;
