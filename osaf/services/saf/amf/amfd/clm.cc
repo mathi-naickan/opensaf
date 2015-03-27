@@ -288,6 +288,12 @@ static void clm_track_cb(const SaClmClusterNotificationBufferT_4 *notificationBu
 				if(strncmp((char *)rootCauseEntity->value, "safEE=", 6) == 0) {
 					/* This callback is because of operation on PLM, so we need to mark the node
 					   absent, because PLCD will anyway call opensafd stop.*/
+					AVD_AVND *node = avd_node_find_nodeid(notifItem->clusterNode.nodeId);
+					if (node->node_info.nodeId == avd_cb->node_id_avd) {
+						/* Self  Termination, wait for getting terminated by opensafd stop script.*/
+						LOG_NO("Node Left is self: ignoring");
+						break;
+					}
 					clm_node_exit_complete(notifItem->clusterNode.nodeId);
 				} else if (strncmp((char *)rootCauseEntity->value, "safNode=", 8) == 0) {
 					/* This callback is because of operation on CLM.*/
