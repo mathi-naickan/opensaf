@@ -476,15 +476,6 @@ uint32_t immnd_evt_destroy(IMMSV_EVT *evt, SaBoolT onheap, uint32_t line)
 		free(evt->info.immnd.info.ccbUpcallRsp.errorString.buf);
 		evt->info.immnd.info.ccbUpcallRsp.errorString.buf = NULL;
 		evt->info.immnd.info.ccbUpcallRsp.errorString.size = 0;
-	} else if (evt->info.immnd.type == IMMND_EVT_A2ND_IMM_ADMINIT) {
-		free(evt->info.immnd.info.adminitReq.i.adminOwnerName.octetString.buf);
-		evt->info.immnd.info.adminitReq.i.adminOwnerName.octetString.buf = NULL;
-		evt->info.immnd.info.adminitReq.i.adminOwnerName.octetString.size = 0;
-	} else if ((evt->info.immnd.type == IMMND_EVT_D2ND_ADMINIT) ||
-			(evt->info.immnd.type == IMMND_EVT_D2ND_ADMINIT_2)) {
-		free(evt->info.immnd.info.adminitGlobal.i.adminOwnerName.octetString.buf);
-		evt->info.immnd.info.adminitGlobal.i.adminOwnerName.octetString.buf = NULL;
-		evt->info.immnd.info.adminitGlobal.i.adminOwnerName.octetString.size = 0;
 	}
 
 	if (onheap) {
@@ -2334,16 +2325,10 @@ static uint32_t immnd_evt_proc_admowner_init(IMMND_CB *cb, IMMND_EVT *evt, IMMSV
 	}
 
 	send_evt.type = IMMSV_EVT_TYPE_IMMD;
-	if (!immModel_protocol46Allowed(cb)) {
-		send_evt.info.immd.type = IMMD_EVT_ND2D_ADMINIT_REQ;
-		osaf_extended_name_lend(evt->info.adminitReq.i.adminOwnerName.octetString.buf,
-			&send_evt.info.immd.info.admown_init.i.adminOwnerName.saName);
-		send_evt.info.immd.info.admown_init.i.releaseOwnershipOnFinalize = evt->info.adminitReq.i.releaseOwnershipOnFinalize;
-	} else {
-		send_evt.info.immd.type = IMMD_EVT_ND2D_ADMINIT_REQ_2;
-		send_evt.info.immd.info.admown_init.i = evt->info.adminitReq.i;
-	}
+	send_evt.info.immd.type = IMMD_EVT_ND2D_ADMINIT_REQ;
 	send_evt.info.immd.info.admown_init.client_hdl = evt->info.adminitReq.client_hdl;
+
+	send_evt.info.immd.info.admown_init.i = evt->info.adminitReq.i;
 
 	/* send the request to the IMMD, reply comes back over fevs. */
 
@@ -3297,11 +3282,6 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 
 	case IMMND_EVT_D2ND_ADMINIT:
 		LOG_WA("ERR_LIBRARY: IMMND_EVT_D2ND_ADMINIT can not arrive from client lib");
-		error = SA_AIS_ERR_LIBRARY;
-		break;
-
-	case IMMND_EVT_D2ND_ADMINIT_2:
-		LOG_WA("ERR_LIBRARY: IMMND_EVT_D2ND_ADMINIT_2 can not arrive from client lib");
 		error = SA_AIS_ERR_LIBRARY;
 		break;
 
@@ -5868,7 +5848,8 @@ static void immnd_evt_proc_object_create(IMMND_CB *cb,
 	SaUint32T pbeConn = 0;
 	NCS_NODE_ID pbeNodeId = 0;
 	NCS_NODE_ID *pbeNodeIdPtr = NULL;
-	char *objName = NULL;
+	SaNameT objName;
+	osaf_extended_name_clear(&objName);
 	bool dnOrRdnIsLong=false;
 	TRACE_ENTER();
 
@@ -5985,12 +5966,12 @@ static void immnd_evt_proc_object_create(IMMND_CB *cb,
 		}
 	}
 
-	if (objName && (err == SA_AIS_OK)) {
+	if (!osaf_is_extended_name_empty(&objName) && (err == SA_AIS_OK)) {
 		/* Generate applier upcalls for the object create */
 		SaUint32T *applConnArr = NULL;
 		int ix = 0;
 		SaUint32T arrSize =
-			immModel_getLocalAppliersForObj(cb, objName,
+			immModel_getLocalAppliersForObj(cb, &objName,
 				evt->info.objCreate.ccbId, &applConnArr, SA_FALSE);
 
 		if(arrSize) {
@@ -6039,7 +6020,7 @@ static void immnd_evt_proc_object_create(IMMND_CB *cb,
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
 		if (cl_node == NULL || cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
-			if(objName) free(objName);
+			osaf_extended_name_free(&objName);
 			return;
 		}
 
@@ -6060,7 +6041,7 @@ static void immnd_evt_proc_object_create(IMMND_CB *cb,
 		}
 		immsv_evt_free_attrNames(send_evt.info.imma.info.errRsp.errStrings);
 	}
-	if(objName) free(objName);
+	osaf_extended_name_free(&objName);
 	TRACE_LEAVE();
 }
 
@@ -6099,7 +6080,8 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 	SaUint32T pbeConn = 0;
 	NCS_NODE_ID pbeNodeId = 0;
 	NCS_NODE_ID *pbeNodeIdPtr = NULL;
-	char *objName = NULL;
+	SaNameT objName;
+	osaf_extended_name_clear(&objName);
 	bool hasLongDns=false;
 	TRACE_ENTER();
 #if 0				/*ABT DEBUG PRINTOUTS START */
@@ -6220,12 +6202,12 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 		}
 	}
 
-	if (objName && (err == SA_AIS_OK)) {
+	if (!osaf_is_extended_name_empty(&objName) && (err == SA_AIS_OK)) {
 		/* Generate applier upcalls for the object modify */
 		SaUint32T *applConnArr = NULL;
 		int ix = 0;
 		SaUint32T arrSize =
-			immModel_getLocalAppliersForObj(cb, objName,
+			immModel_getLocalAppliersForObj(cb, &objName,
 				evt->info.objModify.ccbId, &applConnArr, SA_FALSE);
 
 		if(arrSize) {
@@ -6303,7 +6285,7 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 	evt->info.objModify.objectName.size = 0;
 	immsv_free_attrmods(evt->info.objModify.attrMods);
 	evt->info.objModify.attrMods = NULL;
-	if (objName) free(objName);
+	osaf_extended_name_free(&objName);
 	TRACE_LEAVE();
 }
 
@@ -6952,10 +6934,12 @@ static void immnd_evt_proc_object_delete(IMMND_CB *cb,
 		int ix = 0;
 		for (; ix < arrSize && err == SA_AIS_OK; ++ix) { /* Iterate over deleted objects */
 			SaUint32T *applConnArr = NULL;
+			SaNameT objName;
+			osaf_extended_name_lend(objNameArr[ix], &objName);
 			send_evt.info.imma.info.objDelete.objectName.size = strlen(objNameArr[ix]) + 1;
 			send_evt.info.imma.info.objDelete.objectName.buf = objNameArr[ix];
 			
-			SaUint32T arrSize2 = immModel_getLocalAppliersForObj(cb, objNameArr[ix],
+			SaUint32T arrSize2 = immModel_getLocalAppliersForObj(cb, &objName,
 				evt->info.objDelete.ccbId, &applConnArr, SA_TRUE);
 
 			int ix2 = 0;
@@ -7941,7 +7925,6 @@ immnd_evt_proc_fevs_dispatch(IMMND_CB *cb, IMMSV_OCTET_STRING *msg,
 		break;
 
 	case IMMND_EVT_D2ND_ADMINIT:
-	case IMMND_EVT_D2ND_ADMINIT_2:
 		immnd_evt_proc_adminit_rsp(cb, &frwrd_evt.info.immnd, originatedAtThisNd, clnt_hdl, reply_dest);
 		break;
 
@@ -8889,7 +8872,6 @@ static void immnd_evt_proc_adminit_rsp(IMMND_CB *cb,
 	SaUint32T conn;
 
 	osafassert(evt);
-	osafassert((evt->type != IMMND_EVT_D2ND_ADMINIT_2) || immModel_protocol46Allowed(cb));
 	conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
 	err = immModel_adminOwnerCreate(cb, &(evt->info.adminitGlobal.i),

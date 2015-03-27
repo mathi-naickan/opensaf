@@ -131,7 +131,6 @@ void immd_process_evt(void)
 		rc = immd_evt_proc_immnd_announce_dump(cb, &evt->info.immd, &evt->sinfo);
 		break;
 	case IMMD_EVT_ND2D_ADMINIT_REQ:
-	case IMMD_EVT_ND2D_ADMINIT_REQ_2:
 		rc = immd_evt_proc_adminit_req(cb, &evt->info.immd, &evt->sinfo);
 		break;
 	case IMMD_EVT_ND2D_IMPLSET_REQ:
@@ -1629,7 +1628,7 @@ static uint32_t immd_evt_proc_adminit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND
 	uba.start = NULL;
 	TRACE_ENTER();
 
-	TRACE_5("Admin owner name:%s", adminit_req->i.adminOwnerName.octetString.buf);
+	TRACE_5("Admin owner name:%s", osaf_extended_name_borrow(&adminit_req->i.adminOwnerName));
 
 	globalId = ++(cb->admo_id_count);
 	if (cb->admo_id_count == 0xffffffff) {
@@ -1662,16 +1661,9 @@ static uint32_t immd_evt_proc_adminit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND
 
 	memset(&fevs_evt, 0, sizeof(IMMSV_EVT));
 	fevs_evt.type = IMMSV_EVT_TYPE_IMMND;
-	if (evt->type == IMMD_EVT_ND2D_ADMINIT_REQ) {
-		fevs_evt.info.immnd.type = IMMND_EVT_D2ND_ADMINIT;
-		osaf_extended_name_lend(adminit_req->i.adminOwnerName.octetString.buf,
-			&fevs_evt.info.immnd.info.adminitGlobal.i.adminOwnerName.saName);
-		fevs_evt.info.immnd.info.adminitGlobal.i.releaseOwnershipOnFinalize = adminit_req->i.releaseOwnershipOnFinalize;
-	} else if (evt->type == IMMD_EVT_ND2D_ADMINIT_REQ_2) {
-		fevs_evt.info.immnd.type = IMMND_EVT_D2ND_ADMINIT_2;
-		fevs_evt.info.immnd.info.adminitGlobal.i = adminit_req->i;
-	}
+	fevs_evt.info.immnd.type = IMMND_EVT_D2ND_ADMINIT;
 	fevs_evt.info.immnd.info.adminitGlobal.globalOwnerId = globalId;
+	fevs_evt.info.immnd.info.adminitGlobal.i = adminit_req->i;
 
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
@@ -1713,10 +1705,6 @@ static uint32_t immd_evt_proc_adminit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND
 	if (uba.start) {
 		m_MMGR_FREE_BUFR_LIST(uba.start);
 	}
-
-	free(adminit_req->i.adminOwnerName.octetString.buf);
-	adminit_req->i.adminOwnerName.octetString.buf = NULL;
-	adminit_req->i.adminOwnerName.octetString.size = 0;
 
 	TRACE_LEAVE();
 	return proc_rc;

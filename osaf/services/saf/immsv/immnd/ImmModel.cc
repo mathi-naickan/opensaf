@@ -603,7 +603,7 @@ immModel_ccbObjectCreate(IMMND_CB *cb,
     SaUint32T* continuationId,
     SaUint32T* pbeConn,
     SaClmNodeIdT* pbeNodeId,
-    char** objName,
+    SaNameT* objName,
     bool* dnOrRdnIsLong,
     bool isObjectDnUsed)
 {
@@ -660,13 +660,8 @@ immModel_ccbObjectCreate(IMMND_CB *cb,
         ccbObjectCreate(req, implConn, implNodeId, continuationId, 
             pbeConn, pbeNodeId, objectName, dnOrRdnIsLong, isObjectDnUsed);
 
-    if(err == SA_AIS_OK && !objectName.empty()) {
-        *objName = (char*) malloc((objectName.length() + 1) * sizeof(char));
-        if (*objName) {
-            strcpy(*objName, objectName.c_str());
-        } else {
-            err = SA_AIS_ERR_NO_MEMORY;
-        }
+    if(err == SA_AIS_OK) {
+        osaf_extended_name_alloc(objectName.c_str(), objName);
     }
 
     return err;
@@ -721,7 +716,7 @@ immModel_genSpecialModify(IMMND_CB *cb, struct ImmsvOmCcbObjectModify *req)
 
 SaUint32T
 immModel_getLocalAppliersForObj(IMMND_CB *cb,
-    const char* objName,
+    const SaNameT* objName,
     SaUint32T ccbId,
     SaUint32T **aplConnArr,
     SaBoolT externalRep)
@@ -780,7 +775,7 @@ immModel_ccbObjectModify(IMMND_CB *cb,
     SaUint32T* continuationId,
     SaUint32T* pbeConn,
     SaClmNodeIdT* pbeNodeId,
-    char** objName,
+    SaNameT* objName,
     bool* hasLongDns)
 {
     std::string objectName;
@@ -789,13 +784,8 @@ immModel_ccbObjectModify(IMMND_CB *cb,
         ccbObjectModify(req, implConn, implNodeId, continuationId,
         pbeConn, pbeNodeId, objectName, hasLongDns, pbeFile);
 
-    if(err == SA_AIS_OK && !objectName.empty()) {
-        *objName = (char*) malloc((objectName.length() + 1) * sizeof(char));
-        if (*objName) {
-            strcpy(*objName, objectName.c_str());
-        } else {
-            err = SA_AIS_ERR_NO_MEMORY;
-        }
+    if(err == SA_AIS_OK) {
+        osaf_extended_name_alloc(objectName.c_str(), objName);
     }
 
     return err;
@@ -4329,17 +4319,13 @@ ImmModel::adminOwnerCreate(const ImmsvOmAdminOwnerInitialize* req,
     unsigned int nodeId)
 {
     SaAisErrorT err = SA_AIS_OK;
-    std::string admin_name;
     TRACE_ENTER();
     if(immNotWritable()) {
         TRACE_LEAVE();
         return SA_AIS_ERR_TRY_AGAIN;
     }
     
-    const IMMSV_OCTET_STRING *octetString = &req->adminOwnerName.octetString;
-    admin_name = std::string(octetString->buf, strnlen((const char*)octetString->buf, (size_t)octetString->size));
-
-    if (strcmp("IMMLOADER", admin_name.c_str()) == 0) {
+    if (strcmp("IMMLOADER", osaf_extended_name_borrow(&req->adminOwnerName)) == 0) {
         if(sImmNodeState != IMM_NODE_LOADING) {
             LOG_NO("ERR_INVALID_PARAM: Admin Owner 'IMMLOADER' only allowed for loading");
             TRACE_LEAVE();
@@ -4351,7 +4337,7 @@ ImmModel::adminOwnerCreate(const ImmsvOmAdminOwnerInitialize* req,
     
     info->mId = ownerId;
     
-    info->mAdminOwnerName.append(admin_name);
+    info->mAdminOwnerName.append(osaf_extended_name_borrow(&req->adminOwnerName));
     if(info->mAdminOwnerName.empty() || !nameCheck(info->mAdminOwnerName)) {
         LOG_NO("ERR_INVALID_PARAM: Not a valid Admin Owner Name");
         delete info;
@@ -6214,14 +6200,14 @@ void ImmModel::getLocalAppliersForCcb(SaUint32T ccbId, ConnVector& cv, SaUint32T
     *applCtnPtr = ccb->mOpCount;
 }
 
-void ImmModel::getLocalAppliersForObj(const char* objName, SaUint32T ccbId,
+void ImmModel::getLocalAppliersForObj(const SaNameT* objName, SaUint32T ccbId,
     ConnVector& cv, bool externalRep)
 {
     CcbInfo* ccb = 0;
     CcbVector::iterator i1;
     cv.clear(); 
 
-    std::string objectName(objName);
+    std::string objectName(osaf_extended_name_borrow(objName));
     if(externalRep && !(nameCheck(objectName)||nameToInternal(objectName))) {
         LOG_ER("Not a proper object name");
         abort();
