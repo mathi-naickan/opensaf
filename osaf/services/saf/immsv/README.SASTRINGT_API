@@ -1,0 +1,269 @@
+IMM API that replaces SaNameT with SaStringT and SA_IMM_ATTR_DN
+===============================================================
+http://sourceforge.net/p/opensaf/tickets/643
+This enhancement provides an updated API where all use of the troublesome
+SaNameT type is replaced by the SaStringT type or the SaConstStringT type (#625).
+Also added is a new flag value for attribute definitions: SA_IMM_ATTR_DN.
+
+The new APIs all have the suffix _o3.
+The *_o3 APIS are only available when IMM OI/OM registers with version A.02.15.
+
+Defining an attribute in an IMM class definition on the SaStringT type and
+also setting the flag SA_IMM_ATTR_DN, will mean that the attribute is intended
+to hold a value that should be a DN.
+
+Other flags that make sense to also set on in combination with SA_IMM_ATTR_DN 
+when applicable are:
+
+SA_IMM_ATTR_RDN if this is the RDN attribute. Just as having SaNameT the 
+type of an RDN attribute indicates that the class is an association class,
+having SaStringT and SA_IMM_ATTR_DN combined with SA_IMM_ATTR_RDN would 
+also indicate that this is an association class.
+
+SA_IMM_ATTR_NO_DANGLING. Previously (OpenSAF 4.5) was only allowed 
+on attributes of type SaNameT, but will in Opensaf 4.6 also be allowed on
+attributes of type SaStringT if the SA_IMM_ATTR_DN flag is also set.
+The exception is the RDN attribute which still can not have the 
+SA_IMM_ATTR_NO_DANGLING set. 
+
+All the other flags may also be used in combination with SA_IMM_ATTR_DN, with
+the normal meaning. But the only attribute *type* that can be combined with
+SA_IMM_ATTR_DN flag is the type SA_IMM_ATTR_SASTRINGT.
+
+The SaStringT API provides the same functions as the SaNameT based API with almost the
+same semantics as the A.2.X spec. Where there is a difference this is commented below.
+--------
+
+	/* 4.5.1 saImmOmSearchInitialize() */
+	extern SaAisErrorT
+	 saImmOmSearchInitialize_o3(SaImmHandleT immHandle,
+				    SaConstStringT rootName,
+				    SaImmScopeT scope,
+				    SaImmSearchOptionsT searchOptions,
+				    const SaImmSearchParametersT_2 *searchParam, 
+				    const SaImmAttrNameT *attributeNames, SaImmSearchHandleT *searchHandle);
+
+	/* 4.5.2 saImmOmSearchNext() */
+	extern SaAisErrorT
+	 saImmOmSearchNext_o3(SaImmSearchHandleT searchHandle, SaStringT *objectName, SaImmAttrValuesT_2 ***attributes);
+
+The RDN attribute is by default not returned by saImmOmSearchNext_o3.
+Only if saImmOmSearchInitialize_o3 sets SA_IMM_SEARCH_GET_SOME_ATTR option in the searchOptions parameter and
+explicitly includes the RDN attribute in the attributeNames parameter, will the RDN attribute be returned.
+There should never be any need to fetch the RDN attribute with the new API since the create APIs (OM and OI, 
+downcalls and callbacks) have been simplified to use the objectDN instead of the parentDN and RDN attribute.
+The RDN is also redundant copy of part of the DN and can be extracted from the DN, which is returned by
+saImmOmSearchNext_o3.
+---------
+
+	/* 4.6.2 saImmOmAccessorGet() */
+	extern SaAisErrorT
+	 saImmOmAccessorGet_o3(SaImmAccessorHandleT accessorHandle,
+			       SaConstStringT objectName,
+			       const SaImmAttrNameT *attributeNames, SaImmAttrValuesT_2 ***attributes);
+
+The RDN attribute is by default not returned by saImmOmAccessorGet_o3.
+Only if the attributeNames parameter explicitly includes the RDN attribute, will the RDN attribute be returned.
+There should never be any need to fetch the RDN attribute with the new API since the create APIs (OM and OI, 
+downcalls and callbacks) have been simplified to use the objectDN instead of the parentDN and RDN attribute.
+The RDN is also redundant copy of part of the DN and can be extracted from the DN, which is input to this PI.
+----------
+
+	/* 4.7.2 saImmOmAdminOwnerSet() */
+
+	extern SaAisErrorT
+	 saImmOmAdminOwnerSet_o3(SaImmAdminOwnerHandleT ownerHandle, SaConstStringT *objectNames, SaImmScopeT scope);
+----------
+
+	/* 4.7.3 saImmOmAdminOwnerRelease() */
+
+	extern SaAisErrorT
+	 saImmOmAdminOwnerRelease_o3(SaImmAdminOwnerHandleT ownerHandle, SaConstStringT *objectNames, SaImmScopeT scope);
+----------
+
+	/* 4.7.5 saImmOmAdminOwnerClear() */
+
+	extern SaAisErrorT
+	 saImmOmAdminOwnerClear_o3(SaImmHandleT immHandle, SaConstStringT *objectNames, SaImmScopeT scope);
+----------
+
+	/* 4.8.2 saImmOmCcbObjectCreate() */
+	extern SaAisErrorT
+	 saImmOmCcbObjectCreate_o3(SaImmCcbHandleT ccbHandle,
+				   const SaImmClassNameT className,
+				   SaConstStringT objectName, const SaImmAttrValuesT_2 **attrValues);
+
+Note that instead of "parentName" the saImmOmCcbObjectCreate_o3 API takes the DN for the object proposed for create
+in the parameter "objectName". The RDN  attribute is not allowed to be in the attrValues list since it is redundant
+and indicates the user has misunderstood this new API.
+---------
+
+	/* 4.8.3 saImmOmCcbObjectDelete() */
+
+	extern SaAisErrorT
+	 saImmOmCcbObjectDelete_o3(SaImmCcbHandleT ccbHandle, SaConstStringT objectName);
+---------
+
+	/* 4.8.4 saImmOmCcbObjectModify() */
+	extern SaAisErrorT
+	 saImmOmCcbObjectModify_o3(SaImmCcbHandleT ccbHandle,
+				   SaConstStringT objectName, const SaImmAttrModificationT_2 **attrMods);
+---------
+
+	/* 4.9.1 saImmOmAdminOperationInvoke(),
+	   saImmOmAdminOperationInvokeAsync() 
+	*/
+	extern SaAisErrorT
+	 saImmOmAdminOperationInvoke_o3(
+					 SaImmAdminOwnerHandleT ownerHandle,
+					 SaConstStringT objectName,
+					 SaImmContinuationIdT continuationId,
+					 SaImmAdminOperationIdT operationId,
+					 const SaImmAdminOperationParamsT_2 **params,
+					 SaAisErrorT *operationReturnValue,
+					 SaTimeT timeout,
+					 SaImmAdminOperationParamsT_2 ***returnParams);
+---------
+
+	extern SaAisErrorT
+	 saImmOmAdminOperationInvokeAsync_o3(SaImmAdminOwnerHandleT ownerHandle,
+					     SaInvocationT invocation,
+					     SaConstStringT objectName,
+					     SaImmContinuationIdT continuationId,
+					     SaImmAdminOperationIdT operationId,
+					     const SaImmAdminOperationParamsT_2 **params);
+---------
+
+	/* This API is not implemented in OpenSAF, but the SaStringT API variant is defined for completenes. */
+
+	extern SaAisErrorT
+	 saImmOmAdminOperationContinue_o3(
+					    SaImmAdminOwnerHandleT ownerHandle,
+					    SaConstStringT objectName,
+					    SaImmContinuationIdT continuationId,
+					    SaAisErrorT *operationReturnValue,
+					    SaImmAdminOperationParamsT_2 ***returnParams);
+---------
+
+	/* This API is not implemented in OpenSAF, but the SaStringT API variant is defined for completenes. */
+
+	extern SaAisErrorT
+	 saImmOmAdminOperationContinueAsync_o3(SaImmAdminOwnerHandleT ownerHandle,
+					       SaInvocationT invocation,
+					       SaConstStringT objectName, SaImmContinuationIdT continuationId);
+
+---------
+	/* This API is not implemented in OpenSAF, but the SaStringT API variant is defined for completenes. */
+
+	extern SaAisErrorT
+	 saImmOmAdminOperationContinuationClear_o3(SaImmAdminOwnerHandleT ownerHandle,
+						   SaConstStringT objectName, SaImmContinuationIdT continuationId);
+---------
+
+	/* 4.2.5 SaImmAttrFlagsT */
+
+#define SA_IMM_ATTR_DN            0x0000000008000000
+
+This flag is only allowed on attributes of type SA_IMM_ATTR_SASTRINGT and then indicates that the value is a DN.
+--------
+
+	/* From 5.5.4  */
+	typedef SaAisErrorT
+	 (*SaImmOiRtAttrUpdateCallbackT_o3) (SaImmOiHandleT immOiHandle,
+					  SaConstStringT objectName, const SaImmAttrNameT *attributeNames);
+--------
+
+	/* From 5.6.1 */
+	typedef SaAisErrorT
+	 (*SaImmOiCcbObjectCreateCallbackT_o3) (SaImmOiHandleT immOiHandle,
+					       SaImmOiCcbIdT ccbId,
+					       const SaImmClassNameT className,
+					       SaConstStringT objectName, const SaImmAttrValuesT_2 **attr);
+
+Note that instead of "parentName" the SaImmOiCcbObjectCreateCallbackT_o3 provides the DN for the object proposed for create
+in the parameter "objectName". The RDN  attribute is not included in the attrValues list since it is redundant and no longer
+needed by the OI for constructing the DN. 
+--------
+
+	/* From 5.6.2  */
+	typedef SaAisErrorT
+	 (*SaImmOiCcbObjectDeleteCallbackT_o3) (SaImmOiHandleT immOiHandle,
+					     SaImmOiCcbIdT ccbId, SaConstStringT objectName);
+--------
+
+	/* From 5.6.3  */
+	typedef SaAisErrorT
+	 (*SaImmOiCcbObjectModifyCallbackT_o3) (SaImmOiHandleT immOiHandle,
+					       SaImmOiCcbIdT ccbId,
+					       SaConstStringT objectName, const SaImmAttrModificationT_2 **attrMods);
+--------
+
+	/* From 5.7.1  */
+	typedef void
+	 (*SaImmOiAdminOperationCallbackT_o3) (SaImmOiHandleT immOiHandle,
+					      SaInvocationT invocation,
+					      SaConstStringT objectName,
+					      SaImmAdminOperationIdT operationId,
+					      const SaImmAdminOperationParamsT_2 **params);
+--------
+
+	/* SaImmOiCallbacksT_2 */
+	typedef struct {
+		SaImmOiAdminOperationCallbackT_o3 saImmOiAdminOperationCallback;
+		SaImmOiCcbAbortCallbackT saImmOiCcbAbortCallback;
+		SaImmOiCcbApplyCallbackT saImmOiCcbApplyCallback;
+		SaImmOiCcbCompletedCallbackT saImmOiCcbCompletedCallback;
+		SaImmOiCcbObjectCreateCallbackT_o3 saImmOiCcbObjectCreateCallback;
+		SaImmOiCcbObjectDeleteCallbackT_o3 saImmOiCcbObjectDeleteCallback;
+		SaImmOiCcbObjectModifyCallbackT_o3 saImmOiCcbObjectModifyCallback;
+		SaImmOiRtAttrUpdateCallbackT_o3 saImmOiRtAttrUpdateCallback;
+	} SaImmOiCallbacksT_o3;
+--------
+
+	/* 5.3.1 saImmOiInitialize() */
+	extern SaAisErrorT
+	 saImmOiInitialize_o3(SaImmOiHandleT *immOiHandle,
+			     const SaImmOiCallbacksT_o3 *immOiCallbacks, SaVersionT *version);
+--------
+
+	/* 5.4.6 saImmOiObjectImplementerSet() */
+	extern SaAisErrorT
+	 saImmOiObjectImplementerSet_o3(SaImmOiHandleT immOiHandle, SaConstStringT objectName, SaImmScopeT scope);
+--------
+
+	/* 5.4.6 saImmOiObjectImplementerRelease() */
+
+	extern SaAisErrorT
+	 saImmOiObjectImplementerRelease_o3(SaImmOiHandleT immOiHandle, SaConstStringT objectName, SaImmScopeT scope);
+--------
+
+	/*
+	 *
+	 * Runtime Object Management Routines
+	 *
+	 */
+
+	/* 5.5.1 saImmOiRtObjectCreate() */
+
+	extern SaAisErrorT
+	 saImmOiRtObjectCreate_o3(SaImmOiHandleT immOiHandle,
+				 const SaImmClassNameT className,
+				 SaConstStringT objectName, const SaImmAttrValuesT_2 **attrValues);
+
+Note that instead of "parentName" the saImmOiRtObjectCreate_o3 API takes the DN for the object proposed for create
+in the parameter "objectName". The RDN  attribute is not allowed to be in the attrValues list since it is redundant
+and indicates the user has misunderstood this new API.
+--------
+
+	/* 5.5.2 saImmOiRtObjectDelete() */
+
+	extern SaAisErrorT
+	 saImmOiRtObjectDelete_o3(SaImmOiHandleT immOiHandle, SaConstStringT objectName);
+--------
+
+	/* 5.5.3 saImmOiRtObjectUpdate() */
+
+	extern SaAisErrorT
+	 saImmOiRtObjectUpdate_o3(SaImmOiHandleT immOiHandle,
+				 SaConstStringT objectName, const SaImmAttrModificationT_2 **attrMods);
+
