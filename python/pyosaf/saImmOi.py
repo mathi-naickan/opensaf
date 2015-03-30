@@ -17,6 +17,7 @@
 
 from ctypes import *
 from saImm import *
+from saAis import *
 
 oidll = CDLL('libSaImmOi.so.0')
 
