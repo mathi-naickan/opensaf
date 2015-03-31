@@ -399,6 +399,7 @@ done:
 static uint32_t sg_su_failover_func(AVD_SU *su)
 {
 	uint32_t rc = NCSCC_RC_FAILURE;
+	SaAisErrorT res = SA_AIS_OK;
 
 	TRACE_ENTER2("'%s', %u", su->name.value, su->sg_of_su->sg_fsm_state);
 
@@ -425,8 +426,6 @@ static uint32_t sg_su_failover_func(AVD_SU *su)
 		   In case of Node unlock this counter is incremented per susi. So decrement 
 		   should also be done per susi.
 		 */ 
-		
-		SaAisErrorT res = SA_AIS_OK;
 		if (su->su_on_node->saAmfNodeAdminState == SA_AMF_ADMIN_UNLOCKED) {
 			for (AVD_SU_SI_REL *susi = su->list_of_susi; susi; susi = susi->su_next) {
 				if (susi->fsm == AVD_SU_SI_STATE_ASGN) 
@@ -441,9 +440,6 @@ static uint32_t sg_su_failover_func(AVD_SU *su)
 			AVD_AVND *node = su->su_on_node;
 			node_complete_admin_op(node, res);
 		}
-
-		/* If nodegroup level operation is finished on all the nodes, reply to imm.*/
-		process_su_si_response_for_ng(su, res);
 	}
 
 	/*If the AvD is in AVD_APP_STATE then reassign all the SUSI assignments for this SU */
@@ -479,6 +475,10 @@ static uint32_t sg_su_failover_func(AVD_SU *su)
 		su->sg_of_su->node_fail(avd_cb, su);
 		su->delete_all_susis();
 	}
+
+	/* If nodegroup level operation is finished on all the nodes, reply to imm.*/
+	if (su->su_on_node->admin_ng != NULL)
+		process_su_si_response_for_ng(su, res);
 
 	rc =  NCSCC_RC_SUCCESS;
 
