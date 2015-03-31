@@ -416,8 +416,14 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 				LOG_ER("susi_assign_evh: '%s' is not assigned to '%s'",
 						info->si_name.value, su->name.value);
 		} else {
-			if (m_NCS_DBLIST_FIND_FIRST(&su->si_list) == NULL)
+			if (m_NCS_DBLIST_FIND_FIRST(&su->si_list) == NULL) {
 				LOG_ER("susi_assign_evh: '%s' has no assignments", su->name.value);
+				/* Some times AMFD sends redundant message for removal of assignments.
+				   If removal of assignments is already done for the SU then complete
+				   the assignment process here.
+				 */
+				goto done;
+			}
 		}
 	}
 

@@ -2094,6 +2094,16 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 			exit(0);
 		}
 	}
+	/*
+	   Cleanup of failed component is over. If there is some pernding component-failover
+	   report for AMFD, send it.
+	 */
+	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(su) &&
+			m_AVND_SU_IS_PREINSTANTIABLE(su) && (su->sufailover == false) &&
+			(avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED)) {
+		/* yes, request director to orchestrate component failover */
+		rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
+	}
 
 	/*
 	 *  su-sis may be in assigning/removing state. Except su-failover case, 
@@ -2108,14 +2118,6 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	if (!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
 		m_AVND_COMP_REG_PARAM_RESET(cb, comp);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
-	}
-
-	/* determine if this is a case of component failover */
-	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(su) &&
-			m_AVND_SU_IS_PREINSTANTIABLE(su) && (su->sufailover == false) &&
-			(avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED)) {
-		/* yes, request director to orchestrate component failover */
-		rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
 	}
 
 	TRACE_LEAVE();
