@@ -30,6 +30,7 @@
 
 #include <configmake.h>
 #include <logtrace.h>
+#include "osaf_time.h"
 
 #include "immutil.h"
 #include "smfd.h"
@@ -722,8 +723,20 @@ uint32_t create_campaign_objects(smfd_cb_t * cb)
 uint32_t updateImmAttr(const char *dn, SaImmAttrNameT attributeName, SaImmValueTypeT attrValueType, void *value)
 {
 	SaAisErrorT rc = immutil_update_one_rattr(smfd_cb->campaignOiHandle, dn, attributeName, attrValueType, value);
-	osafassert(rc == SA_AIS_OK);
-
+	unsigned int nTries = 0;
+	// SA_AIS_ERR_TRY_AGAIN already handled by immutil method above.
+	// SA_AIS_ERR_TIMEOUT handled here.
+	while (rc == SA_AIS_ERR_TIMEOUT && nTries < 5) {
+		struct timespec sleepTime = { 1, 0 }; //One second
+		osaf_nanosleep(&sleepTime);
+		TRACE("updateImmAttr(): immutil_update_one_rattr FAILED, rc = %d, nTries = %d, trying again", (int)rc, nTries);
+		rc = immutil_update_one_rattr(smfd_cb->campaignOiHandle, dn, attributeName, attrValueType, value);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK) {
+		LOG_ER("updateImmAttr(): immutil_update_one_rattr FAILED, rc = %d, going to assert", (int)rc);
+		osafassert(0);
+	}
 	return NCSCC_RC_SUCCESS;
 }
 
