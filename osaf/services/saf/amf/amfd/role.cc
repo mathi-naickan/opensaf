@@ -576,7 +576,57 @@ void avd_role_switch_ncs_su_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	
 	TRACE_LEAVE();
 }
+/**
+ * @brief  Resets admin op params for all admin op capable AMF entities during
+ *         when active AMFD gives implementer role during controller switchover.
+ */
+static void reset_admin_op_params_after_impl_clear()
+{
+	TRACE_ENTER();
+	//For ng.
+	for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
+			it != nodegroup_db->end(); it++) {
+		AVD_AMF_NG *ng = it->second;
+		if (ng->admin_ng_pend_cbk.invocation != 0) {
+			ng->admin_ng_pend_cbk.invocation = 0;
+			ng->admin_ng_pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+			for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
+					iter != ng->saAmfNGNodeList.end(); ++iter) {
+				AVD_AVND *node = avd_node_get(*iter);
+				node->admin_ng = NULL;
+			}
+		}
+	}
+	//For Node.
+	for (std::map<uint32_t, AVD_AVND *>::const_iterator it = node_id_db->begin();
+			it != node_id_db->end(); it++) {
+		AVD_AVND *node = it->second;
+		node->admin_node_pend_cbk.invocation = 0;
+		node->admin_node_pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+	}
+	//For SI.
+	for (std::map<std::string, AVD_SI*>::const_iterator it = si_db->begin();
+			it != si_db->end(); it++) {
+		AVD_SI *si = it->second;
+		si->invocation = 0;
+	}
+	//For SG.
+	for (std::map<std::string, AVD_SG*>::const_iterator it = sg_db->begin();
+			it != sg_db->end(); it++) {
+		AVD_SG *sg = it->second;
+		sg->adminOp_invocationId = 0;
+		sg->adminOp = static_cast<SaAmfAdminOperationIdT>(0);
+	}
+	//For SU.
+	for (std::map<std::string, AVD_SU*>::const_iterator it = su_db->begin();
+			it != su_db->end(); it++) {
+		AVD_SU *su = it->second;
+		su->pend_cbk.invocation = 0;
+                su->pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
 
+	}
+	TRACE_LEAVE();
+}
 /*****************************************************************************
  * Function: avd_mds_qsd_role_func
  *
@@ -663,21 +713,11 @@ void avd_mds_qsd_role_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		cb->swap_switch = false;
 		amfd_switch_qsd_actv(cb);
 	}
-	/*Since this AMFD has given up implementor role, clear admin operation params  
-	   for admin operation on nodegroup*/
-	for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
-			it != nodegroup_db->end(); it++) {
-		AVD_AMF_NG *ng = it->second;
-		if (ng->admin_ng_pend_cbk.invocation != 0) {
-			ng->admin_ng_pend_cbk.invocation = 0;
-			ng->admin_ng_pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
-			for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
-					iter != ng->saAmfNGNodeList.end(); ++iter) {
-				AVD_AVND *node = avd_node_get(*iter);
-				node->admin_ng = NULL;
-			}
-		}
-	}
+	/*
+	   Since this AMFD has given up implementor role, clear admin operation params  
+	   for admin operation on AMF entities.
+	 */
+	reset_admin_op_params_after_impl_clear();
 	TRACE_LEAVE();
 }
 
