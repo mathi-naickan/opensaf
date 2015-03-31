@@ -1275,6 +1275,7 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				/* clm admin lock/shutdown operations were on, so we need to reset 
 				   node admin state.*/
 				su->su_on_node->saAmfNodeAdminState = SA_AMF_ADMIN_UNLOCKED;
+				m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, su->su_on_node, AVSV_CKPT_AVND_ADMIN_STATE);
 				clm_node_terminate(su->su_on_node);
 			} else if (n2d_msg->msg_info.n2d_su_si_assign.error != NCSCC_RC_SUCCESS) {
 				/* clm admin lock/shutdown operations were on, so we need to reset 
