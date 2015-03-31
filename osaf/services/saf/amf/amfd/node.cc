@@ -663,6 +663,8 @@ void node_admin_state_set(AVD_AVND *node, SaAmfAdminStateT admin_state)
 {
 	SaAmfAdminStateT old_state  = node->saAmfNodeAdminState;
 	
+	if (old_state == admin_state)
+		return;
 	osafassert(admin_state <= SA_AMF_ADMIN_SHUTTING_DOWN);
 	if (0 != node->clm_pend_inv) {
 		/* Clm operations going on, skip notifications and rt updates for node change. We are using node state
