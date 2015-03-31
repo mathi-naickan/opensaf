@@ -576,7 +576,44 @@ void avd_role_switch_ncs_su_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	
 	TRACE_LEAVE();
 }
+/**
+ * @brief  Resets admin op params for all admin op capable AMF entities during
+ *         when active AMFD gives implementer role during controller switchover.
+ */
+static void reset_admin_op_params_after_impl_clear()
+{
+	TRACE_ENTER();
+	SaNameT dn = {0};
 
+	//For Node.
+	AVD_AVND *node;
+        SaClmNodeIdT node_id = 0;
+        while (NULL != (node = avd_node_getnext_nodeid(node_id))) {
+		node->admin_node_pend_cbk.invocation = 0;
+		node->admin_node_pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+	}
+	//For SI.
+	AVD_SI *si;
+	dn.length = 0;
+	for (si = avd_si_getnext(&dn); si != NULL; si = avd_si_getnext(&dn))
+		si->invocation = 0;
+	//For SG.
+	AVD_SG *sg = NULL;
+        dn.length = 0;
+        for (sg = avd_sg_getnext(&dn); sg != NULL; sg = avd_sg_getnext(&dn)) {
+		sg->adminOp_invocationId = 0;
+		sg->adminOp = static_cast<SaAmfAdminOperationIdT>(0);
+	}
+	//For SU.
+	AVD_SU *su;
+	dn.length = 0;
+	for (su = avd_su_getnext(&dn); su != NULL; su = avd_su_getnext(&dn)) {
+		su->pend_cbk.invocation = 0;
+                su->pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+
+	}
+	TRACE_LEAVE();
+}
 /*****************************************************************************
  * Function: avd_mds_qsd_role_func
  *
@@ -665,6 +702,11 @@ void avd_mds_qsd_role_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		amfd_switch_qsd_actv(cb);
 	}
 
+	/*
+	   Since this AMFD has given up implementor role, clear admin operation params
+	   for admin operation on AMF entities.
+	 */
+	reset_admin_op_params_after_impl_clear();
 	TRACE_LEAVE();
 }
 
