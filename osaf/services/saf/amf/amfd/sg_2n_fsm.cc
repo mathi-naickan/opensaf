@@ -1290,9 +1290,9 @@ uint32_t SG_2N::su_fault(AVD_CL_CB *cb, AVD_SU *su) {
 					}
 					o_susi = AVD_SU_SI_REL_NULL;
 					a_su = su->sg_of_su->list_of_su;
-					while ((a_su != NULL) &&
-							(a_su->sg_of_su->ng_using_saAmfSGAdminState == false)) {
-						a_su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
+					while (a_su != NULL) {
+						if (a_su->sg_of_su->ng_using_saAmfSGAdminState == false)
+							a_su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
 						if ((a_su->list_of_susi != AVD_SU_SI_REL_NULL)
 							&& (avd_su_state_determine(a_su) == SA_AMF_HA_STANDBY)){
 							o_susi = a_su->list_of_susi;
@@ -1337,9 +1337,9 @@ uint32_t SG_2N::su_fault(AVD_CL_CB *cb, AVD_SU *su) {
 					}
 					o_susi = AVD_SU_SI_REL_NULL;
 					a_su = su->sg_of_su->list_of_su;
-					while ((a_su != NULL) &&
-							(a_su->sg_of_su->ng_using_saAmfSGAdminState == false)) {
-						a_su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
+					while (a_su != NULL) {
+						if (a_su->sg_of_su->ng_using_saAmfSGAdminState == false)
+							a_su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
 						if ((a_su->list_of_susi != AVD_SU_SI_REL_NULL)
 								&& (avd_su_state_determine(a_su) == SA_AMF_HA_STANDBY)){
 							o_susi = a_su->list_of_susi;
