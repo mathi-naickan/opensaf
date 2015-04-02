@@ -587,30 +587,34 @@ static void reset_admin_op_params_after_impl_clear()
 
 	//For Node.
 	AVD_AVND *node;
-        SaClmNodeIdT node_id = 0;
-        while (NULL != (node = avd_node_getnext_nodeid(node_id))) {
+	SaClmNodeIdT node_id = 0;
+	while (NULL != (node = avd_node_getnext_nodeid(node_id))) {
 		node->admin_node_pend_cbk.invocation = 0;
 		node->admin_node_pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+		node_id = node->node_info.nodeId;
 	}
 	//For SI.
 	AVD_SI *si;
 	dn.length = 0;
-	for (si = avd_si_getnext(&dn); si != NULL; si = avd_si_getnext(&dn))
+	for (si = avd_si_getnext(&dn); si != NULL; si = avd_si_getnext(&dn)) {
 		si->invocation = 0;
+		dn = si->name;
+	}
 	//For SG.
 	AVD_SG *sg = NULL;
-        dn.length = 0;
-        for (sg = avd_sg_getnext(&dn); sg != NULL; sg = avd_sg_getnext(&dn)) {
+	dn.length = 0;
+	for (sg = avd_sg_getnext(&dn); sg != NULL; sg = avd_sg_getnext(&dn)) {
 		sg->adminOp_invocationId = 0;
 		sg->adminOp = static_cast<SaAmfAdminOperationIdT>(0);
+		dn = sg->name;
 	}
 	//For SU.
 	AVD_SU *su;
 	dn.length = 0;
 	for (su = avd_su_getnext(&dn); su != NULL; su = avd_su_getnext(&dn)) {
 		su->pend_cbk.invocation = 0;
-                su->pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
-
+		su->pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+		dn = su->name;
 	}
 	TRACE_LEAVE();
 }
