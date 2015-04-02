@@ -151,10 +151,17 @@ static AVD_COMP_TYPE *comptype_create(const SaNameT *dn, const SaImmAttrValuesT_
  */
 static inline void report_path_validation_err(CcbUtilOperationData_t *opdata,
                                               const char *attr_name) {
-	report_ccb_validation_error(opdata,
-		"%s does not contain an absolute path and "
-		"attribute saAmfCtSwBundle is not configured for '%s'",
-		attr_name, opdata->objectName.value);
+	if (opdata != NULL) {
+		report_ccb_validation_error(opdata,
+			"%s does not contain an absolute path and "
+			"attribute saAmfCtSwBundle is not configured for '%s'",
+			 attr_name, opdata->objectName.value);
+	} else {
+		report_ccb_validation_error(opdata,
+			"%s does not contain an absolute path and "
+			"attribute saAmfCtSwBundle is not configured",
+			 attr_name);
+	}
 }
 
 /**
