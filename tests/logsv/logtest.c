@@ -16,8 +16,10 @@
  */
 
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <limits.h>
+#include <stdlib.h>
 #include <configmake.h>
 #include <saImmOm.h>
 #include <immutil.h>
@@ -128,6 +130,24 @@ SaLogStreamHandleT logStreamHandle;
 SaLogCallbacksT logCallbacks = {NULL, NULL, NULL};
 SaSelectionObjectT selectionObject;
 char log_root_path[PATH_MAX];
+
+/**
+ * Same as system() but returns WEXITSTATUS
+ * 
+ * @param command[in] Same as system()
+ * @return -1 on system error else return WEXITSTATUS return code
+ *
+ */
+int tet_system(const char *command) {
+	
+	rc = system(command);
+	if (rc == -1) {
+		fprintf(stderr, "system() retuned -1 Fail");
+	} else {
+		rc = WEXITSTATUS(rc);
+	}
+	return rc;
+}
 
 void init_logrootpath(void)
 {

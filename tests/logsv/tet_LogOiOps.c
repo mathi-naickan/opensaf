@@ -946,14 +946,59 @@ void saLogOi_52(void)
  */
 void saLogOi_48(void)
 {
-    int rc;
+    int rc = 0, tst_stat = 0;
     char command[256];
-	
-    sprintf(command, "mkdir -p %s/xxtest",log_root_path);
-    rc = system(command);
-    sprintf(command, "immcfg -a logRootDirectory=%s/xxtest logConfig=1,safApp=safLogService",log_root_path);
-    rc = system(command);
-    rc_validate(WEXITSTATUS(rc), 0);
+    char tstdir[256];
+
+    /* Path to test directory */
+    sprintf(tstdir, "%s/xxtest", log_root_path);
+
+    /* Create test directory */
+    sprintf(command, "mkdir -p %s", tstdir);
+    rc = tet_system(command);
+    if (rc != 0) {
+	    fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+	    tst_stat = 1;
+	    goto done;
+    }
+    /* Make sure it can be accessed by server */
+    sprintf(command, "chmod ugo+w,ugo+r %s", tstdir);
+    rc = tet_system(command);
+    if (rc != 0) {
+	    fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+	    tst_stat = 1;
+	    goto done;
+    }
+
+    /* Change to xxtest */
+    sprintf(command, "immcfg -a logRootDirectory=%s logConfig=1,safApp=safLogService",tstdir);
+    rc = tet_system(command);
+    if (rc != 0) {
+	    fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+	    tst_stat = 1;
+	    goto done_remove;
+    }
+
+    /* Change back */
+    sprintf(command, "immcfg -a logRootDirectory=%s logConfig=1,safApp=safLogService",log_root_path);
+    rc = tet_system(command);
+    if (rc != 0) {
+	    fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+	    tst_stat = 1;
+	    goto done_remove;
+    }
+
+    done_remove:
+    /* Remove xxtest no longer used */
+    sprintf(command, "rm -rf %s/", tstdir);
+    rc = tet_system(command);
+    if (rc != 0) {
+	    fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+	    goto done;
+    }
+
+    done:
+    rc_validate(tst_stat, 0);
 }
 
 /**
@@ -1374,7 +1419,7 @@ void saLogOi_72(void)
  */
 void saLogOi_73(void)
 {
-	int rc;
+	int rc = 0, tst_stat = 0;
 	char command[512];
 	
 	sprintf(command, "immcfg -c SaLogStreamConfig"
@@ -1382,11 +1427,24 @@ void saLogOi_73(void)
 		" -a saLogStreamFileName=str6file -a saLogStreamPathName=."
 		" -a saLogStreamFixedLogRecordSize=%d",
 			MAX_LOGRECSIZE);
-	rc = system(command);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "%s Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+		goto done;
+	}
+
 	/* Delete the test object */
 	sprintf(command,"immcfg -d safLgStrCfg=str6,safApp=safLogService");
-	safassert(system(command),0);
-	rc_validate(WEXITSTATUS(rc), 0);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "%s Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+		goto done;
+	}
+
+	done:
+	rc_validate(tst_stat, 0);
 }
 
 /**
@@ -1394,7 +1452,7 @@ void saLogOi_73(void)
  */
 void saLogOi_74(void)
 {
-	int rc;
+	int rc = 0, tst_stat = 0;
 	char command[512];
 	
 	sprintf(command, "immcfg -c SaLogStreamConfig"
@@ -1402,11 +1460,20 @@ void saLogOi_74(void)
 		" -a saLogStreamFileName=str6file -a saLogStreamPathName=."
 		" -a saLogStreamFixedLogRecordSize=%d",
 			0);
-	rc = system(command);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+	}
 	/* Delete the test object */
 	sprintf(command,"immcfg -d safLgStrCfg=str6,safApp=safLogService");
-	safassert(system(command),0);
-	rc_validate(WEXITSTATUS(rc), 0);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+	}
+
+	rc_validate(tst_stat, 0);
 }
 
 /**

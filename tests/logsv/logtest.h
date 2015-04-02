@@ -63,5 +63,8 @@ extern SaNameT logSvcUsrName;
 extern SaLogRecordT genLogRecord;
 extern char log_root_path[];
 
+/* Same as system() but returns WEXITSTATUS if not -1 */
+int tet_system(const char *command);
+
 int get_active_sc(void);
 #endif
