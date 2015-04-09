@@ -10654,7 +10654,11 @@ SaAisErrorT ImmModel::nextSyncResult(ImmsvOmRspSearchNext** rsp, ImmSearchOp& op
 
     osafassert(!(obj->mObjFlags & IMM_CREATE_LOCK));
     osafassert(!(obj->mObjFlags & IMM_DELETE_LOCK));
-    osafassert(!(obj->mObjFlags & IMM_RT_UPDATE_LOCK)); /* Is this really secured? */
+    if(obj->mObjFlags & IMM_RT_UPDATE_LOCK) {
+        LOG_NO("ERR_NO_RESOURCES: Sync was aborted due to interference with blocked PRTA update");
+        err = SA_AIS_ERR_NO_RESOURCES;
+        goto done;
+    }
 
     /* (1) op.addObject(objectName);*/
 
