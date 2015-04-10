@@ -1830,13 +1830,17 @@ static SaAisErrorT ccb_object_create_common(SaImmCcbHandleT ccbHandle,
 	strncpy(evt.info.immnd.info.objCreate.className.buf, className, evt.info.immnd.info.objCreate.className.size);
 
 	size_t parentNameLength = 0;
-	if (parentName && (parentNameLength = osaf_extended_name_length(parentName)) > 0) {
-		if(!osaf_is_extended_names_enabled() && parentNameLength >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+	if(parentName) {
+		if(!osaf_is_extended_name_valid(parentName)) {
 			rc = SA_AIS_ERR_INVALID_PARAM;
 			TRACE_2("ERR_INVALID_PARAM: Parent name invalid");
 			goto mds_send_fail;
 		}
 
+		parentNameLength = osaf_extended_name_length(parentName);
+	}
+
+	if (parentNameLength > 0) {
 		evt.info.immnd.info.objCreate.parentOrObjectDn.size = parentNameLength + 1;
 		evt.info.immnd.info.objCreate.parentOrObjectDn.buf = (char*) malloc((parentNameLength + 1) * sizeof(char));
 		if (!evt.info.immnd.info.objCreate.parentOrObjectDn.buf) {
@@ -2130,6 +2134,11 @@ SaAisErrorT saImmOmCcbObjectModify_2(SaImmCcbHandleT ccbHandle,
 	SaAisErrorT rc;
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = (SaStringT)malloc(len + 1);
@@ -2619,6 +2628,11 @@ SaAisErrorT saImmOmCcbObjectDelete(SaImmCcbHandleT ccbHandle, const SaNameT *obj
 	SaAisErrorT rc;
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = (SaStringT)malloc(len + 1);
@@ -3541,6 +3555,11 @@ SaAisErrorT saImmOmAdminOperationInvoke_2(SaImmAdminOwnerHandleT ownerHandle,
 	SaAisErrorT rc;
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = (SaStringT)malloc(len + 1);
@@ -3577,6 +3596,11 @@ SaAisErrorT saImmOmAdminOperationInvoke_o2(SaImmAdminOwnerHandleT ownerHandle,
 	SaAisErrorT rc;
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = (SaStringT)malloc(len + 1);
@@ -4135,6 +4159,11 @@ SaAisErrorT saImmOmAdminOperationInvokeAsync_2(SaImmAdminOwnerHandleT ownerHandl
 	SaAisErrorT rc;
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = (SaStringT)malloc(len + 1);
@@ -5641,6 +5670,11 @@ SaAisErrorT saImmOmAccessorGet_2(SaImmAccessorHandleT accessorHandle,
 	SaAisErrorT rc;
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = (SaStringT)malloc(len + 1);
@@ -6489,6 +6523,11 @@ SaAisErrorT saImmOmSearchInitialize_2(SaImmHandleT immHandle,
 	SaAisErrorT rc;
 
 	if(rootName) {
+		if(!osaf_is_extended_name_valid(rootName)) {
+			TRACE_2("ERR_INVALID_PARAM: Root name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(rootName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			rootNameStr = (SaStringT)malloc(len + 1);
@@ -7502,6 +7541,12 @@ SaAisErrorT saImmOmAdminOwnerSet(SaImmAdminOwnerHandleT adminOwnerHandle,
 		objectNamesStr = (SaStringT *)calloc(1, sizeof(SaStringT) * (arrSize + 1));
 
 		for(i=0; i<arrSize; i++) {
+			if(!osaf_is_extended_name_valid(objectNames[i])) {
+				TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				goto failed;
+			}
+
 			objectNamesStr[i] = strndup(osaf_extended_name_borrow(objectNames[i]),
 					osaf_extended_name_length(objectNames[i]));
 		}
@@ -7509,6 +7554,7 @@ SaAisErrorT saImmOmAdminOwnerSet(SaImmAdminOwnerHandleT adminOwnerHandle,
 
 	rc = admin_owner_set_common(adminOwnerHandle, (SaConstStringT *)objectNamesStr, scope, false);
 
+failed:
 	/* Free allocated memory */
 	if(objectNamesStr) {
 		for(i=0; objectNamesStr[i]; i++) {
@@ -7748,6 +7794,12 @@ SaAisErrorT saImmOmAdminOwnerRelease(SaImmAdminOwnerHandleT adminOwnerHandle,
 		objectNamesStr = (SaStringT *)calloc(1, sizeof(SaStringT) * (arrSize + 1));
 
 		for(i=0; i<arrSize; i++) {
+			if(!osaf_is_extended_name_valid(objectNames[i])) {
+				TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				goto failed;
+			}
+
 			objectNamesStr[i] = strndup(osaf_extended_name_borrow(objectNames[i]),
 					osaf_extended_name_length(objectNames[i]));
 		}
@@ -7755,6 +7807,7 @@ SaAisErrorT saImmOmAdminOwnerRelease(SaImmAdminOwnerHandleT adminOwnerHandle,
 
 	rc = admin_owner_release_common(adminOwnerHandle, (SaConstStringT *)objectNamesStr, scope, false);
 
+failed:
 	/* Free allocated memory */
 	if(objectNamesStr) {
 		for(i=0; objectNamesStr[i]; i++) {
@@ -7991,6 +8044,12 @@ SaAisErrorT saImmOmAdminOwnerClear(SaImmHandleT immHandle, const SaNameT **objec
 		objectNamesStr = (SaStringT *)calloc(1, sizeof(SaStringT) * (arrSize + 1));
 
 		for(i=0; i<arrSize; i++) {
+			if(!osaf_is_extended_name_valid(objectNames[i])) {
+				TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				goto failed;
+			}
+
 			len = osaf_extended_name_length(objectNames[i]);
 			objectNamesStr[i] = (SaStringT)malloc(len + 1);
 			memcpy(objectNamesStr[i], osaf_extended_name_borrow(objectNames[i]), len);
@@ -8000,6 +8059,7 @@ SaAisErrorT saImmOmAdminOwnerClear(SaImmHandleT immHandle, const SaNameT **objec
 
 	rc = admin_owner_clear_common(immHandle, (SaConstStringT *)objectNamesStr, scope, false);
 
+failed:
 	/* Free allocated memory */
 	if(objectNamesStr) {
 		for(i=0; objectNamesStr[i]; i++) {

@@ -1960,6 +1960,11 @@ SaAisErrorT saImmOiObjectImplementerSet(SaImmOiHandleT immOiHandle, const SaName
 	char objName[SA_MAX_UNEXTENDED_NAME_LENGTH];
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = objName;
@@ -2176,6 +2181,11 @@ SaAisErrorT saImmOiObjectImplementerRelease(SaImmOiHandleT immOiHandle, const Sa
 	char objName[SA_MAX_UNEXTENDED_NAME_LENGTH];
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = objName;
@@ -2376,6 +2386,11 @@ SaAisErrorT saImmOiRtObjectUpdate_2(SaImmOiHandleT immOiHandle,
 	char objName[SA_MAX_UNEXTENDED_NAME_LENGTH];
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = objName;
@@ -3045,6 +3060,11 @@ SaAisErrorT saImmOiRtObjectDelete(SaImmOiHandleT immOiHandle, const SaNameT *obj
 	char objName[SA_MAX_UNEXTENDED_NAME_LENGTH];
 
 	if(objectName) {
+		if(!osaf_is_extended_name_valid(objectName)) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
+
 		size_t len = osaf_extended_name_length(objectName);
 		if(len < SA_MAX_UNEXTENDED_NAME_LENGTH) {
 			objectNameStr = objName;
