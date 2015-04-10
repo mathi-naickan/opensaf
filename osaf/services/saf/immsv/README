@@ -397,7 +397,27 @@ restarted as a process, the call will be 'idempotent' and succeed quickly.
 If the OI is started after a cluster-start then these calls are necssary
 to rebuild the implementer-map. See ticket defect ticket #543 for details.
 (http://sourceforge.net/p/opensaf/tickets/543)
-      
+
+Minor discrepancy between OpenSAF and SAF on error codes for admin-operations.
+------------------------------------------------------------------------------
+According to the SAF spec ERR_BUSY should be given as response to an
+AdminOwnerRelease/Clear operation if there is currently an admin-operation 
+on-going directed at some object that the release/clear is targeting.
+But The AdminOwner mechanism is an access-control mechanism, not a concurrency
+control mechanism. After access has been granted, in this case for an 
+admin-operation, there is no real point in insisting that the admin-ownership
+must be valid until the admin-op completes. An AdminOwnerReelease/Clear will
+return ERR_BUSY if there is an ongoing CCB, since it is unknown if additional
+operations are to be addeded. Opeartions may be added to the CCB by the OI
+itself using the AuggmentedCcb interface. With respect to interferference
+from other overlapping admin-operation requests or other ccb-requests, the
+OpenSAF IMM leaves it open to the OI implementation to handle or reject.
+The OI dispatch is always via one single thread, but the OI may internally be
+multithreaded. It may also postpone reply on an admin-op while taking on other
+queued callbacks, since the reply to an admin-op is not done by returning from
+the admin-op callback, but by a separate downcall to immsv.
+
+
 
 PERSISTENCE
 ===========
@@ -416,9 +436,9 @@ One of the main new immsv features available in OpenSAF4.0 is the
 Persistent Back-End (PBE). By default this feature is not enabled.
 See the instructions below for how to enable it. Use of the PBE
 has a signifigant (negative) impact on performance for CCBs and
-persitent runtime data, both response time and throughput.
+persistent runtime data, both response time and throughput.
 The upside is that the user does not need to do frequent dumps
-to get persistence. But it is still advisable dump the IMM
+to get persistence. But it is still advisable to dump the IMM
 (to the imm-xml form) periodically, for backup to an external
 filesystem, to support recovery from disasters.
 
