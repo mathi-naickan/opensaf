@@ -2087,6 +2087,12 @@ SaAisErrorT saImmOmCcbObjectModify_2(SaImmCcbHandleT ccbHandle,
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
+	if(!osaf_is_extended_name_valid(objectName)) {
+		TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+		TRACE_LEAVE();
+		return SA_AIS_ERR_INVALID_PARAM;
+	}
+
 	if (osaf_is_extended_name_empty(objectName)) {
 		TRACE_2("ERR_INVALID_PARAM: objectName is empty");
 		TRACE_LEAVE();
@@ -2540,6 +2546,12 @@ SaAisErrorT saImmOmCcbObjectDelete(SaImmCcbHandleT ccbHandle, const SaNameT *obj
 
 	if (!objectName || osaf_is_extended_name_empty(objectName)) {
 		TRACE_2("ERR_INVALID_PARAM: Empty object-name");
+		return SA_AIS_ERR_INVALID_PARAM;
+	}
+
+	if(!osaf_is_extended_name_valid(objectName)) {
+		TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+		TRACE_LEAVE();
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
@@ -7081,6 +7093,7 @@ SaAisErrorT saImmOmAdminOwnerSet(SaImmAdminOwnerHandleT adminOwnerHandle,
 	SaImmHandleT immHandle=0LL;
 	SaUint32T adminOwnerId = 0;
 	SaUint32T timeout = 0;
+	int i;
 	TRACE_ENTER();
 
 	if (cb->sv_id == 0) {
@@ -7089,7 +7102,15 @@ SaAisErrorT saImmOmAdminOwnerSet(SaImmAdminOwnerHandleT adminOwnerHandle,
 	}
 
 	if (!objectNames || (objectNames[0] == 0)) {
+		TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
 		return SA_AIS_ERR_INVALID_PARAM;
+	}
+
+	for (i = 0; objectNames[i]; ++i) {
+		if(!osaf_is_extended_name_valid(objectNames[i])) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
 	}
 
 	switch (scope) {
@@ -7209,7 +7230,6 @@ SaAisErrorT saImmOmAdminOwnerSet(SaImmAdminOwnerHandleT adminOwnerHandle,
 	admo_set_evt.info.immnd.info.admReq.adm_owner_id = adminOwnerId;
 	admo_set_evt.info.immnd.info.admReq.scope = scope;
 
-	int i;
 	for (i = 0; objectNames[i]; ++i) {
 		objectName = objectNames[i];
 		IMMSV_OBJ_NAME_LIST *ol = calloc(1, sizeof(IMMSV_OBJ_NAME_LIST));	/*a */
@@ -7287,6 +7307,7 @@ SaAisErrorT saImmOmAdminOwnerRelease(SaImmAdminOwnerHandleT adminOwnerHandle,
 	SaImmHandleT immHandle=0LL;
 	SaUint32T adminOwnerId = 0;
 	SaUint32T timeout = 0;
+	int i;
 	TRACE_ENTER();
 
 	if (cb->sv_id == 0) {
@@ -7295,7 +7316,15 @@ SaAisErrorT saImmOmAdminOwnerRelease(SaImmAdminOwnerHandleT adminOwnerHandle,
 	}
 
 	if (!objectNames || (objectNames[0] == 0)) {
+		TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
 		return SA_AIS_ERR_INVALID_PARAM;
+	}
+
+	for (i = 0; objectNames[i]; ++i) {
+		if(!osaf_is_extended_name_valid(objectNames[i])) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
 	}
 
 	switch (scope) {
@@ -7402,7 +7431,6 @@ SaAisErrorT saImmOmAdminOwnerRelease(SaImmAdminOwnerHandleT adminOwnerHandle,
 	admo_set_evt.info.immnd.info.admReq.adm_owner_id = adminOwnerId;
 	admo_set_evt.info.immnd.info.admReq.scope = scope;
 
-	int i;
 	for (i = 0; objectNames[i]; ++i) {
 		objectName = objectNames[i];
 		IMMSV_OBJ_NAME_LIST *ol = calloc(1, sizeof(IMMSV_OBJ_NAME_LIST));	/*a */
@@ -7483,6 +7511,7 @@ SaAisErrorT saImmOmAdminOwnerClear(SaImmHandleT immHandle, const SaNameT **objec
 	const SaNameT *objectName;
 	bool locked = true;
 	SaUint32T timeout = 0;
+	int i;
 	TRACE_ENTER();
 
 	if (cb->sv_id == 0) {
@@ -7491,7 +7520,15 @@ SaAisErrorT saImmOmAdminOwnerClear(SaImmHandleT immHandle, const SaNameT **objec
 	}
 
 	if (!objectNames || (objectNames[0] == 0)) {
+		TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
 		return SA_AIS_ERR_INVALID_PARAM;
+	}
+
+	for (i = 0; objectNames[i]; ++i) {
+		if(!osaf_is_extended_name_valid(objectNames[i])) {
+			TRACE_2("ERR_INVALID_PARAM: Object name is invalid");
+			return SA_AIS_ERR_INVALID_PARAM;
+		}
 	}
 
 	switch (scope) {
@@ -7560,7 +7597,6 @@ SaAisErrorT saImmOmAdminOwnerClear(SaImmHandleT immHandle, const SaNameT **objec
 	admo_set_evt.info.immnd.info.admReq.adm_owner_id = 0;
 	admo_set_evt.info.immnd.info.admReq.scope = scope;
 
-	int i;
 	for (i = 0; objectNames[i]; ++i) {
 		objectName = objectNames[i];
 		IMMSV_OBJ_NAME_LIST *ol = calloc(1, sizeof(IMMSV_OBJ_NAME_LIST));	/*a */
