@@ -652,7 +652,7 @@ immModel_ccbObjectCreate(IMMND_CB *cb,
         req->attrValues = attr;
 
         // Add parent to req
-        req->parentOrObjectDn.size = parentName.size();
+        req->parentOrObjectDn.size = parentName.size()+1;
         memcpy(req->parentOrObjectDn.buf, parentName.c_str(), req->parentOrObjectDn.size);
     }
 
@@ -1971,7 +1971,7 @@ immModel_rtObjectCreate(IMMND_CB *cb,
         req->attrValues = attr;
 
         // Add parent to req
-        req->parentOrObjectDn.size = parentName.size();
+        req->parentOrObjectDn.size = parentName.size()+1;
         memcpy(req->parentOrObjectDn.buf, parentName.c_str(), req->parentOrObjectDn.size);
     }
 
