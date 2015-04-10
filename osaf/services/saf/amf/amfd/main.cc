@@ -402,10 +402,23 @@ static void handle_event_in_failover_state(AVD_EVT *evt)
 		 * failover completes 
 		 */
 		while (NULL != (node = avd_node_getnext_nodeid(node_id))) {
+			bool fover_done = false;
 			node_id = node->node_info.nodeId;
 
 			if (AVD_AVND_STATE_ABSENT == node->node_state) {
-				avd_node_failover(node);
+				/* Check whether this node failover has been
+				   performed or not. */
+				for (AVD_SU *i_su = node->list_of_ncs_su; i_su;
+						i_su = i_su->avnd_list_su_next) {
+					if ((i_su->sg_of_su->sg_redundancy_model == SA_AMF_NO_REDUNDANCY_MODEL) &&
+							(i_su->list_of_susi == NULL)) {
+						fover_done = true;
+						break;
+					}
+				}
+
+				if (fover_done == false)
+					avd_node_failover(node);
 			}
 		}
 		/* Since we are sending lots of async update to its peer from
