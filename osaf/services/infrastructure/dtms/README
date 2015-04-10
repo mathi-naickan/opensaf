@@ -1,0 +1,171 @@
+#
+#   -*- OpenSAF -*-
+#
+# (C) Copyright 2010 The OpenSAF Foundation
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
+#
+# Author(s): Oracle
+#
+
+GENERAL
+
+This directory (osaf/services/infrastructure/dtms) contains an
+implementation of the infrastructure DTM service which provides 
+alternate TCP transport that is going to be used for the MDS 
+discovery and Transport Mechanism.
+
+The advantages of choosing this Alternate transport for MDS 
+Discovery mechanism based on the TCP/IP is that it doesn`t 
+require any third-party module dependency and the TCP work
+ across the sub-nets (discovers multiple sub-net nodes).
+
+DESIGN
+Following are provided by MDS Discovery and Transport module (MDTM):
+
+Node Discovery: This is the way by which MDTM will report that
+an NODE (Cluster Member) has joined/left the cluster. MDTM will 
+report the UP/DOWN of the NODE, once the Applications have subscribed
+ to the NODE Subscription through the MDS.
+
+Service Discovery: This is the way by which MDTM will report the UP/DOWN 
+of the services installed with MDS. MDS will report the UP/DOWN of the 
+services, once the Applications have subscribed to the destination 
+service through the MDS.
+
+Message Send: This is the way by which MDS delivers the messages sent by
+the applications to the destined service in the cluster using the MDTM.
+
+Message Receive: This is the way by which MDS delivers the messages to 
+the application sent by the other applications in the cluster through the MDS.
+
+
+CONFIGURATION
+
+Implementation defined configuration is done using a configuration
+file with environment variables. This config file is typically `/etc/opensaf/dtmd.conf`
+the configuration options provided in this file are only valid when MDS transport is chosen as TCP.
+ 
+A typical Four Node Cluster with TCP Transport with Broadcast discovery Configuration:
+--------------------------------------------------------------------------------------
+
+Note: This following steps assumes that all node IPs are in the same subnet and node
+ IPs are reachable to each other (one to all).
+
+Following are the complete Opensaf broadcast cluster configuration
+along with other regular configurations:
+
+1. Configure `DTM_NODE_IP` with IPV4 or IPV6 addresses of that particular Node in 
+`/etc/opensaf/dtmd.conf`
+
+2. Configure `MDS_TRANSPORT` with `TCP` transport protocol /etc/opensaf/nid.conf`
+
+
+A typical Four Node Cluster with TCP Transport with Multicast discovery Configuration:
+--------------------------------------------------------------------------------------
+Note: This following steps assumes that you are configuring with two/more subnet nodes 
+and both/more subnets IPs are reachable to each other (one to all).
+
+Following are the complete Opensaf multicast cluster configuration along
+with other regular configurations:
+
+1. Configure `DTM_NODE_IP` with `IPV4` or `IPV6` addresses of
+   that particular Node in `/etc/opensaf/dtmd.conf`
+2. Configure DTM_MCAST_ADDR with multicast IP addresses (say 224.0.0.1).
+3. Add DTM_MCAST_ADDR configured multicast address to specific
+   interface in all Controller and Payload Nodes :
+
+   Example:
+	SC-1#ip route add 224.0.0.1/4 dev eth0
+	SC-2#ip route add 224.0.0.1/4 dev eth0
+	PL-3#ip route add 224.0.0.1/4 dev eth0
+	PL-4#ip route add 224.0.0.1/4 dev eth0
+
+4. Enable packet forwarding on all the Controller and Payload Nodes
+   Example:
+
+	SC-1#echo 1 > /proc/sys/net/ipv4/ip_forward
+	SC-2#echo 1 > /proc/sys/net/ipv4/ip_forward
+	PL-3#echo 1 > /proc/sys/net/ipv4/ip_forward
+	PL-4#echo 1 > /proc/sys/net/ipv4/ip_forward
+
+Note: In case you don`t have Router for quickly test the above configuration in your 
+Lab, configure a Linux system as a virtual Gateway Router as follows and verify the
+configuration in your lab.
+
+Continue the below Steps to configure Linux system as a virtual Gateway Router 
+in addition to above steps:
+
+5. configure a simple Linux system with two interfaces 
+
+    Example:
+	Linux system # eth0: 1.1.22.254
+	Linux system # eth1: 1.1.44.254
+
+
+6. Configure the routes on both the controllers and payloads Nodes
+
+    Example:
+	SC-1#route add -net 1.1.22.0 netmask 255.255.255.0 gw 1.1.22.254
+	SC-2#route add -net 1.1.44.0 netmask 255.255.255.0 gw 1.1.22.254
+	PL-3#route add -net 1.1.22.0 netmask 255.255.255.0 gw 1.1.44.254
+	PL-4#route add -net 1.1.44.0 netmask 255.255.255.0 gw 1.1.44.254
+
+
+7. Enable packet forwarding on also Virtual Gateway Router Linux system
+   as mentioned above step 4 for Controller and Payload Nodes:
+
+   Example:
+	Linux-system# echo 1 > /proc/sys/net/ipv4/ip_forward
+
+8. After this configuration all Controller and Payload Nodes should be able to ping 
+   each other you can verify as follows:
+
+   Example:
+	SC-1# ping 1.1.22.32
+	SC-1# ping 1.1.44.51
+	SC-1# ping 1.1.44.52
+
+	SC-2# ping 1.1.22.31
+	SC-2# ping 1.1.44.51
+	SC-2# ping 1.1.44.52
+
+	PL-3# ping 1.1.22.31
+	PL-3# ping 1.1.22.32
+	PL-3# ping 1.1.44.52
+
+	PL-4# ping 1.1.22.31
+	PL-4# ping 1.1.22.32
+	PL-4# ping 1.1.44.51
+
+9. Now, start controllers and payloads with the configurations suggested
+    and should be able to form a 4 node cluster.
+
+
+DEBUG
+ 
+dtm server traces are by default disabled. To enable/disable ntf server traces
+in a running system, send signal USR2 to the dtmd process. Every time the
+trace state is toggled. Example:
+ 
+    $ pkill -USR2 osafdtmd
+ 
+Traces are written to the file:
+ 
+    $pklogdir/osafdtmd.log
+ 
+To enable traces from the very start of the dtm server, uncomment the line:
+ 
+    #args="--tracemask=0xffffffff"
+ 
+in dtmd.conf (see CONFIGURATION above) and restart the cluster.
+ 
+For fatal errors, syslog is used.
+
