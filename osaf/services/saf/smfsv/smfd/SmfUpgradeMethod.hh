@@ -25,6 +25,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include <saAis.h>
 #include <saSmf.h>
 #include "SmfTargetTemplate.hh"
@@ -220,7 +221,24 @@ class SmfUpgradeScope {
 ///
 	virtual ~SmfUpgradeScope();
 
- private:
+ protected:
+
+///
+/// Purpose: Remove duplicates of SwAdd and SwRemove.
+/// @param   io_addList: addList of SmfBundleRef objects
+/// @param   io_removeList: removeList of SmfBundleRef objects
+/// @return  None.
+///
+	void removeSwAddRemoveDuplicates(std::list<SmfBundleRef> &io_addList, std::list<SmfBundleRef> &io_removeList);
+
+///
+/// Purpose: Remove duplicates of SwAdd and SwRemove.
+///          Based on the given DN, the specified swBundleRef objects will be deleted from addList/removeList
+/// @param   io_addOrRemoveList: addList or removeList
+/// @param   i_dn: DN
+/// @return  None.
+///
+	void removeSwAddRemoveDuplicate(std::list<SmfBundleRef> &io_addOrRemoveList, const std::string &i_dn);
 
 };
 
@@ -394,6 +412,12 @@ class SmfForAddRemove : public SmfUpgradeScope {
 ///
 	const SmfActivationUnitType *getDeactivationUnit(void) const;
 
+///
+/// Purpose: Remove duplicates of SwAdd and SwRemove.
+/// @param   None.
+/// @return  None.
+///
+	void removeSwAddRemoveDuplicates(void);
 
  private:
 
@@ -452,6 +476,13 @@ class SmfForModify : public SmfUpgradeScope {
 /// @return  A pointer to a SmfActivationUnitType object.
 ///
 	const SmfActivationUnitType *getActivationUnit(void) const;
+
+///
+/// Purpose: Remove duplicates of SwAdd and SwRemove.
+/// @param   None.
+/// @return  None.
+///
+	void removeSwAddRemoveDuplicates(void);
 
  private:
 
