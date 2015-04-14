@@ -201,6 +201,61 @@ SmfUpgradeScope::~SmfUpgradeScope()
 {
 }
 
+// ------------------------------------------------------------------------------
+// removeSwAddRemoveDuplicates()
+// ------------------------------------------------------------------------------
+void
+SmfUpgradeScope::removeSwAddRemoveDuplicates(std::list<SmfBundleRef> &io_addList, std::list<SmfBundleRef> &io_removeList)
+{
+	TRACE_ENTER();
+	std::list<SmfBundleRef>::iterator itAdd;
+	std::list<SmfBundleRef>::iterator itRemove;
+	std::set<std::string> toBeRemoved;
+
+	// Find out which bundles are specified in both swAdd and SwRemove.
+	// Create a set of DN, since the comparison is based on that.
+	for (itAdd = io_addList.begin(); itAdd != io_addList.end(); itAdd++) {
+		for (itRemove = io_removeList.begin(); itRemove != io_removeList.end(); itRemove++) {
+			const std::string& swAddBundleDn = itAdd->getBundleDn();
+			if (swAddBundleDn == itRemove->getBundleDn()) {
+				TRACE("SmfUpgradeScope::removeSwAddRemoveDuplicates(): Bundle=%s found in <swAdd> and <swRemove> within a procedure, remove from both lists\n", swAddBundleDn.c_str());
+				toBeRemoved.insert(swAddBundleDn);
+				// Can break now since only need to store the DN once.
+				// DNs stored in set, no way to insert a DN twice.
+				break;
+			}
+		}
+	}
+
+	// Iterate through the DNs which need to be removed from add and remove lists.
+	// Remove all the "add" and "remove" objects which have that specific DN.
+	for (std::set<std::string>::iterator i = toBeRemoved.begin(); i != toBeRemoved.end(); i++) {
+		removeSwAddRemoveDuplicate(io_addList, *i);
+		removeSwAddRemoveDuplicate(io_removeList, *i);
+	}
+	TRACE_LEAVE();
+}
+// ------------------------------------------------------------------------------
+// removeSwAddRemoveDuplicate()
+// ------------------------------------------------------------------------------
+void
+SmfUpgradeScope::removeSwAddRemoveDuplicate(std::list<SmfBundleRef> &io_addOrRemoveList, const std::string &i_dn)
+{
+	TRACE_ENTER();
+	std::list<SmfBundleRef>::iterator iter = io_addOrRemoveList.begin();
+	while(iter != io_addOrRemoveList.end()) {
+		if(iter->getBundleDn() == i_dn) {
+			TRACE("SmfUpgradeScope::removeSwAddRemoveDuplicate(): erase element \"%s\"",i_dn.c_str());
+			io_addOrRemoveList.erase(iter);
+			// For safety, set the iterator to the beginning of the list.
+			iter = io_addOrRemoveList.begin();
+		}
+		else
+			iter++;
+	}
+	TRACE_LEAVE();
+}
+
 //================================================================================
 // Class SmfByTemplate
 // Purpose:
@@ -309,7 +364,15 @@ SmfForAddRemove::getDeactivationUnit(void) const
 {
 	return m_deactivationUnit;
 }
-
+void
+SmfForAddRemove::removeSwAddRemoveDuplicates(void)
+{
+	TRACE_ENTER();
+	std::list<SmfBundleRef> &addList = const_cast<std::list<SmfBundleRef> &>(getActivationUnit()->getSwAdd());
+	std::list<SmfBundleRef> &removeList = const_cast<std::list<SmfBundleRef> &>(getDeactivationUnit()->getSwRemove());
+	SmfUpgradeScope::removeSwAddRemoveDuplicates(addList, removeList);
+	TRACE_LEAVE();
+}
 //================================================================================
 // Class SmfForModify
 // Purpose:
@@ -364,3 +427,15 @@ SmfForModify::getTargetEntityTemplate() const
 	return m_targetEntityTemplate;
 }
 
+//------------------------------------------------------------------------------
+// removeSwAddRemoveDuplicates()
+//------------------------------------------------------------------------------
+void
+SmfForModify::removeSwAddRemoveDuplicates(void)
+{
+	TRACE_ENTER();
+	std::list<SmfBundleRef> &addList = const_cast<std::list<SmfBundleRef> &>(getActivationUnit()->getSwAdd());
+	std::list<SmfBundleRef> &removeList = const_cast<std::list<SmfBundleRef> &>(getActivationUnit()->getSwRemove());
+	SmfUpgradeScope::removeSwAddRemoveDuplicates(addList, removeList);
+	TRACE_LEAVE();
+}

@@ -225,12 +225,26 @@ SmfCampaignXmlParser::parseCampaignXml(std::string i_file)
 					goto error_exit;
 				}
 				const SmfTargetNodeTemplate *nodeTemplate = byTemplate->getTargetNodeTemplate();
-
-	                        const_cast<SmfTargetNodeTemplate *>(nodeTemplate)->removeSwAddRemoveDuplicates();
-
+				const_cast<SmfTargetNodeTemplate *>(nodeTemplate)->removeSwAddRemoveDuplicates();
 				break;
 			}
-			case SA_SMF_SINGLE_STEP:  //No action for single step procedures
+			case SA_SMF_SINGLE_STEP:
+			{
+				SmfSinglestepUpgrade *singleStepUpgrade = (SmfSinglestepUpgrade *) upgradeMethod;
+				const SmfUpgradeScope *upgradeScope = singleStepUpgrade->getUpgradeScope();
+				if(!upgradeScope) {
+					LOG_NO("SmfCampaignXmlParser::parseCampaignXml: No upgrade scope for singleStep");
+					goto error_exit;
+				}
+				//Cast to valid upgradeScope
+				const SmfForAddRemove* addRemove = dynamic_cast<const SmfForAddRemove*>(upgradeScope);
+				const SmfForModify* modify = dynamic_cast<const SmfForModify*>(upgradeScope);
+				if(addRemove)
+					const_cast<SmfForAddRemove*>(addRemove)->removeSwAddRemoveDuplicates();
+				else if(modify)
+					const_cast<SmfForModify*>(modify)->removeSwAddRemoveDuplicates();
+				break;
+			}
 			default:
 			{
 				break;
