@@ -1901,7 +1901,7 @@ SmfUpgradeStep::callActivationCmd()
 		      actCommand.c_str(), getSwNode().c_str());
 		TRACE("Get node destination for %s", getSwNode().c_str());
 
-		if (!getNodeDestination(getSwNode(), &nodeDest)) {
+		if (!getNodeDestination(getSwNode(), &nodeDest, NULL)) {
 			LOG_NO("no node destination found for node %s", getSwNode().c_str());
 			result = false;
 			goto done;
@@ -2172,6 +2172,7 @@ SmfUpgradeStep::nodeReboot()
 	std::string cmd;        // Command to enter
 	int interval;           // Retry interval
 	int timeout;            // Connection timeout
+	int elapsedTime;       // time spent inside getNodeDestination() 
 	int rebootTimeout = smfd_cb->rebootTimeout / 1000000000; //seconds
 	int cliTimeout    = rebootTimeout/2 * 100;                // sec to cs (10 ms)
 	int localTimeout  = 500;                                  // 500 * 10 ms = 5 seconds
@@ -2200,7 +2201,7 @@ SmfUpgradeStep::nodeReboot()
 	cmd = smfd_cb->smfNodeRebootCmd;
 
 	for (listIt = nodeList.begin(); listIt != nodeList.end(); ++listIt) {
-                if (!getNodeDestination(*listIt, &nodeDest)) {
+                if (!getNodeDestination(*listIt, &nodeDest, NULL)) {
                         LOG_NO("SmfUpgradeStep::nodeReboot: no node destination found for node %s", (*listIt).c_str());
                         result = false;
                         goto done;
@@ -2225,12 +2226,23 @@ SmfUpgradeStep::nodeReboot()
 
 	//The nodes has been rebooted, wait for the nodes to come UP with stepped UP counter
 	timeout  = rebootTimeout; //seconds
-	interval = 1;
+
+        // It is possible that the rebootTimeout configured via IMM interface may be less 
+        // than the default 10 seconds spent inside getNodeDestination().
+        // To handle this case, we overwride the userconfigured rebootTimeout
+        // with the default value of 10 seconds
+	if (timeout < 10*ONE_SECOND) {
+		LOG_NO("User configured SMF_REBOOT_TIMEOUT_ATTR is less than 10 seconds");
+		LOG_NO("using a default rebootTimeout of 10 seconds for the nodes to comeup");
+		timeout = 10*ONE_SECOND;
+	}
+
+	interval = 1*ONE_SECOND;
 	LOG_NO("SmfUpgradeStep::nodeReboot: Waiting to get node destination with increased UP counter");
 
 	while (true) {
                 for (nodeIt = rebootedNodeList.begin(); nodeIt != rebootedNodeList.end();) {
-                        if(getNodeDestination((*nodeIt).node_name, &nodeDest)) {
+                        if(getNodeDestination((*nodeIt).node_name, &nodeDest, &elapsedTime)) {
                                 /* Check if node UP counter have been stepped */
                                 if(nodeDest.nd_up_cntr > (*nodeIt).nd_up_cntr) {
                                         cmdNodeList.push_back(*nodeIt);           //Save rebooted nodes for next step
@@ -2245,8 +2257,9 @@ SmfUpgradeStep::nodeReboot()
                 if(true == rebootedNodeList.empty())
                      break;
 
-                struct timespec time = { interval, 0 };
-                osaf_nanosleep(&time);
+		// Adjust timeout with the time spent inside getNodeDestination().
+                timeout -= elapsedTime; 
+
                 if (timeout <= 0) {
                         LOG_NO("SmfUpgradeStep::nodeReboot: the following nodes has not been correctly rebooted");
                         for (nodeIt = rebootedNodeList.begin(); nodeIt != rebootedNodeList.end(); nodeIt++) {
@@ -2256,7 +2269,10 @@ SmfUpgradeStep::nodeReboot()
 			goto done;
                 }
 
-		timeout -= interval;
+                struct timespec time = { interval, 0 };
+                osaf_nanosleep(&time);
+
+                timeout -= interval;
 	}
 
 	//Node is UP, wait for node to accept command "true"
@@ -2267,7 +2283,7 @@ SmfUpgradeStep::nodeReboot()
 
 	while (true) {
                 for (nodeIt = cmdNodeList.begin(); nodeIt != cmdNodeList.end();) {
-                        if(getNodeDestination((*nodeIt).node_name, &nodeDest)) {
+                        if(getNodeDestination((*nodeIt).node_name, &nodeDest, NULL)) {
                                 if (smfnd_exec_remote_cmd(cmd.c_str(), &nodeDest, cliTimeout, 0) == 0) {
                                         nodeIt = cmdNodeList.erase(nodeIt);  //The node have accepted the command
                                 }
