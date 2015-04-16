@@ -69,7 +69,8 @@ waitForNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
 {
         int interval = 2;  //seconds
         int nodetimeout = smfd_cb->rebootTimeout/1000000000; //seconds
-        while (!getNodeDestination(i_node, o_nodeDest)) {
+
+        while (!getNodeDestination(i_node, o_nodeDest, NULL)) {
                 if (nodetimeout > 0) {
                         TRACE("No destination found, try again wait %d seconds", interval);
                         struct timespec sleepTime = { interval, 0 };
@@ -85,12 +86,15 @@ waitForNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
 }
 
 bool 
-getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
+getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest, int *elapsedTime)
 {
 	SmfImmUtils immUtil;
 	SaImmAttrValuesT_2 **attributes;
 
 	TRACE("Find destination for node '%s'", i_node.c_str());
+
+	if (elapsedTime) // Initialize elapsedTime to zero.
+		*elapsedTime = 0;
 
 	/* It seems SaAmfNode objects can be stored, but the code
 	 * indicates that SaClmNode's are expected. Anyway an attempt
@@ -118,15 +122,17 @@ getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
         //after a cluster reboot, it could happend the rebooted nodes comes up before
         //the last one is rebooted. This could make the campaign to fail when the campaign continue.
 	if (strcmp(className, "SaClmNode") == 0) {
-                int timeout = 10;
+                int timeout = 10*ONE_SECOND;
                 while(smfnd_for_name(i_node.c_str(), o_nodeDest) == false) {
                         if (timeout <= 0) {
                                 LOG_NO("Failed to get node dest for clm node %s", i_node.c_str());
                                 return false;
                         }
-                        struct timespec time = { 2, 0 };
+                        struct timespec time = { 2*ONE_SECOND, 0 };
                         osaf_nanosleep(&time);
                         timeout--;
+                        if (elapsedTime)
+                                *elapsedTime = *elapsedTime + 2*ONE_SECOND;
                 }
                 return true;
 
@@ -140,16 +146,18 @@ getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
 		}
 
 		char *nodeName = strdup(osaf_extended_name_borrow(clmNode));
-                int timeout = 10;
+                int timeout = 10*ONE_SECOND;
                 while(smfnd_for_name(nodeName, o_nodeDest) == false) {
                         if (timeout <= 0) {
                                 LOG_NO("Failed to get node dest for clm node %s", nodeName);
                                 free(nodeName);
                                 return false;
                         }
-                        struct timespec time = { 2, 0 };
+                        struct timespec time = { 2*ONE_SECOND, 0 };
                         osaf_nanosleep(&time);
                         timeout--;
+                        if (elapsedTime)
+                                *elapsedTime = *elapsedTime + 2*ONE_SECOND;
                 }
                 free(nodeName);
         } else {
