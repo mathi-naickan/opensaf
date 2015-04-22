@@ -6620,8 +6620,9 @@ static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId, SaUint32T *client
 		dummyClient = 0; /* dont reply to client here*/
 	}
 
-        if (nodeId) {
+        if (nodeId && cb->node_id == dummynodeId) {
                 *nodeId = dummynodeId;
+		TRACE_2("ccb:%u is originated from this node", ccbId);
         }
 
 	if (arrSize) {
@@ -7350,10 +7351,9 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 	osafassert(evt);
 	immnd_evt_ccb_abort(cb, evt->info.ccbId, &client, &nodeId);
 
-	if (nodeId && err == SA_AIS_OK) {
-		/* nodeId will be set only when OI ccb timeout happens. An OI timeout on 
-		   a ccb callback will always abort the CCB. so, any reply forwarded towards 
-		   the OM CCB client should be an ERR_FAILED_OPERATION and not ERR_TIMEOUT.
+	if (nodeId && err == SA_AIS_OK && !originatedAtThisNd) {
+		/* nodeId will be set when CCB is originated from this node.The CCB is aborted, 
+		   and the error response forwarded to client will be ERR_FAILED_OPERATION.
 		*/
 
 		originatedAtThisNd = SA_TRUE;
@@ -7382,13 +7382,7 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
-		send_evt.info.imma.info.errRsp.errStrings = immModel_ccbGrabErrStrings(cb, evt->info.ccbId);
-		if(send_evt.info.imma.info.errRsp.errStrings) {
-			send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR_2;
-		} else {
-			send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
-		}
-
+		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 		send_evt.info.imma.info.errRsp.error = err;
 
 		TRACE_2("SENDRSP %u", err);

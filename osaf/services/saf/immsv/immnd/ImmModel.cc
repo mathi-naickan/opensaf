@@ -5629,10 +5629,8 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
         }
     }
 
-    if (ccb->mVeto == SA_AIS_ERR_TIMEOUT) {
-        *nodeId = ccb->mOriginatingNode;
-        *client = ccb->mOriginatingConn;
-    }
+    *nodeId = ccb->mOriginatingNode;
+    *client = ccb->mOriginatingConn;
 
     ccb->mState = IMM_CCB_ABORTED;
     ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
@@ -12502,11 +12500,8 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
                         (*i3)->mPbeRestartId, (*i3)->mId);
                 } else if(now - (*i3)->mWaitStartTime >= (int)max_oi_timeout) {
                     oi_timeout = 0;
-                    (*i3)->mVeto = SA_AIS_ERR_TIMEOUT;
                     TRACE_5("CCB %u timeout while waiting on implementer reply",
                         (*i3)->mId);
-                    setCcbErrorString(*i3, "Resource Error: CCB timeout while "
-                         "waiting on implementer reply");
                 }
 
                 if((*i3)->mState == IMM_CCB_CRITICAL) {
