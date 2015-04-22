@@ -1912,7 +1912,7 @@ static void sidep_dependentsi_role_failover(AVD_SI *si)
 		if (stdby_su) {
 			if (avd_sidep_si_dependency_exists_within_su(stdby_su)) {
 				for (susi = stdby_su->list_of_susi;susi != NULL;susi = susi->su_next) {
-					if (avd_susi_role_failover(susi, actv_su) == NCSCC_RC_FAILURE) {
+					if (actv_su && avd_susi_role_failover(susi, actv_su) == NCSCC_RC_FAILURE) {
 						LOG_NO(" %s: %u: Active role modification failed for  %s ",
 								__FILE__, __LINE__, susi->su->name.value);
 						goto done;
