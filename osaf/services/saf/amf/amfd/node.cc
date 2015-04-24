@@ -453,6 +453,20 @@ static SaAisErrorT node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata
 			goto done;
 		}
 	}
+
+	/* This node shouldn't be part of any nodegroup. First this node has to be deleted from
+	   node group. */
+	for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
+			it != nodegroup_db->end(); it++) {
+		AVD_AMF_NG *ng = it->second;
+		if (node_in_nodegroup(Amf::to_string(&(opdata->objectName)), ng) == true) {
+			report_ccb_validation_error(opdata, "'%s' exists in"
+					" the nodegroup '%s'",
+					opdata->objectName.value, ng->name.value);
+			rc = SA_AIS_ERR_BAD_OPERATION;
+			goto done;
+		}
+	}
 	opdata->userData = node;
 done:
 	TRACE_LEAVE();
