@@ -2939,7 +2939,14 @@ void SG_2N::node_fail_su_oper(AVD_SU *su) {
 
 			if (all_assignments_done(a_susi->su)) {
 				/* Since Act assignment is completely done, so
-				   we don't expect any response from Act su. */
+				   we don't expect any response from Act su.
+				   During si-swap while standby assignment is
+				   going on, if Nodefailover or SU failover got
+				   escalated then toggle SU switch state and make
+				   SG stable. After SG becomes stable, spare SU
+				   will be instantiated, if available, or same SU
+				   will get standby assignment after repair.
+				 */
 				avd_sg_su_oper_list_del(cb, su, false);
 				su->delete_all_susis();
 				su->set_su_switch(AVSV_SI_TOGGLE_STABLE);
@@ -2967,14 +2974,15 @@ void SG_2N::node_fail_su_oper(AVD_SU *su) {
 					avd_sg_su_oper_list_add(cb, a_susi->su, false);
 					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
 				} else if (su->su_switch == AVSV_SI_TOGGLE_SWITCH) {
-					/* During si-swap while standby assignment is going on, if Nodefailover 
-					   or SU failover got escalated then toggle SU switch state and make SG 
-					   stable. After SG becomes stable, spare SU will be instantiated, 
-					   if available, or same SU will get standby assignment after repair.
+					/* During si-swap, NodeFailover or SuFailover got escalated
+					 * while the *su* just finishes quiesced assignment and
+					 * *a_susi->su* starts active assignment.
 					 */
 					su->set_su_switch(AVSV_SI_TOGGLE_STABLE);
-					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_STABLE);
-					complete_siswap(a_susi->su, SA_AIS_OK);
+					if (a_susi->su->any_susi_fsm_in_modify() == true) {
+						avd_sg_su_oper_list_add(cb, a_susi->su, false);
+						m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
+					}
 				} else {
 					avd_sg_su_oper_list_add(cb, a_susi->su, false);
 					m_AVD_SET_SG_FSM(cb, (su->sg_of_su), AVD_SG_FSM_SG_REALIGN);
