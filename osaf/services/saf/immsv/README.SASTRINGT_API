@@ -12,8 +12,8 @@ Defining an attribute in an IMM class definition on the SaStringT type and
 also setting the flag SA_IMM_ATTR_DN, will mean that the attribute is intended
 to hold a value that should be a DN.
 
-Other flags that make sense to also set on in combination with SA_IMM_ATTR_DN 
-when applicable are:
+Other SaImmAttrFlagsT values that also make sense to set in combination with
+SA_IMM_ATTR_DN when applicable are:
 
 SA_IMM_ATTR_RDN if this is the RDN attribute. Just as having SaNameT the 
 type of an RDN attribute indicates that the class is an association class,
@@ -26,12 +26,13 @@ attributes of type SaStringT if the SA_IMM_ATTR_DN flag is also set.
 The exception is the RDN attribute which still can not have the 
 SA_IMM_ATTR_NO_DANGLING set. 
 
-All the other flags may also be used in combination with SA_IMM_ATTR_DN, with
-the normal meaning. But the only attribute *type* that can be combined with
-SA_IMM_ATTR_DN flag is the type SA_IMM_ATTR_SASTRINGT.
+All the other SaImmAttrFlagsT values may also be used in combination with
+SA_IMM_ATTR_DN, with the normal meaning. But the only attribute *type* that
+can be combined with SA_IMM_ATTR_DN flag is the type SA_IMM_ATTR_SASTRINGT.
 
-The SaStringT API provides the same functions as the SaNameT based API with almost the
-same semantics as the A.2.X spec. Where there is a difference this is commented below.
+The SaStringT API provides the same functions as the SaNameT based API with
+almost the same semantics as the A.2.X spec. Where there is a difference this
+is commented below.
 --------
 
 	/* 4.5.1 saImmOmSearchInitialize() */

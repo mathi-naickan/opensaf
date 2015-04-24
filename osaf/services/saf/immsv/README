@@ -406,10 +406,10 @@ on-going directed at some object that the release/clear is targeting.
 But The AdminOwner mechanism is an access-control mechanism, not a concurrency
 control mechanism. After access has been granted, in this case for an 
 admin-operation, there is no real point in insisting that the admin-ownership
-must be valid until the admin-op completes. An AdminOwnerReelease/Clear will
+must be valid until the admin-op completes. An AdminOwnerRelease/Clear will
 return ERR_BUSY if there is an ongoing CCB, since it is unknown if additional
-operations are to be addeded. Opeartions may be added to the CCB by the OI
-itself using the AuggmentedCcb interface. With respect to interferference
+operations are to be added. Opeartions may be added to the CCB by the OI
+itself using the AugmentedCcb interface. With respect to interference
 from other overlapping admin-operation requests or other ccb-requests, the
 OpenSAF IMM leaves it open to the OI implementation to handle or reject.
 The OI dispatch is always via one single thread, but the OI may internally be
