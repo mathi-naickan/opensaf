@@ -49,13 +49,13 @@ typedef struct imma_client_node {
 	SaUint32T mImplementerId;	/*Only used for OI.*/
 	SaImmOiImplementerNameT  mImplementerName; /* needed for active resurrect*/
 	SaUint32T syncr_timeout;/* Timeout on syncr downcalls, dflt 10s, or setenv IMMA_SYNCR_TIMEOUT */
+	unsigned char replyPending; /* Syncronous or asyncronous call made towards IMMND */
 	bool isOm;		/*If true => then this is an OM client */
 	bool stale;		/*Loss of connection with immnd 
 					  will set this to true for the 
 					  connection. A resurrect can remove it.*/
 	bool exposed;    /* Exposed => stale is irreversible */
 	bool selObjUsable; /* Active resurrect possible for this client */
-	bool replyPending; /* Syncronous or asyncronous call made towards IMMND */
 	bool isPbe;  /* True => This is the PBE-OI */
 	bool isImmA2b;       /* Version A.02.11 */
 	bool isImmA2bCbk;    /* Version A.02.11 callback*/
