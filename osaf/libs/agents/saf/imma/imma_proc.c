@@ -3346,7 +3346,10 @@ imma_proc_decrement_pending_reply(IMMA_CLIENT_NODE *cl_node, bool isSync)
 				cl_node->handle);
 		}
 	} else {
-		/* Reaching 255 is sticky. */
+		/* Decrementing from zero implies a bug in the library logic. 
+		   The real count has been lost. Set the value to 255. This does not
+		   disturb current function, but makes the handle not resurrectable in
+		   case of iMMND restart while handle is still open. */
 		TRACE_3("Will not decrement zero pending reply count for handle %llx",
 			cl_node->handle);
 		cl_node->replyPending = 0xff;
