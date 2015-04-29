@@ -1098,7 +1098,8 @@ static int start_cmd() {
 			}
 		}
 
-		if(p.we_wordc > 0) {
+
+		if(rc==0 && p.we_wordc > 0) {
 			if(!strcmp(p.we_wordv[0], "immcfg")) {
 				optind = 0;
 				if((rc = imm_operation(p.we_wordc, p.we_wordv)) && !isCmdLn) {
@@ -1109,10 +1110,9 @@ static int start_cmd() {
 				alarm(0);
 			} else
 				fprintf(stderr, "Not immcfg command\n");
+			wordfree(&p);
 		}
-
-		wordfree(&p);
-
+	
 done:
 		if(line) {
 			free(line);
