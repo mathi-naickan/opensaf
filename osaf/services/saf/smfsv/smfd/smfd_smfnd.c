@@ -141,7 +141,7 @@ uint32_t smfnd_up(SaClmNodeIdT i_node_id, MDS_DEST i_smfnd_dest, MDS_SVC_PVT_SUB
 	rc = saClmInitialize(&clmHandle, NULL, &clmVersion);
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saClmInitialize failed, rc=%s", saf_error(rc));
-		free(smfnd);
+		if (newNode) free(smfnd);
 		pthread_mutex_unlock(&smfnd_list_lock);
 		return NCSCC_RC_FAILURE;
 	}
