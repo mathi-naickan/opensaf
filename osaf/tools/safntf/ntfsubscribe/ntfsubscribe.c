@@ -198,7 +198,6 @@ static void usage(void)
 	printf("  -y or --securityAlarm                     subscribe for only securityAlarm notifications\n");
 	printf("  -h or --help                              this help\n");
 	printf("  -v or --verbose                           print even more\n");
-	exit((int)SA_AIS_ERR_INVALID_PARAM);
 }
 
 static void freeNtfFilter(SaNtfNotificationFilterHandleT *fh_ptr)
@@ -403,11 +402,23 @@ int main(int argc, char *argv[])
 			verbose = 1;
 			break;
 		case 'h':
+			usage();
+			exit(EXIT_SUCCESS);
+			break;
 		case '?':
 		default:
-			usage();
+			fprintf(stderr, "Try '%s -h' for more information. \n", argv[0]);
+			exit(EXIT_FAILURE);
 			break;
 		}
+	}
+
+	if (optind < argc){
+		fprintf(stderr, "Invalid non-option: \n");
+		while (optind < argc)
+			fprintf(stderr, "%s \n", argv[optind++]);
+		fprintf(stderr, "Try '%s -h' for more information. \n", argv[0]);
+		exit(EXIT_FAILURE);
 	}
 
 	error = saNtfInitialize(&ntfHandle, &ntfCallbacks, &version);
