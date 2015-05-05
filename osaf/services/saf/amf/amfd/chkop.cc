@@ -40,6 +40,7 @@
 
 #include "logtrace.h"
 #include "amfd.h"
+#include <nid_api.h>
 
 static uint32_t avsv_mbcsv_cb(NCS_MBCSV_CB_ARG *arg);
 static uint32_t avsv_mbcsv_process_enc_cb(AVD_CL_CB *cb, NCS_MBCSV_CB_ARG *arg);
@@ -444,6 +445,9 @@ ignore_msg:
 				** when in a more critical state */
 				saflog(LOG_NOTICE, amfSvcUsrName, "Cold sync complete at %x", cb->node_id_avd);
 				cb->stby_sync_state = AVD_STBY_IN_SYNC;
+				/* It is important for Standby Amfd to inform nid after it is
+				   ready for Act controller failover and accept Act role. */
+				(void) nid_notify(const_cast<char*>("AMFD"), NCSCC_RC_SUCCESS, NULL);
 			}
 
 			cb->synced_reo_type = arg->info.decode.i_reo_type;
