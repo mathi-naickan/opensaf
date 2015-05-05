@@ -349,14 +349,19 @@ int main(int argc, char *argv[]) {
 			break;
 		case '?':
 		default:
-			usage();
-			fprintf(stderr, "invalid argument: -%c %s  -- format "
-					"see above\n ", c,  optarg);  
+			fprintf(stderr, "Try '%s -h' for more information. \n", argv[0]);
 			exit(EXIT_FAILURE);
 			break;
 		}
 	}
 
+	if (optind < argc){
+		fprintf(stderr, "Invalid non-option: \n");
+		while (optind < argc)
+			fprintf(stderr, "%s \n", argv[optind++]);
+		fprintf(stderr, "Try '%s -h' for more information. \n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
 	rc = saNtfInitialize(&ntfHandle, &ntfCallbacks, &version);
 	if (SA_AIS_OK != rc) {
 		fprintf(stderr, "saNtfInitialize failed - %s\n",
