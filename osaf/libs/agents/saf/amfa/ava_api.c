@@ -2194,6 +2194,9 @@ SaAisErrorT saAmfProtectionGroupTrack_4(SaAmfHandleT hdl,
 	SaAisErrorT rc = SA_AIS_OK;
 	TRACE_ENTER2("SaAmfHandleT passed is %llx", hdl);
 
+	/* initialize the msg */
+	memset(&msg, 0, sizeof(AVSV_NDA_AVA_MSG));
+
 	/* Verifying the input Handle & global handle */
 	if(!gl_ava_hdl || hdl > AVSV_UNS32_HDL_MAX) {
 		TRACE_2("Invalid SaAmfHandle passed by component: %llx",hdl);
@@ -2225,9 +2228,6 @@ SaAisErrorT saAmfProtectionGroupTrack_4(SaAmfHandleT hdl,
 	/* TODO: check if csiName exists in AMF configuration. If not, SA_AIS_ERR_NOT_EXIST */
 	/* TODO: check cluster membership, if node is not a member answer back with SA_AIS_ERR_UNAVAILABLE */
 	/* TODO: check if handle is "old", due to node rejoin as member in cluster. If not: SA_AIS_ERR_UNAVAILABLE */
-
-	/* initialize the msg */
-	memset(&msg, 0, sizeof(AVSV_NDA_AVA_MSG));
 
 	if (!csi_name || !(csi_name->length) || (csi_name->length > SA_MAX_NAME_LENGTH)) {
 		TRACE_LEAVE2("Incorrect arguments");
