@@ -534,6 +534,15 @@ SmfUpgradeStep::getSwNodeList()
 }
 
 //------------------------------------------------------------------------------
+// getSsAffectedNodeList()
+//------------------------------------------------------------------------------
+const std::list<std::string> & 
+SmfUpgradeStep::getSsAffectedNodeList() 
+{
+	return m_ssAffectedNodeList;
+}
+
+//------------------------------------------------------------------------------
 // setStepType()
 //------------------------------------------------------------------------------
 void 
@@ -1235,7 +1244,10 @@ bool SmfUpgradeStep::calculateSingleStepNodes(
 
 	if (i_plmExecEnvList.empty()) {
 		TRACE("No <plmExecEnv> was specified, use  m_swNodeList");
-		o_nodelist = m_swNodeList;
+                std::list<std::string>::iterator it;
+		for (it = m_swNodeList.begin(); it != m_swNodeList.end(); it++) {
+                        o_nodelist.push_back(*it);
+                }
 	} else {
 		TRACE("<plmExecEnv> was specified, get the AMF nodes from the provided plmExecEnvList");
 		std::list<SmfPlmExecEnv>::const_iterator ee;
@@ -1440,6 +1452,24 @@ SmfUpgradeStep::calculateStepType()
                                 //  *If SMF execute on the controller included, swap controllers
                                 //  *Otherwise , node reboot step is selected.
 
+                                //Find out which nodes are affected for each bundle, plmExecEnv overrides calc nodes.
+                                //This list is the total set of nodes for the single step procedure
+                                //This will be used to calc if all controllers are included and as a list of nodes
+                                //to reboot in case of any bundle needs reboot to install/reboot
+                                std::list < SmfBundleRef >::const_iterator bundleit;
+                                //Find out which nodes was addressed for removal
+                                for (bundleit = m_swRemoveList.begin(); bundleit != m_swRemoveList.end(); ++bundleit) {
+                                        if (!calculateSingleStepNodes(bundleit->getPlmExecEnvList(), m_ssAffectedNodeList)) {
+                                                LOG_NO("Fail to calculate nodes for bundle [%s]", bundleit->getBundleDn().c_str());
+                                        }
+                                }
+                                //Find out which nodes was addressed for installation
+                                for (bundleit = m_swAddList.begin(); bundleit != m_swAddList.end(); ++bundleit) {
+                                        if (!calculateSingleStepNodes(bundleit->getPlmExecEnvList(), m_ssAffectedNodeList)) {
+                                                LOG_NO("Fail to calculate nodes for bundle [%s]", bundleit->getBundleDn().c_str());
+                                        }
+                                }
+
                                 bool allControllersAffected = false; //Assume all controllers is not within the single step list of nodes
                                 int noOfAffectedControllers = 0;
                                 std::string matchingController;
@@ -1450,6 +1480,16 @@ SmfUpgradeStep::calculateStepType()
                                         LOG_NO("Single node system, always treat as all controllers included");
                                         allControllersAffected = true;
                                         goto selectStepType;
+                                }
+
+                                //Read if cluster controllers are defined.
+                                //They are defined if the feature to reboot affected nodes only in a
+                                //single step procedures is wanted. This is a single step procedure.
+                                if (false == readSmfClusterControllers()) {
+                                        //In case of failure to read, continue anyway. The only impact is that
+                                        //the cluster will be rebooted instead of affected nodes only. The campaign
+                                        //shall however not fail because of this.
+                                        LOG_NO("Fail to read the id of the cluster controllers, continue. Cluster reboot will be choosen");
                                 }
 
                                 if (smfd_cb->smfClusterControllers[0] != NULL) {  //Controller is configured
@@ -1463,7 +1503,8 @@ SmfUpgradeStep::calculateStepType()
                                         }
 
                                         std::string clmNode; //CLM nodes are expected in attribute smfClusterControllers.
-                                        std::list <std::string> nodeList = this->getSwNodeList();
+                                        // std::list <std::string> nodeList = this->getSwNodeList();
+                                        std::list <std::string> nodeList = this->getSsAffectedNodeList();
                                         std::list < std::string >::const_iterator nodeit = nodeList.begin();
                                         std::string smfClusterController;
 
@@ -1847,32 +1888,22 @@ SmfUpgradeStep::callActivationCmd()
 		   not bound to a particular node, so the
 		   "i_node" will be empty. */
 
-		std::list<SmfPlmExecEnv> plmExecEnvList; //The resulting PLM env list
+                //Find out which nodes are affected for each bundle, plmExecEnv overrides calc nodes
+                std::list < SmfBundleRef >::const_iterator bundleit;
+                std::list<std::string> swNodeList;  //The total list of nodes
 
-		//Find out which nodes was addressed for installation and removal
-		for (bundleit = m_swRemoveList.begin(); bundleit != m_swRemoveList.end(); ++bundleit) {
-			std::list<SmfPlmExecEnv> tmp = bundleit->getPlmExecEnvList();
-			std::list<SmfPlmExecEnv>::iterator it;
-			for (it = tmp.begin(); it != tmp.end(); ++it) {
-				plmExecEnvList.push_back(*it);
-			}
-		}
-
-		for (bundleit = m_swAddList.begin(); bundleit != m_swAddList.end(); ++bundleit) {
-			std::list<SmfPlmExecEnv> tmp = bundleit->getPlmExecEnvList();
-			std::list<SmfPlmExecEnv>::iterator it;
-			for (it = tmp.begin(); it != tmp.end(); ++it) {
-				plmExecEnvList.push_back(*it);
-			}
-		}
-
-		//Translate the PLM exec env to AMF nodes
-		//Duplicates are removed in the calculateSingleStepNodes method
-		std::list<std::string> swNodeList;
-		if (!calculateSingleStepNodes(plmExecEnvList, swNodeList)) {
-			result = false;
-			goto done;					
-		}
+                //Find out which nodes was addressed for removal
+                for (bundleit = m_swRemoveList.begin(); bundleit != m_swRemoveList.end(); ++bundleit) {
+                        if (!calculateSingleStepNodes(bundleit->getPlmExecEnvList(), swNodeList)) {
+                                LOG_NO("Fail to calculate nodes for bundle [%s]", bundleit->getBundleDn().c_str());
+                        }
+                }
+                //Find out which nodes was addressed for installation
+                for (bundleit = m_swAddList.begin(); bundleit != m_swAddList.end(); ++bundleit) {
+                        if (!calculateSingleStepNodes(bundleit->getPlmExecEnvList(), swNodeList)) {
+                                LOG_NO("Fail to calculate nodes for bundle [%s]", bundleit->getBundleDn().c_str());
+                        }
+                }
 
 		std::list<std::string>::const_iterator n;
 		for (n = swNodeList.begin(); n != swNodeList.end(); n++) {
@@ -2230,10 +2261,14 @@ SmfUpgradeStep::nodeReboot()
 	int localTimeout  = 500;                                  // 500 * 10 ms = 5 seconds
         SmfndNodeDest nodeDest;
         std::list<std::string> nodeList;
+	std::list<std::string>::iterator listIt;
+        std::list<SmfNodeUpInfo> rebootedNodeList;
+        std::list<SmfNodeUpInfo> cmdNodeList;
+	std::list<SmfNodeUpInfo>::iterator nodeIt;
 
         //Copy the step node/nodelist into a local node list
 	if (getSwNode().length() == 0) { //Single step procedure
-                nodeList = getSwNodeList();
+                nodeList = getSsAffectedNodeList();
         } else {                         //Rolling procedure
                 nodeList.push_back(getSwNode());
         }
@@ -2243,11 +2278,6 @@ SmfUpgradeStep::nodeReboot()
 		TRACE_LEAVE();
 		return result;
 	}
-
-	std::list<std::string>::iterator listIt;
-        std::list<SmfNodeUpInfo> rebootedNodeList;
-        std::list<SmfNodeUpInfo> cmdNodeList;
-	std::list<SmfNodeUpInfo>::iterator nodeIt;
 
 	//Order smf node director to reboot the node
 	cmd = smfd_cb->smfNodeRebootCmd;
@@ -2266,7 +2296,7 @@ SmfUpgradeStep::nodeReboot()
                    command execution anyway so it doesn't nodeReboot()matter that the timeout is really long */
                 cmdrc = smfnd_exec_remote_cmd(cmd.c_str(), &nodeDest, cliTimeout, localTimeout);
                 if (cmdrc != 0) {
-                        LOG_NO("Reboot command [%s] on node [%s] failed rc=[%x], continue", cmd.c_str(), (*listIt).c_str(), cmdrc);
+                        LOG_NO("Reboot command [%s] on node [%s] return rc=[%x], continue", cmd.c_str(), (*listIt).c_str(), cmdrc);
                 }
 
                 /* Save the nodename and node UP counter for later use */
@@ -2556,3 +2586,116 @@ bool SmfUpgradeStep::checkAndInvokeCallback (const std::list < SmfCallback * > &
 	}
 	return true;
 }
+
+//------------------------------------------------------------------------------
+// readSmfClusterControllers()
+//------------------------------------------------------------------------------
+bool SmfUpgradeStep::readSmfClusterControllers()
+{
+        TRACE_ENTER();
+        SmfImmUtils immutil;
+        SaImmAttrValuesT_2 **attributes;
+
+        //Read the SMF config object
+        if (immutil.getObject(SMF_CONFIG_OBJECT_DN, &attributes) == false) {
+		LOG_ER("Could not get SMF config object from IMM %s", SMF_CONFIG_OBJECT_DN);
+		return false;
+	}
+
+        //Read attr smfSSAffectedNodesEnable. If >0 (true) the cluster controller CLM nodes with nodeId 1 and 2
+        //shall override the CLM nodes configured in attribute smfClusterControllers.
+	const SaUint32T *smfSSAffectedNodesEnable = immutil_getUint32Attr((const SaImmAttrValuesT_2 **)attributes,
+                                                                          SMF_SS_AFFECTED_NODES_ENABLE_ATTR, 0);
+
+        if ((NULL != smfSSAffectedNodesEnable) && (*smfSSAffectedNodesEnable > 0)) {
+                //smfSSAffectedNodesEnable is set to "true".
+                //This will override nodes set in SMF config class attr. smfClusterControllers
+                //Find the CLM nodes with hard coded default node Id
+                LOG_NO("smfSSAffectedNodesEnable is [true]. SMF handle nodeId %x and %x as controllers in SS procedures",
+                       SMF_NODE_ID_CONTROLLER_1, SMF_NODE_ID_CONTROLLER_2);
+                SaImmSearchHandleT immSearchHandle;
+                SaNameT objectName;
+
+                SaImmAttrNameT attributeNames[] = {
+                        (char*)"saClmNodeID",
+                        NULL
+                };
+
+                int retryCntr = 0;
+                int ix = 0;
+                bool controllersFound = false;
+                while (false == controllersFound) {
+                        if (immutil.getChildrenAndAttrBySearchHandle("",
+                                                                     immSearchHandle,
+                                                                     SA_IMM_SUBTREE,
+                                                                     (SaImmAttrNameT*)attributeNames,
+                                                                     "SaClmNode") == false) {
+                                LOG_NO("getChildrenAndAttrBySearchHandle fail");
+                                //If fail, the immSearchHandle is already finalized by getChildrenAndAttrBySearchHandle method
+                                TRACE_LEAVE();
+                                return false;
+                        }
+
+                        //Read all CLM nodes. The important nodes are the controllers. If nodeId empty, just continue (if payload nodes
+                        //the id is not important). When all CLM nodes are read, check if two controllers was found, if not retry to read
+                        //the CLM nodes.
+                        while (immutil_saImmOmSearchNext_2(immSearchHandle, &objectName, &attributes) == SA_AIS_OK) {
+                                const SaUint32T *nodeId = immutil_getUint32Attr((const SaImmAttrValuesT_2 **)attributes, "saClmNodeID", 0);
+                                if (nodeId == NULL) {
+                                        continue;
+                                }
+                                if ((*nodeId == SMF_NODE_ID_CONTROLLER_1) || (*nodeId == SMF_NODE_ID_CONTROLLER_2)) {
+                                        smfd_cb->smfClusterControllers[ix] = strdup(osaf_extended_name_borrow(&objectName));
+                                        LOG_NO("Cluster controller[%d] = %s",ix ,smfd_cb->smfClusterControllers[ix]);
+                                        ix++;
+                                        if (ix == 2) {
+                                                controllersFound = true;
+                                                break;  //Two controllers found, no need to continue reading CLM nodes.
+                                        }
+                                }
+                        }
+
+                        //All CLM node objects was read, check if two controllers was found
+                        if (ix < 2) {
+                                if (retryCntr >= 10) {  //Retry 10 times
+                                        LOG_NO("Two controllers was not found, giving up");
+                                        //Free memory, at most one controller could have been found here
+                                        free(smfd_cb->smfClusterControllers[0]);
+                                        smfd_cb->smfClusterControllers[0] = NULL;
+                                        (void) immutil_saImmOmSearchFinalize(immSearchHandle);
+                                        TRACE_LEAVE();
+                                        return false;
+                                }
+
+                                //Free memory, at most one controller could have been found here
+                                free(smfd_cb->smfClusterControllers[0]);
+                                smfd_cb->smfClusterControllers[0] = NULL;
+                                LOG_NO("Two controllers was not found, wait and retry reading the CLM nodeId's");
+                                struct timespec sleepTime = { 5, 0 }; //Five seconds
+                                osaf_nanosleep(&sleepTime);
+                                retryCntr++;
+                                ix = 0;
+                        }
+
+                        (void) immutil_saImmOmSearchFinalize(immSearchHandle);
+               }
+        } else {
+                LOG_NO("smfSSAffectedNodesEnable is [false], SMF uses smfClusterControllers attr. as controllers in SS procedures");
+                //Read new smfClusterControllers values
+                char* controller;
+                for(int ix = 0; (controller = (char*)immutil_getStringAttr((const SaImmAttrValuesT_2 **)attributes,
+                                                                           SMF_CLUSTER_CONTROLLERS_ATTR, ix)) != NULL; ix++) {
+                        if(ix > 1) {
+                                LOG_NO("Maximum of two cluster controllers can be defined, controller [%s] ignored", controller);
+                                break;
+                        }
+
+                        smfd_cb->smfClusterControllers[ix] = strdup(controller);
+                        LOG_NO("Cluster controller[%d] = %s",ix ,controller);
+                }
+        }
+
+        TRACE_LEAVE();
+        return true;
+}
+

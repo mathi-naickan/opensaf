@@ -338,6 +338,13 @@ class SmfUpgradeStep {
 /// @return   A list of DNs to AMF nodes
 ///
 	const std::list<std::string>  & getSwNodeList();
+  
+///
+/// Purpose:  Get the list of affected nodes (single step)
+/// @param     
+/// @return   A list of DNs to AMF nodes
+///
+	const std::list<std::string>  & getSsAffectedNodeList();
 
 ///
 /// Purpose:  Set type of step
@@ -639,6 +646,12 @@ class SmfUpgradeStep {
 	void copyDuInitStateToAu();
 
 	bool checkAndInvokeCallback (const std::list < SmfCallback * > &callback_list, unsigned int camp_phase);
+///
+/// Purpose:  Read the possibly defined cluster controller names
+/// @param    None
+/// @return   true on success else false
+///
+	bool readSmfClusterControllers();
 
         friend class SmfStepState;
 
@@ -724,6 +737,7 @@ class SmfUpgradeStep {
 	std::list < SmfImmOperation * >m_modificationList;
 	std::string m_swNode;	             // The node where bundles should be added/removed
 	std::list<std::string> m_swNodeList; // Same as "m_swNode" but for single-step
+	std::list<std::string> m_ssAffectedNodeList; // Total list of affected nodes in a single-step
 	SmfStepType* m_stepType;	     // Type of step
         bool     m_switchOver;               // Switchover executed 
 };
