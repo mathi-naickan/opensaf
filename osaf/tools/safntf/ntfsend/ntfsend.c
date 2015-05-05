@@ -1,3 +1,4 @@
+
 /*      -*- OpenSAF  -*-
  *
  * (C) Copyright 2008 The OpenSAF Foundation
@@ -101,7 +102,6 @@ static void usage(void)
 	printf("  -b or --burstTimeout=TIME                 send burst of NUM repeatSends [default: 1] and sleep TIME (usec)\n"
                "                                            between each burst, will continue for ever\n");
 	printf("  -h or --help                              this help\n");
-	exit(EXIT_FAILURE);
 }
 
 static void fillInDefaultValues(saNotificationAllocationParamsT *notificationAllocationParams,
@@ -797,6 +797,7 @@ int main(int argc, char *argv[])
 		{"eventType", required_argument, 0, 'e'},
 		{"eventTime", required_argument, 0, 'E'},
 		{"burstTimeout", required_argument, 0, 'b'},
+		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
 	};
 
@@ -812,7 +813,7 @@ int main(int argc, char *argv[])
 
 	if (argc >= 1) {
 		/* Check options */
-		while ((current_option = getopt_long(argc, argv, "a:c:e:E:N:n:p:r:s:b:T:", long_options, NULL)) != -1) {
+		while ((current_option = getopt_long(argc, argv, "a:c:e:E:N:n:p:r:s:b:T:h", long_options, NULL)) != -1) {
 			optionFlag = SA_TRUE;
 			switch (current_option) {
 			case 'a':
@@ -911,24 +912,29 @@ int main(int argc, char *argv[])
 			case ':':
 				(void)printf("Option -%c requires an argument!!!!\n", optopt);
 				usage();
+				exit(EXIT_FAILURE);
+				break;
+			case 'h':
+				usage();
+				exit(EXIT_SUCCESS);
 				break;
 			case '?':
-				(void)printf("Invalid Option!!!!\n");
-				usage();
-				break;
 			default:
-				usage();
+				fprintf(stderr, "Try '%s -h' for more information. \n", argv[0]);
+				exit(EXIT_FAILURE);
 				break;
 			}
 		}
 		if (optind < argc) {
-			fprintf(stderr, "non-option ARGV-elements: ");
+			fprintf(stderr, "Invalid non-option: \n");
 			while (optind < argc)
 				fprintf(stderr, "%s \n", argv[optind++]);
+			fprintf(stderr, "Try '%s -h' for more information. \n", argv[0]);
 			exit(EXIT_FAILURE);
 		}
 		if ((optionFlag == SA_FALSE) && (argc >= 3)) {
 			usage();
+			exit(EXIT_FAILURE);
 		} else if ((nType == true) && (myNotificationFlags != DEFAULT_FLAG)) {
 			if (validate_nType_eType(myNotificationParams.notificationType, 
 						myNotificationParams.eventType) == false) {
@@ -945,6 +951,7 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 	} else {
 		usage();
+		exit(EXIT_FAILURE);
 	}
 	free(myNotificationParams.additionalText);
 	exit(EXIT_SUCCESS);
