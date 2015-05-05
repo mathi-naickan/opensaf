@@ -850,7 +850,11 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	(void) nid_notify(const_cast<char*>("AMFD"), NCSCC_RC_SUCCESS, NULL);
+	/* Act Amfd need to inform nid after it has initialized itself, while
+	   Stanby Amfd need to inform nid after it has done cold sync. */
+	if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+		(void) nid_notify(const_cast<char*>("AMFD"), NCSCC_RC_SUCCESS, NULL);
+	}
 
 	main_loop();
 
