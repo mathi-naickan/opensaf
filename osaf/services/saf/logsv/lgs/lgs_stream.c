@@ -1502,7 +1502,10 @@ int log_stream_config_change(bool create_files_f, log_stream_t *stream,
 		*stream->p_fd = log_file_open(stream, stream->logFileCurrent,NULL);
 	}
 
-	if (*stream->p_fd == -1) {
+	/* Fix bug - this function makes return (-1) when create_files_f = false */
+	if (create_files_f == !LGS_STREAM_CREATE_FILES) {
+		rc = 0;
+	} else if (*stream->p_fd == -1) {
 		rc = -1;
 	} else {
 		rc = 0;
