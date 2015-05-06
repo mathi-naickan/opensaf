@@ -107,6 +107,19 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 }
 
 /**
+ *
+ */
+AVD_AMF_NG::AVD_AMF_NG() :
+	cluster_list_ng_next(0),
+	ng_on_cluster(0),
+	saAmfNGAdminState(SA_AMF_ADMIN_UNLOCKED)
+{
+	memset(&name, 0, sizeof(SaNameT));
+	admin_ng_pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+	admin_ng_pend_cbk.invocation = 0;
+}
+
+/**
  * Create a new SaAmfNodeGroup object
  * @param dn
  * @param attributes

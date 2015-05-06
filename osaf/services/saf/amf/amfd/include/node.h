@@ -151,6 +151,8 @@ extern AmfDb<uint32_t, AVD_FAIL_OVER_NODE> *node_list_db;
 
 class AVD_AMF_NG {
 public:
+	AVD_AMF_NG();
+
 	SaNameT name;
 	std::set<std::string> saAmfNGNodeList;
 	
@@ -169,6 +171,10 @@ public:
 	uint32_t oper_list_size() const {
 		return node_oper_list.size();
 	}
+ private:
+	// disallow copy and assign
+	AVD_AMF_NG(const AVD_AMF_NG&);
+	void operator=(const AVD_AMF_NG&);
 };
 extern AmfDb<std::string, AVD_AMF_NG> *nodegroup_db;
 #define AVD_AVND_NULL     ((AVD_AVND *)0)
