@@ -49,7 +49,8 @@
 #include <si_dep.h>
 #include "osaf_utility.h"
 
-
+#include "osaf_time.h"
+#include <stdint.h>
 
 /* ========================================================================
  *   DEFINITIONS
@@ -1643,6 +1644,11 @@ static void *avd_imm_reinit_bg_thread(void *_cb)
 	AVD_EVT *evt;
 	uint32_t status;
 
+	struct timespec time = {0, 0 };
+	uint32_t no_of_retries = 0;
+	const uint32_t MAX_NO_RETRIES = immutilWrapperProfile.nTries;
+	osaf_millis_to_timespec(immutilWrapperProfile.retryInterval, &time);
+
 	TRACE_ENTER();
 	osaf_mutex_lock_ordie(&imm_reinit_mutex);
 	/* Send signal that imm_reinit_mutex has been taken. */
@@ -1652,38 +1658,64 @@ static void *avd_imm_reinit_bg_thread(void *_cb)
 
 	immutilWrapperProfile.errorsAreFatal = 0;
 
-	if ((rc = immutil_saImmOiInitialize_2(&cb->immOiHandle, &avd_callbacks, &immVersion)) != SA_AIS_OK) {
-		LOG_ER("saImmOiInitialize failed %u", rc);
-		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
-		exit(EXIT_FAILURE);
+	while (++no_of_retries < MAX_NO_RETRIES) {
+		(void) saImmOiFinalize(avd_cb->immOiHandle);
+
+		avd_cb->immOiHandle = 0;
+		avd_cb->is_implementer = false;
+
+		if ((rc = immutil_saImmOiInitialize_2(&cb->immOiHandle, &avd_callbacks, &immVersion)) != SA_AIS_OK) {
+			LOG_ER("saImmOiInitialize failed %u", rc);
+			osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+			exit(EXIT_FAILURE);
+		}
+
+		rc = immutil_saImmOiSelectionObjectGet(cb->immOiHandle, &cb->imm_sel_obj);
+		if (rc == SA_AIS_ERR_BAD_HANDLE) {
+			osaf_nanosleep(&time);
+			continue;
+		} else if (rc != SA_AIS_OK) {
+			LOG_ER("saImmOiSelectionObjectGet failed %u", rc);
+			osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+			exit(EXIT_FAILURE);
+		}
+
+		/* If this is the active server, become implementer again. */
+		if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+			rc = avd_imm_impl_set();
+			if (rc == SA_AIS_ERR_BAD_HANDLE) {
+				osaf_nanosleep(&time);
+				continue;
+			} else if (rc != SA_AIS_OK) {
+				LOG_ER("exiting since avd_imm_impl_set failed");
+				osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+				exit(EXIT_FAILURE);
+			}
+		} else {
+			/* become applier and re-read the config */
+			rc = avd_imm_applier_set();
+			if (rc == SA_AIS_ERR_BAD_HANDLE) {
+				osaf_nanosleep(&time);
+				continue;
+			} else if (rc != SA_AIS_OK) {
+				LOG_ER("exiting since avd_imm_applier_set failed");
+				osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+				exit(EXIT_FAILURE);
+			}
+
+			if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
+				LOG_ER("avd_imm_config_get FAILED");
+				osaf_mutex_unlock_ordie(&imm_reinit_mutex);
+				exit(EXIT_FAILURE);
+			}
+		}
+		break;
 	}
 
-	if ((rc = immutil_saImmOiSelectionObjectGet(cb->immOiHandle, &cb->imm_sel_obj)) != SA_AIS_OK) {
-		LOG_ER("saImmOiSelectionObjectGet failed %u", rc);
+	if (no_of_retries >= MAX_NO_RETRIES) {
+		LOG_ER("Re-init with IMM FAILED");
 		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 		exit(EXIT_FAILURE);
-	}
-
-	/* If this is the active server, become implementer again. */
-	if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
-		if (avd_imm_impl_set() != SA_AIS_OK) {
-			LOG_ER("exiting since avd_imm_impl_set failed");
-			osaf_mutex_unlock_ordie(&imm_reinit_mutex);
-			exit(EXIT_FAILURE);
-		}
-	} else {
-		/* become applier and re-read the config */
-		if (avd_imm_applier_set() != SA_AIS_OK) {
-			LOG_ER("exiting since avd_imm_applier_set failed");
-			osaf_mutex_unlock_ordie(&imm_reinit_mutex);
-			exit(EXIT_FAILURE);
-		}
-
-		if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
-			LOG_ER("avd_imm_config_get FAILED");
-			osaf_mutex_unlock_ordie(&imm_reinit_mutex);
-			exit(EXIT_FAILURE);
-		}
 	}
 
 	/* Wake up the main thread so it discovers the new IMM handle. */
