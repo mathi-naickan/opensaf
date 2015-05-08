@@ -778,12 +778,6 @@ static SaAisErrorT si_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 				
 			SaUint32T sirank = *(SaUint32T*)attribute->attrValues[0];
 
-			if (si->saAmfSIRank == (sirank == 0 ? ~0U : sirank)) {
-				report_ccb_validation_error(opdata, "Changing same value of saAmfSIRank(%u)", sirank);
-				rc = SA_AIS_ERR_EXIST;
-				break;
-			}
-
 			if (!si->is_sirank_valid(sirank)) {
 				report_ccb_validation_error(opdata, "saAmfSIRank(%u) is invalid due to SI Dependency rules", sirank);
 				rc = SA_AIS_ERR_BAD_OPERATION;
@@ -1205,8 +1199,11 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 		} else if (!strcmp(attribute->attrName, "saAmfSIRank")) {
 			if (value_is_deleted == true)
 				si->update_sirank(0);
-			else
-				si->update_sirank(*((SaUint32T *)attr_mod->modAttr.attrValues[0]));
+			else {
+				/* Ignore the modification with the same value. */
+				if (si->saAmfSIRank != *((SaUint32T *)attr_mod->modAttr.attrValues[0]))
+					si->update_sirank(*((SaUint32T *)attr_mod->modAttr.attrValues[0]));
+			}
 			TRACE("Modified saAmfSIRank is '%u'", si->saAmfSIRank);
 		} else {
 			osafassert(0);
