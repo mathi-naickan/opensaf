@@ -402,10 +402,12 @@ void avd_fail_over_event(AVD_CL_CB *cb)
 		}
 
 		/*
-		 * Check if we are in present state. If yes then send DATA verify 
+		 * Check if we are in present state and if yes then send DATA verify 
 		 * message to all the AVND's.
 		 */
-		if (AVD_AVND_STATE_PRESENT == avnd->node_state) {
+		if ((AVD_AVND_STATE_PRESENT == avnd->node_state) ||
+				(AVD_AVND_STATE_NO_CONFIG == avnd->node_state) ||
+				(AVD_AVND_STATE_NCS_INIT == avnd->node_state)) {
 			/*
 			 * Send verify message to this node.
 			 */
