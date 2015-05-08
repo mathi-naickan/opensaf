@@ -681,8 +681,10 @@ static SaUint32T hsm_discover_and_dispatch()
 {
 	PLMS_HSM_CB       *cb = hsm_cb;
 	PLMS_CB           *plmscb = plms_cb;
+#if (HPI_VERSION(SAHPI_INTERFACE_VERSION) >= 0x020301)
 	SaErrorT          hpirc = SA_OK;
 	SaHpiEntityPathT  my_entity_path;
+#endif
 	SaHpiDomainInfoT  prev_domain_info;
 	SaHpiDomainInfoT  latest_domain_info;
 	SaHpiEntryIdT     current;
