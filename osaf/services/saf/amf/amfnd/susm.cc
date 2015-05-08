@@ -1234,8 +1234,7 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 		goto done;
 	}
 
-	switch (info->term_state) {
-	case true:		/* => terminate the su */
+	if (info->term_state) { /* => terminate the su */
 		/* Stop saAmfSGSuRestartProb timer if started */
 		if (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_1) {
 			tmr_su_err_esc_stop(cb, su);
@@ -1269,9 +1268,7 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 			if (NCSCC_RC_SUCCESS != rc)
 				goto done;
 		}
-		break;
-
-	case false:		/* => instantiate the su */
+	} else { /* => instantiate the su */
 		TRACE("SU term state is set to false");
 		/* Reset admn term operation flag */
 		m_AVND_SU_ADMN_TERM_RESET(su);
@@ -1299,7 +1296,7 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 			/* Will transition to instantiation-failed when instantiated */
 			LOG_ER("'%s':FAILED", __FUNCTION__); 
 			rc = NCSCC_RC_FAILURE;
-			break;
+			goto done;
 		}
 		/* trigger su instantiation for pi su */
 		if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
@@ -1315,8 +1312,7 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 			} else
 				osafassert(0);
 		}
-		break;
-	}			/* switch */
+	}
 
 done:
 	TRACE_LEAVE2("%u", rc);
