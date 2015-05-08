@@ -31,6 +31,7 @@
 #include "ncssysf_tsk.h"
 #include "ncssysf_mem.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <sched.h>
 #include <sys/poll.h>
@@ -57,7 +58,7 @@
  */
 
 /* Following is defined for use by MDS in TIPC 2.0 as TIPC 2.0 supports only network order */
-bool mds_use_network_order = 0;
+static bool mds_use_network_order = false;
 
 #define NTOHL(x) (mds_use_network_order?ntohl(x):x)
 #define HTONL(x) (mds_use_network_order?htonl(x):x)
@@ -240,9 +241,14 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 		return NCSCC_RC_FAILURE;
 	}
 
-	mds_use_network_order = mdtm_tipc_check_for_endianness();
-
-	if (mds_use_network_order == NCSCC_RC_FAILURE) {
+	switch (mdtm_tipc_check_for_endianness()) {
+	case 0:
+		mds_use_network_order = false;
+		break;
+	case 1:
+		mds_use_network_order = true;
+		break;
+	default:
 		close(tipc_cb.Dsock);
 		close(tipc_cb.BSRsock);
 		return NCSCC_RC_FAILURE;
