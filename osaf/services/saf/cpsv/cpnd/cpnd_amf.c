@@ -35,7 +35,9 @@
 ******************************************************************************/
 
 #include "cpnd.h"
+#include "configmake.h"
 
+static const char *term_state_file = PKGPIDDIR "/osafckptnd_termstate";
 /****************************************************************************
  * Name          : cpnd_saf_health_chk_callback
  *
@@ -232,13 +234,23 @@ void cpnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *c
 {
 	CPND_CB *cb = NULL;
 	SaAisErrorT saErr = SA_AIS_OK;
-
+	int fd;
 	TRACE_ENTER();
+
 	cb = ncshm_take_hdl(NCS_SERVICE_ID_CPND, gl_cpnd_cb_hdl);
 	if (cb == NULL) {
 		LOG_ER("cpnd cb take handle failed in amf term callback");
 		return;
 	}
+
+	fd = open(term_state_file, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+
+	if (fd >=0)
+		(void)close(fd);
+	else
+		LOG_NO("cannot create termstate file %s: %s",
+					term_state_file, strerror(errno));
+
 	saAmfResponse(cb->amf_hdl, invocation, saErr);
 	ncshm_give_hdl(gl_cpnd_cb_hdl);
 	LOG_NO("Received AMF component terminate callback, exiting");

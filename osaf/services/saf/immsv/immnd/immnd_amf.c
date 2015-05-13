@@ -18,7 +18,9 @@
 #include "immnd.h"
 #include <nid_start_util.h>
 #include "osaf_extended_name.h"
+#include "configmake.h"
 
+static const char *term_state_file = PKGPIDDIR "/osafimmnd_termstate";
 /****************************************************************************
  * Name          : immnd_saf_health_chk_callback
  *
@@ -73,11 +75,20 @@ static void immnd_saf_health_chk_callback(SaInvocationT invocation,
 static void immnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *compName)
 {
 	TRACE_ENTER();
+	int fd;
 	
 	if (immnd_cb->pbePid > 0)
 		kill(immnd_cb->pbePid, SIGTERM);
 	if (immnd_cb->syncPid > 0)
 		kill(immnd_cb->syncPid, SIGTERM);
+
+	fd = open(term_state_file, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+	
+	if (fd >=0)
+		(void)close(fd);
+	else
+		LOG_NO("cannot create termstate file %s: %s",
+					term_state_file, strerror(errno));
 
 	LOG_NO("Received AMF component terminate callback, exiting");
 	saAmfResponse(immnd_cb->amf_hdl, invocation, SA_AIS_OK);
