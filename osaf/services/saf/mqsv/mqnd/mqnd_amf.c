@@ -35,6 +35,7 @@
 ******************************************************************************/
 
 #include "mqnd.h"
+#include "configmake.h"
 
 static void mqnd_saf_health_chk_callback(SaInvocationT invocation, const SaNameT *compName,
 					 SaAmfHealthcheckKeyT *checkType);
@@ -47,6 +48,7 @@ static void mqnd_amf_CSI_set_callback(SaInvocationT invocation,
 				      const SaNameT *compName,
 				      SaAmfHAStateT haState, SaAmfCSIDescriptorT csiDescriptor);
 
+static const char *term_state_file = PKGPIDDIR "/osafmsgnd_termstate";
 /****************************************************************************
  * Name          : mqnd_saf_health_chk_callback
  *
@@ -227,6 +229,7 @@ static void mqnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaN
 	TRACE_ENTER();
 
 	uint32_t cb_hdl = m_MQND_GET_HDL();
+	int fd;
 
 	/* Get the CB from the handle */
 	mqnd_cb = ncshm_take_hdl(NCS_SERVICE_ID_MQND, cb_hdl);
@@ -235,6 +238,14 @@ static void mqnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaN
 		LOG_ER("%s:%u: CB Take Failed", __FILE__, __LINE__);
 		return;
 	}
+
+	fd = open(term_state_file, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+
+	if (fd >=0)
+		(void)close(fd);
+	else
+		LOG_NO("cannot create termstate file %s: %s",
+					term_state_file, strerror(errno));
 
 	saAmfResponse(mqnd_cb->amf_hdl, invocation, saErr);
 	LOG_ER("Amf Terminate Callback called");

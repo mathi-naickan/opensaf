@@ -20,7 +20,9 @@
  */
 
 #include "smfnd.h"
+#include "configmake.h"
 
+static const char *term_state_file = PKGPIDDIR "/osafsmfnd_termstate";
 /****************************************************************************
  * Name          : amf_health_chk_callback
  *
@@ -107,6 +109,15 @@ static void amf_csi_set_callback(SaInvocationT invocation,
 static void amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT * compName)
 {
 	TRACE_ENTER();
+	int fd;
+
+	fd = open(term_state_file, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+	
+	if (fd >=0)
+		(void)close(fd);
+	else
+		LOG_NO("cannot create termstate file %s: %s",
+					term_state_file, strerror(errno));
 
 	saAmfResponse(smfnd_cb->amf_hdl, invocation, SA_AIS_OK);
 

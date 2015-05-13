@@ -30,10 +30,21 @@ fi
 binary=$pkglibdir/$prog
 pidfile=$pkgpiddir/$prog.pid
 lockfile=$lockdir/$initscript
+termfile=$pkgpiddir/$prog"_termstate"
 
 RETVAL=0
 
 start() {
+	#If the term file exists, it means instantiation is
+	#attempted after a termination For eg:- during administrative
+	#restart of a component. In this case, first try to kill
+	#the component since it might be seen as still running while exiting
+	#via the termination callback or termination scripts(in case of NPI).
+	#Note: start_daemon -f may also be used to create another copy of the daemon,
+	#but the behaviour of -f option has not been tested yet! 
+
+	[ -e $termfile ] && killproc -p $pidfile $binary
+
 	export LD_LIBRARY_PATH=$pkglibdir:$LD_LIBRARY_PATH
 	[ -x $binary ] || exit 5
 	echo -n "Starting $prog: "
@@ -41,6 +52,7 @@ start() {
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
 		touch $lockfile
+		rm -f $termfile
 		log_success_msg
 	else
 		log_failure_msg
@@ -55,6 +67,7 @@ stop() {
 	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
 		rm -f $lockfile
 		log_success_msg
+		rm -f $termfile
 		RETVAL=0
 	else
 		log_failure_msg

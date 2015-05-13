@@ -31,12 +31,17 @@ fi
 binary=$pkglibdir/$prog
 pidfile=$pkgpiddir/$prog.pid
 lockfile=$lockdir/$initscript
+termfile=$pkgpiddir/$prog"_termstate"
 
 RETVAL=0
 NIDSERV="IMMND"
 COMPNAMEFILE=$pkglocalstatedir/immnd_comp_name
 
 start() {
+	# remove any termination file created previously via
+	# AMF component termination callback
+	rm -f $termfile
+
 	export LD_LIBRARY_PATH=$pkglibdir:$LD_LIBRARY_PATH
 	[ -p $NIDFIFO ] || exit 1
         if [ ! -x $binary ]; then
@@ -58,6 +63,16 @@ start() {
 }
 
 instantiate() {
+	#If the term file exists, it means instantiation is
+	#attempted after a termination For eg:- during administrative
+	#restart of a component. In this case, first try to kill
+	#the component since it might be seen as still running while exiting
+	#via the termination callback or termination scripts(in case of NPI).
+	#Note: start_daemon -f may also be used to create another copy of the daemon,
+	#but the behaviour of -f option has not been tested yet! 
+
+	[ -e $termfile ] && killproc -p $pidfile $binary
+
 	echo -n "AMF Instantiating $prog: "
 	echo $SA_AMF_COMPONENT_NAME > $COMPNAMEFILE
 	pidofproc -p $pidfile $binary
@@ -71,9 +86,11 @@ instantiate() {
 	fi
 	if [ $RETVAL -eq 0 ]; then
 		log_success_msg
+		rm -f $termfile
 	else
 		log_failure_msg
 	fi
+
 	return $RETVAL
 }
 
@@ -86,6 +103,7 @@ stop() {
 	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
 		rm -f $lockfile
 		rm -f $COMPNAMEFILE
+		rm -f $termfile
 		log_success_msg
 		RETVAL=0
 	else

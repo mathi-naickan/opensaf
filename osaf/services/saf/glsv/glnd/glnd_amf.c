@@ -35,6 +35,8 @@
 ******************************************************************************/
 
 #include "glnd.h"
+#include "configmake.h"
+
 void glnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *compName);
 void glnd_saf_health_chk_callback(SaInvocationT invocation,
 				  const SaNameT *compName, const SaAmfHealthcheckKeyT *checkType);
@@ -45,6 +47,7 @@ void glnd_amf_CSI_set_callback(SaInvocationT invocation, const SaNameT *compName
 void glnd_amf_csi_rmv_callback(SaInvocationT invocation,
 			       const SaNameT *compName, const SaNameT *csiName, SaAmfCSIFlagsT csiFlags);
 
+static const char *term_state_file = PKGPIDDIR "/osaflcknd_termstate";
 /****************************************************************************
  * Name          : glnd_saf_health_chk_callback
  *
@@ -114,17 +117,28 @@ void glnd_amf_comp_terminate_callback(SaInvocationT invocation, const SaNameT *c
 	GLND_CB *glnd_cb;
 	SaAisErrorT error = SA_AIS_OK;
 	TRACE_ENTER2("Component Name: %s", compName->value);
+	int fd;
 
 	/* take the handle */
 	glnd_cb = (GLND_CB *)m_GLND_TAKE_GLND_CB;
 	if (!glnd_cb) {
 		LOG_ER("GLND cb take handle failed");
 	} else {
+
+		fd = open(term_state_file, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+
+		if (fd >=0)
+			(void)close(fd);
+		else
+			LOG_NO("cannot create termstate file %s: %s",
+					term_state_file, strerror(errno));
+
 		if (saAmfResponse(glnd_cb->amf_hdl, invocation, error) != SA_AIS_OK)
 			LOG_ER("GLND amf response failed");
 		/* giveup the handle */
 		m_GLND_GIVEUP_GLND_CB;
 	}
+
 	LOG_NO("Received AMF component terminate callback, exiting");
 	TRACE_LEAVE();
 
