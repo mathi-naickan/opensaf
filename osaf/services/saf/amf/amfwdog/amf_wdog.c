@@ -41,6 +41,8 @@
 #include <sched.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <saAmf.h>
 #include <ncssysf_def.h>
@@ -54,6 +56,11 @@ static SaAmfHandleT amf_hdl;
 
 /* latest saved healthcheck trace */
 static char latest_healthcheck_trace[100];
+
+/* The temporary file created to indicate that a component termination
+ * is attempted.
+ */
+static const char *term_state_file = PKGPIDDIR "/osafamfwd_termstate";
 
 static void amf_csi_set_callback(SaInvocationT inv, const SaNameT *comp_name,
 	SaAmfHAStateT ha_state, SaAmfCSIDescriptorT csi_desc)
@@ -110,6 +117,15 @@ static void amf_healthcheck_callback(SaInvocationT        inv,
 static void amf_comp_terminate_callback(SaInvocationT inv, const SaNameT *comp_name)
 {
 	SaAisErrorT rc;
+	int fd;
+
+	fd = open(term_state_file, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+	
+	if (fd >=0)
+		(void)close(fd);
+	else
+		LOG_NO("cannot create termstate file %s: %s",
+					term_state_file, strerror(errno));
 
 	rc = saAmfResponse(amf_hdl, inv, SA_AIS_OK);
 	if ( SA_AIS_OK != rc ) {
