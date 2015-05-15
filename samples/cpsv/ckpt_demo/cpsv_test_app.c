@@ -29,6 +29,7 @@ MODULE NAME: cpsv_test_app.c  (CPSv Test Functions)
 #include <string.h>
 #include <unistd.h>
 #include <saCkpt.h>
+#include <time.h>
 
 #define DEMO_CKPT_NAME "safCkpt=DemoCkpt,safApp=safCkptService"
 
@@ -151,7 +152,11 @@ void cpsv_test_sync_app_process(void *info)
                                 (SaCkptSectionIdT));
    sectionCreationAttributes.sectionId->id = (unsigned char *)"11";
    sectionCreationAttributes.sectionId->idLen = 2;
-   sectionCreationAttributes.expirationTime = 3600000000000ll;   /* One Hour */
+   /* Cpsv expects `expirationTime` as  absolute time
+      check  section 3.4.3.2 SaCkptSectionCreationAttributesT of
+      CKPT Specification for more details  */
+   sectionCreationAttributes.expirationTime =
+	   (SA_TIME_ONE_HOUR +( time((time_t*)0) * 1000000000));  /* One Hour */
 
    printf("Created Section ....\t");
    rc = saCkptSectionCreate(checkpointHandle,&sectionCreationAttributes,initialData,28);
