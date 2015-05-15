@@ -784,6 +784,8 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 						node_admin_op_report_to_imm(su, static_cast<SaAmfPresenceStateT>(l_val));
 					} else if (su->pend_cbk.invocation != 0) {
 						su_admin_op_report_to_imm(su, static_cast<SaAmfPresenceStateT>(l_val));
+					} else if (su->su_on_node->admin_ng != NULL) {
+						process_su_si_response_for_ng(su, SA_AIS_OK);
 					}
 
 					if (l_val == SA_AMF_PRESENCE_TERMINATION_FAILED) {

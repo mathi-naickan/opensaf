@@ -329,7 +329,7 @@ static void node_complete_admin_op(AVD_AVND *node, SaAisErrorT result)
  * @param[in]   ptr to SU (AVD_SU). 
  * @param[in]   res(SaAisErrorT). 
  */
-static void process_su_si_response_for_ng(AVD_SU *su, SaAisErrorT res)
+void process_su_si_response_for_ng(AVD_SU *su, SaAisErrorT res)
 {
 	TRACE_ENTER2("'%s'",su->name.value);
 	AVD_AMF_NG *ng = su->su_on_node->admin_ng;
@@ -375,6 +375,24 @@ static void process_su_si_response_for_ng(AVD_SU *su, SaAisErrorT res)
 		if (flag == true) {
 			TRACE("Move '%s' to locked state as all nodes are locked.", ng->name.value);
 			avd_ng_admin_state_set(ng, SA_AMF_ADMIN_LOCKED);
+		}
+	}
+	if (ng->saAmfNGAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
+		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) ||
+			(su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+				su->su_on_node->su_cnt_admin_oper--;
+				TRACE("node:'%s', su_cnt_admin_oper:%u",
+						su->su_on_node->name.value,su->su_on_node->su_cnt_admin_oper);
+		}
+	} 
+	if ((ng->saAmfNGAdminState == SA_AMF_ADMIN_LOCKED) && 
+			(ng->admin_ng_pend_cbk.admin_oper == SA_AMF_ADMIN_UNLOCK_INSTANTIATION)) {
+		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) ||
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_TERMINATION_FAILED) ||
+				(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATION_FAILED)) {
+				su->su_on_node->su_cnt_admin_oper--;
+				TRACE("node:'%s', su_cnt_admin_oper:%u", 
+						su->su_on_node->name.value,su->su_on_node->su_cnt_admin_oper);
 		}
 	}
 	/*If no futher SU is undergoing assignment changes, erase node from
