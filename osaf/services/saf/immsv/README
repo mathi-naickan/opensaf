@@ -2085,11 +2085,13 @@ The unit used for the value is seconds.
 Different OI handles can have different callback timeouts, by changing the value of
 IMMA_OI_CALLBACK_TIMEOUT prior to each saImmOiIntitialize.
 
-If the environment variable is not defined, then the default OI timeout defined in
-the server will be used by the server when monitoring callbacks to this OI.
-Currently the default OI callback timeout is defined to be 6 seconds. It is normally
-not recommended to set an OI callback timeout to a value higher than 10 seconds, since
-that is the default om/oi-client side timeout for synchronous downcalls.
+If the environment variable is not defined or is set to less than the default OI 
+timeout, then the default OI timeout defined in the server will be used by the server
+when monitoring callbacks to this OI. Currently the default OI callback timeout is 
+defined to be 6 seconds. It is normally not recommended to set an OI callback timeout
+to a value higher than the om/oi-client side timeout for synchronous downcalls.
+
+IMMA_OI_CALLBACK_TIMEOUT is not applicable to admin operations.
 
 
 SaDoubleT and SaFloatT attributes handled correctly (4.5)
