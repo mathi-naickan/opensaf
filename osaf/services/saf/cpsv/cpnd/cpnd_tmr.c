@@ -120,6 +120,11 @@ done:
  *****************************************************************************/
 uint32_t cpnd_tmr_start(CPND_TMR *tmr, SaTimeT duration)
 {
+	if (duration < 0) {
+		LOG_ER("cpnd: invalid expirationTime:%llu timer start failed for ckpt_id:%llx timertype:%d",
+				duration, tmr->ckpt_id, tmr->type);
+		return NCSCC_RC_INV_VAL;
+	}
 	if (tmr->tmr_id == TMR_T_NULL) {
 		m_NCS_TMR_CREATE(tmr->tmr_id, duration, cpnd_timer_expiry, (void *)tmr);
 	}

@@ -269,7 +269,6 @@ uint32_t cpnd_proc_ckpt_arrival_info_ntfy(CPND_CB *cb, CPND_CKPT_NODE *cp_node, 
 			send_evt.info.cpa.info.arr_msg.mdest = in_evt->agent_mdest;
 			send_evt.info.cpa.info.arr_msg.num_of_elmts = in_evt->num_of_elmts;
 			send_evt.info.cpa.info.arr_msg.ckpt_data = in_evt->data;
-			send_evt.info.cpa.info.arr_msg.ckpt_data->data = NULL;
 			send_evt.info.cpa.info.arr_msg.ckpt_data->readSize = 0;
 
 			rc = cpnd_mds_msg_send(cb, NCSMDS_SVC_ID_CPA, ptr_cl_node->cnode->agent_mds_dest, &send_evt);
