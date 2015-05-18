@@ -685,7 +685,13 @@ SmfUpgradeProcedure::calculateRollingSteps(SmfRollingUpgrade * i_rollingUpgrade,
 std::string 
 SmfUpgradeProcedure::getNodeForCompSu(const std::string & i_objectDn, std::multimap<std::string, objectInst> &i_objects)
 {
-        TRACE_ENTER();
+	TRACE_ENTER();
+	if (i_objectDn.find("safSu=") == std::string::npos &&
+		i_objectDn.find("safComp=") == std::string::npos) {
+		// not a SU or Comp, return an empty string
+		TRACE_LEAVE();
+		return "";
+	}
 
 	std::multimap<std::string, objectInst>::iterator objit;
 	for( objit = i_objects.begin(); objit != i_objects.end(); ++objit) { //For all component instances in the system
