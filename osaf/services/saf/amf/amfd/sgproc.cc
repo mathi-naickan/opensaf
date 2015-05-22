@@ -369,6 +369,8 @@ void process_su_si_response_for_ng(AVD_SU *su, SaAisErrorT res)
 		for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
 				iter != ng->saAmfNGNodeList.end(); ++iter) {
 			AVD_AVND *tmp_node = avd_node_get(*iter);
+			if (tmp_node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+				continue;
 			if (tmp_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED)
 				flag = false;
 		}

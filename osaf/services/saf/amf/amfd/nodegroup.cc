@@ -784,19 +784,22 @@ void ng_unlock(AVD_AMF_NG *ng)
 	for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
 			iter != ng->saAmfNGNodeList.end(); ++iter) {
 		AVD_AVND *node = avd_node_get(*iter);
+		node->su_cnt_admin_oper = 0;
+		if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+			continue;
 		node_admin_state_set(node, SA_AMF_ADMIN_UNLOCKED);
 		if (node->node_info.member == false) {
 			LOG_NO("'%s' UNLOCK: CLM node is not member", node->name.value);
 			continue;
 		}
-		node->su_cnt_admin_oper = 0;
 		node->admin_ng = ng;
 	}
 	for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
 			iter != ng->saAmfNGNodeList.end(); ++iter) {
 		AVD_AVND *node = avd_node_get(*iter);
 		if ((node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) ||
-				(node->node_info.member == false))
+				(node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION) ||
+				(node->node_info.member == false)) 
 			continue;
 		for (AVD_SU *su = node->list_of_su; su != NULL;  su = su->avnd_list_su_next) {
 			if (su->is_in_service() == true) {
@@ -809,6 +812,7 @@ void ng_unlock(AVD_AMF_NG *ng)
 		AVD_AVND *node = avd_node_get(*iter);
 		if ((node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) ||
 				(node->node_info.member == false) ||
+				(node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION) ||
 				(avd_cb->init_state == AVD_INIT_DONE))
 			continue;
 		/*
@@ -1078,12 +1082,16 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 				iter != ng->saAmfNGNodeList.end(); ++iter) {
 			AVD_AVND *node = avd_node_get(*iter);
 			node->su_cnt_admin_oper = 0;
+			if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+				continue;
 			node->admin_ng = ng;
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
 		}
 		for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
 				iter != ng->saAmfNGNodeList.end(); ++iter) {
 			AVD_AVND *node = avd_node_get(*iter);
+			if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+				continue;
 			ng_node_lock_and_shutdown(node);
 		}
 		if (ng->node_oper_list.empty())
@@ -1127,12 +1135,16 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 				iter != ng->saAmfNGNodeList.end(); ++iter) {
 			AVD_AVND *node = avd_node_get(*iter);
 			node->su_cnt_admin_oper = 0;
+			if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+				continue;
 			node->admin_ng = ng;
 			node_admin_state_set(node, SA_AMF_ADMIN_SHUTTING_DOWN);
 		}
 		for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
 				iter != ng->saAmfNGNodeList.end(); ++iter) {
 			AVD_AVND *node = avd_node_get(*iter);
+			if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+				continue;
 			ng_node_lock_and_shutdown(node);
 			if (node->su_cnt_admin_oper == 0)
 				node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
@@ -1142,6 +1154,8 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 			for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
 					iter != ng->saAmfNGNodeList.end(); ++iter) {
 				AVD_AVND *node = avd_node_get(*iter);
+				if (node->saAmfNodeAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+					continue;
 				node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
 			}
 			ng_complete_admin_op(ng, SA_AIS_OK);
