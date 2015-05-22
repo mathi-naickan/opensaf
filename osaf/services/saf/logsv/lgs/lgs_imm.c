@@ -2213,6 +2213,8 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 	log_stream_t *stream;
 	char current_logfile_name[NAME_MAX];
 	bool new_cfg_file_needed = false;
+	char *fileName;
+	bool modify = false;
 	int n = 0;
 	struct timespec curtime_tspec;
 
@@ -2237,13 +2239,8 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 		value = attribute->attrValues[0];
 
 		if (!strcmp(attribute->attrName, "saLogStreamFileName")) {
-			char *fileName = *((char **)value);
-			n = snprintf(stream->fileName, NAME_MAX, "%s", fileName);
-			if (n >= NAME_MAX) {
-				LOG_ER("Error: b. File name > NAME_MAX");
-				osafassert(0);
-			}
-			new_cfg_file_needed = true;
+			fileName = *((char **)value);
+			modify = true;
 		} else if (!strcmp(attribute->attrName, "saLogStreamMaxLogFileSize")) {
 			SaUint64T maxLogFileSize = *((SaUint64T *)value);
 			stream->maxLogFileSize = maxLogFileSize;
@@ -2289,6 +2286,31 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 				!= 0) {
 			LOG_ER("log_stream_config_change failed: %d", rc);
 		}
+	}
+
+	/* Fix for ticket #1346 */
+	if (modify) {
+		int rc;
+		if ((rc = log_stream_config_change(!LGS_STREAM_CREATE_FILES, stream,
+						   current_logfile_name, &cur_time))
+		    != 0) {
+			LOG_ER("log_stream_config_change failed: %d", rc);
+		}
+
+		n = snprintf(stream->fileName, NAME_MAX, "%s", fileName);
+		if (n >= NAME_MAX) {
+			LOG_ER("Error: File name (%zu) > NAME_MAX (%d)", strlen(fileName), (int) NAME_MAX);
+			osafassert(0);
+		}
+		if ((rc = lgs_create_config_file_h(stream)) != 0) {
+			LOG_ER("lgs_create_config_file_h failed: %d", rc);
+		}
+
+		char *current_time = lgs_get_time(&cur_time);
+		sprintf(stream->logFileCurrent, "%s_%s", stream->fileName, current_time);
+
+		// Create the new log file based on updated configuration
+		*stream->p_fd = log_file_open(stream, stream->logFileCurrent, NULL);
 	}
 
 	/* Checkpoint to standby LOG server */
