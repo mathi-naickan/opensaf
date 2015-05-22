@@ -384,7 +384,15 @@ static uint32_t sg_su_failover_func(AVD_SU *su)
 				   assignment had been sent. So decrement the count in SI before 
 				   deleting the SUSI. */
 				susi->si->dec_curr_act_ass();
+			} else if ((susi->fsm == AVD_SU_SI_STATE_MODIFY) &&
+					(susi->state == SA_AMF_HA_STANDBY)) {
+				/* SUSI is undergoing standby modification. For standby state
+				   saAmfSINumCurrStandbyAssignments was increased when standby
+				   assignment had been sent. So decrement the count in SI before
+				   deleting the SUSI. */
+				susi->si->dec_curr_stdby_ass();
 			}
+
 			/* Reply to IMM for admin operation on SI */
 			if (susi->si->invocation != 0) {
 				avd_saImmOiAdminOperationResult(avd_cb->immOiHandle,
