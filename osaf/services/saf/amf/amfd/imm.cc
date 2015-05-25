@@ -1403,6 +1403,10 @@ unsigned int avd_imm_config_get(void)
 	** reported either. Off line tools can do this better.
 	*/
 
+	/* SaAmfCSType needed by validation of SaAmfCtCsType */
+	if (avd_cstype_config_get() != SA_AIS_OK)
+		goto done;
+
 	/* SaAmfCompType indirectly needed by SaAmfSUType */
 	if (avd_comptype_config_get() != SA_AIS_OK)
 		goto done;
@@ -1419,9 +1423,6 @@ unsigned int avd_imm_config_get(void)
 		goto done;
 
 	if (avd_svctype_config_get() != SA_AIS_OK)
-		goto done;
-
-	if (avd_cstype_config_get() != SA_AIS_OK)
 		goto done;
 
 	if (avd_compglobalattrs_config_get() != SA_AIS_OK)

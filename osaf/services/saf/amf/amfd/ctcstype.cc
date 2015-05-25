@@ -20,8 +20,10 @@
 #include <immutil.h>
 #include <logtrace.h>
 
+#include <include/util.h>
 #include <comp.h>
 #include <imm.h>
+#include <include/csi.h>
 
 AmfDb<std::string, AVD_CTCS_TYPE> *ctcstype_db = NULL;
 
@@ -35,6 +37,28 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 {
 	SaUint32T uint32;
 	char *parent;
+	SaNameT cstype_dn;
+
+	if (get_child_dn_from_ass_dn(dn, &cstype_dn) != 0) {
+		report_ccb_validation_error(opdata, "malformed DN '%s'", dn->value);
+		return 0;
+	}
+
+	if (cstype_db->find(Amf::to_string(&cstype_dn)) == NULL) {
+		if (opdata == NULL) {
+			report_ccb_validation_error(opdata,
+				"SaAmfCSType object '%s' does not exist in model",
+				cstype_dn.value);
+			return 0;
+		}
+
+		if (ccbutil_getCcbOpDataByDN(opdata->ccbId, &cstype_dn) == NULL) {
+			report_ccb_validation_error(opdata,
+				"SaAmfCSType object '%s' does not exist in model or CCB",
+				cstype_dn.value);
+			return 0;
+		}
+	}
 
 	/* Second comma should be parent */
 	if ((parent = strchr((char*)dn->value, ',')) == NULL) {

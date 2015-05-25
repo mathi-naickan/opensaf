@@ -96,6 +96,7 @@ struct avd_comp_tag;
 struct avd_comp_csi_rel_tag;
 struct avd_csi_tag;
 
+int get_child_dn_from_ass_dn(const SaNameT *ass_dn, SaNameT *child_dn);
 void avd_d2n_reboot_snd(struct avd_avnd_tag *node);
 bool admin_op_is_valid(SaImmAdminOperationIdT opId, AVSV_AMF_CLASS_ID class_id);
 void amflog(int priority, const char *format, ...);
