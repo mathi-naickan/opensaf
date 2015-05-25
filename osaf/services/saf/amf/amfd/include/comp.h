@@ -239,4 +239,5 @@ extern AVD_COMP *avd_comp_get_or_create(const SaNameT *dn);
 bool comp_is_preinstantiable(const AVD_COMP *comp);
 extern bool is_comp_assigned_any_csi(AVD_COMP *comp);
 extern SaAisErrorT check_comp_stability(const AVD_COMP*);
+extern AVD_CTCS_TYPE *get_ctcstype(const SaNameT *comptype_name, const SaNameT *cstype_name);
 #endif
