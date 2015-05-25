@@ -17,8 +17,10 @@
  */
 
 #include <logtrace.h>
+#include <include/util.h>
 #include <si.h>
 #include <imm.h>
+#include <include/csi.h>
 
 
 AmfDb<std::string, AVD_SVC_TYPE_CS_TYPE> *svctypecstypes_db = NULL;
@@ -111,9 +113,34 @@ static SaAisErrorT svctypecstypes_ccb_completed_cb(CcbUtilOperationData_t *opdat
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
 	switch (opdata->operationType) {
-	case CCBUTIL_CREATE:
+	case CCBUTIL_CREATE: {
+		SaNameT cstype_dn;
+		const SaNameT *dn = &opdata->objectName;
+
+		if (get_child_dn_from_ass_dn(dn, &cstype_dn) != 0) {
+			report_ccb_validation_error(opdata, "malformed DN '%s'", dn->value);
+			goto done;
+		}
+
+		if (cstype_db->find(Amf::to_string(&cstype_dn)) == NULL) {
+			if (cstype_db->find(Amf::to_string(&cstype_dn)) == NULL) {
+				if (opdata == NULL) {
+					report_ccb_validation_error(opdata,
+						"SaAmfCSType object '%s' does not exist", cstype_dn.value);
+					goto done;
+				}
+
+				if (ccbutil_getCcbOpDataByDN(opdata->ccbId, &cstype_dn) == NULL) {
+					report_ccb_validation_error(opdata,
+						"SaAmfCSType object '%s' does not exist in model or in CCB",
+						cstype_dn.value);
+					goto done;
+				}
+			}
+		}
 		rc = SA_AIS_OK;
 		break;
+	}
 	case CCBUTIL_MODIFY:
 		report_ccb_validation_error(opdata, "Modification of SaAmfSvcTypeCSTypes not supported");
 		break;
@@ -128,7 +155,7 @@ static SaAisErrorT svctypecstypes_ccb_completed_cb(CcbUtilOperationData_t *opdat
 		osafassert(0);
 		break;
 	}
-
+done:
 	return rc;
 }
 

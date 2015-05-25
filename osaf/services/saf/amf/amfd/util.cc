@@ -1717,3 +1717,48 @@ void amflog(int priority, const char *format, ...)
 		saflog(priority, amfSvcUsrName, "%s", str);
 	}
 }
+  
+/**
+ * Gets child DN from an association DN
+ *   "safDepend=safSi=SC2-NoRed\,safApp=OpenSAF,safSi=SC-2N,safApp=OpenSAF"
+ * @param ass_dn association DN [in]
+ * @param child_dn [out]
+ * @return 0 at success
+ */
+int get_child_dn_from_ass_dn(const SaNameT *ass_dn, SaNameT *child_dn)
+{
+	SaNameT _ass_dn = *ass_dn;
+
+	/* find first comma and step past it */
+	char *p = strchr((char *)_ass_dn.value, ',');
+	if (p == NULL)
+		return -1;
+
+	p++;
+
+	/* find second comma, an error if not found */
+	p = strchr(p, ',');
+	if (p == NULL)
+		return -1;
+
+	*p = '\0';  /* null terminate at comma before parent */
+
+	/* Skip past the RDN tag */
+	p = strchr((char *)_ass_dn.value, '=');
+	if (p == NULL)
+		return -1;
+
+  	p++;
+
+	/* copy and skip back slash */
+	int i = 0;
+	while (*p) {
+		if (*p != '\\')
+			child_dn->value[i++] = *p;
+		p++;
+	}
+
+	child_dn->value[i] = '\0';
+	child_dn->length = i;
+	return 0;
+}

@@ -96,6 +96,7 @@ struct avd_comp_tag;
 struct avd_comp_csi_rel_tag;
 struct avd_csi_tag;
 
+int get_child_dn_from_ass_dn(const SaNameT *ass_dn, SaNameT *child_dn);
 void avd_d2n_reboot_snd(struct avd_avnd_tag *node);
 void amflog(int priority, const char *format, ...);
 void d2n_msg_free(AVD_DND_MSG *msg);
