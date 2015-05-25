@@ -217,6 +217,16 @@ static void ctcstype_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 	TRACE_LEAVE();
 }
 
+AVD_CTCS_TYPE *get_ctcstype(const SaNameT *comptype_name, const SaNameT *cstype_name)
+{
+	SaNameT dn;
+	AVD_CTCS_TYPE *ctcs_type = NULL;
+	avsv_create_association_class_dn(cstype_name, comptype_name,
+			"safSupportedCsType", &dn);
+	ctcs_type = ctcstype_db->find(Amf::to_string(&dn));
+	return ctcs_type;
+}
+
 void avd_ctcstype_constructor(void)
 {
 	ctcstype_db = new AmfDb<std::string, AVD_CTCS_TYPE>;

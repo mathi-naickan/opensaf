@@ -841,7 +841,39 @@ static SaAisErrorT ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 				report_ccb_validation_error(opdata, "saAmfCompType '%s' not found", dn.value);
 				goto done;
 			}
+			/*
+			   This new compType exists in the AMF. Before modifying compType attribute in a comp,
+			   one more check on the validity of SaAmfCtCsType is still required which means 
+			   association object (object of SaAmfCtCsType) between this new comptype and cstype
+			   in SaAmfCompCsType (in case such an object exists for this component) must also 
+			   exists in the system. If ctcstype does not exist then there will be problem in 
+			   deciding components capability for a given cstype. So reject the modify ccb if 
+			   ctcstype does not exist with any cstypes supported by this component via compcstype.
+			 */ 
 
+			for (std::map<std::string, AVD_COMPCS_TYPE*>::const_iterator it = compcstype_db->begin();
+					it != compcstype_db->end(); it++) {
+				AVD_COMPCS_TYPE *compcstype = it->second;
+				if (compcstype->comp == comp) {
+					SaNameT cstype_name;
+					AVD_CTCS_TYPE *ctcstype = NULL;
+					avd_cstype_t *cst = NULL;
+					get_child_dn_from_ass_dn(&compcstype->name, &cstype_name);
+					//First check if this cstype exists in the sustem.
+					if ((cst = cstype_db->find(Amf::to_string(&cstype_name))) == NULL) {
+						LOG_WA("cstype of '%s' is not preseint in AMF database",
+								compcstype->name.value);
+						continue;
+					}
+					//ctcstype relationship should exists with all the cstypes.
+					if ((ctcstype = get_ctcstype(&dn, &cstype_name)) == NULL) {	
+						report_ccb_validation_error(opdata, "ctcstype relationship " 
+								"between new comptype and cstype from"
+								"component's compcstype(s) does not exist");
+						goto done;
+					}
+				}
+			}
 		} else if (!strcmp(attribute->attrName, "saAmfCompInstantiateCmdArgv")) {
 			char *param_val = *((char **)value);
 			if (NULL == param_val) {
