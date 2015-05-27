@@ -919,15 +919,34 @@ static void ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 			} else if (!strcmp(attribute->attrName, "saAmfSGMaxActiveSIsperSU")) {
 				if (value_is_deleted)
 					sg->saAmfSGMaxActiveSIsperSU = -1;
-				else
-					sg->saAmfSGMaxActiveSIsperSU = *((SaUint32T *)value);
-				TRACE("Modified saAmfSGMaxActiveSIsperSU is '%u'", sg->saAmfSGMaxActiveSIsperSU);
+				else {
+					if ((sg->sg_redundancy_model == SA_AMF_NPM_REDUNDANCY_MODEL) ||
+							(sg->sg_redundancy_model == SA_AMF_N_WAY_REDUNDANCY_MODEL) ||
+							(sg->sg_redundancy_model == SA_AMF_N_WAY_ACTIVE_REDUNDANCY_MODEL)) {
+						sg->saAmfSGMaxActiveSIsperSU = *((SaUint32T *)value);
+						TRACE("Modified saAmfSGMaxActiveSIsperSU is '%u'",
+								sg->saAmfSGMaxActiveSIsperSU);
+					} else {
+						LOG_NO("'%s' attribute saAmfSGMaxActiveSIsperSU not modified,"
+								" not valid for Nored/2N Redundancy models",
+								sg->name.value);
+					}
+				}
 			} else if (!strcmp(attribute->attrName, "saAmfSGMaxStandbySIsperSU")) {
 				if (value_is_deleted)
 					sg->saAmfSGMaxStandbySIsperSU = -1;
-				else
-					sg->saAmfSGMaxStandbySIsperSU = *((SaUint32T *)value);
-				TRACE("Modified saAmfSGMaxStandbySIsperSU is '%u'", sg->saAmfSGMaxStandbySIsperSU);
+				else {
+					if ((sg->sg_redundancy_model == SA_AMF_NPM_REDUNDANCY_MODEL) ||
+							(sg->sg_redundancy_model == SA_AMF_N_WAY_REDUNDANCY_MODEL)) {
+						sg->saAmfSGMaxStandbySIsperSU = *((SaUint32T *)value);
+						TRACE("Modified saAmfSGMaxStandbySIsperSU is '%u'",
+								sg->saAmfSGMaxStandbySIsperSU);
+					} else {
+						LOG_NO("'%s' attribute saAmfSGMaxStandbySIsperSU not modified,"
+								" not valid for Nored/2N/NwayAct Redundancy models",
+								sg->name.value);
+					}
+				}
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoAdjustProb")) {
 				if (value_is_deleted)
 					sg->saAmfSGAutoAdjustProb = sg_type->saAmfSgtDefAutoAdjustProb;
