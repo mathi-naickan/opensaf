@@ -646,15 +646,17 @@ void avd_mds_qsd_role_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		_exit(EXIT_FAILURE); // should never get here...
 	}
 
+try_again:
 	/* Take mutex here to sync with imm reinit thread.*/
 	osaf_mutex_lock_ordie(&imm_reinit_mutex);
-
 	/* Give up IMM OI implementer role */
 	if ((rc = immutil_saImmOiImplementerClear(cb->immOiHandle)) != SA_AIS_OK) {
 		osaf_mutex_unlock_ordie(&imm_reinit_mutex);
 		LOG_ER("FAILOVER Active --> Quiesced FAILED, ImplementerClear failed %u", rc);
 		if (rc == SA_AIS_ERR_BAD_HANDLE) {
 			avd_imm_reinit_bg();
+		} else if (rc == SA_AIS_ERR_TIMEOUT) {
+			goto try_again;
 		} else
 			osafassert(0);
 	} else
@@ -672,10 +674,11 @@ void avd_mds_qsd_role_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		LOG_ER("avd_imm_applier_set FAILED, %u", rc);
 		if (rc == SA_AIS_ERR_BAD_HANDLE) {
 			avd_imm_reinit_bg();
-		} else if (rc == SA_AIS_ERR_EXIST) {
+		} else if ((rc == SA_AIS_ERR_EXIST) || (rc == SA_AIS_ERR_INVALID_PARAM)) {
 			/* This may arise if immutil_saImmOiImplementerClear
 			   failed and amf reinitializes imm interface and
-			   set applier in avd_imm_reinit_bg_thread.*/
+			   set applier in avd_imm_reinit_bg_thread. Imm may
+			   return ERR_EXIST or INVALID_PARAM. */
 		} else
 			osafassert(0);
 	} else
