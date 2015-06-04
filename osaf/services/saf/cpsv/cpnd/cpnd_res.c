@@ -205,14 +205,20 @@ uint32_t cpnd_ckpt_replica_create_res(NCS_OS_POSIX_SHM_REQ_INFO *open_req, char 
 		read_req.type = NCS_OS_POSIX_SHM_REQ_READ;
 		read_req.info.read.i_addr = (void *)((char *)open_req->info.open.o_addr + sizeof(CPSV_CKPT_HDR));
 		read_req.info.read.i_read_size = sizeof(CPSV_SECT_HDR);
+		if ((counter * (sizeof(CPSV_SECT_HDR) + (*cp_node)->create_attrib.maxSectionSize)) > UINTMAX_MAX) {
+			LOG_ER("cpnd Section read failed,exceeded the read limits(UINT64_MAX) ");			
+			rc = NCSCC_RC_FAILURE;
+			goto end;
+		}
+
 		read_req.info.read.i_offset =
 		    counter * (sizeof(CPSV_SECT_HDR) + (*cp_node)->create_attrib.maxSectionSize);
 		read_req.info.read.i_to_buff = (CPSV_SECT_HDR *)&sect_hdr;
 		rc = ncs_os_posix_shm(&read_req);
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("cpnd sect HDR read failed");
-			/*   assert(0); */
-			return rc;
+			rc = NCSCC_RC_FAILURE;
+			goto end;		
 		}
 
 		/*  macro for reading the section header information  */
@@ -296,7 +302,8 @@ void cpnd_restart_update_timer(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaTimeT clo
 
 void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB *cb, SaClmNodeIdT nodeid)
 {
-	uint32_t counter = 0, count, num_bitset = 0, n_clients, rc = NCSCC_RC_SUCCESS, i_offset, bit_position;
+	uint32_t counter = 0, count, num_bitset = 0, n_clients, rc = NCSCC_RC_SUCCESS, bit_position;
+	uint64_t i_offset;
 	int32_t next_offset;
 	CPND_CKPT_CLIENT_NODE *cl_node = NULL;
 	CPND_CKPT_NODE *cp_node = NULL;
@@ -393,6 +400,9 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 		if (n_clients != 0) {
 			while (counter < MAX_CLIENTS) {
 				memset(&cl_info, '\0', sizeof(CLIENT_INFO));
+				if ((counter * sizeof(CLIENT_INFO)) > INTMAX_MAX) {
+					LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
+				}
 				i_offset = counter * sizeof(CLIENT_INFO);
 				m_CPND_CLINFO_READ(cl_info, (char *)gbl_shm_addr.cli_addr + sizeof(CLIENT_HDR),
 						   i_offset);
@@ -437,6 +447,9 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 		/* TO READ THE NUMBER OF CHECKPOINTS FROM THE HEADER */
 		while (counter < MAX_CKPTS) {
 			memset(&cp_info, '\0', sizeof(CKPT_INFO));
+			if ((counter * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+				LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
+			}
 			i_offset = counter * sizeof(CKPT_INFO);
 			m_CPND_CKPTINFO_READ(cp_info, (char *)gbl_shm_addr.ckpt_addr + sizeof(CKPT_HDR), i_offset);
 
@@ -507,6 +520,9 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 					}
 					next_offset = tmp_cp_info.next;
 					if (next_offset >= 0) {
+						if ((next_offset * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+							LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
+						}
 						memset(&tmp_cp_info, '\0', sizeof(CKPT_INFO));
 						i_offset = next_offset * sizeof(CKPT_INFO);
 						m_CPND_CKPTINFO_READ(tmp_cp_info,
@@ -597,6 +613,11 @@ int32_t cpnd_find_free_loc(CPND_CB *cb, CPND_TYPE_INFO type)
 	switch (type) {
 	case CPND_CLIENT_INFO:
 		do {
+
+			if ((counter * sizeof(CLIENT_INFO)) > UINTMAX_MAX) {
+				LOG_ER("cpnd client info read failed,exceeded the read limits(UINT64_MAX) ");
+				return -2;
+			}
 			read_req.type = NCS_OS_POSIX_SHM_REQ_READ;
 			read_req.info.read.i_addr = (void *)((char *)cb->shm_addr.cli_addr + sizeof(CLIENT_HDR));
 			read_req.info.read.i_read_size = sizeof(CLIENT_INFO);
@@ -624,6 +645,10 @@ int32_t cpnd_find_free_loc(CPND_CB *cb, CPND_TYPE_INFO type)
 
 	case CPND_CKPT_INFO:
 		do {
+			if ((counter * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+				LOG_ER("cpnd ckpt info read failed,exceeded the read limits(UINT64_MAX) ");
+				return -2;
+			}
 			read_req.type = NCS_OS_POSIX_SHM_REQ_READ;
 			read_req.info.read.i_addr = (void *)((char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR));
 			read_req.info.read.i_read_size = sizeof(CKPT_INFO);
@@ -724,7 +749,8 @@ uint32_t cpnd_write_client_info(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_node, int
 	NCS_OS_POSIX_SHM_REQ_INFO write_req;
 	memset(&cl_info, '\0', sizeof(CLIENT_INFO));
 	memset(&write_req, '\0', sizeof(NCS_OS_POSIX_SHM_REQ_INFO));
-	uint32_t rc = NCSCC_RC_SUCCESS, i_offset;
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	uint64_t i_offset;
 
 	cl_info.ckpt_app_hdl = cl_node->ckpt_app_hdl;
 	cl_info.ckpt_open_ref_cnt = cl_node->ckpt_open_ref_cnt;
@@ -734,8 +760,10 @@ uint32_t cpnd_write_client_info(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_node, int
 	cl_info.version = cl_node->version;
 	cl_info.is_valid = 1;
 	cl_info.offset = offset;
+	if ((offset * sizeof(CLIENT_INFO)) > UINTMAX_MAX) {
+		LOG_ER("cpnd write client info  failed,exceeded the write limits(UINT64_MAX) ");
+	}
 	i_offset = offset * sizeof(CLIENT_INFO);
-
 	m_CPND_CLINFO_UPDATE((char *)cb->shm_addr.cli_addr + sizeof(CLIENT_HDR), cl_info, i_offset);
 	TRACE_1("cpnd client info update success for ckpt_app_hdl :%llx",cl_node->ckpt_app_hdl);
 	return rc;
@@ -827,7 +855,7 @@ bool cpnd_find_exact_ckptinfo(CPND_CB *cb, CKPT_INFO *ckpt_info, uint32_t bitmap
 {
 	int32_t next;
 	CKPT_INFO prev_ckpt_info;
-	uint32_t i_offset;
+	uint64_t i_offset;
 	bool found = false;
 
 	TRACE_ENTER();
@@ -838,7 +866,10 @@ bool cpnd_find_exact_ckptinfo(CPND_CB *cb, CKPT_INFO *ckpt_info, uint32_t bitmap
 
 	while (next >= 0) {
 		memset(&prev_ckpt_info, 0, sizeof(CKPT_INFO));
-		i_offset = next * sizeof(CKPT_INFO);
+		if ((next * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+			LOG_ER("cpnd exact_ckptinf failed,exceeded the write limits(UINT64_MAX) ");
+		}
+		i_offset = next * sizeof(CKPT_INFO);		
 		m_CPND_CKPTINFO_READ(prev_ckpt_info, (char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), i_offset);
 		if (prev_ckpt_info.bm_offset == bitmap_offset) {
 			found = true;
@@ -868,9 +899,10 @@ bool cpnd_find_exact_ckptinfo(CPND_CB *cb, CKPT_INFO *ckpt_info, uint32_t bitmap
 uint32_t cpnd_update_ckpt_with_clienthdl(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaCkptHandleT client_hdl)
 {
 	CKPT_INFO ckpt_info, prev_ckpt_info, new_ckpt_info;
-	uint32_t bitmap_offset = 0, bitmap_value = 0, i_offset, prev_offset, offset, rc = NCSCC_RC_SUCCESS;
+	uint32_t bitmap_offset = 0, bitmap_value = 0, prev_offset, offset, rc = NCSCC_RC_SUCCESS;
 	bool found = false;
-
+	uint64_t i_offset; 
+	
 	TRACE_ENTER();
 	memset(&ckpt_info, '\0', sizeof(CKPT_INFO));
 	memset(&prev_ckpt_info, '\0', sizeof(CKPT_INFO));
@@ -893,6 +925,9 @@ uint32_t cpnd_update_ckpt_with_clienthdl(CPND_CB *cb, CPND_CKPT_NODE *cp_node, S
 		CKPT_HDR ckpt_hdr;
 		uint32_t no_ckpts = 0;
 		/* Update the Next Location in the previous prev_ckpt_info.next as we have to find a new ckpt_info */
+		if ((prev_offset * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+			LOG_ER("cpnd update clienthdl failed,exceeded the write limits(UINT64_MAX) ");
+		}
 		i_offset = prev_offset * sizeof(CKPT_INFO);
 		m_CPND_CKPTINFO_READ(prev_ckpt_info, (char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), i_offset);
 
@@ -964,7 +999,8 @@ uint32_t cpnd_update_ckpt_with_clienthdl(CPND_CB *cb, CPND_CKPT_NODE *cp_node, S
 uint32_t cpnd_write_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, int32_t offset, SaCkptHandleT client_hdl)
 {
 	CKPT_INFO ckpt_info;
-	uint32_t rc = NCSCC_RC_SUCCESS, i_offset;
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	uint64_t i_offset;
 
 	TRACE_ENTER();
 	memset(&ckpt_info, 0, sizeof(CKPT_INFO));
@@ -984,6 +1020,9 @@ uint32_t cpnd_write_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, int32_t offs
 	ckpt_info.is_valid = 1;
 	ckpt_info.next = SHM_NEXT;
 
+	if ((offset * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+		LOG_ER("cpnd write ckpt info  failed,exceeded the write limits(UINT64_MAX) ");
+	}
 	i_offset = offset * sizeof(CKPT_INFO);
 	m_CPND_CKPTINFO_UPDATE((char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), ckpt_info, i_offset);
 
@@ -1075,12 +1114,16 @@ uint32_t cpnd_restart_client_node_del(CPND_CB *cb, CPND_CKPT_CLIENT_NODE *cl_nod
 	clinfo_write.type = NCS_OS_POSIX_SHM_REQ_WRITE;
 	clinfo_write.info.write.i_addr = (void *)((char *)cb->shm_addr.cli_addr + sizeof(CLIENT_HDR));
 	clinfo_write.info.write.i_from_buff = (CLIENT_INFO *)&cl_info;
+	if ((cl_node->offset * sizeof(CLIENT_INFO)) > UINTMAX_MAX) {
+		LOG_ER("cpnd client info read failed,exceeded the read limits(UINT64_MAX) ");
+		return NCSCC_RC_FAILURE;
+	}
 	clinfo_write.info.write.i_offset = cl_node->offset * sizeof(CLIENT_INFO);
 	clinfo_write.info.write.i_write_size = sizeof(CLIENT_INFO);
 	rc = ncs_os_posix_shm(&clinfo_write);
 	if (rc != NCSCC_RC_SUCCESS) {
 		LOG_ER("cpnd ckpt info write failed"); 
-		return rc;
+		return NCSCC_RC_FAILURE;
 	} else {
 		TRACE_1("cpnd ckpt info write success");
 	}
@@ -1151,8 +1194,8 @@ uint32_t cpnd_restart_shm_ckpt_free(CPND_CB *cb, CPND_CKPT_NODE *cp_node)
 {
 	CKPT_INFO ckpt_info;
 	CKPT_HDR ckpt_hdr;
-	uint32_t rc = NCSCC_RC_SUCCESS, i_offset, no_ckpts = 0;
-
+	uint32_t rc = NCSCC_RC_SUCCESS, no_ckpts = 0;
+	uint64_t i_offset;
 	TRACE_ENTER();
 	memset(&ckpt_info, '\0', sizeof(CKPT_INFO));
 
@@ -1162,6 +1205,9 @@ uint32_t cpnd_restart_shm_ckpt_free(CPND_CB *cb, CPND_CKPT_NODE *cp_node)
 	no_ckpts = --(ckpt_hdr.num_ckpts);
 	cpnd_ckpt_write_header(cb, no_ckpts);
 
+	if (((cp_node->offset) * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+		LOG_ER("cpnd ckpt free  failed,exceeded the write limits(UINT64_MAX) ");
+	}
 	i_offset = (cp_node->offset) * sizeof(CKPT_INFO);
 	cp_node->offset = SHM_INIT;
 
@@ -1258,7 +1304,7 @@ void cpnd_restart_reset_close_flag(CPND_CB *cb, CPND_CKPT_NODE *cp_node)
 void cpnd_clear_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, uint32_t curr_offset, uint32_t prev_offset)
 {
 	CKPT_INFO prev_ckpt_info, curr_ckpt_info, next_ckpt_info;
-	uint32_t i_offset, no_ckpts;
+	uint64_t i_offset, no_ckpts;
 	CKPT_HDR ckpt_hdr;
 
 	TRACE_ENTER();
@@ -1266,7 +1312,10 @@ void cpnd_clear_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, uint32_t curr_of
 	memset(&curr_ckpt_info, '\0', sizeof(CKPT_INFO));
 	memset(&next_ckpt_info, '\0', sizeof(CKPT_INFO));
 
-	i_offset = prev_offset * sizeof(CKPT_INFO);
+	if (((prev_offset * sizeof(CKPT_INFO)) > UINTMAX_MAX) || ((curr_offset * sizeof(CKPT_INFO)) > UINTMAX_MAX)){
+		LOG_ER("cpnd clear ckpt info failed,exceeded the write limits(UINT64_MAX) ");
+	}
+	i_offset = prev_offset * sizeof(CKPT_INFO);	
 	m_CPND_CKPTINFO_READ(prev_ckpt_info, (char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), i_offset);
 
 	i_offset = curr_offset * sizeof(CKPT_INFO);
@@ -1300,6 +1349,10 @@ void cpnd_clear_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, uint32_t curr_of
 			cp_node->offset = curr_ckpt_info.next;
 
 			i_offset = (curr_ckpt_info.next) * sizeof(CKPT_INFO);
+			if (((curr_ckpt_info.next) * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+				LOG_ER("cpnd clear ckpt info failed,exceeded the write limits(UINT64_MAX) ");
+			}
+			i_offset = (curr_ckpt_info.next) * sizeof(CKPT_INFO);
 			m_CPND_CKPTINFO_READ(next_ckpt_info, (char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR),
 					     i_offset);
 
@@ -1310,6 +1363,9 @@ void cpnd_clear_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, uint32_t curr_of
 			m_CPND_CKPTINFO_UPDATE((char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), next_ckpt_info,
 					       i_offset);
 
+			if (((curr_ckpt_info.offset) * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+				LOG_ER("cpnd clear ckpt info failed,exceeded the write limits(UINT64_MAX) ");
+			}
 			i_offset = (curr_ckpt_info.offset) * sizeof(CKPT_INFO);
 			memset(&curr_ckpt_info, '\0', sizeof(CKPT_INFO));
 

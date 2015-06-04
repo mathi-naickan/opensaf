@@ -33,6 +33,7 @@
 #ifndef CPND_H
 #define CPND_H
 
+#include <stdint.h>
 #include "ncssysf_def.h"
 #include "ncs_main_papi.h"
 #include "ncssysf_tsk.h"
