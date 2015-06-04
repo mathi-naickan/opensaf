@@ -564,7 +564,7 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req);
 		uint32_t i_flags;
 		uint32_t i_map_flags;
 		uint64_t i_size;
-		int32_t i_offset;
+		uint64_t i_offset;
 		void *o_addr;
 		int32_t o_fd;
 		uint32_t o_hdl;
@@ -585,16 +585,16 @@ uint32_t ncs_os_posix_mq(NCS_OS_POSIX_MQ_REQ_INFO *req);
 		uint32_t i_hdl;
 		void *i_addr;
 		void *i_to_buff;
-		uint32_t i_read_size;
-		int32_t i_offset;
+		uint64_t i_read_size;
+		uint64_t i_offset;
 	} NCS_OS_POSIX_SHM_REQ_READ_INFO;
 
 	typedef struct ncs_os_posix_shm_req_write_info {
 		uint32_t i_hdl;
 		void *i_addr;
 		void *i_from_buff;
-		uint32_t i_write_size;
-		int32_t i_offset;
+		uint64_t i_write_size;
+		uint64_t i_offset;
 	} NCS_OS_POSIX_SHM_REQ_WRITE_INFO;
 
 	typedef struct ncs_shm_req_info {

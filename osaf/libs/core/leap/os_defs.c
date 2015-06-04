@@ -755,7 +755,7 @@ uint32_t ncs_os_posix_shm(NCS_OS_POSIX_SHM_REQ_INFO *req)
 {
 	uint32_t prot_flag;
 	int32_t ret_flag;
-	long shm_size;
+	uint64_t shm_size;
 	char shm_name[PATH_MAX];
 
 	switch (req->type) {
@@ -772,7 +772,7 @@ uint32_t ncs_os_posix_shm(NCS_OS_POSIX_SHM_REQ_INFO *req)
 			printf("size value for ftruncate exceed max limit\n");
 			return NCSCC_RC_FAILURE;
 		}
-		shm_size = (long)req->info.open.i_size;
+		shm_size = req->info.open.i_size;
 		snprintf(shm_name, PATH_MAX, "/opensaf_%s", req->info.open.i_name);
 		req->info.open.o_fd = shm_open(shm_name, req->info.open.i_flags, 0666);
 		if (req->info.open.o_fd < 0) {
@@ -802,7 +802,7 @@ uint32_t ncs_os_posix_shm(NCS_OS_POSIX_SHM_REQ_INFO *req)
 			return NCSCC_RC_FAILURE;
 		}
 
-		shm_size = (long)req->info.close.i_size;
+		shm_size = req->info.close.i_size;
 		ret_flag = munmap(req->info.close.i_addr, (size_t)shm_size /* size_t == unsigned long */ );
 		if (ret_flag < 0) {
 			printf("munmap failed with errno value %d\n", errno);
