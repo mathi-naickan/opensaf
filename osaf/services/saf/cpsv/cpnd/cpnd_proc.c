@@ -621,7 +621,7 @@ int32_t cpnd_ckpt_get_lck_sec_id(CPND_CKPT_NODE *cp_node)
  * Notes         : None.
  *****************************************************************************/
 uint32_t cpnd_ckpt_sec_write(CPND_CKPT_NODE *cp_node, CPND_CKPT_SECTION_INFO
-			  *sec_info, const void *data, uint32_t size, uint32_t offset, uint32_t type)
+			  *sec_info, const void *data, uint64_t size, uint64_t offset, uint32_t type)
 {				/* for sync type=2 */
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	NCS_OS_POSIX_SHM_REQ_INFO write_req;
@@ -693,12 +693,11 @@ uint32_t cpnd_ckpt_sec_write(CPND_CKPT_NODE *cp_node, CPND_CKPT_SECTION_INFO
  * Notes         : None.
  *****************************************************************************/
 uint32_t cpnd_ckpt_sec_read(CPND_CKPT_NODE *cp_node, CPND_CKPT_SECTION_INFO
-			 *sec_info, void *data, uint32_t size, uint32_t offset)
+			 *sec_info, void *data, uint64_t size, uint64_t offset)
 {
 
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	NCS_OS_POSIX_SHM_REQ_INFO read_req;
-
 	read_req.type = NCS_OS_POSIX_SHM_REQ_READ;
 	read_req.info.read.i_addr = (void *)((char *)cp_node->replica_info.open.info.open.o_addr +
 					     sizeof(CPSV_CKPT_HDR) +
@@ -1827,6 +1826,10 @@ uint32_t cpnd_sec_hdr_update(CPND_CKPT_SECTION_INFO *sec_info, CPND_CKPT_NODE *c
 	sec_hdr.exp_tmr = sec_info->exp_tmr;
 	sec_hdr.lastUpdate = sec_info->lastUpdate;
 
+	if ((sec_info->lcl_sec_id * (sizeof(CPSV_SECT_HDR) + cp_node->create_attrib.maxSectionSize)) > UINTMAX_MAX) {
+		LOG_ER("cpnd Section hdr update failed exceeded the update limits(UINT64_MAX)");
+		return NCSCC_RC_FAILURE;
+	}
 	write_req.type = NCS_OS_POSIX_SHM_REQ_WRITE;
 	write_req.info.write.i_addr =
 	    (void *)((char *)cp_node->replica_info.open.info.open.o_addr + sizeof(CPSV_CKPT_HDR));

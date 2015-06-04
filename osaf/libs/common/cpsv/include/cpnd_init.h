@@ -90,9 +90,9 @@ uint32_t cpnd_ckpt_remote_cpnd_add(CPND_CKPT_NODE *cp_node, MDS_DEST mds_info);
 uint32_t cpnd_ckpt_remote_cpnd_del(CPND_CKPT_NODE *cp_node, MDS_DEST mds_info);
 int32_t cpnd_ckpt_get_lck_sec_id(CPND_CKPT_NODE *cp_node);
 uint32_t cpnd_ckpt_sec_write(CPND_CKPT_NODE *cp_node, CPND_CKPT_SECTION_INFO
-			  *sec_info, const void *data, uint32_t size, uint32_t offset, uint32_t type);
+			  *sec_info, const void *data, uint64_t size, uint64_t offset, uint32_t type);
 uint32_t cpnd_ckpt_sec_read(CPND_CKPT_NODE *cp_node, CPND_CKPT_SECTION_INFO
-			 *sec_info, void *data, uint32_t size, uint32_t offset);
+			 *sec_info, void *data, uint64_t size, uint64_t offset);
 void cpnd_proc_cpa_down(CPND_CB *cb, MDS_DEST dest);
 uint32_t cpnd_ckpt_update_replica(CPND_CB *cb, CPND_CKPT_NODE *cp_node,
 			       CPSV_CKPT_ACCESS *write_data, uint32_t type, uint32_t *err_type, uint32_t *errflag);
