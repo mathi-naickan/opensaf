@@ -4835,7 +4835,7 @@ bool ImmModel::validateNoDanglingRefsModify(CcbInfo* ccb, ObjectMutationMap::ite
 
                         if(omi->second->mObjFlags & IMM_DELETE_LOCK) {
                             if(omi->second->mCcbId != ccb->mId) {   // Will be deleted by another CCB
-                                LOG_ER("ERR_FAILED_OPERATION: NO_DANGLING reference (%s) "
+                                LOG_WA("ERR_FAILED_OPERATION: NO_DANGLING reference (%s) "
                                         "refers to object flagged for delete by another Ccb: %u, (this Ccb %u)",
                                         av->getValueC_str(), omi->second->mCcbId, ccb->mId);
                             }
@@ -4843,7 +4843,7 @@ bool ImmModel::validateNoDanglingRefsModify(CcbInfo* ccb, ObjectMutationMap::ite
                             return false;
                         }
                         if((omi->second->mObjFlags & IMM_CREATE_LOCK) && (omi->second->mCcbId != ccb->mId)) {
-                            LOG_ER("ERR_FAILED_OPERATION: NO_DANGLING reference (%s) "
+                            LOG_WA("ERR_FAILED_OPERATION: NO_DANGLING reference (%s) "
                                     "refers to object flagged for create by another CCB: %u, (this Ccb %u)",
                                     av->getValueC_str(), omi->second->mCcbId , ccb->mId);
                             TRACE_LEAVE();
@@ -4880,7 +4880,7 @@ bool ImmModel::validateNoDanglingRefsDelete(CcbInfo* ccb, ObjectMutationMap::ite
         if(!(ommi->second->mObjFlags & IMM_DELETE_LOCK)) {
             std::string objName;
             getObjectName(ommi->second, objName);
-            LOG_ER("ERR_FAILED_OPERATION: Delete of object %s would violate NO_DANGLING reference "
+            LOG_WA("ERR_FAILED_OPERATION: Delete of object %s would violate NO_DANGLING reference "
                     "from object %s, not scheduled for delete by this Ccb:%u",
                     omit->first.c_str(), objName.c_str(), ccb->mId);
             rc = false;
@@ -4889,7 +4889,7 @@ bool ImmModel::validateNoDanglingRefsDelete(CcbInfo* ccb, ObjectMutationMap::ite
         if(ommi->second->mCcbId != ccb->mId) {
             std::string objName;
             getObjectName(ommi->second, objName);
-            LOG_ER("ERR_FAILED_OPERATION: Delete of object %s would violate NO_DANGLING reference "
+            LOG_WA("ERR_FAILED_OPERATION: Delete of object %s would violate NO_DANGLING reference "
                     "from object %s, scheduled for delete by another Ccb:%u (this Ccb:%u)",
                     omit->first.c_str(), objName.c_str(), ommi->second->mCcbId, ccb->mId);
             rc = false;
@@ -5973,7 +5973,7 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
             case IMM_CCB_VALIDATED:
             case IMM_CCB_PBE_ABORT:
             case IMM_CCB_CRITICAL:
-                LOG_ER("Ccb Augment attempted in wrong CCB state");
+                LOG_WA("Ccb Augment attempted in wrong CCB state");
                 err = SA_AIS_ERR_BAD_OPERATION;
             goto done;
 
@@ -6047,7 +6047,7 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
 
     i2 = std::find_if(sOwnerVector.begin(), sOwnerVector.end(), IdIs(ccb->mAdminOwnerId));
     if(i2 == sOwnerVector.end()) {
-        LOG_ER("ERR_BAD_HANDLE: admin owner id %u of ccb %u does not exist",
+        LOG_WA("ERR_BAD_HANDLE: admin owner id %u of ccb %u does not exist",
             ccb->mAdminOwnerId, ccbId);
         err = SA_AIS_ERR_BAD_HANDLE;
         goto done;
@@ -6098,13 +6098,13 @@ ImmModel::ccbAugmentAdmo(SaUint32T adminOwnerId, SaUint32T ccbId)
     TRACE_ENTER();
     i1 = std::find_if(sCcbVector.begin(), sCcbVector.end(), CcbIdIs(ccbId));
     if (i1 == sCcbVector.end()) {
-        LOG_ER("ccbAugmentAdmo: ccb id %u does not exist", ccbId);
+        LOG_WA("ccbAugmentAdmo: ccb id %u does not exist", ccbId);
         goto done;
     }
     ccb = *i1;
 
     if(ccb->mAugCcbParent == NULL) {
-        LOG_ER("ccbAugmentAdmo: could not set augment-admo because ccb %u is not in augment", ccbId);
+        LOG_WA("ccbAugmentAdmo: could not set augment-admo because ccb %u is not in augment", ccbId);
         goto done;
     }
 
@@ -6796,7 +6796,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     }
 
     if(ccb->mState > IMM_CCB_READY) {
-        LOG_ER("ERR_FAILED_OPERATION: ccb %u is not in an expected state:%u "
+        LOG_NO("ERR_FAILED_OPERATION: ccb %u is not in an expected state:%u "
             "rejecting ccbObjectCreate operation ", ccbId, ccb->mState);
         err = SA_AIS_ERR_FAILED_OPERATION;
         goto ccbObjectCreateExit;
@@ -6928,7 +6928,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     i4 = std::find_if(classInfo->mAttrMap.begin(), classInfo->mAttrMap.end(),
         AttrFlagIncludes(SA_IMM_ATTR_RDN));
     if (i4 == classInfo->mAttrMap.end()) {
-        LOG_ER("ERR_FAILED_OPERATION: No RDN attribute found in class!");
+        LOG_WA("ERR_FAILED_OPERATION: No RDN attribute found in class!");
         err = SA_AIS_ERR_FAILED_OPERATION;     //Should never happen!
         goto ccbObjectCreateExit;
     }
@@ -6999,7 +6999,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                 (attrValues->n.attrValueType == SA_IMM_ATTR_SASTRINGT)) {
             AttrMap::iterator it = classInfo->mAttrMap.find(attrName);
             if(it == classInfo->mAttrMap.end()) {
-                LOG_ER("ERR_INVALID_PARAM: Cannot find attribute '%s'",
+                LOG_WA("ERR_INVALID_PARAM: Cannot find attribute '%s'",
                     attrName.c_str());
                 err = SA_AIS_ERR_INVALID_PARAM;     //Should never happen!
                 goto ccbObjectCreateExit;
@@ -7557,12 +7557,12 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                     if(sIsLongDnLoaded) {
                         i6 = object->mAttrValueMap.find(immLongDnsAllowed);
                         if(i6 == object->mAttrValueMap.end() || !i6->second) {
-                            LOG_ER("ERR_FAILED_OPERATION: Long DN is used during the loading initial data, "
+                            LOG_WA("ERR_FAILED_OPERATION: Long DN is used during the loading initial data, "
                                     "but attribute 'longDnsAllowed' is not defined in class %s",
                                     immClassName.c_str());
                             err = SA_AIS_ERR_FAILED_OPERATION;
                         } else if(!i6->second->getValue_int()) {
-                            LOG_ER("ERR_FAILED_OPERATION: Long DN is used during the loading initial data, "
+                            LOG_WA("ERR_FAILED_OPERATION: Long DN is used during the loading initial data, "
                                     "but longDnsAllowed is set to 0");
                             err = SA_AIS_ERR_FAILED_OPERATION;
                         }
@@ -7703,7 +7703,7 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                 if(objectName == immObjectDn) {
                     updateImmObject(immClassName);
                 } else {
-                    LOG_ER("IMM OBJECT DN:%s should be:%s", 
+                    LOG_WA("IMM OBJECT DN:%s should be:%s", 
                         objectName.c_str(), immObjectDn.c_str());
                 }
             }
@@ -7923,7 +7923,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
     }
     
     if(ccb->mState > IMM_CCB_READY) {
-        LOG_ER("ERR_FAILED_OPERATION: ccb %u is not in an expected state: %u "
+        LOG_WA("ERR_FAILED_OPERATION: ccb %u is not in an expected state: %u "
             "rejecting ccbObjectModify operation ", ccbId, ccb->mState);
         err = SA_AIS_ERR_FAILED_OPERATION;
         goto ccbObjectModifyExit;
@@ -8552,7 +8552,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
             if(avmi != afim->mAttrValueMap.end()) {
                 osafassert(avmi->second);
                 if(avmi->second->empty()) {
-                    LOG_ER("ERR_BAD_OPERATION: Value of '%s' attribute in object '%s' cannot be empty",
+                    LOG_WA("ERR_BAD_OPERATION: Value of '%s' attribute in object '%s' cannot be empty",
                             OPENSAF_IMM_ACCESS_CONTROL_MODE,
                             objectName.c_str());
                     err = SA_AIS_ERR_BAD_OPERATION;
@@ -8560,7 +8560,7 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
                 } else {
                     SaUint32T mode = (SaUint32T)avmi->second->getValue_int();
                     if(mode > 2) { /* ACCESS_CONTROL_ENFORCING == 2 */
-                        LOG_ER("ERR_BAD_OPERATION: Value of '%s' attribute in object '%s' is out of range",
+                        LOG_WA("ERR_BAD_OPERATION: Value of '%s' attribute in object '%s' is out of range",
                                 OPENSAF_IMM_ACCESS_CONTROL_MODE,
                                 objectName.c_str());
                         err = SA_AIS_ERR_BAD_OPERATION;
@@ -8866,7 +8866,7 @@ ImmModel::ccbObjectDelete(const ImmsvOmCcbObjectDelete* req,
     }
     
     if(ccb->mState > IMM_CCB_READY) {
-        LOG_ER("ERR_FAILED_OPERATION: ccb %u is not in an expected state:%u "
+        LOG_WA("ERR_FAILED_OPERATION: ccb %u is not in an expected state:%u "
             "rejecting ccbObjectDelete operation ", ccbId, ccb->mState);
         err = SA_AIS_ERR_FAILED_OPERATION;
         goto ccbObjectDeleteExit;
@@ -9610,7 +9610,7 @@ ImmModel::ccbObjDelContinuation(immsv_oi_ccb_upcall_rsp* rsp,
     ccb = *i1;
 
     if(! (nameCheck(objectName)||nameToInternal(objectName)) ) {
-        LOG_ER("Not a proper object name: %s", objectName.c_str());
+        LOG_WA("Not a proper object name: %s", objectName.c_str());
         if(ccb->mVeto == SA_AIS_OK) {
             ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
         }
@@ -10087,7 +10087,7 @@ ImmModel::accessorGet(const ImmsvOmSearchInit* req, ImmSearchOp& op)
           SA_IMM_SEARCH_NO_RDN);
 
     if(notAllowedOptions) {
-        LOG_ER("ERR_LIBRARY: Invalid search criteria - library problem ?");
+        LOG_WA("ERR_LIBRARY: Invalid search criteria - library problem ?");
         err = SA_AIS_ERR_LIBRARY;
         goto accessorExit;
     }
@@ -11284,7 +11284,7 @@ ImmModel::fetchAdmImplContinuation(SaInvocationT& inv,
         return;
     }
     if((*implConn) && (*implConn != ci3->second.mConn)) {
-        LOG_ER("Collision on invocation identity %llu", inv);
+        LOG_WA("Collision on invocation identity %llu", inv);
     } 
     TRACE_5("IMPL ADM CONTINUATION %u FOUND FOR %llu", ci3->second.mConn, inv);
     *implConn = ci3->second.mConn;
@@ -12223,7 +12223,7 @@ ImmModel::getOldCriticalCcbs(IdVector& cv, SaUint32T *pbeConnPtr,
             }
 
             if(!implAssoc) {
-                LOG_ER("CCB %u is blocked in CRITICAL, yet NOT waiting on implementer!!",
+                LOG_WA("CCB %u is blocked in CRITICAL, yet NOT waiting on implementer!!",
                     ccb->mId);
                 continue;
             }
@@ -12235,7 +12235,7 @@ ImmModel::getOldCriticalCcbs(IdVector& cv, SaUint32T *pbeConnPtr,
 
 
             if(!isPbe) {
-                LOG_ER("CCB %u is blocked in CRITICAL, waiting on implementer %u/%s.",
+                LOG_WA("CCB %u is blocked in CRITICAL, waiting on implementer %u/%s.",
                     ccb->mId, implAssoc->mImplementer->mId,
                     implAssoc->mImplementer->mImplementerName.c_str());
                 continue;
@@ -12271,7 +12271,7 @@ ImmModel::getOldCriticalCcbs(IdVector& cv, SaUint32T *pbeConnPtr,
                     /*TODO return true => signalling need to kill pbe*/
                     continue;
                 }
-                LOG_ER("Missmatch pbe-Id %u != pbe-restart-id %u", 
+                LOG_WA("Missmatch pbe-Id %u != pbe-restart-id %u", 
                     impInfo->mId, ccb->mPbeRestartId);
             } 
 
@@ -14146,7 +14146,7 @@ ImmModel::rtObjectCreate(struct ImmsvOmCcbObjectCreate* req,
                 && !longDnsPermitted) {
             AttrMap::iterator it = classInfo->mAttrMap.find(attrName);
             if(it == classInfo->mAttrMap.end()) {
-                LOG_ER("ERR_INVALID_PARAM: Cannot find attribute '%s'",
+                LOG_WA("ERR_INVALID_PARAM: Cannot find attribute '%s'",
                     attrName.c_str());
                 err = SA_AIS_ERR_INVALID_PARAM;
                 goto rtObjectCreateExit;
@@ -14644,7 +14644,7 @@ void ImmModel::pbePrtObjCreateContinuation(SaUint32T invocation,
 
     if(i2 == sPbeRtMutations.end()) {
         if(error == SA_AIS_OK) {
-            LOG_ER("PBE PRTO Create continuation missing! invoc:%u", invocation);
+            LOG_WA("PBE PRTO Create continuation missing! invoc:%u", invocation);
         }
         return;
     }
@@ -14796,7 +14796,7 @@ SaInt32T ImmModel::pbePrtObjDeletesContinuation(SaUint32T invocation,
                         break; /* out of for() */
                     }
                 } else if (error != SA_AIS_OK) {
-                    LOG_ER("Error %u returned from slave PBE on PrtoDelete! should never happen", error);
+                    LOG_WA("Error %u returned from slave PBE on PrtoDelete! should never happen", error);
                     /* Possibly return -1 indicating slave PBE has to be shot down. 
                        Or make this case *impossible* in the slave logic, i.e. catch
                        this case in the slave.!! Possibly assert the immnd colocated with the slave (no).
@@ -14908,7 +14908,7 @@ SaInt32T ImmModel::pbePrtObjDeletesContinuation(SaUint32T invocation,
     } //for
 
     if(nrofDeletes == 0) {
-        LOG_ER("PBE PRTO Deletes continuation missing! invoc:%u",
+        LOG_WA("PBE PRTO Deletes continuation missing! invoc:%u",
             invocation);
     } else if(error == SA_AIS_OK) {
         TRACE("PBE PRTO Deleted %u RT Objects", nrofDeletes);    
@@ -14948,7 +14948,7 @@ void ImmModel::pbePrtAttrUpdateContinuation(SaUint32T invocation,
 
     if(i2 == sPbeRtMutations.end()) {
         if(error == SA_AIS_OK) {
-            LOG_ER("PBE PRTAttrs Update continuation missing! invoc:%u",
+            LOG_WA("PBE PRTAttrs Update continuation missing! invoc:%u",
             invocation);
         }
         return;
@@ -15096,7 +15096,7 @@ void ImmModel::pbeClassCreateContinuation(SaUint32T invocation,
     }
 
     if(i2 == sPbeRtMutations.end()) {
-        LOG_ER("PBE Class Create continuation missing! invoc:%u",
+        LOG_WA("PBE Class Create continuation missing! invoc:%u",
             invocation);
         return;
     }
@@ -15132,7 +15132,7 @@ void ImmModel::pbeClassDeleteContinuation(SaUint32T invocation,
     }
 
     if(i2 == sPbeRtMutations.end()) {
-        LOG_ER("PBE Class Delete continuation missing! invoc:%u",
+        LOG_WA("PBE Class Delete continuation missing! invoc:%u",
             invocation);
         return;
     }
@@ -15387,7 +15387,7 @@ ImmModel::rtObjectUpdate(const ImmsvOmCcbObjectModify* req,
             */
             pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
             if(!pbe) {
-                LOG_ER("ERR_TRY_AGAIN: Persistent back end is down - unexpected here");
+                LOG_WA("ERR_TRY_AGAIN: Persistent back end is down - unexpected here");
                 err = SA_AIS_ERR_TRY_AGAIN;
                 goto rtObjectUpdateExit;
                 /* We have already checked for PbeWritable with success inside
@@ -15937,7 +15937,7 @@ ImmModel::rtObjectDelete(const ImmsvOmCcbObjectDelete* req,
             */
             pbe = getPbeOi(pbeConnPtr, pbeNodeIdPtr);
             if(!pbe) {
-                LOG_ER("ERR_TRY_AGAIN: Persistent back end is down - unexpected here");
+                LOG_NO("ERR_TRY_AGAIN: Persistent back end is down - unexpected here");
                 err = SA_AIS_ERR_TRY_AGAIN;
                 goto rtObjectDeleteExit;
                 /* We have already checked for PbeWritable with success inside
