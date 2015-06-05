@@ -5069,7 +5069,17 @@ ImmModel::addNewNoDanglingRefs(ObjectInfo *obj, ObjectNameSet &dnSet)
         omi = sObjectMap.find(*si);
         // After all validation, object must exist
         osafassert(omi != sObjectMap.end());
-        if(omi->second->mObjFlags & IMM_CREATE_LOCK) {
+
+        // Searching for NO_DANGLING reference
+        ommi = sReverseRefsNoDanglingMMap.find(omi->second);
+        for(; ommi != sReverseRefsNoDanglingMMap.end() && ommi->first == omi->second; ++ommi) {
+            if(ommi->second == obj) {
+                break;
+            }
+        }
+
+        // The reference does not exist. It will be added to sReverseRefsNoDanglingMMap
+        if(ommi == sReverseRefsNoDanglingMMap.end() || ommi->first != omi->second) {
             sReverseRefsNoDanglingMMap.insert(std::pair<ObjectInfo *, ObjectInfo *>(omi->second, obj));
         }
     }
