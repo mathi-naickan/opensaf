@@ -46,8 +46,7 @@ read_marked()
     expected_sequence=$1
     sc=$2 #search criteria
     sd=$3 #search direction
-    id="$4"return
-    last=`ntfread -v $3 -b $sc -E 4 $id -n "$testMark"|grep -i eventtime|awk '{ print $3}'`
+    last=`ntfread -v $3 -b $sc -E 4 -n "$testMark"|grep -i eventtime|awk '{ print $3}'`
     res=`echo $last|sed -n 's/\(.*\)$/\1 /p'`
     ver  "result           :  \"$res\""
     ver  "expected_sequence:  \"$expected_sequence\""
