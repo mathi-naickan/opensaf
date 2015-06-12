@@ -1183,7 +1183,7 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 			   state includes the execution of completed upcalls by 
 			   normal OIs. 
 			*/
-			LOG_ER("PBE has beeb disabled with ccbs in critical state - "
+			LOG_WA("PBE has been disabled with ccbs in critical state - "
 			       "To resolve: Enable PBE or resart/reload the cluster");
 		}
 	}
