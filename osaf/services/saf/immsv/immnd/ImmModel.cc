@@ -16918,6 +16918,72 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 ol = ol->next;
             }
 
+            // Populate the sReverseRefsNoDanglingMMap
+            ClassInfo* ci;
+            ObjectSet os;
+            ImmAttrValue *av;
+            ObjectSet::iterator osi;
+            ObjectSet::iterator aosi;
+            ImmAttrValueMap::iterator avmi;
+            AttrMap::iterator ami;
+            ClassMap::iterator cmi;
+            ObjectMap::iterator omi;
+            for(cmi=sClassMap.begin(); cmi!=sClassMap.end(); ++cmi) {
+                ci = cmi->second;
+                // Check if the class has at least one attribute with NO_DANGLING flag;
+                for(ami=ci->mAttrMap.begin();
+                        ami!=ci->mAttrMap.end() && !(ami->second->mFlags & SA_IMM_ATTR_NO_DANGLING);
+                        ++ami);
+                if(ami == ci->mAttrMap.end()) {
+                    continue;
+                }
+
+                // Iterate through all objects of the class
+                for(osi=ci->mExtent.begin(); osi!=ci->mExtent.end(); ++osi) {
+                    os.clear();
+                    for(ami=ci->mAttrMap.begin(); ami!=ci->mAttrMap.end(); ++ami) {
+                        // Collect NO_DANGLING references
+                        if(ami->second->mFlags & SA_IMM_ATTR_NO_DANGLING) {
+                            avmi = (*osi)->mAttrValueMap.find(ami->first.c_str());
+                            // Attribute must exist
+                            osafassert(avmi != (*osi)->mAttrValueMap.end());
+                            av = avmi->second;
+                            if(!av->empty()) {
+                                omi = sObjectMap.find(av->getValueC_str());
+                                if(omi == sObjectMap.end()) {
+                                    std::string objName;
+                                    getObjectName(*osi, objName);
+                                    LOG_ER("Object '%s' is missing. Reference from '%s'",
+                                            av->getValueC_str(), objName.c_str());
+                                    abort();
+                                }
+                                os.insert(omi->second);
+                            }
+                            if(av->isMultiValued()) {
+                                while((av = ((ImmAttrMultiValue *)av)->getNextAttrValue())) {
+                                    if(!av->empty()) {
+                                        omi = sObjectMap.find(av->getValueC_str());
+                                        if(omi == sObjectMap.end()) {
+                                            std::string objName;
+                                            getObjectName(*osi, objName);
+                                            LOG_ER("Object '%s' is missing. Reference from '%s'",
+                                                    av->getValueC_str(), objName.c_str());
+                                            abort();
+                                        }
+                                        os.insert(omi->second);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Add NO_DANGLING references to sReverseRefsNoDanglingMMap
+                    for(aosi=os.begin(); aosi!=os.end(); ++aosi) {
+                        sReverseRefsNoDanglingMMap.insert(std::pair<ObjectInfo *, ObjectInfo *>(*aosi, *osi));
+                    }
+                }
+            }
+
             TRACE_5("Synced %u CCB-outcomes",(unsigned int) sCcbVector.size());
             
             this->setLoader(0); 
