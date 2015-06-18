@@ -34,7 +34,7 @@ amf_state()
 		adm_state_val=`immlist -a "saAmfSIAdminState" $si_dn | cut -d = -f2`
 		ass_state_val=`immlist -a "saAmfSIAssignmentState" $si_dn | cut -d = -f2`
 
-		if [ $adm_state_val -eq 1 ] && [ $ass_state_val -eq 1 ]; then
+		if [ $adm_state_val -eq 1 ] && [ $ass_state_val != "<Empty>" ] && [ $ass_state_val -eq 1 ]; then
 			echo "   $si_dn"
 		fi
 
@@ -47,7 +47,7 @@ amf_state()
 		adm_state_val=`immlist -a "saAmfSUAdminState" $su_dn | cut -d = -f2`
 		oper_state_val=`immlist -a "saAmfSUOperState" $su_dn | cut -d = -f2`
 
-		if [ $adm_state_val -eq 1 ] && [ $oper_state_val -eq 2 ]; then
+		if [ $adm_state_val -eq 1 ] && [ $oper_state_val != "<Empty>" ] &&  [ $oper_state_val -eq 2 ]; then
 			echo "   $su_dn"
 		fi
 	done
@@ -58,8 +58,7 @@ amf_state()
 	for node_dn in $node_dns; do
 		adm_state_val=`immlist -a "saAmfNodeAdminState" $node_dn | cut -d = -f2`
 		oper_state_val=`immlist -a "saAmfNodeOperState" $node_dn | cut -d = -f2`
-
-		if [ $adm_state_val -eq 1 ] && [ $oper_state_val -eq 2 ]; then
+		if [ $adm_state_val -eq 1 ] && [ $oper_state_val != "<Empty>" ] &&  [ $oper_state_val -eq 2 ]; then
 			echo "   $node_dn"
 		fi
 	done
