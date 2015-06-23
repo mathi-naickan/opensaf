@@ -784,9 +784,6 @@ uint32_t avnd_pg_cbk_send(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *trk, AVND_PG_ME
 	/* reset the is_syn flag */
 	trk->info.is_syn = false;
 
- 	if ((NCSCC_RC_SUCCESS != rc) && cbk_info)
-		amf_cbk_free(cbk_info);
-
 	TRACE_LEAVE2("rc '%u'", rc);
 	return rc;
 }
