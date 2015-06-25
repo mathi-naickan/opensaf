@@ -438,6 +438,7 @@ uint32_t avnd_evt_comp_pres_fsm_evh(AVND_CB *cb, AVND_EVT *evt)
 	AVND_COMP_FSM_EVT *comp_fsm_evt = &evt->info.comp_fsm;
 	AVND_COMP *comp = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	bool is_uninst = false;
 	TRACE_ENTER();
 
 	/* get the comp */
@@ -445,9 +446,17 @@ uint32_t avnd_evt_comp_pres_fsm_evh(AVND_CB *cb, AVND_EVT *evt)
 	if (!comp)
 		goto done;
 
+	if (all_comps_terminated_in_su(comp->su) == true)
+		is_uninst = true;
+
+
 	/* run the fsm */
 	if (AVND_COMP_CLC_PRES_FSM_EV_MAX != comp_fsm_evt->ev)
 		rc = avnd_comp_clc_fsm_run(cb, comp, static_cast<AVND_COMP_CLC_PRES_FSM_EV>(comp_fsm_evt->ev));
+
+	if ((is_uninst == true) &&
+			(comp->pres == SA_AMF_PRESENCE_INSTANTIATING))
+		avnd_su_pres_state_set(comp->su, SA_AMF_PRESENCE_INSTANTIATING);
 
 done:
 	TRACE_LEAVE2("%u", rc);
