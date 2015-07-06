@@ -140,6 +140,10 @@ extern void saImmOmCcbObjectDelete_07(void);
 extern void saImmOmCcbObjectDelete_08(void);
 extern void saImmOmCcbObjectDelete_09(void);
 extern void saImmOmCcbObjectDelete_10(void);
+extern void saImmOmCcbObjectDelete_11(void);
+extern void saImmOmCcbObjectDelete_12(void);
+extern void saImmOmCcbObjectDelete_13(void);
+extern void saImmOmCcbObjectDelete_14(void);
 extern void saImmOmCcbObjectModify_2_01(void);
 extern void saImmOmCcbObjectModify_2_02(void);
 extern void saImmOmCcbObjectModify_2_03(void);
@@ -160,6 +164,7 @@ extern void saImmOmCcbObjectModify_2_17(void);
 extern void saImmOmCcbObjectModify_2_18(void);
 extern void saImmOmCcbObjectModify_2_19(void);
 extern void saImmOmCcbObjectModify_2_20(void);
+extern void saImmOmCcbObjectModify_2_21(void);
 extern void saImmOmCcbApply_01(void);
 extern void saImmOmCcbApply_02(void);
 extern void saImmOmCcbFinalize_01(void);
@@ -209,6 +214,10 @@ __attribute__ ((constructor)) static void saImmOmInitialize_constructor(void)
     test_case_add(6, saImmOmCcbObjectDelete_08, "saImmOmCcbObjectDelete - SA_AIS_ERR_FAILED_OPERATION, delete NO_DANGLING reference");
     test_case_add(6, saImmOmCcbObjectDelete_09, "saImmOmCcbObjectDelete - SA_AIS_ERR_BUSY, NO_DANGLING - delete two objects with two CCBs");
     test_case_add(6, saImmOmCcbObjectDelete_10, "saImmOmCcbObjectDelete - SA_AIS_OK, NO_DANGLING - delete two objects with bidirectional references in the same CCB");
+    test_case_add(6, saImmOmCcbObjectDelete_11, "saImmOmCcbObjectDelete - SA_AIS_ERR_FAILED_OPERATION, NO_DANGLING - delete object with bidirectional references in individual CCB");
+    test_case_add(6, saImmOmCcbObjectDelete_12, "saImmOmCcbObjectDelete - SA_AIS_ERR_FAILED_OPERATION, set NO_DANGLING reference and then delete reffered object");
+    test_case_add(6, saImmOmCcbObjectDelete_13, "saImmOmCcbObjectDelete - SA_AIS_ERR_FAILED_OPERATION, replace NO_DANGLING reference and then delete reffered object");
+    test_case_add(6, saImmOmCcbObjectDelete_14, "saImmOmCcbObjectDelete - SA_AIS_ERR_FAILED_OPERATION, set NO_DANGLING reference to an object created in the same CCB and then delete reffered object");
 
     test_case_add(6, saImmOmCcbObjectModify_2_01, "saImmOmCcbObjectModify_2 - SA_AIS_OK");
     test_case_add(6, saImmOmCcbObjectModify_2_02, "saImmOmCcbObjectModify_2 - SA_AIS_ERR_BAD_HANDLE");
@@ -228,6 +237,7 @@ __attribute__ ((constructor)) static void saImmOmInitialize_constructor(void)
     test_case_add(6, saImmOmCcbObjectModify_2_18, "saImmOmCcbObjectModify_2 - SA_AIS_ERR_BAD_OPERATION, set NO_DANGLING reference to a deleted object by the same CCB");
     test_case_add(6, saImmOmCcbObjectModify_2_19, "saImmOmCcbObjectModify_2 - SA_AIS_ERR_BUSY, set NO_DANGLING reference to a deleted object by another CCB");
     test_case_add(6, saImmOmCcbObjectModify_2_20, "saImmOmCcbObjectModify_2 - SA_AIS_ERR_BUSY, set NO_DANGLING reference to a create object by another CCB");
+    test_case_add(6, saImmOmCcbObjectModify_2_21, "saImmOmCcbObjectModify_2 - SA_AIS_OK, set NO_DANGLING reference to an object created in the same CCB");
 
     test_case_add(6, saImmOmCcbApply_01, "saImmOmCcbApply - SA_AIS_OK");
     test_case_add(6, saImmOmCcbApply_02, "saImmOmCcbApply - SA_AIS_ERR_BAD_HANDLE");
