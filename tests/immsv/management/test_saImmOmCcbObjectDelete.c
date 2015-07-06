@@ -479,6 +479,176 @@ void saImmOmCcbObjectDelete_10(void)
     test_validate(rc, SA_AIS_OK);
 }
 
+void saImmOmCcbObjectDelete_11(void)
+{
+    /*
+     * Delete object with bidirectional references in individual CCB
+     * This testcase is related to saImmOmCcbObjectCreate_17
+     */
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT obj1 = { strlen("id=1"), "id=1" };
+    const SaNameT obj2 = { strlen("id=2"), "id=2" };
+
+    const SaNameT* refValues1[] = {&obj1};
+    SaImmAttrValuesT_2 refAttr1 = {"attr1", SA_IMM_ATTR_SANAMET, 1, (void**)refValues1};
+    const SaNameT* refValues2[] = {&obj2};
+    SaImmAttrValuesT_2 refAttr2 = {"attr1", SA_IMM_ATTR_SANAMET, 1, (void**)refValues2};
+
+    //  Create objects obj1 and obj2, where obj2 has a NO_DANGLING reference to obj1
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(nodangling_class_create(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(object_create_2(immOmHandle, ccbHandle, nodanglingClassName, &obj1, NULL, &refAttr2), SA_AIS_OK);
+    safassert(object_create_2(immOmHandle, ccbHandle, nodanglingClassName, &obj2, NULL, &refAttr1), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &obj1), SA_AIS_OK);
+    rc = saImmOmCcbApply(ccbHandle);
+
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    object_delete_2(ccbHandle, &obj2, 0);
+    object_delete_2(ccbHandle, &obj1, 0);
+    saImmOmCcbApply(ccbHandle);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+
+    safassert(nodangling_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
+    test_validate(rc, SA_AIS_ERR_FAILED_OPERATION);
+}
+
+void saImmOmCcbObjectDelete_12(void)
+{
+    /*
+     * Set NO_DANGLING reference and then delete reffered object
+     * This testcase is related to saImmOmCcbObjectModify_2_15
+     */
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT obj1 = { strlen("id=1"), "id=1" };
+    const SaNameT obj2 = { strlen("id=2"), "id=2" };
+    const SaNameT* attrValues[] = { &obj1 };
+    SaImmAttrValuesT_2 v1 = { "attr1", SA_IMM_ATTR_SANAMET, 1, (void**)attrValues };
+    SaImmAttrModificationT_2 attrMod = { SA_IMM_ATTR_VALUES_REPLACE, v1 };
+    const SaImmAttrModificationT_2 *attrMods[] = { &attrMod, NULL };
+
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(nodangling_class_create(immOmHandle), SA_AIS_OK);
+    safassert(object_create(immOmHandle, ownerHandle, nodanglingClassName, &obj1, NULL, NULL), SA_AIS_OK);
+    safassert(object_create(immOmHandle, ownerHandle, nodanglingClassName, &obj2, NULL, NULL), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbObjectModify_2(ccbHandle, &obj2, attrMods), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &obj1), SA_AIS_OK);
+    rc = saImmOmCcbApply(ccbHandle);
+
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(object_delete(ownerHandle, &obj2, 1), SA_AIS_OK);
+    safassert(object_delete(ownerHandle, &obj1, 1), SA_AIS_OK);
+    safassert(nodangling_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
+    test_validate(rc, SA_AIS_ERR_FAILED_OPERATION);
+}
+
+void saImmOmCcbObjectDelete_13(void)
+{
+    /*
+     * Replace NO_DANGLING reference and then delete reffered object
+     * This testcase is related to saImmOmCcbObjectModify_2_16
+     */
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT obj1 = { strlen("id=1"), "id=1" };
+    const SaNameT obj2 = { strlen("id=2"), "id=2" };
+    const SaNameT obj3 = { strlen("id=3"), "id=3" };
+    const SaNameT* attrValues1[] = { &obj1 };
+    SaImmAttrValuesT_2 v1 = { "attr1", SA_IMM_ATTR_SANAMET, 1, (void**)attrValues1 };
+    SaImmAttrModificationT_2 attrMod = { SA_IMM_ATTR_VALUES_REPLACE, v1 };
+    const SaImmAttrModificationT_2 *attrMods[] = { &attrMod, NULL };
+
+    const SaNameT* attrValues2[] = { &obj2 };
+    SaImmAttrValuesT_2 v2 = {"attr1", SA_IMM_ATTR_SANAMET, 1, (void**)attrValues2};
+
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(nodangling_class_create(immOmHandle), SA_AIS_OK);
+    safassert(object_create(immOmHandle, ownerHandle, nodanglingClassName, &obj1, NULL, NULL), SA_AIS_OK);
+    safassert(object_create(immOmHandle, ownerHandle, nodanglingClassName, &obj2, NULL, NULL), SA_AIS_OK);
+    safassert(object_create(immOmHandle, ownerHandle, nodanglingClassName, &obj3, NULL, &v2), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbObjectModify_2(ccbHandle, &obj3, attrMods), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &obj1), SA_AIS_OK);
+    rc = saImmOmCcbApply(ccbHandle);
+
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(object_delete(ownerHandle, &obj3, 1), SA_AIS_OK);
+    safassert(object_delete(ownerHandle, &obj2, 1), SA_AIS_OK);
+    safassert(object_delete(ownerHandle, &obj1, 1), SA_AIS_OK);
+    safassert(nodangling_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
+    test_validate(rc, SA_AIS_ERR_FAILED_OPERATION);
+}
+
+void saImmOmCcbObjectDelete_14(void)
+{
+    /*
+     * Set NO_DANGLING reference to an object created in the same CCB and then delete reffered object
+     * This testcase is related to saImmOmCcbObjectModify_2_21
+     */
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    const SaNameT obj1 = { strlen("id=1"), "id=1" };
+    const SaNameT obj2 = { strlen("id=2"), "id=2" };
+    const SaNameT* attrValues[] = { &obj1 };
+    SaImmAttrValuesT_2 v1 = { "attr1", SA_IMM_ATTR_SANAMET, 1, (void**)attrValues };
+    SaImmAttrModificationT_2 attrMod = { SA_IMM_ATTR_VALUES_REPLACE, v1 };
+    const SaImmAttrModificationT_2 *attrMods[] = { &attrMod, NULL };
+
+    safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(nodangling_class_create(immOmHandle), SA_AIS_OK);
+
+    safassert(object_create(immOmHandle, ownerHandle, nodanglingClassName, &obj2, NULL, NULL), SA_AIS_OK);
+
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(object_create_2(immOmHandle, ccbHandle, nodanglingClassName, &obj1, NULL, NULL), SA_AIS_OK);
+    safassert(saImmOmCcbObjectModify_2(ccbHandle, &obj2, attrMods), SA_AIS_OK);
+    safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
+
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(saImmOmCcbObjectDelete(ccbHandle, &obj1), SA_AIS_OK);
+    rc = saImmOmCcbApply(ccbHandle);
+
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(object_delete(ownerHandle, &obj2, 1), SA_AIS_OK);
+    safassert(object_delete(ownerHandle, &obj1, 0), SA_AIS_OK);
+    safassert(nodangling_class_delete(immOmHandle), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+
+    test_validate(rc, SA_AIS_ERR_FAILED_OPERATION);
+}
+
 __attribute__ ((constructor)) static void saImmOmCcbObjectDelete_constructor(void)
 {
     dnObj1.length = (SaUint16T) sprintf((char*) dnObj1.value, "%s,%s", rdnObj1.value, rootObj.value);
