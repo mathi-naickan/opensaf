@@ -448,7 +448,7 @@ def saImmOiCcbSetErrorString(immOiHandle, ccbId, errorString):
  
 	"""
 	oidll.saImmOiCcbSetErrorString.argtypes = [SaImmOiHandleT,
-											   SaImmOiCcbItT,
+											   SaImmOiCcbIdT,
 											   SaStringT]
 	
 	oidll.saImmOiCcbSetErrorString.restype = SaAisErrorT
