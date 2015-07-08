@@ -18,7 +18,7 @@
 from ctypes import *
 from saImm import *
 from saAis import *
-from saImmOm import SaImmCcbHandleT
+from saImmOm import SaImmCcbHandleT, SaImmAdminOwnerHandleT
 
 oidll = CDLL('libSaImmOi.so.0')
 
