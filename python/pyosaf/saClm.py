@@ -478,7 +478,7 @@ def saClmClusterNodeGet_4(clmHandle, nodeId, timeout, clusterNode):
 	"""
 	
 	clmdll.saClmClusterNodeGet_4.argtypes = [SaClmHandleT,
-											 SaClmNodeItT,
+											 SaClmNodeIdT,
 											 SaTimeT,
 											 POINTER(SaClmClusterNodeT_4)]
 	
