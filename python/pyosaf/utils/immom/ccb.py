@@ -22,9 +22,11 @@ import time
 from ctypes import c_void_p, pointer, cast
 
 from pyosaf.saAis import eSaAisErrorT, SaNameT, SaStringT, \
-    SaDoubleT, SaTimeT, SaUint64T, SaInt64T, SaUint32T, SaInt32T, SaFloatT
+    SaDoubleT, SaTimeT, SaUint64T, SaInt64T, SaUint32T, SaInt32T, SaFloatT, \
+    marshalNullArray
 
-from pyosaf.saImm import eSaImmScopeT, eSaImmValueTypeT, SaImmAttrValuesT_2
+from pyosaf.saImm import eSaImmScopeT, eSaImmValueTypeT, SaImmAttrValuesT_2, \
+    SaImmValueTypeMap
 
 from pyosaf import saImm
 from pyosaf import saImmOm
@@ -34,7 +36,6 @@ import pyosaf.utils.immom
 from pyosaf.utils.immom.common import SafException
 
 TRYAGAIN_CNT = 60
-
 
 def _value_to_ctype_ptr(value_type, value):
     ''' convert a value to a ctypes value ptr '''
@@ -175,7 +176,7 @@ class Ccb(object):
             raise SafException(err, "saImmOmCcbObjectDelete: %s - %s" % \
                 (_object_name, eSaAisErrorT.whatis(err)))
 
-    def modify_value_add(self, object_name, attr_name, value):
+    def modify_value_add(self, object_name, attr_name, values):
         ''' add to the CCB an ADD modification of an existing object '''
 
         assert object_name
@@ -208,23 +209,16 @@ class Ccb(object):
                 (object_name, eSaAisErrorT.whatis(err)))
 
         attr_mods = []
+
         attr_mod = saImmOm.SaImmAttrModificationT_2()
         attr_mod.modType = \
-            saImmOm.eSaImmAttrModificationTypeT.SA_IMM_ATTR_VALUES_ADD
+            saImm.eSaImmAttrModificationTypeT.SA_IMM_ATTR_VALUES_ADD
         attr_mod.modAttr = SaImmAttrValuesT_2()
         attr_mod.modAttr.attrName = attr_name
         attr_mod.modAttr.attrValueType = value_type
-        attr_mod.modAttr.attrValuesNumber = 1
+        attr_mod.modAttr.attrValuesNumber = len(values)
+        attr_mod.modAttr.attrValues = marshal_c_array(value_type, values)
 
-        values = []
-        values.append(value)
-        try:
-            ptr2ctype = _value_to_ctype_ptr(value_type, value)
-        except ValueError:
-            raise SafException(eSaAisErrorT.SA_AIS_ERR_INVALID_PARAM,
-                "value '%s' has wrong type" % value)
-
-        attr_mod.modAttr.attrValues = pointer(ptr2ctype)
         attr_mods.append(attr_mod)
 
         err = saImmOm.saImmOmCcbObjectModify_2(self.ccb_handle,
@@ -233,7 +227,7 @@ class Ccb(object):
             print "saImmOmCcbObjectModify_2: %s, %s" % (eSaAisErrorT.whatis(err), object_name)
             raise SafException(err)
 
-    def modify_value_replace(self, object_name, attr_name, value):
+    def modify_value_replace(self, object_name, attr_name, values):
         ''' add to the CCB an REPLACE modification of an existing object '''
 
         assert object_name
@@ -268,21 +262,13 @@ class Ccb(object):
         attr_mods = []
         attr_mod = saImmOm.SaImmAttrModificationT_2()
         attr_mod.modType = \
-            saImmOm.eSaImmAttrModificationTypeT.SA_IMM_ATTR_VALUES_REPLACE
+            saImm.eSaImmAttrModificationTypeT.SA_IMM_ATTR_VALUES_REPLACE
         attr_mod.modAttr = SaImmAttrValuesT_2()
         attr_mod.modAttr.attrName = attr_name
         attr_mod.modAttr.attrValueType = value_type
-        attr_mod.modAttr.attrValuesNumber = 1
+        attr_mod.modAttr.attrValuesNumber = len(values)
+        attr_mod.modAttr.attrValues = marshal_c_array(value_type, values)
 
-        values = []
-        values.append(value)
-        try:
-            ptr2ctype = _value_to_ctype_ptr(value_type, value)
-        except ValueError:
-            raise SafException(eSaAisErrorT.SA_AIS_ERR_INVALID_PARAM,
-                "value '%s' has wrong type" % value)
-
-        attr_mod.modAttr.attrValues = pointer(ptr2ctype)
         attr_mods.append(attr_mod)
 
         err = saImmOm.saImmOmCcbObjectModify_2(self.ccb_handle,
@@ -291,7 +277,7 @@ class Ccb(object):
             print "saImmOmCcbObjectModify_2: %s, %s" % (eSaAisErrorT.whatis(err), object_name)
             raise SafException(err)
 
-    def modify_value_delete(self, object_name, attr_name, value):
+    def modify_value_delete(self, object_name, attr_name, values):
         ''' add to the CCB an DELETE modification of an existing object '''
 
         assert object_name
@@ -326,21 +312,13 @@ class Ccb(object):
         attr_mods = []
         attr_mod = saImmOm.SaImmAttrModificationT_2()
         attr_mod.modType = \
-            saImmOm.eSaImmAttrModificationTypeT.SA_IMM_ATTR_VALUES_DELETE
+            saImm.eSaImmAttrModificationTypeT.SA_IMM_ATTR_VALUES_DELETE
         attr_mod.modAttr = SaImmAttrValuesT_2()
         attr_mod.modAttr.attrName = attr_name
         attr_mod.modAttr.attrValueType = value_type
-        attr_mod.modAttr.attrValuesNumber = 1
+        attr_mod.modAttr.attrValuesNumber = len(values)
+        attr_mod.modAttr.attrValues = marshal_c_array(value_type, values)
 
-        values = []
-        values.append(value)
-        try:
-            ptr2ctype = _value_to_ctype_ptr(value_type, value)
-        except ValueError:
-            raise SafException(eSaAisErrorT.SA_AIS_ERR_INVALID_PARAM,
-                "value '%s' has wrong type" % value)
-
-        attr_mod.modAttr.attrValues = pointer(ptr2ctype)
         attr_mods.append(attr_mod)
 
         err = saImmOm.saImmOmCcbObjectModify_2(self.ccb_handle,
