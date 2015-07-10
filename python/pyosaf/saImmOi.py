@@ -295,7 +295,7 @@ def saImmOiRtObjectCreate_2(immOiHandle, className, parentName, attrValues):
 		SaAisErrorT
 
 	"""
-	
+	c_attr_values = marshalNullArray(attrValues)
 	oidll.saImmOiRtObjectCreate_2.argtypes = [SaImmOiHandleT,
 											  SaImmClassNameT,
 											  POINTER(SaNameT),
@@ -306,7 +306,7 @@ def saImmOiRtObjectCreate_2(immOiHandle, className, parentName, attrValues):
 	return oidll.saImmOiRtObjectCreate_2(immOiHandle,
 			className,
 			BYREF(parentName),
-			BYREF(attrValues))
+			c_attr_values)
 
 def saImmOiRtObjectDelete(immOiHandle, objectName):
 	"""Delete object and subtree rooted at that object.
