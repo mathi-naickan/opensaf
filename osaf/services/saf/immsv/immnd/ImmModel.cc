@@ -4852,8 +4852,7 @@ ImmModel::ccbApply(SaUint32T ccbId,
                     }
                     goto done;
                }
-
-            } else {
+            } else if(ccb->mState != IMM_CCB_ABORTED) {
                 LOG_NO("Ccb <%u> not in correct state (%u) for Apply ignoring request",
                     ccb->mId, ccb->mState);
                 /* This includes state IMM_CCB_VALIDATING which means explicit validation
