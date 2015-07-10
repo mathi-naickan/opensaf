@@ -338,16 +338,16 @@ def saImmOiRtObjectUpdate_2(immOiHandle, objectName, attrMods):
 		SaAisErrorT
 
 	"""
-	
+	c_attr_mods = marshalNullArray(attrMods)
 	oidll.saImmOiRtObjectUpdate_2.argtypes = [SaImmOiHandleT,
 											  POINTER(SaNameT),
-											  POINTER(SaImmAttrModificationT_2)]
+											  POINTER(POINTER(SaImmAttrModificationT_2))]
 	
 	oidll.saImmOiRtObjectUpdate_2.restype = SaAisErrorT
 	
 	return oidll.saImmOiRtObjectUpdate_2(immOiHandle,
 			BYREF(objectName),
-			BYREF(attrMods))
+			c_attr_mods)
 
 def saImmOiAdminOperationResult(immOiHandle, invocation, result):
 	"""Respond to IMM with result of saImmOiAdminOperationCallback()
