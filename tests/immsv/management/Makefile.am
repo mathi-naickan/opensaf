@@ -22,6 +22,7 @@ bin_PROGRAMS = immomtest immpopulate
 
 immomtest_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/osaf/libs/common/immsv/include \
 	-I$(top_srcdir)/tests/immsv/common \
 	-I$(top_srcdir)/tests/unit_test_fw/inc
 
@@ -62,6 +63,7 @@ immomtest_LDADD = \
 	$(top_builddir)/osaf/libs/saf/libSaImm/libSaImmOi.la \
 	$(top_builddir)/osaf/libs/core/libopensaf_core.la \
 	$(top_builddir)/tests/unit_test_fw/src/libutest.la \
+	$(top_builddir)/osaf/tools/safimm/src/libimmutil.la \
 	$(top_builddir)/tests/immsv/common/libimmtest.la
 
 
