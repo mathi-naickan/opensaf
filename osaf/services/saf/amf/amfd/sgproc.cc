@@ -1640,7 +1640,8 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg)
 			    (i_su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) &&
 			    (su_node_ptr->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) &&
 			    (i_su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) &&
-			    (i_su->term_state == false)) {
+			    (i_su->term_state == false) &&
+			    (any_ng_in_locked_in_state(su_node_ptr) == false)) {
 
 				if (i_su->is_in_service() == true) {
 					i_su->set_readiness_state(SA_AMF_READINESS_IN_SERVICE);
@@ -1661,7 +1662,8 @@ uint32_t avd_sg_app_su_inst_func(AVD_CL_CB *cb, AVD_SG *sg)
 					(su_node_ptr->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED) &&
 					(su_node_ptr->node_info.member == true) &&
 					(i_su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) &&
-					(i_su->term_state == false)) {
+					(i_su->term_state == false) &&
+					(any_ng_in_locked_in_state(su_node_ptr) == false)) {
 				TRACE("%u, %u", sg->saAmfSGNumPrefInserviceSUs, num_try_insvc_su);
 				if (sg->saAmfSGNumPrefInserviceSUs > (sg_instantiated_su_count(i_su->sg_of_su) +
 							num_try_insvc_su)){

@@ -238,4 +238,5 @@ extern void avd_nodeswbundle_constructor(void);
 extern void ng_complete_admin_op(AVD_AMF_NG *ng, SaAisErrorT result);
 extern void avd_ng_admin_state_set(AVD_AMF_NG* ng, SaAmfAdminStateT state);
 extern bool are_all_ngs_in_unlocked_state(const AVD_AVND *node);
+extern bool any_ng_in_locked_in_state(const AVD_AVND *node);
 #endif

@@ -1299,6 +1299,14 @@ static void node_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocatio
 			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
+		//If any Nodegroup of node is still in lock-in state then do not instantiate the node.
+		if (any_ng_in_locked_in_state(node) == true) {
+			TRACE_1("Atleast one Node group of node is in lock-in state");
+			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
+			node->admin_node_pend_cbk.invocation = 0;
+			node->admin_node_pend_cbk.admin_oper = static_cast<SaAmfAdminOperationIdT>(0);
+			goto done;
+		}
 
 		/* now do the unlock_instantiation of the node */
 		if (NCSCC_RC_SUCCESS == node_admin_unlock_instantiation(node)) {
@@ -1428,6 +1436,22 @@ bool are_all_ngs_in_unlocked_state(const AVD_AVND *node)
                         return false;
         }
         return true;
+}
+/**
+ * @brief  Checks if any nodegroup of node are is in LOCKED_IN state.
+ * @param  ptr to Node (AVD_AVND).
+ * @return true/false
+ */
+bool any_ng_in_locked_in_state(const AVD_AVND *node)
+{
+        for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
+                        it != nodegroup_db->end(); it++) {
+                AVD_AMF_NG *ng = it->second;
+                if ((node_in_nodegroup(Amf::to_string(&node->name), ng) == true) &&
+                                (ng->saAmfNGAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION))
+                        return true;
+        }
+        return false;
 }
 
 void avd_node_constructor(void)

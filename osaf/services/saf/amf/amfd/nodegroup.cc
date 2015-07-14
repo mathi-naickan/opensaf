@@ -973,6 +973,8 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 			node->su_cnt_admin_oper = 0;
 			node->admin_ng = ng;
 			node_sus_termstate_set(node, true);
+			if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED)
+				continue;
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
 		}
 		for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
@@ -1038,6 +1040,8 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 			node->su_cnt_admin_oper = 0;
 			node->admin_ng = ng;
 			node_sus_termstate_set(node, false);  
+			if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)
+				continue;
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
 		}
 		ng_admin_unlock_inst(ng);
