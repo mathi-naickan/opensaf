@@ -972,9 +972,9 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 			AVD_AVND *node = avd_node_get(*iter);
 			node->su_cnt_admin_oper = 0;
 			node->admin_ng = ng;
-			node_sus_termstate_set(node, true);
 			if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED)
 				continue;
+			node_sus_termstate_set(node, true);
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED_INSTANTIATION);
 		}
 		for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
@@ -986,6 +986,10 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 			}
 			if (node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) {
 				LOG_NO("'%s' LOCK_INSTANTIATION: AMF node oper state disabled", node->name.value);
+				continue;
+			}
+			if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
+				LOG_NO("'%s' LOCK_INSTANTIATION: AMF node admin state is not LOCKED", node->name.value);
 				continue;
 			}
 			avd_node_admin_lock_instantiation(node);
@@ -1039,9 +1043,9 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 			AVD_AVND *node = avd_node_get(*iter);
 			node->su_cnt_admin_oper = 0;
 			node->admin_ng = ng;
-			node_sus_termstate_set(node, false);  
 			if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION)
 				continue;
+			node_sus_termstate_set(node, false);  
 			node_admin_state_set(node, SA_AMF_ADMIN_LOCKED);
 		}
 		ng_admin_unlock_inst(ng);
