@@ -87,8 +87,11 @@ if [ "$self_node_id" = "$node_id" ] || [ $node_id = 0 ]; then
 	$icmd /sbin/reboot -f
 else
 	if [ ":$ee_name" != ":" ]; then
+		plm_node_presence_state=`immlist $ee_name |grep saPlmEEPresenceState|awk '{print $3}'`
 		plm_node_state=`immlist $ee_name |grep saPlmEEAdminState|awk '{print $3}'` 
-		if [ $plm_node_state != 2 ]; then
+		if [ "$plm_node_presence_state" != 3 ] ; then
+			logger -t "opensaf_reboot" "Not rebooting remote node $ee_name as it is not in INSTANTIATED state"
+		elif [ $plm_node_state != 2 ]; then
 			opensaf_reboot_with_plm
 		else	
 			logger -t "opensaf_reboot" "Not rebooting remote node $ee_name as it is already in locked state"
