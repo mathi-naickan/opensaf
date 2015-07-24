@@ -319,12 +319,28 @@ static AVD_SG *sg_create(const SaNameT *sg_name, const SaImmAttrValuesT_2 **attr
 		sg->saAmfSGAutoAdjust = sgt->saAmfSgtDefAutoAdjust;
 	}
 
-	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSGNumPrefActiveSUs"), attributes, 0, &sg->saAmfSGNumPrefActiveSUs) != SA_AIS_OK) {
-		sg->saAmfSGNumPrefActiveSUs = 1;
-	}
+	if (sgt->saAmfSgtRedundancyModel == SA_AMF_NPM_REDUNDANCY_MODEL) {
+		/* saAmfSGNumPrefActiveSUs and saAmfSGNumPrefStandbySUs are set to 1 by default in imm.xml.
+		   So, immutil_getAttr will always return OK even if user doesn't configure them.
+		   Later on if these attr are removed from imm.xml, then the below check can be used. */
+		if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSGNumPrefActiveSUs"),
+					attributes, 0, &sg->saAmfSGNumPrefActiveSUs) != SA_AIS_OK) {
+			LOG_WA("Mandatory attr 'saAmfSGNumPrefActiveSUs' not configured for NpM");
+			sg->saAmfSGNumPrefActiveSUs = 1;
+		}
+		if ((sg->saAmfSGNumPrefActiveSUs == 0) || (sg->saAmfSGNumPrefActiveSUs == 1))
+			LOG_NO("'saAmfSGNumPrefActiveSUs' is set to %u, not useful for NpM",
+					sg->saAmfSGNumPrefActiveSUs);
 
-	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSGNumPrefStandbySUs"), attributes, 0, &sg->saAmfSGNumPrefStandbySUs) != SA_AIS_OK) {
-		sg->saAmfSGNumPrefStandbySUs = 1;
+		if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSGNumPrefStandbySUs"),
+					attributes, 0, &sg->saAmfSGNumPrefStandbySUs) != SA_AIS_OK) {
+			LOG_WA("Mandatory attr 'saAmfSGNumPrefStandbySUs' not configured for NpM");
+			sg->saAmfSGNumPrefStandbySUs = 1;
+		}
+
+		if ((sg->saAmfSGNumPrefStandbySUs == 0) || (sg->saAmfSGNumPrefStandbySUs == 1))
+			LOG_NO("'saAmfSGNumPrefStandbySUs' is set to %u, not useful for NpM",
+					sg->saAmfSGNumPrefStandbySUs);
 	}
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSGNumPrefInserviceSUs"), attributes, 0, &sg->saAmfSGNumPrefInserviceSUs) != SA_AIS_OK) {
