@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <regex.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,6 +124,13 @@ extern "C" {
  * @return The CCB object.
  */
 	struct CcbUtilCcbData *ccbutil_getCcbData(SaImmOiCcbIdT id);
+
+/**
+ * Find if there is any ccb op going on. 
+ * @param id : None.
+ * @return : true if no ccb op undergoing else false.
+ */
+	bool ccbutil_EmptyCcbExists();
 
 /**
  * Delete a CCB object. All memory associated with the CCB is freed.
