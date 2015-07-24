@@ -825,6 +825,15 @@ SaAisErrorT SG_2N::si_swap(AVD_SI *si, SaInvocationT invocation) {
 		goto done;
 	}
 
+	/* If the swap is on m/w si, then check whether any ccb was going on. */
+	if (si->sg_of_si->sg_ncs_spec) {
+		if (ccbutil_EmptyCcbExists() == false) {
+			rc = SA_AIS_ERR_TRY_AGAIN;
+			LOG_NO("%s SWAP failed - Ccb going on", si->name.value);
+			goto done;
+		}
+	}
+
 	/* Check if there is dependency between SI's within SU */
 	if (avd_sidep_si_dependency_exists_within_su(susi->su)) {
 		if (avd_sg_susi_mod_snd_honouring_si_dependency(susi->su, SA_AMF_HA_QUIESCED) == NCSCC_RC_FAILURE) {

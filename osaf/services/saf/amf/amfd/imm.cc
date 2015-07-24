@@ -765,8 +765,19 @@ static SaAisErrorT ccb_object_create_cb(SaImmOiHandleT immoi_handle,
 	int i = 0;
 	const SaImmAttrValuesT_2 *attrValue;
 	AVSV_AMF_CLASS_ID id_from_class_name, id_from_dn;
+	char err_str[] = "Ccb create failed, m/w role switch going on";
 
 	TRACE_ENTER2("CCB ID %llu, class %s, parent '%s'", ccb_id, class_name, parent_name->value);
+
+	/* Reject adm ops if we are in the middle of a role switch. */
+	if (avd_cb->swap_switch == SA_TRUE) {
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		LOG_ER("CCB %llu validation error: %s", ccb_id, err_str);
+		saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu validation error: %s",
+				ccb_id, err_str);
+		(void) saImmOiCcbSetErrorString(avd_cb->immOiHandle, ccb_id, err_str);
+		goto done;
+	}
 
 	if ((ccb_util_ccb_data = ccbutil_getCcbData(ccb_id)) == NULL) {
 		LOG_ER("Failed to get CCB object for %llu", ccb_id);
@@ -838,8 +849,19 @@ static SaAisErrorT ccb_object_delete_cb(SaImmOiHandleT immoi_handle,
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	struct CcbUtilCcbData *ccb_util_ccb_data;
+	char err_str[] = "Ccb delete failed, m/w role switch going on";
 
 	TRACE_ENTER2("CCB ID %llu, %s", ccb_id, object_name->value);
+
+	/* Reject adm ops if we are in the middle of a role switch. */
+	if (avd_cb->swap_switch == SA_TRUE) {
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu validation error: %s",
+				ccb_id, err_str);
+		(void) saImmOiCcbSetErrorString(avd_cb->immOiHandle, ccb_id,
+				err_str);
+		goto done;
+	}
 
 	if ((ccb_util_ccb_data = ccbutil_getCcbData(ccb_id)) != NULL) {
 		/* "memorize the request" */
@@ -848,7 +870,7 @@ static SaAisErrorT ccb_object_delete_cb(SaImmOiHandleT immoi_handle,
 		LOG_ER("Failed to get CCB object for %llu", ccb_id);
 		rc = SA_AIS_ERR_NO_MEMORY;
 	}
-
+done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
@@ -871,8 +893,19 @@ static SaAisErrorT ccb_object_modify_cb(SaImmOiHandleT immoi_handle,
 {
 	SaAisErrorT rc = SA_AIS_OK;
 	struct CcbUtilCcbData *ccb_util_ccb_data;
+	char err_str[] = "Ccb modify failed, m/w role switch going on";
 
 	TRACE_ENTER2("CCB ID %llu, %s", ccb_id, object_name->value);
+
+	/* Reject adm ops if we are in the middle of a role switch. */
+	if (avd_cb->swap_switch == SA_TRUE) {
+		rc = SA_AIS_ERR_TRY_AGAIN;
+		saflog(LOG_NOTICE, amfSvcUsrName, "CCB %llu validation error: %s",
+				ccb_id, err_str);
+		(void) saImmOiCcbSetErrorString(avd_cb->immOiHandle, ccb_id,
+				err_str);
+		goto done;
+        }
 
 	if ((ccb_util_ccb_data = ccbutil_getCcbData(ccb_id)) != NULL) {
 		/* "memorize the request" */
@@ -884,7 +917,7 @@ static SaAisErrorT ccb_object_modify_cb(SaImmOiHandleT immoi_handle,
 		LOG_ER("Failed to get CCB object for %llu", ccb_id);
 		rc = SA_AIS_ERR_NO_MEMORY;
 	}
-
+done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
@@ -961,8 +994,10 @@ static void ccb_abort_cb(SaImmOiHandleT immoi_handle, SaImmOiCcbIdT ccb_id)
 
 	/* Return CCB container memory */
 	ccb_util_ccb_data = ccbutil_findCcbData(ccb_id);
-	osafassert(ccb_util_ccb_data);
-	ccbutil_deleteCcbData(ccb_util_ccb_data);
+	/* ccb_util_ccb_data may be NULL when first create/modify/delete cbk
+	   was rejected before adding the ccb information in the data base.*/
+	if (ccb_util_ccb_data)
+		ccbutil_deleteCcbData(ccb_util_ccb_data);
 
 	TRACE_LEAVE();
 }

@@ -96,6 +96,13 @@ struct CcbUtilCcbData *ccbutil_findCcbData(SaImmOiCcbIdT ccbId)
 	return NULL;
 }
 
+bool ccbutil_EmptyCcbExists() {
+	if (ccbList == NULL) {
+		return true;
+	}
+	return false;
+}
+
 struct CcbUtilCcbData *ccbutil_getCcbData(SaImmOiCcbIdT ccbId)
 {
 	struct CcbUtilCcbData *ccbitem = ccbutil_findCcbData(ccbId);
