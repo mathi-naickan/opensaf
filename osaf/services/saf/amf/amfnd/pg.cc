@@ -738,7 +738,7 @@ uint32_t avnd_pg_cbk_send(AVND_CB *cb, AVND_PG *pg, AVND_PG_TRK *trk, AVND_PG_ME
 	 */
 	if (true == pg->is_exist) {
 		/* => this csi exists... invoke the cbk as per the track flags */
-		if ((m_AVND_PG_TRK_IS_CURRENT(trk) || m_AVND_PG_TRK_IS_CHANGES(trk)) && (pg_param->mem_num)) {
+		if ((m_AVND_PG_TRK_IS_CURRENT(trk) || m_AVND_PG_TRK_IS_CHANGES(trk))) {
 	 /*** include all the current members ***/
 
 			/* we need to include the comp which just got removed from group */
