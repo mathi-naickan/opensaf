@@ -210,6 +210,8 @@ AVD_SU *avd_sg_nacvred_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
 								i_si->name.length);
 						LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, qualified_su->name.value, 
 								qualified_su->name.length);
+						l_flag = true; /* Go for next assignment */
+						break;
 					}
 				}
 			}/* while */
