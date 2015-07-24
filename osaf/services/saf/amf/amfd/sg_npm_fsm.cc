@@ -705,7 +705,10 @@ static AVD_SU *avd_sg_npm_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
 		/* Identify the standby SU if it already exists */
 		o_susi = avd_sg_npm_su_othr(cb, i_si->list_of_sisu->su);
 
-		if (o_susi != AVD_SU_SI_REL_NULL) {
+		if ((o_susi != AVD_SU_SI_REL_NULL) &&
+		    (o_susi->su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE) &&
+		    (o_susi->state == SA_AMF_HA_STANDBY) &&
+		    (o_susi->fsm != AVD_SU_SI_STATE_UNASGN)) {
 			i_su = o_susi->su;
 			if ((i_su->sg_of_su->saAmfSGMaxStandbySIsperSU == 0) ||
 			    (i_su->sg_of_su->saAmfSGMaxStandbySIsperSU > i_su->saAmfSUNumCurrStandbySIs)) {
