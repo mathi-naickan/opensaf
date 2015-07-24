@@ -244,6 +244,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	SaNameT si_name;
         uint32_t rank = 0;
 	AVD_SUS_PER_SI_RANK_INDX indx;
+	AVD_SU *avd_su = NULL;
 
         memset(&su_name, 0, sizeof(SaNameT));
         memset(&si_name, 0, sizeof(SaNameT));
@@ -265,6 +266,22 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
                         return 0;
                 }
         }
+
+	/* Find the su name. */
+	avd_su = su_db->find(Amf::to_string(&su_name));
+	if (avd_su == NULL) {
+		/* SU does not exist in current model, check CCB */
+		if (opdata == NULL) {
+			report_ccb_validation_error(opdata, "'%s' does not exist in model", su_name.value);
+			return 0;
+		}
+
+		if (ccbutil_getCcbOpDataByDN(opdata->ccbId, &su_name) == NULL) {
+			report_ccb_validation_error(opdata, "'%s' does not exist in existing model or in CCB",
+					su_name.value);
+			return 0;
+		}
+	}
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfRank"), attributes, 0, &rank) != SA_AIS_OK) {
 		report_ccb_validation_error(opdata, "saAmfRank not found for %s", dn->value);
