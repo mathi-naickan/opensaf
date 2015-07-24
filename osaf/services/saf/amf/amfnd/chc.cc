@@ -542,9 +542,21 @@ AVND_COMP_HC_REC *avnd_comp_hc_rec_add(AVND_CB *cb, AVND_COMP *comp, AVSV_AMF_HC
 	TRACE_LEAVE();
 	return rec;
 
- err:
-	if (rec)
-		avnd_comp_hc_rec_del(cb, comp, rec);
+err:
+	/* Undo the changes in case of error.*/
+	if (rec) {
+		if (rec->opq_hdl)
+			ncshm_destroy_hdl(NCS_SERVICE_ID_AVND, rec->opq_hdl);
+
+		/* stop the healthcheck timer */
+		if (m_AVND_TMR_IS_ACTIVE(rec->tmr)) {
+			m_AVND_TMR_COMP_HC_STOP(cb, *rec);
+		}
+
+		/* free the record */
+		delete rec;
+	}
+
 	TRACE_LEAVE();
 	return 0;
 }
@@ -565,6 +577,7 @@ AVND_COMP_HC_REC *avnd_comp_hc_rec_add(AVND_CB *cb, AVND_COMP *comp, AVSV_AMF_HC
 ******************************************************************************/
 void avnd_comp_hc_rec_del(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_HC_REC *rec)
 {
+	TRACE_ENTER();
 	/* remove the association with hdl-mngr */
 	if (rec->opq_hdl)
 		ncshm_destroy_hdl(NCS_SERVICE_ID_AVND, rec->opq_hdl);
@@ -576,7 +589,7 @@ void avnd_comp_hc_rec_del(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_HC_REC *rec)
 
 	/* unlink from the comp-hc list */
 	m_AVND_COMPDB_REC_HC_REM(*comp, *rec);
-
+	TRACE_LEAVE();
 	/* free the record */
 	delete rec;
 }
