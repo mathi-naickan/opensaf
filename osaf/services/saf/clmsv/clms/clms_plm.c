@@ -209,8 +209,8 @@ static void clms_plm_readiness_track_callback(SaPlmEntityGroupHandleT entityGrpH
 						ckpt_cluster_rec();
 					}
 				}
-			} else { /* nodeup is zero but ee of node has changed, update to standby*/
-				ckpt_node_rec(node);
+			} else {
+				/* node has been removed on the standby, don't checkpoint */
 				TRACE("Step = %d, completed, nodeup is zero", step);
 			}
 		}
@@ -253,7 +253,13 @@ static void clms_plm_readiness_track_callback(SaPlmEntityGroupHandleT entityGrpH
 
 	/* Clear admin_op and stat_change for the completed step */
 	if ((step == SA_PLM_CHANGE_COMPLETED) || (step == SA_PLM_CHANGE_ABORTED)){
-		clms_clear_node_dep_list(node);
+		/*
+		 * Don't checkpoint if this is COMPLETED and nodeup is 0. Node
+		 * has already been removed from standby.
+		 */
+		if (step != SA_PLM_CHANGE_COMPLETED || node->nodeup) {
+			clms_clear_node_dep_list(node);
+		}
 		if (step == SA_PLM_CHANGE_COMPLETED){
 			if (node->stat_change == SA_TRUE){
 				if((node->disable_reboot == SA_FALSE) && 
