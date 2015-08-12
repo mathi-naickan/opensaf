@@ -10398,17 +10398,19 @@ ImmModel::searchInitialize(ImmsvOmSearchInit* req, ImmSearchOp& op)
 
         if (objectName.length() >= rootlen) {
             size_t pos = objectName.length() - rootlen;
-            if(nonExtendedNameCheck && objectName.length() >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
-                TRACE("SEARCH_NON_EXTENDED_NAMES filter: Object name is too long: %s",
-                    objectName.c_str());
-                err = SA_AIS_ERR_NAME_TOO_LONG;
-                goto searchInitializeExit;
-            }
             if((objectName.rfind(rootName, pos) == pos)&&
                 (!pos //Object IS the current root
                     || !rootlen //Empty root => all objects are sub-root.
                     || (objectName[pos-1] == ',') //Root with subobject
                  )){
+
+                 if(nonExtendedNameCheck && objectName.length() >= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+                     TRACE("SEARCH_NON_EXTENDED_NAMES filter: Object name is too long: %s",
+                           objectName.c_str());
+                     err = SA_AIS_ERR_NAME_TOO_LONG;
+                     goto searchInitializeExit;
+                 }
+
                 if(scope==SA_IMM_SUBTREE || checkSubLevel(objectName, pos)){
                     //Before adding the object to the result, check if there
                     //is any attribute match filter. If so check if there is a 
