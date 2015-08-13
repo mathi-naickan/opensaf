@@ -2724,6 +2724,7 @@ SaAisErrorT pbeBeginTrans(void* db_handle)
 		LOG_ER("SQL statement ('BEGIN EXCLUSIVE TRANSACTION') failed because:\n %s",
 			execErr);
 		sqlite3_free(execErr);
+		--sqliteTransLock;
 		return SA_AIS_ERR_FAILED_OPERATION;
 	}
 	return SA_AIS_OK;
