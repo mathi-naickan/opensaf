@@ -225,7 +225,7 @@ uint32_t mds_vdest_tbl_add(MDS_VDEST_ID vdest_id, NCS_VDEST_TYPE policy, MDS_VDE
 	/* Create Quiesced timer */
 	m_NCS_TMR_CREATE(vdest_info->quiesced_cbk_tmr, MDS_QUIESCED_TMR_VAL, mds_tmr_callback, (void *)NULL);
 
-	m_MDS_LOG_DBG("Quiescedcbk tmr=0x%08x", vdest_info->quiesced_cbk_tmr);
+	m_MDS_LOG_DBG("Quiescedcbk tmr=0x%08x", *(unsigned int*)vdest_info->quiesced_cbk_tmr);
 	vdest_info->node.key_info = (uint8_t *)&vdest_info->vdest_id;
 
 	ncs_patricia_tree_add(&gl_mds_mcm_cb->vdest_list, (NCS_PATRICIA_NODE *)&vdest_info->node);
@@ -1131,10 +1131,10 @@ uint32_t mds_subtn_tbl_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, NCSMDS
 							(NCSCONTEXT)tmr_req_info);
 
 	m_NCS_TMR_CREATE(subtn_info->discovery_tmr, MDS_SUBSCRIPTION_TMR_VAL, mds_tmr_callback, (void *)tmr_req_info);
-	m_MDS_LOG_DBG("discovery_tmr=0x%08x", subtn_info->discovery_tmr);
+	m_MDS_LOG_DBG("discovery_tmr=0x%08x", *(unsigned int*)subtn_info->discovery_tmr);
 	m_NCS_TMR_START(subtn_info->discovery_tmr, MDS_SUBSCRIPTION_TMR_VAL,
 			(TMR_CALLBACK)mds_tmr_callback, (void *)(long)subtn_info->tmr_req_info_hdl);
-	m_MDS_LOG_DBG("MCM_DB:mds_subtn_tbl_add:TimerStart:SubTmr:Hdl=0x%08x:SvcHdl=%"PRIu64":sbscr-svcid=%s\n",
+	m_MDS_LOG_DBG("MCM_DB:mds_subtn_tbl_add:TimerStart:SubTmr:Hdl=0x%08x:SvcHdl=%"PRIu64":sbscr-svcid=%s(%d)\n",
 		      subtn_info->tmr_req_info_hdl, svc_hdl, get_svc_names(subscr_svc_id), subscr_svc_id);
 
 	m_MDS_LOG_DBG("MCM_DB : Leaving : S : mds_subtn_tbl_add sub_adest_details : %s",subtn_info->sub_adest_details);
@@ -1670,7 +1670,7 @@ uint32_t mds_subtn_res_tbl_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id,
 				m_NCS_TMR_CREATE(active_info->await_active_tmr, MDS_AWAIT_ACTIVE_TMR_VAL,
 						 mds_tmr_callback, NULL);
 
-				m_MDS_LOG_DBG("Await active tmr=0x%08x", active_info->await_active_tmr);
+				m_MDS_LOG_DBG("Await active tmr=0x%08x", *(unsigned int*)active_info->await_active_tmr);
 				/* add entry in tree */
 				active_subtn_res_info->node.key_info = (uint8_t *)&active_subtn_res_info->key;
 				ncs_patricia_tree_add(&gl_mds_mcm_cb->subtn_results,
@@ -1984,7 +1984,7 @@ uint32_t mds_subtn_res_tbl_remove_active(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_
 				MDS_AWAIT_ACTIVE_TMR_VAL,
 				(TMR_CALLBACK)mds_tmr_callback,
 				(void *)(long)(subtn_res_info->info.active_vdest.active_route_info->tmr_req_info_hdl));
-		m_MDS_LOG_DBG("MCM_DB:RemoveActive:TimerStart:AwaitActiveTmri:Hdl=0x%08x:SvcHdl=%"PRIu64":sbscr-svcid=%s,vdest=%d\n",
+		m_MDS_LOG_DBG("MCM_DB:RemoveActive:TimerStart:AwaitActiveTmri:Hdl=0x%08x:SvcHdl=%"PRIu64":sbscr-svcid=%s(%d),vdest=%d\n",
 		     subtn_res_info->info.active_vdest.active_route_info->tmr_req_info_hdl, svc_hdl, get_svc_names(subscr_svc_id), subscr_svc_id,
 		     vdest_id);
 
@@ -2046,7 +2046,7 @@ uint32_t mds_subtn_res_tbl_add_active(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc
 		/* Create Await active timer (dont start, just create) */
 		m_NCS_TMR_CREATE(active_info->await_active_tmr, MDS_AWAIT_ACTIVE_TMR_VAL, mds_tmr_callback, NULL);
 
-		m_MDS_LOG_DBG("Await active tmr=0x%08x", active_info->await_active_tmr);
+		m_MDS_LOG_DBG("Await active tmr=0x%08x", *(unsigned int*)active_info->await_active_tmr);
 
 		if (vdest_policy == NCS_VDEST_TYPE_MxN) {
 			active_info->dest_is_n_way = false;

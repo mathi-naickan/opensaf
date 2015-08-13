@@ -581,7 +581,7 @@ ssize_t recvfrom_connectionless (int sd, void *buf, size_t nbytes, int flags,
 	if (sz >= 0) {
 		anc = CMSG_FIRSTHDR(&msg);
 		if (anc == NULL) {
-			m_MDS_LOG_DBG("MDTM: size: %d  anc is NULL", sz);
+			m_MDS_LOG_DBG("MDTM: size: %d  anc is NULL", (int)sz);
 		}
 		while (anc != NULL) {
 			cptr = CMSG_DATA(anc);

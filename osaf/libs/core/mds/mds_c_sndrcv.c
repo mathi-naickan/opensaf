@@ -1029,7 +1029,7 @@ static uint32_t mcm_pvt_normal_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr
 		/* Destination Route Not Found */
 		subs_result_hdl = NULL;
 		m_MDS_LOG_ERR("MDS_SND_RCV: Query for Destination failed, This case cannot exist as this has " 
-				"been validated before src svc_id = %s(%d), dest scv_id = %s, vdest=%d, Adest = %s",
+				"been validated before src svc_id = %s(%d), dest scv_id = %s(%d), vdest=%d, Adest = %s",
 		     get_svc_names(svc_cb->svc_id), svc_cb->svc_id, get_svc_names(to_svc_id), to_svc_id, dest_vdest_id, log_tx_send_hdl->sub_adest_details );
 		return NCSCC_RC_FAILURE;
 	}
@@ -1065,7 +1065,7 @@ static uint32_t mds_mcm_send_msg_enc(uint8_t to, MDS_SVC_INFO *svc_cb, SEND_MSG 
 		/* Destination Route Not Found */
 		subs_result_hdl = NULL;
 		m_MDS_LOG_ERR("MDS_SND_RCV: Query for Destination failed, This case cannot exist as this has been " 
-				"validated before src svc_id = %s(%d), dest scv_id = %s, vdest=%d, Adest = <%"PRId64">",
+				"validated before src svc_id = %s(%d), dest scv_id = %s(%d), vdest=%d, Adest = <%"PRId64">",
 				get_svc_names(svc_cb->svc_id), svc_cb->svc_id, get_svc_names(to_svc_id), to_svc_id, dest_vdest_id, dest);
 		return NCSCC_RC_FAILURE;
 	}
@@ -2283,7 +2283,7 @@ static uint32_t mcm_pvt_red_snd_process_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 		/* Destination Route Not Found */
 		subs_result_hdl = NULL;
 		m_MDS_LOG_ERR("MDS_SND_RCV: Query for Destination failed, This case cannot exist as \
-				this has been validated before src svc = %s, dest scv_id = %s, vdest=%d, Adest = %s",
+				this has been validated before src svc = %s(%d), dest scv_id = %s(%d), vdest=%d, Adest = %s",
 				get_svc_names(svc_cb->svc_id), svc_cb->svc_id, get_svc_names(to_svc_id), to_svc_id, dest_vdest_id, log_subs_result_hdl->sub_adest_details);
 		return NCSCC_RC_FAILURE;
 	}
@@ -2671,7 +2671,7 @@ static uint32_t mcm_pvt_create_sync_send_entry(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 
 	/* Validate PWE-Handle first:  */
 	if (NCSCC_RC_SUCCESS != mds_svc_tbl_get((MDS_PWE_HDL)env_hdl, fr_svc_id, &hdl)) {
-		m_MDS_LOG_ERR("MDS_SND_RCV: svc_is = %s doesnt exists\n", get_svc_names(fr_svc_id), fr_svc_id);
+		m_MDS_LOG_ERR("MDS_SND_RCV: svc_is = %s(%d) doesnt exists\n", get_svc_names(fr_svc_id), fr_svc_id);
 		return NCSCC_RC_FAILURE;
 	}
 
@@ -2945,7 +2945,7 @@ static uint32_t mcm_pvt_process_sndrack_common(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 		/* Destination Route Not Found */
 		subs_result_hdl = NULL;
 		m_MDS_LOG_ERR("MDS_SND_RCV: Query for Destination failed, This case cannot exist as \
-				this has been validated before src svc_id = %s(%d), dest scv_id = %s, vdest=%d, Adest = %s",
+				this has been validated before src svc_id = %s(%d), dest scv_id = %s(%d), vdest=%d, Adest = %s",
 				get_svc_names(svc_cb->svc_id), svc_cb->svc_id, get_svc_names(to_svc_id), to_svc_id, dest_vdest_id, log_subtn_result_info->sub_adest_details);
 		return NCSCC_RC_FAILURE;
 	}
@@ -3874,7 +3874,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 				req, 0, info_result->key.adest, pri);
 		if ((svc_cb->subtn_info->prev_ver_sub_count == 0) && (tipc_mode_enabled) && (tipc_mcast_enabled)
 				&& (to_msg.bcast_buff_len < MDS_DIRECT_BUF_MAXSIZE)) {
-				m_MDS_LOG_DBG("MDTM: Break while(1) prev_ver_sub_count: %d  svc_id =%s  to_msg.bcast_buff_len: %d ",
+				m_MDS_LOG_DBG("MDTM: Break while(1) prev_ver_sub_count: %d  svc_id =%s(%d)  to_msg.bcast_buff_len: %d ",
 					svc_cb->subtn_info->prev_ver_sub_count,
 					get_svc_names(m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl)), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl), to_msg.bcast_buff_len);	
 			if (status == NCSCC_RC_SUCCESS) {
@@ -3885,7 +3885,7 @@ static uint32_t mcm_pvt_process_svc_bcast_common(MDS_HDL env_hdl, MDS_SVC_ID fr_
 				m_MDS_LOG_ERR("MDTM:Continue while(1) status = mds_mcm_send_msg_enc = NCSCC_RC_FAILURE");
 		}
 		
-		m_MDS_LOG_DBG("MDTM: Continue multi-unicast  svc_id =%s  to_msg.bcast_buff_len: %d ",
+		m_MDS_LOG_DBG("MDTM: Continue multi-unicast  svc_id =%s(%d)  to_msg.bcast_buff_len: %d ",
 				get_svc_names(m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl)),
 				 m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_cb->svc_hdl), to_msg.bcast_buff_len);
 	}			/* While Loop */
@@ -4046,8 +4046,8 @@ uint32_t mds_mcm_ll_data_rcv(MDS_DATA_RECV *recv)
 			if (recv->src_seq_num != lcl_subtn_res->msg_rcv_cnt) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: msg loss detected, Src svc_id = %s(%d), Src vdest id= %d,\
 						Src Adest = %"PRIu64", local svc_id = %s(%d) msg num=%d, recvd cnt=%d\n",
-						ncsmds_svc_names[recv->src_svc_id], recv->src_vdest, recv->src_adest, 
-						ncsmds_svc_names[svccb->svc_id], recv->src_seq_num, lcl_subtn_res->msg_rcv_cnt);
+						get_svc_names(recv->src_svc_id), recv->src_svc_id, recv->src_vdest, recv->src_adest, 
+						get_svc_names(svccb->svc_id), svccb->svc_id, recv->src_seq_num, lcl_subtn_res->msg_rcv_cnt);
 				
 				mds_mcm_msg_loss(recv->dest_svc_hdl, recv->src_adest, 
 					recv->src_svc_id, recv->src_vdest);

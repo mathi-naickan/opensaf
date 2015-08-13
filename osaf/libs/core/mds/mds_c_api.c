@@ -3616,7 +3616,7 @@ uint32_t mds_mcm_subtn_add(MDS_SVC_HDL svc_hdl, MDS_SVC_ID subscr_svc_id, NCSMDS
 		/* Remove Subscription info from MCM database */
 		mds_subtn_tbl_del(svc_hdl, subscr_svc_id);
 
-		m_MDS_LOG_ERR("MCM_API : mcm_subtn_add : Can't Subscribe from SVC id = %s on DEST = %d to svc_id = %s(%d) : MDTM Returned Failure",
+		m_MDS_LOG_ERR("MCM_API : mcm_subtn_add : Can't Subscribe from SVC id = %s(%d) on DEST = %d to svc_id = %s(%d) : MDTM Returned Failure",
 		     get_svc_names(m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl)), m_MDS_GET_SVC_ID_FROM_SVC_HDL(svc_hdl), m_MDS_GET_VDEST_ID_FROM_SVC_HDL(svc_hdl), get_svc_names(subscr_svc_id), subscr_svc_id);
 		m_MDS_LOG_DBG("MCM_API : Leaving : F : mds_mcm_subtn_add");
 		return NCSCC_RC_FAILURE;
