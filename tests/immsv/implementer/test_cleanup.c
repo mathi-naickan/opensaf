@@ -17,6 +17,7 @@
 
 #include "immtest.h"
 #include "osaf_extended_name.h"
+#include "immutil.h"
 
 
 static char *objects[] = {
@@ -44,6 +45,7 @@ static char *classes[] = {
 		NULL
 };
 
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
 extern void addOiLongDnTestCases();
 
 static void cleanup() {
@@ -58,13 +60,13 @@ static void cleanup() {
 	TRACE_ENTER();
 
 	/* Initialize handles */
-	rc = saImmOmInitialize(&immHandle, NULL, &version);
+	rc = immutil_saImmOmInitialize(&immHandle, NULL, &version);
 	assert(rc == SA_AIS_OK);
 
-	rc = saImmOmAdminOwnerInitialize(immHandle, "immoitest", SA_TRUE, &ownerHandle);
+	rc = immutil_saImmOmAdminOwnerInitialize(immHandle, "immoitest", SA_TRUE, &ownerHandle);
 	assert(rc == SA_AIS_OK);
 
-	rc = saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle);
+	rc = immutil_saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle);
 	assert(rc == SA_AIS_OK);
 
 	/* Delete objects */
@@ -75,14 +77,14 @@ static void cleanup() {
 		if(osaf_is_extended_names_enabled() || strlen(*obj) < SA_MAX_NAME_LENGTH) {
 			osaf_extended_name_lend(*obj, &objectName);
 
-			rc = saImmOmAdminOwnerSet(ownerHandle, (const SaNameT **)objectNames, SA_IMM_ONE);
+			rc = immutil_saImmOmAdminOwnerSet(ownerHandle, (const SaNameT **)objectNames, SA_IMM_ONE);
 			if(rc == SA_AIS_ERR_NOT_EXIST) {
 				obj++;
 				continue;
 			}
 			assert(rc == SA_AIS_OK);
 
-			rc = saImmOmCcbObjectDelete(ccbHandle, &objectName);
+			rc = immutil_saImmOmCcbObjectDelete(ccbHandle, &objectName);
 			if(rc != SA_AIS_OK && rc != SA_AIS_ERR_NOT_EXIST)
 				fprintf(stderr, "Failed to delete object '%s' with error code: %d\n", *obj, rc);
 			assert(rc == SA_AIS_OK || rc == SA_AIS_ERR_NOT_EXIST);
@@ -92,18 +94,18 @@ static void cleanup() {
 	}
 
 	if(*objects) {
-		rc = saImmOmCcbApply(ccbHandle);
+		rc = immutil_saImmOmCcbApply(ccbHandle);
 		assert(rc == SA_AIS_OK);
 	}
 
 	/* Close Ccb handle */
-	rc = saImmOmCcbFinalize(ccbHandle);
+	rc = immutil_saImmOmCcbFinalize(ccbHandle);
 	assert(rc == SA_AIS_OK);
 
 	/* Delete classes */
 	cls = classes;
 	while(*cls) {
-		rc = saImmOmClassDelete(immHandle, *cls);
+		rc = immutil_saImmOmClassDelete(immHandle, *cls);
 		if(rc == SA_AIS_ERR_BUSY)
 			fprintf(stderr, "Class '%s' contains object instances\n", *cls);
 		assert(rc == SA_AIS_OK || rc == SA_AIS_ERR_NOT_EXIST);
@@ -112,16 +114,18 @@ static void cleanup() {
 	}
 
 	/* Close handles */
-	rc = saImmOmAdminOwnerFinalize(ownerHandle);
+	rc = immutil_saImmOmAdminOwnerFinalize(ownerHandle);
 	assert(rc == SA_AIS_OK);
 
-	rc = saImmOmFinalize(immHandle);
+	rc = immutil_saImmOmFinalize(immHandle);
 	assert(rc == SA_AIS_OK);
 
 	TRACE_LEAVE();
 }
 
 static void startup() {
+	TRACE_ENTER();
+
 	/* First, remove all objects */
 	cleanup();
 
@@ -129,12 +133,12 @@ static void startup() {
 	const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
 	SaImmAdminOwnerHandleT ownerHandle;
 
-	safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
-	safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+	safassert(immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
 	safassert(config_class_create(immOmHandle), SA_AIS_OK);
 	safassert(object_create(immOmHandle, ownerHandle, configClassName, &rootObj, NULL, NULL), SA_AIS_OK);
-	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
-	safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
+	safassert(immutil_saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+	safassert(immutil_saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
 	/* Add long DN test cases */
 	char *env;
@@ -143,10 +147,15 @@ static void startup() {
 			addOiLongDnTestCases();
 		}
 	}
+
+	TRACE_LEAVE();
 }
 
 __attribute__ ((constructor)) static void cleanup_constructor(void)
 {
+	/* Disable exit on error*/
+	immutilWrapperProfile.errorsAreFatal = 0;
+
 	/* If an earlier test is aborted, then remained test objects and
 	   test classes in IMM need to be cleaned up */
 	test_setup = startup;
