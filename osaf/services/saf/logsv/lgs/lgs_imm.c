@@ -2347,7 +2347,7 @@ done:
 /**
  * Allocate new stream object. Get configuration from IMM and
  * initialize the stream object.
- * Must be called before setting OI to avoid deadlock
+ *
  * @param dn
  * @param in_stream
  * @param stream_id
@@ -2365,6 +2365,19 @@ static SaAisErrorT stream_create_and_configure(const char *dn, log_stream_t **in
 	SaImmAttrValuesT_2 **attributes;
 	int i = 0;
 	log_stream_t *stream;
+	char *attribute_names[] = {
+		"saLogStreamFileName",
+		"saLogStreamPathName",
+		"saLogStreamMaxLogFileSize",
+		"saLogStreamFixedLogRecordSize",
+		"saLogStreamLogFullAction",
+		"saLogStreamLogFullHaltThreshold",
+		"saLogStreamMaxFilesRotated",
+		"saLogStreamLogFileFormat",
+		"saLogStreamSeverityFilter",
+		"saLogStreamCreationTimestamp",
+		NULL
+	};
 	
 	int iu_setting = immutilWrapperProfile.errorsAreFatal;
 	SaAisErrorT om_rc = SA_AIS_OK;
@@ -2394,7 +2407,8 @@ static SaAisErrorT stream_create_and_configure(const char *dn, log_stream_t **in
 		stream->streamType = STREAM_TYPE_APPLICATION;
 
 	/* Get all attributes of the object */
-	if (immutil_saImmOmAccessorGet_2(accessorHandle, &objectName, NULL, &attributes) != SA_AIS_OK) {
+	if (immutil_saImmOmAccessorGet_2(accessorHandle, &objectName,
+			attribute_names, &attributes) != SA_AIS_OK) {
 		LOG_ER("Configuration for %s not found", objectName.value);
 		rc = SA_AIS_ERR_NOT_EXIST;
 		goto done;
