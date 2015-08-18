@@ -3035,6 +3035,10 @@ SaAisErrorT lgs_imm_create_configStream(lgs_cb_t *cb)
 	int streamId = 0;
 	int errorsAreFatal;
 	SaNameT objectName;
+	SaNameT root_name = {
+		.value = "safApp=safLogService",
+		.length = sizeof("safApp=safLogService")
+	};
 
 	TRACE_ENTER();
 
@@ -3045,7 +3049,7 @@ SaAisErrorT lgs_imm_create_configStream(lgs_cb_t *cb)
 	objectSearch.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
 	objectSearch.searchOneAttr.attrValue = NULL;
 
-	if ((om_rc = immutil_saImmOmSearchInitialize_2(omHandle, NULL,
+	if ((om_rc = immutil_saImmOmSearchInitialize_2(omHandle, &root_name,
 			SA_IMM_SUBTREE, SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR,
 			&objectSearch, NULL, /* Get no attributes */
 			&immSearchHandle)) == SA_AIS_OK) {
