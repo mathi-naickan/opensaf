@@ -8827,16 +8827,29 @@ static void immnd_evt_proc_adminit_rsp(IMMND_CB *cb,
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
+	SaUint32T ownerId = 0;
 
 	osafassert(evt);
 	conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
+	ownerId = evt->info.adminitGlobal.globalOwnerId;
 	err = immModel_adminOwnerCreate(cb, &(evt->info.adminitGlobal.i),
-					evt->info.adminitGlobal.globalOwnerId, (originatedAtThisNd) ? conn : 0, nodeId);
+					ownerId, (originatedAtThisNd) ? conn : 0, nodeId);
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
-		if (cl_node == NULL || cl_node->mIsStale) {
+		if (cl_node == NULL) {
+			/* Client was down */
+			TRACE_5("Failed to get client node, discarding adm-owner id:%u originating at connection: %u", ownerId, conn);
+			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
+			send_evt.type = IMMSV_EVT_TYPE_IMMD;
+			send_evt.info.immd.type = IMMD_EVT_ND2D_ADMO_HARD_FINALIZE;
+			send_evt.info.immd.info.admoId = ownerId;
+			if (immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt) != NCSCC_RC_SUCCESS) {
+				LOG_ER("Failed to discard adm-owner id:%u, this adm-owner will be orphanded", ownerId);
+			}
+			return;
+		} else if (cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
 			return;
 		}
