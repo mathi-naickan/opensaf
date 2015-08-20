@@ -462,7 +462,7 @@ int object_create(const SaNameT **objectNames, const SaImmClassNameT className,
 				parentNames[0] = parentName;
 
 				VERBOSE_INFO("call saImmOmAdminOwnerSet for parent: %s\n", parent);
-				if ((error = immutil_saImmOmAdminOwnerSet(ownerHandle, parentNames, SA_IMM_SUBTREE)) != SA_AIS_OK) {
+				if ((error = immutil_saImmOmAdminOwnerSet(ownerHandle, parentNames, SA_IMM_ONE)) != SA_AIS_OK) {
 					if (error == SA_AIS_ERR_NOT_EXIST)
 						fprintf(stderr, "error - parent '%s' does not exist\n", osaf_extended_name_borrow(&dn));
 					else {
