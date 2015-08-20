@@ -894,6 +894,7 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 	/* flags to indicate the prv & curr inst states of an npi comp */
 	bool npi_prv_inst = true, npi_curr_inst = true;
 	AVND_COMP_CSI_REC *curr_csi = 0;
+	AVND_COMP_CSI_REC *t_csi = 0;
 	AVND_COMP_CLC_PRES_FSM_EV comp_ev = AVND_COMP_CLC_PRES_FSM_EV_MAX;
 	bool mark_csi = false;
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -988,11 +989,29 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 					if (NCSCC_RC_SUCCESS != rc)
 						goto done;
 				} else {
-					/* active/standby can be directly assigned */
-					rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CSI_SET, 0, 0);
-					if (NCSCC_RC_SUCCESS != rc)
-						goto done;
-					mark_csi = true;
+					if (curr_csi->curr_assign_state == AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED &&
+						curr_csi->prv_assign_state == AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED) {
+						// Mark suspending_assignment for all unassigned csi(s) which are going 
+						// to be assigned to *curr_csi->comp*
+						for (t_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&curr_csi->comp->csi_list));
+							t_csi;
+							t_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&t_csi->comp_dll_node))) {
+							if (t_csi->curr_assign_state == AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED &&
+								t_csi->prv_assign_state == AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED) {
+								t_csi->suspending_assignment = true;
+							}
+						}
+						// just generate csi-oper done for unassigned csi
+						rc = avnd_comp_csi_assign_done(cb, comp, 0);
+						if (NCSCC_RC_SUCCESS != rc)
+							goto done;
+					} else {
+						/* active/standby can be directly assigned */
+						rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CSI_SET, 0, 0);
+						if (NCSCC_RC_SUCCESS != rc)
+							goto done;
+						mark_csi = true;
+					}
 				}
 			} else {
 				/* assign the csi as the comp is aware of atleast one csi */
@@ -1210,7 +1229,16 @@ uint32_t avnd_comp_csi_remove(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 			     curr_csi;
 			     curr_csi =
 			     m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_csi->comp_dll_node))) {
-				if ((m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNED(curr_csi))
+
+				// silently removing csi, don't issue callback
+				if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_UNASSIGNED(curr_csi)) {
+					m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi,
+									      AVND_COMP_CSI_ASSIGN_STATE_REMOVING);
+					m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi,
+									 AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+					rc = avnd_comp_csi_remove_done(cb, comp, csi);
+					goto done;
+				} else if ((m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNED(curr_csi))
 				    || (m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi))
 				    || (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr_csi))) {
 					if (!csi_of_same_si_in_removing_state(curr_csi->comp,curr_csi->si))
@@ -1392,6 +1420,10 @@ static bool all_csis_at_rank_assigned(struct avnd_su_si_rec *si, uint32_t rank)
 
 			LOG_IN("Ignoring Failed/Unreg Comp'%s' comp pres state=%u, comp flag %x, su pres state %u", 
 				csi->comp->name.value, csi->comp->pres, csi->comp->flag, csi->comp->su->pres);
+			} else if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(csi->comp) &&
+					csi->suspending_assignment) {
+				LOG_IN("Ignoring quiescing/quiesced assignment on unassigned comp'%s'",
+						csi->comp->name.value);
 			} else {
 				TRACE_LEAVE2("false");
 				return false;
@@ -1615,6 +1647,7 @@ bool all_csis_in_removed_state(const AVND_SU *su)
 	AVND_COMP_CSI_REC *curr_csi;
 	AVND_SU_SI_REC *curr_si;
 	bool all_csi_removed = true;
+	TRACE_ENTER2("'%s'",su->name.value);
 
 	for (curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
 			curr_si && all_csi_removed;
@@ -1627,7 +1660,7 @@ bool all_csis_in_removed_state(const AVND_SU *su)
 			}
 		}
 	}
-
+	TRACE_LEAVE2("%u", all_csi_removed);
 	return all_csi_removed;
 }
 /****************************************************************************

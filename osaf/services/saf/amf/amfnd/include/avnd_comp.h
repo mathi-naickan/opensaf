@@ -192,6 +192,15 @@ typedef struct avnd_comp_csi_rec {
 				removal callback only after CSI gets assigned. AMFND will mark this flag 
 				so that it can start removal after CSI is assigned.
 			       */
+	bool suspending_assignment; /* This flag is used when su-si active assignment is on-going,
+				some other csi may get assigned but *this* csi is still in
+				unassigned state. At this point, AMFND receives QUIESCED or
+				QUIESCING assignment from AMFD. This csi has never got active
+				assignment so the quiesced csi callback should not be issued.
+				This flag is true, which indicates this csi is not involved
+				in QUIESCED/QUIESCING assignment loop. Once su-si QUIESCED/
+				QUIESCING assignment is done, this flag reset to false. */
+
 } AVND_COMP_CSI_REC;
 
 #define AVND_COMP_CSI_REC_NULL ((AVND_COMP_CSI_REC *)0)

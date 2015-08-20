@@ -424,7 +424,7 @@ AVND_COMP_CSI_REC *avnd_su_si_csi_rec_add(AVND_CB *cb,
 	csi_rec->si_name = si_rec->name;
 	csi_rec->su_name = su->name;
 	csi_rec->pending_removal = false;
-
+	csi_rec->suspending_assignment = false;
 	return csi_rec;
 
  err:

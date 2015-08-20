@@ -428,16 +428,24 @@ static bool csi_of_same_si_in_assigning_state(const AVND_COMP *cmp, const AVND_S
 {
 	AVND_COMP_CSI_REC *curr_csi;
 	bool all_csi_assigned = true;
-
+	TRACE_ENTER();
 	for (curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&cmp->csi_list));
 		curr_csi;
 		curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_csi->comp_dll_node))) {
+		TRACE("curr_csi:'%s', prv_assign_state:%u curr_assign_state:%u, suspending_assignment:%u",
+				curr_csi->name.value,
+				curr_csi->prv_assign_state,
+				curr_csi->curr_assign_state,
+				curr_csi->suspending_assignment);
 		if ((curr_csi->si == si) && !m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr_csi)) {
-			all_csi_assigned = false;
-			break;
+			//ignore suspending_assignment
+			if (!curr_csi->suspending_assignment) {
+				all_csi_assigned = false;
+				break;
+			}
 		}
 	}
-
+	TRACE_LEAVE();
 	return all_csi_assigned;
 }
 /**
@@ -521,14 +529,17 @@ static uint32_t assign_si_to_su(AVND_SU_SI_REC *si, AVND_SU *su, int single_csi)
 						}
 					/*if ((!single_csi) && (false == curr_csi->comp->assigned_flag) && 
 								(m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi)))*/
-						if ((false == curr_csi->comp->assigned_flag) && 
-							(m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi))) {
-							if (csi_of_same_si_in_assigning_state(curr_csi->comp, si))
-								curr_csi->comp->assigned_flag = true;
+						if (false == curr_csi->comp->assigned_flag) {
+							if (csi_of_same_si_in_assigning_state(curr_csi->comp, si)) {
+									curr_csi->comp->assigned_flag = true;
+							}
 						}
 					} else {
-						m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED);
-						m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi, AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+						// Don't move csi to ASSIGNED state if its assignment's suspending
+						if (!curr_csi->suspending_assignment) {
+							m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED);
+							m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi, AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+						}
 					}
 				}
 			}
@@ -828,12 +839,14 @@ static bool susi_operation_in_progress(AVND_SU *su, AVND_SU_SI_REC *si)
 	AVND_COMP_CSI_REC *curr_csi, *t_csi;
 	bool opr_done = true;
 
+	TRACE_ENTER2("'%s' '%s'", su->name.value, si ? si->name.value : NULL);
+
 	for (curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
 			curr_si && opr_done; curr_si = (si) ? 0 : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_si->su_dll_node)) {
 		for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&curr_si->csi_list);
 				curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
 			if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(curr_csi) || m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(curr_csi)) {
-				opr_done = false;       
+				opr_done = false;
 				break;
 			} else if (m_AVND_COMP_IS_FAILED(curr_csi->comp)){
 				for (t_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
@@ -847,8 +860,11 @@ static bool susi_operation_in_progress(AVND_SU *su, AVND_SU_SI_REC *si)
 						else if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNING(t_csi) ||
 								m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(t_csi) ||
 								m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_UNASSIGNED(t_csi)) {
-							opr_done = false;
-							break;
+
+							if (!t_csi->suspending_assignment) {
+								opr_done = false;
+								break;
+							}
 						}
 					}
 				}
@@ -856,6 +872,19 @@ static bool susi_operation_in_progress(AVND_SU *su, AVND_SU_SI_REC *si)
 		} 
 	}
 
+	// reset suspending_assignment flag if opr_done
+	if (opr_done) {
+		for (curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
+				curr_si; curr_si = (si) ? 0 : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_si->su_dll_node)) {
+			for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&curr_si->csi_list);
+					curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
+				if (curr_csi->suspending_assignment)
+					curr_csi->suspending_assignment = false;
+			}
+		}
+	}
+
+	TRACE_LEAVE2("%u", opr_done);
 	return opr_done;
 }
 
