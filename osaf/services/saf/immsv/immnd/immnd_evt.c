@@ -9685,19 +9685,32 @@ static void immnd_evt_proc_ccbinit_rsp(IMMND_CB *cb,
 	SaAisErrorT err;
 	SaUint32T nodeId;
 	SaUint32T conn;
+	SaUint32T ccbId = 0;
 
 	osafassert(evt);
 	conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
+	ccbId = evt->info.ccbinitGlobal.globalCcbId;
 
 	err = immModel_ccbCreate(cb,
 				 evt->info.ccbinitGlobal.i.adminOwnerId,
 				 evt->info.ccbinitGlobal.i.ccbFlags,
-				 evt->info.ccbinitGlobal.globalCcbId, nodeId, (originatedAtThisNd) ? conn : 0);
+				 ccbId, nodeId, (originatedAtThisNd) ? conn : 0);
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
-		if (cl_node == NULL || cl_node->mIsStale) {
+		if (cl_node == NULL) {
+			/* Client was down */
+			TRACE_5("Failed to get client node, discarding ccb id:%u originating at connection: %u", ccbId, conn);
+			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
+			send_evt.type = IMMSV_EVT_TYPE_IMMD;
+			send_evt.info.immd.type = IMMD_EVT_ND2D_ABORT_CCB;
+			send_evt.info.immd.info.ccbId = ccbId;
+			if (immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt) != NCSCC_RC_SUCCESS) {
+				LOG_ER("Failed to discard ccb id:%u, this ccb will be orphanded", ccbId);
+			}
+			return;
+		} else if (cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
 			return;
 		}
