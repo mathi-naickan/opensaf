@@ -327,7 +327,7 @@ done:
 
 int osaf_get_group_list(const uid_t uid, const gid_t gid, gid_t *groups, int *ngroups)
 {
-	int rc = 0;
+	int rc = -1;	// Initially set to error
 	int size = 0;
 	int max_groups = sysconf(_SC_NGROUPS_MAX);
 	if (max_groups == -1){
@@ -370,7 +370,7 @@ int osaf_get_group_list(const uid_t uid, const gid_t gid, gid_t *groups, int *ng
 	struct group *gr = getgrent();
 	if (errno != 0) {
 		LOG_NO("setgrent failed: %s", strerror(errno));
-		return -1;
+		goto done;
 	}
 
 	while (gr){
@@ -379,7 +379,7 @@ int osaf_get_group_list(const uid_t uid, const gid_t gid, gid_t *groups, int *ng
 			gr = getgrent();
 			if (errno != 0) {
 				LOG_NO("setgrent failed: %s", strerror(errno));
-				return -1;
+				goto done;
 			}
 			continue;
 		}
@@ -399,12 +399,11 @@ int osaf_get_group_list(const uid_t uid, const gid_t gid, gid_t *groups, int *ng
 		gr = getgrent();
 		if (errno != 0) {
 			LOG_NO("setgrent failed: %s", strerror(errno));
-			return -1;
+			goto done;
 		}
 	}
 
-	endgrent();
-
+	// rc will be set to non-error value
 	if (groups){
 		*ngroups = (size < *ngroups)? size : *ngroups;
 		rc = size;
@@ -412,6 +411,9 @@ int osaf_get_group_list(const uid_t uid, const gid_t gid, gid_t *groups, int *ng
 		*ngroups = size;
 		rc = 0;
 	}
+
+done:
+	endgrent();
 
 	return rc;
 }
