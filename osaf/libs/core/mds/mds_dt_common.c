@@ -817,6 +817,7 @@ uint32_t mds_tmr_mailbox_processing(void)
 					TRACE("TIMEOUT, deleting entry for %"PRIx64", pid:%d",
 						info->mds_dest, info->pid);
 					(void)mds_process_info_del(info);
+					free(info);
 				}
 				break;
 			}
