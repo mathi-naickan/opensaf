@@ -191,6 +191,7 @@ static void mds_register_callback(int fd, const struct ucred *creds)
 		MDS_PROCESS_INFO *info = mds_process_info_get(mds_dest, svc_id);
 		if (info != NULL) {
 			(void)mds_process_info_del(info);
+			free(info);
 		}
 		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 
