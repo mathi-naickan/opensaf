@@ -3117,9 +3117,9 @@ SaAisErrorT imma_evt_fake_evs(IMMA_CB *cb,
 	/*Pack the message for sending over multiple hops. */
 
 	if (ncs_enc_init_space(&uba) != NCSCC_RC_SUCCESS) {
-		uba.start = NULL;
 		TRACE_2("ERR_LIBRARY: Failed init ubaid");
-		return SA_AIS_ERR_LIBRARY;
+		rc = SA_AIS_ERR_LIBRARY;
+		goto fail;
 	}
 
 	/* Encode non-flat since we broadcast to unknown receivers. */
@@ -3127,7 +3127,8 @@ SaAisErrorT imma_evt_fake_evs(IMMA_CB *cb,
 
 	if (rc != NCSCC_RC_SUCCESS) {
 		TRACE_2("ERR_LIBRARY: Failed to pre-pack");
-		return SA_AIS_ERR_LIBRARY;
+		rc = SA_AIS_ERR_LIBRARY;
+		goto fail;
 	}
 
 	int32_t size = uba.ttl;
