@@ -3114,14 +3114,12 @@ static SaAisErrorT immnd_fevs_local_checks(IMMND_CB *cb, IMMSV_FEVS *fevsReq,
 	/*Unpack the embedded message */
 	if (ncs_enc_init_space_pp(&uba, 0, 0) != NCSCC_RC_SUCCESS) {
 		LOG_ER("Failed init ubaid");
-		uba.start = NULL;
 		error = SA_AIS_ERR_NO_RESOURCES;
 		goto unpack_failure;
 	}
 
 	if (ncs_encode_n_octets_in_uba(&uba, (uint8_t *)msg->buf, msg->size) != NCSCC_RC_SUCCESS) {
 		LOG_ER("Failed buffer copy");
-		uba.start = NULL;
 		error = SA_AIS_ERR_NO_RESOURCES;
 		goto unpack_failure;
 	}
@@ -5467,7 +5465,6 @@ static uint32_t immnd_evt_proc_sync_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV
 			proc_rc = ncs_enc_init_space(&uba);
 			if (proc_rc != NCSCC_RC_SUCCESS) {
 				TRACE_2("Failed init ubaid");
-				uba.start = NULL;
 				err = SA_AIS_ERR_NO_RESOURCES;
 				goto fail;
 			}
@@ -5475,7 +5472,6 @@ static uint32_t immnd_evt_proc_sync_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV
 			proc_rc = immsv_evt_enc(&send_evt, &uba);
 			if (proc_rc != NCSCC_RC_SUCCESS) {
 				TRACE_2("Failed encode fevs");
-				uba.start = NULL;
 				err = SA_AIS_ERR_NO_RESOURCES;
 				goto fail;
 			}
@@ -5499,7 +5495,6 @@ static uint32_t immnd_evt_proc_sync_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV
 			proc_rc = immnd_evt_proc_fevs_forward(cb, &send_evt.info.immnd, NULL, SA_TRUE, SA_TRUE);
 			if (proc_rc != NCSCC_RC_SUCCESS) {
 				TRACE_2("Failed send fevs message");	/*Error already logged in fevs_fo */
-				uba.start = NULL;
 				err = SA_AIS_ERR_NO_RESOURCES;
 			}
 
@@ -5520,6 +5515,11 @@ static uint32_t immnd_evt_proc_sync_finalize(IMMND_CB *cb, IMMND_EVT *evt, IMMSV
 	if (immnd_mds_send_rsp(cb, sinfo, &send_evt) != NCSCC_RC_SUCCESS) {
 		LOG_ER("Send response over MDS failed");
 	}
+
+	if (uba.start) {
+		m_MMGR_FREE_BUFR_LIST(uba.start);
+	}
+
 	TRACE_LEAVE();
 	return proc_rc;
 }
@@ -7812,14 +7812,12 @@ immnd_evt_proc_fevs_dispatch(IMMND_CB *cb, IMMSV_OCTET_STRING *msg,
 	/*Unpack the embedded message */
 	if (ncs_enc_init_space_pp(&uba, 0, 0) != NCSCC_RC_SUCCESS) {
 		LOG_ER("Failed init ubaid");
-		uba.start = NULL;
 		error = SA_AIS_ERR_NO_RESOURCES;
 		goto unpack_failure;
 	}
 
 	if (ncs_encode_n_octets_in_uba(&uba, (uint8_t *)msg->buf, msg->size) != NCSCC_RC_SUCCESS) {
 		LOG_ER("Failed buffer copy");
-		uba.start = NULL;
 		error = SA_AIS_ERR_NO_RESOURCES;
 		goto unpack_failure;
 	}

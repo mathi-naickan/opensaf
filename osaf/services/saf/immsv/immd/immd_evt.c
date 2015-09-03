@@ -1668,14 +1668,12 @@ static uint32_t immd_evt_proc_adminit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed init ubaid");
-		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed encode fevs");
-		uba.start = NULL;
 		goto fail;
 	}
 
@@ -1783,14 +1781,12 @@ static uint32_t immd_evt_proc_impl_set_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEN
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed init ubaid");
-		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed encode fevs");
-		uba.start = NULL;
 		goto fail;
 	}
 
@@ -1901,14 +1897,12 @@ static uint32_t immd_evt_proc_sync_fevs_base(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_S
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed init ubaid");
-		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed encode fevs");
-		uba.start = NULL;
 		goto fail;
 	}
 
@@ -1974,14 +1968,12 @@ static uint32_t immd_evt_proc_discard_impl(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEN
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed init ubaid");
-		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed encode fevs");
-		uba.start = NULL;
 		goto fail;
 	}
 
@@ -2045,14 +2037,12 @@ static uint32_t immd_evt_proc_abort_ccb(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND_I
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed init ubaid");
-		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed encode fevs");
-		uba.start = NULL;
 		goto fail;
 	}
 
@@ -2116,14 +2106,12 @@ static uint32_t immd_evt_proc_admo_hard_finalize(IMMD_CB *cb, IMMD_EVT *evt, IMM
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed init ubaid");
-		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed encode fevs");
-		uba.start = NULL;
 		goto fail;
 	}
 
@@ -2217,13 +2205,11 @@ static uint32_t immd_evt_proc_ccbinit_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed init ubaid");
-		uba.start = NULL;
 		goto fail;
 	}
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed encode fevs");
-		uba.start = NULL;
 		goto fail;
 	}
 
@@ -2306,14 +2292,12 @@ static uint32_t immd_evt_proc_rt_modify_req(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SE
 	proc_rc = ncs_enc_init_space(&uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed init ubaid");
-		uba.start = NULL;
 		goto fail;
 	}
 
 	proc_rc = immsv_evt_enc(&fevs_evt, &uba);
 	if (proc_rc != NCSCC_RC_SUCCESS) {
 		LOG_WA("Failed encode fevs");
-		uba.start = NULL;
 		goto fail;
 	}
 
