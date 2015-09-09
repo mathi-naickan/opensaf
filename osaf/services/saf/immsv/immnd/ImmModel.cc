@@ -16455,17 +16455,9 @@ ImmModel::objectSync(const ImmsvOmObjectSync* req)
             
             ImmAttrValue* attrValue = NULL;
             if(attr->mFlags & SA_IMM_ATTR_MULTI_VALUE) {
-                if(attr->mDefaultValue.empty()) {
-                    attrValue = new ImmAttrMultiValue();
-                } else {
-                    attrValue = new ImmAttrMultiValue(attr->mDefaultValue);
-                }
+                attrValue = new ImmAttrMultiValue();
             } else {
-                if(attr->mDefaultValue.empty()) {
-                    attrValue = new ImmAttrValue();
-                } else {
-                    attrValue = new ImmAttrValue(attr->mDefaultValue);
-                }
+                attrValue = new ImmAttrValue();
             }
             
             //Set admin owner as a regular attribute and then also a pointer
