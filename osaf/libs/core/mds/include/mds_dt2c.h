@@ -26,6 +26,7 @@
 #ifndef _MDS_DT2C_H
 #define _MDS_DT2C_H
 
+#include <ncssysf_tmr.h>
 #include <ncsgl_defs.h>
 #include "mds_papi.h"
 
@@ -268,6 +269,7 @@ typedef struct mds_tmr_req_info {
 		struct {
 			MDS_DEST adest;
 			MDS_SVC_ID svc_id;
+			tmr_t tmr_id;
 		} down_event_tmr_info;
 
 	} info;

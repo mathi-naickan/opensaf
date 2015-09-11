@@ -819,6 +819,10 @@ uint32_t mds_tmr_mailbox_processing(void)
 					(void)mds_process_info_del(info);
 					free(info);
 				}
+
+				if (tmr_req_info->info.down_event_tmr_info.tmr_id != NULL) {
+					ncs_tmr_free(tmr_req_info->info.down_event_tmr_info.tmr_id);
+				}
 				break;
 			}
 			default:
