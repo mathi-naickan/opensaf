@@ -1322,7 +1322,8 @@ cpnd_proc_update_remote(CPND_CB *cb, CPND_CKPT_NODE *cp_node, CPND_EVT *in_evt,
 
 				if (cpnd_evt_node_add(cb, all_repl_evt) == NCSCC_RC_FAILURE) {
 					/*log this error */
-					/*free the memory allocated */
+					LOG_ER("cpnd a multi event_add request for lcl_ckpt_id: %llx, evt is in progress for ckpt_id : %llx",
+							in_evt->info.ckpt_write.lcl_ckpt_id, cp_node->ckpt_id);
 				}
 
 				/*Start the timer before send the async req to remote node */

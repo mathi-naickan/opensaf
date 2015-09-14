@@ -639,8 +639,11 @@ static uint32_t cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_IN
 		}
 
 		/* found locally,incr ckpt_locl ref count and add client list info */
-		if (true == cp_node->is_restart) {
+		if ((true == cp_node->is_restart) || 
+				((cp_node->open_active_sync_tmr.is_active) &&
+				 (cp_node->open_active_sync_tmr.lcl_ckpt_hdl == evt->info.openReq.lcl_ckpt_hdl))){
 			send_evt.info.cpa.info.openRsp.error = SA_AIS_ERR_TRY_AGAIN;
+			LOG_ER("cpnd Open try again sync_tmr exist or ndrestart for lcl_ckpt_hdl:%llx ckpt:%llx",evt->info.openReq.lcl_ckpt_hdl, client_hdl);
 			goto agent_rsp;
 		}
 
@@ -2889,6 +2892,7 @@ static uint32_t cpnd_evt_proc_ckpt_write(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_I
 	CPSV_EVT send_evt;
 	uint32_t err_flag = 0;
 	uint32_t errflag = 0;
+	CPSV_CPND_ALL_REPL_EVT_NODE *evt_node = NULL;
 	TRACE_ENTER();
 
 	memset(&send_evt, '\0', sizeof(CPSV_EVT));
@@ -2918,7 +2922,15 @@ static uint32_t cpnd_evt_proc_ckpt_write(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_I
 				evt->info.ckpt_write.ckpt_id, SA_AIS_ERR_NOT_EXIST);
 		goto agent_rsp;
 	}
-	if ((true == cp_node->is_restart) || (m_CPND_IS_LOCAL_NODE(&cp_node->active_mds_dest, &cb->cpnd_mdest_id) != 0)) {
+	
+	cpnd_evt_node_get(cb, evt->info.ckpt_write.lcl_ckpt_id, &evt_node);
+	if (evt_node) {
+		LOG_ER("cpnd cpnd_evt_node pending with lcl_ckpt_id:%llx write failed for ckpt_id:%llx",
+				evt->info.ckpt_write.lcl_ckpt_id, evt->info.ckpt_write.ckpt_id);
+	}
+
+	if ((true == cp_node->is_restart) || (m_CPND_IS_LOCAL_NODE(&cp_node->active_mds_dest, &cb->cpnd_mdest_id) != 0) ||
+			(evt_node != NULL)) {
 		send_evt.type = CPSV_EVT_TYPE_CPA;
 		send_evt.info.cpa.type = CPA_EVT_ND2A_CKPT_DATA_RSP;
 		switch (evt->info.ckpt_write.type) {
@@ -2938,7 +2950,7 @@ static uint32_t cpnd_evt_proc_ckpt_write(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_I
 			break;
 
 		}
-		TRACE_4("cpnd ckpt sect write failed ckpt_id:%llx,is_restart:%d",
+		TRACE_4("cpnd ckpt sect write failed ckpt_id:%llx, evt_node pending/is_restart:%d",
 				evt->info.ckpt_write.ckpt_id, cp_node->is_restart);
 
 		/*send_evt.info.cpa.info.sec_data_rsp.num_of_elmts=-1;
