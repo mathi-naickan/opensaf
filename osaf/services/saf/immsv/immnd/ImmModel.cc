@@ -4209,7 +4209,8 @@ ImmModel::attrCreate(ClassInfo* classInfo, const ImmsvAttrDefinition* attr,
             SA_IMM_ATTR_CACHED |
             SA_IMM_ATTR_NO_DUPLICATES |
             SA_IMM_ATTR_NOTIFY |
-            SA_IMM_ATTR_NO_DANGLING);
+            SA_IMM_ATTR_NO_DANGLING |
+            SA_IMM_ATTR_DN);
 
         if(unknownFlags) {
             /* This error means that at least one attribute flag is not supported by this

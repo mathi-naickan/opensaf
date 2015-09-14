@@ -156,7 +156,7 @@ extern "C" {
 	*/
 
 #define SA_IMM_ATTR_DN            0x0000000008000000    /* See: https://sourceforge.net/p/opensaf/tickets/643
-                                                         Supported in OpenSaf 4.5 */
+                                                         Supported in OpenSaf 4.6 */
 
 
 
