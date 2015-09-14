@@ -2495,6 +2495,8 @@ static void start_mds_down_tmr(MDS_DEST adest, MDS_SVC_ID svc_id)
 		abort();
 	}
 
+	tmr_req_info->info.down_event_tmr_info.tmr_id = tmr_id;
+
 	uint32_t tmr_hdl = ncshm_create_hdl(NCS_HM_POOL_ID_COMMON,
 		NCS_SERVICE_ID_COMMON, (NCSCONTEXT)(tmr_req_info));
 
