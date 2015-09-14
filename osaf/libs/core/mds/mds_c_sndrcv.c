@@ -1804,7 +1804,6 @@ static uint32_t mds_subtn_tbl_add_disc_queue(MDS_SUBSCRIPTION_INFO *sub_info, MD
 
 	/* Now wait till the timeout or an subscription result will come */
 
-	osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 
 	switch (req->i_sendtype) {
 	case MDS_SENDTYPE_SND:
@@ -1888,7 +1887,6 @@ static uint32_t mds_subtn_tbl_add_disc_queue(MDS_SUBSCRIPTION_INFO *sub_info, MD
 		break;
 	}
 
-	osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 
 	if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&add_ptr->sel_obj, env_hdl, fr_svc_id, req->i_to_svc)) {
 		m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
@@ -2465,9 +2463,7 @@ static uint32_t mcm_pvt_normal_svc_sndrsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 		     get_svc_names(fr_svc_id), fr_svc_id, get_svc_names(to_svc_id), to_svc_id, to_dest);
 		return status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.sndrsp.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			/* This is for response for local dest */
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
@@ -2488,7 +2484,6 @@ static uint32_t mcm_pvt_normal_svc_sndrsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 			mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_INFO("MDS_SND_RCV: MDS entry doesnt exist\n");
@@ -2579,10 +2574,12 @@ static uint32_t mds_await_active_tbl_del_entry(MDS_PWE_HDL env_hdl, MDS_SVC_ID f
 
 static uint32_t mds_mcm_time_wait(NCS_SEL_OBJ *sel_obj, uint32_t time_val)
 {
+	osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 	/* Now wait for the response to come */
 	int count = osaf_poll_one_fd(sel_obj->rmv_obj,
 		time_val == 0 ? -1 : (time_val * 10));
 
+	osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 	if ((count == 0) || (count == -1)) {
 		/* Both for Timeout and Error Case */
 		m_MDS_LOG_ERR("MDS_SND_RCV: Timeout or Error occured\n");
@@ -2819,10 +2816,8 @@ static uint32_t mcm_pvt_normal_svc_sndrack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id
 		m_MDS_ERR_PRINT_ANCHOR(msg_dest_adest);
 		return status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.sndrack.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* for local case */
 				/* sucess case */
@@ -2841,7 +2836,6 @@ static uint32_t mcm_pvt_normal_svc_sndrack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id
 						    msg_dest_adest);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
@@ -3057,9 +3051,7 @@ static uint32_t mcm_pvt_normal_svc_sndack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 		m_MDS_ERR_PRINT_ADEST(to_dest);
 		return status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.sndack.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
 				mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype,
@@ -3076,7 +3068,6 @@ static uint32_t mcm_pvt_normal_svc_sndack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 			mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -3271,9 +3262,7 @@ static uint32_t mcm_pvt_red_svc_sndrsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		return status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.redrsp.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
 				req->info.redrsp.o_rsp = sync_queue->sent_msg;
@@ -3294,7 +3283,6 @@ static uint32_t mcm_pvt_red_svc_sndrsp(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 			mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -3417,9 +3405,7 @@ static uint32_t mcm_pvt_red_svc_sndrack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		return status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.redrack.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
 				mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype,
@@ -3437,7 +3423,6 @@ static uint32_t mcm_pvt_red_svc_sndrack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 						    msg_dest_adest);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -3547,9 +3532,7 @@ static uint32_t mcm_pvt_red_svc_sndack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 		m_MDS_ERR_PRINT_ANCHOR(anchor);
 		return status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.redack.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
 				mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype,
@@ -3566,7 +3549,6 @@ static uint32_t mcm_pvt_red_svc_sndack(MDS_HDL env_hdl, MDS_SVC_ID fr_svc_id,
 			mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -5125,10 +5107,8 @@ static uint32_t mcm_pvt_normal_svc_sndrsp_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 		return ret_status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.sndrsp.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			/* This is for response for local dest */
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
@@ -5150,7 +5130,6 @@ static uint32_t mcm_pvt_normal_svc_sndrsp_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_
 			mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -5213,11 +5192,9 @@ static uint32_t mcm_pvt_normal_svc_sndack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 		return ret_status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.sndack.i_time_to_wait)) {
 			/* This is for response for local dest */
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
 				mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype,
@@ -5235,7 +5212,6 @@ static uint32_t mcm_pvt_normal_svc_sndack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_
 			mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -5307,9 +5283,7 @@ static uint32_t mcm_pvt_normal_svc_sndrack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, msg_dest_adest);
 		return ret_status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.sndrack.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* for local case */
 				/* sucess case */
@@ -5329,7 +5303,6 @@ static uint32_t mcm_pvt_normal_svc_sndrack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr
 						    msg_dest_adest);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -5435,9 +5408,7 @@ static uint32_t mcm_pvt_red_svc_sndrsp_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_svc
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 		return ret_status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.redrsp.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
 				req->info.redrsp.buff = sync_queue->recvd_msg.data.buff_info.buff;
@@ -5459,7 +5430,6 @@ static uint32_t mcm_pvt_red_svc_sndrsp_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_svc
 			mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -5535,9 +5505,7 @@ static uint32_t mcm_pvt_red_svc_sndrack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, msg_dest_adest);
 		return ret_status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.redrack.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
 				mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype,
@@ -5557,7 +5525,6 @@ static uint32_t mcm_pvt_red_svc_sndrack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_sv
 						    msg_dest_adest);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
@@ -5620,9 +5587,7 @@ static uint32_t mcm_pvt_red_svc_sndack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_svc
 		mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 		return ret_status;
 	} else {
-		osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 		if (NCSCC_RC_SUCCESS != mds_mcm_time_wait(&sync_queue->sel_obj, req->info.redack.i_time_to_wait)) {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (sync_queue->status == NCSCC_RC_SUCCESS) {
 				/* sucess case */
 				mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype,
@@ -5640,7 +5605,6 @@ static uint32_t mcm_pvt_red_svc_sndack_direct(MDS_HDL env_hdl, MDS_SVC_ID fr_svc
 			mcm_pvt_del_sync_send_entry((MDS_PWE_HDL)env_hdl, fr_svc_id, xch_id, req->i_sendtype, 0);
 			return NCSCC_RC_REQ_TIMOUT;
 		} else {
-			osaf_mutex_lock_ordie(&gl_mds_library_mutex);
 			if (NCSCC_RC_SUCCESS != mds_check_for_mds_existence(&sync_queue->sel_obj, env_hdl, fr_svc_id, to_svc_id)) {
 				m_MDS_LOG_ERR("MDS_SND_RCV: MDS entry doesnt exist\n");
 				return NCSCC_RC_FAILURE;
