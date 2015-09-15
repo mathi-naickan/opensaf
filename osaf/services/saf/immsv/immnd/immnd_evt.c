@@ -4726,6 +4726,7 @@ static uint32_t immnd_evt_proc_admop_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 		*/
 		bool displayRes=false;
 		IMMSV_ADMIN_OPERATION_PARAM *rparams= NULL;
+		IMMSV_ADMIN_OPERATION_PARAM *p;
 		struct ImmsvAdminOperationParam *params = evt->info.admOpRsp.parms;
 		SaAisErrorT err = evt->info.admOpRsp.error;
 		SaAisErrorT result = evt->info.admOpRsp.result;
@@ -4768,6 +4769,21 @@ static uint32_t immnd_evt_proc_admop_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 			rc = immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt);
 			TRACE_2("SYNC REPLY SENT rc:%u", rc);
 		}
+
+		// Free memory
+		while(rparams) {
+			p = rparams;
+			rparams = p->next;
+			if (p->paramName.buf) {
+				free(p->paramName.buf);
+				p->paramName.buf = NULL;
+				p->paramName.size = 0;
+			}
+			immsv_evt_free_att_val(&(p->paramBuffer), p->paramType);
+			p->next = NULL;
+			free(p);
+		}
+
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failure in sending reply for admin-op over MDS");
 		}
@@ -5043,6 +5059,7 @@ static void immnd_evt_proc_admop(IMMND_CB *cb,
 			uint32_t rc = NCSCC_RC_SUCCESS;
 			SaAisErrorT result = SA_AIS_OK;
 			IMMSV_ADMIN_OPERATION_PARAM *rparams= NULL;
+			IMMSV_ADMIN_OPERATION_PARAM *p;
 			osafassert(!pbeExpected);
 			TRACE("Ok reply for internally handled adminOp when PBE not configured");
 
@@ -5075,6 +5092,20 @@ static void immnd_evt_proc_admop(IMMND_CB *cb,
 					/* process the params structure in the incoming message.*/
 					immnd_extract_preload_params(cb, &(evt->info.admOpReq));
 				}
+			}
+
+			// Free memory
+			while(rparams) {
+				p = rparams;
+				rparams = p->next;
+				if (p->paramName.buf) {
+					free(p->paramName.buf);
+					p->paramName.buf = NULL;
+					p->paramName.size = 0;
+				}
+				immsv_evt_free_att_val(&(p->paramBuffer), p->paramType);
+				p->next = NULL;
+				free(p);
 			}
 
 			if (rc != NCSCC_RC_SUCCESS) {
