@@ -2950,6 +2950,8 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
     AttrMap newAttrs;
     AttrMap changedAttrs;
     ImmsvAttrDefList* list = req->attrDefinitions;
+    bool isLoading = (sImmNodeState == IMM_NODE_LOADING ||      /* LOADING-SEVER, LOADING-CLIENT */
+                    sImmNodeState == IMM_NODE_W_AVAILABLE);     /* SYNC-CLIENT */
 
     TRACE_ENTER2("cont:%p connp:%p nodep:%p", continuationIdPtr, pbeConnPtr, pbeNodeIdPtr);
     size_t sz = strnlen((char *) req->className.buf, (size_t)req->className.size);
@@ -3169,6 +3171,16 @@ ImmModel::classCreate(const ImmsvOmClassDescr* req,
                 LOG_NO("ERR_INVALID_PARAM: Runtime attribute '%s' is neither cached nor "
                     "persistent => can not have a default", attNm);
                 illegal = 1;
+            }
+
+            if (attr->attrFlags & SA_IMM_ATTR_NO_DANGLING) {
+                if (isLoading) {
+                    LOG_WA("Attribute '%s' of class '%s' has a default no-dangling reference, "
+                        "the class definition should be corrected", attNm, className.c_str());
+                } else {
+                    LOG_NO("ERR_INVALID_PARAM: No dangling attribute '%s' can not have a default", attNm);
+                    illegal = 1;
+                }
             }
 
             if(attr->attrFlags & SA_IMM_ATTR_INITIALIZED) {
@@ -7133,14 +7145,20 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
             
             ImmAttrValue* attrValue = NULL;
             if(attr->mFlags & SA_IMM_ATTR_MULTI_VALUE) {
-                if(attr->mDefaultValue.empty()) {
+                if(attr->mDefaultValue.empty() ||
+                    (isLoading && (attr->mFlags & SA_IMM_ATTR_NO_DANGLING))) {
+                    /* Don't assign default value to attributes that
+                     * have default no-dangling reference when loading */
                     attrValue = new ImmAttrMultiValue();
                 } else {
                     attrValue = new 
                         ImmAttrMultiValue(attr->mDefaultValue);
                 }
             } else {
-                if(attr->mDefaultValue.empty()) {
+                if(attr->mDefaultValue.empty() ||
+                    (isLoading && (attr->mFlags & SA_IMM_ATTR_NO_DANGLING))) {
+                    /* Don't assign default value to attributes that
+                     * have default no-dangling reference when loading */
                     attrValue = new ImmAttrValue();
                 } else {
                     attrValue = new 
@@ -7313,6 +7331,8 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
         //Also: append missing attributes and default values to immsv_attr_values_list
         //so the generated SaImmOiCcbObjectCreateCallbackT_2 will be complete. See #847.
         //But dont append non persistent runtime attributes.
+        //
+        //Also: write notice message for attributes that have default no-dangling reference
         isSpecialApplForClass = specialApplyForClass(classInfo);
 
         for(i6=object->mAttrValueMap.begin(); 
@@ -7325,6 +7345,13 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
             osafassert(i4!=classInfo->mAttrMap.end());
             AttrInfo* attr = i4->second;
             
+            if ((attr->mFlags & SA_IMM_ATTR_NO_DANGLING) &&
+                !attr->mDefaultValue.empty() && attrValue->empty()) {
+                osafassert(isLoading);
+                LOG_NO("Attribute '%s' of object '%s' is NULL and has a default no-dangling reference, "
+                    "default is not assigned when loading", attrName.c_str(), objectName.c_str());
+            }
+
             if((attr->mFlags & SA_IMM_ATTR_INITIALIZED) && 
                 attrValue->empty()) {
                 LOG_NO("ERR_INVALID_PARAM: attr '%s' must be initialized "
