@@ -73,6 +73,7 @@ static char *StrDup(const char *s)
 	std::strcpy(c,s);
 	return c;
 }
+uint32_t const MAX_JOB_SIZE_AT_STANDBY = 200;
 
 //
 Job::~Job()
@@ -294,6 +295,20 @@ Job* Fifo::dequeue()
 	return tmp;
 }
 
+/**
+ * @brief   As of now standby AMFD will maintain immjobs for object of few classes.
+ *          Flush all the jobs without updating to imm if MAX_JOB_SIZE_AT_STANDBY is 
+ *	    reached. 
+ *
+ */
+void check_and_flush_job_queue_standby_amfd(void)
+{
+        if (Fifo::size() >= MAX_JOB_SIZE_AT_STANDBY) {
+		TRACE("Emptying imm job queue of size:%u",Fifo::size());
+		Fifo::empty();
+        }
+}
+
 //
 AvdJobDequeueResultT Fifo::execute(SaImmOiHandleT immOiHandle)
 {
@@ -304,8 +319,10 @@ AvdJobDequeueResultT Fifo::execute(SaImmOiHandleT immOiHandle)
 	if (!avd_cb->active_services_exist)
 		return JOB_ETRYAGAIN;
 
-	if (!avd_cb->is_implementer)
+	if (!avd_cb->is_implementer) {
+		check_and_flush_job_queue_standby_amfd();
 		return JOB_EINVH;
+	}
 
 	if ((ajob = peek()) == NULL)
 		return JOB_ENOTEXIST;
@@ -332,6 +349,12 @@ void Fifo::empty()
 
 	TRACE_LEAVE();
 }
+
+uint32_t Fifo::size()
+{
+       return imm_job_.size();
+}
+
 //
 std::queue<Job*> Fifo::imm_job_;
 //
@@ -1499,6 +1522,25 @@ SaAisErrorT avd_saImmOiRtObjectUpdate_sync(const SaNameT *dn, SaImmAttrNameT att
 }
 
 /**
+ * @brief   As of now standby AMFD will maintain immjobs for object of few classes.
+ *          This function checks if immjobs for this object can be maintained at standby. 
+ *
+ * @param  dn (ptr to SaNameT)
+ * @return true/false
+ */
+bool check_to_create_immjob_at_standby_amfd(const SaNameT *dn)
+{
+
+	AVSV_AMF_CLASS_ID class_type = AVSV_SA_AMF_CLASS_INVALID;
+	class_type = object_name_to_class_type(dn);
+	if ((class_type == AVSV_SA_AMF_SU) || (class_type == AVSV_SA_AMF_COMP) ||
+			(class_type == AVSV_SA_AMF_SI_ASSIGNMENT) || 
+			(class_type == AVSV_SA_AMF_CSI_ASSIGNMENT))
+		return true;
+	return false;
+}
+
+/**
  * Queue an IM object update to be executed later, NON BLOCKING
  * @param dn
  * @param attributeName
@@ -1512,7 +1554,8 @@ void avd_saImmOiRtObjectUpdate(const SaNameT *dn, const char *attributeName,
 	
 	size_t sz;
 
-	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
+	if ((avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) &&
+			(check_to_create_immjob_at_standby_amfd(dn) == false))
 		return;
 
 	ImmObjUpdate *ajob = new ImmObjUpdate;
@@ -1541,7 +1584,8 @@ void avd_saImmOiRtObjectCreate(const char *className,
 {
 	TRACE_ENTER2("%s %s", className, parentName->value);
 
-	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
+	if ((avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) &&
+			(check_to_create_immjob_at_standby_amfd(parentName) == false))
 		return;
 
 	ImmObjCreate* ajob = new ImmObjCreate;
@@ -1563,7 +1607,8 @@ void avd_saImmOiRtObjectDelete(const SaNameT* dn)
 {
 	TRACE_ENTER2("%s", dn->value);
 	
-	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
+	if ((avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) &&
+			(check_to_create_immjob_at_standby_amfd(dn) == false))
 		return;
 
 	ImmObjDelete *ajob = new ImmObjDelete;

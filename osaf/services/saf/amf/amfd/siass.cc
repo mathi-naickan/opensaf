@@ -73,9 +73,6 @@ static void avd_create_susi_in_imm(SaAmfHAStateT ha_state,
 			NULL
 	};
 
-	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
-		return;
-
 	avsv_create_association_class_dn(su_dn, NULL, "safSISU", &dn);
 	avd_saImmOiRtObjectCreate("SaAmfSIAssignment", si_dn, attrValues);
 }
@@ -88,9 +85,6 @@ static void avd_create_susi_in_imm(SaAmfHAStateT ha_state,
 static void avd_delete_siassignment_from_imm(const SaNameT *si_dn, const SaNameT *su_dn)
 {
        SaNameT dn;
-
-       if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
-	       return;
 
        avsv_create_association_class_dn(su_dn, si_dn, "safSISU", &dn);
        avd_saImmOiRtObjectDelete(&dn);
@@ -106,9 +100,6 @@ void avd_susi_update(AVD_SU_SI_REL *susi, SaAmfHAStateT ha_state)
 {
        SaNameT dn;
        AVD_COMP_CSI_REL *compcsi;
-
-       if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
-	       return;
 
        avsv_create_association_class_dn(&susi->su->name, &susi->si->name, "safSISU", &dn);
 

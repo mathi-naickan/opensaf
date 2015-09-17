@@ -1348,6 +1348,8 @@ static uint32_t dec_su_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 
 	cb->async_updt_cnt.su_updt++;
 
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUAdminState",
+		SA_IMM_ATTR_SAUINT32T, &su->saAmfSUAdminState);
 	TRACE_LEAVE2("'%s', saAmfSUAdminState=%u, su_updt:%d",
 		name.value, su->saAmfSUAdminState, cb->async_updt_cnt.su_updt);
 	return NCSCC_RC_SUCCESS;
@@ -1379,6 +1381,8 @@ static uint32_t dec_su_readiness_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 
 	cb->async_updt_cnt.su_updt++;
 
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUReadinessState",
+		SA_IMM_ATTR_SAUINT32T, &su->saAmfSuReadinessState);
 	TRACE_LEAVE2("'%s', saAmfSuReadinessState=%u, su_updt:%d",
 		name.value, su->saAmfSuReadinessState, cb->async_updt_cnt.su_updt);
 	return NCSCC_RC_SUCCESS;
@@ -1410,6 +1414,8 @@ static uint32_t dec_su_pres_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 
 	cb->async_updt_cnt.su_updt++;
 
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUPresenceState",
+		SA_IMM_ATTR_SAUINT32T, &su->saAmfSUPresenceState);
 	TRACE_LEAVE2("'%s', saAmfSUPresenceState=%u, su_updt:%d",
 		name.value, su->saAmfSUPresenceState, cb->async_updt_cnt.su_updt);
 	return NCSCC_RC_SUCCESS;
@@ -2058,6 +2064,8 @@ static uint32_t dec_comp_readiness_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 
 	cb->async_updt_cnt.comp_updt++;
 
+	avd_saImmOiRtObjectUpdate(&comp_struct->comp_info.name, "saAmfCompReadinessState",
+		SA_IMM_ATTR_SAUINT32T, &comp_struct->saAmfCompReadinessState);
 	TRACE_LEAVE2("status '%u'", status);
 	return status;
 }
@@ -2108,6 +2116,8 @@ static uint32_t dec_comp_pres_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 	comp_struct->saAmfCompPresenceState = comp_ptr->saAmfCompPresenceState;
 
 	cb->async_updt_cnt.comp_updt++;
+	avd_saImmOiRtObjectUpdate(&comp_struct->comp_info.name, "saAmfCompPresenceState",
+		SA_IMM_ATTR_SAUINT32T, &comp_struct->saAmfCompPresenceState);
 
 	TRACE_LEAVE2("status '%u'", status);
 	return status;

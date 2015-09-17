@@ -119,6 +119,7 @@ public:
 
         static void empty();
     
+	static uint32_t size();
 private:
         static std::queue<Job*> imm_job_;
 };
@@ -165,5 +166,6 @@ void report_ccb_validation_error(const CcbUtilOperationData_t *opdata,
 void report_admin_op_error(SaImmOiHandleT immOiHandle, SaInvocationT invocation, SaAisErrorT result,
 		struct admin_oper_cbk *pend_cbk,
 		const char *format, ...) __attribute__ ((format(printf, 5, 6)));
+extern void check_and_flush_job_queue_standby_amfd(void);
 
 #endif
