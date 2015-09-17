@@ -100,7 +100,7 @@ uint32_t avnd_evt_ava_hc_start_evh(AVND_CB *cb, AVND_EVT *evt)
 	}
 	/* validate the healthcheck start message */
 	avnd_comp_hc_param_val(cb, AVSV_AMF_HC_START, (uint8_t *)hc_start, &comp, 0, &amf_rc);
-
+	TRACE_1("sending response:%d",amf_rc);
 	/* send the response back to AvA */
 	rc = avnd_amf_resp_send(cb, AVSV_AMF_HC_START, amf_rc, 0, &api_info->dest, &evt->mds_ctxt, comp, msg_from_avnd);
 

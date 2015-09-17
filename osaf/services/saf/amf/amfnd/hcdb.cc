@@ -326,9 +326,15 @@ SaAisErrorT avnd_hctype_config_get(SaImmHandleT immOmHandle, const SaNameT *comp
 	while (immutil_saImmOmSearchNext_2(searchHandle, &hc_name, (SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
 
 		TRACE_1("'%s'", hc_name.value);
-
-		if (hctype_create(avnd_cb, &hc_name, attributes) == NULL)
-			goto done2;
+		//A record may get created in the context of some other component of same comptype.
+		AVND_HCTYPE *hctype = NULL;
+		if ((hctype = (AVND_HCTYPE *)ncs_patricia_tree_get(&hctypedb,
+						(uint8_t *)&hc_name)) == NULL) {
+			if (hctype_create(avnd_cb, &hc_name, attributes) == NULL)
+				goto done2;
+		}
+		else 
+			TRACE_2("Record already exists");
 	}
 
 	error = SA_AIS_OK;
