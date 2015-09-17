@@ -1175,9 +1175,6 @@ static void avd_delete_csiassignment_from_imm(const SaNameT *comp_dn, const SaNa
 {
        SaNameT dn; 
 
-       if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
-               return;
-
        avsv_create_association_class_dn(comp_dn, csi_dn, "safCSIComp", &dn);
        TRACE("Deleting %s", dn.value);
 
