@@ -63,6 +63,8 @@ static void verify_csi_deps_and_delete_invalid_compcsi(AVD_SU_SI_REL *susi)
 					compcsi->csi->assign_flag = false;
 					compcsi->comp->assign_flag = false;
 					avd_compcsi_from_csi_and_susi_delete(susi, compcsi, true);
+					//Delete compcsi of dependents.
+					verify_csi_deps_and_delete_invalid_compcsi(susi);
 					break;
 				}
 			}
