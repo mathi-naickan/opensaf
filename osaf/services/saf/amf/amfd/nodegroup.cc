@@ -26,6 +26,9 @@
 
 AmfDb<std::string, AVD_AMF_NG> *nodegroup_db = 0;
 static AVD_AMF_NG *ng_create(SaNameT *dn, const SaImmAttrValuesT_2 **attributes);
+//TODO: Make  below function members.
+static void ng_admin_unlock_inst(AVD_AMF_NG *ng);
+static void ng_unlock(AVD_AMF_NG *ng);
 
 /**
  * Lookup object in db using dn
@@ -556,6 +559,24 @@ static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 	TRACE_LEAVE();
 }
 
+static void node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
+{
+	TRACE_ENTER();
+	AVD_AMF_NG *ng = avd_ng_get(&opdata->objectName);
+	//Temporarily keep NG in UNLOCKED state to assign SUs.
+	ng->saAmfNGAdminState = SA_AMF_ADMIN_UNLOCKED;	
+	ng_unlock(ng);
+
+	//Since AMF will delete NG, clear its pointers in node.
+	for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
+			iter != ng->saAmfNGNodeList.end(); ++iter) {
+		AVD_AVND *node = avd_node_get(*iter);
+		node->admin_ng = NULL;
+	}
+	ng->node_oper_list.clear();
+	ng_delete(ng);
+	TRACE_LEAVE2("deleted %s", opdata->objectName.value);
+}
 /**
  * Callback for CCB apply
  * @param opdata
@@ -576,9 +597,7 @@ static void ng_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 		ng_ccb_apply_modify_hdlr(opdata);
 		break;
 	case CCBUTIL_DELETE:
-		ng = avd_ng_get(&opdata->objectName);
-		ng_delete(ng);
-		TRACE("deleted %s", opdata->objectName.value);
+		node_ccb_completed_delete_hdlr(opdata);
 		break;
 	default:
 		osafassert(0);
@@ -778,7 +797,7 @@ void ng_node_lock_and_shutdown(AVD_AVND *node)
  * 		on this node.
  * @param       ptr to Nodegroup (AVD_AMF_NG).
  */
-void ng_unlock(AVD_AMF_NG *ng)
+static void ng_unlock(AVD_AMF_NG *ng)
 {
 	TRACE_ENTER2("'%s'",ng->name.value);
 	for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
