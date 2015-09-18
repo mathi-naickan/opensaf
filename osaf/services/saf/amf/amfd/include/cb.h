@@ -44,6 +44,8 @@
 #include <ckpt.h>
 #include <timer.h>
 
+#include <list>
+class AVD_SI;
 struct avd_avnd_tag;
 
 typedef enum {
@@ -222,6 +224,18 @@ typedef struct cl_cb_tag {
 	 * Used to skip usage of dependent services in the no-active state
 	 */
 	bool active_services_exist;
+
+	/*
+	A list of those SIs for which SI dep tolerance timer is running.
+	This is required because during controller switch-over or fail-over
+	active controller may not take action if tolerance timer expires and
+	controller itself is in role change phase. This list will help 
+	standby controller to know for which SIs tolerance timer has expired 
+	and active controller could not take the action. After becoming active
+	controller, SI dep action will be taken on the SIs in this list and in
+	TOLERANCE_TIMER_RUNNING state.
+	 */
+	std::list<AVD_SI*> sis_in_Tolerance_Timer_state;
 
 } AVD_CL_CB;
 

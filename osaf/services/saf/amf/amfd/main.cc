@@ -143,7 +143,7 @@ static const AVD_EVT_HDLR g_stndby_list[AVD_EVT_MAX] = {
 	/* standby AvD timer events processing */
 	avd_tmr_snd_hb_evh,           /* AVD_EVT_TMR_SND_HB */
 	standby_invalid_evh,      /* AVD_EVT_TMR_CL_INIT */
-	standby_invalid_evh,      /* AVD_EVT_TMR_SI_DEP_TOL */
+	avd_sidep_tol_tmr_evh,      /* AVD_EVT_TMR_SI_DEP_TOL */
 
 	/* standby AvD MDS events processing */
 	avd_mds_avd_up_evh,       /* AVD_EVT_MDS_AVD_UP */
@@ -181,7 +181,7 @@ static const AVD_EVT_HDLR g_quiesc_list[AVD_EVT_MAX] = {
 	/* active AvD timer events processing */
 	avd_tmr_snd_hb_evh,     /* AVD_EVT_TMR_SND_HB */
 	qsd_ignore_evh,	/* AVD_EVT_TMR_CL_INIT */
-	qsd_ignore_evh,	/* AVD_EVT_TMR_SI_DEP_TOL */
+	avd_sidep_tol_tmr_evh,	/* AVD_EVT_TMR_SI_DEP_TOL */
 
 	/* active AvD MDS events processing */
 	avd_mds_avd_up_evh,	/* AVD_EVT_MDS_AVD_UP */

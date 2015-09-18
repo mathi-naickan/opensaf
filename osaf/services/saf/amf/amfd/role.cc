@@ -231,6 +231,32 @@ done:
 	return status;
 }
 
+/**
+ * @brief  This function is related to SI dep feature and meant for a dependent SIs.
+ *         During contoller failover or switchover, tolerance timer may expire for 
+ *         a dependent SIs. During the role change phase of controller itself, active
+ *	   controller may not act on the dependent SI for which tolerance timer has
+ *	   expired. Standby AMFD tracks all those dependent SIs, in the list 
+ *         avd_cb->sis_in_Tolerance_Timer_state, for which tolerance timer has
+ *         expired but active AMFD has still not acted on them. So when standby 
+ * 	   controller becomes active it should act on all the SIs which are in the 
+ *	   list and still in the TOLERANCE_TIMER_RUNNING state.
+ */
+
+static void avd_act_on_sis_in_tol_timer_state()
+{
+	TRACE_ENTER();
+	std::list<AVD_SI*>::iterator it1;
+	TRACE_1("Size of list :%lu", avd_cb->sis_in_Tolerance_Timer_state.size());
+	for (it1 = avd_cb->sis_in_Tolerance_Timer_state.begin(); 
+			it1 != avd_cb->sis_in_Tolerance_Timer_state.end(); ++it1) {
+		AVD_SI *dep_si = *it1;
+		if (dep_si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING)
+			avd_sidep_activ_amfd_tol_timer_expiry(NULL, dep_si);
+	}
+	avd_cb->sis_in_Tolerance_Timer_state.clear();
+	TRACE_LEAVE();
+}
 /****************************************************************************\
  * Function: avd_role_failover
  *
@@ -360,6 +386,7 @@ static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role)
 
 
 	avd_node_failover(failed_node);
+	avd_act_on_sis_in_tol_timer_state();
 
 	LOG_NO("FAILOVER StandBy --> Active DONE!");
 	status = NCSCC_RC_SUCCESS;
@@ -1165,6 +1192,7 @@ uint32_t amfd_switch_stdby_actv(AVD_CL_CB *cb)
 	/* Send the message to other avd for role change rsp as success */
 	avd_d2d_chg_role_rsp(cb, NCSCC_RC_SUCCESS, SA_AMF_HA_ACTIVE);
 
+	avd_act_on_sis_in_tol_timer_state();
 	/* Screen through all the SG's in the sg database and update si's si_dep_state */
 	for (std::map<std::string, AVD_SG*>::const_iterator it = sg_db->begin();
 			it != sg_db->end(); it++) {
