@@ -220,6 +220,29 @@ void avd_sidep_si_dep_state_set(AVD_SI *si, AVD_SI_DEP_STATE state)
 		  then start the tolerance timer.*/
 		if (si->si_dep_state == AVD_SI_READY_TO_UNASSIGN)
 			sidep_process_ready_to_unassign_depstate(si);
+
+		/*
+		   This SI is no longer in TOL_TIMER state, it means active controller 
+		   has acted on this SI after tolerance timer expiry. This SI was added
+		   in the list avd_cb->sis_in_Tolerance_Timer_state, maintained at standby,
+		   when tolerance timer had expired for it on standby controller. Now 
+		   remove it from the list.
+		*/ 
+		if (old_state == AVD_SI_TOL_TIMER_RUNNING) {
+			std::list<AVD_SI*>::iterator it1;
+			for (it1 = avd_cb->sis_in_Tolerance_Timer_state.begin();
+					it1 != avd_cb->sis_in_Tolerance_Timer_state.end(); ++it1) {
+				if (*it1 == si) {
+					avd_cb->sis_in_Tolerance_Timer_state.erase(it1);
+					TRACE_1("Deleted '%s' from tol timer list,"
+							" size after deletion:%lu",
+							si->name.value,
+							avd_cb->sis_in_Tolerance_Timer_state.size());
+					break;
+				}
+			}
+		}
+
 	}
 }
 
@@ -535,21 +558,41 @@ done:
 	return rc;
 }
 
-/*****************************************************************************
- * Function: avd_sidep_tol_tmr_evh
+/**
+ * @brief       This function handles tolerance timer expiry event for a dependent
+ *		SI at standby AMFD. If SI is still in TOL_TIMER_RUNNING state then
+ *		it is added in the list avd_cb->sis_in_Tolerance_Timer_state. 
+ * @param[in]   spons_si: ptr to sponosor SI.
+ * @param[in]   dep_si: ptr to dependent SI.
  *
- * Purpose:  On expiry of tolerance timer in SI-SI dependency context, this
- *           function initiates the process of SI unassignment due to its 
+ **/
+void avd_sidep_stdby_amfd_tol_timer_expiry(AVD_SI *spons_si, AVD_SI *dep_si)
+{
+	TRACE_ENTER();
+
+	/* If SI is still in TOL_TIMER state, add it in list 
+	   avd_cb->sis_in_Tolerance_Timer_state, When active AMFD will checkpoint 
+	   new si_dep state for this SI, this SI will be removed from the list.
+	   Before checkpoiting new state, if failover/swotichover of controller 
+	   occurs then action will be taken on the SIs of this list by
+	   the new active controller.
+	 */
+	if (dep_si->si_dep_state == AVD_SI_TOL_TIMER_RUNNING) {
+		avd_cb->sis_in_Tolerance_Timer_state.push_back(dep_si);
+		TRACE_1("Added '%s' to tol_timer list, size after addition:%lu",
+				dep_si->name.value,avd_cb->sis_in_Tolerance_Timer_state.size());
+	}
+	TRACE_LEAVE();
+}
+
+/*
+ * @brief:   On expiry of tolerance timer in SI-SI dependency context, this
+ *           function acts on the dependent SI based on the role of AMFD. 
  *           sponsor moved to unassigned state.
+ * @param[in]  cb - ptr to AVD control block
+ * @param[in]  evt - ptr to AVD_EVT struct.
  *
- * Input:  cb - ptr to AVD control block
- *         evt - ptr to AVD_EVT struct.
- *
- * Returns: 
- *
- * NOTES:
- * 
- **************************************************************************/
+*/
 void avd_sidep_tol_tmr_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 {
 	AVD_SI *si = NULL;
@@ -576,9 +619,28 @@ void avd_sidep_tol_tmr_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	if (si->tol_timer_count > 0)
 		si->tol_timer_count--;
 
-	if (cb->avail_state_avd != SA_AMF_HA_ACTIVE) 
-		goto done;
+	if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) 
+		avd_sidep_activ_amfd_tol_timer_expiry(spons_si, si);
+	else
+		avd_sidep_stdby_amfd_tol_timer_expiry(spons_si, si);
 
+done:
+	TRACE_LEAVE();
+}
+
+/**
+ * @brief       This function handles tolerance timer expiry event for a dependent
+ *              SI at active AMFD. If atleast one sponsor of SI is still unassigned 
+ *		then AMFD starts unassignment of the SI.
+ * @param[in]   spons_si: ptr to sponosor SI.
+ * @param[in]   dep_si: ptr to dependent SI.
+ *
+ **/
+void avd_sidep_activ_amfd_tol_timer_expiry(AVD_SI *spons_si, AVD_SI *dep_si)
+{
+	AVD_SI *si = dep_si;
+	AVD_CL_CB *cb = avd_cb;
+	TRACE_ENTER();
 	avd_sidep_si_dep_state_set(si, AVD_SI_UNASSIGNING_DUE_TO_DEP);
 	/* Do not take action on dependent si if its sg fsm is unstable. 
 	   When sg becomes stable, based on updated 

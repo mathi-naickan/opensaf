@@ -93,4 +93,5 @@ extern void sidep_update_si_self_dep_state(AVD_SI *si);
 extern void sidep_update_dependents_states(AVD_SI *si);
 extern void sidep_process_ready_to_unassign_depstate(AVD_SI *dep_si);
 extern void avd_sidep_sg_take_action(AVD_SG *sg);
+extern void avd_sidep_activ_amfd_tol_timer_expiry(AVD_SI *spons_si, AVD_SI *dep_si);
 #endif
