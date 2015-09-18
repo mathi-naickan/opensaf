@@ -2018,6 +2018,27 @@ void saLogOi_115(void)
 
 #undef MAX_LOGRECSIZE
 
+/**
+ * Add test case for ticket #1399:
+ * logsv gets stuck in while loop when setting maxFilesRotated=0
+ *
+ * This test case verifies logsv returns error if
+ * setting 0 to saLogStreamMaxFilesRotated attribute.
+ */
+void verMaxFilesRotated(void)
+{
+    int rc;
+    char command[256];
+
+	/* Expect getting exist code = 1 as saLogStreamMaxFilesRotated=0 */
+    strcpy(command, "immcfg -c SaLogStreamConfig safLgStrCfg=verMaxFilesRotated,safApp=safLogService "
+		   "-a saLogStreamFileName=str6file -a saLogStreamPathName=. -a saLogStreamMaxFilesRotated=0 "
+		   "2> /dev/null");
+    rc = system(command);
+    rc_validate(WEXITSTATUS(rc), 1);
+}
+
+
 __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -2117,6 +2138,8 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	test_case_add(6, saLogOi_76, "Create: saLogStreamMaxFilesRotated < 128, Ok");
 	test_case_add(6, saLogOi_77, "Create: saLogStreamMaxFilesRotated > 128, ERR");
 	test_case_add(6, saLogOi_78, "Create: saLogStreamMaxFilesRotated == 128, ERR");
+	test_case_add(6, verMaxFilesRotated, "Create: saLogStreamMaxFilesRotated = 0, ERR");
+
 	/* Tests for modify */
 	test_case_add(6, saLogOi_100, "Modify: saLogStreamSeverityFilter < 0x7f, Ok");
 	test_case_add(6, saLogOi_101, "Modify: saLogStreamSeverityFilter >= 0x7f, ERR");

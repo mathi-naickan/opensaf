@@ -328,6 +328,107 @@ void saLogStreamOpen_2_23(void)
 	test_validate(rc_17, SA_AIS_ERR_INVALID_PARAM);
 }
 
+/**
+ * Added test cases to verify ticket #1399:
+ * logsv gets stuck in while loop if setting maxFilesRotated = 0.
+ *
+ * This test case verifies logsv returns error if
+ * setting 0 to saLogStreamMaxFilesRotated attribute.
+ */
+void saLogStreamOpen_2_46(void)
+{
+    SaAisErrorT rc = SA_AIS_OK;
+    SaNameT logStreamName = {.length = 0 };
+
+    strcpy((char *)logStreamName.value, SA_LOG_STREAM_APPLICATION1);
+    logStreamName.length = strlen((char *)logStreamName.value);
+
+    SaLogFileCreateAttributesT_2 appLogFileCreateAttributes;
+
+    /* App stream information */
+    appLogFileCreateAttributes.logFilePathName = "appstream";
+    appLogFileCreateAttributes.logFileName = "appstream";
+    appLogFileCreateAttributes.maxLogFileSize = DEFAULT_APP_LOG_FILE_SIZE;
+    appLogFileCreateAttributes.maxLogRecordSize = DEFAULT_APP_LOG_REC_SIZE;
+    appLogFileCreateAttributes.haProperty = SA_TRUE;
+    appLogFileCreateAttributes.logFileFullAction = SA_LOG_FILE_FULL_ACTION_ROTATE;
+    appLogFileCreateAttributes.maxFilesRotated = 0;
+    appLogFileCreateAttributes.logFileFmt = NULL;
+
+    rc = saLogInitialize(&logHandle, &logCallbacks, &logVersion);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed at saLogInitialize: %d\n ", (int)rc);
+        test_validate(rc, SA_AIS_OK);
+        return;
+    }
+
+    rc = saLogSelectionObjectGet(logHandle, &selectionObject);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed at saLogSelectionObjectGet: %d \n ", (int)rc);
+        test_validate(rc, SA_AIS_OK);
+        goto done;
+    }
+
+    rc = saLogStreamOpen_2(logHandle, &logStreamName, &appLogFileCreateAttributes,
+                            SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle);
+    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+
+done:
+    rc = saLogFinalize(logHandle);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed to call salogFinalize: %d\n", (int) rc);
+    }
+}
+
+/**
+ * Verify that setting saLogStreamMaxFilesRotated > 127 is not allowed.
+ * Valid range is in [1 - 127]
+ */
+void saLogStreamOpen_2_47(void)
+{
+    SaAisErrorT rc = SA_AIS_OK;
+    SaNameT logStreamName = {.length = 0 };
+
+    strcpy((char *)logStreamName.value, SA_LOG_STREAM_APPLICATION1);
+    logStreamName.length = strlen((char *)logStreamName.value);
+
+    SaLogFileCreateAttributesT_2 appLogFileCreateAttributes;
+
+    /* App stream information */
+    appLogFileCreateAttributes.logFilePathName = "appstream";
+    appLogFileCreateAttributes.logFileName = "appstream";
+    appLogFileCreateAttributes.maxLogFileSize = DEFAULT_APP_LOG_FILE_SIZE;
+    appLogFileCreateAttributes.maxLogRecordSize = DEFAULT_APP_LOG_REC_SIZE;
+    appLogFileCreateAttributes.haProperty = SA_TRUE;
+    appLogFileCreateAttributes.logFileFullAction = SA_LOG_FILE_FULL_ACTION_ROTATE;
+    appLogFileCreateAttributes.maxFilesRotated = 128;
+    appLogFileCreateAttributes.logFileFmt = NULL;
+
+    rc = saLogInitialize(&logHandle, &logCallbacks, &logVersion);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed at saLogInitialize: %d\n ", (int)rc);
+        test_validate(rc, SA_AIS_OK);
+        return;
+    }
+
+    rc = saLogSelectionObjectGet(logHandle, &selectionObject);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed at saLogSelectionObjectGet: %d \n ", (int)rc);
+        test_validate(rc, SA_AIS_OK);
+        goto done;
+    }
+
+    rc = saLogStreamOpen_2(logHandle, &logStreamName, &appLogFileCreateAttributes,
+                            SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle);
+    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+
+done:
+    rc = saLogFinalize(logHandle);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed to call salogFinalize: %d\n", (int) rc);
+    }
+}
+
 extern void saLogStreamOpenAsync_2_01(void);
 extern void saLogStreamOpenCallbackT_01(void);
 extern void saLogWriteLog_01(void);
@@ -402,5 +503,7 @@ __attribute__ ((constructor)) static void saLibraryLifeCycle_constructor(void)
     test_case_add(2, saLogWriteLogCallbackT_02, "saLogWriteLogCallbackT() SA_DISPATCH_ALL");
     test_case_add(2, saLogFilterSetCallbackT_01, "saLogFilterSetCallbackT OK");
     test_case_add(2, saLogStreamClose_01, "saLogStreamClose OK");
+    test_case_add(2, saLogStreamOpen_2_46, "saLogStreamOpen_2 with maxFilesRotated = 0, ERR");
+    test_case_add(2, saLogStreamOpen_2_47, "saLogStreamOpen_2 with maxFilesRotated = 128, ERR");
 }
 
