@@ -739,6 +739,7 @@ static uint32_t mdtm_process_recv_events(void)
 						(struct sockaddr *)&client_addr, &alen);
 				if (recd_bytes == 0) {
 					m_MDS_LOG_DBG("MDTM: recd bytes=0 on received on sock, abnormal/unknown/hack  condition. Ignoring");
+					osaf_mutex_unlock_ordie(&gl_mds_library_mutex);
 					continue;
 				}
 				data = inbuf;
