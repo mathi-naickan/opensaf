@@ -7649,7 +7649,7 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb, IMMND_EVT *evt, SaBoolT origi
 			SaUint32T applCtn = 0;
 			SaUint32T *applConnArr = NULL;
 			SaUint32T applArrSize =
-				immModel_getLocalAppliersForCcb(cb, evt->info.objModify.ccbId, &applConnArr, &applCtn);
+				immModel_getLocalAppliersForCcb(cb, evt->info.ccbId, &applConnArr, &applCtn);
 
 			if(applArrSize) {
 				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
