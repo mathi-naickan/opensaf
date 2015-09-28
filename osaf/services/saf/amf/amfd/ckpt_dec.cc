@@ -1316,6 +1316,8 @@ static uint32_t dec_su_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 	osaf_decode_uint32(&dec->i_uba, (uint32_t*)&su->saAmfSUOperState);
 
 	cb->async_updt_cnt.su_updt++;
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUOperState",
+		SA_IMM_ATTR_SAUINT32T, &su->saAmfSUOperState);
 
 	TRACE_LEAVE2("'%s', saAmfSUOperState=%u, su_updt:%d",
 		name.value, su->saAmfSUOperState, cb->async_updt_cnt.su_updt);
@@ -2010,6 +2012,8 @@ static uint32_t dec_comp_oper_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 
 	/* Update the fields received in this checkpoint message */
 	comp_struct->saAmfCompOperState = comp_ptr->saAmfCompOperState;
+	avd_saImmOiRtObjectUpdate(&comp_ptr->comp_info.name, "saAmfCompOperState",
+		SA_IMM_ATTR_SAUINT32T, &comp_ptr->saAmfCompOperState);
 
 	cb->async_updt_cnt.comp_updt++;
 
