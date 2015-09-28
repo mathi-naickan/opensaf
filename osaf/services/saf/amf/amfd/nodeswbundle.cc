@@ -81,8 +81,7 @@ static int is_swbdl_delete_ok_for_node(const SaNameT *bundle_dn_to_delete,
 				node_dn, "safInstalledSwBundle", &bundle_dn);
 
 			if (memcmp(bundle_dn_to_delete, &bundle_dn, sizeof(SaNameT)) == 0) {
-				if ((su->sg_of_su->sg_ncs_spec &&
-				     (su->su_on_node->node_state == AVD_AVND_STATE_ABSENT)) ||
+				if (su->su_on_node->node_state == AVD_AVND_STATE_ABSENT ||
 				    (!su->sg_of_su->sg_ncs_spec &&
 				     (comp->su->saAmfSUAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION))) {
 					continue;
