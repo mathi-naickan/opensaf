@@ -303,6 +303,10 @@ static SaAisErrorT ng_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata)
 	TRACE_ENTER();
 
 	ng = avd_ng_get(&opdata->objectName);
+	if (ng == NULL) {
+		report_ccb_validation_error(opdata, "ng modify: nodegroup cannot be found");
+		goto done;
+	}
 
 	while ((mod = opdata->param.modify.attrMods[i++]) != NULL) {
 		if (mod->modType == SA_IMM_ATTR_VALUES_REPLACE) {
