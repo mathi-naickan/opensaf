@@ -414,6 +414,7 @@ static SaAisErrorT node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata
 	AVD_SU *su; 
 	bool su_exist = false;
 	CcbUtilOperationData_t *t_opData;
+	std::string node_name(Amf::to_string(&node->name));
 
 	TRACE_ENTER2("'%s'", opdata->objectName.value);
 
@@ -459,12 +460,56 @@ static SaAisErrorT node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata
 	for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
 			it != nodegroup_db->end(); it++) {
 		AVD_AMF_NG *ng = it->second;
+
 		if (node_in_nodegroup(Amf::to_string(&(opdata->objectName)), ng) == true) {
-			report_ccb_validation_error(opdata, "'%s' exists in"
-					" the nodegroup '%s'",
-					opdata->objectName.value, ng->name.value);
-			rc = SA_AIS_ERR_BAD_OPERATION;
-			goto done;
+			// if the node is being removed from nodegroup too, then it's OK
+			TRACE("check if node is being deleted from nodegroup '%s'", ng->name.value);
+			t_opData = ccbutil_getCcbOpDataByDN(opdata->ccbId, &ng->name);
+			
+			if (t_opData == NULL) {
+				TRACE("t_opData is NULL");
+				report_ccb_validation_error(opdata, "'%s' exists in"
+						" the nodegroup '%s'",
+						opdata->objectName.value, ng->name.value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
+
+			const SaImmAttrModificationT_2 *mod = NULL;
+			int i = 0;
+			bool node_being_removed = false;
+
+			switch (t_opData->operationType) {
+			case CCBUTIL_DELETE:
+				// the nodegroup is being removed too
+				node_being_removed = true;
+				break;
+			case CCBUTIL_MODIFY:				
+				while ((mod = t_opData->param.modify.attrMods[i++]) != NULL &&
+					node_being_removed == false) {
+					if (mod->modType == SA_IMM_ATTR_VALUES_DELETE) {
+						for (unsigned j = 0; j < mod->modAttr.attrValuesNumber; j++) {
+							if (node_name.compare(Amf::to_string((SaNameT *)mod->modAttr.attrValues[j])) == 0) {
+								// node is being removed from nodegroup
+								TRACE("node %s is being removed from %s", node_name.c_str(), ng->name.value);
+								node_being_removed = true;
+								break;
+							}
+						}
+					}
+				}
+				break;
+			default:
+				break;
+			}
+			
+			if (node_being_removed == false) {
+				report_ccb_validation_error(opdata, "'%s' exists in"
+						" the nodegroup '%s'",
+						opdata->objectName.value, ng->name.value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
 		}
 	}
 	opdata->userData = node;
