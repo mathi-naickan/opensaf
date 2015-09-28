@@ -82,6 +82,21 @@ uint32_t avnd_evt_ava_finalize_evh(AVND_CB *cb, AVND_EVT *evt)
 		goto done;
 	}
 
+	/* If Amf was waiting for down event to come regarding term cbq, but
+	   finalize has come, so reset the variable (irrespective of Sa-Aware
+	   PI or Proxied PI) and proceed for finalize. */
+
+	if (comp->term_cbq_inv_value != 0) {
+		AVND_COMP_CBK *cbk_rec;
+		/* Amf was waiting for this down event. Get the matching
+		   entry from the cbk list and delete the cbq */
+		m_AVND_COMP_CBQ_INV_GET(comp, comp->term_cbq_inv_value, cbk_rec);
+		comp->term_cbq_inv_value = 0;
+		rc = avnd_comp_clc_fsm_run(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC);
+		if (cbk_rec)
+			avnd_comp_cbq_rec_pop_and_del(cb, comp, cbk_rec, false);
+	}
+
 	/* npi comps dont interact with amf */
 	if (!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) && !m_AVND_COMP_TYPE_IS_PROXIED(comp))
 		goto done;
