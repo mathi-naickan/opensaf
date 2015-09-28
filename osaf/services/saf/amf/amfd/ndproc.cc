@@ -694,9 +694,6 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 					l_val = *((uint32_t *)&n2d_msg->msg_info.n2d_data_req.param_info.value[0]);
 					comp->saAmfCompRestartCount = ntohl(l_val);
 					m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVSV_CKPT_COMP_RESTART_COUNT);
-					avd_saImmOiRtObjectUpdate(&comp->comp_info.name,
-								  const_cast<SaImmAttrNameT>("saAmfCompRestartCount"), SA_IMM_ATTR_SAUINT32T,
-								  &comp->saAmfCompRestartCount);
 				} else {
 					/* log error that a the  value len is invalid */
 					LOG_ER("%s:%u: %u", __FILE__, __LINE__, n2d_msg->msg_info.n2d_data_req.param_info.
@@ -714,9 +711,6 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 						(char *)n2d_msg->msg_info.n2d_data_req.param_info.value,
 						SA_MAX_NAME_LENGTH - 1);
 					m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVSV_CKPT_COMP_CURR_PROXY_NAME);
-					avd_saImmOiRtObjectUpdate(&comp->comp_info.name,
-								  const_cast<SaImmAttrNameT>("saAmfCompCurrProxyName"), SA_IMM_ATTR_SANAMET,
-								  &comp->saAmfCompCurrProxyName);
 				} else {
 					/* log error that a the  value len is invalid */
 					LOG_ER("%s:%u: %u", __FILE__, __LINE__, n2d_msg->msg_info.n2d_data_req.param_info.
