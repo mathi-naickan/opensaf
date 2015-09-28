@@ -205,6 +205,14 @@ uint32_t avd_ckpt_su(AVD_CL_CB *cb, AVD_SU *ckpt_su, NCS_MBCSV_ACT_TYPE action)
 	su->su_switch = ckpt_su->su_switch;
 	su->saAmfSURestartCount = ckpt_su->saAmfSURestartCount;
 
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUOperState",
+			SA_IMM_ATTR_SAUINT32T, &su->saAmfSUOperState);
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUAdminState",
+			SA_IMM_ATTR_SAUINT32T, &su->saAmfSUAdminState);
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUReadinessState",
+			SA_IMM_ATTR_SAUINT32T, &su->saAmfSuReadinessState);
+	avd_saImmOiRtObjectUpdate(&su->name, "saAmfSUPresenceState",
+			SA_IMM_ATTR_SAUINT32T, &su->saAmfSUPresenceState);
 done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
@@ -540,6 +548,12 @@ uint32_t avd_ckpt_comp(AVD_CL_CB *cb, AVD_COMP *ckpt_comp, NCS_MBCSV_ACT_TYPE ac
 	comp->saAmfCompReadinessState = ckpt_comp->saAmfCompReadinessState;
 	/* SaNameT struct copy */
 	comp->saAmfCompCurrProxyName = ckpt_comp->saAmfCompCurrProxyName;
+	avd_saImmOiRtObjectUpdate(&comp->comp_info.name, "saAmfCompOperState",
+			SA_IMM_ATTR_SAUINT32T, &comp->saAmfCompOperState);
+	avd_saImmOiRtObjectUpdate(&comp->comp_info.name, "saAmfCompReadinessState",
+			SA_IMM_ATTR_SAUINT32T, &comp->saAmfCompReadinessState);
+	avd_saImmOiRtObjectUpdate(&comp->comp_info.name, "saAmfCompPresenceState",
+			SA_IMM_ATTR_SAUINT32T, &comp->saAmfCompPresenceState);
 
 	rc = NCSCC_RC_SUCCESS;
 done:
