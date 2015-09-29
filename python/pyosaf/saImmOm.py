@@ -24,7 +24,7 @@ from ctypes import POINTER, Structure
 from pyosaf import saAis
 from pyosaf.saAis import SaAisErrorT, SaBoolT, SaNameT, BYREF, SaTimeT, \
     marshalNullArray, SaInvocationT, SaEnumT, SaVersionT, SaSelectionObjectT, \
-    SaDispatchFlagsT
+    SaDispatchFlagsT, SaStringT
 from pyosaf.saEnumConst import Enumeration, Const
 from pyosaf.saImm import SaImmClassNameT, SaImmContinuationIdT, \
     SaImmAdminOperationIdT, SaImmAdminOperationParamsT_2, \
@@ -801,3 +801,28 @@ def saImmOmAdminOperationContinuationClear(ownerHandle,
 	return omdll.saImmOmAdminOperationContinuationClear(ownerHandle,
 			BYREF(objectName),
 			continuationId)
+
+def saImmOmCcbGetErrorStrings(ccbHandle, errorStrings):
+	"""Allows the OM client to fetch error strings related to a
+	ccb down-call of:
+		saImmOmCcbObjectCreate
+		saImmOmCcbObjectModify
+		saImmOmCcbObjectModify
+		saImmOmCcbCompleted
+
+	type arguments:
+		SaImmCcbHandleT ccbHandle
+		SaStringT **errorStrings
+
+	returns:
+		SaAisErrorT
+
+	"""
+
+	omdll.saImmOmCcbGetErrorStrings.argtypes = [SaImmCcbHandleT,
+						POINTER(POINTER(SaStringT))]
+
+	omdll.saImmOmCcbGetErrorStrings.restype = SaAisErrorT
+
+	return omdll.saImmOmCcbGetErrorStrings(ccbHandle,
+			BYREF(errorStrings))
