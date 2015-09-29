@@ -39,7 +39,7 @@ static void get_process_name(void)
 	char pid_path[1024];
 	uint32_t process_id = getpid();
 	char *token, *saveptr;
-	char *pid_name;
+	char *pid_name = NULL;
 
 	sprintf(pid_path, "/proc/%d/cmdline", process_id);
 	FILE* f = fopen(pid_path,"r");
