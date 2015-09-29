@@ -40,7 +40,7 @@ void get_adest_details(MDS_DEST adest, char* adest_details)
 	NCS_PHY_SLOT_ID phy_slot;
 	NCS_SUB_SLOT_ID sub_slot;
 	char pid_path[1024];
-	char *pid_name;
+	char *pid_name = NULL;
 	char process_name[MDS_MAX_PROCESS_NAME_LEN];
 	bool remote = false;
 
@@ -135,7 +135,7 @@ void get_subtn_adest_details(MDS_PWE_HDL pwe_hdl, MDS_SVC_ID svc_id, MDS_DEST ad
 	MDS_SVC_INFO *svc_info = NULL;
 	char pid_path[1024];
 	char *token, *saveptr;
-	char *pid_name;
+	char *pid_name = NULL;
 	struct stat s;
 
 	m_NCS_GET_PHYINFO_FROM_NODE_ID(m_NCS_NODE_ID_FROM_MDS_DEST(adest), NULL, &phy_slot, &sub_slot);
