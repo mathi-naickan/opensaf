@@ -309,6 +309,7 @@ uint32_t avnd_evt_ava_ha_get_evh(AVND_CB *cb, AVND_EVT *evt)
 	AVND_COMP_CSI_REC *csi_rec = 0;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	SaAisErrorT amf_rc = SA_AIS_OK;
+	SaAmfHAStateT *ha_rc = &ha_get->ha;
 	bool msg_from_avnd = false, int_ext_comp = false;
 
 	TRACE_ENTER();
@@ -340,9 +341,20 @@ uint32_t avnd_evt_ava_ha_get_evh(AVND_CB *cb, AVND_EVT *evt)
 	if ((comp && !m_AVND_COMP_IS_REG(comp)) || !csi_rec)
 		amf_rc = SA_AIS_ERR_NOT_EXIST;
 
+	// get the actual ha_state of csi
+	if (!csi_rec) {
+		*ha_rc = (SaAmfHAStateT)0;
+	} else {
+		*ha_rc = csi_rec->si->curr_state;
+		if (csi_rec->si->curr_state == SA_AMF_HA_QUIESCING && (
+			csi_rec->curr_assign_state == AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED ||
+			csi_rec->curr_assign_state == AVND_COMP_CSI_ASSIGN_STATE_REMOVING)) {
+			*ha_rc = SA_AMF_HA_QUIESCED;
+		}
+	}
 	/* send the response back to AvA */
 	rc = avnd_amf_resp_send(cb, AVSV_AMF_HA_STATE_GET, amf_rc,
-				(uint8_t *)((csi_rec) ? &csi_rec->si->curr_state : 0),
+				(uint8_t*)ha_rc,
 				&api_info->dest, &evt->mds_ctxt, comp, msg_from_avnd);
 
  done:
