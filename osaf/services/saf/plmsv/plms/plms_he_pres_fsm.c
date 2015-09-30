@@ -182,6 +182,9 @@ static SaUint32T plms_HE_inact_np_to_inspending(PLMS_EVT *evt)
 		TRACE_LEAVE2("Return Val: %d",ret_err);
 		return ret_err;
 	}
+
+	ent->act_in_pro = false;
+
 	/* Mark the presence state of the HE to activating.*/
 	plms_presence_state_set(ent,SA_PLM_HE_PRESENCE_ACTIVATING,NULL,
 					SA_NTF_OBJECT_OPERATION,
@@ -765,6 +768,9 @@ static SaUint32T plms_HE_act_to_extpending_op( PLMS_EVT *evt)
 		TRACE_LEAVE2("Return Val: %d",NCSCC_RC_FAILURE);
 		return NCSCC_RC_FAILURE;
 	}
+
+	ent->deact_in_pro = false;
+
 	plms_presence_state_set(ent,SA_PLM_HE_PRESENCE_DEACTIVATING,
 						NULL,SA_NTF_OBJECT_OPERATION,
 						SA_PLM_NTFID_STATE_CHANGE_ROOT);
