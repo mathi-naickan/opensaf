@@ -270,6 +270,10 @@ static uint32_t cpnd_lib_init(CPND_CREATE_INFO *info)
 		gbl_shm_addr.ckpt_addr = (void *)((char *)gbl_shm_addr.cli_addr + sizeof(CLIENT_HDR) +
 						  (MAX_CLIENTS * sizeof(CLIENT_INFO)));
 		cb->shm_addr = gbl_shm_addr;
+	} else {
+		LOG_ER("cpnd restart_shm create failed");
+		rc = NCSCC_RC_FAILURE;
+		goto amf_reg_err;
 	}
 
 	if ((rc = cpnd_mds_register(cb)) != NCSCC_RC_SUCCESS) {
