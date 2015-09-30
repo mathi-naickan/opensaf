@@ -1446,12 +1446,14 @@ static bool node_admin_state_is_valid_for_su_create(const SaNameT *su_dn,
         const SaImmAttrValuesT_2 **attributes,
         const CcbUtilOperationData_t *opdata)
 {
+	TRACE_ENTER2("%s", su_dn->value);
 	SaNameT node_name = {0};
 	(void) immutil_getAttr("saAmfSUHostNodeOrNodeGroup", attributes, 0, &node_name);
 	if (node_name.length == 0) {
 		// attribute empty but this is probably not an error, just trace
 		TRACE("Create '%s', saAmfSUHostNodeOrNodeGroup not configured",
 			su_dn->value);
+		TRACE_LEAVE();
 		return false;
 	}
 
@@ -1460,25 +1462,44 @@ static bool node_admin_state_is_valid_for_su_create(const SaNameT *su_dn,
 		amflog(SA_LOG_SEV_NOTICE,
 			"Create '%s', saAmfSUHostNodeOrNodeGroup not configured with a node (%s)",
 			su_dn->value, node_name.value);
+		TRACE_LEAVE();
 		return false;
 	}
 
 	const AVD_AVND *node = avd_node_get(&node_name);
 	if (node == NULL) {
-		// node must exist in the current model, not created in the same CCB
-		amflog(SA_LOG_SEV_WARNING,
-			"Create '%s', configured with a non existing node (%s)",
-			su_dn->value, node_name.value);
-		return false;
+		if (opdata == NULL || ccbutil_getCcbOpDataByDN(opdata->ccbId, &node_name) == NULL) {
+			// node must exist in the current model, or created in the same CCB
+			amflog(SA_LOG_SEV_WARNING,
+				"Create '%s', configured with a non existing node (%s)",
+				su_dn->value, node_name.value);
+			TRACE_LEAVE();
+			return false;
+		} else {
+			// check admin state of the new node
+			SaAmfAdminStateT admin_state;
+			const CcbUtilOperationData_t *t_opdata = ccbutil_getCcbOpDataByDN(opdata->ccbId, &node_name);
+			immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfNodeAdminState"),
+				t_opdata->param.create.attrValues, 0, &admin_state);
+			if (admin_state != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
+				TRACE("Create '%s', configured node '%s' is not locked instantiation",
+					su_dn->value, node_name.value);
+				TRACE_LEAVE();
+				return false;
+			}
+		}
+
+	} else {
+		// configured with a node DN, accept only locked-in state
+		if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
+			TRACE("Create '%s', configured node '%s' is not locked instantiation",
+				su_dn->value, node_name.value);
+			TRACE_LEAVE();
+			return false;
+		}
 	}
 
-	// configured with a node DN, accept only locked-in state
-	if (node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
-		TRACE("Create '%s', configured node '%s' is not locked instantiation",
-			su_dn->value, node_name.value);
-		return false;
-	}
-
+	TRACE_LEAVE();
 	return true;
 }
 
