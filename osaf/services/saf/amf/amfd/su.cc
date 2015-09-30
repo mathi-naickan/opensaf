@@ -2063,7 +2063,19 @@ void AVD_SU::disable_comps(SaAisErrorT result)
 		comp->curr_num_csi_actv = 0;
 		comp->curr_num_csi_stdby = 0;
 		avd_comp_oper_state_set(comp, SA_AMF_OPERATIONAL_DISABLED);
-		avd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+		if (comp->saAmfCompPresenceState != SA_AMF_PRESENCE_TERMINATION_FAILED)
+			avd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+
+		/*
+		   Mark a term_failed component uninstantiated when node is rebooted.
+		   When node goes for reboot then AMFD marks node absent. If node does
+		   not go for reboot then term_fail state of comp will be cleared 
+		   as part of admin repair operation.
+		 */
+		if ((comp->saAmfCompPresenceState == SA_AMF_PRESENCE_TERMINATION_FAILED) &&
+				(su_on_node->node_state == AVD_AVND_STATE_ABSENT)) {
+				avd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+		}
 		comp->saAmfCompRestartCount = 0;
 		comp_complete_admin_op(comp, result);
 		m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, comp, AVSV_CKPT_AVD_COMP_CONFIG);
