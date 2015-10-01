@@ -536,7 +536,8 @@ uint32_t avnd_err_recover(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp, uint32_t rc
 	   other than these, then clean the component and don't process any recovery for that 
 	   component. */
 	if ((su->pres == SA_AMF_PRESENCE_TERMINATING) && (rcvr != SA_AMF_NODE_FAILOVER)
-	    && (rcvr != SA_AMF_NODE_FAILFAST) && (rcvr != SA_AMF_NODE_SWITCHOVER)) {
+	    && (rcvr != SA_AMF_NODE_FAILFAST) && (rcvr != SA_AMF_NODE_SWITCHOVER) &&
+	    (rcvr != AVSV_ERR_RCVR_SU_FAILOVER)) {
 		/* mark the comp failed */
 		m_AVND_COMP_FAILED_SET(comp);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
@@ -651,22 +652,6 @@ uint32_t avnd_err_rcvr_su_restart(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_co
 	m_AVND_COMP_FAILED_SET(failed_comp);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_comp, AVND_CKPT_COMP_FLAG_CHANGE);
 
-	/* delete su current info */
-	rc = avnd_su_curr_info_del(cb, su);
-	if (NCSCC_RC_SUCCESS != rc)
-		goto done;
-
-	/* prepare su-sis for fresh assignment */
-	rc = avnd_su_si_unmark(cb, su);
-	if (NCSCC_RC_SUCCESS != rc)
-		goto done;
-
-	/* 
-	 * Trigger su-fsm with restart event.
-	 */
-	rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_RESTART);
-	if (NCSCC_RC_SUCCESS != rc)
-		goto done;
 
 	/* change the comp & su oper state to disabled */
 	m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
@@ -675,12 +660,70 @@ uint32_t avnd_err_rcvr_su_restart(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_co
 	m_AVND_COMP_OPER_STATE_AVD_SYNC(cb, failed_comp, rc);
 	if (NCSCC_RC_SUCCESS != rc)
 		goto done;
-	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_comp, AVND_CKPT_COMP_OPER_STATE);
 
-	/* finally... set su-restart flag */
-	m_AVND_SU_RESTART_SET(su);
+	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_comp, AVND_CKPT_COMP_OPER_STATE);
+	set_suRestart_flag(su);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 
+	if (su_all_comps_restartable(*su) == true) {
+		/* Case 1: All components in SU are restartable 
+			   (saAmfCompDisableRestart is false for all).
+		   In this case surestart recovery involves two steps:
+		   a) First, all components in the SU are abruptly terminated in the 
+		      reverse order of their instantiation-levels.
+		   b) In a second step, all components in the SU are instantiated 
+		      in the order dictated by their instantiation-levels.
+		      
+		   Also if the components have assignments, same assignments will be 
+		   reassigned to respective components after successful restart of SU.
+		   In this case, only restarting state of the component will be observed.
+			
+		*/
+		//So prepare su-sis for fresh assignment.
+		rc = avnd_su_curr_info_del(cb, su);
+		if (NCSCC_RC_SUCCESS != rc)
+			goto done;
+		rc = avnd_su_si_unmark(cb, su);
+		if (NCSCC_RC_SUCCESS != rc)
+			goto done;
+		rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_RESTART);
+		if (NCSCC_RC_SUCCESS != rc)
+			goto done;
+	} else {
+		/* Case 2: Atleast one component in SU is non restartable 
+			   (saAmfCompDisableRestart is true for atleast one comp in SU).
+		In this case, all components in the SU are abruptly terminated in the
+		reverse order of their instantiation-levels. Since aleast one of the 
+		components is non restartable, first reassign the CSIs currently assigned 
+		to non restartable component to another component before terminating/instantiating
+		the components. Since a component may be serving any redundancy model, the 
+		process of reassignment depends upon the redundancy model characteristics.
+	
+		At the same time, reassignment of CSIs from this non-restartable component
+		may lead to reassignment of CSIs from other components (non-restartable and 
+		restartable) in this SU as the same SI may have assignments in those components.
+		In current OpenSAF implementation, such a case of comp-failover is implemented
+		as switchover of all the assignments from the whole SU irrespective of redundancy
+		model. As of now, this case will work like OpenSAF comp-failover only.
+
+		TODO:In future when AMF supports comp-failover in spec compliance then this 
+			case should be alligned with that.
+		*/
+		if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
+			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(failed_comp))
+				rc = avnd_comp_clc_fsm_run(cb, failed_comp, AVND_COMP_CLC_PRES_FSM_EV_CLEANUP);
+			else
+				rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_RESTART);
+			if (NCSCC_RC_SUCCESS != rc)
+				goto done;
+		} else {
+			/*In NPI SU only one SI is assigned to the whole SU. Since SU has atleast
+			  one component non-restartable then request AMFD to start switchover of this SU.
+			  As a part of quieced assignment, clean up will be done.
+			 */
+			su_send_suRestart_recovery_msg(su);
+		}
+	}
  done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
@@ -722,11 +765,9 @@ uint32_t avnd_err_rcvr_comp_failover(AVND_CB *cb, AVND_COMP *failed_comp)
 	m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
 
-	/* We are now in the context of failover, forget the restart */
-	if (su->pres == SA_AMF_PRESENCE_RESTARTING || m_AVND_SU_IS_RESTART(su)) {
-		m_AVND_SU_RESTART_RESET(su);
-		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
-	}
+	/* We are now in the context of failover, forget the reset restart admin op id*/
+	if (m_AVND_SU_IS_RESTART(su))
+		su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
 
 	// TODO: there should be no difference between PI/NPI comps
 	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
@@ -765,6 +806,12 @@ uint32_t avnd_err_rcvr_su_failover(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_c
 	m_AVND_SU_FAILED_SET(su);
 	m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
 
+	/* We are now in the context of failover, forget the restart */
+	if (m_AVND_SU_IS_RESTART(su)) {
+		reset_suRestart_flag(su);
+		su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
+	}
 	LOG_NO("Terminating components of '%s'(abruptly & unordered)",su->name.value);
 	/* Unordered cleanup of components of failed SU */
 	for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
@@ -778,6 +825,7 @@ uint32_t avnd_err_rcvr_su_failover(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_c
 			LOG_ER("'%s' termination failed", comp->name.value);
 			goto done;
 		}
+		avnd_su_pres_state_set(comp->su, SA_AMF_PRESENCE_TERMINATING);
 	}
 done:
 
@@ -838,11 +886,9 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 		cb->oper_state = SA_AMF_OPERATIONAL_DISABLED;
 	}
 
-	/* We are now in the context of failover, forget the restart */
-	if (failed_su->pres == SA_AMF_PRESENCE_RESTARTING || m_AVND_SU_IS_RESTART(failed_su)) {
-		m_AVND_SU_RESTART_RESET(failed_su);
-		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
-	}
+	/* We are now in the context of failover, forget the reset restart admin op id*/
+	if (m_AVND_SU_IS_RESTART(failed_su))
+		failed_su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
 
 	/* In nodeswitchover context:
 	   a)If saAmfSUFailover is set for the faulted SU then this SU will be failed-over  
@@ -857,6 +903,10 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 	 */
 	if (m_AVND_SU_IS_FAILED(failed_comp->su) && (failed_comp->su->sufailover))
 	{
+		reset_suRestart_flag(failed_su);
+		failed_su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
+
 		LOG_NO("Terminating components of '%s'(abruptly & unordered)",failed_su->name.value);
 		/* Unordered cleanup of components of failed SU */
 		for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&failed_su->comp_list));
@@ -870,6 +920,7 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 				LOG_ER("'%s' termination failed", comp->name.value);
 				goto done;
 			}
+			avnd_su_pres_state_set(failed_comp->su, SA_AMF_PRESENCE_TERMINATING);
 		}
 	}
 	else {
@@ -921,6 +972,12 @@ uint32_t avnd_err_rcvr_node_failover(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP 
 	m_AVND_SU_FAILED_SET(failed_su);
 	m_AVND_SU_OPER_STATE_SET(failed_su, SA_AMF_OPERATIONAL_DISABLED);
 
+	/* We are now in the context of failover, forget the restart */
+	if (m_AVND_SU_IS_RESTART(failed_su)) {
+		reset_suRestart_flag(failed_su);
+		failed_su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
+	}
 	/* Unordered cleanup of all local application components */
 	for (comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)NULL);
 		  comp != NULL;
@@ -938,6 +995,7 @@ uint32_t avnd_err_rcvr_node_failover(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP 
 			LOG_ER("Exiting (due to comp term failed) to aid fast node reboot");
 			exit(1);
 		}
+		avnd_su_pres_state_set(comp->su, SA_AMF_PRESENCE_TERMINATING);
 	}
 
 	TRACE_LEAVE2("%u", rc);
@@ -1177,6 +1235,7 @@ uint32_t avnd_err_restart_esc_level_1(AVND_CB *cb, AVND_SU *su, AVND_ERR_ESC_LEV
 	/* If the SU is still instantiating, do jump to next level */
 	if (su->pres == SA_AMF_PRESENCE_INSTANTIATING || su->pres == SA_AMF_PRESENCE_RESTARTING
 	    || m_AVND_SU_IS_ASSIGN_PEND(su)) {
+		TRACE("Further escalating surestart recovery");
 		/* go to the next possible level, get escalated recovery and modify count */
 		if ((cb->su_failover_max != 0) || (true == su->su_is_external)) {
 			/* External component should not contribute to NODE FAILOVER of cluster
@@ -1481,4 +1540,33 @@ uint32_t avnd_err_rcvr_node_failfast(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP 
  done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
+}
+
+/**
+ * @brief  In escalation of level 2 (sufailover), level 3(nodefailover) and
+ *         nodeswitchover when failed su is sufailover capable, cleanup of 
+ *         all components of su or node will be done.
+ *	   A a exception, assignments are responded when a SU enters in 
+ *         inst_failed state.
+ *         This function return true if such a escalation exists or failed su
+ *         is in inst_failed state.
+ * @param  ptr to su. 
+ * @return true/false.
+ */
+bool is_no_assignment_due_to_escalations(AVND_SU *su)
+{
+	TRACE_ENTER();
+	if (((sufailover_in_progress(su) == true) && (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_2)) || 
+			(sufailover_during_nodeswitchover(su) == true) ||
+			(avnd_cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATING) || 
+			(avnd_cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATED))  {
+		TRACE_LEAVE2("true");
+		return true;
+	}
+	if (su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) {
+		TRACE_LEAVE2("false");
+		return false;
+	}
+	TRACE_LEAVE2("false");
+	return false;
 }

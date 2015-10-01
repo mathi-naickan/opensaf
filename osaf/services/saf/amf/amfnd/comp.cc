@@ -919,18 +919,13 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 
 	/* skip assignments to failed / unregistered comp */
 	if (!m_AVND_SU_IS_RESTART(comp->su) &&
-	    (m_AVND_COMP_IS_FAILED(comp) || (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) && ((!m_AVND_COMP_IS_REG(comp)
-											    &&
-											    !m_AVND_COMP_PRES_STATE_IS_ORPHANED
-											    (comp))
-											   ||
-											   (!m_AVND_COMP_PRES_STATE_IS_INSTANTIATED
-											    (comp)
-											    && (comp->su->pres ==
-												SA_AMF_PRESENCE_INSTANTIATION_FAILED)
-											    &&
-											    !m_AVND_COMP_PRES_STATE_IS_ORPHANED
-											    (comp)))))) {
+	    (m_AVND_COMP_IS_FAILED(comp) || 
+	     (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp) &&
+	      ((!m_AVND_COMP_IS_REG(comp) && !m_AVND_COMP_PRES_STATE_IS_ORPHANED (comp)) ||
+	       (!m_AVND_COMP_PRES_STATE_IS_INSTANTIATED(comp) &&
+		(comp->su->pres == SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
+		!m_AVND_COMP_PRES_STATE_IS_ORPHANED (comp)))))) {
+		TRACE("Not suRestart context and comp is failed or unregistered");
 		/* dont skip restarting components. wait till restart is complete */
 		if ((comp->pres == SA_AMF_PRESENCE_RESTARTING) && m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {	/* mark the csi(s) assigned */
 			if (csi) {
@@ -967,6 +962,32 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 			rc = avnd_comp_csi_assign_done(cb, comp, csi);
 			goto done;
 		}
+	} else if (m_AVND_SU_IS_RESTART(comp->su) && (su_all_comps_restartable(*comp->su) == false) &&
+			(m_AVND_COMP_IS_FAILED(comp) || (comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED))) {
+		/* In surestart recovery of non restartable su, assignment (quiesced) done indication
+                   will be done for a failed component or for the component which is already cleaned up. 
+		 */
+		TRACE("In suRestart recovery or admin op context");
+		if (csi) {
+			TRACE("'%s'", csi->name.value);
+			m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNING);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, csi, AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+		} else {
+			m_AVND_COMP_ALL_CSI_SET(comp);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
+			for (curr_csi =
+				m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+				curr_csi;
+				curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT
+						(&curr_csi->comp_dll_node))) {
+				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi,
+						AVND_COMP_CSI_ASSIGN_STATE_ASSIGNING);
+				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi,
+						AVND_CKPT_COMP_CSI_CURR_ASSIGN_STATE);
+			}
+		}
+		rc = avnd_comp_csi_assign_done(cb, comp, csi);
+		goto done;
 	}
 
 	/* skip standby assignment to x_active or 1_active capable comp */
@@ -1108,19 +1129,28 @@ uint32_t avnd_comp_csi_assign(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CSI_REC *c
 		   other way of doing it is to change the csi to assign state in failover error
 		   processing after restart.
 		 */
-
+		TRACE("npi_prv_inst:%d,npi_curr_inst:%d",npi_prv_inst,npi_curr_inst);
 		/* Active Assigning --> quiesced,  quiescing --> quiesced */
 		if (!m_AVND_COMP_CSI_PRV_ASSIGN_STATE_IS_ASSIGNED(curr_csi) &&
 		    ((comp->pres == SA_AMF_PRESENCE_INSTANTIATED) || (comp->pres == SA_AMF_PRESENCE_INSTANTIATING) ||
 		     (comp->pres == SA_AMF_PRESENCE_TERMINATING) || (comp->pres == SA_AMF_PRESENCE_RESTARTING)))
 			npi_prv_inst = true;
+		TRACE("npi_prv_inst:%d,npi_curr_inst:%d",npi_prv_inst,npi_curr_inst);
 
 		/* determine the event for comp fsm */
 		if (m_AVND_SU_IS_RESTART(comp->su) && (true == npi_curr_inst))
-			comp_ev = AVND_COMP_CLC_PRES_FSM_EV_RESTART;
+			comp_ev = AVND_COMP_CLC_PRES_FSM_EV_INST;
 		else if (!m_AVND_SU_IS_RESTART(comp->su) && (npi_prv_inst != npi_curr_inst))
 			comp_ev = (true == npi_curr_inst) ? AVND_COMP_CLC_PRES_FSM_EV_INST :
 			    AVND_COMP_CLC_PRES_FSM_EV_TERM;
+		else if (m_AVND_SU_IS_RESTART(comp->su) && (su_all_comps_restartable(*comp->su) == false) &&
+                                (npi_curr_inst == false)) {
+                        /*suRestart is going on and SU has atleast one component non-restartable.*/
+                        TRACE("suRestart is going on for a non-restartable SU,"
+                                        "  terminate this component for quiesced state.");
+                        comp_ev = AVND_COMP_CLC_PRES_FSM_EV_TERM;
+                }
+
 
 		/* mark the csi state assigning */
 		m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNING);

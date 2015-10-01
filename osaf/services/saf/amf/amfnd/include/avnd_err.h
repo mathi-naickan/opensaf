@@ -115,5 +115,6 @@ struct avnd_su_tag;
 
 extern uint32_t avnd_err_process(struct avnd_cb_tag *, struct avnd_comp_tag *, AVND_ERR_INFO *);
 extern uint32_t avnd_err_su_repair(struct avnd_cb_tag *, struct avnd_su_tag *);
+extern bool is_no_assignment_due_to_escalations( struct avnd_su_tag *);
 
 #endif   /* !AVND_ERR_H */

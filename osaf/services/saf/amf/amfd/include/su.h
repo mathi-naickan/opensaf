@@ -86,6 +86,7 @@ class AVD_SU {
 	int su_act_state; // not used, kept for EDU, remove later
 
 	AVD_SG *sg_of_su;	/* the service group of this SU */
+	bool surestart; /* used during surestart recovery and restart op on non restartable comp*/
 	struct avd_avnd_tag *su_on_node;	/*  the node on which this SU resides */
 	struct avd_su_si_rel_tag *list_of_susi;	/* the list of su si relationship elements */
 

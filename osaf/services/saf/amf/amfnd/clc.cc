@@ -57,6 +57,7 @@ static uint32_t avnd_comp_clc_terming_termsucc_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_terming_termfail_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_terming_cleanfail_hdler(AVND_CB *, AVND_COMP *);
+static uint32_t avnd_comp_clc_restart_inst_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_restart_instsucc_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_restart_term_hdler(AVND_CB *, AVND_COMP *);
 static uint32_t avnd_comp_clc_restart_termsucc_hdler(AVND_CB *, AVND_COMP *);
@@ -141,7 +142,7 @@ static AVND_COMP_CLC_FSM_FN avnd_comp_clc_fsm[][AVND_COMP_CLC_PRES_FSM_EV_MAX - 
 
 	/* SA_AMF_PRESENCE_RESTARTING */
 	{
-	 0,			/* INST EV */
+	 avnd_comp_clc_restart_inst_hdler,	/* INST EV */
 	 avnd_comp_clc_restart_instsucc_hdler,	/* INST_SUCC EV */
 	 avnd_comp_clc_xxxing_instfail_hdler,	/* INST_FAIL EV */
 	 avnd_comp_clc_restart_term_hdler,	/* TERM EV */
@@ -877,15 +878,25 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 	TRACE_1("'%s':FSM Enter presence state: '%s':FSM Exit presence state:%s",
 					comp->name.value,pres_state[prv_st],pres_state[final_st]);
 
-	/* process state change */
-	if (prv_st != final_st)
+	/*
+	    A restartable component will trigger SU FSM in the context of:
+            1.su restart recovery or
+            2.restart admin op on su. 
+	    In these cases comp will be instantiated only when all the components
+            are cleaned up. So after successful cleanup/termination of restarting comp,
+	    trigger SU FSM to terminate/cleanup more components or instantiat the SU.
+	 */
+	if ((prv_st != final_st) || (((prv_st == SA_AMF_PRESENCE_RESTARTING) &&
+				(final_st == SA_AMF_PRESENCE_RESTARTING)) &&
+				((ev == AVND_COMP_CLC_PRES_FSM_EV_INST_SUCC) ||
+				 (ev == AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC) || 
+				 (ev == AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC))))
 		rc = avnd_comp_clc_st_chng_prc(cb, comp, prv_st, final_st);
 
  done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
-
 /****************************************************************************
   Name          : avnd_comp_clc_st_chng_prc
  
@@ -907,7 +918,8 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 	AVND_COMP_CSI_REC *csi = 0;
 	bool is_en;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	TRACE_ENTER2("Comp '%s', Prv_state '%u', Final_state '%u'", comp->name.value, prv_st, final_st);
+	TRACE_ENTER2("Comp '%s', Prv_state '%s', Final_state '%s'", comp->name.value, 
+			presence_state[prv_st],presence_state[final_st]);
 
 	/* 
 	 * Process state change
@@ -925,7 +937,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 				&comp->name, comp->err_info.restart_cnt);
 	}
 	/* reset the admin-oper flag to false */
-	if (comp->admin_oper == true) {
+	if ((comp->admin_oper == true) && (final_st == SA_AMF_PRESENCE_INSTANTIATED)) {
 		TRACE_1("Component restart is through admin opration, admin oper flag reset");
 		comp->admin_oper = false;
 	}
@@ -1003,8 +1015,16 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 				clear_error_report_alarm(comp);
 			}
 
-			/* reassign the comp-csis.. if su-restart recovery is not active */
-			if (!m_AVND_SU_IS_RESTART(comp->su)) {
+			/* reassign the comp-csis.. 
+			   1)if su-restart recovery is not active which means comp was admin restarted
+			     or faulted with restart recovery.
+			   2)if comp with restartable recovery faulted during the reassignment phase of 
+			     of surestart recovery. This can happen when surestart prob timer expires 	 
+			     in the surestart recovery phase.
+			 */
+			if ((!m_AVND_SU_IS_RESTART(comp->su)) || (((m_AVND_SU_IS_RESTART(comp->su))
+							&& (!m_AVND_SU_IS_FAILED(comp->su)) &&
+                                        (comp->su->admin_op_Id != SA_AMF_ADMIN_RESTART)))) {
 				rc = avnd_comp_csi_reassign(cb, comp);
 				if (NCSCC_RC_SUCCESS != rc)
 					goto done;
@@ -1044,8 +1064,12 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			if (m_AVND_COMP_IS_FAILED(comp) && !comp->csi_list.n_nodes &&
 			    !m_AVND_SU_IS_ADMN_TERM(comp->su) &&
 			    (cb->oper_state == SA_AMF_OPERATIONAL_ENABLED)) {
-				/* No need to restart component during shutdown and during sufailover*/
-				if (!m_AVND_IS_SHUTTING_DOWN(cb) && !sufailover_in_progress(comp->su))
+				/* No need to restart component during shutdown, during surestart
+				   and during sufailover.It will be instantiated as part of repair.
+				   For surestart recovery, SU FSM will instantiate all comps after successful
+				   clean up of all of them.*/
+				if (!m_AVND_IS_SHUTTING_DOWN(cb) && !sufailover_in_progress(comp->su) &&
+						(!m_AVND_SU_IS_RESTART(comp->su)))
 					rc = avnd_comp_clc_fsm_trigger(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_INST);
 			} else if (m_AVND_COMP_IS_FAILED(comp) && !comp->csi_list.n_nodes) {
 				m_AVND_COMP_FAILED_RESET(comp);	/*if we moved from restart -> term
@@ -1087,6 +1111,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			} 
 			else { 
 				if (!m_AVND_COMP_IS_FAILED(comp)) {
+					TRACE("Not a failed comp");
 					/* csi-set / csi-rem succeeded.. generate csi-done indication */
 					csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
 					osafassert(csi);
@@ -1101,6 +1126,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 				} else {
 					/* failed su is ready to take on si assignment.. inform avd */
 					if (!comp->csi_list.n_nodes) {
+						TRACE("Comp has no CSIs assigned");
 						m_AVND_SU_IS_ENABLED(comp->su, is_en);
 						if (true == is_en) {
 							m_AVND_SU_OPER_STATE_SET(comp->su,SA_AMF_OPERATIONAL_ENABLED);
@@ -1111,8 +1137,10 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 						}
 						m_AVND_COMP_FAILED_RESET(comp);
 						m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_FLAG_CHANGE);
+					} else if ((m_AVND_SU_IS_RESTART(comp->su)) && (m_AVND_SU_IS_FAILED(comp->su))) {
+						TRACE("suRestart escalation context");
+						m_AVND_COMP_FAILED_RESET(comp);
 					}
-
 				}
 			}
 		}
@@ -1275,11 +1303,7 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 		}
 	}
 
-	/* 
-	 * Trigger the SU FSM.
-	 * Only PI comps in a PI SU send event to the SU FSM.
-	 * All NPI comps in an NPI SU send event to the SU FSM.
-	 */
+	 /*Trigger the SU FSM from a NPI component in PI SU.*/
 	if (m_AVND_SU_IS_PREINSTANTIABLE(comp->su) && !m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) {
 
 		if (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)
@@ -1288,16 +1312,24 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			ev = AVND_SU_PRES_FSM_EV_COMP_TERM_FAIL;
 		else if ((SA_AMF_PRESENCE_TERMINATING == final_st) && (comp->su->pres == SA_AMF_PRESENCE_RESTARTING))
 			ev = AVND_SU_PRES_FSM_EV_COMP_TERMINATING;
-		else if ((sufailover_in_progress(comp->su) || 
+		else if ((sufailover_in_progress(comp->su) || (m_AVND_SU_IS_RESTART(comp->su)) || 
 					(avnd_cb->term_state == AVND_TERM_STATE_NODE_SWITCHOVER_STARTED) || 
 					(all_comps_terminated_in_su(comp->su) == true)) &&
 				(SA_AMF_PRESENCE_UNINSTANTIATED == final_st))
-			/* If sufailover flag is enabled, then SU FSM needs to be triggered in both sufailover
-			   and nodeswitchover escalation.
+			/* If sufailover flag is enabled, then SU FSM needs to be triggered in 
+			   sufailover, surestart and nodeswitchover escalation. Also in case of
+			   restart admin operation on a non restartable component or SU trigger SU FSM.
 			 */
 			ev = AVND_SU_PRES_FSM_EV_COMP_UNINSTANTIATED;
+		else if ((final_st == SA_AMF_PRESENCE_RESTARTING) && (prv_st == SA_AMF_PRESENCE_RESTARTING) &&
+                                (comp->su->admin_op_Id == SA_AMF_ADMIN_RESTART))
+			/* If a restartable PI SU consists of NPI comp, then trigger SU FSM to terminate
+		          other components or start instnatiation.*/
+			ev = AVND_SU_PRES_FSM_EV_COMP_RESTARTING;
 	}
 
+	 /* Trigger the SU FSM from a PI component in PI SU or
+	    from a NPI component in any SU.*/
 	if ((m_AVND_SU_IS_PREINSTANTIABLE(comp->su) &&
 	     m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) || !m_AVND_SU_IS_PREINSTANTIABLE(comp->su)) {
 		if (SA_AMF_PRESENCE_UNINSTANTIATED == final_st)
@@ -1308,7 +1340,14 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			ev = AVND_SU_PRES_FSM_EV_COMP_INST_FAIL;
 		else if (SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)
 			ev = AVND_SU_PRES_FSM_EV_COMP_TERM_FAIL;
-		else if (SA_AMF_PRESENCE_RESTARTING == final_st)
+		else if ((SA_AMF_PRESENCE_RESTARTING == final_st) &&
+				(prv_st == SA_AMF_PRESENCE_RESTARTING) && (comp->admin_oper == false) &&
+				(comp->su->admin_op_Id == SA_AMF_ADMIN_RESTART))
+			/* A restartable component is restarting state will not trigger SU FSM:
+			   - when it has faulted with comprestart recovery or
+			   - when it is admin restarted.
+			   But in the context of restart admin operatin on SU, trigger SU FSM
+			   to make way for furter termination or instantiation. */
 			ev = AVND_SU_PRES_FSM_EV_COMP_RESTARTING;
 		else if (SA_AMF_PRESENCE_TERMINATING == final_st)
 			ev = AVND_SU_PRES_FSM_EV_COMP_TERMINATING;
@@ -1655,6 +1694,31 @@ uint32_t avnd_comp_clc_xxxing_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	 */
 	avnd_comp_cmplete_all_assignment(cb, comp);
 
+	/* If su is restarting then, instantiation of the all the PI components will be done after
+	   termination of all of them. But for a NPI comp in PI su, restart is done at the time of
+	   assignment. Such a component never triggers SU FSM. So instantiate it in comp FSM.
+	 */
+	//TODO: Reframe these blockes to make them more illustrative.
+	if (!(m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) && m_AVND_SU_IS_PREINSTANTIABLE(comp->su) &&
+			(!m_AVND_SU_IS_RESTART(comp->su)) && (!m_AVND_SU_IS_FAILED(comp->su)))
+		/* Instantiate this NPI comp of PI SU if context is not:
+		  -surestart recovery.
+                  -restart admin op on SU.*/
+		;//Goahead and instantiate a NPI comp in PI SU.
+	else if ((m_AVND_SU_IS_RESTART(comp->su)) && (!m_AVND_SU_IS_FAILED(comp->su)) &&
+					(comp->su->admin_op_Id != SA_AMF_ADMIN_RESTART)) 
+		/* Restart the component if it fails with restart reocvery
+		   during the repair phase of surestart recovery.*/
+		;
+	else if (m_AVND_SU_IS_RESTART(comp->su))  {
+		if ((comp->pres == SA_AMF_PRESENCE_RESTARTING) &&  m_AVND_SU_IS_FAILED(comp->su)) 	
+			/* Cleanup was already initiated when comp faulted with comprestart recovery.
+			   If further escalation reached to surestart, same cleanup can be used and thus
+                           comp can be marked uninstantiated.*/
+			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+		goto done;
+	}
+
 	if ((clc_info->inst_retry_cnt < clc_info->inst_retry_max) &&
 	    (AVND_COMP_INST_EXIT_CODE_NO_RETRY != clc_info->inst_code_rcvd)) {
 		/* => keep retrying */
@@ -1848,9 +1912,27 @@ uint32_t avnd_comp_clc_inst_clean_hdler(AVND_CB *cb, AVND_COMP *comp)
 	} else if (m_AVND_COMP_TYPE_IS_PROXY(comp) && comp->pxied_list.n_nodes) {
 		/* if there are still outstanding proxied components we can't terminate right now */
 		return rc;
-	} else
-		/* cleanup the comp */
-		rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+	} else {
+		if (m_AVND_SU_IS_RESTART(comp->su) && m_AVND_COMP_IS_RESTART_DIS(comp) &&
+				(comp->csi_list.n_nodes > 0) &&
+				(m_AVND_SU_IS_PREINSTANTIABLE(comp->su) &&
+				 (comp->su->su_err_esc_level != AVND_ERR_ESC_LEVEL_2))) {
+			/* A non-restartable assigned healthy component(DisableRestart=1) and
+			   context is surestart recovery, first perform reassignment for this 
+			   component to other SU then clean it up.
+			   At present assignment of whole SU will be gracefully reassigned 
+			   instead of only this comp. Thus for PI applications modeled on NWay and 
+			   Nway Active model this is spec deviation.
+			   So as of now clean up of components due to surestart recovery policy 
+			   is halted to remove assignment from a healthy non restartable comp.
+ 			   Further cleanup will be resumed after removal of assignments. 
+			 */
+			/*Send amfd to gracefully remove assignments for thus SU.*/
+			su_send_suRestart_recovery_msg(comp->su);
+			goto done;
+		} else
+			rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+	}
 	if (NCSCC_RC_SUCCESS == rc) {
 		/* reset the comp-reg & instantiate params */
 		if (!m_AVND_COMP_TYPE_IS_PROXIED(comp))
@@ -1864,6 +1946,7 @@ uint32_t avnd_comp_clc_inst_clean_hdler(AVND_CB *cb, AVND_COMP *comp)
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
 	}
 
+done:
 	TRACE_LEAVE();
 	return rc;
 }
@@ -1913,10 +1996,21 @@ uint32_t avnd_comp_clc_inst_restart_hdler(AVND_CB *cb, AVND_COMP *comp)
 			avnd_comp_pm_rec_del_all(cb, comp);	/*if at all anythnig is left behind */
 		} else if (m_AVND_COMP_TYPE_IS_SAAWARE(comp) ||
 			   (m_AVND_COMP_TYPE_IS_PROXIED(comp) && m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)))
-			/* invoke terminate callback */
-			rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_COMP_TERM, 0, 0);
+			if (m_AVND_COMP_IS_RESTART_DIS(comp) && (comp->csi_list.n_nodes > 0)) {
+				/* A non-restartable assigned healthy component(DisableRestart=1) and
+				   context is restart admin op on su or this comp itself,
+				   first perform reassignment for this component to other SU then term it.
+				   At present assignment of whole SU will be gracefully reassigned
+				   instead of only this comp. Thus for PI applications modeled on NWay and
+				   Nway Active model this is spec deviation.
+				 */
+				/*Send amfd to gracefully remove assignments for thus SU.*/
+				su_send_suRestart_recovery_msg(comp->su);
+				goto done;
+			} else
+				/* invoke terminate callback */
+				rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_COMP_TERM, 0, 0);
 		else {
-			/* invoke terminate command */
 			rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_TERMINATE);
 			m_AVND_COMP_REG_PARAM_RESET(cb, comp);
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
@@ -1933,11 +2027,15 @@ uint32_t avnd_comp_clc_inst_restart_hdler(AVND_CB *cb, AVND_COMP *comp)
 
 		m_AVND_COMP_CLC_INST_PARAM_RESET(comp);
 
-		/* transition to 'restarting' state */
-		avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_RESTARTING);
+		/* If DisableRestart=0 then transition to 'restarting' state and 
+		   DisableRestart=1 then  transition to 'terminating' state */
+		if (!m_AVND_COMP_IS_RESTART_DIS(comp))
+			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_RESTARTING);
+		else
+			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_TERMINATING);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
 	}
-
+done:
 	TRACE_LEAVE();
 	return rc;
 }
@@ -2113,7 +2211,8 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	 */
 	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(su) &&
 			m_AVND_SU_IS_PREINSTANTIABLE(su) && (su->sufailover == false) &&
-			(avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED)) {
+			(avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED) && 
+			(su->su_err_esc_level == AVND_ERR_ESC_LEVEL_2)) {
 		/* yes, request director to orchestrate component failover */
 		rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
 	}
@@ -2166,6 +2265,63 @@ uint32_t avnd_comp_clc_terming_cleanfail_hdler(AVND_CB *cb, AVND_COMP *comp)
 	}
 
 	TRACE_LEAVE();
+	return rc;
+}
+
+/**
+ * @brief  handler for instantiating a component in restarting state.
+ *	   It will be used during restart admin operation on su.  
+ * @param  ptr to avnd_cb. 
+ * @param  ptr to comp. 
+ * @return NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE.
+ */
+
+uint32_t avnd_comp_clc_restart_inst_hdler (AVND_CB *cb, AVND_COMP *comp)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+
+	TRACE_ENTER2("'%s' : Instantiate event in the restart state", comp->name.value);
+
+	/* Refresh the component configuration, it may have changed */
+	if (!m_AVND_IS_SHUTTING_DOWN(cb) && (avnd_comp_config_reinit(comp) != 0)) {
+		rc = NCSCC_RC_FAILURE;
+		goto done;
+	}
+	/*if proxied component check whether the proxy exists, if so continue 
+	   instantiating by calling the proxied callback. else start timer and 
+	   wait for inst timeout duration */
+	if (m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
+		if (comp->pxy_comp != NULL) {
+			if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))
+				/* call the proxied instantiate callback   */
+				rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_INST, 0, 0);
+			else
+				/* do a csi set with active ha state */
+				rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_CSI_SET, 0, 0);
+			if (NCSCC_RC_SUCCESS == rc) {
+				/* increment the retry count */
+				comp->clc_info.inst_retry_cnt++;
+				m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_INST_RETRY_CNT);
+			}
+		} else {
+			/* start a timer for proxied instantiating timeout duration */
+			m_AVND_TMR_PXIED_COMP_INST_START(cb, *comp, rc);
+			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CLC_REG_TMR);
+		}
+		goto done;
+	}
+
+	rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_INSTANTIATE);
+	if (NCSCC_RC_SUCCESS == rc) {
+		/* timestamp the start of this instantiation phase */
+		m_GET_TIME_STAMP(comp->clc_info.inst_cmd_ts);
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_INST_CMD_TS);
+		/* increment the retry count */
+		comp->clc_info.inst_retry_cnt++;
+		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_INST_RETRY_CNT);
+	}
+done:
+	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
 
@@ -2275,6 +2431,13 @@ uint32_t avnd_comp_clc_restart_termsucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	if (!m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
 		m_AVND_COMP_REG_PARAM_RESET(cb, comp);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_CONFIG);
+	}
+
+	if (!(m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) && m_AVND_SU_IS_PREINSTANTIABLE(comp->su) &&
+			(comp->admin_oper == true))
+		;
+	else if (m_AVND_SU_IS_RESTART(comp->su))  {
+		goto done;
 	}
 
 	/* re-instantiate the comp */

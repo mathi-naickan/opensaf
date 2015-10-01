@@ -589,6 +589,24 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		cluster_startup_expiry_event_generate(cb);
 	}
 
+	/* Atleast one non-restartable healthy comp is assigned and recovery got 
+	   escalated to surestart. Before cleaning up any healthy non-restartable comp,
+	   gracefully reassigned their assignments to comp in other SU. At present 
+	   assignment of whole SU will be gracefully reassigned instead of only this comp.
+	   Thus PI applications modeled on  NWay and Nway Active modelthis is spec deviation.
+	 */
+	if (n2d_msg->msg_info.n2d_opr_state.rec_rcvr.raw == AVSV_ERR_RCVR_SU_RESTART) {
+		TRACE("surestart recovery request for '%s'", su->name.value);
+		su->surestart = true;
+		TRACE("surestart flag is set true");
+		/*Readiness is temporarliy kept OOS so as to reuse sg_fsm.
+		  It will not be updated to IMM and thus not visible to user.
+		 */
+		su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
+		/*Initiate graceful removal of assignment from this su.*/
+		su->sg_of_su->su_fault(cb, su);
+		goto done;
+	} 
 	/* Verify that the SU operation state is disable and do the processing. */
 	if (n2d_msg->msg_info.n2d_opr_state.su_oper_state == SA_AMF_OPERATIONAL_DISABLED) {
 		/* if the SU is NCS SU, call the node FSM routine to handle the failure.
