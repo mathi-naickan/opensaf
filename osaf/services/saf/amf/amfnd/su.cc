@@ -580,7 +580,7 @@ uint32_t avnd_su_curr_info_del(AVND_CB *cb, AVND_SU *su)
 		/* stop su_err_esc_tmr TBD Later */
 
 		/* disable the oper state (if pi su) */
-		if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
+		if (m_AVND_SU_IS_PREINSTANTIABLE(su) && (su->admin_op_Id != SA_AMF_ADMIN_RESTART)) {
 			m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_OPER_STATE);
 		}
@@ -646,6 +646,7 @@ uint32_t avnd_evt_su_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 		      comp;
 		      comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
 
+			comp->admin_oper = false;
 			m_AVND_COMP_STATE_RESET(comp);
 			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
 			
@@ -657,6 +658,8 @@ uint32_t avnd_evt_su_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 				(comp_in_term_failed_state() == false))
 			avnd_failed_state_file_delete();
 
+		su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
+		reset_suRestart_flag(su);
 		m_AVND_SU_STATE_RESET(su);
 		m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_ENABLED);
 		avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSUOperState_ID, &su->name, su->oper);
@@ -726,3 +729,93 @@ void cb_increment_su_failover_count(AVND_CB& cb, const AVND_SU& su)
 	LOG_NO("Performing failover of '%s' (SU failover count: %u)",
 		su.name.value, cb.su_failover_cnt);	
 }
+/**
+ * @brief A wrapper function on top of macro to 
+ *	  set suRestart flag in SU. 
+ * @param ptr to su
+ */
+void set_suRestart_flag(AVND_SU *su) 
+{
+	TRACE("suRestart flag set for '%s'",su->name.value);
+	m_AVND_SU_RESTART_SET(su);
+	
+}
+
+/**
+ * @brief A wrapper function on top of macro to 
+ *	  reset suRestart flag in SU. 
+ * @param ptr to su
+ */
+void reset_suRestart_flag(AVND_SU *su) 
+{
+	TRACE("suRestart flag reset for '%s'",su->name.value);
+	m_AVND_SU_RESTART_RESET(su);
+}
+
+/**
+ * @brief Checks if SU consists of only restartable component. 
+ *        For a restartable component saAmfCompDisableRestart=0.
+ * @param su reference
+ * @return true/false.
+ */
+bool su_all_comps_restartable(const AVND_SU& su)
+{
+	for (AVND_COMP *comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su.comp_list));
+		comp;
+		comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+		if (m_AVND_COMP_IS_RESTART_DIS(comp))
+			return false;
+	}
+	return true;
+}
+
+/**
+ * @brief Request AMFD to perform surestart recovery.
+ *        It will send a su_oper_state enabled evh to AMFD with
+ *	  recovery set to AVSV_ERR_RCVR_SU_RESTART.
+ * @param ptr to su
+ */
+void su_send_suRestart_recovery_msg(AVND_SU *su)
+{
+	su->oper = SA_AMF_OPERATIONAL_ENABLED; 	
+	//Keep the su enabled for sending the message.
+	avnd_di_oper_send(avnd_cb, su, AVSV_ERR_RCVR_SU_RESTART);
+	su->oper = SA_AMF_OPERATIONAL_DISABLED;	
+}
+
+/**
+ * @brief For a PI SU it checks if all the comps are in uninstantiated state.
+ *        For a PI SU, presence state is deduced from PI comps only. 
+ * @param su reference
+ * @return true/false.
+ */
+bool pi_su_all_comps_uninstantiated (const AVND_SU& su)
+{
+	for (AVND_COMP *comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su.comp_list));
+			comp;
+			comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+		if ((comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) &&
+				(m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)))
+			return false;
+	}
+	return true;
+}
+
+/**
+ * @brief Checks if any non-restartable comp ins SU is assigned..
+ *        For a non restartable comp  saAmfCompDisableRestart=1. 
+ * @param su reference
+ * @return true/false.
+ */
+bool is_any_non_restartable_comp_assigned(const AVND_SU& su)
+{
+	for (AVND_COMP *comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su.comp_list));
+			comp;
+			comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+                if ((m_AVND_COMP_IS_RESTART_DIS(comp)) &&
+                                (comp->csi_list.n_nodes > 0))
+                        return true;
+        }
+        return false;
+}
+

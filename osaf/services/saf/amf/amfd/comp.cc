@@ -155,8 +155,9 @@ void avd_comp_readiness_state_set(AVD_COMP *comp, SaAmfReadinessStateT readiness
 		comp->comp_info.name.value,
 		avd_readiness_state_name[comp->saAmfCompReadinessState], avd_readiness_state_name[readiness_state]);
 	comp->saAmfCompReadinessState = readiness_state;
-	avd_saImmOiRtObjectUpdate(&comp->comp_info.name, "saAmfCompReadinessState",
-		SA_IMM_ATTR_SAUINT32T, &comp->saAmfCompReadinessState);
+	if (comp->su->surestart == false)
+		avd_saImmOiRtObjectUpdate(&comp->comp_info.name, "saAmfCompReadinessState",
+				SA_IMM_ATTR_SAUINT32T, &comp->saAmfCompReadinessState);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, comp, AVSV_CKPT_COMP_READINESS_STATE);
 }
 

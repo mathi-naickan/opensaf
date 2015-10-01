@@ -65,6 +65,7 @@ void AVD_SU::initialize() {
 	saAmfSUHostedByNode.length = 0;
 	pend_cbk.invocation = 0;
 	pend_cbk.admin_oper = (SaAmfAdminOperationIdT)0;
+	surestart = false;
 }
 
 AVD_SU::AVD_SU() {
@@ -767,6 +768,10 @@ void AVD_SU::set_pres_state(SaAmfPresenceStateT pres_state) {
 	avd_saImmOiRtObjectUpdate(&name, "saAmfSUPresenceState",
 		SA_IMM_ATTR_SAUINT32T, &saAmfSUPresenceState);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, this, AVSV_CKPT_SU_PRES_STATE);
+	if ((saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) && (surestart == true)) {
+		TRACE("setting surestart flag to false");
+		surestart = false;
+	}
 }
 
 void AVD_SU::set_oper_state(SaAmfOperationalStateT oper_state) {
@@ -814,8 +819,9 @@ void AVD_SU::set_readiness_state(SaAmfReadinessStateT readiness_state) {
 		avd_readiness_state_name[saAmfSuReadinessState],
 		avd_readiness_state_name[readiness_state]);
 	saAmfSuReadinessState = readiness_state;
-	avd_saImmOiRtObjectUpdate(&name, "saAmfSUReadinessState",
-		SA_IMM_ATTR_SAUINT32T, &saAmfSuReadinessState);
+	if (surestart == false)
+		avd_saImmOiRtObjectUpdate(&name, "saAmfSUReadinessState",
+				SA_IMM_ATTR_SAUINT32T, &saAmfSuReadinessState);
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(avd_cb, this, AVSV_CKPT_SU_READINESS_STATE);
 
 	/* Since Su readiness state has changed, we need to change it for all the

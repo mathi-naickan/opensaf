@@ -1781,6 +1781,7 @@ static AVND_COMP *avnd_comp_create(const SaNameT *comp_name, const SaImmAttrValu
 
 	comp->su = su;
 	comp->error_report_sent = false;
+	comp->admin_oper = false;
 
 	if (true == su->su_is_external) {
 		m_AVND_COMP_TYPE_SET_EXT_CLUSTER(comp);

@@ -160,6 +160,7 @@ typedef struct avnd_su_tag {
 
 	/* To maintain saAmfSUFailover attribute of SU classs at Amfnd. */
 	bool sufailover; /* sufailover is enabled or not for the SU. */ 
+	SaAmfAdminOperationIdT admin_op_Id; //flag to track admin operation on su.
 
 } AVND_SU;
 
@@ -411,5 +412,10 @@ extern bool all_comps_terminated_in_su(const AVND_SU *su);
 
 void su_increment_su_restart_count(AVND_SU& su);
 void su_increment_comp_restart_count(AVND_SU& su);
-
+void set_suRestart_flag(AVND_SU *su);
+void reset_suRestart_flag(AVND_SU *su);
+bool su_all_comps_restartable(const AVND_SU& su);
+void su_send_suRestart_recovery_msg(AVND_SU *su);
+bool pi_su_all_comps_uninstantiated (const AVND_SU& su);
+bool is_any_non_restartable_comp_assigned(const AVND_SU& su);
 #endif
