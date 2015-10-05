@@ -1558,11 +1558,11 @@ static SaAisErrorT check_attr_validity(SaImmOiHandleT immOiHandle,
 		}
 		
 		/* saLogStreamSeverityFilter
-		 *     < 0x7f
+		 *     <= 0x7f
 		 */
 		if (i_severityFilter_mod) {
 			TRACE("Checking saLogStreamSeverityFilter");
-			if (i_severityFilter >= 0x7f) {
+			if (i_severityFilter > 0x7f) {
 				report_oi_error(immOiHandle, opdata->ccbId,
 					"Invalid severity: %x", i_severityFilter);
 				rc = SA_AIS_ERR_BAD_OPERATION;
