@@ -1205,7 +1205,7 @@ void saLogOi_64(void)
  * ***************************/
 
 /**
- * Create: saLogStreamSeverityFilter < 0x7f, Ok
+ * Create: saLogStreamSeverityFilter <= 0x7f, Ok
  */
 void saLogOi_65(void)
 {
@@ -1215,7 +1215,7 @@ void saLogOi_65(void)
 	sprintf(command, "immcfg -c SaLogStreamConfig "
 		"safLgStrCfg=str6,safApp=safLogService -a saLogStreamSeverityFilter=%d"
 		" -a saLogStreamFileName=str6file -a saLogStreamPathName=.",
-			0x7e);
+			0x7f);
 	rc = system(command);
 	
 	sprintf(command,"immcfg -d safLgStrCfg=str6,safApp=safLogService");
@@ -1224,7 +1224,7 @@ void saLogOi_65(void)
 }
 
 /**
- * Create: saLogStreamSeverityFilter >= 0x7f, ERR
+ * Create: saLogStreamSeverityFilter > 0x7f, ERR
  */
 void saLogOi_66(void)
 {
@@ -1234,7 +1234,7 @@ void saLogOi_66(void)
 	sprintf(command, "immcfg -c SaLogStreamConfig "
 		"safLgStrCfg=str6,safApp=safLogService -a saLogStreamSeverityFilter=%d"
 		" -a saLogStreamFileName=str6file -a saLogStreamPathName=. 2> /dev/null",
-			0x7f);
+			0x7f + 1);
 	rc = system(command);
 	rc_validate(WEXITSTATUS(rc), 1);
 }
@@ -1504,7 +1504,7 @@ void saLogOi_78(void)
  * ***************************/
 
 /**
- * Modify: saLogStreamSeverityFilter < 0x7f, Ok
+ * Modify: saLogStreamSeverityFilter <= 0x7f, Ok
  */
 void saLogOi_100(void)
 {
@@ -1521,7 +1521,7 @@ void saLogOi_100(void)
 	/* Test modify */
 	sprintf(command, "immcfg -a saLogStreamSeverityFilter=%d "
 		"safLgStrCfg=str6,safApp=safLogService",
-			0x7e);
+			0x7f);
 	rc = system(command);
 	/* Delete */
 	sprintf(command,"immcfg -d safLgStrCfg=str6,safApp=safLogService");
@@ -1531,7 +1531,7 @@ void saLogOi_100(void)
 }
 
 /**
- * Modify: saLogStreamSeverityFilter >= 0x7f, ERR
+ * Modify: saLogStreamSeverityFilter > 0x7f, ERR
  */
 void saLogOi_101(void)
 {
@@ -1549,7 +1549,7 @@ void saLogOi_101(void)
 	sprintf(command, "immcfg -a saLogStreamSeverityFilter=%d"
 		" safLgStrCfg=str6,safApp=safLogService"
 		" 2> /dev/null",
-			0x7f);
+			0x7f + 1);
 	rc = system(command);
 	/* Delete */
 	sprintf(command,"immcfg -d safLgStrCfg=str6,safApp=safLogService");
@@ -2060,8 +2060,8 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	/* Stream configuration object */
 	/* Tests for create */
 	test_suite_add(6, "LOG OI tests, Stream configuration object attribute validation");
-	test_case_add(6, saLogOi_65, "Create: saLogStreamSeverityFilter < 0x7f, Ok");
-	test_case_add(6, saLogOi_66, "Create: saLogStreamSeverityFilter >= 0x7f, ERR");
+	test_case_add(6, saLogOi_65, "Create: saLogStreamSeverityFilter <= 0x7f, Ok");
+	test_case_add(6, saLogOi_66, "Create: saLogStreamSeverityFilter > 0x7f, ERR");
 	test_case_add(6, saLogOi_67, "Create: saLogStreamPathName \"../Test/\" (Outside root path), ERR");
 	test_case_add(6, saLogOi_68, "Create: saLogStreamFileName, Name and path already used by an existing stream, ERR");
 	test_case_add(6, saLogOi_69, "Create: saLogStreamMaxLogFileSize > logMaxLogrecsize, Ok");
@@ -2077,8 +2077,8 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	test_case_add(6, verMaxFilesRotated, "Create: saLogStreamMaxFilesRotated = 0, ERR");
 
 	/* Tests for modify */
-	test_case_add(6, saLogOi_100, "Modify: saLogStreamSeverityFilter < 0x7f, Ok");
-	test_case_add(6, saLogOi_101, "Modify: saLogStreamSeverityFilter >= 0x7f, ERR");
+	test_case_add(6, saLogOi_100, "Modify: saLogStreamSeverityFilter <= 0x7f, Ok");
+	test_case_add(6, saLogOi_101, "Modify: saLogStreamSeverityFilter > 0x7f, ERR");
 	test_case_add(6, saLogOi_102, "Modify: saLogStreamPathName \"Test/\" (Not possible to modify)");
 	test_case_add(6, saLogOi_103, "Modify: saLogStreamFileName, Name and path already used by an existing stream, ERR");
 	test_case_add(6, saLogOi_104, "Modify: saLogStreamFileName, Name exist but in other path, Ok");
