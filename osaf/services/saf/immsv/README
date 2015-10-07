@@ -2378,6 +2378,81 @@ Bit 5 controls OpenSAF4.5 protocols allowed or not (normally on/1).
 Bit 6 controls OpenSAF4.6 protocols allowed or not (normally on/1).
 
 
+Remove unnecessary detour of accessorGet into ImmModel::searchInitialize (4.7)
+==============================================================================
+http://sourceforge.net/p/opensaf/tickets/674/
+
+A minor enhancement that refactored some code in ImmModell:accessorGet and 
+ImmModel::searchInitialize.
+
+
+immcfg should support ccbObjModify after ccbObjCreate in same ccb (4.7)
+=======================================================================
+http://sourceforge.net/p/opensaf/tickets/1283
+
+In "explicit commit mode" the immcfg command allows a user to build
+up multi-operation CCBs. The IMM API in general allows a CCB to have
+an object create operation later followed by an object modify operation
+on the object that was created in the same CCB. But due to a limitation
+in the implementation of the immcfg command/tool this sequence was not
+supported by immcfg. This enhancement removed that limitation.
+
+
+Abort non-critical CCBs when implementer is disconnected (4.7)
+==============================================================
+http://sourceforge.net/p/opensaf/tickets/1391
+
+During the buildup of a CCB, i.e. a CCB where the OM client has successfully
+added one or more operations to the CCB, but then the OM client lingers or
+performs some other task not related to the open CCB; if an OI involved in
+the open and idle CCB detaches, then the CCB is doomed to be aborted. Only
+when the OM client invoked the next request was the abort of the CCB processed.
+
+One problem with this was that a restart of the detached OI would have to wait
+for the CCB to get aborted before it could attach, which could mean waiting
+indefinitely on some oblivious om-client to act.
+
+This enhancement fixes so that instead of having to wait for the OM client to
+trigger the abort and cleanup of the CCB when it invokes the next operation,
+the imm server can immediately process the abort as triggered by the OI detach.
+
+
+Periodically audit the PBE imm.db file (4.7)
+============================================
+http://sourceforge.net/p/opensaf/tickets/19/
+
+A first and very limited form of PBE file audit has been implemented in 
+OpenSAF 4.7. This due to a serious incident with reference attributes that
+have the NO_DANGLING flag set. See critical ticket #1377.
+
+In principle the audit function can and should be extended to run periodically
+as a background job and to cover more consistency checks. In the lack of any
+pro-active driver, it should at least be extended as a side effect of any future
+actual incidents/cases with inconsistency in the persistent imm data that
+actually does occur.
+
+
+Don't check for pending fevs when only updating pure runtime attributes (4.7)
+=============================================================================
+http://sourceforge.net/p/opensaf/tickets/1445
+
+The IMMND server process has a flow control mechanism to prevent the
+IMMNDs (one at each processor of the cluster) to overload the single active
+IMMD at the active SC with fevs requests. The message type used when an OI
+updates its runtime attributes is conditionally a fevs message. It will become
+a fevs message for the normal case of the OI updating a cached runtime 
+attribute. But when the OI is updating a pure (non cached) runtime attribute
+as a side effect of a processor local OM read request on this attribute, then
+the update of the attribute is actually only done locally and is not sent
+over fevs. Despite this the update of a pure and local runtime attribute 
+followed the same code path and ended up being pushed back with TRY_AGAIN
+towards the OI, if fevs traffic was heavy. This push back (flow control) was
+in this case totally unnecessary since this variant of the runtime attribute
+update message would not be sent over fevs. This potential and unnecessary
+delay of an update of a pure runtime attribute has been removed by this
+enhancement.
+
+
 Provide an admin-operation for aborting all non-critical CCBs (4.7)
 ===================================================================
 http://sourceforge.net/p/opensaf/tickets/1107
@@ -2385,21 +2460,249 @@ http://sourceforge.net/p/opensaf/tickets/1107
 There may arise situations where an open CCB that is not in critical,
 i.e. has not entered the commit protocol yet, is blocking an involved
 service/OI from performing some other task that is more urgent and more
-important than completing that CCB. The best example is the AMF, where
+important than completing that CCB. If the OM client is idling and the 
+built up CCB is so far well formed (accepted by involved OIs) then the
+OM client can linger indefinitely, particularly a human operator.
+
+A good example where a more urgent task may be blocked is the AMF, where
 an si-swap will fail and cause the standby to reboot if it was involved
 in an open CCB when the si-swap order was issued (see ticket #1105).
-Ticket #1105 can be fixed by the AMF (active or standby) sending an
+Ticket #1105 can be fixed by the AMF (active or standby) sending this
 admin-operation directed at the IMM service requesting it to abort non
 critical CCBs. The AMF can either use a synchronous admin-op or an 
-asyncronous admin-op. After the admin-operation has been invoked the AMF 
+asynchronous admin-op. After the admin-operation has been invoked the AMF 
 should allow a few seconds for the CCB to get aborted and the AMF OI to
 get the abort callback for the CCB. That should then clear the path for
 the AMF standby to succeed with the si-swap. 
+
 The admin-operation for aborting non critical CCBs involves requesting the
 operation id '202' directed at the IMM SF service object:
 
 	immadm -o 202 safRdn=immManagement,safApp=safImmService
 
+
+Use error string to classify cause for aborted CCB.(4.7)
+========================================================
+http://sourceforge.net/p/opensaf/tickets/744/
+
+For the case of a ccb-operation resulting in the return of:
+
+    SA_AIS_ERR_FAILED_OPERATION
+
+which means the CCB has been aborted, there is a need for some clients
+to discriminate between the two possible generic categories of abort:
+
+	Validation-abort.
+or
+	Resource-abort.
+
+A validation-abort is the result when the operations added by the OM-client to
+the CCB constitute an *invalid* set of operations according to either
+fundamental rules enforced by the IMM service or model specific rules enforced
+by the involved Ois relative to the *current* state of the database.
+
+A resource-abort is the result if there is a resource problem somewhere in the 
+system such that the CCB can not be committed or further processed at this time.
+There are many kinds of resource aborts. A few examples would be:
+
+      Ccb is aborted because it interferes with another operation in the system.
+      Ccb is aborted due to loss of contact with some involved OI.
+      Ccb is aborted due to loss of contact with PBE before apply request.
+      Ccb is aborted because an OI reports that it has insufficient resources.
+
+Note that SA_AIS_ERR_FAILED_OPERATION is the *only* error code with the meaning
+that the CCB has been aborted. The fact that the CCB has been aborted is the
+dominating issue/fact that must be understood and coped with by any and all
+applications using the CCB interface. The further discrimination into validation
+abort or resource abort is only relevant for *some* applications that are capable
+of handling the abort differently depending on this discrimination.
+
+The fundamental logical difference between validation abort and resource abort
+is that a validation abort is due to the CCB being incorrectly formed by the
+OM-client; while a resource abort is due to problems in the server or OIs
+making it "physically" impossible to successfully commit this CCB even though
+it *may* be a correctly formed CCB.
+
+The possible actionable difference for the OM client between the two abort
+categories is that a replay by the OM client of a resource aborted CCB could
+succeed. This would be the case if the resource problem has been resolved. But
+a replay by the client of a validation aborted CCB will never succeed, except
+for some rare cases where another CCB was interleaved and altered the database
+in such a way as to *make* the replay suddenly become a valid change relative
+to a *new* state. This latter case should be so rare as to be ignored.
+
+So the bottom line is that some applications may wish to determine if an
+aborted CCB that is replayed will have some chance of successfully comitting.
+The application can do this by obtaining the abort category.
+
+This enhancement makes it possible for an application or end-user to obtain the
+abort category. The abort category is prepended as a string prefix to one or more
+error strings returned by saImmOmCcbGetErrorStrings().
+
+A validation aborted CCB will have an error string prefixed with:
+
+             "IMM: Validation abort:"
+
+A resource aborted CCB will have an error string prefixed with:
+
+              "IMM: Resource abort:"
+
+The prefix provides both a readable tag for human end-users and a standardized
+prefix that may be string-matched in a program or script.
+
+Finally there are some subtle issues that should be understood by applications
+intending to discriminate between resource abort and validation abort.
+
+a) A Ccb may be aborted for more than one reason. Thus a Ccb that is actually
+not a valid Ccb (absolutely or relative to current IMM state) may run into a
+resource problem during buildup and thus be aborted as a resource abort before
+it had the chance to be evaluated for validity.
+
+b) There may be more than one OI involved in a Ccb. Some OIs may reply OK
+on validation (completed callback), some OIs may reply with validation 
+error, and some OIs may reply with resource error or default on timeout
+resulting in resource error. The end result is that if there is one validation
+error "vote" then that will dominate the resulting abort category.
+
+c) Validation success or failure often depends on the current state. i.e. 
+the state of the set of involved objects *before* the attempted Ccb. Such a
+state may be changed by some other client applying its own Ccb. So a Ccb
+that is aborted with validation error, may later succeed due to the changed
+prior state. But the assumption here is that the two Ccb clients are not
+communicating with each other and so this possible case should be ignored
+by the application. 
+
+d) There is never any general guarantee that a Ccb that is replayed after a
+resource abort will "sooner or later" be validated successfully and commit.
+Thus any loop that replays a Ccb on resource abort should still limit the
+number of retries.
+
+e) All error strings generated by the IMM service are prefixed with "IMM:"
+The prefix means that the OM client can recognize error strings generated by
+the IMM service as distinct from error strings generated by an OI.
+
+f) For the case where there is no error string or no prefixed error string,
+the application may assume that it is a resource abort. 
+
+g) If the error strings contain prefixes for both validationabort and resource
+abort, then validation abort dominates.
+
+
+Add attribute definition flag SA_IMM_ATTR_DEFAULT_REMOVED (4.7)
+===============================================================
+http://sourceforge.net/p/opensaf/tickets/1471
+
+Support for removing a default value from an attribute definition in a class
+definition has now been added. This kind of upgrade was not allowed previously
+since it is inherently a case of non backwards compatibility and can cause
+problems for legacy applications/users expecting and relying on the default.
+That is after all the entire point of having a default.
+
+This enhancement removes the restriction of not allowing the removal of a
+default value if this new flag is set. The effect of this flag is that
+when/if an object of the class is created with no value assigned to the
+attribute that used to have a default but no longer has a default; then a
+syslog message is generated noting that this attribute used to have a default
+but no longer has a default and will in this case have no value.
+
+This is to assist users or troubleshooters if they get some form of problem
+by the removal of the default. The syslog message should speed up
+troubleshooting and prevent the creation of unnecessary tickets or trouble
+reports.
+
+
+Sync data Mbcsv check pointing can be optimized (4.7)
+=====================================================
+http://sourceforge.net/p/opensaf/tickets/952/
+
+Imm sync messages can be large. They are sent over fevs. Fevs messages are
+handled by the active IMMD by MDS broadcasting them to all IMMNDs. Before
+doing the broadcast, the active IMMD uses the message based checkpoint 
+service Mbcsv, to checkpoint each fevs message to the standby IMMD. This is
+to secure that a failover or switchover of SC/IMMD will not cause any gap
+in the fevs count for the fevs broadcasts. But if a failover actually happens
+during a sync, then the new active IMMD will abort the sync. There is then
+no point in ever re-broadcasting the contents of a sync message. The only
+thing that needs to be re-broadcast is the fevs message header to close any
+gap in the fevs count. This enhancement truncates the sync mesasages to only
+contain the fevs header, before they are checkpointed to the standby IMMD.
+This speeds up the sync and removes some communication load.
+
+
+PBE: imm.db.XXXXXX temp files should managed in pbe subdirectory (4.7)
+======================================================================
+http://sourceforge.net/p/opensaf/tickets/896/
+
+The PBE generates the imm.db file in what should be a local tmp directory.
+This is set by the configuration variable IMMSV_PBE_TMP_DIR in the immnd.conf
+configuration file. By default it is /tmp.
+
+This enhancement of PBE creates a sub-directory to IMMSV_PBE_TMP_DIR where all
+temporary PBE files are created. This will reduce the risk of interference with
+other services and applications sharing the tmp directory. It also facilitates
+the safe cleanup of all such temporary files by a PBE that is restarted.
+
+
+PBE: Detach of PBE should abort all non-critical and non-empty CCBs (4.7)
+=========================================================================
+http://sourceforge.net/p/opensaf/tickets/1261/
+
+This enhancement is related to defect ticket [#1260].
+
+If the PBE detaches while there are any active non-critical and non-empty CCBs,
+then such CCBs should be ABORTED, i.e. prevented from being further processed.
+
+The abort must be done when the detach arrives over fevs. It must NOT be done
+when the initial IMMND local PBE detach occurs, since that would make the ccb
+state deviate locally.
+
+
+Make it possible to run valgrind on osafimmnd when PBE is enabled (4.7)
+=======================================================================
+http://sourceforge.net/p/opensaf/tickets/1496/
+
+A minor enhancement removing an obstacle to executing the IMMND process under
+valgrind when PBE is enabled.
+
+Notes on upgrading from OpenSAF 4.[1,2,3,4,5,6] to OpenSAF (4.7)
+================================================================
+OpenSAF4.7 adds new attribute flag allowing the removal of a default value
+definitions (#1471). During a rolling upgrade from an earlier OpenSAF release
+to the 4.7 release there will be nodes executing the older release concurrently
+with nodes executing OpenSAF 4.7. Nodes executing the earlier release will not
+recognize the new attribute flag originating from nodes executing 4.7.
+
+Because of this upgrade issue, the new attribute flag added in OpenSAF 4.7 is 
+not allowed unless a flag is toggled on in the opensafImmNostdFlags runtime
+attribute in the object:
+
+   opensafImm=opensafImm,safApp=safImmService.
+
+The following is the shell command:
+
+        immadm -o 1 -p opensafImmNostdFlags:SA_UINT32_T:64 \
+           opensafImm=opensafImm,safApp=safImmService
+
+This will set bit 7 of the 'opensafImmNostdFlags' runtime attribute inside the immsv.
+Operation-id '1' invoked on the object:
+
+ 'opensafImm=opensafImm,safApp=safImmService'
+
+has the meaning of 'flags-ON'. Operation-id '2' has the meaning of 'flags-OFF'.
+This flag (and possibly other relevant flags) needs to be toggled ON when the upgrade
+to OpenSAF 4.7 has been successfully completed. This would be in some final step of
+the upgrade. Any cluster start/restart of an OpenSAF4.7 system will always
+automatically toggle on relevant flags. 
+
+In summary:
+
+Bit 1 controls schema (imm class) changes allowed or not (normally off/0).
+Bit 2 controls OpenSAF4.1 protocols allowed or not (normally on/1).
+Bit 3 controls OpenSAF4.3 protocols allowed or not (normally on/1).
+Bit 4 controls 2PBE oneSafe2PBE, see 2PBE feature in OpenSAF4.4 above (normally off/0).
+Bit 5 controls OpenSAF4.5 protocols allowed or not (normally on/1).
+Bit 6 controls OpenSAF4.6 protocols allowed or not (normally on/1).
+Bit 7 controls OpenSAF4.7 protocols allowed or not (normally on/1).
 
 ----------------------------------------
 DEPENDENCIES
