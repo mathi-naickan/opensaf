@@ -1589,7 +1589,7 @@ SaAisErrorT
 immModel_implementerSet(IMMND_CB *cb, const IMMSV_OCTET_STRING* implName,
     SaUint32T implConn, SaUint32T implNodeId,
     SaUint32T implId, MDS_DEST mds_dest,
-    SaUint32T implTimeout)
+    SaUint32T implTimeout, SaBoolT *discardImplementer)
 {
     return 
         ImmModel::instance(&cb->immModel)->implementerSet(implName, 
@@ -1597,7 +1597,8 @@ immModel_implementerSet(IMMND_CB *cb, const IMMSV_OCTET_STRING* implName,
             implNodeId,
             implId,
             (SaUint64T) mds_dest,
-            implTimeout);
+            implTimeout,
+            discardImplementer);
 }
 
 SaAisErrorT 
@@ -13030,11 +13031,14 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
     SaUint32T nodeId,
     SaUint32T implementerId,
     SaUint64T mds_dest,
-    SaUint32T implTimeout)
+    SaUint32T implTimeout,
+    SaBoolT *discardImplementer)
 {
     SaAisErrorT err = SA_AIS_OK;
     CcbVector::iterator i;
     TRACE_ENTER();
+
+    *discardImplementer = SA_FALSE;
 
     if(immNotWritable() && !protocol43Allowed()) {
         TRACE_LEAVE();
@@ -13108,6 +13112,7 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
                                     TRACE("TRY_AGAIN: ccb %u is active on object '%s' "
                                        "bound to class applier '%s'. Can not re-attach applier",
                                        ccb->mId, omit->first.c_str(), implName.c_str());
+                                    *discardImplementer = SA_TRUE;
                                     err = SA_AIS_ERR_TRY_AGAIN;
                                     goto done;
                                 }
@@ -13121,6 +13126,7 @@ ImmModel::implementerSet(const IMMSV_OCTET_STRING* implementerName,
                                 TRACE("TRY_AGAIN: ccb %u is active on object '%s' "
                                       "bound to object applier '%s'. Can not re-attach applier",
                                        ccb->mId, omit->first.c_str(), implName.c_str());
+                                *discardImplementer = SA_TRUE;
                                 err = SA_AIS_ERR_TRY_AGAIN;
                                 goto done;
                             }

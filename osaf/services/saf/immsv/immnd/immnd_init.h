@@ -225,7 +225,7 @@ extern "C" {
 	SaAisErrorT
 	    immModel_implementerSet(IMMND_CB *cb, const IMMSV_OCTET_STRING *implName,
 				    SaUint32T implConn, SaUint32T implNodeId, SaUint32T implId,
-				    MDS_DEST mds_dest, SaUint32T implTimeout);
+				    MDS_DEST mds_dest, SaUint32T implTimeout, SaBoolT *discardImplementer);
 
 	SaAisErrorT
 	    immModel_implementerClear(IMMND_CB *cb, const struct ImmsvOiImplSetReq *req,
