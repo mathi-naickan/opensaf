@@ -43,7 +43,7 @@ TIPC_MAX_NODES=2000
 # at Opensaf start-up , it is per-verified whether any duplicate node
 # exist in the cluster, set TIPC_DUPLICATE_NODE_DETECT set to NO to disable
 # per-verification of duplicate node.
-DUPLICATE_NODE_DETECT=${TIPC_DUPLICATE_NODE_DETECT:-"YES"}
+DUPLICATE_NODE_DETECT=${TIPC_DUPLICATE_NODE_DETECT:-"NO"}
 
 # constants
 SHIFT4=4
