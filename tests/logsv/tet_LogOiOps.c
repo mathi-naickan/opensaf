@@ -3263,6 +3263,44 @@ void verCCBWithInvalidValues(void)
 	}
 }
 
+/**
+ * Add test case for ticket #1420
+ * logsv crashed if performing admin op on configurable obj class.
+ * Test steps:
+ * 1. Create an configurable obj class for app stream.
+ * 2. Perform admin op - changing saLogStreamSeverityFilter with valid value.
+ * 3. Verify that it fails to perform that op.
+ * 4. Delete previous created class.
+ */
+void verAdminOpOnConfClass(void)
+{
+    int rc;
+    char command[256];
+
+	/* Create an configurable obj class */
+    strcpy(command, "immcfg -c SaLogStreamConfig safLgStrCfg=adminOp,safApp=safLogService "
+		   "-a saLogStreamFileName=adminOp -a saLogStreamPathName=. -a saLogStreamMaxFilesRotated=4 "
+		   "2> /dev/null");
+    rc = system(command);
+
+    if (WEXITSTATUS(rc) == 1) {
+		/* Failed to perfom command. Report test failed and return. */
+		fprintf(stderr, "Failed to perform command = %s \n", command);
+		rc_validate(WEXITSTATUS(rc), 0);
+		return;
+	}
+
+	/* Perfom admin operation on the configurable obj class */
+	strcpy(command, "immadm -o 1 -p saLogStreamSeverityFilter:SA_UINT32_T:100 "
+		   "safLgStrCfg=adminOp,safApp=safLogService 2> /dev/null");
+	rc = system(command);
+	rc_validate(WEXITSTATUS(rc), 1);
+
+	/* Delete the created class */
+	strcpy(command, "immcfg -d  safLgStrCfg=adminOp,safApp=safLogService");
+	rc = system(command);
+}
+
 __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -3383,6 +3421,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	test_case_add(6, saLogOi_77, "Create: saLogStreamMaxFilesRotated > 128, ERR");
 	test_case_add(6, saLogOi_78, "Create: saLogStreamMaxFilesRotated == 128, ERR");
 	test_case_add(6, verMaxFilesRotated, "Create: saLogStreamMaxFilesRotated = 0, ERR");
+	test_case_add(6, verAdminOpOnConfClass, "Perform admin op on configurable obj class, ERR");
 
 	/* Tests for modify */
 	test_case_add(6, saLogOi_100, "Modify: saLogStreamSeverityFilter <= 0x7f, Ok");
