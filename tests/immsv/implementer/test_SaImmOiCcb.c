@@ -62,6 +62,8 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle,
     SaImmOiCcbIdT ccbId)
 {
     TRACE_ENTER();
+    if(saImmOiCcbCompletedCallback_response != SA_AIS_OK)
+        safassert(saImmOiCcbSetErrorString(immOiHandle, ccbId, (SaStringT)"Set error string in saImmOiCcbObjectCompletedCallback"), SA_AIS_OK);
     return saImmOiCcbCompletedCallback_response;
 }
 
@@ -651,6 +653,64 @@ static void saImmOiCcb_08(void)
     TRACE_LEAVE();
 }
 
+static void saImmOiCcb_09(void)
+{
+    int res;
+    pthread_t threadid;
+    const SaStringT *errorStrings = NULL;
+    SaImmHandleT omHandle;
+    SaImmAdminOwnerHandleT ownerHandle;
+    SaImmCcbHandleT ccbHandle;
+    SaVersionT immVersion = {'A', 0x02, 0x16};
+    const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT)__FUNCTION__;
+    const SaNameT obj = { strlen("rdn=1"), "rdn=1" };
+    SaAisErrorT rc;
+
+    TRACE_ENTER();
+
+    /* Create implementer threads */
+    res = pthread_create(&threadid, NULL, classImplementerThreadMain, configClassName);
+    assert(res == 0);
+
+    saImmOiCcbCompletedCallback_response = SA_AIS_ERR_BAD_OPERATION;
+    sleep(1); /* Race condition, allow implementer threads to set up!*/
+
+    safassert(saImmOmInitialize(&omHandle, NULL, &immVersion), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(omHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
+    safassert(object_create_2(omHandle, ccbHandle, configClassName, &obj, NULL, NULL), SA_AIS_OK);
+
+    rc = saImmOmCcbApply(ccbHandle);
+
+    if(rc == SA_AIS_ERR_FAILED_OPERATION) {
+        safassert(saImmOmCcbGetErrorStrings(ccbHandle, &errorStrings), SA_AIS_OK);
+
+        int i;
+        for(i=0; errorStrings[i]; i++) {
+            if(strstr(errorStrings[i], "IMM: Validation abort:") == errorStrings[i]) {
+                break;
+            }
+        }
+
+        if(!errorStrings[i]) {
+            // Failed test case. Error strings don't have validation abort error string
+            // Error core is changed to SA_AIS_ERR_INVALID_PARAM to fail the test
+            rc = SA_AIS_ERR_INVALID_PARAM;
+        }
+    }
+
+    test_validate(rc, SA_AIS_ERR_FAILED_OPERATION);
+
+    safassert(object_delete(ownerHandle, &obj, 0), SA_AIS_OK);
+    safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
+    safassert(saImmOmFinalize(omHandle), SA_AIS_OK);
+
+    pthread_join(threadid, NULL);
+
+    saImmOiCcbCompletedCallback_response = SA_AIS_OK;
+    TRACE_LEAVE();
+}
 
 __attribute__ ((constructor)) static void saImmOiCcb_constructor(void)
 {
@@ -667,5 +727,6 @@ __attribute__ ((constructor)) static void saImmOiCcb_constructor(void)
     test_case_add(4, saImmOiCcb_06, "saImmOiCcb - SA_AIS_OK - saImmOmCcbValidate followed by saImmOmCcbApply");
     test_case_add(4, saImmOiCcb_07, "saImmOiCcb - SA_AIS_OK - saImmOmCcbValidate followed by saImmOmCcbAbort");
     test_case_add(4, saImmOiCcb_08, "saImmOiCcb - SA_AIS_ERR_FAILED_OPERATION - saImmOmCcbValidate (OI reports error) followed by saImmOmCcbAbort");
+    test_case_add(4, saImmOiCcb_09, "saImmOiCcb - SA_AIS_FAILED_OPERATION - Validation abort in saImmOmCcbGetErrorStrings");
 }
 
