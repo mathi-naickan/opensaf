@@ -400,6 +400,27 @@ void process_su_si_response_for_ng(AVD_SU *su, SaAisErrorT res)
 		ng->node_oper_list.erase(Amf::to_string(&node->name));
 		TRACE("node_oper_list size:%u",ng->oper_list_size());
 	}
+
+	/*Handling for the case: There are pending assignments on more than one SUs
+	  on same node of nodegroup with atleast one quiescing assignment and controller
+	  failover occured. 
+	  Below if block will be hit only when assignments for quiescing state are still pending 
+	  on atleast one SU and on atleast one node of NG.
+	*/
+	if ((ng->saAmfNGAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) &&
+			(ng->admin_ng_pend_cbk.admin_oper == 0) && 
+			(ng->admin_ng_pend_cbk.invocation == 0)) {
+		/*During SHUTDOWN admin operation on NG, initial admin state is set to SHUTTING_DOWN
+		  and it is checkpointed to standby AMFD. On decoding it, standby AMFD sets
+		  node->admin_ng and it clears it when active AMFD checkpoints the LOCKED state.
+		  In case active AMFD sends quiescing state and reboots after checkpointing only 
+		  SHUTTING_DOWN state, standby AMFD will be able to mark NG LOCKED by processing
+		  response of assignments as it has set node->admin_ng. So this pointer should be
+		  cleared only when NG is marked LOCKED. And in that case we will not be in this if block. 
+		 */
+		TRACE_1("'%s' in shutting_down state after failover.",ng->name.value);
+		goto done;
+	}
 	/*If assignment changes are done on all the SUs on each node of nodegroup
 	  then reply to IMM for status of admin operation.*/
 	if (ng->node_oper_list.empty())
