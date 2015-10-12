@@ -1,7 +1,7 @@
 #
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2008 The OpenSAF Foundation
+# (C) Copyright 2008,2015 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -13,6 +13,7 @@
 # licensing terms.
 #
 # Author(s):  Emerson Network Power
+#             Ericsson AB
 #
 
 GENERAL
@@ -54,6 +55,31 @@ SA_CLM_AF_INET(i.e. for IPv4) and SA_CLM_AF_INET6
 
 The CLMA is the clm agent library that user applications shall link with.
 
+
+SCALE OUT
+
+The scale-out feature makes it possible to run a customizable script when a node
+which is not configured in IMM tries to join the cluster. The intention is that
+the script will check if the new node is eligible to be added to the cluster,
+and if so add the necessary IMM objects so that the node will be able to join
+the next time it tries. The script will be called with one or more command-line
+arguments, where each argument is a comma-separated list of properties of a node
+that wishes to join the cluster. Currently, the comma-separated list in each
+command-line argument contains only two entries, but the script should be
+forwards compatible with future extensions where more entries may be added to
+the comma-separated list. The first entry in the list is the node id represented
+as a decimal number. The second entry in the list is the name of the node.
+
+NOTE: the script must be idempotent, i.e. it must be harmless to call it more
+than one time with the same parameters. The second call should do nothing since
+the nodes were added to the cluster the first time the script was called.
+
+To enable the scale-out feature in CLM, set the variable
+OPENSAF_CLUSTERAUTO_SCALE_ENABLED in nid.conf to the value 1. You must also
+customize the script $pkglibdir/opensaf_scale_out so that it adds the IMM
+objects needed necessary for the node to join the cluster.
+
+
 DEPENDENCIES
 
 CLMSv depends on the following services:
@@ -85,4 +111,5 @@ CONFIGURATION FILES
 CONTRIBUTORS/MAINTAINERS
 Meena Sangeeta <sangeeta.meena@emerson.com>
 Manoj Lalavat <manoj.lalavat@emerson.com>
+
 

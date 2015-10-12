@@ -181,7 +181,8 @@ nodist_pkgsysconf_DATA = \
 
 osaf_execbindir = $(pkglibdir)
 dist_osaf_execbin_SCRIPTS = \
-	$(top_srcdir)/scripts/opensaf_reboot 
+	$(top_srcdir)/scripts/opensaf_reboot \
+	$(top_srcdir)/scripts/opensaf_scale_out
 
 if ENABLE_RPM_TARGET
 

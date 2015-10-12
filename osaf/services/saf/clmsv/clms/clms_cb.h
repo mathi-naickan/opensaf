@@ -1,6 +1,6 @@
 /*      -*- OpenSAF  -*-
  *
- * (C) Copyright 2010 The OpenSAF Foundation
+ * (C) Copyright 2010,2015 The OpenSAF Foundation
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -12,15 +12,29 @@
  * licensing terms.
  *
  * Author(s):  Emerson Network Power
+ *             Ericsson AB
  */
 
 #ifndef CLMS_CB_H
 #define CLMS_CB_H
 
 #include <stdbool.h>
+#include <pthread.h>
 
 #define IMPLEMENTER_NAME	"safClmService"
 #define CLMS_HA_INIT_STATE	0
+
+/* The maximum number of nodes that can be queued for scale-out while the
+   scale-out script is executing */
+#define MAX_PENDING_NODES	32
+
+/* The value to put in the PATH environment variable when calling the
+   scale-out script */
+#define SCALE_OUT_PATH_ENV "/usr/local/sbin:/usr/local/bin:/usr/sbin:" \
+	"/usr/bin:/sbin:/bin"
+
+/* Full path to the scale-out script. */
+#define SCALE_OUT_SCRIPT PKGLIBDIR "/opensaf_scale_out"
 
 typedef enum clms_tmr_type_t {
 	CLMS_TMR_BASE,
@@ -204,6 +218,27 @@ typedef struct clms_cb_t {
 	bool is_impl_set;
 	bool nid_started;	/**< true if started by NID */
 	NCS_PATRICIA_TREE iplist;	/* To temporarily store ipaddress information recieved in MDS NODE_UP */
+
+	/* Mutex protecting shared data used by the scale-out functionality */
+	pthread_mutex_t scale_out_data_mutex;
+	/* Number of occupied indices in the vectors pending_nodes[] and
+	 * pending_node_ids[] */
+	size_t no_of_pending_nodes;
+	/* Number of occupied indices in the vector inprogress_node_ids[] */
+	size_t no_of_inprogress_nodes;
+	/* Names of the nodes to be added in the next run of the scale-out
+	 * script */
+	char *pending_nodes[MAX_PENDING_NODES + 1];
+	/* Node ids of the nodes to be added in the next run of the the
+	 * scale-out script */
+	SaClmNodeIdT pending_node_ids[MAX_PENDING_NODES + 1];
+	/* Node ids of the nodes that are being added by the currently executing
+	 * instance of the scale-out script */
+	SaClmNodeIdT inprogress_node_ids[MAX_PENDING_NODES + 1];
+	/* True if the scale-out thread is currently running */
+	bool is_scale_out_thread_running;
+	/* Full path to the scale-out script, or NULL if feature is disabled */
+	char *scale_out_script;
 } CLMS_CB;
 
 typedef struct clms_lock_tmr_t {

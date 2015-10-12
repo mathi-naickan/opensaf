@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+#      -*- OpenSAF  -*-
+#
+# (C) Copyright 2015 The OpenSAF Foundation
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
+#
+# Author(s): Ericsson AB
+#
+
+. /etc/opensaf/osafdir.conf
+
+export PATH=$sbindir:$bindir:$PATH
+export LD_LIBRARY_PATH=$libdir:$LD_LIBRARY_PATH
+
+# NOTE 1: This script is a customization point between OpenSAF and a target
+# system and should be changed according to the needs of such system.
+
+# NOTE 2: The script must be idempotent, i.e. it must be harmless to call it
+# more than one time with the same parameters. The second call should do nothing
+# since the nodes were added to the cluster the first time the script was
+# called.
+
+# NOTE 3: This example script requires write access to the $pkgimmxmldir
+# directory
+
+# Remove the following line when customizing this script.
+exit 0
+
+cd "$pkgimmxmldir"
+immfind -c SaClmNode | sed -e 's/^[^=]*=//;s/,.*$//' > nodes.cfg.tmp
+for node in "$@"; do
+    node_name=$(echo "$node" | cut -d, -f2)
+    echo "$node_name" >> nodes.cfg.tmp
+done
+rm -f nodes.cfg
+for node in $(sort < nodes.cfg.tmp | uniq); do
+    case "$node" in
+    PL*)
+	node_type=PL
+	;;
+    *)
+	node_type=SC
+	;;
+    esac
+    echo "$node_type $node $node" >> nodes.cfg
+done
+rm -f nodes.cfg.tmp imm_generated.xml
+./immxml-configure imm_generated.xml && immcfg -f imm_generated.xml

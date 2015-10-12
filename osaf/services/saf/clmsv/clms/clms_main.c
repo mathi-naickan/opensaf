@@ -1,6 +1,6 @@
 /*      -*- OpenSAF  -*-
  *
- * (C) Copyright 2008 The OpenSAF Foundation
+ * (C) Copyright 2008,2015 The OpenSAF Foundation
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -12,6 +12,7 @@
  * licensing terms.
  *
  * Author(s):  Emerson Network Power
+ *             Ericsson AB
  *
  */
 
@@ -225,6 +226,27 @@ uint32_t clms_cb_init(CLMS_CB * clms_cb)
 	clms_cb->immOiHandle = 0;
 	clms_cb->is_impl_set = false;
 	clms_cb->rtu_pending = false; /* Flag to control try-again of rt-updates */
+
+	if (pthread_mutex_init(&clms_cb->scale_out_data_mutex, NULL) != 0) {
+		return NCSCC_RC_FAILURE;
+	}
+	clms_cb->no_of_pending_nodes = 0;
+	clms_cb->no_of_inprogress_nodes = 0;
+	for (int i = 0; i != (MAX_PENDING_NODES + 1); ++i) {
+		clms_cb->pending_nodes[i] = NULL;
+		clms_cb->pending_node_ids[i] = 0;
+		clms_cb->inprogress_node_ids[i] = 0;
+	}
+	clms_cb->is_scale_out_thread_running = false;
+	clms_cb->scale_out_script = NULL;
+	char *enable_scale_out = getenv("OPENSAF_CLUSTERAUTO_SCALE_ENABLED");
+	if (enable_scale_out != NULL && strcmp(enable_scale_out, "0") != 0) {
+		LOG_IN("Scale out enabled");
+		clms_cb->scale_out_script = strdup(SCALE_OUT_SCRIPT);
+		if (clms_cb->scale_out_script == NULL) return NCSCC_RC_FAILURE;
+	} else {
+		LOG_IN("Scale out not enabled");
+	}
 
 	/* Assign Version. Currently, hardcoded, This will change later */
 	clms_cb->clm_ver.releaseCode = CLM_RELEASE_CODE;

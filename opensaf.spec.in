@@ -947,6 +947,7 @@ fi
 %config %{_initddir}/opensafd
 %{_pkglibdir}/opensafd
 %{_pkglibdir}/opensaf_reboot
+%{_pkglibdir}/opensaf_scale_out
 %{_pkglibdir}/configure_tipc
 
 
