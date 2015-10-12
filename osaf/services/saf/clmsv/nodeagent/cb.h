@@ -1,6 +1,6 @@
 /*      -*- OpenSAF  -*-
  *
- * (C) Copyright 2010 The OpenSAF Foundation
+ * (C) Copyright 2010,2015 The OpenSAF Foundation
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -12,6 +12,7 @@
  * licensing terms.
  *
  * Author(s):  GoAhead Software
+ *             Ericsson AB
  *
  */
 
@@ -20,6 +21,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <poll.h>
 #include <unistd.h>
@@ -28,6 +30,7 @@
 #include <nid_api.h>
 #include <mds_papi.h>
 #include <ncssysf_ipc.h>
+#include <ncssysf_tmr.h>
 
 
 /* Self node information */
@@ -51,6 +54,8 @@ typedef struct clmna_cb_t {
 	SaAmfHAStateT ha_state;	/* My current AMF HA state */
 	SaBoolT server_synced;
 	NODE_INFO node_info;
+	tmr_t scale_out_retry_tmr;
+	bool is_scale_out_retry_tmr_running;
 	bool nid_started;	/**< true if started by NID */
 } CLMNA_CB;
 

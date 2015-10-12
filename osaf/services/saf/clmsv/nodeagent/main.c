@@ -1,6 +1,6 @@
 /*      -*- OpenSAF  -*-
  *
- * (C) Copyright 2010 The OpenSAF Foundation
+ * (C) Copyright 2010,2015 The OpenSAF Foundation
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -12,9 +12,11 @@
  * licensing terms.
  *
  * Author(s):  Emerson Network Power
+ *             Ericsson AB
  *
  */
 
+#include <stdbool.h>
 #include "cb.h"
 #include <ncs_main_papi.h>
 #include <ncs_hdl_pub.h>
@@ -46,6 +48,7 @@ static NCS_SEL_OBJ usr1_sel_obj;
 
 #define CLMNA_MDS_SUB_PART_VERSION   1
 #define CLMS_NODEUP_WAIT_TIME 1000
+#define CLMNA_SCALE_OUT_RETRY_TIME 100
 #define CLMNA_SVC_PVT_SUBPART_VERSION  1
 #define CLMNA_WRT_CLMS_SUBPART_VER_AT_MIN_MSG_FMT 1
 #define CLMNA_WRT_CLMS_SUBPART_VER_AT_MAX_MSG_FMT 1
@@ -64,7 +67,7 @@ static MDS_CLIENT_MSG_FORMAT_VER
 
 static uint32_t clmna_mds_enc(struct ncsmds_callback_info *info);
 static uint32_t clmna_mds_callback(struct ncsmds_callback_info *info);
-SaAisErrorT clmna_process_dummyup_msg(void);
+SaAisErrorT clmna_process_dummyup_msg(bool caused_by_timer_expiry);
 
 static uint32_t clmna_mds_cpy(struct ncsmds_callback_info *info)
 {
@@ -168,6 +171,7 @@ static uint32_t clmna_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info)
 			TRACE("svc_id %d", mds_cb_info->info.svc_evt.i_svc_id);
 			evt = calloc(1, sizeof(CLMNA_EVT));
 			evt->type = CLMNA_EVT_DUMMY_MSG;
+			evt->caused_by_timer_expiry = false;
 			if (m_NCS_IPC_SEND(&clmna_cb->mbx, evt, NCS_IPC_PRIORITY_VERY_HIGH) != NCSCC_RC_SUCCESS)
 				LOG_ER("IPC send to mailbox failed: %s", __FUNCTION__);
 			break;
@@ -423,7 +427,51 @@ static uint32_t clmna_mds_msg_sync_send(CLMSV_MSG * i_msg, CLMSV_MSG ** o_msg, u
 	return rc;
 }
 
-SaAisErrorT clmna_process_dummyup_msg(void)
+static void scale_out_tmr_exp(void *arg)
+{
+	TRACE_ENTER();
+	(void) arg;
+	if (clmna_cb->is_scale_out_retry_tmr_running == true) {
+		CLMNA_EVT *evt = calloc(1, sizeof(CLMNA_EVT));
+		if (evt != NULL) {
+			evt->type = CLMNA_EVT_DUMMY_MSG;
+			evt->caused_by_timer_expiry = true;
+			if (m_NCS_IPC_SEND(&clmna_cb->mbx, evt,
+				NCS_IPC_PRIORITY_VERY_HIGH) != NCSCC_RC_SUCCESS)
+				LOG_ER("IPC send to mailbox failed: %s",
+					__FUNCTION__);
+		} else {
+			LOG_ER("Could not allocate IPC event: %s",
+				__FUNCTION__);
+		}
+	} else {
+		LOG_ER("Unexpected scale out timer expiration: %s",
+			__FUNCTION__);
+	}
+	clmna_cb->is_scale_out_retry_tmr_running = false;
+	TRACE_LEAVE();
+}
+
+static void start_scale_out_retry_tmr(void)
+{
+	TRACE_ENTER();
+	if (clmna_cb->scale_out_retry_tmr == NULL) {
+		m_NCS_TMR_CREATE(clmna_cb->scale_out_retry_tmr,
+			CLMNA_SCALE_OUT_RETRY_TIME, scale_out_tmr_exp, NULL);
+	}
+
+	if (clmna_cb->scale_out_retry_tmr != NULL &&
+		clmna_cb->is_scale_out_retry_tmr_running == false) {
+		m_NCS_TMR_START(clmna_cb->scale_out_retry_tmr,
+			CLMNA_SCALE_OUT_RETRY_TIME, scale_out_tmr_exp, NULL);
+		if (clmna_cb->scale_out_retry_tmr != NULL) {
+			clmna_cb->is_scale_out_retry_tmr_running = true;
+		}
+	}
+	TRACE_LEAVE();
+}
+
+SaAisErrorT clmna_process_dummyup_msg(bool caused_by_timer_expiry)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	SaAisErrorT error = SA_AIS_OK;
@@ -472,6 +520,19 @@ SaAisErrorT clmna_process_dummyup_msg(void)
 				     * For now, just pass on the error to nid.
 				     */
 			goto done;
+		} else if (error == SA_AIS_ERR_TRY_AGAIN) {
+			if (caused_by_timer_expiry) {
+				LOG_IN("Re-trying to scale out %s",
+					o_msg->info.api_resp_info.param.
+					node_name.value);
+			} else {
+				LOG_NO("%s has been queued for scale-out",
+					o_msg->info.api_resp_info.param.
+					node_name.value);
+			}
+			start_scale_out_retry_tmr();
+			free(o_msg);
+			goto retry;
 		}
 
 		if (error == SA_AIS_OK) {
@@ -491,6 +552,7 @@ done:
 		nid_notify("CLMNA", rc, NULL) != NCSCC_RC_SUCCESS) {
 		LOG_ER("nid notify failed");
 	}
+retry:
 	return rc;
 }
 
@@ -507,7 +569,8 @@ void clmna_process_mbx(SYSF_MBX *mbx)
 	switch (msg->type) {
 	case CLMNA_EVT_DUMMY_MSG:
 		if (clmna_cb->server_synced == false) {
-			if (clmna_process_dummyup_msg() != SA_AIS_OK) {
+			if (clmna_process_dummyup_msg(msg->
+				caused_by_timer_expiry) != SA_AIS_OK) {
 				/* NID will anyway stop and retry */
 				LOG_ER("Exiting");
 				free(msg);
@@ -552,6 +615,8 @@ int main(int argc, char *argv[])
 	/* Initialize some basic stuff */
 	clmna_cb->amf_hdl = 0;
 	clmna_cb->server_synced = false;
+	clmna_cb->scale_out_retry_tmr = NULL;
+	clmna_cb->is_scale_out_retry_tmr_running = false;
 
 	/* Determine how this process was started, by NID or AMF */
 	if (getenv("SA_AMF_COMPONENT_NAME") == NULL)

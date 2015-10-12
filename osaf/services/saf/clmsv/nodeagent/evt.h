@@ -1,6 +1,6 @@
 /*      -*- OpenSAF  -*-
  *
- * (C) Copyright 2010 The OpenSAF Foundation
+ * (C) Copyright 2010,2015 The OpenSAF Foundation
  *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -12,12 +12,14 @@
  * licensing terms.
  *
  * Author(s):  GoAhead Software
+ *             Ericsson AB
  *
  */
 
 #ifndef EVT_H
 #define EVT_H
 
+#include <stdbool.h>
 
 typedef NCS_IPC_MSG CLMNA_MBX_MSG;
 typedef enum clmna_evt_type {
@@ -29,6 +31,7 @@ typedef enum clmna_evt_type {
 typedef struct clmna_evt_tags {
 	CLMNA_MBX_MSG next;
 	CLMNA_EVT_TYPE type;
+	bool caused_by_timer_expiry;
 } CLMNA_EVT;
 
 
