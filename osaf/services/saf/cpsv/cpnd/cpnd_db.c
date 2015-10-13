@@ -429,19 +429,30 @@ CPND_CKPT_SECTION_INFO *cpnd_ckpt_sec_add(CPND_CKPT_NODE *cp_node, SaCkptSection
 	rc = cpnd_ckpt_sec_add_db(&cp_node->replica_info, pSecPtr);
 	if (rc == NCSCC_RC_FAILURE) {
 		LOG_ER("unable to add section to database");
+		m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
+		pSecPtr = NULL;
 	}
+	
+	if(pSecPtr != NULL)
+		cp_node->replica_info.n_secs++;
 
-	cp_node->replica_info.n_secs++;
 	/* UPDATE THE SECTION HEADER */
 	rc = cpnd_sec_hdr_update(pSecPtr, cp_node);
 	if (rc == NCSCC_RC_FAILURE) {
 		TRACE_4("cpnd sect hdr update failed");
+		m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
+		cpnd_ckpt_sec_del(cp_node, id);
+		pSecPtr = NULL;
 	}
 	/* UPDATE THE CHECKPOINT HEADER */
 	rc = cpnd_ckpt_hdr_update(cp_node);
 	if (rc == NCSCC_RC_FAILURE) {
 		TRACE_4("cpnd ckpt hdr update failed");
+		m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
+		cpnd_ckpt_sec_del(cp_node, id);
+		pSecPtr = NULL;
 	}
+
 	TRACE_LEAVE();
 	return pSecPtr;
 
