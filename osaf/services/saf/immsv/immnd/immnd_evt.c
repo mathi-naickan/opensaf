@@ -9364,6 +9364,7 @@ static void immnd_evt_proc_impl_set_rsp(IMMND_CB *cb,
 	NCS_NODE_ID nodeId;
 	SaUint32T conn;
 	SaUint32T implId = 0;
+	SaBoolT discardImplementer = SA_FALSE;
 
 	osafassert(evt);
 	osafassert(!originatedAtThisNd || reply_dest == cb->immnd_mdest_id);
@@ -9380,13 +9381,13 @@ static void immnd_evt_proc_impl_set_rsp(IMMND_CB *cb,
 
 	err = immModel_implementerSet(cb, &(evt->info.implSet.impl_name),
 			(originatedAtThisNd) ? conn : 0, nodeId, implId,
-			reply_dest, evt->info.implSet.oi_timeout);
+			reply_dest, evt->info.implSet.oi_timeout, &discardImplementer);
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);
-		if (cl_node == NULL) {
+		if ((cl_node == NULL) || (discardImplementer == SA_TRUE)) {
 			/* Client was down */
-			TRACE_5("Failed to get client node, discarding implementer id:%u for connection: %u", implId, conn);
+			TRACE_5("Discarding implementer id:%u for connection: %u", implId, conn);
 			memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 			send_evt.type = IMMSV_EVT_TYPE_IMMD;
 			send_evt.info.immd.type = IMMD_EVT_ND2D_DISCARD_IMPL;
@@ -9397,8 +9398,12 @@ static void immnd_evt_proc_impl_set_rsp(IMMND_CB *cb,
 			/* Mark the implementer as dying to make sure no upcall is sent to the client.
 			   The implementer will be really discarded when global-discard message comes */
 			immModel_discardImplementer(cb, implId, SA_FALSE);
-			return;
-		} else if (cl_node->mIsStale) {
+
+			if(cl_node == NULL) {
+				return;
+			}
+		}
+		if (cl_node->mIsStale) {
 			LOG_WA("IMMND - Client went down so no response");
 			return;
 		}

@@ -390,7 +390,8 @@ public:
                                        SaUint32T nodeId,
                                        SaUint32T ownerId,
                                        SaUint64T mds_dest,
-                                       SaUint32T implTimeout);
+                                       SaUint32T implTimeout,
+                                       SaBoolT *discardImplementer);
     
     SaAisErrorT         classImplementerSet(
                                             const struct ImmsvOiImplSetReq* req,
