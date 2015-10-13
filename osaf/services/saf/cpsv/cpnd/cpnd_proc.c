@@ -1697,6 +1697,11 @@ cpnd_proc_getnext_section(CPND_CKPT_NODE *cp_node,
 
 		switch (get_next->filter) {
 		case SA_CKPT_SECTIONS_ANY:
+			if (pTmpSecPtr == NULL) {
+				TRACE_4("cpnd replica has no sections ");
+				TRACE_LEAVE();
+				return NCSCC_RC_FAILURE;
+			}
 			(*n_secs_trav)++;
 			break;
 
