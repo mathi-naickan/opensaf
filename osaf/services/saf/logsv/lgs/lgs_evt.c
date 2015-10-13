@@ -782,6 +782,7 @@ static SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param
 	SaAisErrorT rc = SA_AIS_OK;
 	log_stream_t *stream;
 	SaBoolT twelveHourModeFlag;
+	uint32_t len = 0;
 
 	TRACE_ENTER();
 
@@ -844,6 +845,22 @@ static SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param
 		((open_sync_param->maxLogRecordSize < SA_LOG_MIN_RECORD_SIZE) ||
 		(open_sync_param->maxLogRecordSize > logMaxLogrecsize_conf))) {
 		TRACE("maxLogRecordSize is invalid");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done;
+	}
+
+	/* Verify if logFileName length is valid */
+	len = strlen(open_sync_param->logFileName);
+	if ((len == 0) || (len > LOG_NAME_MAX)) {
+		TRACE("logFileName is invalid");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done;
+	}
+
+	/* Verify if logFilePathName length is valid */
+	len = strlen(open_sync_param->logFilePathName);
+	if ((len == 0) || (len > PATH_MAX)) {
+		TRACE("logFilePathName is invalid");
 		rc = SA_AIS_ERR_INVALID_PARAM;
 		goto done;
 	}

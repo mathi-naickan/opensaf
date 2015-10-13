@@ -3318,6 +3318,50 @@ void verFixLogRec_Min(void)
     rc_validate(WEXITSTATUS(rc), 1);
 }
 
+
+/**
+ * Test cases to verify #1493
+ */
+
+/* Verify that it is not allowed to pass a string value to
+ * saLogStreamFileName which its length is larger than 218.
+ */
+void verFilenameLength_01(void)
+{
+    int rc;
+    char command[500];
+	char fileName[220];
+
+	/* Create a string with 218 characters */
+	memset(fileName, 'A', 218);
+	fileName[219] = '\0';
+
+	/* Create an configurable obj class with invalid filename length */
+    sprintf(command, "immcfg -c SaLogStreamConfig safLgStrCfg=TestLength "
+		   "-a saLogStreamFileName=\"%s\" -a saLogStreamPathName=. "
+		   "2> /dev/null", fileName);
+    rc = system(command);
+	rc_validate(WEXITSTATUS(rc), 1);
+}
+
+/* Modify an existing value */
+void verFilenameLength_02(void)
+{
+    int rc;
+    char command[500];
+	char fileName[220];
+
+	/* Create a string with 218 characters */
+	memset(fileName, 'A', 218);
+	fileName[219] = '\0';
+
+	/* Create an configurable obj class with invalid filename length */
+    sprintf(command, "immcfg -a saLogStreamFileName=. -a saLogStreamPathName=\"%s\" %s "
+		   "2> /dev/null", fileName, SA_LOG_STREAM_ALARM);
+    rc = system(command);
+	rc_validate(WEXITSTATUS(rc), 1);
+}
+
 __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -3419,7 +3463,6 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	test_case_add(5, verCCBWithValidValues, "CCB Object Modify many attributes with valid values, OK");
 	test_case_add(5, verCCBWithInvalidValues, "CCB Object Modify many attributes with one invalid values, ERR");
 
-
 	/* Stream configuration object */
 	/* Tests for create */
 	test_suite_add(6, "LOG OI tests, Stream configuration object attribute validation");
@@ -3437,6 +3480,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	test_case_add(6, saLogOi_76, "Create: saLogStreamMaxFilesRotated < 128, Ok");
 	test_case_add(6, saLogOi_77, "Create: saLogStreamMaxFilesRotated > 128, ERR");
 	test_case_add(6, saLogOi_78, "Create: saLogStreamMaxFilesRotated == 128, ERR");
+	test_case_add(6, verFilenameLength_01, "Create: saLogStreamFileName > 218 characters, ERR");
 	test_case_add(6, verMaxFilesRotated, "Create: saLogStreamMaxFilesRotated = 0, ERR");
 	test_case_add(6, verAdminOpOnConfClass, "Perform admin op on configurable obj class, ERR");
 
@@ -3461,6 +3505,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	test_case_add(6, saLogOi_113, "Modify: saLogStreamMaxFilesRotated < 128, Ok");
 	test_case_add(6, saLogOi_114, "Modify: saLogStreamMaxFilesRotated > 128, ERR");
 	test_case_add(6, saLogOi_115, "Modify: saLogStreamMaxFilesRotated == 128, ERR");
+	test_case_add(6, verFilenameLength_02, "Modify: saLogStreamFileName > 218 characters, ERR");
 
 	/* Add test cases to test #1288 */
 	test_case_add(6, verMaxLogRecord_01, "Modify: saLogStreamFixedLogRecordSize == 0, write a record = 65535 bytes, OK");

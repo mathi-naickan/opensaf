@@ -531,6 +531,58 @@ done:
     }
 }
 
+/**
+ * Verify that logFileName length > 218 characters is not allowed.
+ */
+void saLogStreamOpen_2_48(void)
+{
+    SaAisErrorT rc = SA_AIS_OK;
+    SaNameT logStreamName = {.length = 0 };
+    char fileName[220];
+
+    memset(fileName, 'A', 218);
+    fileName[219] = '\0';
+
+    strcpy((char *)logStreamName.value, SA_LOG_STREAM_APPLICATION1);
+    logStreamName.length = strlen((char *)logStreamName.value);
+
+    SaLogFileCreateAttributesT_2 appLogFileCreateAttributes;
+
+    /* App stream information */
+    appLogFileCreateAttributes.logFilePathName = "appstream";
+    appLogFileCreateAttributes.logFileName = fileName;
+    appLogFileCreateAttributes.maxLogFileSize = DEFAULT_APP_LOG_FILE_SIZE;
+    appLogFileCreateAttributes.maxLogRecordSize = DEFAULT_APP_LOG_REC_SIZE;
+    appLogFileCreateAttributes.haProperty = SA_TRUE;
+    appLogFileCreateAttributes.logFileFullAction = SA_LOG_FILE_FULL_ACTION_ROTATE;
+    appLogFileCreateAttributes.maxFilesRotated = 128;
+    appLogFileCreateAttributes.logFileFmt = NULL;
+
+    rc = saLogInitialize(&logHandle, &logCallbacks, &logVersion);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed at saLogInitialize: %d\n ", (int)rc);
+        test_validate(rc, SA_AIS_OK);
+        return;
+    }
+
+    rc = saLogSelectionObjectGet(logHandle, &selectionObject);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed at saLogSelectionObjectGet: %d \n ", (int)rc);
+        test_validate(rc, SA_AIS_OK);
+        goto done;
+    }
+
+    rc = saLogStreamOpen_2(logHandle, &logStreamName, &appLogFileCreateAttributes,
+                            SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle);
+    test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+
+done:
+    rc = saLogFinalize(logHandle);
+    if (rc != SA_AIS_OK) {
+        fprintf(stderr, "Failed to call salogFinalize: %d\n", (int) rc);
+    }
+}
+
 extern void saLogStreamOpenAsync_2_01(void);
 extern void saLogStreamOpenCallbackT_01(void);
 extern void saLogWriteLog_01(void);
@@ -607,6 +659,8 @@ __attribute__ ((constructor)) static void saLibraryLifeCycle_constructor(void)
     test_case_add(2, saLogStreamClose_01, "saLogStreamClose OK");
     test_case_add(2, saLogStreamOpen_2_46, "saLogStreamOpen_2 with maxFilesRotated = 0, ERR");
     test_case_add(2, saLogStreamOpen_2_47, "saLogStreamOpen_2 with maxFilesRotated = 128, ERR");
+    test_case_add(2, saLogStreamOpen_2_48, "saLogStreamOpen_2 with logFileName > 218 characters, ERR");
+
     test_case_add(2, verFixLogRec_Max_Err, "saLogStreamOpen_2 with maxLogRecordSize > MAX_RECSIZE, ERR");
     test_case_add(2, verFixLogRec_Min_Err, "saLogStreamOpen_2 with maxLogRecordSize < 150, ERR");
 }
