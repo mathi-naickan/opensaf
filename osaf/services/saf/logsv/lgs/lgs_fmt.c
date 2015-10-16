@@ -706,7 +706,9 @@ static int extractCommonField(char *dest, size_t dest_size,
 		/* Get timezone offset from localtime to UTC time */
 		long gmtOffset = (timeStampData->tm_gmtoff / SECOND_PER_HOUR) * 100 +
 			(timeStampData->tm_gmtoff % SECOND_PER_HOUR) / SECOND_PER_MINUTE;
-		characters = snprintf(dest, dest_size, "%c%04ld", gmtOffset >= 0 ? '+' : '-', gmtOffset);
+
+		long uGmtOffset = (gmtOffset >= 0) ? (gmtOffset) : (gmtOffset * -1);
+		characters = snprintf(dest, dest_size, "%c%04ld", gmtOffset >= 0 ? '+' : '-', uGmtOffset);
 		break;
 
 	case C_NOTIFICATION_CLASS_ID_LETTER:
@@ -982,7 +984,9 @@ static int extractNotificationField(char *dest, size_t dest_size,
 		characters = 6;	/* to avoid using {} */
 		long gmtOffset = (eventTimeData->tm_gmtoff / SECOND_PER_HOUR) * 100 +
 			(eventTimeData->tm_gmtoff % SECOND_PER_HOUR) / SECOND_PER_MINUTE;
-		characters = snprintf(dest, dest_size, "%c%04ld", gmtOffset >= 0 ? '+' : '-', gmtOffset);
+
+		long uGmtOffset = (gmtOffset >= 0) ? (gmtOffset) : (gmtOffset * -1);
+		characters = snprintf(dest, dest_size, "%c%04ld", gmtOffset >= 0 ? '+' : '-', uGmtOffset);
 		break;
 
 	case N_EVENT_TYPE_LETTER:
