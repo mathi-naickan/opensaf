@@ -568,14 +568,49 @@ static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 	TRACE_LEAVE();
 }
 
-static void node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
+static void ng_ccb_apply_delete_hdlr(CcbUtilOperationData_t *opdata)
 {
 	TRACE_ENTER();
 	AVD_AMF_NG *ng = avd_ng_get(&opdata->objectName);
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+		//Since AMF will delete NG, clear its pointers in node.
+		for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
+				iter != ng->saAmfNGNodeList.end(); ++iter) {
+			AVD_AVND *node = avd_node_get(*iter);
+			node->admin_ng = NULL;
+		}
+		ng_delete(ng);
+		goto done;
+        }
 	//Temporarily keep NG in UNLOCKED state to assign SUs.
 	ng->saAmfNGAdminState = SA_AMF_ADMIN_UNLOCKED;	
-	ng_unlock(ng);
-
+	for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
+                        iter != ng->saAmfNGNodeList.end(); ++iter) {
+                AVD_AVND *node = avd_node_get(*iter);
+                if ((node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) ||
+                                (node->saAmfNodeAdminState != SA_AMF_ADMIN_UNLOCKED) ||
+                                (node->node_info.member == false))
+                        continue;
+                for (const auto& su : node->list_of_su) {
+                        if (su->is_in_service() == true) {
+                                su->set_readiness_state(SA_AMF_READINESS_IN_SERVICE);
+                        }
+                }
+        }
+	for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
+			iter != ng->saAmfNGNodeList.end(); ++iter) {
+		AVD_AVND *node = avd_node_get(*iter);
+		if ((node->saAmfNodeOperState == SA_AMF_OPERATIONAL_DISABLED) ||
+				(node->node_info.member == false) ||
+				(node->saAmfNodeAdminState != SA_AMF_ADMIN_UNLOCKED) ||
+				(avd_cb->init_state == AVD_INIT_DONE))
+			continue;
+		/* This node is capable of assignment. Let the SG semantics decide which
+		   su to choose for assignment.
+		 */
+		for (const auto& su : node->list_of_su)
+			su->sg_of_su->su_insvc(avd_cb, su);
+	}
 	//Since AMF will delete NG, clear its pointers in node.
 	for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
 			iter != ng->saAmfNGNodeList.end(); ++iter) {
@@ -584,6 +619,7 @@ static void node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 	}
 	ng->node_oper_list.clear();
 	ng_delete(ng);
+done:
 	TRACE_LEAVE2("deleted %s", opdata->objectName.value);
 }
 /**
@@ -606,7 +642,7 @@ static void ng_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 		ng_ccb_apply_modify_hdlr(opdata);
 		break;
 	case CCBUTIL_DELETE:
-		node_ccb_completed_delete_hdlr(opdata);
+		ng_ccb_apply_delete_hdlr(opdata);
 		break;
 	default:
 		osafassert(0);
