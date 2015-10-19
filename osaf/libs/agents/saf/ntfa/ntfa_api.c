@@ -1132,6 +1132,9 @@ SaAisErrorT saNtfDispatch(SaNtfHandleT ntfHandle, SaDispatchFlagsT dispatchFlags
  *   A pointer to the handle, obtained through the saNtfInitialize() function,
  *   designating this particular initialization of the Ntf Service.
  *
+ * Note: Avoid using lock on ntfa_cb.cb_lock in this API as it may lead to deadlock
+ *       situation in an applcation in which other APIs are called along with 
+ *       this in parallel. 
  ***************************************************************************/
 SaAisErrorT saNtfFinalize(SaNtfHandleT ntfHandle)
 {
@@ -1187,7 +1190,6 @@ SaAisErrorT saNtfFinalize(SaNtfHandleT ntfHandle)
 		rc = SA_AIS_ERR_NO_RESOURCES;
 
 	if (rc == SA_AIS_OK) {
-		osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);		
 	/** delete the hdl rec
          ** including all resources allocated by client if MDS send is 
          ** succesful. 
@@ -1197,7 +1199,6 @@ SaAisErrorT saNtfFinalize(SaNtfHandleT ntfHandle)
 			TRACE_1("ntfa_hdl_rec_del failed");
 			rc = SA_AIS_ERR_BAD_HANDLE;
 		}
-		osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 	}
 
  done_give_hdl:
@@ -2739,6 +2740,7 @@ SaAisErrorT saNtfNotificationUnsubscribe(SaNtfSubscriptionIdT subscriptionId)
 
 	ntfHandle = ntfHandleGet(subscriptionId);
 	if (ntfHandle == 0) {
+		TRACE_1("ntfHandleGet failed, subscription not exist");
 		rc = SA_AIS_ERR_NOT_EXIST;
 		goto done;
 	}
@@ -2772,6 +2774,7 @@ SaAisErrorT saNtfNotificationUnsubscribe(SaNtfSubscriptionIdT subscriptionId)
 		/* Send a sync MDS message to obtain a log stream id */
 		rc = ntfa_mds_msg_sync_send(&ntfa_cb, &msg, &o_msg, timeout);
 		if (rc != NCSCC_RC_SUCCESS) {
+			TRACE_1("ntfa_mds_msg_sync_send failed with: %u",rc);
 			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done_give_hdl;
 		}
