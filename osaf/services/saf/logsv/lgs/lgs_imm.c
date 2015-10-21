@@ -1480,7 +1480,16 @@ static SaAisErrorT check_attr_validity(SaImmOiHandleT immOiHandle,
 				TRACE("\t448 NULL pointer to saLogStreamPathName");
 				goto done;
 			}
-			
+
+			if (strlen(i_pathName) > PATH_MAX) {
+				/* Path name is too long */
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"saLogStreamPathName is so long");
+				TRACE("saLogStreamPathName is so long (max: %d)", PATH_MAX);
+				goto done;
+			}
+
 			if (lgs_relative_path_check_ts(i_pathName) == true) {
 				report_oi_error(immOiHandle, opdata->ccbId,
 							"Path %s not valid", i_pathName);
@@ -1504,7 +1513,16 @@ static SaAisErrorT check_attr_validity(SaImmOiHandleT immOiHandle,
 				TRACE("\t448 NULL pointer to saLogStreamFileName");
 				goto done;
 			}
-			
+
+			if (strlen(i_fileName) > LOG_NAME_MAX) {
+				/* File name is too long */
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				report_oi_error(immOiHandle, opdata->ccbId,
+						"saLogStreamFileName is so long");
+				TRACE("saLogStreamFileName is so long (max: %d)", LOG_NAME_MAX);
+				goto done;
+			}
+
 			if (chk_filepath_stream_exist(i_fileName, i_pathName,
 					stream, opdata->operationType)) {
 				report_oi_error(immOiHandle, opdata->ccbId,
