@@ -154,18 +154,26 @@ static uint32_t dec_lstr_open_sync_msg(NCS_UBAID *uba, lgsv_msg_t *msg)
 	len = ncs_decode_16bit(&p8);
 	ncs_dec_skip_space(uba, 2);
 
-	if (len > 0) {
-		ncs_decode_n_octets_from_uba(uba, (uint8_t *)param->logFileName, len);
+	if ((len == 0) || (len > NAME_MAX)) {
+		TRACE("%s - logFileName length is invalid (%d)",__FUNCTION__, len);
+		rc = NCSCC_RC_FAILURE;
+		goto done;
 	}
+
+	ncs_decode_n_octets_from_uba(uba, (uint8_t *)param->logFileName, len);
 
 	/* log file path name */
 	p8 = ncs_dec_flatten_space(uba, local_data, 2);
 	len = ncs_decode_16bit(&p8);
 	ncs_dec_skip_space(uba, 2);
 
-	if (len > 0) {
-		ncs_decode_n_octets_from_uba(uba, (uint8_t *)param->logFilePathName, len);
+	if ((len == 0) || (len > PATH_MAX)) {
+		TRACE("%s - logFilePathName length is invalid (%d)",__FUNCTION__, len);
+		rc = NCSCC_RC_FAILURE;
+		goto done;
 	}
+
+	ncs_decode_n_octets_from_uba(uba, (uint8_t *)param->logFilePathName, len);
 
 	/* log record format length */
 	p8 = ncs_dec_flatten_space(uba, local_data, 24);
