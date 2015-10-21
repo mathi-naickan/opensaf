@@ -571,14 +571,14 @@ void saLogOi_29()
 }
 
 /**
- * CCB Object Modify, saLogStreamFixedLogRecordSize=80, strC
+ * CCB Object Modify, saLogStreamFixedLogRecordSize=150, strC
  */
 void saLogOi_30()
 {
     int rc;
     char command[256];
 
-    sprintf(command, "immcfg -a saLogStreamFixedLogRecordSize=80 safLgStrCfg=strC,safApp=safLogService");
+    sprintf(command, "immcfg -a saLogStreamFixedLogRecordSize=150 safLgStrCfg=strC,safApp=safLogService");
     rc = system(command);
     rc_validate(WEXITSTATUS(rc), 0);
 }
@@ -2016,6 +2016,23 @@ void verAdminOpOnConfClass(void)
 	rc = system(command);
 }
 
+/* Add test case to verify #1466 */
+
+/**
+ * saLogStreamFixedLogRecordSize is in range [150 - MAX_RECSIZE] if not 0.
+ * Verify that setting to value less than 150 is not allowed.
+ */
+void verFixLogRec_Min(void)
+{
+    int rc;
+    char command[256];
+
+    sprintf(command, "immcfg -a saLogStreamFixedLogRecordSize=149 %s 2> /dev/null",
+			SA_LOG_STREAM_ALARM);
+    rc = system(command);
+    rc_validate(WEXITSTATUS(rc), 1);
+}
+
 __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -2052,7 +2069,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
     test_case_add(4, saLogOi_25, "CCB Object Create, strC");
     test_case_add(4, saLogOi_28, "CCB Object Modify, saLogStreamMaxFilesRotated=1, strA");
     test_case_add(4, saLogOi_29, "CCB Object Modify, saLogStreamMaxLogFileSize=0, strB, ERR not supported");
-    test_case_add(4, saLogOi_30, "CCB Object Modify, saLogStreamFixedLogRecordSize=80, strC");
+    test_case_add(4, saLogOi_30, "CCB Object Modify, saLogStreamFixedLogRecordSize=150, strC");
     test_case_add(4, saLogOi_31, "immlist strA-strC");
     test_case_add(4, saLogOi_32, "immfind strA-strC");
     test_case_add(4, saLogOi_33, "saflogger, writing to notification");
@@ -2129,6 +2146,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	test_case_add(6, saLogOi_110, "Modify: saLogStreamFixedLogRecordSize == 0, Ok");
 	test_case_add(6, saLogOi_111, "Modify: saLogStreamFixedLogRecordSize == logMaxLogrecsize, Ok");
 	test_case_add(6, saLogOi_112, "Modify: saLogStreamFixedLogRecordSize > logMaxLogrecsize, ERR");
+	test_case_add(6, verFixLogRec_Min, "Modify: saLogStreamFixedLogRecordSize < 150, ERR");
 	test_case_add(6, saLogOi_113, "Modify: saLogStreamMaxFilesRotated < 128, Ok");
 	test_case_add(6, saLogOi_114, "Modify: saLogStreamMaxFilesRotated > 128, ERR");
 	test_case_add(6, saLogOi_115, "Modify: saLogStreamMaxFilesRotated == 128, ERR");

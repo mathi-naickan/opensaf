@@ -1250,6 +1250,13 @@ static bool chk_max_filesize_recordsize_compatible(SaImmOiHandleT immOiHandle,
 		/* fixedLogRecordSize can be 0. Means variable record size */
 		TRACE("\t448 fixedLogRecordSize = 0");
 		rc = true;
+	} else if (i_fixedLogRecordSize < SA_LOG_MIN_RECORD_SIZE) {
+		/* streamFixedLogRecordSize must be larger than 150 */
+		report_oi_error(immOiHandle, ccbId,
+						"streamFixedLogRecordSize out of range");
+		TRACE("i_fixedLogRecordSize (%d) < %d",
+			  i_fixedLogRecordSize, SA_LOG_MIN_RECORD_SIZE);
+		rc = false;
 	} else if (i_fixedLogRecordSize >= i_maxLogFileSize) {
 		/* fixedLogRecordSize must be less than maxLogFileSize */
 		report_oi_error(immOiHandle, ccbId,
