@@ -314,7 +314,7 @@ void saLogWriteLogAsync_13(void)
         .logFilePathName = DEFAULT_APP_FILE_PATH_NAME,
         .logFileName = (SaStringT) "ticket203",
         .maxLogFileSize = 4096,
-        .maxLogRecordSize = 2048,
+        .maxLogRecordSize = 1024,
         .haProperty = SA_TRUE,
         .logFileFullAction = SA_LOG_FILE_FULL_ACTION_ROTATE,
         .maxFilesRotated = DEFAULT_MAX_FILE_ROTATED,
@@ -327,8 +327,8 @@ void saLogWriteLogAsync_13(void)
     };
 	appStreamName.length = strlen((char *) appStreamName.value);
 
-    memset(genLogRecord.logBuffer->logBuf, 'X', 1800);
-    genLogRecord.logBuffer->logBufSize = 1800;
+    memset(genLogRecord.logBuffer->logBuf, 'X', 1000);
+    genLogRecord.logBuffer->logBufSize = 1000;
     safassert(saLogInitialize(&logHandle, &logCallbacks, &logVersion), SA_AIS_OK);
     safassert(saLogStreamOpen_2(logHandle, &appStreamName, &appStream1LogFileCreateAttributes,
                              SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle), SA_AIS_OK);
