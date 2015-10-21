@@ -838,6 +838,16 @@ static SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param
 		goto done;
 	}
 
+	/* Verify that the fixedLogRecordSize is in valid range */
+	SaUint32T logMaxLogrecsize_conf = *(SaUint32T *) lgs_cfg_get(LGS_IMM_LOG_MAX_LOGRECSIZE);
+	if ((open_sync_param->maxLogRecordSize != 0) &&
+		((open_sync_param->maxLogRecordSize < SA_LOG_MIN_RECORD_SIZE) ||
+		(open_sync_param->maxLogRecordSize > logMaxLogrecsize_conf))) {
+		TRACE("maxLogRecordSize is invalid");
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done;
+	}
+
 	stream = log_stream_new(&open_sync_param->lstr_name,
 				open_sync_param->logFileName,
 				open_sync_param->logFilePathName,

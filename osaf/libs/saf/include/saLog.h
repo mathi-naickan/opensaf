@@ -54,6 +54,10 @@ extern "C" {
 #define SA_LOG_STREAM_NOTIFICATION      "safLgStrCfg=saLogNotification,safApp=safLogService"
 #define SA_LOG_STREAM_ALARM             "safLgStrCfg=saLogAlarm,safApp=safLogService"
 
+/* Valid range of fixedLogRecordSize */
+#define SA_LOG_MAX_RECORD_SIZE  65535
+#define SA_LOG_MIN_RECORD_SIZE  150
+
 /* The Log severity level FLAGS */
 #define SA_LOG_SEV_EMERGENCY  0
 #define SA_LOG_SEV_ALERT      1

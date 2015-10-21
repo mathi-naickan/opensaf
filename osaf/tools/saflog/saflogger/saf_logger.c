@@ -44,7 +44,7 @@
 #include "saf_error.h"
 
 #define DEFAULT_FORMAT_EXPRESSION "@Cr @Ch:@Cn:@Cs @Cm/@Cd/@CY @Sv @Sl \"@Cb\""
-#define DEFAULT_APP_LOG_REC_SIZE 128
+#define DEFAULT_APP_LOG_REC_SIZE 150
 #define DEFAULT_APP_LOG_FILE_SIZE 1024
 #define VENDOR_ID 193
 #define DEFAULT_MAX_FILES_ROTATED 4

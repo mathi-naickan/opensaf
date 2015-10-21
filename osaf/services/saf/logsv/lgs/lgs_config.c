@@ -551,7 +551,8 @@ int lgs_cfg_verify_log_file_format(const char* log_file_format)
 int lgs_cfg_verify_max_logrecsize(uint32_t max_logrecsize_in)
 {
 	int rc = 0;
-	if ((max_logrecsize_in > 65535) || (max_logrecsize_in < 150)) {
+	if ((max_logrecsize_in > SA_LOG_MAX_RECORD_SIZE) ||
+		(max_logrecsize_in < SA_LOG_MIN_RECORD_SIZE)) {
 		LOG_NO("verify_max_logrecsize Fail");
 		rc = -1;
 	}

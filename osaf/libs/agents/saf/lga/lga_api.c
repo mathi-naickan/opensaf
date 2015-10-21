@@ -538,6 +538,14 @@ static SaAisErrorT validate_open_params(SaLogHandleT logHandle,
                                 return SA_AIS_ERR_INVALID_PARAM;
 			}
 
+			/* Verify that the fixedLogRecordSize is in valid range */
+			if ((logFileCreateAttributes->maxLogRecordSize != 0) &&
+				((logFileCreateAttributes->maxLogRecordSize < SA_LOG_MIN_RECORD_SIZE) ||
+				(logFileCreateAttributes->maxLogRecordSize > SA_LOG_MAX_RECORD_SIZE))) {
+				TRACE("maxLogRecordSize is invalid");
+				return SA_AIS_ERR_INVALID_PARAM;
+			}
+
 			/* Validate maxFilesRotated just in case of SA_LOG_FILE_FULL_ACTION_ROTATE type */
 			if ((logFileCreateAttributes->logFileFullAction == SA_LOG_FILE_FULL_ACTION_ROTATE) &&
 				((logFileCreateAttributes->maxFilesRotated < 1) ||
