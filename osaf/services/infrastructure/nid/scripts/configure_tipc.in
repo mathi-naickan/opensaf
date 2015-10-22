@@ -151,7 +151,7 @@ function tipc_duplicate_node_detect ()
  
     if [ $# -eq 1 ] ; then
             ################ Address config and check #########
-            ${tipc_config} -a=1.1.$TIPC_MAX_NODES
+            ${tipc_config} -a=1.1.$(($TIPC_MAX_NODES - $TIPC_NODEID))
             ret_z1=$?
             if [ $ret_z1 -ne 0 ] ; then
                 echo "Unable to Configure TIPC address, Please try again, exiting" 
@@ -159,7 +159,7 @@ function tipc_duplicate_node_detect ()
                 exit 1
             fi
     else
-        ${tipc_config} -netid=$TIPC_NETID -a=1.1.$TIPC_MAX_NODES
+        ${tipc_config} -netid=$TIPC_NETID -a=1.1.$(($TIPC_MAX_NODES - $TIPC_NODEID))
         ret_z2=$?
         if [ $ret_z2 -ne 0 ] ; then
             echo "Unable to Configure TIPC address, Please try again, exiting" 
@@ -181,6 +181,10 @@ function tipc_duplicate_node_detect ()
             exit 1
           fi
         fi
+ 
+        tipc_links=` ${tipc_config} -l | grep 1.1.$(($TIPC_MAX_NODES - $TIPC_NODEID)) | sed 's/: up/\/50 /g' `
+        for link in $tipc_links; do `${tipc_config} -lt=$link ` ; done
+        ${tipc_config} -bd=$(echo $ETH_NAME | sed 's/^/eth:/;s/,/,eth:/g')
     fi
 
     $RM_TIPC_MODULE
