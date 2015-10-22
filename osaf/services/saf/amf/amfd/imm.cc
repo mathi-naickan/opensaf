@@ -1533,10 +1533,21 @@ bool check_to_create_immjob_at_standby_amfd(const SaNameT *dn)
 
 	AVSV_AMF_CLASS_ID class_type = AVSV_SA_AMF_CLASS_INVALID;
 	class_type = object_name_to_class_type(dn);
+	/*
+	 SI and CSI are config classes, so AMFD will not create any object for them
+         in IMM. But for creation of runtime objects of classes SUSI and CSICOMP, parent
+	 name of SI and CSI, respecitvely, will be given. However, for deletion of SUSI or
+	 CSICOMP objects their own dn will be given. Because of this reason below check 
+	 includes classType of CSI and SI also.
+	*/
 	if ((class_type == AVSV_SA_AMF_SU) || (class_type == AVSV_SA_AMF_COMP) ||
-			(class_type == AVSV_SA_AMF_SI_ASSIGNMENT) || 
-			(class_type == AVSV_SA_AMF_CSI_ASSIGNMENT))
+			(class_type == AVSV_SA_AMF_SI_ASSIGNMENT) ||
+			(class_type == AVSV_SA_AMF_CSI_ASSIGNMENT) ||
+			(class_type == AVSV_SA_AMF_SI) || 
+			(class_type == AVSV_SA_AMF_CSI)) {
+		TRACE("Class Type:%s",avd_class_names[class_type]);
 		return true;
+	}
 	return false;
 }
 
