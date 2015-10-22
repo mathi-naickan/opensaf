@@ -241,8 +241,10 @@ AVD_SU_SI_REL *avd_susi_create(AVD_CL_CB *cb, AVD_SI *si, AVD_SU *su, SaAmfHASta
 	}
 
 done:
-	if ((ckpt == false) && (su_si != NULL)) {
+	//ADD susi in imm job queue at both standby and active amfd.
+	if (su_si != NULL)
 		avd_create_susi_in_imm(state, &si->name, &su->name);
+	if ((ckpt == false) && (su_si != NULL)) {
 		avd_susi_update_assignment_counters(su_si, AVSV_SUSI_ACT_ASGN, state, state);
 		avd_gen_su_ha_state_changed_ntf(cb, su_si);
 	}
