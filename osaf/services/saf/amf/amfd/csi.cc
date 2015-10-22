@@ -1110,9 +1110,6 @@ static void avd_create_csiassignment_in_imm(SaAmfHAStateT ha_state,
 			NULL
 	};
 
-	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
-		return;
-
 	avsv_create_association_class_dn(comp_dn, NULL, "safCSIComp", &dn);
 
 	TRACE("Adding %s", dn.value);
