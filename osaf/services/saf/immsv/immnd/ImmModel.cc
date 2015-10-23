@@ -10116,7 +10116,7 @@ ImmModel::ccbCompletedContinuation(immsv_oi_ccb_upcall_rsp* rsp,
                     case SA_AIS_ERR_NO_RESOURCES:
                            LOG_NO("Resource error %u reported by implementer '%s', Ccb %u will be aborted",
                                rsp->result, ix->second->mImplementer->mImplementerName.c_str(), ccbId);
-                           setCcbErrorString(ccb, IMM_VALIDATION_ABORT "Completed validation fails (Error code: %u)", rsp->result);
+                           setCcbErrorString(ccb, IMM_RESOURCE_ABORT "Completed validation fails (Error code: %u)", rsp->result);
                         break;
 
                    default:
