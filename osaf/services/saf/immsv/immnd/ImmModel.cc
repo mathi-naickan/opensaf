@@ -5185,22 +5185,7 @@ ImmModel::ccbApply(SaUint32T ccbId,
         osafassert(reqConn==0 || (ccb->mOriginatingConn == reqConn));
         
         if(!ccb->isOk()) {
-            /* At this point, CCB might already have error string with CCB abort reason.
-             * If none CCB abort reason can be found in error strings,
-             * then it's a resource abort.
-            */
-            ImmsvAttrNameList *errStr = ccb->mErrorStrings;
-            while(errStr) {
-                if(strstr(errStr->name.buf, IMM_VALIDATION_ABORT) == errStr->name.buf
-                        || strstr(errStr->name.buf, IMM_RESOURCE_ABORT) == errStr->name.buf) {
-                    break;
-                }
-                errStr = errStr->next;
-            }
-            if(!errStr) {
-                setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
-            }
-
+            setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
             err = SA_AIS_ERR_FAILED_OPERATION;
         } else if((sImmNodeState == IMM_NODE_LOADING) && !sMissingParents.empty()) {
             MissingParentsMap::iterator mpm;
@@ -6254,20 +6239,7 @@ ImmModel::ccbAugmentInit(immsv_oi_ccb_upcall_rsp* rsp,
     if(ccb->mVeto != SA_AIS_OK) {
         TRACE("Ccb %u is already in an error state %u, can not accept augmentation",
              ccbId, ccb->mVeto);
-
-        /* ccb->mVeto != SA_AIS_OK, error string with abort reason can already be set */
-        ImmsvAttrNameList *errStr = ccb->mErrorStrings;
-        while(errStr) {
-            if(strstr(errStr->name.buf, IMM_VALIDATION_ABORT) == errStr->name.buf
-                    || strstr(errStr->name.buf, IMM_RESOURCE_ABORT) == errStr->name.buf) {
-                break;
-            }
-            errStr = errStr->next;
-        }
-        if(!errStr) {
-            setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
-        }
-
+        setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
         err = SA_AIS_ERR_FAILED_OPERATION; /*ccb->mVeto;*/
         goto done;
     }
@@ -7020,21 +6992,8 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
     if(!ccb->isOk()) {
         LOG_NO("ERR_FAILED_OPERATION: ccb %u is in an error state "
             "rejecting ccbObjectCreate operation ", ccbId);
-
-        /* !ccb->isOk(), error string with abort reason can already be set */
-        ImmsvAttrNameList *errStr = ccb->mErrorStrings;
-        while(errStr) {
-            if(strstr(errStr->name.buf, IMM_VALIDATION_ABORT) == errStr->name.buf
-                    || strstr(errStr->name.buf, IMM_RESOURCE_ABORT) == errStr->name.buf) {
-                break;
-            }
-            errStr = errStr->next;
-        }
-        if(!errStr) {
-            setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
-        }
-
         err = SA_AIS_ERR_FAILED_OPERATION;
+        setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
         goto ccbObjectCreateExit;
     }
 
@@ -8192,21 +8151,8 @@ ImmModel::ccbObjectModify(const ImmsvOmCcbObjectModify* req,
     if(!ccb->isOk()) {
         LOG_NO("ERR_FAILED_OPERATION: ccb %u is in an error state "
             "rejecting ccbObjectModify operation ", ccbId);
-
-        /* !ccb->isOk(), error string with abort reason can already be set */
-        ImmsvAttrNameList *errStr = ccb->mErrorStrings;
-        while(errStr) {
-            if(strstr(errStr->name.buf, IMM_VALIDATION_ABORT) == errStr->name.buf
-                    || strstr(errStr->name.buf, IMM_RESOURCE_ABORT) == errStr->name.buf) {
-                break;
-            }
-            errStr = errStr->next;
-        }
-        if(!errStr) {
-            setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
-        }
-
         err = SA_AIS_ERR_FAILED_OPERATION;
+        setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
         goto ccbObjectModifyExit;
     }
     
@@ -9154,21 +9100,8 @@ ImmModel::ccbObjectDelete(const ImmsvOmCcbObjectDelete* req,
     if(!ccb->isOk()) {
         LOG_NO("ERR_FAILED_OPERATION: ccb %u is in an error state "
             "rejecting ccbObjectDelete operation ", ccbId);
-
-        /* !ccb->isOk(), error string with abort reason can already be set */
-        ImmsvAttrNameList *errStr = ccb->mErrorStrings;
-        while(errStr) {
-            if(strstr(errStr->name.buf, IMM_VALIDATION_ABORT) == errStr->name.buf
-                    || strstr(errStr->name.buf, IMM_RESOURCE_ABORT) == errStr->name.buf) {
-                break;
-            }
-            errStr = errStr->next;
-        }
-        if(!errStr) {
-            setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
-        }
-
         err = SA_AIS_ERR_FAILED_OPERATION;
+        setCcbErrorString(ccb, IMM_RESOURCE_ABORT "CCB is in an error state");
         goto ccbObjectDeleteExit;
     }
     
@@ -9648,6 +9581,7 @@ ImmModel::setCcbErrorString(CcbInfo *ccb, const char *errorString, va_list vl) {
     char *fmtError = (char *)malloc(errLen);
     int len;
     va_list args;
+    int isValidationErrString = 0;
 
     va_copy(args, vl);
     len = vsnprintf(fmtError, errLen, errorString, args);
@@ -9660,6 +9594,12 @@ ImmModel::setCcbErrorString(CcbInfo *ccb, const char *errorString, va_list vl) {
         osafassert(vsnprintf(fmtError, len, errorString, vl) >= 0);
     }
 
+    if(strstr(errorString, IMM_VALIDATION_ABORT) == errorString) {
+        isValidationErrString = 1;
+    } else if(strstr(errorString, IMM_RESOURCE_ABORT) == errorString) {
+        isValidationErrString = 2;
+    }
+
     unsigned int ix=0;
     ImmsvAttrNameList* errStr = ccb->mErrorStrings;
     ImmsvAttrNameList** errStrTail = &(ccb->mErrorStrings);
@@ -9669,6 +9609,25 @@ ImmModel::setCcbErrorString(CcbInfo *ccb, const char *errorString, va_list vl) {
                 fmtError, ccb->mId);
             free(fmtError);
             return;
+        }
+        if(isValidationErrString) {
+            // Precendence of validation abort over resource abort error string
+            if(isValidationErrString == 1) {
+                // Validation abort error string will replace resource abort error string
+                if(strstr(errStr->name.buf, IMM_RESOURCE_ABORT) == errStr->name.buf) {
+                    free(errStr->name.buf);
+                    errStr->name.buf = fmtError;
+                    errStr->name.size = len;
+                    return;
+                }
+            } else if(strstr(errStr->name.buf, IMM_RESOURCE_ABORT) == errStr->name.buf
+                    || strstr(errStr->name.buf, IMM_VALIDATION_ABORT) == errStr->name.buf) {
+                // If validation abort or resource abort error string exist,
+                // new resource abort string will not be added.
+                // It can exists more validation abort error strings
+                // or only the first resource abort error string
+                return;
+            }
         }
         ++ix;
         errStrTail = &(errStr->next);
