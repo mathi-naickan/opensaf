@@ -606,7 +606,7 @@ gid_t lgs_get_data_gid(char *groupname)
  * @return: 0 on success
  *         -1 on error
  */
-int lgs_own_log_files_h(log_stream_t *stream)
+int lgs_own_log_files_h(log_stream_t *stream, const char *groupname)
 {
 	lgsf_apipar_t apipar;
 	lgsf_retcode_t api_rc;
@@ -615,6 +615,7 @@ int lgs_own_log_files_h(log_stream_t *stream)
 
 	TRACE_ENTER2("stream %s",stream->name);
 
+	/* Set in parameter file_name */
 	n = snprintf(data_in->file_name, SA_MAX_NAME_LENGTH, "%s", stream->fileName);
 	if (n >= SA_MAX_NAME_LENGTH) {
 		rc = -1;
@@ -622,6 +623,7 @@ int lgs_own_log_files_h(log_stream_t *stream)
 		goto done;
 	}
 
+	/* Set in parameter dir_path */
 	const char *logsv_root_dir = lgs_cfg_get(LGS_IMM_LOG_ROOT_DIRECTORY);
 
 	n = snprintf(data_in->dir_path, PATH_MAX, "%s/%s",
@@ -638,6 +640,15 @@ int lgs_own_log_files_h(log_stream_t *stream)
 		rc = -1;
 		goto done;
 	}
+
+	/* Set in parameter groupname */
+	n = snprintf(data_in->groupname, UT_NAMESIZE, "%s", groupname);
+	if (n > UT_NAMESIZE) {
+		LOG_WA("Group name > UT_NAMESIZE");
+		rc = -1;
+		goto done;
+	}
+
 	/* Fill in API structure */
 	apipar.req_code_in = LGSF_OWN_LOGFILES;
 	apipar.data_in_size = sizeof(olfbgh_t);

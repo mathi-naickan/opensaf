@@ -1869,7 +1869,8 @@ void logRootDirectory_filemove(
  * @param new_logDataGroupname[in]
  *            String contains new group.
  */
-void logDataGroupname_fileown(const char *new_logDataGroupname){
+void logDataGroupname_fileown(const char *new_logDataGroupname)
+{
 	TRACE_ENTER();
 	log_stream_t *stream;
 
@@ -1885,7 +1886,7 @@ void logDataGroupname_fileown(const char *new_logDataGroupname){
 		 */
 		stream = log_stream_getnext_by_name(NULL);
 		while (stream != NULL) {
-			lgs_own_log_files_h(stream);
+			lgs_own_log_files_h(stream, new_logDataGroupname);
 			stream = log_stream_getnext_by_name(stream->name);
 		}
 	}
