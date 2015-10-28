@@ -19,6 +19,7 @@
 #define _ImmModel_hh_ 1
 
 #include "saImmOm.h"
+#include <cstdarg>
 #include <sys/types.h>
 #include <string>
 #include <vector>
