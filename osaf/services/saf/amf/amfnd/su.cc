@@ -838,3 +838,14 @@ bool is_any_non_restartable_comp_assigned(const AVND_SU& su)
         return false;
 }
 
+/**
+ * @brief  Checks if all PI comps of SU are in INSTANTIATED state.
+ * @return true/false
+ */
+bool su_all_pi_comps_instantiated(const AVND_SU *su) 
+{
+	bool su_is_instantiated;
+	m_AVND_SU_IS_INSTANTIATED(su, su_is_instantiated);
+	TRACE("All PI comps instantiated :'%u'",su_is_instantiated);
+	return su_is_instantiated;
+}

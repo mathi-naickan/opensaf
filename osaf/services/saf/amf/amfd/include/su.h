@@ -145,7 +145,9 @@ class AVD_SU {
 	bool is_any_non_restartable_comp_assigned();
 	bool all_pi_comps_restartable();
 	bool all_pi_comps_nonrestartable();
-	
+	SaAmfAdminOperationIdT get_admin_op_id() const;
+	bool all_comps_in_presence_state(SaAmfPresenceStateT pres) const;
+
  private:
 	void initialize();
 	void send_attribute_update(AVSV_AMF_SU_ATTR_ID attrib_id);

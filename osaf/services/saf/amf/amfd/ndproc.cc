@@ -369,20 +369,18 @@ static void surestart_admin_op_report_to_imm(AVD_SU *su, SaAmfPresenceStateT pre
 		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) &&
 				(pres != SA_AMF_PRESENCE_RESTARTING))
 			rc = SA_AIS_ERR_BAD_OPERATION; 
-		else if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_RESTARTING) &&
-				(pres != SA_AMF_PRESENCE_INSTANTIATING))
-			rc = SA_AIS_ERR_BAD_OPERATION;
-		else if (su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATING) {
-			if (pres == SA_AMF_PRESENCE_INSTANTIATED)
-				rc = SA_AIS_OK;
-			else
+		else if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_RESTARTING) && 
+			(pres != SA_AMF_PRESENCE_INSTANTIATED))
 				rc = SA_AIS_ERR_REPAIR_PENDING; 
-		} else if ((pres == SA_AMF_PRESENCE_RESTARTING) ||
-				(pres == SA_AMF_PRESENCE_INSTANTIATING)) {
+		else if (pres == SA_AMF_PRESENCE_INSTANTIATED) {
+			if (su->all_comps_in_presence_state(SA_AMF_PRESENCE_INSTANTIATED) == true)
+				rc = SA_AIS_OK; 
+			else
+				goto done; 
+		} else if (pres == SA_AMF_PRESENCE_RESTARTING) { 
                         TRACE("Valid state transition, wait for final transition.");
                         goto done;
                 }
-
 	} else {
 		if ((su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) &&
 				(pres != SA_AMF_PRESENCE_TERMINATING))
@@ -795,6 +793,12 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 					if (comp->admin_pend_cbk.invocation != 0)
 						comp_admin_op_report_to_imm(comp, static_cast<SaAmfPresenceStateT>(l_val));
 					avd_comp_pres_state_set(comp, static_cast<SaAmfPresenceStateT>(l_val));
+					
+					if ((comp->su->get_admin_op_id() == SA_AMF_ADMIN_RESTART) &&
+					(comp->saAmfCompPresenceState == SA_AMF_PRESENCE_INSTANTIATED) && 
+					(comp->su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED) && 
+					(comp->su->all_comps_in_presence_state(SA_AMF_PRESENCE_INSTANTIATED) == true))
+						comp->su->complete_admin_op(SA_AIS_OK);
 				} else {
 					/* log error that a the  value len is invalid */
 					LOG_ER("%s:%u: %u", __FILE__, __LINE__, n2d_msg->msg_info.n2d_data_req.param_info.

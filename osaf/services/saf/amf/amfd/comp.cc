@@ -1711,3 +1711,13 @@ SaAisErrorT check_comp_stability(const AVD_COMP *comp)
         }
         return SA_AIS_OK;
 }
+/**
+ * @brief  CHeck if component is SA_AWARE. 
+ * @Return true/false.
+ */
+bool AVD_COMP::saaware() const
+{
+        AVD_COMP_TYPE *comptype = comptype_db->find(Amf::to_string(&saAmfCompType));
+        return (IS_COMP_SAAWARE(comptype->saAmfCtCompCategory));
+}
+

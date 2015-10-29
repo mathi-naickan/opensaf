@@ -2363,4 +2363,22 @@ bool AVD_SU::all_pi_comps_nonrestartable()
 	}
 	return true;
 }
+/**
+ * @brief Returns Operation Id of the admin operation on SU.
+ */
+SaAmfAdminOperationIdT AVD_SU::get_admin_op_id() const
+{ return pend_cbk.admin_oper; }
 
+/**
+ * @brief  Checks if all comps of SU are in a given presnece state. 
+ * @return true/false
+ */
+bool AVD_SU::all_comps_in_presence_state(SaAmfPresenceStateT pres) const
+{
+	if (std::all_of(list_of_comp.begin(), list_of_comp.end(), 
+		[&](AVD_COMP *comp) -> bool {return comp->saAmfCompPresenceState == pres;})) {
+		return true;
+	} else {
+		return false;
+	}
+}

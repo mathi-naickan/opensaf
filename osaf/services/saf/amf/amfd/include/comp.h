@@ -125,6 +125,7 @@ class AVD_COMP {
 
   void set_assigned(bool assigned) {assign_flag = assigned;}
   bool assigned() const {return assign_flag;}
+  bool saaware() const;
  private:
   void initialize();
   // disallow copy and assign

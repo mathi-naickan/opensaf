@@ -1334,7 +1334,10 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 	     m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) || !m_AVND_SU_IS_PREINSTANTIABLE(comp->su)) {
 		if (SA_AMF_PRESENCE_UNINSTANTIATED == final_st)
 			ev = AVND_SU_PRES_FSM_EV_COMP_UNINSTANTIATED;
-		else if (SA_AMF_PRESENCE_INSTANTIATED == final_st && SA_AMF_PRESENCE_ORPHANED != prv_st)
+		else if ((SA_AMF_PRESENCE_INSTANTIATED == final_st) && (SA_AMF_PRESENCE_ORPHANED != prv_st) &&
+				((prv_st == SA_AMF_PRESENCE_INSTANTIATING) || 
+				 (prv_st == SA_AMF_PRESENCE_TERMINATING) ||
+				 (comp->su->admin_op_Id == SA_AMF_ADMIN_RESTART)))
 			ev = AVND_SU_PRES_FSM_EV_COMP_INSTANTIATED;
 		else if (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)
 			ev = AVND_SU_PRES_FSM_EV_COMP_INST_FAIL;
