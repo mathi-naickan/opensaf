@@ -3589,6 +3589,19 @@ SaAisErrorT SG_NWAY::si_swap(AVD_SI *si, SaInvocationT invocation) {
 		rc = SA_AIS_ERR_BAD_OPERATION;
 		goto done;
 	}
+	/*
+	   Reject si-swap if there is only one standby assignment for SI and 
+	   si-swap will lead to removal of quiesced assignment becuase of 
+	   saAmfSGMaxStandbySIsperSU constraint.
+	 */
+	if ((si->curr_standby_assignments() == 1) &&
+		(si->sg_of_si->saAmfSGMaxStandbySIsperSU < 
+		 static_cast<SaUint32T>(actv_susi->su->hastate_assignments_count(SA_AMF_HA_STANDBY)+1))) {
+		LOG_NO("%s SWAP not allowed as it will leave SI without standby assignment.",
+				si->name.value);
+		rc = SA_AIS_ERR_BAD_OPERATION;
+		goto done;
+	}
 	if ((avd_sg_nway_siswitch_func(avd_cb, si)) == NCSCC_RC_FAILURE) {
 		rc = SA_AIS_ERR_BAD_OPERATION;
 		goto done;
