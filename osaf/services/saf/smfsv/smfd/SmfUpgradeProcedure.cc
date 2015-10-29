@@ -1302,18 +1302,16 @@ SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure * i_proc, SmfUp
 			//For all comp/SU sound in the scope of the node.
 			//Find out if any remaininf DU is within it
 			for (unit_iter = tmpDU.begin(); unit_iter != tmpDU.end();) {
-				if ((*unit_iter).name.find("safSu=") == 0) {//SU as AU/DU
-					if ((*unit_iter).name == (*iter).second.suDN) {  //Check SU
-						LOG_NO("[%s] is in scope of [%s], remove it from DU list",
-						       (*unit_iter).name.c_str(), (*node_iter).name.c_str());
-						unit_iter = tmpDU.erase(unit_iter); //Remove the node and update iterator
-					} else if ((*unit_iter).name == (*iter).second.compDN) { //Check comp
-						LOG_NO("[%s] is in scope of [%s], remove it from DU list",
-						       (*unit_iter).name.c_str(), (*node_iter).name.c_str());
-						unit_iter = tmpDU.erase(unit_iter); //Remove the node and update iterator
-					} else {
-						unit_iter++;
-					}
+				if ((*unit_iter).name == (*iter).second.suDN) {  //Check SU
+					LOG_NO("[%s] is in scope of [%s], remove it from DU list",
+					       (*unit_iter).name.c_str(), (*node_iter).name.c_str());
+					unit_iter = tmpDU.erase(unit_iter); //Remove the node and update iterator
+				} else if ((*unit_iter).name == (*iter).second.compDN) { //Check comp
+					LOG_NO("[%s] is in scope of [%s], remove it from DU list",
+					       (*unit_iter).name.c_str(), (*node_iter).name.c_str());
+					unit_iter = tmpDU.erase(unit_iter); //Remove the node and update iterator
+				} else {
+					unit_iter++;
 				}
 			}
 		}
