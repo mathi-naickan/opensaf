@@ -996,7 +996,7 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 		rc = check_ng_stability(ng);
 		if (rc != SA_AIS_OK) {
 			report_admin_op_error(avd_cb->immOiHandle, invocation,
-					      SA_AIS_ERR_TRY_AGAIN, NULL,
+					      rc, NULL,
 					      "Some entity is unstable, Operation cannot "
 					      "be performed on '%s'"
 					      "Check syslog for entity details", ng_name->value);
@@ -1066,7 +1066,7 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 		rc = check_ng_stability(ng);
 		if (rc != SA_AIS_OK) {
 			report_admin_op_error(avd_cb->immOiHandle, invocation,
-					      SA_AIS_ERR_TRY_AGAIN, NULL,
+					      rc, NULL,
 					      "Some entity is unstable, Operation cannot "
 					      "be performed on '%s'"
 					      "Check syslog for entity details", ng_name->value);
@@ -1116,7 +1116,7 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 		rc = check_ng_stability(ng);	
 		if (rc != SA_AIS_OK) {
 			report_admin_op_error(avd_cb->immOiHandle, invocation, 
-					SA_AIS_ERR_TRY_AGAIN, NULL,
+					rc, NULL,
 					"Some entity is unstable, Operation cannot "
 					"be performed on '%s'"
 					"Check syslog for entity details", ng_name->value);
@@ -1169,7 +1169,7 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 		rc = check_ng_stability(ng);	
 		if (rc != SA_AIS_OK) {
 			report_admin_op_error(avd_cb->immOiHandle, invocation, 
-					SA_AIS_ERR_TRY_AGAIN, NULL,
+					rc, NULL,
 					"Some entity is unstable, Operation cannot "
 					"be performed on '%s'"
 					"Check syslog for entity details", ng_name->value);
@@ -1233,7 +1233,7 @@ static void ng_admin_op_cb(SaImmOiHandleT immoi_handle, SaInvocationT invocation
 		rc = check_ng_stability(ng);
 		if (rc != SA_AIS_OK) {
 			report_admin_op_error(avd_cb->immOiHandle, invocation,
-					SA_AIS_ERR_TRY_AGAIN, NULL,
+					rc, NULL,
 					"Some entity is unstable, Operation cannot "
 					"be performed on '%s'"
 					"Check syslog for entity details", ng_name->value);
