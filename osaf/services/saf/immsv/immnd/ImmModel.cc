@@ -2429,6 +2429,7 @@ ImmModel::abortSync()
 
             sNodesDeadDuringSync.clear(); 
             sImplsDeadDuringSync.clear(); 
+            sImplDetachTime.clear();
 
            if(!sImplementerVector.empty()) {
                 ImplementerVector::iterator i;
