@@ -9626,6 +9626,7 @@ ImmModel::setCcbErrorString(CcbInfo *ccb, const char *errorString, va_list vl) {
                 // new resource abort string will not be added.
                 // It can exists more validation abort error strings
                 // or only the first resource abort error string
+                free(fmtError);
                 return;
             }
         }
