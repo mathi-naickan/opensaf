@@ -252,7 +252,8 @@ Prerequisites
 
 The following software is required to build OpenSAF:
 
-    * libxml2-dev (Development files for the GNOME XML library)
+    * libc6-dev (2.11 or later)
+    * libxml2-dev (2.7 or later)
     * automake
     * m4
     * autoconf (2.61 or later)
@@ -262,13 +263,12 @@ The following software is required to build OpenSAF:
     * GNU make
     * python-dev(el)
     * Optionally:
-        * The Linux Kernel with TIPC development support. This is required when opensaf is 
-	built with the option --enable-tipc. OpenSAF works with TIPC version 1.5 onwards
-	with some TIPC code fixes. But it is strongly adviced to use TIPC 1.7.7 and above
-	to get the TIPC properly work.
+        * The Linux Kernel with TIPC support enabled. This is required when opensaf is
+	built with the option --enable-tipc. OpenSAF requires Linux version 3.16 or
+        later when configured with the --enable-tipc option.
 
         * When PLM is enabled, an HPI implementation (e.g. OpenHPI)
-        * When IMM PBE feature is enabled, sqlite3
+        * When IMM PBE feature is enabled, libsqlite3-dev (3.6 or later)
 
     If enabling optional Java support:
         - A Java 1.5+ capable JDK (e.g. OpenJDK 1.6)
@@ -760,6 +760,46 @@ See file `00-README.uml' for more information about User Mode Linux and `OpenSAF
 
 Upgrading OpenSAF
 =================
+
+Before installing or upgrading to OpenSAF 4.7, make sure your system meets the
+minimum version requirements of the following system components:
+
+- Linux kernel, version 2.6.32 or later (see note below regarding TIPC, though)
+- GNU C Library (Glibc), version 2.11 or later
+- GNU Compiler Collection (GCC), version 4.8.1 or later
+- Libxml2, version 2.7 or later
+- Libsqlite3, version 3.6 or later (only needed when configuring with
+  --enable-imm-pbe)
+
+Pay special attention to the fact that we have increased the minimum required
+version of GCC to 4.8.1 in OpenSAF 4.7, due to the use of the C++11 standard.
+
+When using MDS over TIPC, note that starting with OpenSAF 4.5, the TIPC
+multi-cast feature is being used. Due to TIPC bugs present in old versions of
+the Linux kernel, please make sure to use Linux kernel version 3.16 or later, or
+alternatively make sure that the relevant TIPC bug-fixes have been back-ported
+to the Linux kernel version you are using.
+
+New configuration attributes have been added to the class OpensafImm in OpenSAF
+4.5, which means that the class schema has to be updated when upgrading from an
+older release of OpenSAF. An IMM XML file containing the extended class
+definition for OpensafImm has been added at
+samples/immsv/OpensafImm_Upgrade_4.5.xml
+
+In OpenSAF 4.3, some new configuration attributes have been added to the SMF 
+configuration class. To make it possible to use these new attributes the new 
+class description needs to be added using the IMM schema change support. 
+This can be done after the 4.3 OpenSAF release have been activated.
+ 
+1) Enable the schema change support in the IMM: 
+immadm -o 1 -p opensafImmNostdFlags:SA_UINT32_T:1 opensafImm=opensafImm,safApp=safImmService
+
+2) Read in the new class descriptions : 
+immcfg --ignore-duplicates -f /usr/share/opensaf/immxml/services/smfsv_classes.xml
+ 
+3) Disable the schema change support in the IMM:  
+immadm -o 2 -p opensafImmNostdFlags:SA_UINT32_T:1 opensafImm=opensafImm,safApp=safImmService
+
 In OpenSAF 4.2, the non-standard DTSv (Distributed Tracing Service) has been retired/removed.
 Fresh installations (new users) of 4.2 shall generate a new 
 imm.xml(see file 00-README.conf).
@@ -787,32 +827,6 @@ or upgrade scripts) the permissions of the file/directory of the
 immsv persistent store (see IMMSV_PBE_FILE in the $pkgsysconfdir/immnd.conf. 
 e.g. /etc/opensaf/immnd.conf file) and/or the permissions of any previous trace files 
 present under the $pkglogdir (e.g. /var/log/opensaf) directory, accordingly, if applicable.
-
-In OpenSAF 4.3, some new configuration attributes have been added to the SMF 
-configuration class. To make it possible to use these new attributes the new 
-class description needs to be added using the IMM schema change support. 
-This can be done after the 4.3 OpenSAF release have been activated.
- 
-1) Enable the schema change support in the IMM: 
-immadm -o 1 -p opensafImmNostdFlags:SA_UINT32_T:1 opensafImm=opensafImm,safApp=safImmService
-
-2) Read in the new class descriptions : 
-immcfg --ignore-duplicates -f /usr/share/opensaf/immxml/services/smfsv_classes.xml
- 
-3) Disable the schema change support in the IMM:  
-immadm -o 2 -p opensafImmNostdFlags:SA_UINT32_T:1 opensafImm=opensafImm,safApp=safImmService
-
-When using MDS over TIPC, note that starting with OpenSAF 4.5, the TIPC
-multicast feature is being used. Due to TIPC bugs present in old versions of the
-Linux kernel, please make sure to use Linux kernel version 3.16 or later, or
-alternatively make sure that the relevant TIPC bug-fixes have been backported to
-the Linux kernel version you are using.
-
-New configration attributes have been added to the class OpensafImm in OpenSAF
-4.5, which means that the class schema has to be updated when upgrading from an
-older release of OpenSAF. An imm xml file containing the extended class
-definition for OpensafImm has been added at
-samples/immsv/OpensafImm_Upgrade_4.5.xml
 
 Admin Operations on OpenSAF SUs
 ===============================
