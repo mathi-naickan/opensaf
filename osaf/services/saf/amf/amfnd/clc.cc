@@ -926,7 +926,8 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 	 */
 
 	/* Count the number of restarts if not due to admin restart*/
-	if (SA_AMF_PRESENCE_RESTARTING == final_st && comp->admin_oper != true) {
+	if (SA_AMF_PRESENCE_RESTARTING == final_st &&
+			prv_st != final_st && comp->admin_oper != true) {
 		comp->err_info.restart_cnt++;
 
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_ERR_INFO);
