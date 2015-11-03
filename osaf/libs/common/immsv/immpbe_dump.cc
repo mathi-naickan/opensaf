@@ -2902,7 +2902,7 @@ SaAisErrorT pbeCommitTrans(void* db_handle, SaUint64T ccbId, SaUint32T currentEp
 				preparedSql[SQL_INS_CCB_COMMITS], sqlite3_errmsg(dbHandle));
 			pbeAbortTrans(db_handle);
 			err = SA_AIS_ERR_FAILED_OPERATION;
-			goto done;
+			goto abort_done;
 		}
 		sqlite3_reset(stmt);
 	}
@@ -2920,6 +2920,7 @@ SaAisErrorT pbeCommitTrans(void* db_handle, SaUint64T ccbId, SaUint32T currentEp
 	--sqliteTransLock; 
 	--sqliteTransLock; 
 	--sqliteTransLock; /* Lock is released. */
+ abort_done:
 	fsyncPbeJournalFile(); /* This should not be needed. sqlite does double fsync itself */
 	return err;
 }
