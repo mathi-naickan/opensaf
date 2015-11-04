@@ -76,7 +76,6 @@ typedef enum avnd_comp_clc_pres_fsm_ev {
 
 /* clc command type enums */
 typedef enum avnd_comp_clc_cmd_type {
-	AVND_COMP_CLC_CMD_TYPE_NONE = 0,
 	AVND_COMP_CLC_CMD_TYPE_INSTANTIATE = 1,
 	AVND_COMP_CLC_CMD_TYPE_TERMINATE,
 	AVND_COMP_CLC_CMD_TYPE_CLEANUP,
@@ -109,7 +108,7 @@ typedef struct avnd_comp_clc_info {
 
 	/* 
 	 * current command execution info
-	 * TODO: cmd_exec_ctxt is not used, to be removed
+	 * TODO: not used anymore, should be removed completely
 	 */
 	AVND_COMP_CLC_CMD_TYPE exec_cmd;	/* command in execution */
 	NCS_EXEC_HDL cmd_exec_ctxt;	/* command execution context */
