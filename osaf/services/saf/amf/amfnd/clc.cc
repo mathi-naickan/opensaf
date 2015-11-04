@@ -28,6 +28,7 @@
 ..............................................................................
 
   FUNCTIONS INCLUDED in this module:
+
   
 ******************************************************************************
 */
@@ -323,8 +324,6 @@ uint32_t avnd_evt_clc_resp_evh(AVND_CB *cb, AVND_EVT *evt)
 	}
 
 	TRACE("'%s', command type:%s", comp->name.value, clc_cmd_type[clc_evt->cmd_type]);
-
-	comp->clc_info.exec_cmd = AVND_COMP_CLC_CMD_TYPE_NONE;
 
 	switch (clc_evt->cmd_type) {
 	case AVND_COMP_CLC_CMD_TYPE_INSTANTIATE:
@@ -2752,6 +2751,7 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 	char env_var_name[] = "SA_AMF_COMPONENT_NAME";
 	char env_var_nodeid[] = "NCS_ENV_NODE_ID";
 	char env_var_comp_err[] = "OSAF_COMPONENT_ERROR_SOURCE";
+	char *env_attr_val = 0;
 	AVND_CLC_EVT *clc_evt;
 	AVND_EVT *evt = 0;
 	AVND_COMP_CLC_INFO *clc_info = &comp->clc_info;
@@ -2765,13 +2765,6 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 	size_t env_set_nmemb;
 
 	TRACE_ENTER2("'%s':CLC CLI command type:'%s'",comp->name.value,clc_cmd_type[cmd_type]);
-
-	if (comp->clc_info.exec_cmd != cmd_type) {
-		comp->clc_info.exec_cmd = cmd_type;
-	} else {
-		TRACE("Another clc cmd of the same type: '%s' is in progress", clc_cmd_type[cmd_type]);
-		goto done;
-	}
 
 	/* the allocated memory is normally freed in comp_clc_resp_callback */
 	clc_evt = new AVND_CLC_EVT;
@@ -2801,7 +2794,7 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 			}
 
 			delete clc_evt;
-			goto done;
+			return rc;
 		} else {
 			LOG_ER("Command other than cleanup recvd for ext comp: Comp and cmd_type are '%s': %u",\
 					    comp->name.value,cmd_type);
@@ -2972,15 +2965,18 @@ uint32_t avnd_comp_clc_cmd_execute(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_C
 		// outcome of command is reported in comp_clc_resp_callback()
 	}
 
-	TRACE_2("success");
-	goto done;
+	TRACE_LEAVE2("success");
+	return NCSCC_RC_SUCCESS;
 
  err:
 	/* free the event */
 	if (evt)
 		avnd_evt_destroy(evt);
+	if (env_attr_val) {
+		/* Free the Memory allocated for CLC command environment Sets */
+		delete env_attr_val;
+	}
 
- done:
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }
