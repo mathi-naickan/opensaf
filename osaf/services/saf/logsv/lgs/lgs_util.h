@@ -67,4 +67,5 @@ extern int lgs_make_reldir_h(const char* path);
 extern int lgs_check_path_exists_h(const char *path_to_check);
 extern gid_t lgs_get_data_gid(char *groupname);
 extern int lgs_own_log_files_h(log_stream_t *stream, const char *groupname);
+extern bool lgs_has_special_char(const char *str);
 #endif   /* ifndef __LGS_UTIL_H */

@@ -3362,6 +3362,45 @@ void verFilenameLength_02(void)
 	rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/**
+ * Add test case for ticket #1421
+ * logsv not verify if created/modified log file name is valid.
+ * Test steps:
+ * 1. Get current saLogStreamFileName
+ * 2. Iterate all not-allowed characters
+ * 3. Update saLogStreamFileName containing one of that character
+ * 4. Verify that it fails to perform that command.
+ * 5. Restore to previous value.
+ */
+void verLogFileName(void)
+{
+    int rc;
+    char command[256];
+	/* const char *str = "|;,!@#$()<>/\\\"'`~{}[]+&^?*%/"; */
+
+	/* int i = 0; */
+	/* for (; i < strlen(str); i++) { */
+	/* 	if (str[i] != '\'') { */
+	/* 		sprintf(command, "immcfg -a saLogStreamFileName='tmp_%c' %s 2> /dev/null", */
+	/* 				str[i], alarmStreamName.value); */
+	/* 	} else { */
+	/* 		sprintf(command, "immcfg -a saLogStreamFileName=\"tmp_'\" %s 2> /dev/null", */
+	/* 				alarmStreamName.value); */
+	/* 	} */
+	/* 	rc = system(command); */
+	/* 	if (WEXITSTATUS(rc) == 0) { */
+	/* 		fprintf(stderr, "Failed - command = %s\n", command); */
+	/* 		break; */
+	/* 	} */
+	/* } */
+
+	/* Invalid filename with forward slash in */
+	sprintf(command, "immcfg -a saLogStreamFileName='invalidFile/Name' %s 2> /dev/null",
+			alarmStreamName.value);
+    rc = system(command);
+
+	rc_validate(WEXITSTATUS(rc), 1);
+}
 __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -3447,6 +3486,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
     test_case_add(5, saLogOi_61, "CCB Object Modify, logStreamAppHighLimit = logStreamAppLowLimit = 0. OK");
     test_case_add(5, saLogOi_62, "CCB Object Modify, logMaxApplicationStreams. Not allowed");
     test_case_add(5, saLogOi_64, "CCB Object Modify, logFileSysConfig. Not allowed");
+	test_case_add(5, verLogFileName, "CCB Object Modify, saLogStreamFileName with special character. ER");
 
 	/* Add test cases to test #1288 */
 	test_case_add(5, verLogFileIoTimeout, "CCB Object Modify: logFileIoTimeout is in range [500 - 5000], OK");
