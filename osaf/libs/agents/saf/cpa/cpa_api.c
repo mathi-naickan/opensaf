@@ -27,7 +27,6 @@
 ******************************************************************************/
 
 #include "cpa.h"
-#define NCS_SAF_MIN_ACCEPT_TIME 10
 
 /****************************************************************************
   Name          :  SaCkptInitialize
@@ -869,7 +868,7 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 	CPA_CLIENT_NODE *cl_node = NULL;
 	uint32_t proc_rc = NCSCC_RC_SUCCESS;
 	bool locked = false;
-        uint32_t time_out=0;
+	uint32_t time_out=0;
 	CPA_GLOBAL_CKPT_NODE *gc_node = NULL;
 	
 	TRACE_ENTER2("SaCkptCheckpointHandleT passed is %llx",ckptHandle);
@@ -889,6 +888,14 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
                 return SA_AIS_ERR_INVALID_PARAM;
         }
 
+	if (timeout < 0 ) {
+		TRACE_4("Cpa CkptOpen: failed invalid timeout return value:%d,ckptHandle:%llx",
+				SA_AIS_ERR_INVALID_PARAM, ckptHandle);
+		TRACE_LEAVE2("API return code = %u", rc);
+		return SA_AIS_ERR_INVALID_PARAM;
+	}
+
+	
 	/* Draft Validations */
 	rc = cpa_open_attr_validate(checkpointCreationAttributes, checkpointOpenFlags, checkpointName);
 	if (rc != SA_AIS_OK) {
@@ -975,13 +982,13 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 	}
 
 	evt.info.cpnd.info.openReq.ckpt_flags = checkpointOpenFlags;
-
 	/* convert the timeout to 10 ms value and add it to the sync send timeout */
 	time_out = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
 
-	if (time_out < NCS_SAF_MIN_ACCEPT_TIME) {
+	if (time_out < CPSV_WAIT_TIME) {
 		rc = SA_AIS_ERR_TIMEOUT;
-		TRACE_4("Cpa CkptOpen failed Api failed with return value:%d,ckptHandle:%llx,timeout:%llu", rc, ckptHandle, timeout);
+		TRACE_4("Cpa CkptOpen failed Api failed with return value:%d,ckptHandle:%llx,timeout:%llu",
+				rc, ckptHandle, timeout);
 		goto mds_send_fail;
 	}
 
@@ -998,9 +1005,8 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 		TRACE_4("cpa CkptOpen:CPND_DOWN Api failed with return value:%d,ckptHandle:%llx", rc, ckptHandle);
 		goto mds_send_fail;
 	}
-
        /* Send the evt to CPND */
-       proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(cb->cpnd_mds_dest), &evt, &out_evt, timeout);
+	proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(cb->cpnd_mds_dest), &evt, &out_evt, time_out);
 
        /* Generate rc from proc_rc */
        switch (proc_rc) {
@@ -1709,6 +1715,13 @@ SaAisErrorT saCkptCheckpointRetentionDurationSet(SaCkptCheckpointHandleT checkpo
 		goto done;
 	}
 
+	if (retentionDuration < 0 ) {
+		TRACE_4("Cpa RetentionDurationSet: failed invalid retentionDuration return value:%d,ckptHandle:%llx",
+				SA_AIS_ERR_INVALID_PARAM, checkpointHandle);
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done;
+	}
+
 	/* get the CB Lock */
 	if (m_NCS_LOCK(&cb->cb_lock, NCS_LOCK_WRITE) != NCSCC_RC_SUCCESS) {
 		rc = SA_AIS_ERR_LIBRARY;
@@ -2183,6 +2196,7 @@ SaAisErrorT saCkptSectionCreate(SaCkptCheckpointHandleT checkpointHandle,
 	bool gen_sec_flag = false;
 	SaCkptSectionIdT app_ptr;
 	CPA_CLIENT_NODE *cl_node = NULL;
+	uint32_t time_out;
 
 	TRACE_ENTER2("SaCkptCheckpointHandleT passed is %llx",checkpointHandle);
 	/* Validate the Input Parameters */
@@ -2312,8 +2326,15 @@ SaAisErrorT saCkptSectionCreate(SaCkptCheckpointHandleT checkpointHandle,
 	evt.info.cpnd.info.sec_creatReq.init_size = initialDataSize;
 
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
+
+	time_out = CPA_WAIT_TIME(initialDataSize);
+
+	if (time_out < CPSV_WAIT_TIME) {
+		time_out = CPSV_WAIT_TIME;
+	}
+
 	proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(gc_node->active_mds_dest),
-					&evt, &out_evt, CPA_WAIT_TIME(initialDataSize));
+			&evt, &out_evt, time_out);
 
 	/* Generate rc from proc_rc */
 	switch (proc_rc) {
@@ -2684,6 +2705,14 @@ SaAisErrorT saCkptSectionExpirationTimeSet(SaCkptCheckpointHandleT checkpointHan
 		return rc;
 	}
 
+	if (expirationTime < 0 ) {
+		TRACE_4("Cpa ExpirationTimeSet: failed invalid expirationTime return value:%d,ckptHandle:%llx",
+				SA_AIS_ERR_INVALID_PARAM, checkpointHandle);
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		TRACE_LEAVE2("API return code = %u", rc);
+		return rc;
+	}
+
 	/* retrieve CPA CB */
 	m_CPA_RETRIEVE_CB(cb);
 	if (!cb) {
@@ -2844,6 +2873,14 @@ SaAisErrorT saCkptSectionIterationInitialize(SaCkptCheckpointHandleT checkpointH
 	    (sectionsChosen < SA_CKPT_SECTIONS_FOREVER) || (sectionsChosen > SA_CKPT_SECTIONS_ANY)) {
 		rc = SA_AIS_ERR_INVALID_PARAM;
 		TRACE_4("cpa SectIterInit Api failed with return value:%d,ckptHandle:%llx", rc, checkpointHandle);
+		return rc;
+	}
+
+	if (expirationTime < 0 ) {
+		TRACE_4("Cpa SectionIterationInitialize: failed invalid expirationTime return value:%d,ckptHandle:%llx",
+				SA_AIS_ERR_INVALID_PARAM, checkpointHandle);
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		TRACE_LEAVE2("API return code = %u", rc);
 		return rc;
 	}
 
@@ -3360,6 +3397,7 @@ SaAisErrorT saCkptCheckpointWrite(SaCkptCheckpointHandleT checkpointHandle,
 	CPA_CLIENT_NODE *cl_node = NULL;
 	SaSizeT all_ioVector_size = 0;
 	uint32_t err_flag = 0;
+	uint32_t time_out;
 	
 	TRACE_ENTER2("SaCkptCheckpointHandleT passed is %llx",checkpointHandle);
 
@@ -3479,18 +3517,21 @@ SaAisErrorT saCkptCheckpointWrite(SaCkptCheckpointHandleT checkpointHandle,
 
 	/* Unlock cpa_lock before calling mds api */
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
-#if 1
-	for (iter = 0; iter < numberOfElements; iter++)
-		all_ioVector_size += ioVector[iter].dataSize;
 
-	proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(gc_node->active_mds_dest),
-					&evt, &out_evt, CPA_WAIT_TIME(all_ioVector_size));
-#else
-	proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(gc_node->active_mds_dest), &evt, &out_evt, CPSV_WAIT_TIME);
-#endif
-   /* Generate rc from proc_rc */
-   switch (proc_rc)
-   {
+	for (iter = 0; iter < numberOfElements; iter++) {
+		all_ioVector_size += ioVector[iter].dataSize;
+		time_out = CPA_WAIT_TIME(all_ioVector_size);
+ 
+		if (time_out < CPSV_WAIT_TIME) {
+			time_out = CPSV_WAIT_TIME;
+		}
+		proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(gc_node->active_mds_dest),
+				&evt, &out_evt, time_out);
+
+	}
+	/* Generate rc from proc_rc */
+	switch (proc_rc)
+	{
        case NCSCC_RC_SUCCESS: 
            break;
        case NCSCC_RC_REQ_TIMOUT:
@@ -3577,6 +3618,7 @@ SaAisErrorT saCkptSectionOverwrite(SaCkptCheckpointHandleT checkpointHandle,
 	CPA_GLOBAL_CKPT_NODE *gc_node = NULL;
 	bool add_flag = false;
 	CPA_CLIENT_NODE *cl_node = NULL;
+	uint32_t time_out;
 
 	TRACE_ENTER2("SaCkptCheckpointHandleT passed is %llx",checkpointHandle);
 	memset(&ckpt_data, '\0', sizeof(CPSV_CKPT_DATA));
@@ -3684,8 +3726,14 @@ SaAisErrorT saCkptSectionOverwrite(SaCkptCheckpointHandleT checkpointHandle,
 	/* Unlock cpa_lock before calling mds api */
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
+	time_out = CPA_WAIT_TIME(dataSize);
+
+	if (time_out < CPSV_WAIT_TIME) {
+		time_out = CPSV_WAIT_TIME;
+	}
+
 	proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(gc_node->active_mds_dest),
-					&evt, &out_evt, CPA_WAIT_TIME(dataSize));
+			&evt, &out_evt, time_out);
 
 	/* Generate rc from proc_rc */
 	switch (proc_rc) {
@@ -4053,6 +4101,13 @@ SaAisErrorT saCkptCheckpointSynchronize(SaCkptCheckpointHandleT checkpointHandle
 	/* For Ckpt Sync CPA will not perform any operation 
 	   other than passing the request to CPND */
 
+	if (timeout < 0 ) {
+		TRACE_4("Cpa CheckpointSynchronize: failed with invalied timeout return value:%d,ckptHandle:%llx",
+				SA_AIS_ERR_INVALID_PARAM, checkpointHandle);
+		rc =SA_AIS_ERR_INVALID_PARAM;
+		goto done;
+	}
+
 	/* retrieve CPA CB */
 	m_CPA_RETRIEVE_CB(cb);
 	if (!cb) {
@@ -4139,7 +4194,7 @@ SaAisErrorT saCkptCheckpointSynchronize(SaCkptCheckpointHandleT checkpointHandle
 	/* Convert the time from saTimeT to millisecs */
 	timeout = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
 
-	if (timeout < NCS_SAF_MIN_ACCEPT_TIME) {
+	if (timeout < CPSV_WAIT_TIME) {
 		rc = SA_AIS_ERR_TIMEOUT;
 		TRACE_4("cpa CkptSynchronize Api failed with return value:%d,ckptHandle:%llx ", rc, checkpointHandle);
 		goto fail1;
