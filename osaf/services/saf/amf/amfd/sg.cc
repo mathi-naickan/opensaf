@@ -1410,6 +1410,7 @@ static void sg_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 		avd_sg_admin_state_set(sg, SA_AMF_ADMIN_LOCKED);
 
 		if ((sg->list_of_su != NULL) && (sg->list_of_su->saAmfSUPreInstantiable == false)) {
+			avd_sg_adjust_config(sg);
 			avd_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_OK);
 			goto done;
 		}
