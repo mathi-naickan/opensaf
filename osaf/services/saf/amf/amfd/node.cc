@@ -892,7 +892,8 @@ uint32_t node_admin_unlock_instantiation(AVD_AVND *node)
 						LOG_WA("Failed Instantiation '%s'", su->name.value);
 					}
 				}
-			} 
+			} else
+				avd_sg_adjust_config(su->sg_of_su);
 		}
 	}
 
