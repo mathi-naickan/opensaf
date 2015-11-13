@@ -598,6 +598,13 @@ static SaAisErrorT node_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata
 		} else if (!strcmp(attribute->attrName, "saAmfNodeSuFailoverMax")) {
 			/*  No validation needed, avoiding fall-through to Unknown Attribute error-case */
 		} else if (!strcmp(attribute->attrName, "saAmfNodeAutoRepair")) {
+			if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (attribute->attrValues == NULL)) {
+				report_ccb_validation_error(opdata,
+						"Invalid saAmfNodeAutoRepair value for '%s'",
+						opdata->objectName.value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
 			uint32_t value = *((SaUint32T *)attribute->attrValues[0]);
 			if (value > SA_TRUE) {
 				report_ccb_validation_error(opdata,
@@ -607,10 +614,17 @@ static SaAisErrorT node_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata
 				goto done;
 			}
 		} else if (!strcmp(attribute->attrName, "saAmfNodeFailfastOnTerminationFailure")) {
+			if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (attribute->attrValues == NULL)) {
+				report_ccb_validation_error(opdata,
+						"Invalid saAmfNodeFailfastOnTerminationFailure value for '%s'",
+						opdata->objectName.value);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
 			uint32_t value = *((SaUint32T *)attribute->attrValues[0]);
 			if (value > SA_TRUE) {
 				report_ccb_validation_error(opdata,
-					"Invalid saAmfNodeFailfastOnTerminationFailure '%s'",
+					"Invalid saAmfNodeFailfastOnTerminationFailure value for %s'",
 					opdata->objectName.value);
 				rc = SA_AIS_ERR_BAD_OPERATION;
 				goto done;
@@ -626,7 +640,7 @@ static SaAisErrorT node_ccb_completed_modify_hdlr(CcbUtilOperationData_t *opdata
 			uint32_t value = *((SaUint32T *)attribute->attrValues[0]);
 			if (value > SA_TRUE) {
 				report_ccb_validation_error(opdata,
-					"Invalid saAmfNodeFailfastOnInstantiationFailure '%s'",
+					"Invalid saAmfNodeFailfastOnInstantiationFailure value for '%s'",
 					opdata->objectName.value);
 				rc = SA_AIS_ERR_BAD_OPERATION;
 				goto done;
