@@ -105,6 +105,13 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 		delete tmp_ng;
 		return 0;
 	}
+	//Check if admin state is valid or not.
+	if (!avd_admin_state_is_valid(tmp_ng->saAmfNGAdminState)) {
+		LOG_ER("Incorrect saAmfNGAdminState:'%u' for '%s'",tmp_ng->saAmfNGAdminState,
+				tmp_ng->name.value);
+		delete tmp_ng;
+		return 0;
+	}
 	delete tmp_ng;
 	return 1;
 }
@@ -159,9 +166,8 @@ static AVD_AMF_NG *ng_create(SaNameT *dn, const SaImmAttrValuesT_2 **attributes)
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfNGAdminState"),
 				attributes, 0, &ng->saAmfNGAdminState) != SA_AIS_OK) {
                 ng->saAmfNGAdminState = SA_AMF_ADMIN_UNLOCKED;
-		LOG_NO("Setting saAmfNGAdminState to :'%u'",ng->saAmfNGAdminState);
+		TRACE("Setting saAmfNGAdminState to :'%u'",ng->saAmfNGAdminState);
 	}
-	//TODO_NG: Add protection against shutting down state and lock-in state.
 	rc = 0;
 done:
 	if (rc != 0) {
