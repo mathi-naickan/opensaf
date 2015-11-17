@@ -92,6 +92,13 @@ class SmfUpgradeAction {
 ///
 	virtual int getId();
 
+///
+/// Purpose: Change action Id.
+/// @param   An int containing the new action Id.
+/// @return  None
+///
+	virtual void changeId(int i_id);
+
  private:
 
 ///

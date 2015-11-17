@@ -1164,6 +1164,9 @@ SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure * i_proc, SmfUp
 	newStep->setMaxRetry(0);
 	newStep->setRestartOption(0);
 
+	int initActionId = 1;
+	int wrapupActionId = 1;
+
         std::list < unitNameAndState > forAddRemoveAU;
         std::list < unitNameAndState > forAddRemoveDU;
 	std::list < unitNameAndState > tmpDU;
@@ -1248,6 +1251,10 @@ SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure * i_proc, SmfUp
 			if (cbkAction != NULL) {
 				const_cast<SmfCallbackAction*>(cbkAction)->setCallbackProcedure(this);
 			}
+			//Renumber to action id aviod DN name collision in the merged procedure
+			(*actioniter)->changeId(initActionId);
+			initActionId++;
+
 			actioniter++;
 		}
 
@@ -1261,6 +1268,10 @@ SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure * i_proc, SmfUp
 			if (cbkAction != NULL) {
 				const_cast<SmfCallbackAction*>(cbkAction)->setCallbackProcedure(this);
 			}
+			//Renumber to action id aviod DN name collision in the merged procedure
+			(*actioniter)->changeId(wrapupActionId);
+			wrapupActionId++;
+
 			actioniter++;
 		}
 
