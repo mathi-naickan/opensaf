@@ -2109,7 +2109,7 @@ void verFilenameLength_01(void)
 	char fileName[220];
 
 	/* Create a string with 218 characters */
-	memset(fileName, 'A', 218);
+	memset(fileName, 'A', sizeof(fileName));
 	fileName[219] = '\0';
 
 	/* Create an configurable obj class with invalid filename length */
@@ -2128,11 +2128,11 @@ void verFilenameLength_02(void)
 	char fileName[220];
 
 	/* Create a string with 218 characters */
-	memset(fileName, 'A', 218);
+	memset(fileName, 'A', sizeof(fileName));
 	fileName[219] = '\0';
 
-	/* Create an configurable obj class with invalid filename length */
-    sprintf(command, "immcfg -a saLogStreamFileName=. -a saLogStreamPathName=\"%s\" %s "
+	/* Modify an configurable obj class with invalid filename length */
+    sprintf(command, "immcfg -a saLogStreamFileName=\"%s\" -a saLogStreamPathName=. %s "
 		   "2> /dev/null", fileName, SA_LOG_STREAM_ALARM);
     rc = system(command);
 	rc_validate(WEXITSTATUS(rc), 1);
