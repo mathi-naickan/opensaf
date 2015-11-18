@@ -1167,6 +1167,13 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 		if (!strcmp(attribute->attrName, "saAmfCompType")) {
 
 			SaNameT *dn = (SaNameT*) value;
+			const std::string oldType(Amf::to_string(&comp->saAmfCompType));
+			if (oldType.compare(Amf::to_string(dn)) == 0) {
+				// ignore 'change' if it's being set to the same value
+				TRACE("saAmfCompType '%s' unchanged for '%s'", comp->saAmfCompType.value,
+					opdata->objectName.value);
+				continue;
+			}
 
 			TRACE("saAmfCompType modified from '%s' to '%s' for '%s'", comp->saAmfCompType.value, dn->value,
 					opdata->objectName.value);
