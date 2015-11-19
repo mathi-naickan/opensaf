@@ -652,3 +652,60 @@ done:
 	TRACE_LEAVE2("rc = %d",rc);
 	return rc;
 }
+
+/**
+ * Validate if string contains special characters or not
+ *
+ * @param: str [in] input string for checking
+ * @return: true if there is special character, otherwise false.
+ */
+bool lgs_has_special_char(const char *str)
+{
+	int index = 0;
+	char c;
+
+	while ((c = str[index++]) != '\0') {
+		switch (c) {
+		/* Unix-like system does not support slash in filename */
+		case '/':
+		/**
+		 * Unix-like system supports these characters in filename
+		 * but it could not support in other platforms.
+		 *
+		 * If mounting the root log dir to other platforms (e.g: Windows)
+		 * These characters could consider to add in as restriction.
+		 *
+		 * But for now, to avoid NBC, these ones are allowed.
+		 *
+		 */
+		/* case '|': */
+		/* case ';': */
+		/* case ',': */
+		/* case '!': */
+		/* case '@': */
+		/* case '#': */
+		/* case '$': */
+		/* case '(': */
+		/* case ')': */
+		/* case '<': */
+		/* case '>': */
+		/* case '\\': */
+		/* case '"': */
+		/* case '\'': */
+		/* case '`': */
+		/* case '~': */
+		/* case '{': */
+		/* case '}': */
+		/* case '[': */
+		/* case ']': */
+		/* case '+': */
+		/* case '&': */
+		/* case '^': */
+		/* case '?': */
+		/* case '*': */
+		/* case '%': */
+			return true;
+		}
+	}
+	return false;
+}

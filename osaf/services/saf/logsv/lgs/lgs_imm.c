@@ -207,7 +207,7 @@ static void report_om_error(SaImmOiHandleT immOiHandle, SaInvocationT invocation
 		   ao_err_params);
 }
 
-/** 
+/**
  * Pack and send a log service config checkpoint using mbcsv
  * @param stream
  * 
@@ -1589,6 +1589,15 @@ static SaAisErrorT check_attr_validity(SaImmOiHandleT immOiHandle,
 				report_oi_error(immOiHandle, opdata->ccbId,
 						"saLogStreamFileName is so long");
 				TRACE("saLogStreamFileName is so long (max: %d)", LOG_NAME_MAX);
+				goto done;
+			}
+			/* Not allow special characters exising in file name */
+			if (lgs_has_special_char(i_fileName) == true) {
+				/* Report failed if has special character in file name */
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				report_oi_error(immOiHandle, opdata->ccbId,
+								"Invalid saLogStreamFileName value");
+				TRACE("\t448 Invalid saLogStreamFileName value");
 				goto done;
 			}
 

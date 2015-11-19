@@ -842,6 +842,13 @@ static SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param
 		goto done;
 	}
 
+	/* Verify if there is any special character in logFileName */
+	if (lgs_has_special_char(open_sync_param->logFileName) == true) {
+		TRACE("Invalid logFileName - %s", open_sync_param->logFileName);
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done;
+	}
+
 	/* Verify that path and file are unique */
 	stream = log_stream_getnext_by_name(NULL);
 	while (stream != NULL) {
