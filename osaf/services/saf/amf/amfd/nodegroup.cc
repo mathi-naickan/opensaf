@@ -106,7 +106,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 		return 0;
 	}
 	//Check if admin state is valid or not.
-	if (!avd_admin_state_is_valid(tmp_ng->saAmfNGAdminState)) {
+	if (!avd_admin_state_is_valid(tmp_ng->saAmfNGAdminState, opdata)) {
 		LOG_ER("Incorrect saAmfNGAdminState:'%u' for '%s'",tmp_ng->saAmfNGAdminState,
 				tmp_ng->name.value);
 		delete tmp_ng;

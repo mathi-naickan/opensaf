@@ -243,7 +243,7 @@ SaAisErrorT avd_cluster_config_get(void)
 		avd_cluster->saAmfClusterAdminState = SA_AMF_ADMIN_UNLOCKED;
 	}
 
-	if (!avd_admin_state_is_valid(avd_cluster->saAmfClusterAdminState)) {
+	if (!avd_admin_state_is_valid(avd_cluster->saAmfClusterAdminState, nullptr)) {
 		LOG_ER("Invalid saAmfClusterAdminState %u", avd_cluster->saAmfClusterAdminState);
 		return static_cast<SaAisErrorT>(-1);
 	}

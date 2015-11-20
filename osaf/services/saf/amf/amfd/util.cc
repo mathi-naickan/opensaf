@@ -1283,9 +1283,13 @@ uint32_t avd_snd_comp_validation_resp(AVD_CL_CB *cb, AVD_AVND *avnd, AVD_COMP *c
 
 }
 
-int avd_admin_state_is_valid(SaAmfAdminStateT state)
+int avd_admin_state_is_valid(SaAmfAdminStateT state, const CcbUtilOperationData_t *opdata)
 {
-	return ((state >= SA_AMF_ADMIN_UNLOCKED) && (state < SA_AMF_ADMIN_SHUTTING_DOWN));
+	if (opdata == nullptr) {
+		return ((state >= SA_AMF_ADMIN_UNLOCKED) && (state <= SA_AMF_ADMIN_SHUTTING_DOWN));
+	} else {
+		return ((state >= SA_AMF_ADMIN_UNLOCKED) && (state < SA_AMF_ADMIN_SHUTTING_DOWN));
+	}
 }
 
 /*****************************************************************************

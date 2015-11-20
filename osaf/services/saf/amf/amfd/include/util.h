@@ -39,6 +39,7 @@
 #include <amf_d2nmsg.h>
 #include <cb.h>
 #include <amf_util.h>
+#include <immutil.h>
 
 class AVD_SU;
 
@@ -133,7 +134,7 @@ uint32_t avd_d2d_msg_snd(struct cl_cb_tag *, AVD_D2D_MSG *);
 
 std::string to_string(const SaNameT &s);
 
-extern int avd_admin_state_is_valid(SaAmfAdminStateT state);
+extern int avd_admin_state_is_valid(SaAmfAdminStateT state, const CcbUtilOperationData_t *opdata);
 extern SaAisErrorT avd_object_name_create(SaNameT *rdn_attr_value, SaNameT *parentName, SaNameT *object_name);
 int amfd_file_dump(const char* filename);
 
