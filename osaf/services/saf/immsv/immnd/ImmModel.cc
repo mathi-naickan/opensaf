@@ -5050,11 +5050,29 @@ bool ImmModel::validateNoDanglingRefsDelete(CcbInfo* ccb, ObjectMutationMap::ite
         if(!(ommi->second->mObjFlags & IMM_DELETE_LOCK)) {
             std::string objName;
             getObjectName(ommi->second, objName);
-            LOG_WA("ERR_FAILED_OPERATION: Delete of object %s would violate NO_DANGLING reference "
-                    "from object %s, not scheduled for delete by this Ccb:%u",
-                    omit->first.c_str(), objName.c_str(), ccb->mId);
-            rc = false;
-            break;
+            if((ommi->second->mObjFlags & IMM_NO_DANGLING_FLAG) && 
+                    (ommi->second->mCcbId == ccb->mId)){ // IMM_NO_DANGLING_FLAG will be set in CcbModify 
+                /* If the NO_DANGLING reference is modified(removed) in the same CCB,
+                   then deletion of the NO_DANGLING object can be allowed because, we are in apply
+                   and the CCBcommit will modify sReverseRefsNoDanglingMMap*/
+                ObjectMutationMap::iterator omit = ccb->mMutations.find(objName);
+                osafassert(omit != ccb->mMutations.end());
+                ObjectInfo * afim = omit->second->mAfterImage;
+                ObjectNameSet afimRefs;
+                ObjectNameSet::iterator it;
+                collectNoDanglingRefs(afim, afimRefs);
+                if(afimRefs.find(omit->first.c_str()) == afimRefs.end()){
+                    TRACE("Delete of object %s is removed from NO_DANGLING reference in the same Ccb%u " 
+                           "from object %s", omit->first.c_str(), ccb->mId, objName.c_str());
+                    ++ommi;
+                    continue;
+                } 
+             }
+             LOG_WA("ERR_FAILED_OPERATION: Delete of object %s would violate NO_DANGLING reference "
+                     "from object %s, not scheduled for delete by this Ccb:%u",
+                         omit->first.c_str(), objName.c_str(), ccb->mId);
+             rc = false;
+             break;
         }
         if(ommi->second->mCcbId != ccb->mId) {
             std::string objName;
