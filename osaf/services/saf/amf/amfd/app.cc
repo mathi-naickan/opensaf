@@ -190,7 +190,7 @@ static int is_config_valid(const SaNameT *dn, const SaImmAttrValuesT_2 **attribu
 	}
 
 	if ((immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfApplicationAdminState"), attributes, 0, &admstate) == SA_AIS_OK) &&
-	    !avd_admin_state_is_valid(admstate)) {
+	    !avd_admin_state_is_valid(admstate, opdata)) {
 		report_ccb_validation_error(opdata, "Invalid saAmfApplicationAdminState %u for '%s'", admstate, dn->value);
 		return 0;
 	}
