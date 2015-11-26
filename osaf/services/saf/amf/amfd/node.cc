@@ -1504,14 +1504,16 @@ bool are_all_ngs_in_unlocked_state(const AVD_AVND *node)
  */
 bool any_ng_in_locked_in_state(const AVD_AVND *node)
 {
-        for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
-                        it != nodegroup_db->end(); it++) {
-                AVD_AMF_NG *ng = it->second;
-                if ((node_in_nodegroup(Amf::to_string(&node->name), ng) == true) &&
-                                (ng->saAmfNGAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION))
-                        return true;
-        }
-        return false;
+	for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
+			it != nodegroup_db->end(); it++) {
+		AVD_AMF_NG *ng = it->second;
+		if ((node_in_nodegroup(Amf::to_string(&node->name), ng) == true) &&
+				(ng->saAmfNGAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)) {
+			TRACE("Nodegroup '%s' is in locked-in", ng->name.value);
+			return true;
+		}
+	}
+	return false;
 }
 
 void avd_node_constructor(void)

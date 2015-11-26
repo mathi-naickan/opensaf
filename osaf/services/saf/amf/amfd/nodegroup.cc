@@ -939,6 +939,12 @@ static void ng_admin_unlock_inst(AVD_AMF_NG *ng)
 			LOG_NO("'%s' UNLOCK_INSTANTIATION: AMF node oper state disabled", node->name.value);
 			continue;
 		}
+
+		if (any_ng_in_locked_in_state(node) == true) {
+			LOG_NO("One of the node group of '%s' is in locked-in", node->name.value);
+			continue;
+		}
+
 		for (AVD_SU *node_su = node->list_of_su; node_su != NULL;  node_su = node_su->avnd_list_su_next) {
 			/*Instantiate only those SUs in this SG which are hosted on the Nodes of NG.
 			   Also honor saAmfSURank while instantating.
