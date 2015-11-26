@@ -29,6 +29,9 @@ static void clm_node_join_complete(AVD_AVND *node)
 	AVD_SU *su;
 
 	TRACE_ENTER();
+	/* Enable the node in any case. */
+	avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_ENABLED);
+
 	/* For each of the SUs calculate the readiness state. 
 	 ** call the SG FSM with the new readiness state.
 	 */
@@ -38,7 +41,6 @@ static void clm_node_join_complete(AVD_AVND *node)
 		goto done;
 	}
 
-	avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_ENABLED);
 	su = node->list_of_su;
 	while (su != NULL) {
 		/* For non-preinstantiable SU unlock-inst will not lead to its inst until unlock. */
