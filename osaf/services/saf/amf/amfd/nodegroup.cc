@@ -953,11 +953,12 @@ static void ng_admin_unlock_inst(AVD_AMF_NG *ng)
 					continue;
 
 				if ((su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
-					(node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
+						(su->su_on_node->saAmfNodeAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) &&
 						(su->saAmfSUOperState == SA_AMF_OPERATIONAL_ENABLED) &&
-						(su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED)) {
+						(su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) &&
+						(su->su_on_node->saAmfNodeOperState == SA_AMF_OPERATIONAL_ENABLED)) {
 					if ((su->saAmfSUPreInstantiable == false) ||
-							(node->node_state != AVD_AVND_STATE_PRESENT))
+							(su->su_on_node->node_state != AVD_AVND_STATE_PRESENT))
 						continue;
 
 					if (sg->saAmfSGNumPrefInserviceSUs > su_try_inst) {

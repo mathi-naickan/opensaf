@@ -27,6 +27,9 @@ static SaVersionT clmVersion = { 'B', 4, 1 };
 static void clm_node_join_complete(AVD_AVND *node)
 {
 	TRACE_ENTER();
+	/* Enable the node in any case. */
+	avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_ENABLED);
+
 	/* For each of the SUs calculate the readiness state. 
 	 ** call the SG FSM with the new readiness state.
 	 */
@@ -36,7 +39,6 @@ static void clm_node_join_complete(AVD_AVND *node)
 		goto done;
 	}
 
-	avd_node_oper_state_set(node, SA_AMF_OPERATIONAL_ENABLED);
 	for (const auto& su : node->list_of_su) {
 		/* For non-preinstantiable SU unlock-inst will not lead to its inst until unlock. */
 		if ( su->saAmfSUPreInstantiable == false ) {
