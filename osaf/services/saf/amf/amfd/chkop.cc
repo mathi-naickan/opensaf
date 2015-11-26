@@ -405,7 +405,7 @@ ignore_msg:
 			 */
 			TRACE("COLD_SYNC_REQ");
 
-			if (cb->init_state < AVD_INIT_DONE) {
+			if (cb->init_state < AVD_CFG_DONE) {
 				TRACE("invalid init state (%u) for cold sync req", cb->init_state);
 				status = NCSCC_RC_FAILURE;
 			}
