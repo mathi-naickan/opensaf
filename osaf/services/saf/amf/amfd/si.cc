@@ -1146,10 +1146,11 @@ static void si_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 
 		if (!strcmp(attribute->attrName, "saAmfSIPrefActiveAssignments")) {
 
-			if (value_is_deleted)
-				mod_pref_assignments = si->saAmfSIPrefActiveAssignments = 1;
-			else
+			if (value_is_deleted) {
+				mod_pref_assignments = 1;
+			} else {
 				mod_pref_assignments = *((SaUint32T *)attr_mod->modAttr.attrValues[0]);
+			}
 
 			if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
 				si->saAmfSIPrefActiveAssignments = mod_pref_assignments;
