@@ -58,20 +58,22 @@ void addObjectAttributeDefinition(SaImmClassNameT objectClass,
 bool createImmClass(SaImmHandleT immHandle,
 	const SaImmClassNameT className, 
 	SaImmClassCategoryT classCategory,
-	std::list<SaImmAttrDefinitionT_2>* attrDefinitions);
+	std::list<SaImmAttrDefinitionT_2>* attrDefinitions,
+	bool* pbeCorrupted = NULL);
 
 bool createImmObject(SaImmClassNameT className,
 	char * objectName,
 	std::list<SaImmAttrValuesT_2> *attrValuesList,
 	SaImmCcbHandleT ccbHandle,
-	std::map<std::string, SaImmAttrValuesT_2> *classRDNMap);
+	std::map<std::string, SaImmAttrValuesT_2> *classRDNMap,
+	bool* pbeCorrupted = NULL);
 
 
 void escalatePbe(std::string dir, std::string file);
 
 void* checkPbeRepositoryInit(std::string dir, std::string file);
 
-int loadImmFromPbe(void* pbeHandle, bool preload);
+int loadImmFromPbe(void* pbeHandle, bool preload, bool* pbeCorrupted);
 
 void sendPreloadParams(SaImmHandleT immHandle, SaImmAdminOwnerHandleT ownerHandle, 
 	SaUint32T epoch, SaUint32T maxCcbId, SaUint32T maxCommitTime,

@@ -211,7 +211,8 @@ bool loadClassFromPbe(void* pbeHandle,
 	const char* className, 
 	const char* class_id, 
 	SaImmClassCategoryT classCategory,
-	ClassInfo* class_info)
+	ClassInfo* class_info,
+	bool* pbeCorrupted)
 {
 	sqlite3* dbHandle = (sqlite3 *) pbeHandle;
 	sqlite3_stmt *stmt;
@@ -224,6 +225,7 @@ bool loadClassFromPbe(void* pbeHandle,
 	std::list<SaImmAttrDefinitionT_2>::iterator it;
 	TRACE_ENTER2("Loading class %s from PBE", className);
 
+	*pbeCorrupted = true;
 	stmt = preparedStmt[SQL_SEL_ATTR_DEF];
 	rc = sqlite3_bind_int(stmt, 1, atoi(class_id));
 	if(rc != SQLITE_OK) {
@@ -347,7 +349,7 @@ bool loadClassFromPbe(void* pbeHandle,
 		rc = sqlite3_step(stmt);
 	}
 
-	if (!createImmClass(immHandle, (char *) className, classCategory, &attrDefs)) {
+	if (!createImmClass(immHandle, (char *) className, classCategory, &attrDefs, pbeCorrupted)) {
 		LOG_ER("Failed to create IMM class");
 		goto bailout;
 	}
@@ -365,7 +367,7 @@ bailout:
 	return false;
 }
 
-bool loadClassesFromPbe(void* pbeHandle, SaImmHandleT immHandle, ClassInfoMap* classInfoMap)
+bool loadClassesFromPbe(void* pbeHandle, SaImmHandleT immHandle, ClassInfoMap* classInfoMap, bool* pbeCorrupted)
 {
 	sqlite3* dbHandle = (sqlite3 *) pbeHandle;	
 	const char * sql = "select * from classes";
@@ -377,6 +379,7 @@ bool loadClassesFromPbe(void* pbeHandle, SaImmHandleT immHandle, ClassInfoMap* c
 	int r,c;
 	TRACE_ENTER();
 	assert(dbHandle);
+	*pbeCorrupted = true;
 
 	rc = sqlite3_get_table(dbHandle, sql, &result, &nrows, &ncols, &zErr);
 	if(rc) {
@@ -411,7 +414,7 @@ bool loadClassesFromPbe(void* pbeHandle, SaImmHandleT immHandle, ClassInfoMap* c
 		class_info->className = std::string(class_name);
 		class_info->class_category = class_category;
 		if(!loadClassFromPbe(pbeHandle, immHandle, class_name,
-			   class_id, class_category, class_info))
+			   class_id, class_category, class_info, pbeCorrupted))
 		{
 			sqlite3_free_table(result);
 			goto bailout;
@@ -431,7 +434,7 @@ bool loadClassesFromPbe(void* pbeHandle, SaImmHandleT immHandle, ClassInfoMap* c
 }
 
 bool loadObjectFromPbe(void* pbeHandle, SaImmHandleT immHandle, SaImmCcbHandleT ccbHandle,
-	const char* object_id, ClassInfo* class_info, const char* dn)
+	const char* object_id, ClassInfo* class_info, const char* dn, bool* pbeCorrupted)
 {
 	sqlite3* dbHandle = (sqlite3 *) pbeHandle;
 	sqlite3_stmt *stmt = NULL;
@@ -449,6 +452,7 @@ bool loadObjectFromPbe(void* pbeHandle, SaImmHandleT immHandle, SaImmCcbHandleT 
 		object_id, dn, class_info->className.c_str(),
 		class_info->attrInfoVector.size());
 
+	*pbeCorrupted = true;
 	/* First take care of the base tuple (single valued attributes). */
 	it = class_info->attrInfoVector.begin();
 	while(it != class_info->attrInfoVector.end()) {
@@ -665,7 +669,7 @@ bool loadObjectFromPbe(void* pbeHandle, SaImmHandleT immHandle, SaImmCcbHandleT 
 
 
 	if(!createImmObject((char *) class_info->className.c_str(), (char *) dn, 
-		   &attrValuesList, ccbHandle, NULL))
+		   &attrValuesList, ccbHandle, NULL, pbeCorrupted))
 	{
 		LOG_NO("Failed to create object - exiting");
 		goto bailout;
@@ -681,7 +685,7 @@ bailout:
 }
 
 bool loadObjectsFromPbe(void* pbeHandle, SaImmHandleT immHandle,
-	SaImmCcbHandleT ccbHandle, ClassInfoMap *classInfoMap)
+	SaImmCcbHandleT ccbHandle, ClassInfoMap *classInfoMap, bool* pbeCorrupted)
 {
 	sqlite3* dbHandle = (sqlite3 *) pbeHandle;	
 	const char * sql = "select * from objects";
@@ -693,6 +697,7 @@ bool loadObjectsFromPbe(void* pbeHandle, SaImmHandleT immHandle,
 	int r,c;
 	TRACE_ENTER();
 	assert(dbHandle);
+	*pbeCorrupted = true;
 
 	rc = sqlite3_get_table(dbHandle, sql, &result, &nrows, &ncols, &zErr);
 	if(rc) {
@@ -727,7 +732,7 @@ bool loadObjectsFromPbe(void* pbeHandle, SaImmHandleT immHandle,
 		class_info = (*classInfoMap)[std::string(class_id)];
 
 		if(!loadObjectFromPbe(pbeHandle, immHandle, ccbHandle, object_id, 
-			   class_info, dn)) {
+			   class_info, dn, pbeCorrupted)) {
 			sqlite3_free_table(result);
 			goto bailout;
 		}
@@ -743,7 +748,7 @@ bool loadObjectsFromPbe(void* pbeHandle, SaImmHandleT immHandle,
 }
 
 
-int loadImmFromPbe(void* pbeHandle, bool preload)
+int loadImmFromPbe(void* pbeHandle, bool preload, bool* pbeCorrupted)
 {
 	SaVersionT             version = {'A', 2, 15};
 	SaImmHandleT           immHandle=0LL;
@@ -759,6 +764,7 @@ int loadImmFromPbe(void* pbeHandle, bool preload)
 	unsigned int retries=0;
 	TRACE_ENTER();
 	assert(dbHandle);
+	*pbeCorrupted = true;
 
 	do {
 		rc = sqlite3_exec(dbHandle, beginT, NULL, NULL, &execErr);
@@ -784,14 +790,15 @@ int loadImmFromPbe(void* pbeHandle, bool preload)
 		   The "other user" is likely to be a lingering PBE (on the other SC) or a lingering POSIX 
 		   file lock in an NFS client cache. 
 		 */
-		sqlite3_close(dbHandle);
-		exit(1);
+		*pbeCorrupted = false;
+		goto bailout;
 	}
 
 	errorCode = saImmOmInitialize(&immHandle, NULL, &version);
 	if (SA_AIS_OK != errorCode) {
 		LOG_ER("Failed to initialize the IMM OM interface (%d)",
 			errorCode);
+		*pbeCorrupted = false;
 		goto bailout;
 	}
 
@@ -799,7 +806,8 @@ int loadImmFromPbe(void* pbeHandle, bool preload)
 		SA_FALSE, &ownerHandle);
 	if (errorCode != SA_AIS_OK) {
 		LOG_ER("Failed on saImmOmAdminOwnerInitialize %d", errorCode);
-		exit(1);
+		*pbeCorrupted = false;
+		goto bailout;
 	}
 
         if(preload) { /* Break out this into a separate function. */
@@ -959,7 +967,7 @@ int loadImmFromPbe(void* pbeHandle, bool preload)
         }
 
 	/*Fetch classes from PBE and create in IMM */
-	if(!loadClassesFromPbe(pbeHandle, immHandle, &classInfoMap)) {
+	if(!loadClassesFromPbe(pbeHandle, immHandle, &classInfoMap, pbeCorrupted)) {
 		goto bailout;
 	}
 
@@ -967,10 +975,11 @@ int loadImmFromPbe(void* pbeHandle, bool preload)
 	errorCode = saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle);
 	if (errorCode != SA_AIS_OK) {
 		LOG_ER("Failed to initialize ImmOmCcb %d", errorCode);
-		exit(1);
+		*pbeCorrupted = false;
+		goto bailout;
 	}
 
-	if(!loadObjectsFromPbe(pbeHandle, immHandle, ccbHandle, &classInfoMap))
+	if(!loadObjectsFromPbe(pbeHandle, immHandle, ccbHandle, &classInfoMap, pbeCorrupted))
 	{
 		goto bailout;
 	}
@@ -987,7 +996,12 @@ int loadImmFromPbe(void* pbeHandle, bool preload)
 	errorCode = saImmOmCcbApply(ccbHandle);
 	if (errorCode != SA_AIS_OK) {
 		LOG_ER("Failed to APPLY ImmOmCcb %d", errorCode);
-		exit(1);
+		if (errorCode != SA_AIS_ERR_INVALID_PARAM &&
+				errorCode != SA_AIS_ERR_BAD_OPERATION &&
+				errorCode != SA_AIS_ERR_FAILED_OPERATION) {
+			*pbeCorrupted = false;
+		}
+		goto bailout;
 	}
 
 	TRACE_2("Successfully Applied the CCB ");
@@ -1011,6 +1025,9 @@ int loadImmFromPbe(void* pbeHandle, bool preload)
 		} while((errorCode == SA_AIS_ERR_TRY_AGAIN) && (retryCount < 32));
 
 		if((errorCode != SA_AIS_OK) && (errorCode!=SA_AIS_ERR_NOT_EXIST)) {
+			if (errorCode != SA_AIS_ERR_BUSY) {
+				*pbeCorrupted = false;
+			}
 			LOG_ER("Delete of class %s FAILED with errorCode:%u",
 				(char *) OPENSAF_IMM_PBE_RT_CLASS_NAME, errorCode);
 			goto bailout;
@@ -1025,6 +1042,7 @@ int loadImmFromPbe(void* pbeHandle, bool preload)
 
 	if(!opensafPbeRtClassCreate(immHandle)) {
 		/* Error already logged. */
+		*pbeCorrupted = false; /* definition of this class is not from pbe */
 		goto bailout;
 	}
 
@@ -1052,7 +1070,7 @@ void* checkPbeRepositoryInit(std::string dir, std::string file)
 	return NULL;
 }
 
-int loadImmFromPbe(void* pbeHandle, bool preload)
+int loadImmFromPbe(void* pbeHandle, bool preload, bool* pbeCorrupted)
 {
 	TRACE_ENTER2("Not enabled");
 	TRACE_LEAVE();
