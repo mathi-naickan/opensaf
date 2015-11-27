@@ -417,6 +417,13 @@ public:
 	bool ng_using_saAmfSGAdminState;
 	
 	uint32_t term_su_list_in_reverse();
+       //Runtime calculates value of saAmfSGNumCurrAssignedSUs;
+	uint32_t curr_assigned_sus() const;
+	//Runtime calculates value of saAmfSGNumCurrInstantiatedSpareSUs;
+	uint32_t curr_instantiated_spare_sus() const;
+	//Runtime calculates value of saAmfSGNumCurrNonInstantiatedSpareSUs;
+	uint32_t curr_non_instantiated_spare_sus() const;
+
 private:
 	// disallow copy and assign, TODO(hafe) add common macro for this
 	AVD_SG(const AVD_SG&);
