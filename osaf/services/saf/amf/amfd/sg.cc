@@ -1457,12 +1457,15 @@ static SaAisErrorT sg_rt_attr_cb(SaImmOiHandleT immOiHandle,
 
 	while ((attributeName = attributeNames[i++]) != NULL) {
 		if (!strcmp("saAmfSGNumCurrAssignedSUs", attributeName)) {
+			sg->saAmfSGNumCurrAssignedSUs = sg->curr_assigned_sus();
 			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &sg->saAmfSGNumCurrAssignedSUs);
 		} else if (!strcmp("saAmfSGNumCurrNonInstantiatedSpareSUs", attributeName)) {
+			sg->saAmfSGNumCurrNonInstantiatedSpareSUs = sg->curr_non_instantiated_spare_sus();
 			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &sg->saAmfSGNumCurrNonInstantiatedSpareSUs);
 		} else if (!strcmp("saAmfSGNumCurrInstantiatedSpareSUs", attributeName)) {
+			sg->saAmfSGNumCurrInstantiatedSpareSUs = sg->curr_instantiated_spare_sus();
 			avd_saImmOiRtObjectUpdate_sync(objectName, attributeName,
 				SA_IMM_ATTR_SAUINT32T, &sg->saAmfSGNumCurrInstantiatedSpareSUs);
 		} else {
@@ -2002,4 +2005,34 @@ SaAisErrorT AVD_SG::check_sg_stability()
 done:
 	return rc;
 
+}
+
+uint32_t AVD_SG::curr_assigned_sus() const
+{
+	uint32_t count = 0;	
+	for (AVD_SU *su = list_of_su; su != NULL; su = su->sg_list_su_next) {
+			if (su->list_of_susi != NULL)
+				count++;
+	}
+	return count;
+}
+uint32_t AVD_SG::curr_instantiated_spare_sus() const
+{
+	uint32_t count = 0;	
+	for (AVD_SU *su = list_of_su; su != NULL; su = su->sg_list_su_next) {
+			if ((su->list_of_susi == NULL) &&
+					(su->saAmfSUPresenceState == SA_AMF_PRESENCE_INSTANTIATED))
+				count++;
+	}
+	return count;
+}
+uint32_t AVD_SG::curr_non_instantiated_spare_sus() const
+{
+	uint32_t count = 0;	
+	for (AVD_SU *su = list_of_su; su != NULL; su = su->sg_list_su_next) {
+			if ((su->list_of_susi == NULL) &&
+					(su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED))
+				count++;
+	}
+	return count;
 }

@@ -405,6 +405,14 @@ public:
 	bool is_sg_serviceable_outside_ng(const AVD_AMF_NG *ng);
 	SaAisErrorT check_sg_stability();
 	bool ng_using_saAmfSGAdminState;
+	//Runtime calculates value of saAmfSGNumCurrAssignedSUs;
+	uint32_t curr_assigned_sus() const;
+	//Runtime calculates value of saAmfSGNumCurrInstantiatedSpareSUs;
+	uint32_t curr_instantiated_spare_sus() const;
+	//Runtime calculates value of saAmfSGNumCurrNonInstantiatedSpareSUs;
+	uint32_t curr_non_instantiated_spare_sus() const;
+
+
 private:
 	// disallow copy and assign, TODO(hafe) add common macro for this
 	AVD_SG(const AVD_SG&);
