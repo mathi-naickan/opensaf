@@ -482,7 +482,8 @@ bool createImmObject(SaImmClassNameT className,
     char * objectName,
     std::list<SaImmAttrValuesT_2> *attrValuesList,
     SaImmCcbHandleT ccbHandle, 
-    std::map<std::string, SaImmAttrValuesT_2> *classRDNMap)
+    std::map<std::string, SaImmAttrValuesT_2> *classRDNMap,
+    bool* pbeCorrupted)
 {
     SaNameT parentName;
     SaImmAttrValuesT_2** attrValues;
@@ -493,6 +494,7 @@ bool createImmObject(SaImmClassNameT className,
 
     TRACE_ENTER2("CREATE IMM OBJECT %s, %s", className, objectName);
 
+    if (pbeCorrupted) *pbeCorrupted = true;
     TRACE("attrValuesList size:%zu clasRDNMap size:%zu", 
         attrValuesList->size(),
         classRDNMap?classRDNMap->size():0);
@@ -589,9 +591,19 @@ bool createImmObject(SaImmClassNameT className,
 
     if (SA_AIS_OK != errorCode)
     {
-	LOG_ER("Failed to create object err: %d, class: %s, dn: '%s'. "
-		"Check for duplicate attributes, or trace osafimmloadd",
-		errorCode, className, objectName);
+        if (pbeCorrupted &&
+                ((errorCode != SA_AIS_ERR_INVALID_PARAM &&
+                errorCode != SA_AIS_ERR_BAD_OPERATION &&
+                errorCode != SA_AIS_ERR_NOT_EXIST &&
+                errorCode != SA_AIS_ERR_EXIST &&
+                errorCode != SA_AIS_ERR_FAILED_OPERATION &&
+                errorCode != SA_AIS_ERR_NAME_TOO_LONG) ||
+                (errorCode == SA_AIS_ERR_FAILED_OPERATION && !isValidationAborted(ccbHandle)))) {
+            *pbeCorrupted = false;
+        }
+        LOG_ER("Failed to create object err: %d, class: %s, dn: '%s'. "
+                "Check for duplicate attributes, or trace osafimmloadd",
+                errorCode, className, objectName);
         rc = false;
         goto freemem;
     }
@@ -631,7 +643,8 @@ freemem:
 bool createImmClass(SaImmHandleT immHandle,
     const SaImmClassNameT className, 
     SaImmClassCategoryT classCategory,
-    std::list<SaImmAttrDefinitionT_2>* attrDefinitions)
+    std::list<SaImmAttrDefinitionT_2>* attrDefinitions,
+    bool* pbeCorrupted)
 {
     SaImmAttrDefinitionT_2** attrDefinition;
     SaAisErrorT errorCode = SA_AIS_OK;
@@ -640,6 +653,7 @@ bool createImmClass(SaImmHandleT immHandle,
 
     TRACE_ENTER2("CREATING IMM CLASS %s", className);
 
+    if (pbeCorrupted) *pbeCorrupted = true;
     /* Set the attrDefinition array */
     attrDefinition = (SaImmAttrDefinitionT_2**)
                      calloc((attrDefinitions->size() + 1),
@@ -680,6 +694,11 @@ bool createImmClass(SaImmHandleT immHandle,
 
     if (SA_AIS_OK != errorCode)
     {
+        if (pbeCorrupted &&
+                errorCode != SA_AIS_ERR_INVALID_PARAM &&
+                errorCode != SA_AIS_ERR_EXIST) {
+            *pbeCorrupted = false;
+        }
         LOG_ER("FAILED to create IMM class %s, err:%d", className, errorCode);
         rc = false;
         goto freemem;
@@ -2727,6 +2746,7 @@ int main(int argc, char* argv[])
     const char* pbe_file = getenv("IMMSV_PBE_FILE");
     const char* pbe_file_suffix = getenv("IMMSV_PBE_FILE_SUFFIX");
     std::string pbeFile;
+    bool pbeCorrupted = false;
     if(pbe_file) {pbeFile.append(pbe_file);}
     if(pbe_file_suffix) {
         pbeFile.append(pbe_file_suffix);
@@ -2821,13 +2841,13 @@ int main(int argc, char* argv[])
              LOG_NO("***** Loading from PBE file %s at %s *****", pbeFile.c_str(), argv[1]);
         }
 
-        if(!loadImmFromPbe(pbeHandle, preload)) {
+        if(!loadImmFromPbe(pbeHandle, preload, &pbeCorrupted)) {
             LOG_ER("Load from PBE ending ABNORMALLY dir:%s file:%s",
                 argv[1], pbeFile.c_str());
             /* Try to prevent cyclic restart. Escalation will only work if 
                xmldir is writable.
             */
-            if(!preload) {/* Should perhaps escalate also if preload or return <0, 0, 0>*/
+            if(!preload && pbeCorrupted) {/* Should perhaps escalate also if preload or return <0, 0, 0>*/
                 escalatePbe(xmldir, pbeFile.c_str());
             }
             goto err; 
