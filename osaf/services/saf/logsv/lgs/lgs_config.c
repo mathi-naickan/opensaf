@@ -1088,7 +1088,7 @@ static void read_log_config_environ_var_2(void) {
 	/* logMaxApplicationStreams
 	 * Rule: Object has precedence
 	 */
-	if (lgs_conf.logMaxLogrecsize_cnfflag == LGS_CNF_DEF) {
+	if (lgs_conf.logMaxApplicationStreams_cnfflag == LGS_CNF_DEF) {
 		if ((val_str = getenv("LOG_MAX_APPLICATION_STREAMS")) != NULL) {
 			errno = 0;
 			val_uint = strtoul(val_str, NULL, 0);
