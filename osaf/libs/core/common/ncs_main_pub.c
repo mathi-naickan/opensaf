@@ -778,7 +778,9 @@ uint32_t ncs_update_sys_param_args(void)
 	NCS_SYS_PARAMS sys_params;
 
 	/* Get the system specific parameters */
-	ncs_util_get_sys_params(&sys_params);
+	if(ncs_util_get_sys_params(&sys_params)!=NCSCC_RC_SUCCESS){
+		return NCSCC_RC_FAILURE;
+	}
 
 	/* Frame input arguments */
 	ncs_get_sys_params_arg(&sys_params);
