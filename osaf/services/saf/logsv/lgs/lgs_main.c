@@ -227,14 +227,9 @@ static uint32_t log_initialize(void)
 		goto done;
 	}
 
-	/* Initialize IMM OI and get corresponding OI selection object
-	 * Become OI for safLogService if Active 
-	 * IMM OI handle and IMM selection object is saved in lgs_cb
-	 */
-	if ((rc = lgs_imm_init_OI(lgs_cb)) != SA_AIS_OK) {
-		LOG_ER("lgs_imm_init FAILED");
-		goto done;
-	}
+	/* Initialize IMM OI handle and selection object */
+	lgs_imm_init_OI_handle(&lgs_cb->immOiHandle, &lgs_cb->immSelectionObject);
+
 	TRACE("IMM init done: lgs_cb->immOiHandle = %lld", lgs_cb->immOiHandle);
 
 	/* Initialize log configuration
@@ -325,6 +320,10 @@ static uint32_t log_initialize(void)
 	}
 
 	if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) {
+		/* Become OI. We will be blocked here until done */
+		lgs_imm_impl_set(lgs_cb->immOiHandle);
+		conf_runtime_obj_create(lgs_cb->immOiHandle);
+
 		/* Create streams that has configuration objects and become
 		 * class implementer for the SaLogStreamConfig class
 		 */
@@ -350,72 +349,6 @@ done:
 
 	TRACE_LEAVE();
 	return (rc);
-}
-
-/**
- * Wait a while on IMM and initialize, sel obj get & implementer
- * set.
- * 
- * @param _cb
- * 
- * @return void*
- */
-static void *imm_reinit_thread(void *_cb)
-{
-	SaAisErrorT error;
-	lgs_cb_t *cb = (lgs_cb_t *)_cb;
-	lgsv_lgs_evt_t *lgsv_evt;
-
-	TRACE_ENTER();
-
-	if ((error = lgs_imm_init_OI(cb)) != SA_AIS_OK) {
-		LOG_ER("lgs_imm_init FAILED: %u", error);
-		exit(EXIT_FAILURE);
-	}
-
-	lgs_imm_impl_restore(cb);
-
-	/* Wake up the main thread so it discovers the new imm descriptor. */
-	lgsv_evt = calloc(1, sizeof(lgsv_lgs_evt_t));
-	osafassert(lgsv_evt);
-	lgsv_evt->evt_type = LGSV_EVT_NO_OP;
-	if (m_NCS_IPC_SEND(&lgs_mbx, lgsv_evt, LGS_IPC_PRIO_CTRL_MSGS) !=
-		NCSCC_RC_SUCCESS) {
-		LOG_WA("imm_reinit_thread failed to send IPC message to main thread");
-		/*
-		 * Se no reason why thos would happen. But if it does at least there
-		 * is something in the syslog. The main thread should still pick up
-		 * the new imm FD when there is a healthcheck, but it could take
-		 *minutes.
-		 */
-		free(lgsv_evt);
-	}
-
-	TRACE_LEAVE();
-	return NULL;
-}
-
-/**
- * Start a background thread to do IMM reinitialization.
- * 
- * @param cb
- */
-static void imm_reinit_bg(lgs_cb_t *cb)
-{
-	pthread_t thread;
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-	TRACE_ENTER();
-	if (pthread_create(&thread, &attr, imm_reinit_thread, cb) != 0) {
-		LOG_ER("pthread_create FAILED: %s", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	
-	pthread_attr_destroy(&attr);
-	
-	TRACE_LEAVE();
 }
 
 /**
@@ -457,6 +390,10 @@ int main(int argc, char *argv[])
 
 	while (1) {
 
+		/* Protect since the reinit thread may be in the process of
+		 * changing the values
+		 */
+		osaf_mutex_lock_ordie(&lgs_OI_init_mutex);
 		if (lgs_cb->immOiHandle != 0) {
 			fds[FD_IMM].fd = lgs_cb->immSelectionObject;
 			fds[FD_IMM].events = POLLIN;
@@ -464,6 +401,7 @@ int main(int argc, char *argv[])
 		} else {
 			nfds = FD_IMM;
 		}
+		osaf_mutex_unlock_ordie(&lgs_OI_init_mutex);
 
 		int ret = poll(fds, nfds, -1);
 
@@ -538,7 +476,7 @@ int main(int argc, char *argv[])
 				lgs_cb->immOiHandle = 0;
 
 				/* Initiate IMM reinitializtion in the background */
-				imm_reinit_bg(lgs_cb);
+				lgs_imm_impl_reinit_nonblocking(lgs_cb);
 			} else if (error != SA_AIS_OK) {
 				LOG_ER("saImmOiDispatch FAILED: %u", error);
 				break;

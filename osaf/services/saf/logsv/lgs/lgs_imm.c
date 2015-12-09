@@ -58,6 +58,11 @@
  * ----------------
  */
 
+/* Used for protecting global imm OI handle and selection object during
+ * initialize of OI
+ */
+pthread_mutex_t lgs_OI_init_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /* Used for checkpointing time when files are closed */
 static time_t chkp_file_close_time = 0;
 
@@ -2739,114 +2744,14 @@ SaAisErrorT lgs_imm_create_configStream(lgs_cb_t *cb)
 }
 
 /**
- * Thread
- * Restore object and class implementer/applier. Wait max
- * 'max_waiting_time_ms'.
- * @param _cb
- * 
- * @return void*
- */
-static void *imm_impl_restore_thread(void *_cb)
-{
-	SaAisErrorT rc = SA_AIS_OK;
-	int msecs_waited;
-	lgs_cb_t *cb = (lgs_cb_t *)_cb;
-
-	TRACE_ENTER();
-
-	/* Become object implementer
-	 */
-	msecs_waited = 0;
-	rc = saImmOiImplementerSet(cb->immOiHandle, implementerName);
-	while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST)) &&
-			(msecs_waited < max_waiting_time_60s)) {
-		usleep(sleep_delay_ms * 1000);
-		msecs_waited += sleep_delay_ms;
-		rc = saImmOiImplementerSet(cb->immOiHandle, implementerName);
-	}
-	if (rc != SA_AIS_OK) {
-		LOG_ER("saImmOiImplementerSet failed %u", rc);
-		exit(EXIT_FAILURE);
-	}
-
-	/* Become class implementer for the SaLogStreamConfig
-	 * Become class implementer for the OpenSafLogConfig class if it exists
-	 */
-	if ( true == *(bool*) lgs_cfg_get(LGS_IMM_LOG_OPENSAFLOGCONFIG_CLASS_EXIST)) {
-		(void)immutil_saImmOiClassImplementerSet(cb->immOiHandle, "OpenSafLogConfig");
-		msecs_waited = 0;
-		rc = saImmOiClassImplementerSet(cb->immOiHandle, "OpenSafLogConfig");
-		while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST))
-				&& (msecs_waited < max_waiting_time_60s)) {
-			usleep(sleep_delay_ms * 1000);
-			msecs_waited += sleep_delay_ms;
-			rc = saImmOiClassImplementerSet(cb->immOiHandle, "OpenSafLogConfig");
-		}
-		if (rc != SA_AIS_OK) {
-			LOG_ER("saImmOiClassImplementerSet OpenSafLogConfig failed %u", rc);
-			exit(EXIT_FAILURE);
-		}
-	}
-
-	msecs_waited = 0;
-	rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaLogStreamConfig");
-	while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST))
-			&& (msecs_waited < max_waiting_time_60s)) {
-		usleep(sleep_delay_ms * 1000);
-		msecs_waited += sleep_delay_ms;
-		rc = saImmOiClassImplementerSet(cb->immOiHandle, "SaLogStreamConfig");
-	}
-	if (rc != SA_AIS_OK) {
-		LOG_ER("saImmOiClassImplementerSet SaLogStreamConfig failed %u", rc);
-		exit(EXIT_FAILURE);
-	}
-	
-	TRACE_LEAVE();
-	return NULL;
-}
-
-/**
- * Restore object and class implementer, non-blocking.
- * Remove: Become object and class implementer or applier, non-blocking.
- * @param cb
- */
-void lgs_imm_impl_restore(lgs_cb_t *cb)
-{
-	pthread_t thread;
-	pthread_attr_t attr;
-
-	TRACE_ENTER();
-
-	/* In active state: Become object implementer.
-	 */
-	if (cb->ha_state == SA_AMF_HA_STANDBY) {
-		return;
-	}
-	
-
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-	if (pthread_create(&thread, &attr, imm_impl_restore_thread, cb) != 0) {
-		LOG_ER("pthread_create FAILED: %s", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	
-	pthread_attr_destroy(&attr);
-	
-	TRACE_LEAVE();
-}
-
-/**
  * Initialize the OI interface and get a selection object.
  * Become OI for safLogService if Active
  *
- * Wait max 'max_waiting_time_ms'.
- * @param cb
- * 
- * @return SaAisErrorT
+ * @param immOiHandle[out]
+ * @param immSelectionObject[out]
  */
-SaAisErrorT lgs_imm_init_OI(lgs_cb_t *cb)
+void lgs_imm_init_OI_handle(SaImmOiHandleT *immOiHandle,
+	SaSelectionObjectT *immSelectionObject)
 {
 	SaAisErrorT rc;
 	int msecs_waited;
@@ -2855,56 +2760,196 @@ SaAisErrorT lgs_imm_init_OI(lgs_cb_t *cb)
 
 	/* Initialize IMM OI service */
 	msecs_waited = 0;
-	rc = saImmOiInitialize_2(&cb->immOiHandle, &callbacks, &immVersion);
+	rc = saImmOiInitialize_2(immOiHandle, &callbacks, &immVersion);
 	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_60s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
-		rc = saImmOiInitialize_2(&cb->immOiHandle, &callbacks, &immVersion);
+		rc = saImmOiInitialize_2(immOiHandle, &callbacks, &immVersion);
 	}
 	if (rc != SA_AIS_OK) {
-		LOG_ER("saImmOiInitialize_2 Failed %u", rc);
-		return rc;
-	}
-	TRACE("%s: saImmOiInitialize_2() Done",__FUNCTION__);
-
-	/* If started as Active */
-	if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-		/* Become Object Implementer for the log service */
-		msecs_waited = 0;
-		rc = saImmOiImplementerSet(cb->immOiHandle, implementerName);
-		while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST)) &&
-				(msecs_waited < max_waiting_time_60s)) {
-			usleep(sleep_delay_ms * 1000);
-			msecs_waited += sleep_delay_ms;
-			rc = saImmOiImplementerSet(cb->immOiHandle, implementerName);
-		}
-		if (rc != SA_AIS_OK) {
-			LOG_ER("saImmOiImplementerSet Failed %u", rc);
-			exit(EXIT_FAILURE);
-		}
-		TRACE("%s: saImmOiImplementerSet() for %s Done",
-			__FUNCTION__, implementerName);
-
-		/* Create the runtime object for showing the actual
-		 * log server configuration
-		 */
-		conf_runtime_obj_create(cb->immOiHandle);
+		lgs_exit("saImmOiInitialize_2 failed", SA_AMF_COMPONENT_RESTART);
 	}
 
 	/* Get selection object for event handling */
 	msecs_waited = 0;
-	rc = saImmOiSelectionObjectGet(cb->immOiHandle, &cb->immSelectionObject);
+	rc = saImmOiSelectionObjectGet(*immOiHandle, immSelectionObject);
 	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_10s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
-		rc = saImmOiSelectionObjectGet(cb->immOiHandle, &cb->immSelectionObject);
+		rc = saImmOiSelectionObjectGet(*immOiHandle, immSelectionObject);
 	}
 	if (rc != SA_AIS_OK) {
-		LOG_ER("saImmOiSelectionObjectGet failed %u", rc);
-		exit(EXIT_FAILURE);
+		lgs_exit("saImmOiSelectionObjectGet failed", SA_AMF_COMPONENT_RESTART);
 	}
 
 	TRACE_LEAVE();
+}
 
+/**
+ * Does the sequence of setting an implementer name and class implementer
+ * 
+ * @param immOiHandle[in]
+ * @return SaAisErrorT
+ */
+static SaAisErrorT imm_impl_set_sequence(SaImmOiHandleT immOiHandle)
+{
+	SaAisErrorT rc = SA_AIS_OK;
+	int msecs_waited;
+
+	TRACE_ENTER();
+
+	/* Become object implementer
+	 */
+	msecs_waited = 0;
+	rc = saImmOiImplementerSet(immOiHandle, implementerName);
+	while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST)) &&
+			(msecs_waited < max_waiting_time_60s)) {
+		usleep(sleep_delay_ms * 1000);
+		msecs_waited += sleep_delay_ms;
+		rc = saImmOiImplementerSet(immOiHandle, implementerName);
+	}
+	if (rc != SA_AIS_OK) {
+		TRACE("saImmOiImplementerSet failed %s", saf_error(rc));
+		goto done;
+	}
+
+	/* 
+	 * Become class implementer for the OpenSafLogConfig class if it exists
+	 * Become class implementer for the SaLogStreamConfig class
+	 */
+	if ( true == *(bool*) lgs_cfg_get(LGS_IMM_LOG_OPENSAFLOGCONFIG_CLASS_EXIST)) {
+		msecs_waited = 0;
+		rc = saImmOiClassImplementerSet(immOiHandle, "OpenSafLogConfig");
+		while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST))
+				&& (msecs_waited < max_waiting_time_60s)) {
+			usleep(sleep_delay_ms * 1000);
+			msecs_waited += sleep_delay_ms;
+			rc = saImmOiClassImplementerSet(immOiHandle, "OpenSafLogConfig");
+		}
+		if (rc != SA_AIS_OK) {
+			TRACE("saImmOiClassImplementerSet OpenSafLogConfig failed %s", saf_error(rc));
+			goto done;
+		}
+	}
+
+	msecs_waited = 0;
+	rc = saImmOiClassImplementerSet(immOiHandle, "SaLogStreamConfig");
+	while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_EXIST))
+			&& (msecs_waited < max_waiting_time_60s)) {
+		usleep(sleep_delay_ms * 1000);
+		msecs_waited += sleep_delay_ms;
+		rc = saImmOiClassImplementerSet(immOiHandle, "SaLogStreamConfig");
+	}
+	if (rc != SA_AIS_OK) {
+		TRACE("saImmOiClassImplementerSet SaLogStreamConfig failed %u", rc);
+		goto done;
+	}
+	
+done:
 	return rc;
+	TRACE_LEAVE();
+}
+
+/**
+ * Set implementer name and become class implementer.
+ * This function will block until done.
+ *
+ * @param cb
+ */
+void lgs_imm_impl_set(SaImmOiHandleT immOiHandle)
+{
+	SaAisErrorT rc = SA_AIS_OK;
+
+	TRACE_ENTER();
+
+	rc = imm_impl_set_sequence(immOiHandle);
+	if (rc != SA_AIS_OK) {
+		lgs_exit("Becoming OI implementer failed", SA_AMF_COMPONENT_RESTART);
+	}
+
+	TRACE_LEAVE();
+}
+
+/**
+ * Thread
+ * Restore object and class implementer/applier.
+ *
+ * @param _cb[in]
+ */
+static void *imm_impl_init_thread(void *_cb)
+{
+	lgs_cb_t *cb = (lgs_cb_t *)_cb;
+	SaSelectionObjectT immSelectionObject = 0;
+	SaImmOiHandleT immOiHandle = 0;
+	SaAisErrorT rc = SA_AIS_OK;
+
+	TRACE_ENTER();
+
+	/* Initialize handles and become implementer */
+	lgs_imm_init_OI_handle(&immOiHandle, &immSelectionObject);
+	rc = imm_impl_set_sequence(immOiHandle);
+	if (rc != SA_AIS_OK) {
+		lgs_exit("Becoming OI implementer failed", SA_AMF_COMPONENT_RESTART);
+	}
+
+	/* Store handle and selection object.
+	 * Protect if the poll loop in main is released during the storage
+	 * sequence.
+	 */
+	osaf_mutex_lock_ordie(&lgs_OI_init_mutex);
+	cb->immSelectionObject = immSelectionObject;
+	cb->immOiHandle = immOiHandle;
+	osaf_mutex_unlock_ordie(&lgs_OI_init_mutex);
+
+	/* Activate the poll loop in main()
+	 * This will reinstall IMM poll event handling
+	 */
+	lgsv_lgs_evt_t *lgsv_evt;
+	lgsv_evt = calloc(1, sizeof(lgsv_lgs_evt_t));
+	osafassert(lgsv_evt);
+	lgsv_evt->evt_type = LGSV_EVT_NO_OP;
+	if (m_NCS_IPC_SEND(&lgs_mbx, lgsv_evt, LGS_IPC_PRIO_CTRL_MSGS) !=
+		NCSCC_RC_SUCCESS) {
+		LOG_WA("imm_reinit_thread failed to send IPC message to main thread");
+		/*
+		 * Se no reason why this would happen. But if it does at least there
+		 * is something in the syslog. The main thread should still pick up
+		 * the new imm FD when there is a healthcheck, but it could take
+		 *minutes.
+		 */
+		free(lgsv_evt);
+	}
+
+	TRACE_LEAVE();
+	return NULL;
+}
+
+/**
+ * In a separate thread:
+ * Initiate IMM OI handle and selection object
+ * Create imm implementer for log IMM objects
+ * When complete:
+ * Store the new handle and selection object in the cb store.
+ * Activate the poll loop in main() by sending an empty mailbox message
+ *
+ * @param cb[out]
+ */
+void lgs_imm_impl_reinit_nonblocking(lgs_cb_t *cb)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+
+	TRACE_ENTER();
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, imm_impl_init_thread, cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	pthread_attr_destroy(&attr);
+
+	TRACE_LEAVE();
 }

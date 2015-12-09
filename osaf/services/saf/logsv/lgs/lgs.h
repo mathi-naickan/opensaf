@@ -93,6 +93,7 @@ extern uint32_t mbox_msgs[NCS_IPC_PRIORITY_MAX];
 extern bool mbox_full[NCS_IPC_PRIORITY_MAX];
 extern uint32_t mbox_low[NCS_IPC_PRIORITY_MAX];
 extern pthread_mutex_t lgs_mbox_init_mutex;
+extern pthread_mutex_t lgs_OI_init_mutex;
 
 extern uint32_t lgs_configure_mailbox(void);
 
@@ -105,12 +106,15 @@ extern uint32_t lgs_mds_msg_send(lgs_cb_t *cb,
 			      MDS_DEST *dest, MDS_SYNC_SND_CTXT *mds_ctxt, MDS_SEND_PRIORITY_TYPE prio);
 
 extern SaAisErrorT lgs_imm_create_configStream(lgs_cb_t *cb);
-extern void lgs_imm_impl_restore(lgs_cb_t *cb);
-extern SaAisErrorT lgs_imm_init_OI(lgs_cb_t *cb);
 extern void logRootDirectory_filemove(
 		const char *new_logRootDirectory,
 		const char *old_logRootDirectory,
 		time_t *cur_time_in);
 extern void logDataGroupname_fileown(const char *new_logDataGroupname);
+
+extern void lgs_imm_impl_reinit_nonblocking(lgs_cb_t *cb);
+extern void lgs_imm_init_OI_handle(SaImmOiHandleT *immOiHandle,
+	SaSelectionObjectT *immSelectionObject);
+extern void lgs_imm_impl_set(SaImmOiHandleT immOiHandle);
 
 #endif   /* ifndef __LGS_H */

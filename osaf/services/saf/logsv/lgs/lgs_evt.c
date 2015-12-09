@@ -522,9 +522,8 @@ static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt)
 			exit(EXIT_FAILURE);
 		}
 
-		/* fail over, become implementer
-		 * Declare implementership from a separate thread */
-		lgs_imm_impl_restore(lgs_cb);
+		/* fail over, become implementer */
+		lgs_imm_impl_set(lgs_cb->immOiHandle);
 
 		/* Agent down list has to be processed first */
 		lgs_process_lga_down_list();

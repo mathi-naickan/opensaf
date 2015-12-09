@@ -1124,56 +1124,6 @@ static void read_log_config_environ_var_2(void) {
 	TRACE_LEAVE();
 }
 
-/**
- * Become class implementer for the SaLogStreamConfig class
- * If HA state is ACTIVE
- * 
- * @param immOiHandle[in]
- * @return -1 on error
- */
-static int config_class_impl_set(SaImmOiHandleT immOiHandle, SaAmfHAStateT ha_state)
-{
-	int rc = 0;
-	SaAisErrorT ais_rc = SA_AIS_OK;
-	struct ImmutilWrapperProfile immutilWrapperProfile_tmp;
-
-	TRACE_ENTER2("immOiHandle = %lld, ha_state = %d (1 = Active)",
-		immOiHandle, ha_state);
-
-	if (ha_state != SA_AMF_HA_ACTIVE) {
-		/* We are standby and cannot become implementer */
-		TRACE("HA state STANDBY");
-		TRACE_LEAVE();
-		return 0;
-	}
-	
-	/* Save immutil settings */
-	immutilWrapperProfile_tmp.errorsAreFatal = immutilWrapperProfile.errorsAreFatal;
-	immutilWrapperProfile_tmp.nTries = immutilWrapperProfile.nTries;
-
-	/* Allow missed sync of large data to complete */
-	immutilWrapperProfile.nTries = 250;
-	/* Do not assert on error */
-	immutilWrapperProfile.errorsAreFatal = 0;
-
-	ais_rc = immutil_saImmOiClassImplementerSet(immOiHandle, "OpenSafLogConfig");
-	if (ais_rc != SA_AIS_OK) {
-		/* immutil_saImmOiClassImplementerSet Fail
-		 * Class may not exist
-		 */
-		LOG_WA("%s: saImmOiClassImplementerSet Fail %s",__FUNCTION__,
-			saf_error(ais_rc));
-		rc = -1;
-	}
-
-	/* Restore immutil settings */
-	immutilWrapperProfile.errorsAreFatal = immutilWrapperProfile_tmp.errorsAreFatal;
-	immutilWrapperProfile.nTries = immutilWrapperProfile_tmp.nTries;
-
-	TRACE_LEAVE();
-	return rc;
-}
-
 /******************************************************************************
  * Public functions for handling configuration information
  ******************************************************************************/
@@ -1184,23 +1134,16 @@ static int config_class_impl_set(SaImmOiHandleT immOiHandle, SaAmfHAStateT ha_st
  */
 void lgs_cfg_init(SaImmOiHandleT immOiHandle, SaAmfHAStateT ha_state)
 {
-	int int_rc = 0;
-
 	TRACE_ENTER2("immOiHandle = %lld", immOiHandle);
+	
 	/* Initiate the default values for all parameters
 	 */
 	init_default();
 
 	/* Read configuration step 1
-	 * Become class implementer for SaLogStreamConfig class
 	 * Read all values from the log service configuration object
 	 */
-	int_rc = config_class_impl_set(immOiHandle, ha_state);
-	if (int_rc != -1) {
-		read_logsv_config_obj_2();
-	} else {
-		TRACE("Failed to become class implementer. Config object not read");
-	}
+	read_logsv_config_obj_2();
 
 	/* Read configuration step 2
 	 * Get configuration data from environment variables.
