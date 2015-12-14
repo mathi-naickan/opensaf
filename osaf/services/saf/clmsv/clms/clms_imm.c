@@ -809,7 +809,8 @@ static void clms_imm_admin_op_callback(SaImmOiHandleT immOiHandle,
 	nodeop = clms_node_get_by_name(objectName);
 	if (nodeop == NULL) {
 		LOG_ER("Admin Operation on invalid node_name");
-		osafassert(0);
+		immutil_saImmOiAdminOperationResult(immOiHandle, invocation, SA_AIS_ERR_INVALID_PARAM);
+		goto done;
 	}
 	
 	if (nodeop->admin_state == SA_CLM_ADMIN_SHUTTING_DOWN) {
