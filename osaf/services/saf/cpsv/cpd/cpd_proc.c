@@ -1250,3 +1250,24 @@ uint32_t cpd_ckpt_reploc_imm_object_delete(CPD_CB *cb, CPD_CKPT_REPLOC_INFO *ckp
 	}
 	return NCSCC_RC_SUCCESS;
 }
+
+/******************************************************************************************
+ * Name          : cpd_proc_broadcast_RDSET_STOP
+ *
+ * Description   : This routine broadcast message CPND_EVT_D2ND_CKPT_RDSET with STOP
+ *
+ * Return Values : None 
+ *
+ * Notes         : None
+******************************************************************************************/
+void cpd_proc_broadcast_rdset_stop(SaCkptCheckpointHandleT ckpt_id, CPD_CB *cb)
+{
+	CPSV_EVT send_evt;
+
+	memset(&send_evt, 0, sizeof(CPSV_EVT));
+	send_evt.type = CPSV_EVT_TYPE_CPND;
+	send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_RDSET;
+	send_evt.info.cpnd.info.rdset.ckpt_id = ckpt_id;
+	send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_STOP;
+	cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
+}

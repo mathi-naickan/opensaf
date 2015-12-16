@@ -356,8 +356,14 @@ static uint32_t cpd_evt_proc_ckpt_create(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_INF
 	}
 	if (is_first_rep)
 		TRACE_2("cpd ckpt create success for first replica ckpt_id:%llx,dest :%"PRIu64,map_info->ckpt_id,sinfo->dest);
-	else
+	else 
 		TRACE_2("cpd ckpt create success ckpt_id:%llx,dest :%"PRIu64,map_info->ckpt_id,sinfo->dest);
+
+	/* In case the first user re-creates the existing non-collocated checkpoint, 
+	 * all CPND should stop retention duration timer */
+	if ((is_first_rep == false) && (!(map_info->attributes.creationFlags & SA_CKPT_CHECKPOINT_COLLOCATED))) 
+		if (ckpt_node->num_users == 1)
+			cpd_proc_broadcast_rdset_stop(ckpt_node->ckpt_id, cb);
 
 	TRACE_LEAVE();
 	return proc_rc;
