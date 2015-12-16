@@ -3137,21 +3137,55 @@ SmfUpgradeProcedure::getImmStepsMergedSingleStep()
 		addProcStep(newStep);
 
 		//Fetch callbacks and procedure init/wraup actions.
+		int initActionId = 1;
+		int wrapupActionId = 1;
 		SmfUpgradeCampaign * camp = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign();
 		const std::vector < SmfUpgradeProcedure * >& procedures = camp->getProcedures();
 		std::vector < SmfUpgradeProcedure * >::const_iterator proc_iter;
 		for (proc_iter = procedures.begin(); proc_iter != procedures.end(); proc_iter++) {
-			LOG_NO("SmfUpgradeProcedure::getImmStepsMergedSingleStep: Fetch callbacks and wrapup actions from  [%s]", (*proc_iter)->getName().c_str());
+			LOG_NO("SmfUpgradeProcedure::getImmStepsMergedSingleStep: Fetch callbacks and wrapup actions from [%s]",
+			       (*proc_iter)->getName().c_str());
 
-			//The init actions
+			//The procedure init actions
 			LOG_NO("Copy the procedure init actions");
 			addInitActions((*proc_iter)->getInitActions());
+			std::vector <SmfUpgradeAction*>::const_iterator actioniter;
+			actioniter = getInitActions().begin();
+			while (actioniter != getInitActions().end()) {
+				//For the callback actions, set new calback procedure pointer
+				const SmfCallbackAction* cbkAction =
+					dynamic_cast<const SmfCallbackAction*>(*actioniter);
+				if (cbkAction != NULL) {
+					const_cast<SmfCallbackAction*>(cbkAction)->setCallbackProcedure(this);
+				}
 
-			//The wrapup actions
+				//Renumber action id aviod DN name collision in the merged procedure rollback data
+				(*actioniter)->changeId(initActionId);
+				initActionId++;
+
+				actioniter++;
+			}
+
+			//The procedure wrapup actions
 			LOG_NO("Copy the procedure wrapup actions");
 			addWrapupActions((*proc_iter)->getWrapupActions());
+			actioniter = getWrapupActions().begin();
+			while (actioniter != getWrapupActions().end()) {
+				//For the callback actions, set new calback procedure pointer
+				const SmfCallbackAction* cbkAction =
+					dynamic_cast<const SmfCallbackAction*>(*actioniter);
+				if (cbkAction != NULL) {
+					const_cast<SmfCallbackAction*>(cbkAction)->setCallbackProcedure(this);
+				}
 
-			//The callbacks
+				//Renumber action id aviod DN name collision in the merged procedure rollback data
+				(*actioniter)->changeId(wrapupActionId);
+				wrapupActionId++;
+
+				actioniter++;
+			}
+
+			//The procedure step callbacks
 			getCallbackList((*proc_iter)->getUpgradeMethod());
 		}
         }
