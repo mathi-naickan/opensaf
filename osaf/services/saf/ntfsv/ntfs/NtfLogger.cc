@@ -104,7 +104,7 @@ void saLogWriteLogCallback(SaInvocationT invocation,
     {
         NtfSmartPtr notification;
 
-        LOG_WA( "Error when logging (%d), queue for relogging", error);
+        TRACE_1( "Error when logging (%d), queue for relogging", error);
 
         notification = NtfAdmin::theNtfAdmin->getNotificationById(
                                                                  (SaNtfIdentifierT) invocation);
