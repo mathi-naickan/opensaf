@@ -412,7 +412,7 @@ static void ccb_apply_modify_hdlr(const CcbUtilOperationData_t *opdata)
 {
 	const SaImmAttrModificationT_2 *attr_mod;
 	int i;
-	const AVD_COMP_TYPE *comp_type;
+	AVD_COMP_TYPE *comp_type;
 	SaNameT comp_type_name;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
@@ -473,13 +473,22 @@ static void ccb_apply_modify_hdlr(const CcbUtilOperationData_t *opdata)
 				param.attr_id = saAmfCtDefQuiescingCompleteTimeout_ID;
 				avd_snd_op_req_msg(avd_cb, *it, &param);
 			} else if (!strcmp(attribute->attrName, "saAmfCtDefInstantiationLevel")) {
-				SaUint32T *param_val = (SaUint32T *)attribute->attrValues[0];
-				TRACE("saAmfCtDefInstantiationLevel to '%u' for compType '%s' on node '%s'", *param_val, 
+				SaUint32T param_val; 
+				SaUint32T old_value = comp_type->saAmfCtDefInstantiationLevel;
+				if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || 
+						(attribute->attrValues == NULL)) {
+					param_val = 0; //Default value as per Section 8.13.1 (B0401)
+				} else {
+					param_val = *(SaUint32T *)attribute->attrValues[0];
+				}
+				TRACE("saAmfCtDefInstantiationLevel to '%u' for compType '%s' on node '%s'", param_val, 
 					opdata->objectName.value, (*it)->name.value);
-				param.value_len = sizeof(*param_val);
-				memcpy(param.value, param_val, param.value_len);
+				param.value_len = sizeof(param_val);
+				memcpy(param.value, &param_val, param.value_len);
 				param.attr_id = saAmfCtDefInstantiationLevel_ID;
-				avd_snd_op_req_msg(avd_cb, *it, &param);	
+				comp_type->saAmfCtDefInstantiationLevel = param_val;
+				if (old_value != param_val)
+					avd_snd_op_req_msg(avd_cb, *it, &param);	
 			} else if (!strcmp(attribute->attrName, "saAmfCtDefRecoveryOnError")) {
 				SaAmfRecommendedRecoveryT *param_val = (SaAmfRecommendedRecoveryT *)attribute->attrValues[0];
 				TRACE("saAmfCtDefRecoveryOnError to '%u' for compType '%s' on node '%s'", *param_val, 
@@ -489,13 +498,22 @@ static void ccb_apply_modify_hdlr(const CcbUtilOperationData_t *opdata)
 				param.attr_id = saAmfCtDefRecoveryOnError_ID;
 				avd_snd_op_req_msg(avd_cb, *it, &param);
 			} else if (!strcmp(attribute->attrName, "saAmfCtDefDisableRestart")) {
-				SaBoolT *param_val = (SaBoolT *)attribute->attrValues[0];
-				TRACE("saAmfCtDefDisableRestart to '%u' for compType '%s' on node '%s'", *param_val, 
+				SaBoolT param_val; 
+				SaUint32T old_value = comp_type->saAmfCtDefDisableRestart;
+				if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) || 
+						(attribute->attrValues == NULL)) {
+					param_val = static_cast<SaBoolT>(0); //Default value as per Section 8.13.1 (B0401)
+				} else {
+					param_val = *(SaBoolT *)attribute->attrValues[0];
+				}
+				TRACE("saAmfCtDefDisableRestart to '%u' for compType '%s' on node '%s'", param_val, 
 					opdata->objectName.value, (*it)->name.value);
-				param.value_len = sizeof(*param_val);
-				memcpy(param.value, param_val, param.value_len);
+				param.value_len = sizeof(param_val);
+				memcpy(param.value, &param_val, param.value_len);
 				param.attr_id = saAmfCtDefDisableRestart_ID;
-				avd_snd_op_req_msg(avd_cb, *it, &param);
+				comp_type->saAmfCtDefDisableRestart = param_val;
+				if (old_value != param_val)
+					avd_snd_op_req_msg(avd_cb, *it, &param);
 			} else
 				LOG_WA("Unexpected attribute name: %s", attribute->attrName);
 		}
@@ -538,12 +556,21 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 	const SaImmAttrModificationT_2 *mod;
 	int i = 0;
 	const char *dn = (char*)opdata->objectName.value;
+	bool value_is_deleted = false;
 
 	while ((mod = opdata->param.modify.attrMods[i++]) != NULL) {
+
+		if ((mod->modType == SA_IMM_ATTR_VALUES_DELETE) || (mod->modAttr.attrValues == NULL)) {
+			/* Attribute value is deleted, revert to default value if applicable*/
+			value_is_deleted = true;
+		} else {
+			/* Attribute value is modified */
+			value_is_deleted = false;
+		}
+
 		if (strcmp(mod->modAttr.attrName, "saAmfCtDefClcCliTimeout") == 0) {
 			// if it exist it cannot be removed, just changed
-			if ((mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
-					(mod->modAttr.attrValues == NULL)) {
+			if (value_is_deleted == true) {
 				report_ccb_validation_error(opdata,
 					"Value deletion for '%s' is not supported", mod->modAttr.attrName);
 				rc = SA_AIS_ERR_BAD_OPERATION;
@@ -559,8 +586,7 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 			}
 		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefCallbackTimeout") == 0) {
 			// if it exist it cannot be removed, just changed
-			if ((mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
-					(mod->modAttr.attrValues == NULL)) {
+			if (value_is_deleted == true) {
 				report_ccb_validation_error(opdata,
 					"Value deletion for '%s' is not supported", mod->modAttr.attrName);
 				rc = SA_AIS_ERR_BAD_OPERATION;
@@ -587,6 +613,12 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 		} else if (strcmp(mod->modAttr.attrName, "osafAmfCtDefHcCmdArgv") == 0) {
 			; // Allow modification, no validation can be done
 		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefQuiescingCompleteTimeout") == 0) {
+			if (value_is_deleted == true) {
+				report_ccb_validation_error(opdata,
+					"Value deletion for '%s' is not supported", mod->modAttr.attrName);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
 			SaTimeT value = *((SaTimeT *)mod->modAttr.attrValues[0]);
 			if (value < 100 * SA_TIME_ONE_MILLISECOND) {
 				report_ccb_validation_error(opdata,
@@ -595,6 +627,8 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 				goto done;
 			}
 		} else if (!strcmp(mod->modAttr.attrName, "saAmfCtDefInstantiationLevel")) {
+			if (value_is_deleted == true)
+				continue;
 			uint32_t num_inst = *((SaUint32T *)mod->modAttr.attrValues[0]);
 			if (num_inst == 0) {
 				report_ccb_validation_error(opdata, "Modification of saAmfCtDefInstantiationLevel Fail,"
@@ -603,6 +637,12 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 				goto done;
 			}
 		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefRecoveryOnError") == 0) {
+			if (value_is_deleted == true) {
+				report_ccb_validation_error(opdata,
+					"Value deletion for '%s' is not supported", mod->modAttr.attrName);
+				rc = SA_AIS_ERR_BAD_OPERATION;
+				goto done;
+			}
 			uint32_t value = *((SaUint32T *)mod->modAttr.attrValues[0]);
 			if ((value < SA_AMF_COMPONENT_RESTART) || (value > SA_AMF_NODE_FAILFAST)) {
 				report_ccb_validation_error(opdata,
@@ -611,6 +651,8 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 				goto done;
 			}
 		} else if (strcmp(mod->modAttr.attrName, "saAmfCtDefDisableRestart") == 0) {
+			if (value_is_deleted == true)
+				continue;
 			uint32_t value = *((SaUint32T *)mod->modAttr.attrValues[0]);
 			if (value > SA_TRUE) {
 				report_ccb_validation_error(opdata,
