@@ -254,6 +254,10 @@ stop() {
 			timeout=$((timeout-1))
 		done
 		[ -d /proc/$amfpid ] && RETVAL=1
+		if [ $RETVAL -eq 1 ]; then
+			logger -t $prog "amfnd has not yet exited, killing it forcibly."
+			kill -9 $amfpid 
+		fi
 	else
 		pkill -9 osaf* >/dev/null 2>&1
 	fi
