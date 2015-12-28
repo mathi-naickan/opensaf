@@ -2201,6 +2201,18 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 			}
 		}
 
+		if ((!comp->su->is_ncs) && (comp->csi_list.n_nodes > 0) &&
+				(!m_AVND_SU_IS_PREINSTANTIABLE(comp->su))) {
+			AVND_COMP_CSI_REC *csi = NULL;
+			/*
+			   Explantion written above for PI SU case is valid here also.
+			   However for a NPI comp in NPI SU, mark it REMOVED instead of 
+			   generating remove done indication. 
+			 */
+			csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+			if (csi != NULL)
+				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVED);
+		}
 		if (all_comps_terminated()) {
 			LOG_NO("Terminated all AMF components");
 			LOG_NO("Shutdown completed, exiting");

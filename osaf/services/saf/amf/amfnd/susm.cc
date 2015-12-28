@@ -1911,6 +1911,19 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 			 */
 			avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSUOperState_ID, &su->name, su->oper);
 		}
+		
+		if ((prv_st == SA_AMF_PRESENCE_INSTANTIATED) &&
+                                (final_st == SA_AMF_PRESENCE_UNINSTANTIATED) && 
+				(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)) {
+			/*
+			   During shutdown phase, all comps of SU may fault. In that case,
+			   SU FSM marks SU in TERMINAIING state and finally moves it to 
+			   UNINSTANTIATED state. So generated the assignment done indication
+			   so that removal of lower rank SI can proceed.
+			 */
+			rc = avnd_su_si_oper_done(cb, su, si);
+			m_AVND_SU_ALL_SI_RESET(su);
+		}
 	}
 
  done:
@@ -2258,6 +2271,21 @@ uint32_t avnd_su_pres_insting_compinstfail_hdler(AVND_CB *cb, AVND_SU *su, AVND_
 	return rc;
 }
 
+/**
+ * @brief  Returns first assigned csi traversing from end.
+ * @return Ptr to csi_rec. 
+ */
+static AVND_COMP_CSI_REC *get_next_assigned_csi_from_end(const AVND_SU_SI_REC *si) 
+{
+	for (AVND_COMP_CSI_REC *csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_LAST(&si->csi_list);
+			(csi != NULL); 
+			csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_PREV(&csi->si_dll_node)) {
+		if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_ASSIGNED(csi) && ((csi->comp != NULL)
+					&& (csi->comp->pres == SA_AMF_PRESENCE_INSTANTIATED)))
+			return csi;
+	}
+	return NULL;
+}
 /****************************************************************************
   Name          : avnd_su_pres_inst_suterm_hdler
  
@@ -2328,6 +2356,32 @@ uint32_t avnd_su_pres_inst_suterm_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *com
 					   AVND_COMP_CLC_PRES_FSM_EV_CLEANUP : AVND_COMP_CLC_PRES_FSM_EV_TERM);
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
+
+		/*
+		   During shutdown phase if a component faults, it will be cleaned up by AMFND 
+		   irrespective of recovery policy. This component will move to UNINSTANTIATED 
+		   after successful clean up. When amfnd starts removing SI from SU of this comp, 
+		   it will have to skip the CSI of cleaned up component. 
+		*/
+		if ((csi->comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED) && 
+			(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)) {
+			m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVED);
+			avnd_su_pres_state_set(su, SA_AMF_PRESENCE_TERMINATING);
+			AVND_COMP_CSI_REC *assigned_csi = get_next_assigned_csi_from_end(si);
+			if (assigned_csi == NULL) {
+				//Components of all the CSIs in SI are cleaned up.
+				avnd_su_pres_state_set(su, SA_AMF_PRESENCE_UNINSTANTIATED);
+				goto done;
+			} else {
+				//One CSI is still assigned.
+				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(assigned_csi, 
+						AVND_COMP_CSI_ASSIGN_STATE_REMOVING);
+				rc = avnd_comp_clc_fsm_trigger(cb, assigned_csi->comp,
+                                        (m_AVND_COMP_IS_FAILED(assigned_csi->comp)) ?
+                                        AVND_COMP_CLC_PRES_FSM_EV_CLEANUP :
+                                        AVND_COMP_CLC_PRES_FSM_EV_TERM);
+			}
+		}
 	}
 
 	/* transition to terminating state */
@@ -2930,6 +2984,24 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su, AVND_CO
 		if (all_csis_in_assigned_state(su) || all_csis_in_removed_state(su)) {
 			TRACE("SI Assignment done");
 			avnd_su_pres_state_set(su, SA_AMF_PRESENCE_UNINSTANTIATED);
+			goto done;
+		}
+
+		/*
+		   During shutdown phase if a component faults, it will be cleaned up by AMFND 
+		   irrespective of recovery policy. This component will move to UNINSTANTIATED 
+		   after successful clean up. When amfnd starts removing SI from SU of this comp, 
+		   it will have to skip the CSI of cleaned up component. 
+		*/
+		if ((curr_csi != NULL) && (curr_csi->comp->pres == SA_AMF_PRESENCE_UNINSTANTIATED) &&
+				(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)) {
+			m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVED);
+			AVND_COMP_CSI_REC *assigned_csi = get_next_assigned_csi_from_end(curr_csi->si);
+			m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(assigned_csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVING);
+			rc = avnd_comp_clc_fsm_trigger(cb, assigned_csi->comp,
+					(m_AVND_COMP_IS_FAILED(assigned_csi->comp)) ?
+					AVND_COMP_CLC_PRES_FSM_EV_CLEANUP :
+					AVND_COMP_CLC_PRES_FSM_EV_TERM);
 		}
 	}
 

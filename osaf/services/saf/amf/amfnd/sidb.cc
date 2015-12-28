@@ -185,6 +185,7 @@ AVND_SU_SI_REC *avnd_su_si_rec_add(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *p
 	/*
 	 * Update the rest of the parameters with default values.
 	 */
+	TRACE("Marking curr assigned state of '%s' unassigned.",si_rec->name.value);
 	m_AVND_SU_SI_CURR_ASSIGN_STATE_SET(si_rec, AVND_SU_SI_ASSIGN_STATE_UNASSIGNED);
 
 	/*
@@ -394,6 +395,7 @@ AVND_COMP_CSI_REC *avnd_su_si_csi_rec_add(AVND_CB *cb,
 	/*
 	 * Update the rest of the parameters with default values.
 	 */
+	TRACE("Marking curr assigned state of '%s' unassigned.",csi_rec->name.value);
 	m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi_rec, AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED);
 	m_AVND_COMP_CSI_PRV_ASSIGN_STATE_SET(csi_rec, AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED);
 
@@ -477,6 +479,7 @@ AVND_SU_SI_REC *avnd_su_si_rec_modify(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM
 
 	/* store the prv assign-state & update the new assign-state */
 	si_rec->prv_assign_state = si_rec->curr_assign_state;
+	TRACE_1("Marking curr assigned state of '%s' unassigned.",si_rec->name.value);
 	m_AVND_SU_SI_CURR_ASSIGN_STATE_SET(si_rec, AVND_SU_SI_ASSIGN_STATE_UNASSIGNED);
 
 	m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, si_rec, AVND_CKPT_SU_SI_REC);
@@ -518,6 +521,7 @@ uint32_t avnd_su_si_csi_rec_modify(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si_
 	TRACE_ENTER2("%p", param);
 	/* pick up all the csis belonging to the si & modify them */
 	if (!param) {
+		TRACE_1("Marking curr assigned state of all CSIs of '%s' unassigned.",si_rec->name.value);
 		for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&si_rec->csi_list);
 		     curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
 			/* store the prv assign-state & update the new assign-state */
@@ -544,6 +548,7 @@ uint32_t avnd_su_si_csi_rec_modify(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si_
 
 		/* store the prv assign-state & update the new assign-state */
 		curr_csi->prv_assign_state = curr_csi->curr_assign_state;
+		TRACE("Marking curr assigned state of '%s' unassigned.",curr_csi->name.value);
 		m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(curr_csi, AVND_COMP_CSI_ASSIGN_STATE_UNASSIGNED);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, curr_csi, AVND_CKPT_CSI_REC);
 	}			/* for */
@@ -574,6 +579,7 @@ uint32_t avnd_su_si_all_modify(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *param
 
 	TRACE_ENTER2();
 	/* modify all the si records */
+	TRACE("Marking curr assigned state all SIs in '%s' unassigned.",su->name.value);
 	for (curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
 	     curr_si; curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_si->su_dll_node)) {
 		/* store the prv state & update the new state */
@@ -624,6 +630,7 @@ uint32_t avnd_su_si_csi_all_modify(AVND_CB *cb, AVND_SU *su, AVND_COMP_CSI_PARAM
 	TRACE_ENTER2("%p", param);
 	/* pick up all the csis belonging to all the sis & modify them */
 	if (!param) {
+		TRACE("Marking curr assigned state all CSIs in SIs of '%s' unassigned.",su->name.value);
 		for (curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
 		     curr_si; curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_si->su_dll_node)) {
 			for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&curr_si->csi_list);
@@ -658,6 +665,7 @@ uint32_t avnd_su_si_csi_all_modify(AVND_CB *cb, AVND_SU *su, AVND_COMP_CSI_PARAM
 		}
 		if (false == curr_comp->assigned_flag) {
 			/* modify all the csi-records */
+			TRACE("Marking curr assigned state all CSIs assigned to '%s' unassigned.",curr_comp->name.value);
 			for (curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&curr_comp->csi_list));
 					curr_csi;
 					curr_csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&curr_csi->comp_dll_node)))
