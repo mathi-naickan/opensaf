@@ -931,5 +931,7 @@ bool comp_has_quiesced_assignment(const AVND_COMP *comp);
 extern uint32_t comp_restart_initiate(AVND_COMP *comp);
 extern void comp_reset_restart_count(AVND_COMP *comp);
 extern void clear_error_report_alarm(AVND_COMP *comp);
+bool nonrestartable(const AVND_COMP *comp);
+uint32_t csi_count(const AVND_COMP *comp);
 
 #endif   /* !AVND_COMP_H */

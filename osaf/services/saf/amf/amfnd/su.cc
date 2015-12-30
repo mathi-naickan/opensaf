@@ -849,3 +849,12 @@ bool su_all_pi_comps_instantiated(const AVND_SU *su)
 	TRACE("All PI comps instantiated :'%u'",su_is_instantiated);
 	return su_is_instantiated;
 }
+/**
+ * @brief Checks if RESTART admin op is going on SU.
+ * @return true/false
+ */
+bool isAdminRestarted(const AVND_SU *su) 
+{ 
+	return (su->admin_op_Id == SA_AMF_ADMIN_RESTART);
+}
+

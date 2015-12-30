@@ -2930,6 +2930,23 @@ uint32_t avnd_su_pres_terming_compuninst_hdler(AVND_CB *cb, AVND_SU *su, AVND_CO
 					if (NCSCC_RC_SUCCESS != rc)
 						goto done;
 					break;
+				} else {
+					/*
+					   For a NPI comp in PI SU, component FSM is always triggered 
+					   at the time of assignments. If this component is non-restartable 
+					   then start reassginment from the whole SU now, it will take care
+					   if its termination/clean up.
+					 */
+					if ((nonrestartable(curr_comp) == true) && (csi_count(curr_comp) > 0)) {
+						TRACE("Start reassignment to different SU as '%s' is"
+								" not restartable",curr_comp->name.value);
+						su_send_suRestart_recovery_msg(su);
+						goto done;
+					} else  if (isAdminRestarted(su) == true) {
+						rc = avnd_comp_clc_fsm_run(cb, curr_comp, AVND_COMP_CLC_PRES_FSM_EV_RESTART);
+						if (curr_comp->pres == SA_AMF_PRESENCE_RESTARTING)
+							goto done;
+					}
 				}
 			}		
 			if (pi_su_all_comps_uninstantiated(*su) == true) 

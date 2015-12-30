@@ -2908,3 +2908,25 @@ void clear_error_report_alarm(AVND_COMP *comp)
 		comp->error_report_sent = false;
 	}
 }
+
+/**
+ * @brief  Checks if comp is nonrestartable (DisableRestart=1). 
+ * @param  comp
+ * @return true/false
+ */
+bool nonrestartable(const AVND_COMP *comp)
+{
+	TRACE("comp nonrestartable:%u",m_AVND_COMP_IS_RESTART_DIS(comp));
+	return (m_AVND_COMP_IS_RESTART_DIS(comp));
+}
+
+/**
+ * @brief  Count no. of CSIs this comp is handling.
+ * @param  comp
+ * @return uint32_t
+ */
+uint32_t csi_count(const AVND_COMP *comp)
+{
+        return (comp->csi_list.n_nodes);
+}
+
