@@ -69,6 +69,7 @@ static void defaultImmutilError(char const *fmt, ...)
 	va_copy(ap2, ap);
 	vfprintf(stderr, fmt, ap);
 	vsyslog(LOG_ERR, fmt, ap2);
+	va_end(ap2);
 	va_end(ap);
 	abort();
 }
