@@ -244,6 +244,12 @@ static bool pbe2_start_prepare_ccb_A_to_B(SaImmOiCcbIdT ccbId, SaUint32T numOps)
 
 	osafassert(sPbe2 && !sPbe2B); /* Must be 2PBE and NOT at slave. */
 
+	if((sNoStdFlags & OPENSAF_IMM_FLAG_2PBE1_ALLOW)) {
+		// 2PBE is in 1safe2PBE state. Sending syncing admin op will be ignored
+		TRACE_LEAVE();
+		return true;
+	}
+
 	do{
 		rc2B = saImmOmAdminOperationInvoke_2(sOwnerHandle, &slavePbeRtObjName, 0, OPENSAF_IMM_PBE_CCB_PREPARE,
 			params, &slavePbeRtReply, SA_TIME_ONE_SECOND * 10);
@@ -436,7 +442,9 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 
 		osafassert(className.size());
 
-		if(sPbe2 && !sPbe2B) {
+		if(sPbe2 && !sPbe2B && (sNoStdFlags & OPENSAF_IMM_FLAG_2PBE1_ALLOW)) {
+			LOG_IN("PBE is in 1safe2PBE state. Ignoring class create towards slave PBE");
+		} else if(sPbe2 && !sPbe2B) {
 			/* Primary PBE forwards class create to slave PBE. */
 			SaAisErrorT rc2B = SA_AIS_OK;
 			SaNameT slavePbeRtObjName;
@@ -650,7 +658,9 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 
 		osafassert(className.size());
 
-		if(sPbe2 && !sPbe2B) {
+		if(sPbe2 && !sPbe2B && (sNoStdFlags & OPENSAF_IMM_FLAG_2PBE1_ALLOW)) {
+			LOG_IN("PBE is in 1safe2PBE state. Ignoring class delete towards slave PBE");
+		} else if(sPbe2 && !sPbe2B) {
 			/* Primary PBE forwards class delete to slave PBE. */
 			SaAisErrorT rc2B = SA_AIS_OK;
 			SaNameT slavePbeRtObjName;
@@ -774,8 +784,9 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 			++ix;
 		} while (param);
 
-
-		if(sPbe2 && !sPbe2B) {
+		if(sPbe2 && !sPbe2B && (sNoStdFlags & OPENSAF_IMM_FLAG_2PBE1_ALLOW)) {
+			LOG_IN("PBE is in 1safe2PBE state. Ignoring update epoch towards slave PBE");
+		} else if(sPbe2 && !sPbe2B) {
 			/* Primary PBE forward update epoch to slave PBE. */
 			SaAisErrorT rc2B = SA_AIS_OK;
 			SaNameT slavePbeRtObjName;
@@ -877,7 +888,9 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 
 		SaUint32T flagsToSet = (*((SaUint32T *) param->paramBuffer));
 
-		if(sPbe2 && !sPbe2B) {
+		if(sPbe2 && !sPbe2B && (sNoStdFlags & OPENSAF_IMM_FLAG_2PBE1_ALLOW)) {
+			LOG_IN("PBE is in 1safe2PBE state. Ignoring NOST_FLAG_ON towards slave PBE");
+		} else if(sPbe2 && !sPbe2B) {
 			/* Forward nost flag ON to slave PBE. */
 			SaAisErrorT rc2B = SA_AIS_OK;
 			SaNameT slavePbeRtObjName;
@@ -950,7 +963,9 @@ static void saImmOiAdminOperationCallback(SaImmOiHandleT immOiHandle,
 
 		SaUint32T flagsToUnSet = (*((SaUint32T *) param->paramBuffer));
 
-		if(sPbe2 && !sPbe2B) {
+		if(sPbe2 && !sPbe2B && (sNoStdFlags & OPENSAF_IMM_FLAG_2PBE1_ALLOW)) {
+			LOG_IN("PBE is in 1safe2PBE state. Ignoring NOST_FLAG_OFF towards slave PBE");
+		} else if(sPbe2 && !sPbe2B) {
 			/* Forward nost flag OFF to slave PBE. */
 			SaAisErrorT rc2B = SA_AIS_OK;
 			SaNameT slavePbeRtObjName;
