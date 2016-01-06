@@ -650,6 +650,10 @@ void mbcsv_set_peer_state(CKPT_INST *ckpt, PEER_INST *peer, bool peer_up)
 uint32_t mbcsv_process_peer_up_info(MBCSV_EVT *msg, CKPT_INST *ckpt, uint8_t peer_up)
 {
 	PEER_INST *peer;
+	MBCSV_PEER_KEY key;
+	SYSF_MBX mbx;
+	MBCSV_EVT *evt;
+
 	TRACE_ENTER();
 
 	/*
@@ -675,6 +679,41 @@ uint32_t mbcsv_process_peer_up_info(MBCSV_EVT *msg, CKPT_INST *ckpt, uint8_t pee
 			TRACE_LEAVE();
 			return NCSCC_RC_SUCCESS;
 		}
+	}
+
+	if (0 != (mbx = mbcsv_get_mbx(msg->rcvr_peer_key.pwe_hdl, msg->rcvr_peer_key.svc_id))) {
+
+		memset(&key, '\0', sizeof(MBCSV_PEER_KEY));
+		key.pwe_hdl = msg->rcvr_peer_key.pwe_hdl;
+		key.anchor = msg->rcvr_peer_key.peer_anchor;
+
+		m_NCS_LOCK(&mbcsv_cb.peer_list_lock, NCS_LOCK_WRITE);
+
+		if (NULL == ncs_patricia_tree_get(&mbcsv_cb.peer_list, (const uint8_t *)&key)) {
+
+			if (NULL == (evt = m_MMGR_ALLOC_MBCSV_EVT)) {
+				TRACE_LEAVE2("malloc failed");
+				m_NCS_UNLOCK(&mbcsv_cb.peer_list_lock, NCS_LOCK_WRITE);
+				return NCSCC_RC_FAILURE;
+			}
+
+			memset(evt, '\0', sizeof(MBCSV_EVT));
+			memcpy(evt, msg, sizeof(MBCSV_EVT));
+
+			TRACE_4("Still RED_UP event not arrived of the peer");
+
+			/* Again post the event, till RED_UP event arrives */
+			if (NCSCC_RC_SUCCESS != m_MBCSV_SND_MSG(&mbx, evt, NCS_IPC_PRIORITY_HIGH)) {
+				TRACE_LEAVE2("ipc send failed");
+				m_NCS_UNLOCK(&mbcsv_cb.peer_list_lock, NCS_LOCK_WRITE);
+				return NCSCC_RC_FAILURE;
+			}
+
+			m_NCS_UNLOCK(&mbcsv_cb.peer_list_lock, NCS_LOCK_WRITE);
+			return NCSCC_RC_SUCCESS;
+		}
+
+		m_NCS_UNLOCK(&mbcsv_cb.peer_list_lock, NCS_LOCK_WRITE);
 	}
 
 	if (NULL == (peer = mbcsv_add_new_peer(ckpt, msg->rcvr_peer_key.peer_anchor))) {

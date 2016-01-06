@@ -32,15 +32,6 @@
 */
 #include "mbcsv.h"
 
-/*
- * Peer list used for storing all the peers of this PWE. This is used
- * for brodcasting the message to all the peers.
- */
-typedef struct {
-	uint32_t pwe_hdl;		/* Handle supplied by application with OPEN call */
-	MBCSV_ANCHOR anchor;
-} MBCSV_PEER_KEY;
-
 typedef struct mbcsv_peer_list {
 	NCS_PATRICIA_NODE pat_node;
 	MBCSV_PEER_KEY key;

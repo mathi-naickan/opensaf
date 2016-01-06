@@ -365,7 +365,7 @@ uint32_t mbcsv_mds_rcv(NCSMDS_CALLBACK_INFO *cbinfo)
 		msg->msg_type = MBCSV_EVT_INTERNAL;
 
 		if (msg->info.peer_msg.type == MBCSV_EVT_INTERNAL_PEER_DISC) {
-			send_pri = NCS_IPC_PRIORITY_VERY_HIGH;
+			send_pri = NCS_IPC_PRIORITY_HIGH;
 		} else
 			send_pri = NCS_IPC_PRIORITY_NORMAL;
 
@@ -453,7 +453,7 @@ uint32_t mbcsv_mds_evt(MDS_CALLBACK_SVC_EVENT_INFO svc_info, MDS_CLIENT_HDL yr_s
 
 		evt->info.mds_sub_evt.evt_type = svc_info.i_change;
 
-		if (NCSCC_RC_SUCCESS != m_MBCSV_SND_MSG(&mbx, evt, NCS_IPC_PRIORITY_HIGH)) {
+		if (NCSCC_RC_SUCCESS != m_MBCSV_SND_MSG(&mbx, evt, NCS_IPC_PRIORITY_VERY_HIGH)) {
 			m_MMGR_FREE_MBCSV_EVT(evt);
 			TRACE_LEAVE2("ipc send failed");
 			return NCSCC_RC_FAILURE;
