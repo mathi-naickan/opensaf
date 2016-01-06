@@ -38,6 +38,15 @@
 #include "mbcsv.h"
 
 /*
+ * Peer list used for storing all the peers of this PWE. This is used
+ * for brodcasting the message to all the peers.
+ */
+typedef struct {
+        uint32_t pwe_hdl;               /* Handle supplied by application with OPEN call */
+        MBCSV_ANCHOR anchor;
+} MBCSV_PEER_KEY;
+
+/*
  * Prototypes of PWE anchor.
  */
 uint32_t mbcsv_destroy_peer_list(void);
