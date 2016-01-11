@@ -26,7 +26,7 @@
 
 #include "cpnd.h"
 
-extern uint32_t cpnd_ckpt_non_collocated_rplica_close(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaAisErrorT *error);
+extern uint32_t cpnd_proc_rdset_start(CPND_CB *cb, CPND_CKPT_NODE *cp_node);
 extern uint32_t cpnd_proc_non_colloc_rt_expiry(CPND_CB *cb, SaCkptCheckpointHandleT ckpt_id);
 
 static uint32_t cpnd_evt_proc_cb_dump(CPND_CB *cb);
@@ -1195,8 +1195,7 @@ static uint32_t cpnd_evt_proc_ckpt_unlink(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_
 /****************************************************************************
  * Name          : cpnd_evt_proc_ckpt_unlink_info
  *
- * Description   : Function to process check point unlink 
- *                 from Applications. 
+ * Description   : Function to process checkpoint unlink event from CPD
  *
  * Arguments     : CPND_CB *cb - CPND CB pointer
  *                 CPSV_EVT *evt - Received Event structure
@@ -1210,10 +1209,11 @@ static uint32_t cpnd_evt_proc_ckpt_unlink_info(CPND_CB *cb, CPND_EVT *evt, CPSV_
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	CPND_CKPT_NODE *cp_node = NULL;
-	SaAisErrorT error;
+	SaAisErrorT error = SA_AIS_OK;
 	CPSV_SEND_INFO sinfo_cpa;
 	CPSV_EVT send_evt;
 	bool sinfo_cpa_flag = false;
+	bool destroy_replica = false;
 
 	TRACE_ENTER();
 	memset(&send_evt, '\0', sizeof(CPSV_EVT));
@@ -1221,24 +1221,34 @@ static uint32_t cpnd_evt_proc_ckpt_unlink_info(CPND_CB *cb, CPND_EVT *evt, CPSV_
 	if (cp_node == NULL) {
 		TRACE_4("cpnd ckpt node get failed for ckpt_id:%llx",evt->info.ckpt_ulink.ckpt_id);
 		rc = NCSCC_RC_FAILURE;
-		send_evt.info.cpa.info.ulinkRsp.error = SA_AIS_ERR_NOT_EXIST;
+		error = SA_AIS_ERR_NOT_EXIST;
 		goto agent_rsp;
 	}
 
 	sinfo_cpa = cp_node->cpa_sinfo;
 	sinfo_cpa_flag = cp_node->cpa_sinfo_flag;
+
 	if (cp_node->is_close == true) {
-		send_evt.info.cpa.info.ulinkRsp.error = SA_AIS_OK;
+		/* For non-collocated checkpoint if retention duration timer is active 
+		 * (i.e the checkpoint is not opened by any client in cluster) the replica 
+		 * should be destroyed in this case */
+		if (!m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
+			if (cp_node->ret_tmr.is_active) {
+				TRACE_1("cpnd destroy replica ckpt_id:%llx - No client opens the non-collocated checkpoint ", 
+					cp_node->ckpt_id);
+				destroy_replica = true;
+			}
+		} 
+		/* For collocated checkpoint, there is no client opening the checkpoint on this
+		 * node. The replica should be destroyed. */
+		else
+			destroy_replica = true;
+	}
+
+	if (destroy_replica == true) {
 		/* check timer is present,if yes...stop the timer and destroy shm_info and the node */
 		if (cp_node->ret_tmr.is_active)
 			cpnd_tmr_stop(&cp_node->ret_tmr);
-
-		if (!m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
-			if (cpnd_is_noncollocated_replica_present_on_payload(cb, cp_node)) {
-				rc = NCSCC_RC_SUCCESS;
-				goto agent_rsp;
-			}
-		}
 
 		rc = cpnd_ckpt_replica_destroy(cb, cp_node, &error);
 		if (rc == NCSCC_RC_FAILURE) {
@@ -1261,8 +1271,6 @@ static uint32_t cpnd_evt_proc_ckpt_unlink_info(CPND_CB *cb, CPND_EVT *evt, CPSV_
 
 		}
 		TRACE_4("cpnd proc ckpt unlink set for ckpt_id:%llx",cp_node->ckpt_id);
-
-		send_evt.info.cpa.info.ulinkRsp.error = SA_AIS_OK;
 	}
 
  agent_rsp:
@@ -1270,6 +1278,7 @@ static uint32_t cpnd_evt_proc_ckpt_unlink_info(CPND_CB *cb, CPND_EVT *evt, CPSV_
 	if (sinfo_cpa_flag == 1) {
 		send_evt.type = CPSV_EVT_TYPE_CPA;
 		send_evt.info.cpa.type = CPA_EVT_ND2A_CKPT_UNLINK_RSP;
+		send_evt.info.cpa.info.ulinkRsp.error = error;
 		rc = cpnd_mds_send_rsp(cb, &sinfo_cpa, &send_evt);
 
 	}
@@ -1768,7 +1777,6 @@ static uint32_t cpnd_evt_proc_ckpt_active_set(CPND_CB *cb, CPND_EVT *evt, CPSV_S
 static uint32_t cpnd_evt_proc_ckpt_rdset_info(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_INFO *sinfo)
 {
 	CPND_CKPT_NODE *cp_node = NULL;
-	SaAisErrorT error = SA_AIS_OK;
 
 	TRACE_ENTER();
 	/* get cp_node from ckpt_info_db */
@@ -1792,14 +1800,9 @@ static uint32_t cpnd_evt_proc_ckpt_rdset_info(CPND_CB *cb, CPND_EVT *evt, CPSV_S
 	}
 
 	if (evt->info.rdset.type == CPSV_CKPT_RDSET_START) {
-		if (!m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
-			if (cpnd_ckpt_non_collocated_rplica_close(cb, cp_node, &error) == NCSCC_RC_FAILURE) {
-				TRACE_4("cpnd ckpt relica close failed for client_hdl:%llx,ckpt_id:%llx",evt->info.closeReq.client_hdl, cp_node->ckpt_id);
-
-			}
-			TRACE_LEAVE();
-			return NCSCC_RC_SUCCESS;
-		}
+		cpnd_proc_rdset_start(cb, cp_node);
+		TRACE_LEAVE();
+		return NCSCC_RC_SUCCESS;
 	}
 
 	/* if timer already started on one of the node then what to do!!! 

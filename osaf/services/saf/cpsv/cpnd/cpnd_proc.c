@@ -2297,53 +2297,61 @@ uint32_t cpnd_ckpt_replica_close(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaAisErro
 }
 
 /****************************************************************************************
- * Name          : cpnd_ckpt_non_collocated_rplica_close
+ * Name          : cpnd_proc_rdset_start
  *
- * Description   : This is the function close the non_collocated Ckpt Replica
+ * Description   : This is the function process the event CPSV_CKPT_RDSET_START
+ *                 This event is only applicable for non-collocated checkpoint
  * Arguments     : cb       - CPND Control Block pointer
  *                 cp_node  - pointer to checkpoint node
  * 
  * Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
  *****************************************************************************************/
 
-uint32_t cpnd_ckpt_non_collocated_rplica_close(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaAisErrorT *error)
+uint32_t cpnd_proc_rdset_start(CPND_CB *cb, CPND_CKPT_NODE *cp_node)
 {
 	SaTimeT presentTime;
+	SaAisErrorT error = SA_AIS_OK;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
-	if (cp_node->ckpt_lcl_ref_cnt == 0) {
 
-		cp_node->is_close = true;
-		cpnd_restart_set_close_flag(cb, cp_node);
-
-		if (cp_node->is_unlink != true &&
-		    (m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(cp_node->create_attrib.retentionDuration) != 0)) {
-			m_GET_TIME_STAMP(presentTime);
-			cpnd_restart_update_timer(cb, cp_node, presentTime);
-
-			cp_node->ret_tmr.type = CPND_TMR_TYPE_NON_COLLOC_RETENTION;
-			cp_node->ret_tmr.uarg = cb->cpnd_cb_hdl_id;
-			cp_node->ret_tmr.ckpt_id = cp_node->ckpt_id;
-			cpnd_tmr_start(&cp_node->ret_tmr,
-				       m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(cp_node->create_attrib.retentionDuration));
-			TRACE_1("cpnd ckpt ret tmr success ckpt_id:%llx",cp_node->ckpt_id);
-		} else {
-			/* Check for Non-Collocated Replica */
-			if (cpnd_is_noncollocated_replica_present_on_payload(cb, cp_node)) {
-				return NCSCC_RC_SUCCESS;
-			}
-			rc = cpnd_ckpt_replica_destroy(cb, cp_node, error);
-			if (rc == NCSCC_RC_FAILURE) {
-				TRACE_4("cpnd ckpt replica destroy failed ckpt_id:%llx",cp_node->ckpt_id);
-				return NCSCC_RC_FAILURE;
-			}
-			TRACE_1("cpnd ckpt replica destroy failed ckpt_id:%llx",cp_node->ckpt_id);
-
-			cpnd_restart_shm_ckpt_free(cb, cp_node);
-			cpnd_ckpt_node_destroy(cb, cp_node);
-		}
+	if (m_CPND_IS_COLLOCATED_ATTR_SET(cp_node->create_attrib.creationFlags)) {
+		TRACE_LEAVE();
+		return NCSCC_RC_SUCCESS;
 	}
+
+	if (cp_node->ckpt_lcl_ref_cnt != 0) {
+		LOG_ER("cpnd receives CPND_EVT_D2ND_RDSET_INFO with START while ckpt_lcl_ref_cnt = %d", cp_node->ckpt_lcl_ref_cnt);
+		TRACE_LEAVE();
+		return NCSCC_RC_FAILURE;
+	}
+
+	cp_node->is_close = true;
+	cpnd_restart_set_close_flag(cb, cp_node);
+
+	if (cp_node->is_unlink != true &&
+	    (m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(cp_node->create_attrib.retentionDuration) != 0)) {
+		m_GET_TIME_STAMP(presentTime);
+		cpnd_restart_update_timer(cb, cp_node, presentTime);
+
+		cp_node->ret_tmr.type = CPND_TMR_TYPE_NON_COLLOC_RETENTION;
+		cp_node->ret_tmr.uarg = cb->cpnd_cb_hdl_id;
+		cp_node->ret_tmr.ckpt_id = cp_node->ckpt_id;
+		cpnd_tmr_start(&cp_node->ret_tmr,
+			       m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(cp_node->create_attrib.retentionDuration));
+		TRACE_1("cpnd ckpt ret tmr success ckpt_id:%llx",cp_node->ckpt_id);
+	} else {
+		rc = cpnd_ckpt_replica_destroy(cb, cp_node, &error);
+		if (rc == NCSCC_RC_FAILURE) {
+			LOG_ER("cpnd ckpt replica destroy failed ckpt_id:%llx, error:%d",cp_node->ckpt_id, error);
+			return NCSCC_RC_FAILURE;
+		}
+		TRACE_1("cpnd ckpt replica destroy success ckpt_id:%llx",cp_node->ckpt_id);
+
+		cpnd_restart_shm_ckpt_free(cb, cp_node);
+		cpnd_ckpt_node_destroy(cb, cp_node);
+	}
+
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
