@@ -556,11 +556,15 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 			/* Attribute value removed */
 			if ((attr_mod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
 					(attribute->attrValues == NULL))
-				continue;
-
-			value = attribute->attrValues[0];
+				value_is_deleted = true;
+			else {
+				value_is_deleted = false;
+				value = attribute->attrValues[0];
+			}
 
 			if (!strcmp(attribute->attrName, "saAmfSGType")) {
+				if (value_is_deleted == true)
+					continue;
 				SaNameT sg_type_name = *((SaNameT *)value);
 
 				if (sg->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED) {
@@ -579,6 +583,12 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 				}
 
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuHostNodeGroup")) {
+				if (value_is_deleted == true) {
+					report_ccb_validation_error(opdata,
+						"Deletion or Modification to NULL value not allowed");
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				}
 				if (ng_change_is_valid(sg, (SaNameT *)value, opdata) == false) {
 					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
@@ -587,6 +597,8 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefActiveSUs")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefStandbySUs")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGNumPrefInserviceSUs")) {
+				if (value_is_deleted == true)
+					continue;
 				uint32_t pref_inservice_su;
 				pref_inservice_su = *((SaUint32T *)value);
 
@@ -608,6 +620,8 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartProb")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuRestartMax")) {
 			} else if (!strcmp(attribute->attrName, "saAmfSGAutoRepair")) {
+				if (value_is_deleted == true)
+					continue;
 				uint32_t sg_autorepair = *((SaUint32T *)attribute->attrValues[0]);
 				if (sg_autorepair > true ) {
 					report_ccb_validation_error(opdata,
@@ -669,8 +683,12 @@ static SaAisErrorT ccb_completed_modify_hdlr(const CcbUtilOperationData_t *opdat
 					goto done;
 				}
 			} else if (!strcmp(attribute->attrName, "saAmfSGSuHostNodeGroup")) {
-				if (value_is_deleted == true)
-					continue;
+				if (value_is_deleted == true) {
+					report_ccb_validation_error(opdata,
+						"Deletion or Modification to NULL value not allowed");
+					rc = SA_AIS_ERR_BAD_OPERATION;
+					goto done;
+				}
 				if (ng_change_is_valid(sg, (SaNameT *)value, opdata) == false) {
 					rc = SA_AIS_ERR_BAD_OPERATION;
 					goto done;
