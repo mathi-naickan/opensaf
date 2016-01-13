@@ -1157,15 +1157,16 @@ immModel_ccbAbort(IMMND_CB *cb,
     SaUint32T ccbId,
     SaUint32T* arrSize,
     SaUint32T** implConnArr,
-    SaUint32T* client,
+    SaUint32T** clientArr,
+    SaUint32T* clArrSize,
     SaUint32T* nodeId,
     SaClmNodeIdT* pbeNodeId)
 {
-    ConnVector cv;
-    ConnVector::iterator cvi;
+    ConnVector cv, cl;
+    ConnVector::iterator cvi, cli;
     unsigned int ix=0;
 
-    bool aborted = ImmModel::instance(&cb->immModel)->ccbAbort(ccbId, cv, client, nodeId, pbeNodeId);
+    bool aborted = ImmModel::instance(&cb->immModel)->ccbAbort(ccbId, cv, cl, nodeId, pbeNodeId);
     
     *arrSize = (SaUint32T) cv.size();
     if(*arrSize) {
@@ -1176,6 +1177,16 @@ immModel_ccbAbort(IMMND_CB *cb,
         }
     }
     osafassert(ix==(*arrSize));
+
+    ix=0;
+    *clArrSize = (SaUint32T) cl.size();
+    if(*clArrSize){
+        *clientArr = (SaUint32T *) malloc((*clArrSize)* sizeof(SaUint32T));
+        for(cli = cl.begin(); cli!=cl.end(); ++cli, ++ix){
+            (*clientArr)[ix] = (*cli);
+        }
+    }
+    osafassert(ix==(*clArrSize));
     return aborted;
 }
 
@@ -5584,7 +5595,7 @@ ImmModel::ccbCommit(SaUint32T ccbId, ConnVector& connVector)
 }
 
 bool
-ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
+ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, ConnVector& clVector,
     SaUint32T* nodeId, unsigned int* pbeNodeIdPtr)
 {
     SaUint32T pbeConn=0;
@@ -5607,30 +5618,25 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
         case IMM_CCB_CREATE_OP:
             LOG_NO("Aborting ccb %u while waiting for "
                 "reply from implementer on CREATE-OP", ccbId);
-            *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_MODIFY_OP:
             LOG_NO("Aborting ccb %u while waiting for "
                 "reply from implementers on MODIFY-OP", ccbId);
-            *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_DELETE_OP:
             LOG_NO("Aborting ccb %u while waiting for "
                 "replies from implementers on DELETE-OP", ccbId);
-            *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_PREPARE:
         case IMM_CCB_VALIDATING:
             LOG_NO("Ccb %u aborted in COMPLETED processing (validation)", ccbId);
-            *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_VALIDATED:
             LOG_NO("Ccb %u aborted after explicit validation", ccbId);
-            *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_CRITICAL:
@@ -5640,7 +5646,6 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
             
         case IMM_CCB_PBE_ABORT:
             TRACE_5("Aborting ccb %u because PBE decided ABORT", ccbId);
-            *client = ccb->mOriginatingConn;
             break;
             
         case IMM_CCB_COMMITTED:
@@ -5672,8 +5677,25 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, SaUint32T* client,
         }
     }
 
+
+    clVector.push_back(ccb->mOriginatingConn);
     *nodeId = ccb->mOriginatingNode;
-    *client = ccb->mOriginatingConn;
+
+    if(ccb->mAugCcbParent && ccb->mAugCcbParent->mOriginatingConn) {
+        if(ccb->mOriginatingConn) {
+            /* Case where augumented client and Augumented parent
+               are originated from ths node. Send the client response
+               to both clients. */
+            osafassert(*nodeId == ccb->mAugCcbParent->mOriginatingNode);
+        } else {
+            /* Case where augumented client is not orignated from this node 
+               and Augumented parent is originated from this node.
+               Send the response to the Augumented parent. */
+            *nodeId = ccb->mAugCcbParent->mOriginatingNode;  
+            clVector.pop_back();
+        }
+        clVector.push_back(ccb->mAugCcbParent->mOriginatingConn);
+    }   
 
     ccb->mState = IMM_CCB_ABORTED;
     ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;

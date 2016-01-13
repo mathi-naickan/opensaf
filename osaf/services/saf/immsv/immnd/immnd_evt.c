@@ -217,7 +217,8 @@ static uint32_t immnd_evt_proc_mds_evt(IMMND_CB *cb, IMMND_EVT *evt);
 
 /*static uint32_t immnd_evt_immd_new_active(IMMND_CB *cb);*/
 
-static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId, SaUint32T *client, SaUint32T *nodeId);
+static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId, SaUint32T **clientArr, 
+		SaUint32T * clArrSize, SaUint32T *nodeId);
 
 static uint32_t immnd_evt_proc_reset(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo);
 
@@ -4007,7 +4008,7 @@ static void immnd_evt_proc_ccb_compl_rsp(IMMND_CB *cb,
 			TRACE("Abort in immnd_evt_proc_ccb_compl_rsp reqConn: %u", reqConn);
 			/*err != SA_AIS_OK => generate SaImmOiCcbAbortCallbackT upcall
 				   for all local implementers involved in the Ccb */
-			immnd_evt_ccb_abort(cb, evt->info.ccbUpcallRsp.ccbId, NULL, NULL);
+			immnd_evt_ccb_abort(cb, evt->info.ccbUpcallRsp.ccbId, NULL, NULL, NULL);
 		}
 		/* Either commit or abort has been decided. Ccb is now done.
 		   If we are at originating request node, then we ALWAYS reply here. 
@@ -6620,12 +6621,13 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 	TRACE_LEAVE();
 }
 
-static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId, SaUint32T *client, SaUint32T *nodeId)
+static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId, SaUint32T **clientArr, SaUint32T *clArrsize,  SaUint32T *nodeId)
 {
 	IMMSV_EVT send_evt;
 	SaUint32T *implConnArr = NULL;
-	SaUint32T arrSize = 0;
-	SaUint32T dummyClient = 0, dummynodeId = 0;
+	SaUint32T arrSize = 0, dummyClsize = 0;
+	SaUint32T  dummynodeId = 0;
+	SaUint32T *dummyClient = NULL;
 	SaImmOiHandleT implHandle = 0LL;
 	NCS_NODE_ID pbeNodeId = 0;
 	NCS_NODE_ID *pbeNodeIdPtr = NULL;
@@ -6641,14 +6643,16 @@ static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId, SaUint32T *client
 		 */
 	}
 
-	if(!immModel_ccbAbort(cb, ccbId, &arrSize, &implConnArr, &dummyClient, &dummynodeId, pbeNodeIdPtr)) {
+	if(!immModel_ccbAbort(cb, ccbId, &arrSize, &implConnArr, &dummyClient, &dummyClsize, &dummynodeId, pbeNodeIdPtr)) {
 		goto done;
 	}
 
-	if (client) {
-		*client = dummyClient;
+	if (clientArr) {
+		*clientArr = dummyClient;
+		*clArrsize = dummyClsize;
 	} else {
-		dummyClient = 0; /* dont reply to client here*/
+		free(dummyClient);
+		dummyClient = NULL; /* dont reply to client here*/
 	}
 
         if (nodeId && cb->node_id == dummynodeId) {
@@ -7376,11 +7380,14 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 	SaAisErrorT err = SA_AIS_OK;
 	IMMSV_EVT send_evt;
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
-	SaUint32T client = 0, nodeId = 0;
+	SaUint32T clArrSize = 0, nodeId = 0, ix = 0;
+	SaUint32T *clientArr = NULL;
+	SaBoolT internalCcbAbort = SA_FALSE;
+	IMMSV_ATTR_NAME_LIST * errStrings = NULL;
 	TRACE_ENTER();
 
 	osafassert(evt);
-	immnd_evt_ccb_abort(cb, evt->info.ccbId, &client, &nodeId);
+	immnd_evt_ccb_abort(cb, evt->info.ccbId, &clientArr, &clArrSize, &nodeId);
 
 	if (nodeId && err == SA_AIS_OK && !originatedAtThisNd) {
 		/* nodeId will be set when CCB is originated from this node.The CCB is aborted, 
@@ -7388,41 +7395,57 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 		*/
 
 		originatedAtThisNd = SA_TRUE;
-		clnt_hdl = m_IMMSV_PACK_HANDLE(client, nodeId); 
+		internalCcbAbort = SA_TRUE;
 		err = SA_AIS_ERR_FAILED_OPERATION;
 	} else if(err == SA_AIS_OK) {
 		TRACE_2("ccb aborted and finalized");
 	}
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
-		TRACE_2("ccbFinalize originated at this node => Send reply");
-		/* Perhaps the following osafassert is a bit strong. A corrupt client/agent
-		   could "accidentally" use the wrong ccbId if its heap was thrashed. 
-		   This wrong ccbid could accidentally be an existing used ccbId. 
-		   But in this case it would also have to originate at this node.
-		 */
-		TRACE_2("client == m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl))"
-			"??: %u == %u", client, (SaUint32T)m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl));
-		osafassert(!client || client == m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl));
-		immnd_client_node_get(cb, clnt_hdl, &cl_node);
-		if (cl_node == NULL || cl_node->mIsStale) {
-			LOG_WA("IMMND - Client went down so no response");
-			goto done;
-		}
+		do {
+			TRACE_2("ccbFinalize originated at this node => Send reply");
+			/* Perhaps the following osafassert is a bit strong. A corrupt client/agent
+			   could "accidentally" use the wrong ccbId if its heap was thrashed. 
+			   This wrong ccbid could accidentally be an existing used ccbId. 
+			   But in this case it would also have to originate at this node.
+			 */
+			if(clArrSize) {
+				clnt_hdl = m_IMMSV_PACK_HANDLE(clientArr[ix], nodeId);
+				TRACE_2("client == m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl))"
+					"??: %u == %u", clientArr[ix], (SaUint32T)m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl));
+				osafassert(!clArrSize || clientArr[ix] == m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl));
+			} 
+			immnd_client_node_get(cb, clnt_hdl, &cl_node);
+			if (cl_node == NULL || cl_node->mIsStale) {
+				LOG_WA("IMMND - Client went down so no response");
+			} else { 
 
-		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
+				memset(&send_evt, '\0', sizeof(IMMSV_EVT));
 
-		send_evt.type = IMMSV_EVT_TYPE_IMMA;
-		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
-		send_evt.info.imma.info.errRsp.error = err;
+				send_evt.type = IMMSV_EVT_TYPE_IMMA;
+				send_evt.info.imma.info.errRsp.error = err;
+				if(internalCcbAbort && !errStrings){
+					errStrings = immModel_ccbGrabErrStrings(cb, evt->info.objModify.ccbId);
+				}
+				if(errStrings) {
+					send_evt.info.imma.info.errRsp.errStrings = errStrings;
+					send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR_2;
+				} else {
+					send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
+				}
 
-		TRACE_2("SENDRSP %u", err);
+				TRACE_2("SENDRSP %u", err);
 
-		if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
-			LOG_WA("Failed to send response to agent/client over MDS");
-		}
+				if (immnd_mds_send_rsp(cb, &(cl_node->tmpSinfo), &send_evt) != NCSCC_RC_SUCCESS) {
+					LOG_WA("Failed to send response to agent/client over MDS");
+				}
+			}
+			ix++;
+		} while(clArrSize && (ix < clArrSize));
 	}
- done:
+
+	free(clientArr);
+	immsv_evt_free_attrNames(errStrings);
 	err = immModel_ccbFinalize(cb, evt->info.ccbId);
 	TRACE_LEAVE();
 }
@@ -7743,7 +7766,7 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb, IMMND_EVT *evt, SaBoolT origi
 				applConnArr = NULL;
 			}
 		} else {
-			SaUint32T client = 0;
+			SaUint32T clArrSize = 0, *clArr = NULL;
 			if(err == SA_AIS_ERR_ACCESS_DENIED) {
 				LOG_WA("Spurious and redundant ccb-apply request ignored ccbId:%u",
 					evt->info.ccbId);
@@ -7752,8 +7775,8 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb, IMMND_EVT *evt, SaBoolT origi
 			}
 			/*err != SA_AIS_OK => generate SaImmOiCcbAbortCallbackT upcalls
 			 */
-			immnd_evt_ccb_abort(cb, evt->info.ccbId, &client, NULL);
-			osafassert(!client || originatedAtThisNd);
+			immnd_evt_ccb_abort(cb, evt->info.ccbId, &clArr, &clArrSize, NULL);
+			osafassert(!clArrSize || originatedAtThisNd);
 		}
 		TRACE_2("CCB APPLY TERMINATING CCB: %u", evt->info.ccbId);
 		immModel_ccbFinalize(cb, evt->info.ccbId);
@@ -8850,7 +8873,7 @@ static void immnd_evt_proc_discard_node(IMMND_CB *cb,
 		SaUint32T ix;
 		for (ix = 0; ix < arrSize; ++ix) {
 			LOG_WA("Detected crash at node %x, abort ccbId  %u", evt->info.ctrl.nodeId, idArr[ix]);
-			immnd_evt_ccb_abort(cb, idArr[ix], NULL, NULL);
+			immnd_evt_ccb_abort(cb, idArr[ix], NULL, NULL, NULL);
 			err = immModel_ccbFinalize(cb, idArr[ix]);
 			if (err != SA_AIS_OK) {
 				LOG_WA("Failed to remove Ccb %u - ignoring", idArr[ix]);
