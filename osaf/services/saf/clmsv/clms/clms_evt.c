@@ -517,6 +517,7 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 	nodeid = evt->info.msg.info.api_info.param.nodeup_info.node_id;
 
 	node = clms_node_get_by_name(&node_name);
+	clm_msg.info.api_resp_info.rc = SA_AIS_OK;
 	if (node == NULL) {
 		/* The /etc/opensaf/node_name is an user exposed configuration file.
 		 * The node_name file contains the RDN value of the CLM node name.
@@ -558,14 +559,14 @@ uint32_t proc_node_up_msg(CLMS_CB * cb, CLMSV_CLMS_EVT * evt)
 				}
 			}
 		}
-
-		if ((cb->node_id != nodeup_info->node_id) && (node->nodeup == SA_TRUE)){
-			clm_msg.info.api_resp_info.rc = SA_AIS_ERR_EXIST;
-			LOG_ER("Duplicate node join request for CLM node: '%s'. "
-					"Specify a unique node name in" PKGSYSCONFDIR "/node_name",
-					nodeup_info->node_name.value);
-		} else
-			clm_msg.info.api_resp_info.rc = SA_AIS_OK;
+		if (clm_msg.info.api_resp_info.rc == SA_AIS_OK) {
+			if ((cb->node_id != nodeup_info->node_id) && (node->nodeup == SA_TRUE)){
+				clm_msg.info.api_resp_info.rc = SA_AIS_ERR_EXIST;
+				LOG_ER("Duplicate node join request for CLM node: '%s'. "
+						"Specify a unique node name in" PKGSYSCONFDIR "/node_name",
+						nodeup_info->node_name.value);
+			}
+		}
 
 	} /* Node exists in DB */
 
