@@ -884,6 +884,10 @@ static uint32_t proc_mds_node_evt(CLMSV_CLMS_EVT * evt)
 		if (delete_existing_nodedown_records(node_id) == true) {
 			TRACE_LEAVE();
 			return rc;
+		} else if (node->member == SA_FALSE) {
+			/* One possibility is that an admin operation has made this a non-member */
+			TRACE_LEAVE();
+			return rc;
 		} else {
 		TRACE("Adding the node_down record for node: %u to the list", node_id);
 		NODE_DOWN_LIST *node_down_rec = NULL;
