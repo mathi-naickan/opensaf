@@ -7389,7 +7389,7 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 	osafassert(evt);
 	immnd_evt_ccb_abort(cb, evt->info.ccbId, &clientArr, &clArrSize, &nodeId);
 
-	if (nodeId && err == SA_AIS_OK && !originatedAtThisNd) {
+	if (nodeId && !originatedAtThisNd) {
 		/* nodeId will be set when CCB is originated from this node.The CCB is aborted, 
 		   and the error response forwarded to client will be ERR_FAILED_OPERATION.
 		*/
@@ -7397,7 +7397,7 @@ static void immnd_evt_proc_ccb_finalize(IMMND_CB *cb,
 		originatedAtThisNd = SA_TRUE;
 		internalCcbAbort = SA_TRUE;
 		err = SA_AIS_ERR_FAILED_OPERATION;
-	} else if(err == SA_AIS_OK) {
+	} else {
 		TRACE_2("ccb aborted and finalized");
 	}
 
@@ -7776,7 +7776,12 @@ static void immnd_evt_proc_ccb_apply(IMMND_CB *cb, IMMND_EVT *evt, SaBoolT origi
 			/*err != SA_AIS_OK => generate SaImmOiCcbAbortCallbackT upcalls
 			 */
 			immnd_evt_ccb_abort(cb, evt->info.ccbId, &clArr, &clArrSize, NULL);
-			osafassert(!clArrSize || originatedAtThisNd);
+			/* when the client is not originated from this ND then the client 
+			   connection must be zero. We are in apply and there will be only 
+			   one implementer connection and no augumentaion connections.
+			*/
+			osafassert(!clArrSize || !clArr[0] || originatedAtThisNd);
+			free(clArr);
 		}
 		TRACE_2("CCB APPLY TERMINATING CCB: %u", evt->info.ccbId);
 		immModel_ccbFinalize(cb, evt->info.ccbId);
