@@ -1385,8 +1385,6 @@ uint32_t avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 
 		/* if found, send active assignment */
 		if (curr_su) {
-			/* set the flag */
-			is_act_ass_sent = true;
 
 			TRACE("send active assignment to %s", curr_su->name.value);
 
@@ -1395,6 +1393,7 @@ uint32_t avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 				/* add su to the su-oper list & change the fsm state to sg-realign */
 				avd_sg_su_oper_list_add(cb, curr_su, false);
 				m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_SG_REALIGN);
+				is_act_ass_sent = true;
 			} else {
 				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, curr_si->name.value, curr_si->name.length);
 			}
