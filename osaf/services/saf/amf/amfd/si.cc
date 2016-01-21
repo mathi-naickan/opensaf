@@ -867,7 +867,7 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 			goto done;
 		}
 
-		if (err != NCSCC_RC_SUCCESS) {
+		if ((err != NCSCC_RC_SUCCESS) && (si->list_of_sisu == NULL)) {
 			report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_BAD_OPERATION, NULL,
 					"SI unlock of %s failed", objectName->value);
 			si->set_admin_state(SA_AMF_ADMIN_LOCKED);

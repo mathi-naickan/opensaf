@@ -1386,14 +1386,13 @@ uint32_t avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 
 		/* if found, send active assignment */
 		if (curr_su) {
-			/* set the flag */
-			is_act_ass_sent = true;
 
 			rc = avd_new_assgn_susi(cb, curr_su, curr_si, SA_AMF_HA_ACTIVE, false, &tmp_susi);
 			if (NCSCC_RC_SUCCESS == rc) {
 				/* add su to the su-oper list & change the fsm state to sg-realign */
 				avd_sg_su_oper_list_add(cb, curr_su, false);
 				m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_SG_REALIGN);
+				is_act_ass_sent = true;
 			} else {
 				LOG_ER("%s:%u: %s (%u)", __FILE__, __LINE__, curr_si->name.value, curr_si->name.length);
 			}
