@@ -3472,10 +3472,10 @@ static int pbeAuditClasses(sqlite3 *dbHandle) {
 			}
 
 			if(sqlite3_step(stmt2) != SQLITE_ROW) {
-				sqlite3_finalize(stmt2);
 				LOG_ER("Config class '%s' does not have corresponding table in PBE",
 						(char *)sqlite3_column_text(stmt, 2));
 				err = 1;
+				sqlite3_finalize(stmt2);
 				continue;
 			}
 
@@ -3495,42 +3495,39 @@ static int pbeAuditClasses(sqlite3 *dbHandle) {
 			}
 
 			if(sqlite3_step(stmt2) != SQLITE_ROW) {
-				sqlite3_finalize(stmt2);
 				LOG_ER("Class '%s' does not have RDN attribute",
 						(char *)sqlite3_column_text(stmt, 2));
 				err = 1;
+				sqlite3_finalize(stmt2);
 				continue;
 			}
 
 			attr_type = sqlite3_column_int(stmt2, 0);
 			if(attr_type != SA_IMM_ATTR_SANAMET && attr_type != SA_IMM_ATTR_SASTRINGT) {
-				sqlite3_finalize(stmt2);
 				LOG_ER("RDN attribute '%s' of class '%s' is not type of  SaNameT or SaStringT",
 						(char *)sqlite3_column_text(stmt2, 2),
 						(char *)sqlite3_column_text(stmt, 2));
 				err = 1;
-				continue;
 			}
 
 			attr_flags = sqlite3_column_int64(stmt2, 1);
 			if((attr_flags & SA_IMM_ATTR_CONFIG) != SA_IMM_ATTR_CONFIG) {
-				sqlite3_finalize(stmt2);
 				LOG_ER("RDN attribute '%s' of class '%s' is not a config attribute. Flags: %lld",
 						(char *)sqlite3_column_text(stmt2, 2),
 						(char *)sqlite3_column_text(stmt, 2),
 						attr_flags);
 				err = 1;
-				continue;
 			}
 
 			if((attr_flags & SA_IMM_ATTR_INITIALIZED) != SA_IMM_ATTR_INITIALIZED) {
-				sqlite3_finalize(stmt2);
-				LOG_ER("RDN attribute '%s' of class '%s' does not have SA_IMM_ATTR_INITIALIZED flag. Flags: %lld",
+				/* ImmModel doesn't rely on this flag to check if
+				 * RDN attribute is initialized when creating objects.
+				 * This flag is on in all RDN attributes implicitly,
+				 * but it's good to have it in RDN attributes of configuration classes. */
+				LOG_WA("RDN attribute '%s' of class '%s' does not have SA_IMM_ATTR_INITIALIZED flag. Flags: %lld",
 						(char *)sqlite3_column_text(stmt2, 2),
 						(char *)sqlite3_column_text(stmt, 2),
 						attr_flags);
-				err = 1;
-				continue;
 			}
 
 			sqlite3_finalize(stmt2);
