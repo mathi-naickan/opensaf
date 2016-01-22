@@ -794,46 +794,89 @@ static void avd_compglobalattrs_ccb_apply_cb(CcbUtilOperationData_t *opdata)
 {
 	int i = 0;
 	const SaImmAttrModificationT_2 *attrMod;
+	bool value_is_deleted;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
 	switch (opdata->operationType) {
 	case CCBUTIL_MODIFY:
 		while ((attrMod = opdata->param.modify.attrMods[i++]) != NULL) {
+			void *value = NULL;
+
+			if ((attrMod->modType == SA_IMM_ATTR_VALUES_DELETE) ||
+					(attrMod->modAttr.attrValues == NULL)) {
+				/* Attribute value is deleted, revert to default value */
+				value_is_deleted = true;
+			} else {
+				/* Attribute value is modified */
+				value_is_deleted = false;
+				value = attrMod->modAttr.attrValues[0];
+			}
+
 			if (!strcmp("saAmfNumMaxInstantiateWithoutDelay", attrMod->modAttr.attrName)) {
+				SaUint32T old_value = avd_comp_global_attrs.saAmfNumMaxInstantiateWithoutDelay;
+				if (value_is_deleted == true) {
+					 //Default value as per Section 8.14 (B0401).
+					avd_comp_global_attrs.saAmfNumMaxInstantiateWithoutDelay = 2;
+				} else {
+					avd_comp_global_attrs.saAmfNumMaxInstantiateWithoutDelay =
+						*((SaUint32T *)value);
+				}
 				TRACE("saAmfNumMaxInstantiateWithoutDelay modified from '%u' to '%u'",
-						avd_comp_global_attrs.saAmfNumMaxInstantiateWithoutDelay, 
-						*((SaUint32T *)attrMod->modAttr.attrValues[0]));
-				avd_comp_global_attrs.saAmfNumMaxInstantiateWithoutDelay =
-					*((SaUint32T *)attrMod->modAttr.attrValues[0]);
+						old_value,
+						avd_comp_global_attrs.saAmfNumMaxInstantiateWithoutDelay); 
 			}
 			if (!strcmp("saAmfNumMaxInstantiateWithDelay", attrMod->modAttr.attrName)) {
+				SaUint32T old_value = avd_comp_global_attrs.saAmfNumMaxInstantiateWithDelay;
+				if (value_is_deleted == true) {
+					//Default value as per Section 8.14 (B0401).
+					avd_comp_global_attrs.saAmfNumMaxInstantiateWithDelay = 0;
+				} else {
+					avd_comp_global_attrs.saAmfNumMaxInstantiateWithDelay =
+						*((SaUint32T *)value);
+				}
 				TRACE("saAmfNumMaxInstantiateWithDelay modified from '%u' to '%u'",
-						avd_comp_global_attrs.saAmfNumMaxInstantiateWithDelay, 
-						*((SaUint32T *)attrMod->modAttr.attrValues[0]));
-				avd_comp_global_attrs.saAmfNumMaxInstantiateWithDelay =
-					*((SaUint32T *)attrMod->modAttr.attrValues[0]);
+						old_value,
+						avd_comp_global_attrs.saAmfNumMaxInstantiateWithDelay); 
 			}
 			if (!strcmp("saAmfNumMaxAmStartAttempts", attrMod->modAttr.attrName)) {
+				SaUint32T old_value = avd_comp_global_attrs.saAmfNumMaxAmStartAttempts;
+				if (value_is_deleted == true) {
+					//Default value as per Section 8.14 (B0401).
+					avd_comp_global_attrs.saAmfNumMaxAmStartAttempts = 2;
+				} else {
+					avd_comp_global_attrs.saAmfNumMaxAmStartAttempts =
+						*((SaUint32T *)value);
+				}
 				TRACE("saAmfNumMaxAmStartAttempts modified from '%u' to '%u'",
-						avd_comp_global_attrs.saAmfNumMaxAmStartAttempts, 
-						*((SaUint32T *)attrMod->modAttr.attrValues[0]));
-				avd_comp_global_attrs.saAmfNumMaxAmStartAttempts =
-				    *((SaUint32T *)attrMod->modAttr.attrValues[0]);
+						old_value, 
+						avd_comp_global_attrs.saAmfNumMaxAmStartAttempts);
 			}
 			if (!strcmp("saAmfNumMaxAmStopAttempts", attrMod->modAttr.attrName)) {
+				SaUint32T old_value = avd_comp_global_attrs.saAmfNumMaxAmStartAttempts;
+				if (value_is_deleted == true) {
+					//Default value as per Section 8.14 (B0401).
+					avd_comp_global_attrs.saAmfNumMaxAmStopAttempts = 2;
+				} else {
+					avd_comp_global_attrs.saAmfNumMaxAmStopAttempts =
+						*((SaUint32T *)value);
+				}
 				TRACE("saAmfNumMaxAmStopAttempts modified from '%u' to '%u'",
-						avd_comp_global_attrs.saAmfNumMaxAmStopAttempts, 
-						*((SaUint32T *)attrMod->modAttr.attrValues[0]));
-				avd_comp_global_attrs.saAmfNumMaxAmStopAttempts =
-					*((SaUint32T *)attrMod->modAttr.attrValues[0]);
+						old_value, 
+						avd_comp_global_attrs.saAmfNumMaxAmStopAttempts);
 			}
 			if (!strcmp("saAmfDelayBetweenInstantiateAttempts", attrMod->modAttr.attrName)) {
+				SaTimeT old_value = avd_comp_global_attrs.saAmfDelayBetweenInstantiateAttempts;
+				if (value_is_deleted == true) {
+					//Default value as per Section 8.14 (B0401).
+					avd_comp_global_attrs.saAmfDelayBetweenInstantiateAttempts = 0;
+				} else {
+					avd_comp_global_attrs.saAmfDelayBetweenInstantiateAttempts =
+						*((SaTimeT*)value);
+				}
 				TRACE("saAmfDelayBetweenInstantiateAttempts modified from '%llu' to '%llu'",
-						avd_comp_global_attrs.saAmfDelayBetweenInstantiateAttempts, 
-						*((SaTimeT *)attrMod->modAttr.attrValues[0]));
-				avd_comp_global_attrs.saAmfDelayBetweenInstantiateAttempts =
-					*((SaTimeT *)attrMod->modAttr.attrValues[0]);
+						old_value, 
+						avd_comp_global_attrs.saAmfDelayBetweenInstantiateAttempts);
 			}
 		}
 		break;
