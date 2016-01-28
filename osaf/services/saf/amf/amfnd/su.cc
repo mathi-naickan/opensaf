@@ -858,3 +858,21 @@ bool isAdminRestarted(const AVND_SU *su)
 	return (su->admin_op_Id == SA_AMF_ADMIN_RESTART);
 }
 
+/**
+ * @brief  Checks if SU is marked failed.
+ * @return true/false
+ */
+bool isFailed(const AVND_SU *su)
+{
+	return (m_AVND_SU_IS_FAILED(su));
+}
+
+/**
+ * @brief  Checks if SU is marked restarting because of 
+ *		su restart recovery or RESTART admin op.
+ * @return true/false
+ */
+bool isRestartSet(const AVND_SU *su)
+{
+	return (m_AVND_SU_IS_RESTART(su));
+}

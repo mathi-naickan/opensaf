@@ -421,4 +421,6 @@ bool is_any_non_restartable_comp_assigned(const AVND_SU& su);
 bool su_all_pi_comps_instantiated(const AVND_SU *su);
 bool all_csis_in_assigned_state(const AVND_SU *su);
 bool isAdminRestarted(const AVND_SU *su);
+bool isFailed(const AVND_SU *su);
+bool isRestartSet(const AVND_SU *su);
 #endif
