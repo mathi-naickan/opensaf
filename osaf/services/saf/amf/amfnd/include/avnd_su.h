@@ -418,4 +418,7 @@ bool su_all_comps_restartable(const AVND_SU& su);
 void su_send_suRestart_recovery_msg(AVND_SU *su);
 bool pi_su_all_comps_uninstantiated (const AVND_SU& su);
 bool is_any_non_restartable_comp_assigned(const AVND_SU& su);
+bool isFailed(const AVND_SU *su);
+bool isRestartSet(const AVND_SU *su);
+
 #endif

@@ -891,7 +891,8 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 				(final_st == SA_AMF_PRESENCE_RESTARTING)) &&
 				((ev == AVND_COMP_CLC_PRES_FSM_EV_INST_SUCC) ||
 				 (ev == AVND_COMP_CLC_PRES_FSM_EV_TERM_SUCC) || 
-				 (ev == AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC))))
+				 (ev == AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC)) && 
+				(comp->clc_info.exec_cmd == AVND_COMP_CLC_CMD_TYPE_NONE)))
 		rc = avnd_comp_clc_st_chng_prc(cb, comp, prv_st, final_st);
 
  done:
@@ -1666,6 +1667,62 @@ uint32_t avnd_comp_clc_insting_clean_hdler(AVND_CB *cb, AVND_COMP *comp)
 	return rc;
 }
 
+/**
+ * @brief  Checks for eligibility of a failed component for instantiation 
+ *	   when it has been successfully cleaned up. Instantiation depends
+ *	   upon recovery context or Restart admin op. 
+ *	   
+ * @return true/false
+ */
+static bool is_failed_comp_eligible_for_instantiation(AVND_COMP *comp) {
+
+  if (isRestartSet(comp->su)) { //SU is restarting (RESTART admin op or recovery policy).
+	  if (isFailed(comp->su)) { //SU is failed (case surestart recovery).
+		  /*During surestart recovery, after cleanup of all components, amfnd starts 
+		    instantiation of components. A component may fault at this stage. Such a 
+		    component is eligible for instantiation.*/
+		  if ((comp->pres == SA_AMF_PRESENCE_INSTANTIATING) &&
+			  (comp->su->pres == SA_AMF_PRESENCE_INSTANTIATING))
+				return true;
+
+		  /*This component is being cleaned up because of su restart recovery. 
+		    In this case component is not eligible for instantiation.*/
+		  if ((comp->pres == SA_AMF_PRESENCE_RESTARTING) &&
+				  (comp->su->pres == SA_AMF_PRESENCE_TERMINATING)) {
+			  /* Component got cleaned up in RESTARTING state and surestart recovery is going on.
+			     In surestart recovery component never enters in RESTARTING state. This means
+			     component was cleaned up in the context of comp-restart recovery.
+			     Since further escalation has reached to surestart, same cleanup can be used
+			     and thus comp can be marked uninstantiated.*/
+			  avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+			  return false;
+		 }
+	  } else { //Case of RESTART admin op or assignment phase of surestart recovery.
+		if (comp->su->admin_op_Id == SA_AMF_ADMIN_RESTART) { //RESTART admin op.
+			/*During RESTART admin op on SU, after termination of all components, amfnd
+			  starts instantiation of components. A component may fault at this stage. 
+			  Such a component is eligible for instantiation.*/
+			if  ((comp->pres == SA_AMF_PRESENCE_RESTARTING) ||
+				(comp->pres == SA_AMF_PRESENCE_INSTANTIATING)) 
+				return true;
+		} else {//Assignment phase during RESTART admin op or during surestart recovery. 
+			/*After successful instantiation of all the components of SU because of either
+			  su restart recovery or RESTART admin op on SU, amfnd starts reassigning
+			  the components in SU. A component may fault during reassignment. Such a
+			  component is eligible for instantiation.*/
+			return true;
+		}
+	  }
+  } else {//SU is not restarting.
+	 if (!isFailed(comp->su)) {//SU is not failed.
+		 /*A failed component is eligible for instantiation 
+                   in the context of comp-restart recovery.*/ 
+		return true;
+	 }
+  }
+
+  return false;
+}
 /****************************************************************************
   Name          : avnd_comp_clc_xxxing_cleansucc_hdler
  
@@ -1696,31 +1753,11 @@ uint32_t avnd_comp_clc_xxxing_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	 */
 	avnd_comp_cmplete_all_assignment(cb, comp);
 
-	/* If su is restarting then, instantiation of the all the PI components will be done after
-	   termination of all of them. But for a NPI comp in PI su, restart is done at the time of
-	   assignment. Such a component never triggers SU FSM. So instantiate it in comp FSM.
-	 */
-	//TODO: Reframe these blockes to make them more illustrative.
-	if (!(m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) && m_AVND_SU_IS_PREINSTANTIABLE(comp->su) &&
-			(!m_AVND_SU_IS_RESTART(comp->su)) && (!m_AVND_SU_IS_FAILED(comp->su)))
-		/* Instantiate this NPI comp of PI SU if context is not:
-		  -surestart recovery.
-                  -restart admin op on SU.*/
-		;//Goahead and instantiate a NPI comp in PI SU.
-	else if ((m_AVND_SU_IS_RESTART(comp->su)) && (!m_AVND_SU_IS_FAILED(comp->su)) &&
-					(comp->su->admin_op_Id != SA_AMF_ADMIN_RESTART)) 
-		/* Restart the component if it fails with restart reocvery
-		   during the repair phase of surestart recovery.*/
-		;
-	else if (m_AVND_SU_IS_RESTART(comp->su))  {
-		if ((comp->pres == SA_AMF_PRESENCE_RESTARTING) &&  m_AVND_SU_IS_FAILED(comp->su)) 	
-			/* Cleanup was already initiated when comp faulted with comprestart recovery.
-			   If further escalation reached to surestart, same cleanup can be used and thus
-                           comp can be marked uninstantiated.*/
-			avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+	//Comp instantiation depends on recovery policy. Check for instantiation eligibility.
+	if (is_failed_comp_eligible_for_instantiation(comp) == false)
 		goto done;
-	}
 
+	TRACE("inst_retry_cnt:%u, inst_retry_max:%u",clc_info->inst_retry_cnt,clc_info->inst_retry_max);
 	if ((clc_info->inst_retry_cnt < clc_info->inst_retry_max) &&
 	    (AVND_COMP_INST_EXIT_CODE_NO_RETRY != clc_info->inst_code_rcvd)) {
 		/* => keep retrying */
