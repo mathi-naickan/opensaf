@@ -1813,11 +1813,15 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 		if (((SA_AMF_PRESENCE_INSTANTIATING == prv_st) ||
 		     (SA_AMF_PRESENCE_INSTANTIATED == prv_st)) && (SA_AMF_PRESENCE_INSTANTIATION_FAILED == final_st)) {
 			TRACE("SU Instantiating/Instantiated -> Instantiation Failed");
-			/* si-assignment failed .. inform avd */
-			TRACE("SI-Assignment failed, Informing AVD");
-			rc = avnd_di_susi_resp_send(cb, su, si);
-			if (NCSCC_RC_SUCCESS != rc)
-				goto done;
+			/*SU may fail with INST_FAILED state as a part of recovery 
+			  like comp-restart and su-restart. Inform AMFD if 
+			  assignments are pending from AMFD.*/
+			if (m_AVND_SU_IS_ASSIGN_PEND(su)) {
+				TRACE("SI-Assignment failed, Informing AVD");
+				rc = avnd_di_susi_resp_send(cb, su, si);
+				if (NCSCC_RC_SUCCESS != rc)
+					goto done;
+			}
 
 			/* mark su as failed */
 			m_AVND_SU_FAILED_SET(su);
