@@ -76,6 +76,7 @@ uint32_t mds_log_init(char *log_file_name, char *line_prefix)
 {
 	FILE *fh;
 	memset(process_name, 0, MDS_MAX_PROCESS_NAME_LEN);
+	tzset();
 	get_process_name();	
 
 	if (lf != NULL)
@@ -223,7 +224,6 @@ static void log_mds(const char *str)
 		int i;
 
 		gettimeofday(&tv, NULL);
-		tzset();
 		tstamp_data = localtime_r(&tv.tv_sec, &tm_info);
 		osafassert(tstamp_data);
 
