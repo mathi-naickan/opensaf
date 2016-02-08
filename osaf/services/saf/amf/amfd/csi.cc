@@ -691,11 +691,12 @@ static SaAisErrorT csi_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 		if (csi == NULL) {
 			/* This means that csi has been deleted during checkpointing at STDBY and completed callback
 			   has arrived delayed.*/
-			report_ccb_validation_error(opdata, "CSI delete completed (STDBY): '%s' does not exist",
-					opdata->objectName.value);
-			rc = SA_AIS_ERR_BAD_OPERATION;
-			goto done;
+			TRACE("CSI delete completed (STDBY): '%s' does not exist", opdata->objectName.value);
 		}
+		//IMM honors response of completed callback only from active amfd, so reply ok from standby amfd.
+		rc = SA_AIS_OK;
+		opdata->userData = csi;	/* Save for later use in apply */
+		goto done;
 	}
 
 	if(AVD_SG_FSM_STABLE != csi->si->sg_of_si->sg_fsm_state) {
