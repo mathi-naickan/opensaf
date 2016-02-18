@@ -3660,6 +3660,26 @@ static SaAisErrorT admin_op_invoke_common(
 	bool opNamePar = false;
 	TRACE_ENTER();
 
+        if (timeout < 0 ) {
+                TRACE_4("saImmOmAdminOperationInvoke: failed invalid timeout return value:%d,immHandle:%llx",
+                                SA_AIS_ERR_INVALID_PARAM, immHandle);
+		rc = SA_AIS_ERR_INVALID_PARAM;
+		goto done;
+        } else if (timeout > ( SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND)) {
+		/* Unfortunately the current MDS transport support only uint32_t type variable (232-1) for timeout parameter ,
+		   even though  SAF APIS supports SaTimeT (SaInt64T) type (263-1).
+		   So as work around currently if SAF API receives the higher value then  uint32_t (232-1) that it can hold , form now
+		   implicitly set  to max MDS supported value (4294967295 * 10000000) ,  which is already very large  impractical value.
+
+		   In  Future solution : `[ticket:#1658] mds : Opensf transport should adopt the size of the
+		   timeout parameter from 32 bits to 64 bits`  will resolve the issue by matching both MDS transport and SAF API's
+		 */		
+		TRACE_4("saImmOmAdminOperationInvoke: timeout > MDS_MAX_TIMEOUT setting to MDS max timeout value:%llu,immHandle:%llx",
+				(SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND) , immHandle);
+                timeout = (SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND);
+        }
+        
+
 	if (cb->sv_id == 0) {
 		TRACE_2("ERR_BAD_HANDLE: No initialized handle exists!");
 		return SA_AIS_ERR_BAD_HANDLE;
@@ -3768,10 +3788,6 @@ static SaAisErrorT admin_op_invoke_common(
 	/* convert the timeout to 10 ms value and add it to the sync send 
 	   timeout */
 	timeout = m_IMMSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
-
-	if (timeout < NCS_SAF_MIN_ACCEPT_TIME) {
-		timeout = IMMSV_WAIT_TIME;
-	}
 
 	if((rc = imma_proc_increment_pending_reply(cl_node, true)) != SA_AIS_OK) {
 		TRACE_4("ERR_LIBRARY: Overlapping use of IMM handle by multiple threads");
