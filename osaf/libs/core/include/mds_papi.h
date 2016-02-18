@@ -199,6 +199,9 @@ extern "C" {
 
 #define MDS_MAX_PROCESS_NAME_LEN (255 + 32) /* Process Name + PID No/Slot info/Tipc reference */
 
+	/*MDS takes  timeout in 10 ms value for sync send() timeout */
+#define MDS_MAX_TIMEOUT_MILLISECOND 42949672950 /*((2^32 -1 * 10) */
+
 /**************************************************************************
  * SVC_NAME  of Service : A well known name that a service 
  ***************************************************************************/

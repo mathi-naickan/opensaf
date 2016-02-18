@@ -893,7 +893,19 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 				SA_AIS_ERR_INVALID_PARAM, ckptHandle);
 		TRACE_LEAVE2("API return code = %u", rc);
 		return SA_AIS_ERR_INVALID_PARAM;
-	}
+	} else if (timeout > ( SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND)) {
+		/* Unfortunately the current MDS transport support only uint32_t type variable (232-1) for timeout parameter ,
+		   even though  SAF APIS supports SaTimeT (SaInt64T) type (263-1).
+		   So as work around currently if SAF API receives the higher value then  uint32_t (232-1) that it can hold , form now
+		   implicitly set  to max MDS supported value (4294967295 * 10000000) ,  which is already very large  impractical value.
+
+		   In  Future solution : `[ticket:#1658] mds : Opensf transport should adopt the size of the
+		   timeout parameter from 32 bits to 64 bits`  will resolve the issue by matching both MDS transport and SAF API's
+		 */		
+		TRACE_4("Cpa CkptOpen: timeout > MDS_MAX_TIMEOUT setting to MDS max timeout value:%llu,ckptHandle:%llx",
+				(SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND) , ckptHandle);
+                timeout = (SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND);
+        }
 
 	
 	/* Draft Validations */
@@ -984,13 +996,6 @@ SaAisErrorT saCkptCheckpointOpen(SaCkptHandleT ckptHandle, const SaNameT *checkp
 	evt.info.cpnd.info.openReq.ckpt_flags = checkpointOpenFlags;
 	/* convert the timeout to 10 ms value and add it to the sync send timeout */
 	time_out = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
-
-	if (time_out < CPSV_WAIT_TIME) {
-		rc = SA_AIS_ERR_TIMEOUT;
-		TRACE_4("Cpa CkptOpen failed Api failed with return value:%d,ckptHandle:%llx,timeout:%llu",
-				rc, ckptHandle, timeout);
-		goto mds_send_fail;
-	}
 
 	evt.info.cpnd.info.openReq.timeout = timeout;
 
