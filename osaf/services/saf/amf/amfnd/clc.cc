@@ -2226,7 +2226,13 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 				   done indication cannot be generated for assigned CSIs. 
 				 */
 				if (m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(csi))
-					rc = avnd_comp_csi_remove_done(cb, comp, csi); 
+					/* Csi remove done for PI comp only and not for NPI comp in PI SU.
+					   When avnd_comp_clc_st_chng_prc will be called and it will be a
+					   case of "SU Preinst and Comp Non-Preinst" and
+					   TERMINATING == prv_st and UNINSTANTIATED == final_st, then
+					   avnd_comp_csi_remove_done will be called. */
+					if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))
+						rc = avnd_comp_csi_remove_done(cb, comp, csi); 
 
 				/* Removal of last CSI from this component may lead to SUSI assign/remove 
 				   done indication, which eventually deletes all COMP-CSI record.
