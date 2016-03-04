@@ -171,5 +171,5 @@ extern SaAisErrorT avd_su_config_get(const SaNameT *sg_name, AVD_SG *sg);
  * Class constructor, must be called before any other function
  */
 extern void avd_su_constructor(void);
-
+extern void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata);
 #endif

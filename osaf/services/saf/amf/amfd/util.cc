@@ -1555,6 +1555,22 @@ int amfd_file_dump(const char *filename)
 			fprintf(f, "    saAmfCompCurrProxyName: %s\n", comp->saAmfCompCurrProxyName.value);
 	}
 
+        fprintf(f, "COMPCS_TYPE:\n");
+        for (std::map<std::string, AVD_COMPCS_TYPE*>::const_iterator it = compcstype_db->begin();
+                        it != compcstype_db->end(); it++) {
+                const AVD_COMPCS_TYPE *compcs_type  = it->second;
+                fprintf(f, "  dn: %s\n", compcs_type->name.value);
+                fprintf(f, "    saAmfCompNumMaxActiveCSIs: %u\n",
+                                compcs_type->saAmfCompNumMaxActiveCSIs);
+                fprintf(f, "    saAmfCompNumMaxStandbyCSIs: %u\n",
+                                compcs_type->saAmfCompNumMaxStandbyCSIs);
+                fprintf(f, "    saAmfCompNumCurrActiveCSIs: %u\n",
+                                compcs_type->saAmfCompNumCurrActiveCSIs);
+                fprintf(f, "    saAmfCompNumCurrStandbyCSIs: %u\n",
+                                compcs_type->saAmfCompNumCurrStandbyCSIs);
+        }
+
+
 	fprintf(f, "Node Groups:\n");
 	for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
                         it != nodegroup_db->end(); it++) {

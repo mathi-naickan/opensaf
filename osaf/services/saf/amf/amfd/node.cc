@@ -165,9 +165,63 @@ AVD_AVND *avd_node_new(const SaNameT *dn)
 
 void avd_node_delete(AVD_AVND *node)
 {
+	TRACE_ENTER();
 	osafassert(node->pg_csi_list.n_nodes == 0);
 	if (node->node_info.nodeId)
 		avd_node_delete_nodeid(node);
+	/* Check if the SUs and related objects are still left. This can
+	   happen on Standby Amfd when it has just read the configuration
+	   and before it becomes applier, Act Amfd deletes SUs. Those SUs
+	   will be left out at Standby Amfd. Though this could be rare.*/
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+		if (node->list_of_su.empty() != true) {
+			std::set<std::string> su_list;
+			std::set<std::string> comp_list;
+			for (const auto& su : node->list_of_su)
+				su_list.insert(Amf::to_string(&su->name));
+			for (std::set<std::string>::const_iterator iter = su_list.begin();
+					iter != su_list.end(); ++iter) {
+				AVD_SU *su = su_db->find(*iter);
+				TRACE("Standby Amfd, su '%s' not deleted", su->name.value);
+				for (const auto& comp : su->list_of_comp)
+					comp_list.insert(Amf::to_string(&comp->comp_info.name));
+				for (std::set<std::string>::const_iterator iter1 = comp_list.begin();
+						iter1 != comp_list.end(); ++iter1) {
+					AVD_COMP *comp = comp_db->find(*iter1);
+					TRACE("Standby Amfd, comp '%s' not deleted", comp->comp_info.name.value);
+
+					std::map<std::string, AVD_COMPCS_TYPE*>::iterator it =
+						compcstype_db->begin();
+					while (it != compcstype_db->end()) {
+						AVD_COMPCS_TYPE *compcstype = it->second;
+						if (compcstype->comp == comp) {
+							TRACE("Standby Amfd, compcstype '%s' not deleted",
+									compcstype->name.value);
+							it = compcstype_db->erase(it);
+							delete compcstype;
+						}
+						else
+							it++;
+					}
+
+
+					/* Delete the Comp. */
+					struct CcbUtilOperationData opdata;
+					memset(&opdata.objectName, 0, sizeof(SaNameT));
+					memcpy(opdata.objectName.value, comp->comp_info.name.value,
+							comp->comp_info.name.length);
+					opdata.objectName.length = comp->comp_info.name.length;
+					comp_ccb_apply_delete_hdlr(&opdata);
+				}
+				comp_list.clear();
+				/* Delete the SU. */
+				struct CcbUtilOperationData opdata;
+				opdata.userData = su;
+				su_ccb_apply_delete_hdlr(&opdata);
+			}
+			su_list.clear();
+		}
+	}
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_RMV(avd_cb, node, AVSV_CKPT_AVD_NODE_CONFIG);
 	node_name_db->erase(Amf::to_string(&node->name));
 	delete [] node->node_name;
@@ -493,6 +547,10 @@ static SaAisErrorT node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata
 		return SA_AIS_ERR_BAD_OPERATION;
 	}
 
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+		goto done_ok;
+	}
+
 	/* Check to see that no SUs exists on this node */
 	if (node->list_of_su.empty() != true) {
 		/* check whether there exists a delete operation for 
@@ -569,6 +627,9 @@ static SaAisErrorT node_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata
 			}
 		}
 	}
+
+done_ok:
+	rc = SA_AIS_OK;
 	opdata->userData = node;
 done:
 	TRACE_LEAVE();

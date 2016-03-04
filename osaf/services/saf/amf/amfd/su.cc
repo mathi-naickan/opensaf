@@ -1794,7 +1794,7 @@ static void su_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
  * 
  * @param su
  */
-static void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
+void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
 {
 	AVD_SU *su = static_cast<AVD_SU*>(opdata->userData);
 	AVD_AVND *su_node_ptr;
