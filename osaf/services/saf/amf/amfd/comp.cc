@@ -1574,7 +1574,7 @@ static void comp_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 	TRACE_LEAVE();
 }
 
-static void comp_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
+void comp_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
 {
 	TRACE_ENTER();
 

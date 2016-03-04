@@ -240,4 +240,5 @@ bool comp_is_preinstantiable(const AVD_COMP *comp);
 extern bool is_comp_assigned_any_csi(AVD_COMP *comp);
 extern SaAisErrorT check_comp_stability(const AVD_COMP*);
 extern AVD_CTCS_TYPE *get_ctcstype(const SaNameT *comptype_name, const SaNameT *cstype_name);
+extern void comp_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata);
 #endif
