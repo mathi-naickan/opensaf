@@ -568,7 +568,7 @@ SaUint32T plms_he_deactivate(PLMS_ENTITY *,SaUint32T,SaUint32T);
 SaUint32T plms_he_reset(PLMS_ENTITY *,SaUint32T,SaUint32T,SaUint32T);
 SaUint32T plms_he_oos_to_np_process(PLMS_ENTITY *);
 SaUint32T plms_he_insvc_to_np_process(PLMS_ENTITY *);
-SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *);
+SaUint32T plms_hpi_evt_process(PLMS_EVT *);
 
 /* Function declaration from plms_plmc.c*/
 SaUint32T plms_ee_unlock(PLMS_ENTITY *,SaUint32T,SaUint32T);

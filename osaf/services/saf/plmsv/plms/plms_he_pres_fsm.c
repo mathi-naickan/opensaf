@@ -68,6 +68,8 @@ static SaUint32T plms_inspending_mngt_flag_clear(PLMS_ENTITY *);
 static SaUint32T plms_deact_resp_mngt_flag_clear(PLMS_ENTITY *);
 static SaUint32T plms_act_resp_mngt_flag_clear(PLMS_ENTITY *);
 
+static SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *);
+static SaUint32T plms_hpi_resource_evt_process(PLMS_EVT *);
 
 /******************************************************************************
 @brief		: Initializes the HE presence state FSM function pointers.
@@ -3057,8 +3059,34 @@ static SaUint32T plms_adm_cnxt_clean_up(PLMS_ENTITY *ent)
 	return ret_err;
 }
 /******************************************************************************
-@brief		: Process HPI hot swap events. This function is called from the
-		MBX. This function does the following things
+@brief		: Process HPI events. This function is called from the MBX.
+
+@param[in]	: evt - PLMS_EVT representation of the HPI event. 
+
+@return		: NCSCC_RC_FAILURE/NCSCC_RC_SUCCESS
+******************************************************************************/
+SaUint32T plms_hpi_evt_process(PLMS_EVT *evt)
+{
+	SaUint32T rc = NCSCC_RC_FAILURE;
+
+	TRACE_ENTER();
+
+	if (evt->req_evt.hpi_evt.sa_hpi_evt.EventType == SAHPI_ET_HOTSWAP)
+		rc = plms_hpi_hs_evt_process(evt);
+	else if (evt->req_evt.hpi_evt.sa_hpi_evt.EventType == SAHPI_ET_RESOURCE)
+		rc = plms_hpi_resource_evt_process(evt);
+	else {
+		LOG_ER("Unknown HPI event received: %i",
+			evt->req_evt.hpi_evt.sa_hpi_evt.EventType);
+	}
+
+	TRACE_LEAVE();
+
+	return rc;
+}
+
+/******************************************************************************
+@brief		: Process HPI hot swap events. This function does the following things
 		1. If the HE is verified i.e. the transition is not from M0, then
 		call the required FSM function.
 		2. If the HE is yet to be verified and the hot swap event is M2
@@ -3075,7 +3103,7 @@ static SaUint32T plms_adm_cnxt_clean_up(PLMS_ENTITY *ent)
 
 @return		: NCSCC_RC_FAILURE/NCSCC_RC_SUCCESS
 ******************************************************************************/
-SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *evt)
+static SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *evt)
 {
 	SaUint32T ret_err = NCSCC_RC_FAILURE;
 	PLMS_EPATH_TO_ENTITY_MAP_INFO *epath_to_ent;
@@ -3292,6 +3320,74 @@ SaUint32T plms_hpi_hs_evt_process(PLMS_EVT *evt)
 
 	TRACE_LEAVE2("Return Val: %d",ret_err);
 	return ret_err;
+}
+
+/******************************************************************************
+@brief		: Process HPI resource events. This function does the following things
+		1. Handle SAHPI_RESE_RESOURCE_FAILURE event, and set management lost
+		2. Handle SAHPI_RESE_RESOURCE_RESTORED, and clear management lost
+
+@param[in]	: evt - PLMS_EVT representation of the RESOURCE event. 
+
+@return		: NCSCC_RC_FAILURE/NCSCC_RC_SUCCESS
+******************************************************************************/
+static SaUint32T plms_hpi_resource_evt_process(PLMS_EVT *evt)
+{
+	SaUint32T rc = NCSCC_RC_SUCCESS;
+	PLMS_HPI_EVT *hpi_evt = &(evt->req_evt.hpi_evt);
+	
+	TRACE_ENTER2("Entity: %s, resource type: %d",
+		hpi_evt->entity_path,
+		hpi_evt->sa_hpi_evt.EventDataUnion.ResourceEvent.ResourceEventType);
+
+	do {
+		PLMS_EPATH_TO_ENTITY_MAP_INFO *epath_to_ent;
+		PLMS_ENTITY *ent;
+		PLMS_CB *cb = plms_cb;
+
+		if (cb->ha_state == SA_AMF_HA_STANDBY) {
+			TRACE_LEAVE2("Ignoring the event as current role is standby");
+			break;
+		}
+
+		epath_to_ent = (PLMS_EPATH_TO_ENTITY_MAP_INFO *)ncs_patricia_tree_get(
+						&(cb->epath_to_entity_map_info),
+						(SaUint8T *)&(hpi_evt->epath_key));
+
+		if (NULL == epath_to_ent) {
+			LOG_ER("Received RESOURCE event %i for unknown resource %s",
+				hpi_evt->sa_hpi_evt.EventDataUnion.ResourceEvent.ResourceEventType,
+				hpi_evt->entity_path);
+
+			break;
+		}
+
+		ent = epath_to_ent->plms_entity;
+
+		if (hpi_evt->sa_hpi_evt.EventDataUnion.ResourceEvent.ResourceEventType ==
+			SAHPI_RESE_RESOURCE_FAILURE)
+		{
+			plms_readiness_flag_mark_unmark(ent,
+							SA_PLM_RF_MANAGEMENT_LOST,
+							SA_TRUE,
+							NULL,
+							SA_NTF_MANAGEMENT_OPERATION,
+							SA_PLM_NTFID_STATE_CHANGE_ROOT);
+		}
+		else if (hpi_evt->sa_hpi_evt.EventDataUnion.ResourceEvent.ResourceEventType ==
+			SAHPI_RESE_RESOURCE_RESTORED)
+		{
+			plms_readiness_flag_mark_unmark(ent,
+							SA_PLM_RF_MANAGEMENT_LOST,
+							SA_FALSE,
+							NULL,
+							SA_NTF_MANAGEMENT_OPERATION,
+							SA_PLM_NTFID_STATE_CHANGE_ROOT);
+		}
+	} while (false);
+
+	TRACE_LEAVE2("Return Val: %d", rc);
+	return rc;
 }
 /******************************************************************************
 @brief		: Verifies the HE.

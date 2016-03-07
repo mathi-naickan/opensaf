@@ -2144,7 +2144,7 @@ SaUint32T plms_process_event()
 				plms_imm_adm_op_req_process(plm_evt);
 				break;
 			case PLMS_HPI_EVT_T:
-				plms_hpi_hs_evt_process(plm_evt);
+				plms_hpi_evt_process(plm_evt);
 				break;
 			case PLMS_AGENT_LIB_REQ_EVT_T:
 				plms_process_agent_lib_req(plm_evt);
