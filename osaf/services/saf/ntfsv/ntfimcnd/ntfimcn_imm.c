@@ -123,7 +123,8 @@ static char *get_rdn_attr_name(const SaImmClassNameT className)
 			className,
 			&classCategory,
 			&attrDescr);
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_7s)) {
+	while (((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_TIMEOUT)) &&
+			(msecs_waited < max_waiting_time_7s)) {
 		usleep(sleep_delay_ms * 1000);
 		msecs_waited += sleep_delay_ms;
 		rc = saImmOmClassDescriptionGet_2(ntfimcn_cb.immOmHandle,
@@ -153,13 +154,7 @@ static char *get_rdn_attr_name(const SaImmClassNameT className)
 	}
 
 	/* Free memory allocated for attribute descriptions */
-	msecs_waited = 0;
 	rc = saImmOmClassDescriptionMemoryFree_2(ntfimcn_cb.immOmHandle,attrDescr);
-	while ((rc == SA_AIS_ERR_TRY_AGAIN) && (msecs_waited < max_waiting_time_7s)) {
-		usleep(sleep_delay_ms * 1000);
-		msecs_waited += sleep_delay_ms;
-		rc = saImmOmClassDescriptionMemoryFree_2(ntfimcn_cb.immOmHandle,attrDescr);
-	}
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saImmOmClassDescriptionMemoryFree_2 failed %s", saf_error(rc));
 		goto error;
