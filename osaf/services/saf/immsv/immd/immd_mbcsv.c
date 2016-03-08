@@ -629,6 +629,7 @@ static uint32_t mbcsv_enc_msg_resp(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	uint8_t *header, num_fevs = 0, *sync_cnt_ptr;
 	uint8_t *uns32_ptr, *uns64_ptr, *uns8_ptr;
+	uint16_t peer_version;
 
 	/* COLD_SYNC_RESP IS DONE BY THE ACTIVE */
 	if (cb->ha_state == SA_AMF_HA_STANDBY) {
@@ -643,6 +644,9 @@ static uint32_t mbcsv_enc_msg_resp(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		arg->info.encode.io_msg_type = NCS_MBCSV_MSG_COLD_SYNC_RESP_COMPLETE;
 		return rc;
 	}
+
+	peer_version = m_NCS_MBCSV_FMT_GET(arg->info.encode.i_peer_version,
+			IMMSV_IMMD_MBCSV_VERSION, IMMSV_IMMD_MBCSV_VERSION_MIN);
 
 	/* First reserve space to store the number of X that will be sent */
 
@@ -758,6 +762,13 @@ static uint32_t mbcsv_enc_msg_resp(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 	osafassert(uns8_ptr);
 	ncs_enc_claim_space(&arg->info.encode.io_uba, sizeof(uint8_t));
 	ncs_encode_8bit(&uns8_ptr, 0x0);
+
+	if (peer_version >= 5) {
+		uns8_ptr = ncs_enc_reserve_space(&arg->info.encode.io_uba, sizeof(uint8_t));
+		osafassert(uns8_ptr);
+		ncs_enc_claim_space(&arg->info.encode.io_uba, sizeof(uint8_t));
+		ncs_encode_8bit(&uns8_ptr, cb->mIs2Pbe);
+	}
 
 	/* Alter this to follow same pattern as logsv */
 	if (num_fevs < IMMD_MBCSV_MAX_MSG_CNT) {
@@ -1030,6 +1041,7 @@ static uint32_t mbcsv_dec_sync_resp(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 {
 	uint8_t *ptr, num_fevs, continue_marker, data[16];
 	uint32_t count = 0, rc = NCSCC_RC_SUCCESS;
+	uint16_t peer_version;
 
 	TRACE_ENTER();
 	TRACE_5("RECEIVED COLD SYNC MESSAGE");
@@ -1038,6 +1050,9 @@ static uint32_t mbcsv_dec_sync_resp(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		TRACE_LEAVE();
 		return NCSCC_RC_SUCCESS;
 	}
+
+	peer_version = m_NCS_MBCSV_FMT_GET(arg->info.decode.i_peer_version,
+			IMMSV_IMMD_MBCSV_VERSION, IMMSV_IMMD_MBCSV_VERSION_MIN);
 
 	/* 1. Decode the 1st uint8_t region ,  to get the num of fevs msgs to sync */
 	ptr = ncs_dec_flatten_space(&arg->info.decode.i_uba, data, sizeof(uint8_t));
@@ -1135,6 +1150,23 @@ static uint32_t mbcsv_dec_sync_resp(IMMD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		ptr = ncs_dec_flatten_space(&arg->info.decode.i_uba, data, sizeof(uint8_t));
 		continue_marker = ncs_decode_8bit(&ptr);
 		ncs_dec_skip_space(&arg->info.decode.i_uba, sizeof(uint8_t));
+	}
+
+	if (peer_version >= 5) {
+		uint8_t is2Pbe;
+
+		ptr = ncs_dec_flatten_space(&arg->info.decode.i_uba, data, sizeof(uint8_t));
+		is2Pbe = ncs_decode_8bit(&ptr);
+		ncs_dec_skip_space(&arg->info.decode.i_uba, sizeof(uint8_t));
+
+		if(cb->mIs2Pbe && !is2Pbe) {
+			LOG_ER("2PBE is disabled on active IMMD. Exiting.");
+			exit(1);
+		}
+		if(!cb->mIs2Pbe && is2Pbe) {
+			LOG_ER("2PBE is enabled on active IMMD. Exiting.");
+			exit(1);
+		}
 	}
 
 	TRACE_LEAVE();
