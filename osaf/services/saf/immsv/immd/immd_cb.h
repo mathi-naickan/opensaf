@@ -39,7 +39,7 @@
          IMMD_WRT_IMMND_SUBPART_VER_MIN + 1 )
 
 #define IMMSV_IMMD_MBCSV_VERSION_MIN 4
-#define IMMSV_IMMD_MBCSV_VERSION 4
+#define IMMSV_IMMD_MBCSV_VERSION 5
 
 typedef struct immd_saved_fevs_msg {
 	IMMSV_FEVS fevsMsg;
