@@ -19,6 +19,8 @@
 
 #include <map>
 #include <string>
+#include "saAis.h"
+#include "ncsgl_defs.h"
 
 //
 class Amf {
@@ -38,21 +40,12 @@ class AmfDb {
    
    typedef std::map<Key, T*> AmfDbMap;
    typedef typename AmfDbMap::const_iterator const_iterator;
-   typedef typename AmfDbMap::iterator iterator;
    typedef typename AmfDbMap::const_reverse_iterator const_reverse_iterator;
 
    const_iterator begin() const {return db.begin();}
    const_iterator end() const {return db.end();}
    const_reverse_iterator rbegin() const {return db.rbegin();}
    const_reverse_iterator rend() const {return db.rend();}
-
-   iterator erase(const iterator &it) {return db.erase(it);}
-
-   iterator begin() {return db.begin();}
-   iterator end() {return db.end();}
-
-   const_iterator cbegin() const {return db.cbegin();}
-   const_iterator cend() const {return db.cend();}
 
   private:
    AmfDbMap db;
