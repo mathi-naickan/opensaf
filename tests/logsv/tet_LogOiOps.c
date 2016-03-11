@@ -3401,6 +3401,100 @@ void verLogFileName(void)
 
 	rc_validate(WEXITSTATUS(rc), 1);
 }
+
+/**
+ * Add test case for ticket #1619
+ * Verify three digits millisecond token writes to log file exactly
+ *
+ * Steps:
+ * 1. Change log file format configure for System and Notification stream.
+ * 2. Write 20 log records continuously to to System and Notification log stream.
+ * 3. Manually check millisecond token display in System and Notification log file.
+ *    Make sure that three digits shows in millisecond token increases continuously.
+ */
+void verMiliToken(void)
+{
+	SaAisErrorT rc;
+	char command[1000];
+	char defaultForSysExp[256];
+	char defaultForNotifExp[256];
+	const char* forSysfExp = "@Cr @Ch:@Cn:@Cs @Ck @Cm/@Cd/@CY @Sv @Sl \"@Cb\"";
+	const char* forNotifExp = "@Cr @Nh:@Nn:@Ns @Nk @Nt @No \"@Cb\"";
+
+	/* Get and save saLogStreamLogFileFormat */
+	rc = get_attr_value(&systemStreamName, "saLogStreamLogFileFormat",
+	                    NULL, defaultForSysExp);
+	if (rc == -1) {
+		/* Failed, use default one */
+		fprintf(stderr, "Failed to get attribute value from IMM\n");
+		strncpy(defaultForSysExp, DEFAULT_FORMAT_EXPRESSION, 256);
+	}
+
+	rc = get_attr_value(&notificationStreamName, "saLogStreamLogFileFormat",
+	                    NULL, defaultForNotifExp);
+	if (rc == -1) {
+		/* Failed, use default one */
+		fprintf(stderr, "Failed to get attribute value from IMM\n");
+		strncpy(defaultForNotifExp, DEFAULT_ALM_NOT_FORMAT_EXP, 256);
+	}
+
+	/* Change log file format configure for Notification stream */
+	sprintf(command,"immcfg %s -a saLogStreamLogFileFormat='%s'",
+	        	SA_LOG_STREAM_NOTIFICATION, forNotifExp);
+	rc = system(command);
+	if (WEXITSTATUS(rc)) {
+		/* Fail to perform the command. Report test case failed */
+		fprintf(stderr, "Failed to perform command = %s", command);
+		rc_validate(WEXITSTATUS(rc), 0);
+		return;
+	}
+
+	/* Change log file format configure for System stream */
+	sprintf(command,"immcfg %s -a saLogStreamLogFileFormat='%s'",
+	        	SA_LOG_STREAM_SYSTEM, forSysfExp);
+	rc = system(command);
+	if (WEXITSTATUS(rc)) {
+		/* Fail to perform the command. Report test case failed */
+		fprintf(stderr, "Failed to perform command = %s", command);
+		rc_validate(WEXITSTATUS(rc), 0);
+		goto restore_notif;
+	}
+
+	/* Write 20 log records to System and Notification stream */
+	for (int i = 0; i < 20; i ++) {
+		sprintf(command, "saflogger -y  \"Test for ticket #1619\"");
+		rc = system(command);
+		if (WEXITSTATUS(rc)) {
+			/* Fail to perform command. Report test case failed. */
+			fprintf(stderr, "Failed to perform command = %s\n", command);
+			rc_validate(WEXITSTATUS(rc), 0);
+			goto restore_sys;
+		}
+
+		sprintf(command, "saflogger -n  \"Test for ticket #1619\"");
+		rc = system(command);
+		if (WEXITSTATUS(rc)) {
+			/* Fail to perform command. Report test case failed. */
+			fprintf(stderr, "Failed to perform command = %s\n", command);
+			rc_validate(WEXITSTATUS(rc), 0);
+			goto restore_sys;
+		}
+	}
+
+	rc_validate(WEXITSTATUS(rc), 0);
+
+restore_sys:
+	/* Reset saLogStreamLogFileFormat for System and Notification stream */
+	sprintf(command,"immcfg %s -a saLogStreamLogFileFormat='%s' 2> /dev/null",
+	        	SA_LOG_STREAM_SYSTEM, defaultForSysExp);
+	rc = system(command);
+
+restore_notif:
+	sprintf(command,"immcfg %s -a saLogStreamLogFileFormat='%s' 2> /dev/null",
+			SA_LOG_STREAM_NOTIFICATION, defaultForNotifExp);
+	rc = system(command);
+}
+
 __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -3550,5 +3644,6 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	/* Add test cases to test #1288 */
 	test_case_add(6, verMaxLogRecord_01, "Modify: saLogStreamFixedLogRecordSize == 0, write a record = 65535 bytes, OK");
 	test_case_add(6, verMaxLogRecord_02, "Modify: saLogStreamFixedLogRecordSize == 65535, Write a record = 65535 bytes with special characters, OK");
+	test_case_add(6, verMiliToken, "Write 20 log records to System/Notification stream. MANUALLY verify millisecond increased continuously");	
 
 }

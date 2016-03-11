@@ -28,6 +28,7 @@
 /* Number of seconds per an hour/minute */
 #define SECOND_PER_HOUR  3600L
 #define SECOND_PER_MINUTE 60L
+#define SA_TIME_OFFSET 1000LL
 
 /**
  * 
@@ -536,6 +537,7 @@ static int extractCommonField(char *dest, size_t dest_size,
 	int characters = 0;
 	char *hex_string = NULL, *hex_string_ptr = NULL;
         int no_ch = 0, i;
+	SaTimeT ms;
 
 	*fmtExpPtrOffset = DEFAULT_FMT_EXP_PTR_OFFSET;
 
@@ -697,8 +699,8 @@ static int extractCommonField(char *dest, size_t dest_size,
 	case C_TIME_MILLISECOND_LETTER:
 		stringSize = 4 * sizeof(char);
 		/* Extract millisecond from logTimestamp */
-		SaTimeT us = logRecord->logTimeStamp / SA_TIME_ONE_MICROSECOND;
-		characters = snprintf(dest, dest_size, "%03lld", us % SA_TIME_ONE_MICROSECOND);
+		ms = (logRecord->logTimeStamp / SA_TIME_ONE_MILLISECOND) % SA_TIME_OFFSET;
+		characters = snprintf(dest, dest_size, "%03lld", ms);
 		break;
 
 	case C_TIME_TIMEZONE_LETTER:
@@ -816,7 +818,7 @@ static int extractNotificationField(char *dest, size_t dest_size,
 				    const SaBoolT *twelveHourModeFlag, const SaLogRecordT *logRecord)
 {
 	struct tm *eventTimeData;
-	SaTimeT totalTime;
+	SaTimeT totalTime, ms;
 	SaInt32T fieldSize;
 	SaInt32T characters = 0;
 	SaUint16T fieldSizeOffset = 0;
@@ -976,7 +978,8 @@ static int extractNotificationField(char *dest, size_t dest_size,
 
 	case N_EVENT_TIME_MILLISECOND_LETTER:
 		/* Extract millisecond from logTimestamp */
-		characters = snprintf(dest, dest_size, "%03lld", totalTime % SA_TIME_ONE_MICROSECOND);
+		ms = (logRecord->logHeader.ntfHdr.eventTime / SA_TIME_ONE_MILLISECOND) % SA_TIME_OFFSET;
+		characters = snprintf(dest, dest_size, "%03lld", ms);
 		break;
 
 	case N_EVENT_TIME_TIMEZONE_LETTER:
