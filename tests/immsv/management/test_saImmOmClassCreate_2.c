@@ -341,11 +341,10 @@ static int enableSchemaChange()
     const SaImmAdminOperationParamsT_2 *params[] = { &param,  NULL };
     SaAisErrorT operation_return_value;
 
-    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_FALSE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOmAdminOperationInvoke_2(ownerHandle, &objectName, 1, OPENSAF_IMM_NOSTD_FLAG_ON,
         params, &operation_return_value, SA_TIME_ONE_MINUTE), SA_AIS_OK);
-    safassert(saImmOmAdminOwnerRelease(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
 
  done:
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
@@ -367,11 +366,10 @@ static void disableSchemaChange()
     SaAisErrorT operation_return_value;
 
     safassert(saImmOmInitialize(&immOmHandle, &immOmCallbacks, &immVersion), SA_AIS_OK);
-    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_TRUE, &ownerHandle), SA_AIS_OK);
+    safassert(saImmOmAdminOwnerInitialize(immOmHandle, adminOwnerName, SA_FALSE, &ownerHandle), SA_AIS_OK);
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOmAdminOperationInvoke_2(ownerHandle, &objectName, 1, OPENSAF_IMM_NOSTD_FLAG_OFF,
         params, &operation_return_value, SA_TIME_ONE_MINUTE), SA_AIS_OK);
-    safassert(saImmOmAdminOwnerRelease(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 }
 
