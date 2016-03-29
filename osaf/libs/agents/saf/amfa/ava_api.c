@@ -1884,8 +1884,10 @@ SaAisErrorT saAmfResponse(SaAmfHandleT hdl, SaInvocationT inv, SaAisErrorT error
 	else
 		rc = ava_mds_send(cb, &msg, NULL);
 
-	if (NCSCC_RC_SUCCESS != rc)
+	if (NCSCC_RC_SUCCESS != rc) {
 		rc = SA_AIS_ERR_TRY_AGAIN;
+		goto done;
+	}
 
 	if (rec->cbk_info->type == AVSV_AMF_COMP_TERM) {
 		if (msg_rsp == NULL) {
