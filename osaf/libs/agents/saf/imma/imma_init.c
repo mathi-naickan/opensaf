@@ -59,7 +59,7 @@ IMMA_CB imma_cb;
    Code cloned from CkpSv. 
 **********************************************************************/
 
-static void imma_sync_with_immnd(IMMA_CB *cb)
+static uint32_t imma_sync_with_immnd(IMMA_CB *cb)
 {
 	TRACE_ENTER();
 
@@ -68,11 +68,14 @@ static void imma_sync_with_immnd(IMMA_CB *cb)
 	if (cb->is_immnd_up)
 	{
 		m_NCS_UNLOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);
-		return;
+		return NCSCC_RC_SUCCESS;
 	}
 	TRACE("Blocking first client");
 	cb->immnd_sync_awaited = true;
-	m_NCS_SEL_OBJ_CREATE(&cb->immnd_sync_sel);
+	if(m_NCS_SEL_OBJ_CREATE(&cb->immnd_sync_sel) != NCSCC_RC_SUCCESS){
+		m_NCS_UNLOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);
+		return NCSCC_RC_FAILURE;
+	}
 	m_NCS_UNLOCK(&cb->immnd_sync_lock,NCS_LOCK_WRITE);
 
 	/* Await indication from MDS saying IMMND is up */
@@ -88,7 +91,7 @@ static void imma_sync_with_immnd(IMMA_CB *cb)
 	m_NCS_UNLOCK(&cb->immnd_sync_lock, NCS_LOCK_WRITE);
 
 	TRACE_LEAVE();
-	return;
+	return NCSCC_RC_SUCCESS;
 }
 
 
@@ -162,8 +165,10 @@ static uint32_t imma_create(NCSMDS_SVC_ID sv_id)
 		goto mds_reg_fail;
 	}
 
-	imma_sync_with_immnd(cb); /* Needed to prevent endless TRY_AGAIN loop
-								 for first client. */
+	if (imma_sync_with_immnd(cb) != NCSCC_RC_SUCCESS) {
+		/* Needed to prevent endless TRY_AGAIN loop for first client. */ 
+		goto mds_reg_fail;
+	}
 
 	/* EDU initialisation ABT: Dont exactly know why we need this but... */
 	if (m_NCS_EDU_HDL_INIT(&cb->edu_hdl) != NCSCC_RC_SUCCESS) {
