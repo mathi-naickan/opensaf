@@ -115,5 +115,6 @@ extern log_stream_t *log_stream_get_by_name(const char *name);
 extern log_stream_t *log_stream_getnext_by_name(const char *name);
 extern void log_stream_print(log_stream_t *stream);
 extern log_stream_t *log_stream_get_by_id(uint32_t id);
+extern bool check_max_stream();
 
 #endif

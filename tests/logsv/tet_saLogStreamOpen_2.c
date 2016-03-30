@@ -633,6 +633,77 @@ done:
     }
 }
 
+/*
+ * Add test case for ticket #1446
+ * Verify that logsv failed to create app stream  if number of app
+ * streams has reached the limitation
+ *
+ */
+void saLogStreamOpen_2_50(void)
+{
+	SaAisErrorT rc;
+	char command[1000];
+	uint32_t curAppCount, maxAppStream = 64;
+	uint32_t *tmp_to = &maxAppStream;
+	int num = 0;
+	FILE *fp = NULL;
+	char curAppCount_c[10];
+
+	/* Get current max app stream values of attributes */
+	rc = get_attr_value(&configurationObject, "logMaxApplicationStreams",
+	                    (void**)&tmp_to, NULL);
+	if (rc != -1) {
+		maxAppStream = *tmp_to;
+	}
+
+	/*  Get current app stream */
+	sprintf(command,"(immfind -c SaLogStreamConfig && immfind -c SaLogStream) | wc -l");
+	fp = popen(command, "r");
+
+	while (fgets(curAppCount_c, sizeof(curAppCount_c) - 1, fp) != NULL) {};
+	pclose(fp);
+	/* Convert chars to number */
+	curAppCount = atoi(curAppCount_c) - 3;
+
+	for (num = curAppCount; num < maxAppStream; num++) {
+		/* Create configurable app stream */
+		sprintf(command,"immcfg -c SaLogStreamConfig  safLgStrCfg=test%d"
+		        	" -a saLogStreamPathName=."
+		        	" -a saLogStreamFileName=test%d",
+		        	num, num);
+		rc = system(command);
+		if (WEXITSTATUS(rc)) {
+			/* Fail to perform the command. Report test case failed */
+			fprintf(stderr, "Failed to perform command = %s\n", command);
+			rc_validate(WEXITSTATUS(rc), 0);
+			goto done;
+		}
+	}
+
+	rc = saLogInitialize(&logHandle, &logCallbacks, &logVersion);
+	if (rc != SA_AIS_OK) {
+		fprintf(stderr, "Failed at saLogInitialize: %d \n", (int)rc);
+		test_validate(rc, SA_AIS_OK);
+		goto done;
+	}
+
+	rc = saLogStreamOpen_2(logHandle, &app1StreamName, &appStream1LogFileCreateAttributes,
+	                       SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle);
+	test_validate(rc, SA_AIS_ERR_NO_RESOURCES);
+
+	rc = saLogFinalize(logHandle);
+	if (rc != SA_AIS_OK) {
+		fprintf(stderr, "Failed to call salogFinalize: %d \n", (int) rc);
+	}
+
+done:
+	/* Delete app stream  */
+	for (num = curAppCount; num < maxAppStream; num++) {
+		sprintf(command,"immcfg -d safLgStrCfg=test%d 2> /dev/null", num);
+		rc = system(command);
+	}
+}
+
 extern void saLogStreamOpenAsync_2_01(void);
 extern void saLogStreamOpenCallbackT_01(void);
 extern void saLogWriteLog_01(void);
@@ -714,5 +785,6 @@ __attribute__ ((constructor)) static void saLibraryLifeCycle_constructor(void)
 
     test_case_add(2, verFixLogRec_Max_Err, "saLogStreamOpen_2 with maxLogRecordSize > MAX_RECSIZE, ERR");
     test_case_add(2, verFixLogRec_Min_Err, "saLogStreamOpen_2 with maxLogRecordSize < 150, ERR");
+    test_case_add(2, saLogStreamOpen_2_50, "saLogStreamOpen_2 with stream number out of the limitation, ERR");
 }
 

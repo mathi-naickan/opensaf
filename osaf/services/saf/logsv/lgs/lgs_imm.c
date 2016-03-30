@@ -1635,7 +1635,12 @@ static SaAisErrorT stream_ccb_completed_create(SaImmOiHandleT immOiHandle, const
 	SaAisErrorT rc = SA_AIS_ERR_BAD_OPERATION;
 
 	TRACE_ENTER2("CCB ID %llu", opdata->ccbId);
-	rc = check_attr_validity(immOiHandle, opdata);
+	if (!check_max_stream()) {
+		rc = check_attr_validity(immOiHandle, opdata);
+	} else {
+		report_oi_error(immOiHandle, opdata->ccbId,
+				"Number of stream out of limitation");
+	}
 	TRACE_LEAVE2("%u", rc);
 	return rc;
 }

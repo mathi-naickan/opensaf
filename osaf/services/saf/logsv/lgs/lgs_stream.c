@@ -1548,3 +1548,15 @@ int log_stream_config_change(bool create_files_f,
 	TRACE_LEAVE();
 	return rc;
 }
+
+/*
+ * Check if number of stream out of LOG_MAX_APPLICATION_STREAMS
+ *
+ * @return
+ */
+bool check_max_stream()
+{
+	TRACE("  Current number of streams: %u", numb_of_streams);
+	return (numb_of_streams < stream_array_size ? false:true);
+}
+
