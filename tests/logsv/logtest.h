@@ -27,6 +27,7 @@
 #include <utest.h>
 #include <util.h>
 
+#define SA_LOG_CONFIGURATION_OBJECT "logConfig=1,safApp=safLogService"
 #define SA_LOG_STREAM_APPLICATION1 "safLgStr=saLogApplication1"
 #define SA_LOG_STREAM_APPLICATION2 "safLgStr=saLogApplication2"
 #define SA_LOG_STREAM_APPLICATION3 "safLgStr=saLogApplication3"
@@ -49,6 +50,7 @@ extern SaNameT notificationStreamName;
 extern SaNameT app1StreamName;
 extern SaNameT notifyingObject;
 extern SaNameT notificationObject;
+extern SaNameT configurationObject;
 extern SaNameT saNameT_Object_256;
 extern SaNameT saNameT_appstream_name_256;
 extern SaVersionT logVersion;
@@ -67,4 +69,5 @@ extern char log_root_path[];
 int tet_system(const char *command);
 
 int get_active_sc(void);
+int get_attr_value(SaNameT *inObjName, char *inAttr, void **outNum, char *outStr);
 #endif

@@ -64,6 +64,12 @@ SaNameT notificationObject =
     .length = sizeof(DEFAULT_NOTIFICATION_OBJECT)
 };
 
+SaNameT configurationObject =
+{
+	.value = SA_LOG_CONFIGURATION_OBJECT,
+	.length = sizeof(SA_LOG_CONFIGURATION_OBJECT)
+};
+
 SaNameT saNameT_Object_256 =
 {
     .value = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -180,6 +186,76 @@ void init_logrootpath(void)
 		strncpy(log_root_path, PKGLOGDIR, PATH_MAX);
 	}
 	(void) immutil_saImmOmFinalize(omHandle);
+}
+
+/**
+ * Get attribute value from IMM
+ * @param inObjname Distinguished Name
+ * @param inAttr Attribute to search for value
+ * @param outNume The holder for the output for number data type attribute
+ * @param outvalue The holder for the output for string data type attribute
+ * @return 0 if successfull, otherwise (-1)
+ */
+int get_attr_value(SaNameT *inObjName, char *inAttr, void **outNum,
+	char* outStr)
+{
+	SaImmHandleT omHandle;
+	SaImmAccessorHandleT accessorHandle;
+	SaImmAttrValuesT_2 *attribute = NULL;
+	SaImmAttrValuesT_2 **attributes;
+	SaAisErrorT ais_rc = SA_AIS_OK;
+	SaImmAttrNameT attributeNames[2] = {inAttr, NULL};
+	void *value;
+	static uint64_t g_val = 0;
+	int rc = 0;
+
+	/* NOTE: immutil init osaf_assert if error */
+	(void) immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
+	(void) immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
+
+	/* Get all attributes of the object */
+	ais_rc = immutil_saImmOmAccessorGet_2(accessorHandle, inObjName, attributeNames, &attributes);
+	if (ais_rc == SA_AIS_OK) {
+		attribute = attributes[0];
+		/* Return error if the attribute have not been initialized yet */
+		if (attribute == NULL) return (-1);
+
+		/* Value is empty */
+		if (attribute->attrValuesNumber == 0) return (-1);
+
+		/**
+		 * Seperate processing for 2 kinds of data type - string/numbers (uint32/uint64).
+		 */
+		value = attribute->attrValues[0];
+		if (!strcmp(inAttr, "logMaxLogrecsize") ||
+			!strcmp(inAttr, "logMaxApplicationStreams") ||
+			!strcmp(inAttr, "logFileIoTimeout") ||
+			!strcmp(inAttr, "logStreamSystemLowLimit") ||
+			!strcmp(inAttr, "logStreamSystemHighLimit") ||
+			!strcmp(inAttr, "logStreamAppLowLimit") ||
+			!strcmp(inAttr, "logStreamAppHighLimit") ||
+			!strcmp(inAttr, "logFileSysConfig") ||
+			!strcmp(inAttr, "saLogStreamMaxLogFileSize") ||
+			!strcmp(inAttr, "saLogStreamLogFullHaltThreshold") ||
+			!strcmp(inAttr, "saLogStreamLogFullAction") ||
+			!strcmp(inAttr, "saLogStreamFixedLogRecordSize") ||
+			!strcmp(inAttr, "saLogStreamSeverityFilter") ||
+			!strcmp(inAttr, "saLogStreamMaxFilesRotated")) {
+			 /* uint32_t/uint64_t data type */
+			g_val = *(SaUint64T *) value;
+			*outNum = &g_val;
+		} else {
+			/* String data type */
+			strcpy(outStr, *((char **) value));
+		}
+
+	} else {
+		/* We didn't get the attribute value from IMM. Return error (-1) */
+		rc = (-1);
+	}
+	(void) immutil_saImmOmFinalize(omHandle);
+
+	return rc;
 }
 
 /**

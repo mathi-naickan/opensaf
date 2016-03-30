@@ -2178,6 +2178,77 @@ void verLogFileName(void)
 	rc_validate(WEXITSTATUS(rc), 1);
 }
 
+/*
+ * Add test case for ticket #1446
+ * Verify that invalid Object if number of app streams has reached the limitation
+ *
+ */
+void verStrLimit(void)
+{
+	SaAisErrorT rc;
+	char command[1000];
+	uint32_t curAppCount, maxAppStream = 64;
+	uint32_t *tmp_to = &maxAppStream;
+	int num = 0;
+	FILE *fp = NULL;
+	char curAppCount_c[10];
+
+	/* Get current max app stream values of attributes */
+	rc = get_attr_value(&configurationObject, "logMaxApplicationStreams",
+	                    (void**)&tmp_to, NULL);
+	if (rc != -1) {
+		maxAppStream = *tmp_to;
+	}
+
+	/*  Get current app stream */
+	sprintf(command,"(immfind -c SaLogStreamConfig && immfind -c SaLogStream) | wc -l");
+	fp = popen(command, "r");
+
+	while (fgets(curAppCount_c, sizeof(curAppCount_c) - 1, fp) != NULL) {};
+	pclose(fp);
+	/* Convert chars to number */
+	curAppCount = atoi(curAppCount_c) - 3;
+
+	for (num = curAppCount; num < maxAppStream; num++) {
+		/* Create configurable app stream */
+		sprintf(command,"immcfg -c SaLogStreamConfig  safLgStrCfg=test%d"
+		        	" -a saLogStreamPathName=."
+		        	" -a saLogStreamFileName=test%d",
+		        	num, num);
+		rc = system(command);
+		if (WEXITSTATUS(rc)) {
+			/* Fail to perform the command. Report test case failed */
+			fprintf(stderr, "Failed to perform command = %s\n", command);
+			rc_validate(WEXITSTATUS(rc), 0);
+			goto done;
+		}
+	}
+
+	if (curAppCount >= maxAppStream) {
+		num += 1;
+	}
+
+	/* Create configurable app stream while number of app stream limitation */
+	sprintf(command,"immcfg -c SaLogStreamConfig  safLgStrCfg=test%d"
+	        	" -a saLogStreamPathName=."
+	        	" -a saLogStreamFileName=test%d 2> /dev/null",
+	        	num, num);
+	rc = system(command);
+	rc_validate(WEXITSTATUS(rc), 1);
+
+	if (WEXITSTATUS(rc) == 0) {
+		sprintf(command,"immcfg -d safLgStrCfg=test%d 2> /dev/null", num);
+		rc = system(command);
+	}
+
+done:
+	/* Delete app stream  */
+	for (num = curAppCount; num < maxAppStream; num++) {
+		sprintf(command,"immcfg -d safLgStrCfg=test%d 2> /dev/null", num);
+		rc = system(command);
+	}
+}
+
 __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 {
 	/* Stream objects */
@@ -2260,6 +2331,8 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
     test_case_add(5, saLogOi_63, "CCB Object Modify, logFileIoTimeout. Not allowed");
     test_case_add(5, saLogOi_64, "CCB Object Modify, logFileSysConfig. Not allowed");
     test_case_add(5, verLogFileName, "CCB Object Modify, saLogStreamFileName with special character. ER");
+    /* Add test case to test #1446 */
+    test_case_add(5, verStrLimit, "CCB Object Create: invalid Object if number of app streams has reached the limitation, ERR");
 
 	/* Stream configuration object */
 	/* Tests for create */

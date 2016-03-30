@@ -1021,6 +1021,12 @@ static uint32_t proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt)
 			goto snd_rsp;
 		}
 
+		if (check_max_stream()) {
+			TRACE("The number of stream out of limitation");
+			ais_rv = SA_AIS_ERR_NO_RESOURCES;
+			goto snd_rsp;
+		}
+
 		/* Create the stream: 
 		 *  - Check parameters
 		 *  - Create the stream in the stream "data base"
