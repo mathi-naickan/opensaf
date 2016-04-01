@@ -106,7 +106,7 @@ uint32_t avd_ckpt_app(AVD_CL_CB *cb, AVD_APP *ckpt_app, NCS_MBCSV_ACT_TYPE actio
 	if (app == NULL) {
 		TRACE("'%s' does not exist, creating it", ckpt_app->name.value);
 		app = new AVD_APP(&ckpt_app->name);
-		app_db->insert(Amf::to_string(&app->name), app);
+		rc = app_db->insert(Amf::to_string(&app->name), app);
 		osafassert(rc == NCSCC_RC_SUCCESS);
 		goto done;
 	}
@@ -145,7 +145,7 @@ uint32_t avd_ckpt_sg(AVD_CL_CB *cb, AVD_SG *ckpt_sg, NCS_MBCSV_ACT_TYPE action)
 	osafassert (action == NCS_MBCSV_ACT_UPDATE);
 
 	if (NULL == (sg = sg_db->find(Amf::to_string(&ckpt_sg->name)))) {
-		LOG_ER("sg_db->find() FAILED for '%s'", ckpt_sg->name.value);
+		LOG_WA("sg_db->find() FAILED for '%s'", ckpt_sg->name.value);
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
@@ -188,7 +188,7 @@ uint32_t avd_ckpt_su(AVD_CL_CB *cb, AVD_SU *ckpt_su, NCS_MBCSV_ACT_TYPE action)
 	osafassert (action == NCS_MBCSV_ACT_UPDATE);
 
 	if (NULL == (su = su_db->find(Amf::to_string(&ckpt_su->name)))) {
-		LOG_ER("su_db->find FAILED for '%s'", ckpt_su->name.value);
+		LOG_WA("su_db->find FAILED for '%s'", ckpt_su->name.value);
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
@@ -588,7 +588,7 @@ uint32_t avd_ckpt_compcstype(AVD_CL_CB *cb, AVD_COMPCS_TYPE *ckpt_compcstype, NC
 	osafassert (action == NCS_MBCSV_ACT_UPDATE);
 
 	if (NULL == (ccst = compcstype_db->find(Amf::to_string(dn)))) {
-		LOG_ER("compcstype_db->find()FAILED for '%s'", dn->value);
+		LOG_WA("compcstype_db->find()FAILED for '%s'", dn->value);
 		goto done;
 	}
 	ccst->saAmfCompNumCurrActiveCSIs = ckpt_compcstype->saAmfCompNumCurrActiveCSIs;
