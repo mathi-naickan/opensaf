@@ -812,17 +812,18 @@ void SG_NORED::node_fail(AVD_CL_CB *cb, AVD_SU *su) {
 			m_AVD_CLEAR_SG_ADMIN_SI(cb, (su->sg_of_su));
 			l_si->set_admin_state(SA_AMF_ADMIN_LOCKED);
 		} else {
+			if (in_su_oper_list(su) == true) {
+				su_oper_list_del(su);
 
-			su_oper_list_del(su);
+				su_node_ptr = su->get_node_ptr();
 
-			su_node_ptr = su->get_node_ptr();
-
-			if (su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
-				su->set_admin_state(SA_AMF_ADMIN_LOCKED);
-			} else if ((su_node_ptr->saAmfNodeAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) &&
-				   (old_state == SA_AMF_HA_QUIESCING)) {
-				if (su_node_ptr->is_node_lock() == true) {
-					node_admin_state_set(su_node_ptr, SA_AMF_ADMIN_LOCKED);
+				if (su->saAmfSUAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
+					su->set_admin_state(SA_AMF_ADMIN_LOCKED);
+				} else if ((su_node_ptr->saAmfNodeAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) &&
+					   (old_state == SA_AMF_HA_QUIESCING)) {
+					if (su_node_ptr->is_node_lock() == true) {
+						node_admin_state_set(su_node_ptr, SA_AMF_ADMIN_LOCKED);
+					}
 				}
 			}
 		}
