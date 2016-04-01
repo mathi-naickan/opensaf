@@ -1482,7 +1482,9 @@ static SaAisErrorT su_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 		if (su->sg_of_su->saAmfSGAdminState == SA_AMF_ADMIN_LOCKED_INSTANTIATION)
 			goto done_ok;
 
-		if (su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION) {
+		// skip this check if this is the standby director
+		if (su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED_INSTANTIATION &&
+			avd_cb->avail_state_avd != SA_AMF_HA_STANDBY) {
 			report_ccb_validation_error(opdata,
 				"Admin state is not locked instantiation required for deletion");
 			goto done;
@@ -1496,9 +1498,11 @@ static SaAisErrorT su_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 
 done_ok:
 	rc = SA_AIS_OK;
-	opdata->userData = su;
 
 done:
+	// store su in all cases. saAmfSUAdminState may change
+	// between ccb complete and ccb apply, if this is the standby
+	opdata->userData = su;
 	TRACE_LEAVE();
 	return rc;
 }
