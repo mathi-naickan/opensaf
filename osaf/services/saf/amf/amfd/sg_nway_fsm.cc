@@ -1258,7 +1258,6 @@ uint32_t avd_sg_nway_si_assign(AVD_CL_CB *cb, AVD_SG *sg)
 	TRACE_ENTER2("%s", sg->name.value);
 
 	m_AVD_SET_SG_FSM(cb, sg, AVD_SG_FSM_STABLE);
-	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, sg, AVSV_CKPT_SG_FSM_STATE);
 
 	avd_sidep_update_si_dep_state_for_all_sis(sg);
 	/* assign active assignments to unassigned sis */
