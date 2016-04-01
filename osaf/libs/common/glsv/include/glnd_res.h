@@ -52,8 +52,7 @@ uint32_t glnd_resource_node_destroy(GLND_CB *glnd_cb, GLND_RESOURCE_INFO *res_in
 
 GLND_RES_LOCK_LIST_INFO *glnd_resource_grant_lock_req_find(GLND_RESOURCE_INFO *res_info,
 								    GLSV_LOCK_REQ_INFO res_lock_info,
-								    MDS_DEST req_mds_dest,
-								    SaLckResourceIdT lcl_resource_id);
+								    MDS_DEST req_mds_dest, SaLckResourceIdT lcl_resource_id);
 
 GLND_RES_LOCK_LIST_INFO *glnd_resource_pending_lock_req_find(GLND_RESOURCE_INFO *res_info,
 								      GLSV_LOCK_REQ_INFO res_lock_info,
@@ -112,7 +111,10 @@ void glnd_resource_resend_nonmaster_info_to_newmaster(GLND_CB *glnd_cb, GLND_RES
 
 void glnd_resource_master_process_resend_lock_req(GLND_CB *glnd_cb,
 							   GLND_RESOURCE_INFO *res_node,
-							   GLSV_LOCK_REQ_INFO lock_info, MDS_DEST req_node_mds_id);
+							   GLSV_LOCK_REQ_INFO lock_info,
+							   SaLckResourceIdT lcl_resource_id,
+							   bool unlock_req_sent,
+							   MDS_DEST req_node_mds_id);
 
 struct glsv_evt_glnd_dd_probe_info_tag;	/* forward declaration required. */
 

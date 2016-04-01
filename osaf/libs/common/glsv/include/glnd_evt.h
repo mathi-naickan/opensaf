@@ -166,6 +166,8 @@ typedef struct glsv_evt_glnd_lck_info_tag {
 typedef struct glsv_evt_glnd_rsc_info_tag {
 	/* list of all rsc-lck info */
 	SaLckResourceIdT resource_id;
+	SaLckResourceIdT lcl_resource_id;
+	bool unlock_req_sent;
 	MDS_DEST glnd_mds_dest;
 	uint32_t num_requests;
 	GLND_LOCK_LIST_INFO *list_of_req;

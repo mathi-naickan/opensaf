@@ -364,25 +364,25 @@ void glnd_dump_cb()
 			TRACE("Grant list : ");
 			list = res_info->lck_master_info.grant_list;
 			while (list) {
-				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d ",
+				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d  Lcl Resource Id: %u",
 				      (uint32_t)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
-				      (uint32_t)list->lock_info.handleId);
+				      (uint32_t)list->lock_info.handleId, list->lcl_resource_id);
 				list = list->next;
 			}
 			TRACE("Wait Ex list : ");
 			list = res_info->lck_master_info.wait_exclusive_list;
 			while (list) {
-				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d ",
+				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d  Lcl Resource Id: %u",
 				      (uint32_t)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
-				      (uint32_t)list->lock_info.handleId);
+				      (uint32_t)list->lock_info.handleId, list->lcl_resource_id);
 				list = list->next;
 			}
 			TRACE("Wait PR list : ");
 			list = res_info->lck_master_info.wait_read_list;
 			while (list) {
-				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d ",
+				TRACE("Lock Id : %d   Node Id : %d  App Handle : %d  Lcl Resource Id: %u",
 				      (uint32_t)list->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(list->req_mdest_id),
-				      (uint32_t)list->lock_info.handleId);
+				      (uint32_t)list->lock_info.handleId, list->lcl_resource_id);
 				list = list->next;
 			}
 		} else {
