@@ -1,21 +1,19 @@
-#! /bin/sh
-
+#!/bin/ash
+#
 #      -*- OpenSAF  -*-
 #
-#  Copyright (c) 2007, Ericsson AB
+# (C) Copyright 2007 The OpenSAF Foundation
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  This
-# file and program are licensed under High-Availability Operating 
-# Environment Software License Version 1.4.
-# Complete License can be accesseble from below location.
-# http://www.opensaf.org/license 
-# See the Copying file included with the OpenSAF distribution for
-# full licensing terms.
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
 #
-# Author(s):
-#   
+# Author(s): Ericsson AB
 #
 
 # This script is executed last in the UML start sequence
@@ -25,6 +23,7 @@
 REPL_DIR=repl-opensaf
 HOSTNAME=`hostname`
 eval `echo $HOSTNAME | sed 's/\(.*\)-\(.*\)/hosttype=\1 hostnumber=\2/'`
+immxml_sc_count=$(grep 'SC SC-' /hostfs/rootfs/usr/local/share/opensaf/immxml/nodes.cfg | wc -l)
 
 if test `uname -m` = "x86_64"; then
    export LD_LIBRARY_PATH="/lib64:/usr/lib64:/usr/local/lib64:/usr/local/lib64/opensaf"
@@ -51,7 +50,7 @@ ln -s /hostfs/repl-opensaf /repl_opensaf
 
 mkdir -p /repl_opensaf/saflog
 
-if [ $hostnumber -lt 3 ]; then
+if [ $hostnumber -le $immxml_sc_count ]; then
     ln -sf /etc/opensaf/nodeinit.conf.controller /etc/opensaf/nodeinit.conf
     echo controller > /etc/opensaf/node_type
 else
@@ -60,14 +59,15 @@ else
 fi
 
 rm -f /etc/opensaf/slot_id
+rm -f /etc/opensaf/subslot_id
 rm -f /etc/opensaf/node_id
-echo $hostnumber > /etc/opensaf/slot_id 
-sed -i "s/DTM_NODE_IP=.*/DTM_NODE_IP=192.168.0.$hostnumber/" /etc/opensaf/dtmd.conf
+echo $hostnumber > /etc/opensaf/slot_id
+echo 15 > /etc/opensaf/subslot_id
+sed -i "s/DTM_NODE_IP=.*/DTM_NODE_IP=192.168.$((hostnumber / 256)).$((hostnumber % 256))/" /etc/opensaf/dtmd.conf
 
 # Generate node unique node_name & node_id files
 rm -f /etc/opensaf/node_name /etc/opensaf/node_id
 hostname > /etc/opensaf/node_name
-printf "2%02x0f" $hostnumber > /etc/opensaf/node_id 
 
 # Enable core dumps for opensaf and AMF started programs
 # Somehow the UML kernel cannot write to hostfs

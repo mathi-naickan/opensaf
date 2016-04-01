@@ -2,7 +2,7 @@
 #
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2008-2010 The OpenSAF Foundation
+# (C) Copyright 2008-2016 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -29,6 +29,10 @@
 prg=`basename $0`
 dir=`dirname $0`; dir=`cd $dir; pwd`
 tmp=$(mktemp -d /tmp/${prg}$$.XXXXXXXXXX)
+no_of_processors=$(ls -1d /sys/devices/system/cpu/cpu[0-9]* | wc -l)
+if [ "$no_of_processors" -le 0 ]; then
+    no_of_processors=1
+fi
 
 die() {
     echo "ERROR: $*" >&2
@@ -86,7 +90,7 @@ cmd_build_testprog() {
 ##     Build and install the AMF demo program.
 ##     Use environment variable APPCONFIG to name the imm.xml to be used.
 ##     Default is "AppConfig-2N.xml"
-##     For example: 
+##     For example:
 ##        env APPCONFIG=AppConfig-nwayactive.xml ./build_uml install_testprog
 ##
 cmd_install_testprog() {
@@ -133,7 +137,7 @@ cmd_create_rootfs()
     ln -s usr/sbin sbin
 
     echo "Installing OpenSAF (takes some time)..."
-    if ! make -C $opensaf_home DESTDIR=$root -j3 install>$tmp/install.log 2>&1
+    if ! make -C $opensaf_home DESTDIR=$root -j$no_of_processors install>$tmp/install.log 2>&1
     then
 	cat $tmp/install.log
 	die "Failed to install OpenSAF"
@@ -144,7 +148,7 @@ cmd_create_rootfs()
 	$root/usr/local/lib/pkgconfig \
 	$root/usr/local/lib/opensaf/*.a \
 	$root/usr/local/lib/opensaf/*.la \
-	$root/usr/local/lib/*.a $root/usr/local/lib/*.la 
+	$root/usr/local/lib/*.a $root/usr/local/lib/*.la
 
     install -m 755 $archive/scripts/*.rc etc/init.d
     cp $scripts/profile etc
@@ -161,6 +165,9 @@ cmd_create_rootfs()
     test -e /bin/strace && install /bin/strace usr/bin
     test -e /usr/bin/ltrace && install /usr/bin/ltrace usr/bin
     test -e /usr/bin/strace && install /usr/bin/strace usr/bin
+    test -e /usr/bin/lsof && install /usr/bin/lsof usr/bin
+    test -e /bin/pidof && install /bin/pidof usr/bin
+    test -e /usr/sbin/tcpdump && install /usr/sbin/tcpdump usr/sbin
     if test -e /usr/bin/gdb; then
 	install /usr/bin/gdb usr/bin
 	if test -d /usr/share/gdb; then
@@ -209,11 +216,11 @@ EOF
     install /lib/lsb/init-functions lib/lsb
     test -e /etc/rc.status && install /etc/rc.status etc
 
-    # Needed for Fedora/RHEL LSB support 
+    # Needed for Fedora/RHEL LSB support
     test -e /etc/redhat-lsb && \
-       mkdir -p etc/redhat-lsb && install /etc/redhat-lsb/* etc/redhat-lsb 
+       mkdir -p etc/redhat-lsb && install /etc/redhat-lsb/* etc/redhat-lsb
     test -e /etc/init.d/functions && install /etc/init.d/functions etc/init.d
-    test -e /sbin/consoletype && install /sbin/consoletype usr/sbin 
+    test -e /sbin/consoletype && install /sbin/consoletype usr/sbin
 
 	# Configure LOG root path depending of logFileSysConfig setting
 	if grep -A 3 logFileSysConfig usr/local/share/opensaf/immxml/services/logsv_objects.xml | \
@@ -259,9 +266,9 @@ EOF
 
     cmd_installextra
 
-    echo "Generating imm.xml for a default sized cluster" 
+    echo "Generating imm.xml for a default sized cluster"
     cmd_generate_immxml
-    echo -e "\n Command to generate the imm.xml for other size of cluster:\n \"build_uml generate_immxml [clustersize]\"\n"
+    echo -e "\n Command to generate the imm.xml for other size of cluster:\n \"build_uml generate_immxml [controllers] [payloads]\"\n"
 
     cd $top
     if test -n "$INSTALL_TESTPROG"; then
@@ -272,7 +279,7 @@ EOF
         cmd_mkcpio
     fi
 
-    # Remove line for starting plms 
+    # Remove line for starting plms
     sed '/PLMD/d' < $root/etc/opensaf/nodeinit.conf.controller > \
         $root/etc/opensaf/nodeinit.conf.controller.tmp
     mv $root/etc/opensaf/nodeinit.conf.controller.tmp \
@@ -412,15 +419,29 @@ cmd_default() {
 }
 
 ##   gen_immxml
-##   Generates the imm.xml file with a given cluster size.
-##   Default size with no argument given is 2 SC's and 3 PL's
-##   For example (generates imm.xml for 2 SC's and 8 PL's): 
-##        ./build_uml generate_immxml 10
+##     Generates the imm.xml file with a given cluster size.
+##     Default size with no argument given is 2 SC's and 3 PL's.
+##     With two arguments, you specify the number of SC's and PL's.
+##     With just one argument, you specify the total number of nodes.
+##     For example (generates imm.xml for 3 SC's and 7 PL's):
+##        ./build_uml generate_immxml 3 7
 ##
 cmd_generate_immxml() {
-    numnodes=${1:-5}
+    if [ $# -ge 2 ]; then
+	sc_count=${1:-2}
+	pl_count=${2:-3}
+    else
+	numnodes=${1:-5}
+	if test $numnodes -lt 2 ; then
+            sc_count=1
+            pl_count=0
+	else
+            sc_count=2
+            pl_count=$[$numnodes-2]
+	fi
+    fi
     cd $top
-    
+
     if test ! -d rootfs ; then
 	echo "   This command requires an existing 'rootfs' directory"
 	exit 0
@@ -428,13 +449,6 @@ cmd_generate_immxml() {
 
     # generate imm.xml file
     cd rootfs/usr/local/share/opensaf/immxml
-    if test $numnodes -lt 2 ; then
-        sc_count=1
-        pl_count=0
-    else
-        sc_count=2
-        pl_count=$[$numnodes-2]
-    fi
 
     echo "Generating the imm.xml file with $sc_count SC's and $pl_count PL's"
     ./immxml-clustersize --sc-count $sc_count --pl-count $pl_count >$tmp/install.log 2>&1

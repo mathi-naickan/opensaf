@@ -1,8 +1,8 @@
-#! /bin/bash
+#!/bin/bash
 #
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2008-2012 The OpenSAF Foundation
+# (C) Copyright 2008-2016 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -32,8 +32,12 @@ UML_DIR=$CLUSTER_SIM_UML_DIR/uml
 REPL_DIR=repl-opensaf
 test -x $UML_DIR/bin/uml_start || die "Not executable [$UML_DIR/bin/uml_start]"
 
-NUMNODES=${2:-5}
-IPADDRBASE=${IPADDRBASE:-192.168.0}
+immxml_sc_count=$(grep 'SC SC-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg | wc -l)
+immxml_pl_count=$(grep 'PL PL-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg | wc -l)
+immxml_node_count=$((immxml_sc_count + immxml_pl_count))
+NUMNODES=${2:-$immxml_node_count}
+OSAF_UML_MAX_TERMS=${OSAF_UML_MAX_TERMS:-5}
+IPADDRBASE=${IPADDRBASE:-192.168}
 PIDFILEDIR=/tmp/${USER}_opensaf
 OSAF_UML_MEMSIZE=${OSAF_UML_MEMSIZE:-128M}
 uid=`id -u`
@@ -67,6 +71,7 @@ cluster_start() {
 
 	# Start network if necessary
 	if ! pgrep -U $uid uml_switch > /dev/null; then
+
 		rm -f /tmp/uml-${uid}.ctl
 		xterm -iconic -geometry 60x8-0+5 \
 			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
@@ -84,26 +89,35 @@ cluster_start() {
 		if ((p == 3)); then
 			x=910
 			y=24
+		fi
+		if ((p > immxml_sc_count)); then
 			node_name_prefix=PL-
 		fi
 		hostname=$node_name_prefix$p
-		xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
-			$UML_DIR/bin/uml_start $p umid=$hostname mem=${OSAF_UML_MEMSIZE} hostname=$hostname shadowroot=$rootdir $$ &
-		echo $! > $PIDFILEDIR/$hostname
+		if [ $p -le $OSAF_UML_MAX_TERMS ]; then
+			xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
+				$UML_DIR/bin/uml_start $p umid=$hostname mem=${OSAF_UML_MEMSIZE} hostname=$hostname shadowroot=$rootdir $$ &
+			echo $! > $PIDFILEDIR/$hostname
+		else
+			$UML_DIR/bin/uml_start $p umid=$hostname mem=${OSAF_UML_MEMSIZE} hostname=$hostname shadowroot=$rootdir $$ < /dev/null >& /dev/null &
+			echo $! > $PIDFILEDIR/$hostname
+		fi
 		y=$((y+dy))
 
 		# Append host to /etc/hosts file
-		echo "$IPADDRBASE.$p       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
+		echo "$IPADDRBASE.$((p / 256)).$((p % 256))       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
 	done
 }
 
 cluster_stop() {
 	echo "Stopping opensaf services"
-	nodes=`ls $HOME/.uml`
+ 	nodes=$(ls -1 "$HOME/.uml")
 	for node in $nodes; do
-		$UML_DIR/bin/uml_mconsole $node halt > /dev/null 2>&1
-		sleep 1
-		rm -rf $HOME/.uml/$node
+		"$UML_DIR/bin/uml_mconsole" "$node" halt > /dev/null 2>&1
+	done
+	sleep 1
+	for node in $nodes; do
+ 		rm -rf "$HOME/.uml/$node"
 	done
 	if [ -d $PIDFILEDIR ]; then
 		pidfiles=$(ls $PIDFILEDIR)
@@ -128,6 +142,12 @@ node_start() {
 
 	test -d $PIDFILEDIR || mkdir -p $PIDFILEDIR
 
+	if ! test -d $CLUSTER_SIM_UML_DIR/$REPL_DIR; then
+		mkdir -p $CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store
+		cp  rootfs/etc/opensaf/imm.xml \
+			$CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store/imm.xml
+	fi
+
 	# Start network if necessary
 	if ! pgrep -U $uid uml_switch > /dev/null; then
 		rm -f /tmp/uml-${uid}.ctl
@@ -148,7 +168,7 @@ node_start() {
 	rootdir=rootfs
 	p=$node
 
-	if ((p < 3)); then
+	if ((p <= immxml_sc_count)); then
 		node_name_prefix=SC-
 	else
 		node_name_prefix=PL-
@@ -164,12 +184,12 @@ node_start() {
 	echo $! > $PIDFILEDIR/$hostname
 
 	# Append host to /etc/hosts file
-	echo "$IPADDRBASE.$p       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
+	grep -q "$hostname.opensaf.org" rootfs/etc/hosts || echo "$IPADDRBASE.$((p / 256)).$((p % 256))       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
 }
 
 # Stop a single node, referenced by number
 node_stop() {
-	if [ $1 -lt 3 ]; then
+	if [ $1 -le $immxml_sc_count ]; then
 		node="SC-$1"
 	else
 		node="PL-$1"
@@ -215,6 +235,5 @@ case "$1" in
 	*)
 		echo "Usage: $0 {start [numnodes] | stop | nodestart <number> | nodestop <number> | clean}"
 		exit 1
-	
 esac
 exit 0

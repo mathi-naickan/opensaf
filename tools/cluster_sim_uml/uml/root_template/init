@@ -1,21 +1,19 @@
-#! /bin/sh
-
+#!/bin/busybox ash
+#
 #      -*- OpenSAF  -*-
 #
-#  Copyright (c) 2007, Ericsson AB
+# (C) Copyright 2007 The OpenSAF Foundation
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  This
-# file and program are licensed under High-Availability Operating 
-# Environment Software License Version 1.4.
-# Complete License can be accesseble from below location.
-# http://www.opensaf.org/license 
-# See the Copying file included with the OpenSAF distribution for
-# full licensing terms.
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
 #
-# Author(s):
-#   
+# Author(s): Ericsson AB
 #
 
 /bin/busybox mount /proc

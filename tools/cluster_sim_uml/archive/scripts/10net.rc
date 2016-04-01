@@ -1,21 +1,19 @@
-#! /bin/ash
-
+#!/bin/ash
+#
 #      -*- OpenSAF  -*-
 #
-#  Copyright (c) 2007, Ericsson AB
+# (C) Copyright 2007 The OpenSAF Foundation
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  This
-# file and program are licensed under High-Availability Operating 
-# Environment Software License Version 1.4.
-# Complete License can be accesseble from below location.
-# http://www.opensaf.org/license 
-# See the Copying file included with the OpenSAF distribution for
-# full licensing terms.
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
 #
-# Author(s):
-#   
+# Author(s): Ericsson AB
 #
 
 errquit() {
@@ -24,9 +22,11 @@ errquit() {
 }
 
 p=`ifconfig eth0 | grep HWaddr | sed -e 's,.*HWaddr,,' |cut -d: -f6 |tr -d ' '`
+q=`ifconfig eth0 | grep HWaddr | sed -e 's,.*HWaddr,,' |cut -d: -f5 |tr -d ' '`
 test -n "$p" || errquit "No eth0 address found"
-ifconfig eth0 192.168.0.$p
-route add default gw 192.168.0.254
+test -n "$q" || errquit "No eth0 address found"
+ifconfig eth0 192.168.$((0x$q)).$((0x$p)) netmask 255.255.0.0
+route add default gw 192.168.254.1
 
 inetd || errquit "Failed to start inetd"
 

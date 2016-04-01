@@ -2,7 +2,7 @@
 #
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2008-2010 The OpenSAF Foundation
+# (C) Copyright 2008-2016 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -47,6 +47,10 @@
 pgm=`basename $0`
 dir=`dirname $0`; dir=`cd $dir; pwd`
 tmp=$(mktemp -d /tmp/${pgm}$$.XXXXXXXXXX)
+no_of_processors=$(ls -1d /sys/devices/system/cpu/cpu[0-9]* | wc -l)
+if [ "$no_of_processors" -le 0 ]; then
+    no_of_processors=1
+fi
 
 die() {
     echo "ERROR: $*" >&2
@@ -63,43 +67,21 @@ cd $dir
 archive=${ARCHIVE:-$dir/archive}
 configd=${CONFIGD:-$dir/config}
 
-if [ $(uname -r | cut -d. -f1) -ge 3 ]; then
-    kver=${KVER:-3.18.2}
-else
-    kver=${KVER:-3.13.1}
-fi
-if [ $(echo $kver | cut -d. -f1) -ge 3 ]; then
-    kbasedir=`echo $kver | cut -d. -f1`.x
-else
-    kbasedir=`echo $kver | cut -d. -f1-2`
-fi
+kver=${KVER:-4.5}
+kbasedir=`echo $kver | cut -d. -f1`.x
 #kurlbase=${KURLBASE:-"https://www.kernel.org/pub/linux/kernel/v$kbasedir"}
-kurlbase=${KURLBASE:-"http://ftp.sunet.se/pub/Linux/kernel.org/linux/kernel/v$kbasedir"}
-if [ -n "$(type xz 2> /dev/null)" ]; then
-    kernel_decompress=xz
-    kurl="$kurlbase/linux-$kver.tar.xz"
-    if [ "$kver" = "3.13.1" ]; then
-	kernel_sha1sum='6cbd5f9fc748dcc2def65c053ca2b4776b82a386  linux-3.13.1.tar.xz'
-    else
-	kernel_sha1sum='9f39cf27b7d8cd584dae04f31d6a51867a7b140a  linux-3.18.2.tar.xz'
-    fi
-else
-    kernel_decompress=gzip
-    kurl="$kurlbase/linux-$kver.tar.gz"
-    if [ "$kver" = "3.13.1" ]; then
-	kernel_sha1sum='0e4c138bfdf5e3257e6c66a82e0ff922c1c298c7  linux-3.13.1.tar.gz'
-    else
-	kernel_sha1sum='d2376ed8e6e61239f0d3b2131005f01790fe2b2e  linux-3.18.2.tar.gz'
-    fi
-fi
+kurlbase=${KURLBASE:-"http://ftp.funet.fi/pub/mirrors/ftp.kernel.org/pub/linux/kernel/v$kbasedir"}
+kernel_decompress=xz
+kurl="$kurlbase/linux-$kver.tar.xz"
+kernel_sha1sum='18d8e415f57a1fe4322faec441e45b6d2383b7d1  linux-4.5.tar.xz'
 
-tipcutilsver=${TIPCUTILSVER:-2.0.3}
-tipcutilsurl="http://prdownloads.sourceforge.net/tipc/tipcutils-$tipcutilsver.tar.gz"
-tipcutils_sha1sum='5216075ccfd778bb938a9b7387c42d8fb328742e  tipcutils-2.0.3.tar.gz'
+tipcutilsver=${TIPCUTILSVER:-2.1.1}
+tipcutilsurl="http://prdownloads.sourceforge.net/tipc/tipcutils-$tipcutilsver.tar"
+tipcutils_sha1sum='b8bf8ad949d17fb3cfae78cd74e71f28e5f9bfaa  tipcutils-2.1.1.tar'
 
-bbver=${BBVER:-1.22.1}
+bbver=${BBVER:-1.24.2}
 bburl="http://busybox.net/downloads/busybox-$bbver.tar.bz2"
-bb_sha1sum='d6e96fefb6f0fb8079f27468b9bf22d8dd96108e  busybox-1.22.1.tar.bz2'
+bb_sha1sum='03e6cfc8ddb2f709f308719a9b9f4818bc0a28d0  busybox-1.24.2.tar.bz2'
 
 umlutilsver=20070815
 umlutilsurl="http://user-mode-linux.sourceforge.net/uml_utilities_$umlutilsver.tar.bz2"
@@ -234,7 +216,7 @@ cmd_refresh_root() {
         root/$lib_dir/modules/$kver/source \
         linux-$kver/initramfs_list
     cmd_gen_initramfs_list
-    make -C linux-$kver -j4 ARCH=um
+    make -C linux-$kver -j$no_of_processors ARCH=um
 
     cp linux-$kver/vmlinux bin/linux || die "Could not build linux"
     strip bin/linux
@@ -268,8 +250,8 @@ cmd_build_linux()
     cmd_gen_initramfs_list
 
     cmd_patch_tipc_tolerance
-    make -C linux-$kver -j3 ARCH=um oldconfig
-    make -C linux-$kver -j4 ARCH=um
+    make -C linux-$kver -j$no_of_processors ARCH=um oldconfig
+    make -C linux-$kver -j$no_of_processors ARCH=um
     make -C linux-$kver headers_install
     cmd_refresh_root
 }
@@ -293,7 +275,7 @@ cmd_build_busybox()
     cfg=$configd/busybox-$bbver
     test -r $cfg || cfg=config/busybox-config
     cp -L $cfg busybox-$bbver/.config
-    make -C busybox-$bbver -j4
+    make -C busybox-$bbver -j$no_of_processors
     cp busybox-$bbver/busybox bin || die "Could not build busybox"
     strip bin/busybox
 }
@@ -376,11 +358,18 @@ cmd_build_tipcutils()
     f=$archive/$(basename $tipcutilsurl)
     test -r $f || die "Not downloaded [$f]"
     rm -rf tipcutils-$tipcutilsver
-    tar xzf $f
+    tar xf $f
+    if [ -x "tipcutils-$tipcutilsver/bootstrap" ]; then
+	cd "tipcutils-$tipcutilsver"
+	./bootstrap
+	cd "$dir"
+    fi
     if [ -x tipcutils-$tipcutilsver/configure ]; then
 	cd tipcutils-$tipcutilsver
-	./configure CFLAGS="-I$dir/linux-$kver/usr/include"
-	make -j4
+	mkdir linux
+	cp "$dir/linux-$kver/include/uapi/linux/tipc.h" linux
+	./configure
+	make -j$no_of_processors
 	cd $dir
 	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin || die "Could not build tipc-config"
     else
