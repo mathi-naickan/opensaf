@@ -346,14 +346,18 @@ GLND_RES_LOCK_LIST_INFO *glnd_resource_grant_lock_req_find(GLND_RESOURCE_INFO *r
 							   MDS_DEST req_mds_dest, SaLckResourceIdT lcl_resource_id)
 {
 	GLND_RES_LOCK_LIST_INFO *lock_info;
+	TRACE_ENTER();
 	for (lock_info = res_info->lck_master_info.grant_list; lock_info != NULL; lock_info = lock_info->next) {
 
+		TRACE("handleId: %llu lcl_lockid: %llu lcl_resource_id: %u res handleId: %llu res lcl_lockid: %llu res lcl_resource_id: %u req_mdest_id: %d req_mds_dest: %d is local node: %i",
+				lock_info->lock_info.handleId, lock_info->lock_info.lcl_lockid, lock_info->lcl_resource_id, res_lock_info.handleId, res_lock_info.lcl_lockid, lcl_resource_id, m_NCS_NODE_ID_FROM_MDS_DEST(lock_info->req_mdest_id), m_NCS_NODE_ID_FROM_MDS_DEST(req_mds_dest), m_GLND_IS_LOCAL_NODE(&lock_info->req_mdest_id, &req_mds_dest));
 		if (lock_info->lock_info.handleId == res_lock_info.handleId &&
 		    lock_info->lock_info.lcl_lockid == res_lock_info.lcl_lockid &&
 		    lock_info->lcl_resource_id == lcl_resource_id &&
 		    m_GLND_IS_LOCAL_NODE(&lock_info->req_mdest_id, &req_mds_dest) == 0)
 			return lock_info;
 	}
+	TRACE_LEAVE();
 	return NULL;
 }
 
@@ -460,12 +464,16 @@ GLND_RES_LOCK_LIST_INFO *glnd_resource_local_lock_req_find(GLND_RESOURCE_INFO *r
 							   SaLckHandleT handleId, SaLckResourceIdT lcl_resource_id)
 {
 	GLND_RES_LOCK_LIST_INFO *lock_info;
+	TRACE_ENTER();
 	for (lock_info = res_info->lcl_lck_req_info; lock_info != NULL; lock_info = lock_info->next) {
 
+		TRACE("handleId: %llu lcl_lockid: %llu lcl_resource_id: %u res handleId: %llu res lcl_lockid: %llu res lcl_resource_id: %u",
+				lock_info->lock_info.handleId, lock_info->lock_info.lcl_lockid, lock_info->lcl_resource_id, handleId, lockid, lcl_resource_id);
 		if (lock_info->lock_info.handleId == handleId &&
 		    lock_info->lock_info.lcl_lockid == lockid && lock_info->lcl_resource_id == lcl_resource_id)
 			return lock_info;
 	}
+	TRACE_LEAVE();
 	return NULL;
 }
 
@@ -1471,7 +1479,13 @@ void glnd_resource_convert_nonmaster_to_master(GLND_CB *glnd_cb, GLND_RESOURCE_I
 	uint32_t remaining_time = 0;
 	SaTimeT time;
 
+	TRACE_ENTER();
+
 	for (lck_list_nm_info = res_node->lcl_lck_req_info; lck_list_nm_info != NULL;) {
+		TRACE("lockStatus: %d  Lock Id : %d   Node Id : %d  App Handle : %d  Lcl Resource Id: %u",
+		     lck_list_nm_info->lock_info.lockStatus,
+                     (uint32_t)lck_list_nm_info->lock_info.lockid, m_NCS_NODE_ID_FROM_MDS_DEST(lck_list_nm_info->req_mdest_id), (uint32_t)lck_list_nm_info->lock_info.handleId, lck_list_nm_info->lcl_resource_id);
+
 		lck_list_m_info = lck_list_nm_info;
 		lck_list_nm_info = lck_list_nm_info->next;
 
@@ -1526,6 +1540,7 @@ void glnd_resource_convert_nonmaster_to_master(GLND_CB *glnd_cb, GLND_RESOURCE_I
 	}
 	res_node->lcl_lck_req_info = NULL;
 
+	TRACE_LEAVE();
 	return;
 }
 
@@ -1546,7 +1561,11 @@ void glnd_resource_resend_nonmaster_info_to_newmaster(GLND_CB *glnd_cb, GLND_RES
 	GLND_RES_LOCK_LIST_INFO *lck_list_nm_info;
 	GLSV_GLND_EVT glnd_evt;
 	GLND_LOCK_LIST_INFO *lck_list_info = NULL, *new_list_info = NULL, *tmp_list = NULL;
+	SaLckResourceIdT lcl_resource_id = 0;
+	bool unlock_req_sent = false;
 	uint32_t count = 0;
+
+	TRACE_ENTER();
 
 	for (lck_list_nm_info = res_node->lcl_lck_req_info; lck_list_nm_info != NULL;
 	     lck_list_nm_info = lck_list_nm_info->next) {
@@ -1556,7 +1575,11 @@ void glnd_resource_resend_nonmaster_info_to_newmaster(GLND_CB *glnd_cb, GLND_RES
 			LOG_CR("GLND lock list alloc failed: Error %s", strerror(errno));
 			goto err;
 		}
+		lcl_resource_id = lck_list_nm_info->lcl_resource_id;
+		unlock_req_sent = lck_list_nm_info->unlock_req_sent;
+		TRACE("setting lcl_resource_id: %u unlock_req_sent: %i", lcl_resource_id, unlock_req_sent);
 		new_list_info->lock_info = lck_list_nm_info->lock_info;
+		TRACE("lcl_lckid: %llu", lck_list_nm_info->lock_info.lcl_lockid);
 		/* add it to the list */
 		new_list_info->next = lck_list_info;
 		lck_list_info = new_list_info;
@@ -1566,6 +1589,9 @@ void glnd_resource_resend_nonmaster_info_to_newmaster(GLND_CB *glnd_cb, GLND_RES
 	memset(&glnd_evt, 0, sizeof(GLSV_GLND_EVT));
 	glnd_evt.type = GLSV_GLND_EVT_SND_RSC_INFO;
 	glnd_evt.info.node_rsc_info.resource_id = res_node->resource_id;
+	glnd_evt.info.node_rsc_info.lcl_resource_id = lcl_resource_id;
+	glnd_evt.info.node_rsc_info.unlock_req_sent = unlock_req_sent;
+	TRACE("sending lcl_resource_id: %u unlock_req_sent: %i", lcl_resource_id, unlock_req_sent);
 	glnd_evt.info.node_rsc_info.num_requests = count;
 	glnd_evt.info.node_rsc_info.list_of_req = lck_list_info;
 	glnd_evt.info.node_rsc_info.glnd_mds_dest = glnd_cb->glnd_mdest_id;
@@ -1578,6 +1604,7 @@ void glnd_resource_resend_nonmaster_info_to_newmaster(GLND_CB *glnd_cb, GLND_RES
 		lck_list_info = lck_list_info->next;
 		m_MMGR_FREE_GLSV_GLND_LOCK_LIST_INFO(tmp_list, NCS_SERVICE_ID_GLND);
 	}
+	TRACE_LEAVE();
 	return;
  err:
 	while (lck_list_info) {
@@ -1586,6 +1613,7 @@ void glnd_resource_resend_nonmaster_info_to_newmaster(GLND_CB *glnd_cb, GLND_RES
 		m_MMGR_FREE_GLND_LOCK_LIST_INFO(tmp_list);
 	}
 	assert(0);
+	TRACE_LEAVE();
 	return;
 }
 
@@ -1604,7 +1632,10 @@ void glnd_resource_resend_nonmaster_info_to_newmaster(GLND_CB *glnd_cb, GLND_RES
 *****************************************************************************/
 void glnd_resource_master_process_resend_lock_req(GLND_CB *glnd_cb,
 						  GLND_RESOURCE_INFO *res_node,
-						  GLSV_LOCK_REQ_INFO lock_info, MDS_DEST req_node_mds_id)
+						  GLSV_LOCK_REQ_INFO lock_info,
+						  SaLckResourceIdT lcl_resource_id,
+						  bool unlock_req_sent,
+						  MDS_DEST req_node_mds_id)
 {
 	GLND_RES_LOCK_LIST_INFO *lck_list_info;
 
@@ -1613,6 +1644,8 @@ void glnd_resource_master_process_resend_lock_req(GLND_CB *glnd_cb,
 		LOG_CR("GLND Rsc lock list alloc failed: Error %s", strerror(errno));
 		assert(0);
 	}
+	TRACE_ENTER();
+
 	memset(lck_list_info, 0, sizeof(GLND_RES_LOCK_LIST_INFO));
 
 	lck_list_info->lck_info_hdl_id =
@@ -1620,6 +1653,11 @@ void glnd_resource_master_process_resend_lock_req(GLND_CB *glnd_cb,
 	lck_list_info->lock_info = lock_info;
 	lck_list_info->req_mdest_id = req_node_mds_id;
 	lck_list_info->res_info = res_node;
+	lck_list_info->lcl_resource_id = lcl_resource_id;
+	lck_list_info->unlock_req_sent = unlock_req_sent;
+	TRACE("lck_list_info->lcl_resource_id: %u lck_list_info->unlock_req_sent: %i",
+		lcl_resource_id,
+		unlock_req_sent);
 
 	/* check to see the status of the lock */
 	if (lock_info.lockStatus == SA_LCK_LOCK_GRANTED) {
@@ -1642,6 +1680,7 @@ void glnd_resource_master_process_resend_lock_req(GLND_CB *glnd_cb,
 			res_node->lck_master_info.wait_read_list->prev = lck_list_info;
 		res_node->lck_master_info.wait_read_list = lck_list_info;
 	}
+	TRACE_LEAVE();
 	return;
 }
 
@@ -1783,11 +1822,12 @@ void glnd_resource_check_lost_unlock_requests(GLND_CB *glnd_cb, GLND_RESOURCE_IN
 	GLND_RES_LOCK_LIST_INFO *lck_list_nm_info;
 	GLSV_GLND_EVT *glnd_evt;
 
+	TRACE_ENTER();
+
 	for (lck_list_nm_info = res_node->lck_master_info.grant_list;
 	     lck_list_nm_info != NULL; lck_list_nm_info = lck_list_nm_info->next) {
 		/* check for unlock sent flag */
-		if (m_GLND_IS_LOCAL_NODE(&lck_list_nm_info->req_mdest_id, &glnd_cb->glnd_mdest_id) == 0 &&
-		    lck_list_nm_info->unlock_req_sent == true) {
+		if (lck_list_nm_info->unlock_req_sent == true) {
 			/* generate the unlck rsp event */
 			glnd_evt = m_MMGR_ALLOC_GLND_EVT;
 			if (glnd_evt == NULL) {
@@ -1796,17 +1836,19 @@ void glnd_resource_check_lost_unlock_requests(GLND_CB *glnd_cb, GLND_RESOURCE_IN
 			}
 			memset(glnd_evt, 0, sizeof(GLSV_GLND_EVT));
 			glnd_evt->glnd_hdl = glnd_cb->cb_hdl_id;
-			glnd_evt->type = GLSV_GLND_EVT_RSC_UNLOCK;
-			glnd_evt->info.rsc_unlock_info.agent_mds_dest = lck_list_nm_info->lock_info.agent_mds_dest;
-			glnd_evt->info.rsc_unlock_info.call_type = lck_list_nm_info->lock_info.call_type;
-			glnd_evt->info.rsc_unlock_info.client_handle_id = lck_list_nm_info->lock_info.handleId;
-			glnd_evt->info.rsc_unlock_info.invocation = lck_list_nm_info->lock_info.invocation;
-			glnd_evt->info.rsc_unlock_info.lockid = lck_list_nm_info->lock_info.lockid;
-			glnd_evt->info.rsc_unlock_info.resource_id = res_node->resource_id;
-			glnd_evt->info.rsc_unlock_info.timeout = lck_list_nm_info->lock_info.timeout;
-			glnd_evt->mds_context = lck_list_nm_info->glnd_res_lock_mds_ctxt;
+			glnd_evt->type = GLSV_GLND_EVT_UNLCK_REQ;
+			glnd_evt->info.node_lck_info.glnd_mds_dest = lck_list_nm_info->req_mdest_id;
+			glnd_evt->info.node_lck_info.client_handle_id = lck_list_nm_info->lock_info.handleId;
+			glnd_evt->info.node_lck_info.lockid = lck_list_nm_info->lock_info.lockid;
+			glnd_evt->info.node_lck_info.lcl_lockid = lck_list_nm_info->lock_info.lcl_lockid;
+			glnd_evt->info.node_lck_info.resource_id = res_node->resource_id;
+			glnd_evt->info.node_lck_info.lcl_resource_id = lck_list_nm_info->lcl_resource_id;
+			glnd_evt->info.node_lck_info.invocation = lck_list_nm_info->lock_info.invocation;
 
+			TRACE("answering lost unlock request");
 			glnd_evt_local_send(glnd_cb, glnd_evt, MDS_SEND_PRIORITY_MEDIUM);
 		}
 	}
+
+	TRACE_LEAVE();
 }

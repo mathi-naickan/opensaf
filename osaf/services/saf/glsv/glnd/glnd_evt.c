@@ -2166,8 +2166,15 @@ static uint32_t glnd_process_glnd_send_rsc_info(GLND_CB *glnd_cb, GLSV_GLND_EVT 
 	for (lock_list = rsc_info->list_of_req; lock_list != NULL; lock_list = lock_list->next) {
 		/* process each lock node info */
 		glnd_resource_master_process_resend_lock_req(glnd_cb, res_node,
-							     lock_list->lock_info, rsc_info->glnd_mds_dest);
+							     lock_list->lock_info,
+							     rsc_info->lcl_resource_id,
+							     rsc_info->unlock_req_sent,
+							     rsc_info->glnd_mds_dest);
 	}
+
+	/* respond to any unanswered unlock requests */
+	glnd_resource_check_lost_unlock_requests(glnd_cb, res_node);
+
 	rc = NCSCC_RC_SUCCESS;
 
 end:
