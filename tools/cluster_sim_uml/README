@@ -1,7 +1,7 @@
 #
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2008-2015 The OpenSAF Foundation
+# (C) Copyright 2008-2016 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -19,7 +19,7 @@
 WHAT IS THIS?
 
 This directory (and subdirectories) contains a User Mode Linux - UML simulated
-cluster environment for opensaf. Default a five node cluster will be started, 
+cluster environment for opensaf. Default a five node cluster will be started,
 two controller nodes and three payload nodes.
 
 The cluster environment is built using:
@@ -51,8 +51,8 @@ $OSAF_UML_EXTRA
 	  system.
 
 archive	  This directory contains a number of configuration files for the
-	  cluster. The 'scripts' subdirectory contains the init scripts that 
-	  are executed during UML startup. The scripts are copied from this 
+	  cluster. The 'scripts' subdirectory contains the init scripts that
+	  are executed during UML startup. The scripts are copied from this
 	  directory to the shadow root by the build system. Do not edit.
 
 bin	  This directory contains shell scripts used during the installation
@@ -123,6 +123,14 @@ environment variable OSAF_UML_MEMSIZE, e.g.:
 
     export OSAF_UML_MEMSIZE=256M
 
+By default "./opensaf start" will not spawn more than five terminals, even if
+you start more nodes. You can still log in to the other nodes using the "telnet"
+command from one of the terminals. To change the maximum number of terminals
+started by "./opensaf start", set the OSAF_UML_MAX_TERMS environment variable,
+e.g.:
+
+    export OSAF_UML_MAX_TERMS=10
+
 Running the cluster adds the following direcories:
 
 repl-opensaf	This directory contains a simulated shared replicated disk
@@ -152,14 +160,14 @@ STARTUP SEQUENCE
 5. /etc/init.d/rcS executes /etc/init.d/*.rc (archive/scripts/*)
    in numerical order.
 
-6. controller	
+6. controller
    /etc/init.d/40opensaf.rc does the following:
-   - setups the environment for opensaf 
+   - setups the environment for opensaf
    - executes '/etc/init.d/opensafd start'
 
 6. payload
    /etc/init.d/40opensaf.rc does the following:
-   - setups the environment for opensaf 
+   - setups the environment for opensaf
    - executes '/etc/init.d/opensafd start'
 
 
@@ -183,7 +191,7 @@ CLI use the command 'clishut'.
 
 SOFTWARE REQUIREMENTS
 
-UML should run on any 3.x host kernel. If the host kernel is patched for SKAS3
+UML should run on any 3.x and 4.x host kernel. If the host kernel is patched for SKAS3
 mode, you will get better guest (UML) kernel performance.
 
 32 and 64 bit are verified.
@@ -193,21 +201,25 @@ GNU C Library version 2.11 or later
 The following packages are known to work:
 
 - bash 4.3 (needed by opensaf scripts)
-- readline 6.3 (needed by bash)
-- ncurses 5.9 (needed by bash)
-- libgcc 4.9.1 (needed by scap)
-- libstdc++ 4.8.2 (needed by scap)
+- libdaemon0 0.14 (needed by tipc-config)
+- libgcc1 4.9.3 (needed by scap)
+- libncurses5 5.9 (needed by bash)
+- libnl-3-200 3.2.21 (needed by tipc-config)
+- libstdc++6 4.8.2 (needed by scap)
+- readline6 6.3 (needed by bash)
 
 OPTIONAL DEVELOPMENT TOOLS
 
 Before running ./build_uml, you can optionally install any of the following
 development tools on your host system:
 
-ltrace
-strace
 gdb
+lsof
+ltrace
 python
 python3
+strace
+tcpdump
 valgrind
 
 If these tools are found on the build host, they will automatically be installed

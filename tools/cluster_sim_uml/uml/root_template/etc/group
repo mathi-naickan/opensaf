@@ -1,8 +1,8 @@
 root::0:
 opensaf::OPENSAF_GROUP:opensaf
-user1::1001:user1
-user2::1002:user2
-user3::1003:user3
-user4::1004:user4
-user5::1005:user5
-log-data::1006:opensaf, root
+user1::91:user1,opensaf
+user2::92:user2
+user3::93:user3
+user4::94:user4
+user5::95:user5
+log-data::96:opensaf,root
