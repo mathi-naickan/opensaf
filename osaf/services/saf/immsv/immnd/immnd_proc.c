@@ -982,7 +982,7 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 				if(!(cb->mIsCoord)) {
 					cb->other_sc_node_id = pbeNodeId;
 					if(!(cb->mIsOtherScUp)) {
-						LOG_ER("Late detection of other SC up");
+						LOG_WA("Late detection of other SC up");
 						osafassert(!immModel_oneSafe2PBEAllowed(cb));
 						cb->mIsOtherScUp = true;
 					}
@@ -1017,7 +1017,7 @@ static void immnd_cleanTheHouse(IMMND_CB *cb, SaBoolT iAmCoordNow)
 					if(cb->mIsCoord) {
 						cb->other_sc_node_id = pbeSlaveNodeId;
 						if(!(cb->mIsOtherScUp)) {
-							LOG_ER("Late detection of other SC up");
+							LOG_WA("Late detection of other SC up");
 							osafassert(!immModel_oneSafe2PBEAllowed(cb));
 							cb->mIsOtherScUp = true;
 						}
