@@ -1879,6 +1879,21 @@ SaAisErrorT immutil_saImmOmCcbObjectDelete_o2(SaImmCcbHandleT immCcbHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOmCcbObjectRead(SaImmCcbHandleT ccbHandle, SaConstStringT objectName,
+										 const SaImmAttrNameT *attributeNames, SaImmAttrValuesT_2 ***attributes) {
+	SaAisErrorT rc = saImmOmCcbObjectRead(ccbHandle, objectName, attributeNames, attributes);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmCcbObjectRead(ccbHandle, objectName, attributeNames, attributes);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && rc != SA_AIS_ERR_NOT_EXIST
+			&& immutilWrapperProfile.errorsAreFatal)
+		immutilError("saImmOmCcbObjectRead FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOmClassDescriptionGet_2(SaImmHandleT immHandle,
                                                  const SaImmClassNameT className,
                                                  SaImmClassCategoryT * classCategory,

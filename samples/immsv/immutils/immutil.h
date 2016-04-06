@@ -685,6 +685,12 @@ extern SaAisErrorT immutil_getAttr(const char *attrName,
     							  const char *objectName);
 
 /**
+ * Wrapper for saImmOmCcbObjectRead
+ */
+	extern SaAisErrorT immutil_saImmOmCcbObjectRead(SaImmCcbHandleT ccbHandle, SaConstStringT objectName,
+													const SaImmAttrNameT *attributeNames, SaImmAttrValuesT_2 ***attributes);
+
+/**
  * Wrapper for saImmOmClassDescriptionGet_2
  */
 	extern SaAisErrorT immutil_saImmOmClassDescriptionGet_2(SaImmHandleT immHandle,
