@@ -66,7 +66,7 @@ class ElectionStarter {
   timespec Poll();
 
  private:
-  static const uint64_t kDefaultElectionDelayTime = 5000;
+  static const uint64_t kDefaultElectionDelayTime = 200;
 
   struct NodeCollection {
     NodeCollection();
