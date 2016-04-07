@@ -28,57 +28,55 @@
 #include "osaf_utility.h"
 
 /* The value to put in the PATH environment variable when calling the
-   SC active script */
+ SC active script */
 #define SC_ACTIVE_PATH_ENV "/usr/local/sbin:/usr/local/bin:/usr/sbin:" \
-	"/usr/bin:/sbin:/bin"
+        "/usr/bin:/sbin:/bin"
 
 /*
-**  RDE_CONTROL_BLOCK
-**
-**  Structure containing all state information for RDE
-**
-*/
+ **  RDE_CONTROL_BLOCK
+ **
+ **  Structure containing all state information for RDE
+ **
+ */
 
 struct RDE_CONTROL_BLOCK {
-	SYSF_MBX mbx;
-	const char *prog_name;
-	NCSCONTEXT task_handle;
-	bool task_terminate;
-	bool fabric_interface;
-	uint32_t select_timeout;
-
-	RDE_RDA_CB rde_rda_cb;
-	RDE_AMF_CB rde_amf_cb;
-
+  SYSF_MBX mbx;
+  const char *prog_name;
+  NCSCONTEXT task_handle;
+  bool task_terminate;
+  bool fabric_interface;
+  uint32_t select_timeout;
+  RDE_RDA_CB rde_rda_cb;
+  RDE_AMF_CB rde_amf_cb;
 };
 
 enum RDE_MSG_TYPE {
-	RDE_MSG_PEER_UP = 1,
-	RDE_MSG_PEER_DOWN = 2,
-	RDE_MSG_PEER_INFO_REQ = 3,
-	RDE_MSG_PEER_INFO_RESP = 4,
+  RDE_MSG_PEER_UP = 1,
+  RDE_MSG_PEER_DOWN = 2,
+  RDE_MSG_PEER_INFO_REQ = 3,
+  RDE_MSG_PEER_INFO_RESP = 4,
 };
 
 struct rde_peer_info {
-	PCS_RDA_ROLE ha_role;
+  PCS_RDA_ROLE ha_role;
 };
 
 struct rde_msg {
-	struct rde_msg *next;
-	RDE_MSG_TYPE type;
-	MDS_DEST fr_dest;
-	NODE_ID fr_node_id;
-	union {
-		struct rde_peer_info peer_info;
-	} info;
+  struct rde_msg *next;
+  RDE_MSG_TYPE type;
+  MDS_DEST fr_dest;
+  NODE_ID fr_node_id;
+  union {
+    struct rde_peer_info peer_info;
+  } info;
 };
 
 extern const char *rde_msg_name[];
 
 /*****************************************************************************\
- *                                                                             *
- *                       Function Prototypes                                   *
- *                                                                             *
+*                                                                             *
+*                       Function Prototypes                                   *
+*                                                                             *
 \*****************************************************************************/
 
 extern RDE_CONTROL_BLOCK *rde_get_control_block();

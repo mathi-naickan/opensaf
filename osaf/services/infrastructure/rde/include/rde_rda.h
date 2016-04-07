@@ -16,20 +16,20 @@
  */
 
 /*****************************************************************************
-..............................................................................
+ ..............................................................................
 
-  MODULE NAME: rde_rda.h
+ MODULE NAME: rde_rda.h
 
-..............................................................................
+ ..............................................................................
 
-  DESCRIPTION: Contains definitions of a Unix-domain Sockets implementation
-               of the RDE RDA interface
-               which is used for communication between RDE and and RDA.
+ DESCRIPTION: Contains definitions of a Unix-domain Sockets implementation
+ of the RDE RDA interface
+ which is used for communication between RDE and and RDA.
 
-..............................................................................
+ ..............................................................................
 
-******************************************************************************
-*/
+ ******************************************************************************
+ */
 
 #ifndef RDE_RDA_H
 #define RDE_RDA_H
@@ -41,28 +41,28 @@
 class Role;
 
 /*****************************************************************************\
- *                                                                             *
- *   Constants and Enumerated Values                                           *
- *                                                                             *
+*                                                                             *
+*   Constants and Enumerated Values                                           *
+*                                                                             *
 \*****************************************************************************/
 
-/* 
-** Limits 
-**
-**
-*/
+/*
+ ** Limits
+ **
+ **
+ */
 
 enum RDE_RDA_SOCK_LIMITS {
-	RDE_RDA_SOCK_BUFFER_SIZE = 3200
+  RDE_RDA_SOCK_BUFFER_SIZE = 3200
 };
 
 /*****************************************************************************\
- *                                                                             *
- *   Structure Definitions                                                     *
- *                                                                             *
+*                                                                             *
+*   Structure Definitions                                                     *
+*                                                                             *
 \*****************************************************************************/
 
-#define REPLY_SIZE               4096
+#define REPLY_SIZE 4096
 #define MAX_RDA_CLIENTS 64
 
 /*
@@ -70,10 +70,8 @@ enum RDE_RDA_SOCK_LIMITS {
  */
 
 struct RDE_RDA_CLIENT {
-
-	int fd;
-	bool is_async;
-
+  int fd;
+  bool is_async;
 };
 
 /*
@@ -83,26 +81,26 @@ struct RDE_RDA_CLIENT {
 using rde_rda_sock_addr = sockaddr_un;
 
 struct RDE_RDA_CB {
-	struct sockaddr_un sock_address;
-	int fd;			/* File descriptor          */
-	int flags;		/* Flags specified for open */
-	int client_count;
-	Role* role;
-	RDE_RDA_CLIENT clients[MAX_RDA_CLIENTS];
-
-} ;
+  struct sockaddr_un sock_address;
+  int fd; /* File descriptor */
+  int flags; /* Flags specified for open */
+  int client_count;
+  Role* role;
+  RDE_RDA_CLIENT clients[MAX_RDA_CLIENTS];
+};
 
 /***************************************************************\
- *                                                               *
- *         RDE RDA interface function prototypes                 *
- *                                                               *
+*                                                               *
+*         RDE RDA interface function prototypes                 *
+*                                                               *
 \***************************************************************/
 
 const char *rde_rda_sock_name(RDE_RDA_CB *rde_rda_cb);
 uint32_t rde_rda_open(const char *sockname, RDE_RDA_CB *rde_rda_cb);
 uint32_t rde_rda_close(RDE_RDA_CB *rde_rda_cb);
 uint32_t rde_rda_process_msg(RDE_RDA_CB *rde_rda_cb);
-uint32_t rde_rda_client_process_msg(RDE_RDA_CB *rde_rda_cb, int index, int *disconnect);
+uint32_t rde_rda_client_process_msg(RDE_RDA_CB *rde_rda_cb, int index,
+                                    int *disconnect);
 uint32_t rde_rda_send_role(int role);
 
 #endif   /* RDE_RDA_H */

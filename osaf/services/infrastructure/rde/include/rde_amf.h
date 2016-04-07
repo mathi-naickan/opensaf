@@ -16,18 +16,18 @@
  */
 
 /*****************************************************************************
-..............................................................................
+ ..............................................................................
 
-  MODULE NAME: rde_amf.h
+ MODULE NAME: rde_amf.h
 
-..............................................................................
+ ..............................................................................
 
-  DESCRIPTION: Contains definitions of the RDE AMF structures
+ DESCRIPTION: Contains definitions of the RDE AMF structures
 
-..............................................................................
+ ..............................................................................
 
-******************************************************************************
-*/
+ ******************************************************************************
+ */
 
 #ifndef RDE_AMF_H
 #define RDE_AMF_H
@@ -47,25 +47,25 @@
 class Role;
 
 /*
- * Macro used to get the AMF version used 
+ * Macro used to get the AMF version used
  */
-#define m_RDE_GET_AMF_VER(amf_ver) amf_ver.releaseCode='B'; amf_ver.majorVersion=0x01; amf_ver.minorVersion=0x00;
+#define m_RDE_GET_AMF_VER(amf_ver) amf_ver.releaseCode='B'; \
+  amf_ver.majorVersion=0x01; amf_ver.minorVersion=0x00;
 
 /*
  * RDE AMF control information
  */
 struct RDE_AMF_CB {
-	char comp_name[256];
-	SaAmfHandleT amf_hdl;	/* AMF handle */
-	SaSelectionObjectT amf_fd;	/* AMF selection fd */
-	Role* role;
-	bool is_amf_up;	/* For amf_fd and pipe_fd */
-	bool nid_started;	/**< true if started by NID */
-
+  char comp_name[256];
+  SaAmfHandleT amf_hdl; /* AMF handle */
+  SaSelectionObjectT amf_fd; /* AMF selection fd */
+  Role* role;
+  bool is_amf_up; /* For amf_fd and pipe_fd */
+  bool nid_started; /**< true if started by NID */
 };
 
 extern uint32_t rde_amf_init(RDE_AMF_CB *rde_amf_cb);
 extern SaAisErrorT internal_csi_set_callback(SaInvocationT invocation,
-	SaAmfHAStateT new_haState);
+                                             SaAmfHAStateT new_haState);
 
 #endif

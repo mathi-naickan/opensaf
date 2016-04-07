@@ -11,7 +11,7 @@
  * See the Copying file included with the OpenSAF distribution for full
  * licensing terms.
  *
- * Author(s): Goahead Software 
+ * Author(s): Goahead Software
  *
  */
 

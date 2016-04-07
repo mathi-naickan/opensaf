@@ -16,23 +16,23 @@
  */
 
 /*****************************************************************************
-..............................................................................
+ ..............................................................................
 
-  MODULE NAME: rda.h
+ MODULE NAME: rda.h
 
-..............................................................................
+ ..............................................................................
 
-  DESCRIPTION:  This file declares the RDA functions to interact with RDE
+ DESCRIPTION:  This file declares the RDA functions to interact with RDE
 
-******************************************************************************
-*/
+ ******************************************************************************
+ */
 
 #ifndef RDA_H
 #define RDA_H
 
 /*
-** includes
-*/
+ ** includes
+ */
 #include <cstdio>
 #include <sys/types.h>
 #include <cstring>
@@ -62,26 +62,24 @@
 #include "ncs_main_papi.h"
 
 /*
-**
-*/
+ **
+ */
 #include "rda_papi.h"
 #include "rde_rda_common.h"
 
 /*
-** Structure declarations
-*/
+ ** Structure declarations
+ */
 struct RDA_CALLBACK_CB {
-	NCSCONTEXT task_handle;
-	bool task_terminate;
-	PCS_RDA_CB_PTR callback_ptr;
-	uint32_t callback_handle;
-	int sockfd;
-
+  NCSCONTEXT task_handle;
+  bool task_terminate;
+  PCS_RDA_CB_PTR callback_ptr;
+  uint32_t callback_handle;
+  int sockfd;
 };
 
 struct RDA_CONTROL_BLOCK {
-	sockaddr_un sock_address;
-
+  sockaddr_un sock_address;
 };
 
 #endif   /* RDA_H */

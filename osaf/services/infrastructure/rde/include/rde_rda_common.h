@@ -16,54 +16,54 @@
  */
 
 /*****************************************************************************
-..............................................................................
+ ..............................................................................
 
-  MODULE NAME: rde_rda_common.h 
+ MODULE NAME: rde_rda_common.h
 
-..............................................................................
+ ..............................................................................
 
-  DESCRIPTION:  This file declares the common definitions for RDE and RDA
+ DESCRIPTION:  This file declares the common definitions for RDE and RDA
 
-******************************************************************************
-*/
+ ******************************************************************************
+ */
 
 #ifndef RDE_RDA_COMMON_H
 #define RDE_RDA_COMMON_H
 
 /*
-** includes
-*/
+ ** includes
+ */
 #include <configmake.h>
 
 /*
-** Return/error codes
-*/
+ ** Return/error codes
+ */
 
 /*
-**    Name of this particular RDA socket implementation
-**
-*/
-#define  RDE_RDA_SOCK_NAME PKGLOCALSTATEDIR "/rde_rda.sock"
+ **    Name of this particular RDA socket implementation
+ **
+ */
+#define RDE_RDA_SOCK_NAME PKGLOCALSTATEDIR "/rde_rda.sock"
 
 /*
-** Protocal message primitives for RDE-RDA interaction
-*/
+ ** Protocal message primitives for RDE-RDA interaction
+ */
 enum RDE_RDA_CMD_TYPE {
-	RDE_RDA_UNKNOWN,
-	RDE_RDA_GET_ROLE_REQ,
-	RDE_RDA_GET_ROLE_RES,
-	RDE_RDA_SET_ROLE_REQ,
-	RDE_RDA_SET_ROLE_ACK,
-	RDE_RDA_SET_ROLE_NACK,
-	RDE_RDA_REG_CB_REQ,
-	RDE_RDA_REG_CB_ACK,
-	RDE_RDA_REG_CB_NACK,
-	RDE_RDA_DISCONNECT_REQ,
-	RDE_RDA_HA_ROLE,
+  RDE_RDA_UNKNOWN,
+  RDE_RDA_GET_ROLE_REQ,
+  RDE_RDA_GET_ROLE_RES,
+  RDE_RDA_SET_ROLE_REQ,
+  RDE_RDA_SET_ROLE_ACK,
+  RDE_RDA_SET_ROLE_NACK,
+  RDE_RDA_REG_CB_REQ,
+  RDE_RDA_REG_CB_ACK,
+  RDE_RDA_REG_CB_NACK,
+  RDE_RDA_DISCONNECT_REQ,
+  RDE_RDA_HA_ROLE,
 };
 
 /*
-** PDU (Protocol Data Units) for the above 
-*/
+ ** PDU (Protocol Data Units) for the above
+ */
 
 #endif   /* RDE_RDA_COMMON_H */
