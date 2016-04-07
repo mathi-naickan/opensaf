@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <dlfcn.h>
 #include <wordexp.h>
+#include <assert.h>
 
 #include <saAis.h>
 #include <saImmOm.h>
@@ -49,7 +50,6 @@
 typedef struct ObjectInfo {
 	char *objectName;
 	char *className;
-	struct ObjectInfo *next;
 } ObjectInfoT;
 
 static SaVersionT immVersion = { 'A', 2, 16 };
@@ -62,7 +62,11 @@ SaImmAdminOwnerNameT adminOwnerName = NULL;
 SaImmAdminOwnerHandleT ownerHandle = 0;
 SaImmCcbHandleT ccbHandle = -1;
 
-static ObjectInfoT *objectInfo = NULL;
+static ObjectInfoT **objectInfoList = NULL;
+static bool objectInfoListSorted = false;
+static unsigned int objectInfoListSize = 0;
+static unsigned int objectInfoListCount = 0;
+static unsigned int objectInfoListBatchSize = 100;
 
 extern struct ImmutilWrapperProfile immutilWrapperProfile;
 typedef enum {
@@ -190,72 +194,100 @@ void sigalarmh(int sig)
         exit(EXIT_FAILURE);
 }
 
+static void resize_object_info_list() {
+	/* Initialize objectInfoList */
+	if (!objectInfoList) {
+		objectInfoList = calloc(objectInfoListBatchSize, sizeof(ObjectInfoT *));
+		assert(objectInfoList);
+		assert(objectInfoListCount == 0);
+		objectInfoListSize = objectInfoListBatchSize;
+		return;
+	}
+
+	/* No need to resize objectInfoList */
+	if (objectInfoListCount < objectInfoListSize) {
+		return;
+	}
+
+	/* Reallocate objectInfoList */
+	objectInfoListSize += objectInfoListBatchSize;
+	objectInfoList = realloc(objectInfoList, sizeof(ObjectInfoT *) * objectInfoListSize);
+	assert(objectInfoList);
+}
+
+int compare_object_info(const void *v1, const void *v2) {
+	ObjectInfoT *o1 = *((ObjectInfoT **) v1);
+	ObjectInfoT *o2 = *((ObjectInfoT **) v2);
+	return strcmp(o1->objectName, o2->objectName);
+}
+
 void object_info_add(const char *objectName, const char *className) {
-	ObjectInfoT *oi;
-	ObjectInfoT *prev;
-	int rc;
+	int pos = 0;
 
-	prev = NULL;
-	oi = objectInfo;
-	while(oi) {
-		if((rc = strcmp(oi->objectName, objectName)) >= 0) {
-			if(!rc) {
-				// Object is already in the list
-				return;
-			}
+	/* Initialize or reallocate objectInfoList if needed */
+	resize_object_info_list();
 
-			break;
-		}
+	/**
+	 * No need to check for existing object in the list.
+	 * If the same object is created more than once,
+	 * the operation will fail anyway (rejected by IMM server).
+	 **/
 
-		prev = oi;
-		oi = oi->next;
-	}
+	/* Insert to the end of the list.
+	 * The list will be sorted when needed (chained modify operation) */
+	pos = objectInfoListCount;
+	objectInfoList[pos] = calloc(1, sizeof(ObjectInfoT));
+	assert(objectInfoList[pos]);
+	objectInfoList[pos]->objectName = strdup(objectName);
+	objectInfoList[pos]->className = strdup(className);
 
-	if(prev) {
-		oi = (ObjectInfoT *)calloc(1, sizeof(ObjectInfoT));
-		oi->objectName = strdup(objectName);
-		oi->className = strdup(className);
-		oi->next = prev->next;
-		prev->next = oi;
-	} else {
-		objectInfo = (ObjectInfoT *)calloc(1, sizeof(ObjectInfoT));
-		objectInfo->objectName = strdup(objectName);
-		objectInfo->className = strdup(className);
-		objectInfo->next = oi;
-	}
+	objectInfoListCount++;
+	assert(objectInfoListCount <= objectInfoListSize);
+
+	/* Mark as unsorted since we just add a new item to the list */
+	objectInfoListSorted = false;
 }
 
 void object_info_clear() {
-	ObjectInfoT *oi = objectInfo;
-	ObjectInfoT *next;
+	int i = 0;
 
-	while(oi) {
-		next = oi->next;
-		free(oi->objectName);
-		free(oi->className);
-		free(oi);
-		oi = next;
+	/* objectInfoList is not initialized */
+	if (!objectInfoList) {
+		return;
 	}
 
-	objectInfo = NULL;
+	for (i = 0; i < objectInfoListCount; i++) {
+		free(objectInfoList[i]->objectName);
+		free(objectInfoList[i]->className);
+		free(objectInfoList[i]);
+	}
+
+	free(objectInfoList);
+	objectInfoList = NULL;
+	objectInfoListCount = 0;
+	objectInfoListSize = 0;
 }
 
 char *object_info_get_class(const char *objectName) {
-	ObjectInfoT *oi;
-	int rc;
+	ObjectInfoT dummy;
+	ObjectInfoT *dummyPointer = &dummy;
+	ObjectInfoT **result;
 
-	oi = objectInfo;
-	while(oi) {
-		if((rc = strcmp(oi->objectName, objectName)) >= 0) {
-			if(!rc) {
-				return strdup(oi->className);
-			}
-
-			break;
-		}
-
-		oi = oi->next;
+	if (!objectInfoList) {
+		return NULL;
 	}
+
+	if (!objectInfoListSorted) {
+		qsort(objectInfoList, objectInfoListCount, sizeof(ObjectInfoT *), compare_object_info);
+		objectInfoListSorted = true;
+	}
+
+	dummyPointer->objectName = (char *) objectName;
+	result = bsearch(&dummyPointer, objectInfoList, objectInfoListCount, sizeof(ObjectInfoT *), compare_object_info);
+
+	if (result) {
+		return (*result)->className;
+	} /* else return NULL */
 
 	return NULL;
 }
