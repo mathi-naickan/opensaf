@@ -68,10 +68,6 @@ extern "C"
 			SaImmHandleT *immHandle, SaImmAdminOwnerHandleT *ownerHandle,
 			SaImmCcbHandleT *ccbHandle, int mode, const char *xsdPath, int strictParse);
 	int validateImmXML(const char *xmlfile, int verbose, int mode, int strictParse);
-
-	void object_info_add(const char *objectName, const char *className);
-	void object_info_clear();
-	char *object_info_get_class(const char *objectName);
 }
 
 extern ImmutilErrorFnT immutilError;
@@ -642,6 +638,7 @@ static void createImmObject(ParserState* state)
 	SaImmAttrValuesT_2** attrValues;
 	SaAisErrorT errorCode = SA_AIS_OK;
 	int i = 0;
+	size_t DNlen;
 	SaNameT objectName;
 	std::list<SaImmAttrValuesT_2>::iterator it;
 
@@ -689,17 +686,15 @@ static void createImmObject(ParserState* state)
 	if(state->ctxt->instate == XML_PARSER_EOF)
 		return;
 
-	object_info_add(state->objectName, className);
-
 #ifdef TRACE_8
 	/* Get the length of the DN and truncate state->objectName */
 	if (!osaf_is_extended_name_empty(&parentName)) {
-		i = strlen(state->objectName) - (strlen(osaf_extended_name_borrow(&parentName)) + 1);
+		DNlen = strlen(state->objectName) - (strlen(osaf_extended_name_borrow(&parentName)) + 1);
 	} else {
-		i = strlen(state->objectName);
+		DNlen = strlen(state->objectName);
 	}
 
-	state->objectName[i] = '\0';
+	state->objectName[DNlen] = '\0';
 	TRACE_8("OBJECT NAME: %s", state->objectName);
 #endif
 
@@ -1710,7 +1705,6 @@ static void endElementHandler(void* userData,
 				state->parsingStatus = 1;
 				return;
 			}
-			object_info_clear();
 			state->ccbInit = 1;
 
 		}
