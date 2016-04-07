@@ -1,0 +1,251 @@
+#! /usr/bin/env python
+
+import argparse
+import time
+
+from pyosaf import saNtf, saAis
+from pyosaf.utils import ntf
+
+
+def construct_additional_info(additional_info_string):
+    ''' Constructs an AdditionalInfo instance from the given string.
+
+        The string must be of the format ID,TYPE,VALUE
+    '''
+
+    info_id = int(additional_info_string.split(',')[0])
+    info_type = int(additional_info_string.split(',')[1])
+    info_value = ','.join(additional_info_string.split(',')[2:])
+
+    return ntf.AdditionalInfo(info_id, info_type, info_value)
+
+
+if __name__ == '__main__':
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description='ntfsend is a SAF NTF client used to send a notificaiton.')
+
+    parser.add_argument('--notificationType', '-T', metavar='0x1000...0x5000',
+                        default='0x4000',
+                        help='numeric value of SaNtfNotificationTypeT'
+                        '(obj_create_del=0x1000,attr_ch,state_ch,al,sec_al=0x5000)')
+    parser.add_argument('--eventType', '-e', metavar='4096...24589',
+                        help='numeric value of SaNtfEventTypeT'
+                        '(SA_NTF_OBJECT_NOTIFICATIONS_START...SA_NTF_HPI_EVENT_OTHER)')
+    parser.add_argument('--eventTime', '-E', metavar='TIME',
+                        default=saAis.saAis.SA_TIME_UNKNOWN,
+                        help='numeric value of SaTimeT')
+    parser.add_argument('--notificationClassId', '-c', metavar='VE,MA,MI',
+                        default='162,1,1',
+                        help='vendorid, majorid, minorid')
+    parser.add_argument('--notificationObject', '-n', metavar='NOT_OBJ',
+                        default="",
+                        help='notification object (string value)')
+    parser.add_argument('--notifyingObject', '-N', metavar='NOTIFY_OBJ',
+                        default="",
+                        help='notififying object (string value)')
+    parser.add_argument('--additionalText', '-a', metavar='TEXT',
+                        default="",
+                        help='additional text (string value)')
+    parser.add_argument('--probableCause', '-p', metavar='0..74',
+                        help='numeric value SaNtfProbableCauseT'
+                        'SA_NTF_ADAPTER_ERROR to SA_NTF_UNSPECIFIED_REASON')
+    parser.add_argument('--perceivedSeverity', '-s', metavar='0...5',
+                        type=int, default='4',
+                        help='severity numeric value'
+                        '(clear=0,ind,warn,min,maj,crit=5)')
+    parser.add_argument('--repeatSends', '-r', metavar='NUM',
+                        default=1, type=int,
+                        help='send the same notifification NUM times')
+    parser.add_argument('--burstTimeout', '-b', metavar='TIME',
+                        default=0, type=int,
+                        help='send burst of NUM repeatSends '
+                        '[default: 1] and sleep TIME (usec)'
+                        'between each burst, will continue for ever')
+    parser.add_argument('--additionalInfo', '-i', metavar='ID,TYPE,VALUE',
+                        help='additional information'
+                        'ID: SaNtfElementIdT integer value'
+                        'TYPE: numeric value SaNtfValueTypeT, only '
+                        'SA_NTF_VALUE_STRING=11 is supported')
+
+    args = parser.parse_args()
+
+    # Fill in arguments
+    vendor_id = int(args.notificationClassId.split(',')[0])
+    major_id = int(args.notificationClassId.split(',')[1])
+    minor_id = int(args.notificationClassId.split(',')[2])
+
+    event_time = int(args.eventTime)
+
+    severity = int(args.perceivedSeverity)
+
+    additional_text = args.additionalText
+    notification_object = args.notificationObject
+    notifying_object = args.notifyingObject
+
+    # Initialize the NTF library
+    ntf.initialize()
+
+    # Send the notification
+    ntf_type = int(args.notificationType, 0)
+
+    if ntf_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_OBJECT_CREATE_DELETE:
+
+        # Create sample attributes
+        attributes = []
+
+        attr1 = ntf.Attribute()
+
+        attr1.attribute_id = 1
+        attr1.attribute_type = saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_INT16
+        attr1.attribute_value = 23
+
+        attributes.append(attr1)
+
+        attr2 = ntf.Attribute()
+
+        attr2.attribute_id = 2
+        attr2.attribute_type = saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_INT32
+        attr2.attribute_value = -3
+
+        attributes.append(attr2)
+
+        # Create sample additional info
+        additional_info = []
+        if args.additionalInfo:
+            additional_info.append(construct_additional_info(args.additionalInfo))
+
+        # Send the notification
+        for i in range(0, args.repeatSends):
+            ntf.send_object_create_notification(vendor_id,
+                                                major_id,
+                                                minor_id, 
+                                                additional_text=additional_text,
+                                                notification_object=notification_object,
+                                                notifying_object=notifying_object,
+                                                attributes=attributes,
+                                                event_time=event_time,
+                                                additional_info=additional_info)
+
+            time.sleep(args.burstTimeout)
+
+    elif ntf_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_SECURITY_ALARM:
+
+        # Create security alarm sample fields
+
+        detector = ntf.SecurityAlarmDetector(
+            value=15,
+            value_type=saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_INT32
+        )
+
+        user = ntf.ServiceUser(
+            value=-2,
+            value_type=saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_INT16
+        )
+
+        provider = ntf.ServiceProvider(
+            value=128,
+            value_type=saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_UINT32
+        )
+
+        # Send the notification
+        for i in range(0, args.repeatSends):
+            ntf.send_security_alarm_notification(vendor_id, major_id, minor_id, severity,
+                                                 detector, user, provider,
+                                                 additional_text=additional_text,
+                                                 notification_object=notification_object,
+                                                 notifying_object=notifying_object,
+                                                 event_time=event_time)
+
+            time.sleep(args.burstTimeout)
+
+    elif ntf_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_ALARM:
+
+        for i in range(0, args.repeatSends):
+            ntf.send_alarm_notification(vendor_id, major_id, minor_id, severity,
+                                        additional_text=additional_text,
+                                        notification_object=notification_object,
+                                        notifying_object=notifying_object,
+                                        event_time=event_time)
+
+            time.sleep(args.burstTimeout)
+
+    elif ntf_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_ATTRIBUTE_CHANGE:
+
+        # Fill in sample attribute changes
+
+        attr0 = ntf.AttributeChange()
+
+        attr0.attribute_id = 0
+        attr0.attribute_type = saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_INT32
+        attr0.old_attribute_present = saAis.eSaBoolT.SA_FALSE
+        attr0.new_attribute_value = 1
+
+        attr1 = ntf.AttributeChange()
+
+        attr1.attribute_id = 1
+        attr1.attribute_type = saNtf.eSaNtfValueTypeT.SA_NTF_VALUE_INT32
+        attr1.old_attribute_present = saAis.eSaBoolT.SA_TRUE
+        attr1.old_attribute_value = 8
+        attr1.new_attribute_value = -4
+
+        changed_attributes = [attr0, attr1]
+
+        # Send the notification
+        for i in range(0, args.repeatSends):
+            ntf.send_attribute_change_notification(vendor_id, major_id, minor_id,
+                                                   additional_text=additional_text,
+                                                   notification_object=notification_object,
+                                                   notifying_object=notifying_object,
+                                                   event_time=event_time,
+                                                   changed_attributes=changed_attributes)
+
+            time.sleep(args.burstTimeout)
+
+    elif ntf_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_STATE_CHANGE:
+
+        # Fill in sample state changes
+        changes = []
+
+        change0 = ntf.StateChange()
+
+        change0.state_id = 1
+        change0.old_state_present = False
+        change0.new_state = 0
+
+        change1 = ntf.StateChange()
+
+        change1.state_id = 2
+        change1.old_state_present = False
+        change1.new_state = 5
+
+        change2 = ntf.StateChange()
+
+        change2.state_id = 1
+        change2.old_state_present = True
+        change2.old_state = 0
+        change2.new_state = 1
+
+        change3 = ntf.StateChange()
+
+        change3.state_id = 2
+        change3.old_state_present = True
+        change3.old_state = 5
+        change3.new_state = 10
+
+        changes.append(change0)
+        changes.append(change1)
+        changes.append(change2)
+        changes.append(change3)
+
+        # Send the notification
+        for i in range(0, args.repeatSends):
+            ntf.send_state_change_notification(vendor_id, major_id, minor_id,
+                                               additional_text=additional_text,
+                                               notification_object=notification_object,
+                                               notifying_object=notifying_object,
+                                               event_time=event_time,
+                                               state_changes=changes)
+
+            time.sleep(args.burstTimeout)

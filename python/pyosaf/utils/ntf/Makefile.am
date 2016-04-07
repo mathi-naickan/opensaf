@@ -1,6 +1,6 @@
 #      -*- OpenSAF  -*-
 #
-# (C) Copyright 2015 The OpenSAF Foundation
+# (C) Copyright 2011 The OpenSAF Foundation
 #
 # This program is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
@@ -18,12 +18,5 @@ include $(top_srcdir)/Makefile.common
 
 MAINTAINERCLEANFILES = Makefile.in
 
-pkgpyosafutils_PYTHON = \
+pkgpyosafutilsntf_PYTHON = \
 	__init__.py
-
-SUBDIRS = \
-	immom \
-	clm \
-	log \
-	immoi \
-	ntf

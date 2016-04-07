@@ -1531,6 +1531,9 @@ fi
 %{python_sitelib}/pyosaf/utils/log/*.py
 %{python_sitelib}/pyosaf/utils/log/*.pyc
 %{python_sitelib}/pyosaf/utils/log/*.pyo
+%{python_sitelib}/pyosaf/utils/ntf/*.py
+%{python_sitelib}/pyosaf/utils/ntf/*.pyc
+%{python_sitelib}/pyosaf/utils/ntf/*.pyo
 %{python_sitelib}/pyosaf/utils/immoi/*.py
 %{python_sitelib}/pyosaf/utils/immoi/*.pyc
 %{python_sitelib}/pyosaf/utils/immoi/*.pyo

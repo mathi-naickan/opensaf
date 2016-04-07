@@ -18,7 +18,7 @@
 from ctypes import POINTER, CFUNCTYPE, Structure, Union, CDLL
 from pyosaf.saAis import SaUint64T, SaEnumT, Enumeration, Const, BYREF, \
         SaUint32T, SaUint16T, SaBoolT, SaStringT, SaNameT, SaTimeT, SaDoubleT, \
-        SaInt64T, SaUint8T, SaInt8T, SaInt16T, SaInt32T, SaFloatT
+        SaInt64T, SaUint8T, SaInt8T, SaInt16T, SaInt32T, SaFloatT, SaAnyT
 
 ntfdll = CDLL('libSaNtf.so.0')
 
@@ -178,6 +178,33 @@ eSaNtfValueTypeT = Enumeration((
 	'SA_NTF_VALUE_ARRAY',
 ))
 
+SaNtfValueTypeMap = {
+	eSaNtfValueTypeT.SA_NTF_VALUE_UINT8: SaUint8T,
+	eSaNtfValueTypeT.SA_NTF_VALUE_INT8: SaInt8T,
+	eSaNtfValueTypeT.SA_NTF_VALUE_UINT16: SaUint16T,
+	eSaNtfValueTypeT.SA_NTF_VALUE_INT16: SaInt16T,
+	eSaNtfValueTypeT.SA_NTF_VALUE_UINT32: SaUint32T,
+	eSaNtfValueTypeT.SA_NTF_VALUE_INT32: SaInt32T,
+	eSaNtfValueTypeT.SA_NTF_VALUE_FLOAT: SaFloatT,
+	eSaNtfValueTypeT.SA_NTF_VALUE_UINT64: SaUint64T,
+	eSaNtfValueTypeT.SA_NTF_VALUE_INT64: SaInt64T,
+	eSaNtfValueTypeT.SA_NTF_VALUE_DOUBLE: SaDoubleT,
+	eSaNtfValueTypeT.SA_NTF_VALUE_LDAP_NAME: SaStringT,
+	eSaNtfValueTypeT.SA_NTF_VALUE_STRING: SaStringT,
+	eSaNtfValueTypeT.SA_NTF_VALUE_IPADDRESS: SaStringT,
+	eSaNtfValueTypeT.SA_NTF_VALUE_BINARY: SaAnyT,
+	eSaNtfValueTypeT.SA_NTF_VALUE_ARRAY: SaAnyT
+}
+
+def unmarshalSaNtfValue(void_ptr, value_type):
+	"""Convert void pointer to an instance of value type.
+	"""
+	val_ptr = SaNtfValueTypeMap.get(value_type)
+	if val_ptr and void_ptr:
+		if val_ptr == SaNameT:
+			return cast(void_ptr, POINTER(val_ptr))[0].value
+		return cast(void_ptr, POINTER(val_ptr))[0]
+	return None
 class _ptrVal(Structure):
 	_fields_ = [('dataOffset', SaUint16T),
 		('dataSize', SaUint16T)]

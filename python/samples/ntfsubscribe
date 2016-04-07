@@ -1,0 +1,307 @@
+#! /usr/bin/env python
+
+import select
+import ctypes
+import datetime
+import argparse
+
+from pyosaf import saNtf, saAis
+from pyosaf.utils import ntf
+
+def SaNameT_to_string(name):
+    ''' Converts an instance of SaNameT to a Python string'''
+
+    return ctypes.create_string_buffer(name.value, name.length).value
+
+def p_char_to_string(p_char, length):
+    ''' Converts a char pointer with a missing NULL pointer to a string with the
+        given length'''
+
+    return ctypes.create_string_buffer(p_char, length).value
+
+def SaTimeT_to_date_string(sa_time):
+    ''' Returns a string representation for the given SaTimeT instance'''
+
+    milli_seconds = sa_time / 1000000
+
+    return datetime.datetime.fromtimestamp(milli_seconds/1000).isoformat()
+
+def print_notification_header(header):
+    ''' Prints the given notification header'''
+
+    class_id = header.notificationClassId.contents
+
+    print '''eventType = %s
+notificationObject = "%s"
+notifyingObject = "%s"
+notificationClassId = %d.%d.%d (0x0)
+additionalText = "%s"''' % (
+    saNtf.eSaNtfEventTypeT.whatis(header.eventType.contents.value),
+    SaNameT_to_string(header.notificationObject.contents),
+    SaNameT_to_string(header.notifyingObject.contents),
+    class_id.vendorId,
+    class_id.majorId,
+    class_id.minorId,
+    p_char_to_string(header.additionalText, header.lengthAdditionalText)
+)
+
+
+def print_alarm_notification(notification):
+    ''' Prints the given alarm notification'''
+
+    header = notification.notificationHeader
+
+    print '===  %s - Alarm  ===' % SaTimeT_to_date_string(header.eventTime.contents.value)
+
+    print_notification_header(header)
+
+    print 'probableCause = %s' % \
+       saNtf.eSaNtfProbableCauseT.whatis(notification.probableCause.contents.value)
+    print 'perceivedSeverity = %s' % \
+       saNtf.eSaNtfSeverityT.whatis(notification.perceivedSeverity.contents.value)
+
+
+def print_object_create_delete_notification(notification):
+    ''' Prints the given object create delete notification'''
+
+    header = notification.notificationHeader
+
+    print '===  %s - Object Create/Delete  ===' % SaTimeT_to_date_string(header.eventTime.contents.value)
+
+    print_notification_header(header)
+
+    print 'sourceIndicator = %s' % \
+       saNtf.eSaNtfSourceIndicatorT.whatis(notification.sourceIndicator.contents.value)
+
+    print
+
+    print 'numAttributes: %d' % notification.numAttributes
+
+    for i in range(0, notification.numAttributes):
+
+        c_attribute = notification.objectAttributes[i]
+
+        print '- Attribute ID: %d -' % c_attribute.attributeId
+        print ' Attribute Type: (%d) %s' % (
+           c_attribute.attributeType,
+           saNtf.eSaNtfValueTypeT.whatis(c_attribute.attributeType)
+        )
+
+        print ' Attribute Value: %d' % \
+           saNtf.unmarshalSaNtfValue(saAis.BYREF(c_attribute.attributeValue),
+                                     c_attribute.attributeType)
+
+
+def print_attribute_change_notification(notification):
+    ''' Prints the given attribute change notification'''
+
+    header = notification.notificationHeader
+
+    print '===  %s - Attribute Change  ===' % SaTimeT_to_date_string(header.eventTime.contents.value)
+
+    print_notification_header(header)
+
+    print 'sourceIndicator = %s' % \
+       saNtf.eSaNtfSourceIndicatorT.whatis(notification.sourceIndicator.contents.value)
+
+    print
+
+    print 'numAttributes: %d' % notification.numAttributes
+
+    for i in range(0, notification.numAttributes):
+
+        c_attribute = notification.changedAttributes[i]
+
+        print '''- Attribute ID: %d -
+ Attribute Type: (%d) %s''' % (
+    c_attribute.attributeId,
+    c_attribute.attributeType,
+    saNtf.eSaNtfValueTypeT.whatis(c_attribute.attributeType)
+)
+
+        if c_attribute.oldAttributePresent:
+            print ''' Old Attribute Present: Yes
+ Old Attribute Value: %s''' % \
+    saNtf.unmarshalSaNtfValue(saAis.BYREF(c_attribute.oldAttributeValue),
+                              c_attribute.attributeType)
+        else:
+            print ' Old Attribute Present: No'
+
+        print ' Attribute Value: %s' % \
+           saNtf.unmarshalSaNtfValue(saAis.BYREF(c_attribute.newAttributeValue),
+                                     c_attribute.attributeType)
+
+
+def print_state_change_notification(notification):
+    ''' Prints the given state change notification'''
+
+    header = notification.notificationHeader
+
+    print '===  %s - State Change  ===' % SaTimeT_to_date_string(header.eventTime.contents.value)
+
+    print_notification_header(header)
+
+    print 'sourceIndicator = %s' % \
+       saNtf.eSaNtfSourceIndicatorT.whatis(notification.sourceIndicator.contents.value)
+
+    print
+
+    i = 0
+    for c_state in notification.changedStates:
+
+        if i == notification.numStateChanges:
+            break
+
+        i = i + 1
+
+        print '- State ID: %d -' % c_state.stateId
+
+        if c_state.oldStatePresent:
+            print ' Old State Present: Yes'
+            print ' Old State: %s' % c_state.oldState
+        else:
+            print ' Old State Present: No'
+
+        print ' New State: %s' % c_state.newState
+
+
+def print_security_alarm_notification(notification):
+    ''' Prints the given security alarm notification'''
+
+    header = notification.notificationHeader
+
+    print '===  %s - Security Alarm  ===' % SaTimeT_to_date_string(header.eventTime.contents.value)
+
+    print_notification_header(header)
+
+    print'''probableCause = %s
+severity = %s
+Security Alarm Detector Type: %d
+Security Alarm Detector Value: %d
+Service User Type: %d
+Service User Value: %d
+Service Provider Type: %d
+Service Provider Value: %d
+''' % (
+    saNtf.eSaNtfProbableCauseT.whatis(notification.probableCause.contents.value),
+    saNtf.eSaNtfSeverityT.whatis(notification.severity.contents.value),
+    notification.securityAlarmDetector.contents.valueType,
+    saNtf.unmarshalSaNtfValue(saAis.BYREF(notification.securityAlarmDetector.contents.value),
+                              notification.securityAlarmDetector.contents.valueType),
+    notification.serviceUser.contents.valueType,
+    saNtf.unmarshalSaNtfValue(saAis.BYREF(notification.serviceUser.contents.value),
+                              notification.serviceUser.contents.valueType),
+    notification.serviceProvider.contents.valueType,
+    saNtf.unmarshalSaNtfValue(saAis.BYREF(notification.serviceProvider.contents.value),
+                              notification.serviceProvider.contents.valueType)
+)
+
+
+def notification_received(subscription_id, c_p_notification):
+    ''' Handle received notifications'''
+
+    notification_type = c_p_notification.contents.notificationType
+
+    print
+
+    if notification_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_ALARM:
+        notification = c_p_notification.contents.notification.alarmNotification
+
+        print_alarm_notification(notification)
+
+    elif notification_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_OBJECT_CREATE_DELETE:
+        notification = c_p_notification.contents.notification.objectCreateDeleteNotification
+
+        print_object_create_delete_notification(notification)
+
+    elif notification_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_ATTRIBUTE_CHANGE:
+        notification = c_p_notification.contents.notification.attributeChangeNotification
+
+        print_attribute_change_notification(notification)
+
+    elif notification_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_STATE_CHANGE:
+        notification = c_p_notification.contents.notification.stateChangeNotification
+
+        print_state_change_notification(notification)
+
+    elif notification_type == saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_SECURITY_ALARM:
+        notification = c_p_notification.contents.notification.securityAlarmNotification
+
+        print_security_alarm_notification(notification)
+
+
+if __name__ == '__main__':
+
+    # Parse the parameters
+    parser = argparse.ArgumentParser(
+        description='ntfsubscribe is a SAF NTF client used to subscribe for all incoming notifications.')
+
+    parser.add_argument('--timeout', '-t', metavar='TIME',
+                        default=1,
+                        help='timeout (sec) waiting for notification')
+
+    parser.add_argument('--alarm', '-a',
+                        dest='alarm', action='store_true',
+                        help='subscribe for only alarm notifications')
+
+    parser.add_argument('--objectCreateDelete', '-o',
+                        dest='object_create_delete', action='store_true',
+                        help='subscribe for only objectCreateDelete notifications')
+
+    parser.add_argument('--attributeChange', '-c',
+                        dest='attribute_change', action='store_true',
+                        help='subscribe for only attributeChange notifications')
+
+    parser.add_argument('--stateChange', '-s',
+                        dest='state_change', action='store_true',
+                        help='subscribe for only stateChange notifications')
+
+    parser.add_argument('--securityAlarm', '-y',
+                        dest='security_alarm', action='store_true',
+                        help='subscribe for only securityAlarm notifications')
+
+    args = parser.parse_args()
+
+    print args.timeout
+
+    # Initialize the NTF library
+    ntf.initialize(notification_callback=notification_received)
+
+    # Subscribe for notifications
+    subscriptions = []
+
+    if args.object_create_delete:
+        subscriptions.append(saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_OBJECT_CREATE_DELETE)
+
+    if args.alarm:
+        subscriptions.append(saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_ALARM)
+
+    if args.attribute_change:
+        subscriptions.append(saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_ATTRIBUTE_CHANGE)
+
+    if args.state_change:
+        subscriptions.append(saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_STATE_CHANGE)
+
+    if args.security_alarm:
+        subscriptions.append(saNtf.eSaNtfNotificationTypeT.SA_NTF_TYPE_SECURITY_ALARM)
+
+    if subscriptions == []:
+        ntf.subscribe_for_notifications()
+    else:
+        ntf.subscribe_for_notifications(notification_types=subscriptions)
+
+    # Get selection object for the implementer
+    selection_object = ntf.SELECTION_OBJECT.value
+
+    # Wait for next OI event or one second timeout
+    inputs = [selection_object]
+    outputs = []
+
+    # Loop and wait for notifications
+    while True:
+
+        readable, writable, exceptional = \
+        select.select(inputs, outputs, inputs, args.timeout)
+
+        if selection_object in readable:
+            ntf.dispatch(saAis.eSaDispatchFlagsT.SA_DISPATCH_ALL)

@@ -74,6 +74,17 @@ interface-handler:
         netifaces library to do so. Run 'interface-handler --help' for
         specific options and arguments.
 
+ntfsend:
+        The ntfsend sample application is a copy of the ntfsend tool,
+        implemented in Python. It sends notifications through NTF. Run
+        'ntfsend --help' for specific options and arguments.
+
+ntfsubscribe:
+	The ntfsubscribe sample application is a copy of the
+	ntfsubscribe tool, implemented in Python. It listens for
+	notifications and logs received notifications in the
+	terminal. Run 'ntfsubscribe --help'.
+
 Logging for all apps/utils goes to /var/log/opensaf/saflog/saLogSystem*.log
 
 The IMM OI samples use the classes defined in the classes.xml file. Load it with immcfg -f classes.xml before trying them. 
