@@ -140,6 +140,7 @@ static int fileclose_h(int fd, int *errno_save)
 		*errno_save = errno;
 	} else {
 		rc = apipar.hdl_ret_code_out;
+		*errno_save = 0;
 	}
 
 	TRACE_LEAVE2("rc = %d",rc);
