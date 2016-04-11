@@ -225,6 +225,8 @@ uint32_t ntfs_cb_init(ntfs_cb_t *ntfs_cb)
 	ntfs_cb->mbcsv_sel_obj = -1;
 	ntfs_cb->fully_initialized = false;
 	ntfs_cb->clm_hdl = 0;
+	ntfs_cb->clm_initialized = false;
+	ntfs_cb->clmSelectionObject = -1;
 
 	tmp = (char *)getenv("NTFSV_ENV_CACHE_SIZE");
 	if (tmp) {

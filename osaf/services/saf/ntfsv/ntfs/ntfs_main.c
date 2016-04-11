@@ -327,21 +327,18 @@ int main(int argc, char *argv[])
 	fds[FD_AMF].events = POLLIN;
 	fds[FD_MBX].fd = mbx_fd.rmv_obj;
 	fds[FD_MBX].events = POLLIN;
-	fds[FD_CLM].fd =  ntfs_cb->nid_started ?
-		ntfs_cb->usr2_sel_obj.rmv_obj : ntfs_cb->clmSelectionObject;
-	fds[FD_CLM].events = POLLIN;
-
-	
-	TRACE("Started. HA state is %s",ha_state_str(ntfs_cb->ha_state));
-
+	ntfs_cb->clmSelectionObject = ntfs_cb->nid_started ?
+                ntfs_cb->usr2_sel_obj.rmv_obj : -1;
 	/* NTFS main processing loop. */
 	while (1) {
 		fds[FD_MBCSV].fd = ntfs_cb->mbcsv_sel_obj;
 		fds[FD_MBCSV].events = POLLIN;
 		fds[FD_LOG].fd = ntfs_cb->logSelectionObject;
 		fds[FD_LOG].events = POLLIN;
-		int ret = poll(fds, SIZE_FDS, -1);
+		fds[FD_CLM].fd = ntfs_cb->clmSelectionObject; 
+		fds[FD_CLM].events = POLLIN;
 
+		int ret = poll(fds, SIZE_FDS, -1);
 		if (ret == -1) {
 			if (errno == EINTR)
 				continue;
@@ -384,14 +381,6 @@ int main(int argc, char *argv[])
 				LOG_ER("MBCSV DISPATCH FAILED: %u", rc);
 		}
 
-		/* Process the NTFS Mail box, if ntfs is ACTIVE. */
-		if (fds[FD_MBX].revents & POLLIN)
-			ntfs_process_mbx(&ntfs_cb->mbx);
-
-		/* process all the log callbacks */
-		if (fds[FD_LOG].revents & POLLIN)
-			logEvent();
-
 		if (fds[FD_CLM].revents & POLLIN) {
 			if (ntfs_cb->clm_hdl != 0) {
 				if ((error = saClmDispatch(ntfs_cb->clm_hdl, SA_DISPATCH_ALL)) != SA_AIS_OK) {
@@ -402,12 +391,18 @@ int main(int argc, char *argv[])
 				TRACE("SIGUSR2 event rec");
 				ncs_sel_obj_rmv_ind(&ntfs_cb->usr2_sel_obj, true, true);
 				ncs_sel_obj_destroy(&ntfs_cb->usr2_sel_obj);
-				if (ntfs_clm_init() != SA_AIS_OK)
-					break;
-				TRACE("CLM Initialization SUCCESS......");
-				fds[FD_CLM].fd = ntfs_cb->clmSelectionObject;
+				ntfs_cb->clmSelectionObject = -1;
+				init_with_clm();
 			}
 		}
+
+		/* Process the NTFS Mail box, if ntfs is ACTIVE. */
+		if (fds[FD_MBX].revents & POLLIN)
+			ntfs_process_mbx(&ntfs_cb->mbx);
+
+		/* process all the log callbacks */
+		if (fds[FD_LOG].revents & POLLIN)
+			logEvent();
 	}
 
 done:

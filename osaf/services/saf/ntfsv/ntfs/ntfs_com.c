@@ -553,5 +553,5 @@ uint32_t send_clm_node_status_lib(SaClmClusterChangesT cluster_change, unsigned 
  */
 bool is_clm_init()
 {
-	return (ntfs_cb->clm_hdl != 0 ? true : false);
+	return (((ntfs_cb->clm_hdl != 0) && (ntfs_cb->clm_initialized == true)) ? true : false);
 }

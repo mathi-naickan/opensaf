@@ -62,8 +62,8 @@
  */
 extern ntfs_cb_t *ntfs_cb;
 extern SaAisErrorT ntfs_amf_init();
-extern SaAisErrorT ntfs_clm_init();
 extern uint32_t ntfs_mds_init(ntfs_cb_t *cb, SaAmfHAStateT ha_state);
+extern void init_with_clm(void);
 extern uint32_t ntfs_mds_finalize(ntfs_cb_t *cb);
 extern uint32_t ntfs_mds_change_role();
 extern uint32_t ntfs_mds_msg_send(ntfs_cb_t *cb,

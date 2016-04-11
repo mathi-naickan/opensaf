@@ -42,6 +42,7 @@ static void ntfs_clm_track_cbk(const SaClmClusterNotificationBufferT_4 *notifica
 		TRACE_1("Error received in ClmTrackCallback");
                 goto done;
         }
+	ntfs_cb->clm_initialized = true;
 
 	for (i = 0; i < notificationBuffer->numberOfItems; i++) {
 		switch(step) {
@@ -96,29 +97,51 @@ static const SaClmCallbacksT_4 clm_callbacks = {
  *
  * @return  SaAisErrorT 
 */
-SaAisErrorT ntfs_clm_init()
+void *ntfs_clm_init_thread(void *cb)
 {
+	ntfs_cb_t *_ntfs_cb = (ntfs_cb_t *) cb;
 	SaAisErrorT rc = SA_AIS_OK;
 	TRACE_ENTER();
-
-	rc = saClmInitialize_4(&ntfs_cb->clm_hdl, &clm_callbacks, &clmVersion);
+	rc = saClmInitialize_4(&_ntfs_cb->clm_hdl, &clm_callbacks, &clmVersion);
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saClmInitialize failed with error: %d", rc);
 		TRACE_LEAVE();
-		return rc;
+                exit(EXIT_FAILURE);
 	}
-	rc = saClmSelectionObjectGet(ntfs_cb->clm_hdl, &ntfs_cb->clmSelectionObject);
+	rc = saClmSelectionObjectGet(_ntfs_cb->clm_hdl, &ntfs_cb->clmSelectionObject);
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saClmSelectionObjectGet failed with error: %d", rc);
 		TRACE_LEAVE();
-		return rc;
+                exit(EXIT_FAILURE);
 	} 
 	//TODO:subscribe for SA_TRACK_START_STEP also.
-	rc = saClmClusterTrack_4(ntfs_cb->clm_hdl, (SA_TRACK_CURRENT | SA_TRACK_CHANGES), NULL);
-	if (rc != SA_AIS_OK)
+	rc = saClmClusterTrack_4(_ntfs_cb->clm_hdl, (SA_TRACK_CURRENT | SA_TRACK_CHANGES), NULL);
+	if (rc != SA_AIS_OK) {
 		LOG_ER("saClmClusterTrack failed with error: %d", rc);
-
+		TRACE_LEAVE();
+                exit(EXIT_FAILURE);
+	}
+	TRACE("CLM Initialization SUCCESS......");
 	TRACE_LEAVE();
-	return rc;
+	return NULL;
+}
 
+/*
+ * @brief  Creates a thread to initialize with CLM. 
+*/
+void init_with_clm(void)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+	TRACE_ENTER();
+
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, ntfs_clm_init_thread, ntfs_cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	pthread_attr_destroy(&attr);
+	TRACE_LEAVE();
 }

@@ -949,8 +949,12 @@ static uint32_t mds_svc_event(struct ncsmds_callback_info *info)
 		if (info->info.svc_evt.i_change == NCSMDS_UP) {
 			TRACE_8("MDS UP dest: %" PRIx64 ", node ID: %x, svc_id: %d",
 					info->info.svc_evt.i_dest, info->info.svc_evt.i_node_id, info->info.svc_evt.i_svc_id);
-			if (ntfs_cb->clm_hdl == 0)
+			//Subscribed for only INTRA NODE, only one ADEST will come.
+			if (m_MDS_DEST_IS_AN_ADEST(info->info.svc_evt.i_dest)) {
+				TRACE_8("AVD ADEST UP");
 				ncs_sel_obj_ind(&ntfs_cb->usr2_sel_obj);
+			}  
+
 		}
 	}
 

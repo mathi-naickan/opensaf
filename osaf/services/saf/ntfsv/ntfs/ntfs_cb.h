@@ -64,6 +64,7 @@ typedef struct ntfs_cb {
 	SaClmHandleT clm_hdl;	/* CLM handle, obtained through CLM init        */
 	NCS_SEL_OBJ usr2_sel_obj; /* Selection object for CLM initialization.*/
 	uint16_t peer_mbcsv_version; /*Remeber peer NTFS MBCSV version.*/
+	bool clm_initialized; //For CLM init status;
 } ntfs_cb_t;
 
 extern uint32_t ntfs_cb_init(ntfs_cb_t *);
