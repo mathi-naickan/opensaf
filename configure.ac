@@ -682,6 +682,7 @@ AC_CONFIG_FILES([
         python/pyosaf/utils/clm/Makefile
         python/pyosaf/utils/log/Makefile
         python/pyosaf/utils/immoi/Makefile
+        python/pyosaf/utils/ntf/Makefile
         osaf/Makefile
         osaf/libs/Makefile
         osaf/libs/agents/Makefile
