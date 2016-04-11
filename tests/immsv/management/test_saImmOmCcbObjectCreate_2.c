@@ -17,8 +17,6 @@
 
 #include "immtest.h"
 
-static const SaImmClassNameT nonExistingClassName = (SaImmClassNameT) __FILE__;
-
 void saImmOmCcbObjectCreate_01(void)
 {
     const SaImmAdminOwnerNameT adminOwnerName = (SaImmAdminOwnerNameT) __FUNCTION__;
