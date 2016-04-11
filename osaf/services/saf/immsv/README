@@ -2748,6 +2748,105 @@ Return Values :   SA_AIS_ERR_BUSY - The object targeted by the request is alread
 
                   Returncodes otherwise identical to saImmOmAccessorGet.
 
+
+SC Absence (5.0)
+===============================================
+https://sourceforge.net/p/opensaf/tickets/1625
+
+SC absence enhancement has the goal of increasing OpenSAFs resilience in 
+the face of both active and standby SC going down. Both SCs being absent 
+implies that all OpenSAF director services are absent indefinitely, until 
+an SC is re-established. Prior to the SC absence enhancement, departure 
+of both SCs always resulted in a cluster restart. With the SC Absence 
+enhancement, payloads continue to provide reduced and limited service 
+until an SC-active is re-established. For the IMM service, SC absence is 
+configured by uncommenting the environment variable IMMSV_SC_ABSENCE_ALLOWED.
+
+export IMMSV_SC_ABSENCE_ALLOWED=900
+
+Value of environment variable IMMSV_SC_ABSENCE_ALLOWED is stored in 
+scAbsenceAllowed attribute in opensafImm=opensafImm,safApp=safImmService
+object. This value is used by AMF to restart the cluster if SC absence
+is longer than the value in scAbsenceAllowed attribute in seconds.
+
+Support for SC absence is incompatible with 2PBE. If both are configured
+then 2PBE will win and the SC absence feature will be ignored. An error
+message is printed in this case to the syslog at startup. Allowing SC absence
+feature is a configuration choice impacting all OpenSAF services, not just 
+the IMM service. If it is to be allowed then it is not sufficient to only 
+configure the IMM service for SC absence. The level of service that is 
+provided during absent SC depends on the particular service. In the case 
+of the IMM service, the service provided during SC absence is in essence 
+only the reading of config data.
+
+
+Add attribute definition flag SA_IMM_ATTR_STRONG_DEFAULT (5.0)
+===============================================================
+https://sourceforge.net/p/opensaf/tickets/1425
+
+The default value is only effective for object creation, and not later
+in the life cycle of the object. This makes the default attribute value
+mechanism weaker than some users would like.
+
+When there is an attempt to set empty value to or to delete all values from
+attributes with SA_IMM_ATTR_STRONG_DEFAULT flag, default value will be set.
+The SaImmAttrModificationT_2 will be changed to SA_IMM_ATTR_VALUES_REPLACE
+with default value and sent to OI.
+
+SA_IMM_ATTR_STRONG_DEFAULT flag can only be set on an attribute definition
+that includes default value.
+
+SA_IMM_ATTR_STRONG_DEFAULT flag is supported when OM API registers with
+version A.02.17 or higher.
+
+
+Canonicalize attributes presented by saImmOiCcbObjectModifyCallbackT_2 (5.0)
+============================================================================
+https://sourceforge.net/p/opensaf/tickets/801
+https://sourceforge.net/p/opensaf/tickets/1651
+
+For OIs or appliers receiving ccb-callbacks, the handling of the modify-callback
+can be particularly complex. This is due to the modify callback being defined
+by SAF as faithfully presenting the same parameters as the originating om-client 
+parameters provided over the om-api.
+
+The object modify operation allows for modifications expressed as changes
+relative to the current state of attributes. This is of course acted on by
+the imm-server resulting in an after-image for the modified object.
+
+The callback to the OI or applier is currently of the same form, in general
+requiring the OI/applier to:
+ a) know the current state of the attributes of the object or do an for 
+    appliers unsafe read 
+ b) to correctly compute the transformation as defined by the imm-spec. 
+Particularly the later is asking quite a lot for the average OI/applier 
+implementer.
+
+Only for the "special applier" is the modify callback currently canonicalized 
+to contain simply the replacement values, i.e. the after operation image.
+
+To simplify the task for OI's and appliers in handling modify callbacks,
+the modify-callback instead provides the after-modify-operation-image of 
+the attributes. The new callback format containing just the replacement value
+resulting from the operation must be logically equivalent to the set of all
+before-image and operation variants resulting in this replacement value.
+
+Canonicalize attributes are presented by saImmOiCcbObjectModifyCallbackT_2
+when IMM OI registers with version A.02.17 or higher.
+
+
+Class and object applier set are on local node (5.0)
+====================================================
+https://sourceforge.net/p/opensaf/tickets/1535
+
+The enhancement makes object and class applier set info consistent per node.
+This means that applier set will bind objects and classes that have already 
+been bound on the local node by the same applier name.
+
+Applier name continues to be shared between nodes, while object and class
+applier bindings are kept on the originating node.
+
+
 ----------------------------------------
 DEPENDENCIES
 ============
