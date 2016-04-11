@@ -108,9 +108,6 @@ static uint32_t avnd_evt_node_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER2("%s op=%u", info->dn.value, info->oper_id);
 
-	avnd_msgid_assert(info->msg_id);
-	cb->rcv_msg_id = info->msg_id;
-
 	switch(info->oper_id) {
 	default:
 		LOG_NO("%s: unsupported adm op %u", __FUNCTION__, info->oper_id);
@@ -200,17 +197,6 @@ uint32_t avnd_evt_avd_operation_request_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER2("Class=%u, action=%u", param->class_id, param->act);
 
-	/* dont process unless AvD is up */
-	if (!m_AVND_CB_IS_AVD_UP(cb))
-		goto done;
-
-	// TODO() hide the below code in a "set_msg_id()" function
-	// If message was not broadcasted, (msg_id == 0)
-	if (info->msg_id != 0) {
-		avnd_msgid_assert(info->msg_id);
-		cb->rcv_msg_id = info->msg_id;
-	}
-
 	switch (param->class_id) {
 	case AVSV_SA_AMF_NODE:
 		rc = avnd_node_oper_req(cb, param);
@@ -260,7 +246,6 @@ uint32_t avnd_evt_avd_operation_request_evh(AVND_CB *cb, AVND_EVT *evt)
 		avnd_msg_content_free(cb, &msg);
 	}
 
-done:
 	TRACE_LEAVE();
 	return rc;
 }
@@ -1410,19 +1395,10 @@ uint32_t avnd_evt_avd_role_change_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
-	/* dont process unless AvD is up */
-	if (!m_AVND_CB_IS_AVD_UP(cb)){
-		LOG_IN("AVD is not up yet");
-		return NCSCC_RC_FAILURE;
-	}
-
 	info = &evt->info.avd->msg_info.d2n_role_change_info;
 
 	TRACE("MsgId: %u,NodeId:%u, role rcvd:%u role present:%u",\
 			      info->msg_id, info->node_id, info->role, cb->avail_state_avnd);
-
-	avnd_msgid_assert(info->msg_id);
-	cb->rcv_msg_id = info->msg_id;
 
 	prev_ha_state = cb->avail_state_avnd;
 

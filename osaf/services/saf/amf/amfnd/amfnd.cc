@@ -386,9 +386,6 @@ uint32_t avnd_evt_avd_reboot_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	osafassert(AVSV_D2N_REBOOT_MSG == evt->info.avd->msg_type);
 
-	avnd_msgid_assert(info->msg_id);
-	cb->rcv_msg_id = info->msg_id;
-
 	/* Clear error report related alarms before reboot. 
 	   TODO: This for loop can be removed if AVD remembers and checkpoints 
 	   alarms sent due to error report.

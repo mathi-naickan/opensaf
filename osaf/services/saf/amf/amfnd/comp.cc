@@ -2691,9 +2691,6 @@ uint32_t avnd_evt_comp_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER2("'%s' op=%u", info->dn.value, info->oper_id);
 
-	avnd_msgid_assert(info->msg_id);
-	cb->rcv_msg_id = info->msg_id;
-
 	comp = m_AVND_COMPDB_REC_GET(cb->compdb, info->dn);
 	osafassert( comp != nullptr);
 

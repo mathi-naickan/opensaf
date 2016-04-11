@@ -1277,12 +1277,6 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
-	/* dont process unless AvD is up */
-	if (!m_AVND_CB_IS_AVD_UP(cb)) {
-		TRACE("AVD is not yet up");
-		goto done;
-	}
-
 	/* since AMFND is going down no need to process SU instantiate/terminate msg 
 	 * because SU instantiate will cause component information to be read from IMMND
 	 * and IMMND might have been already terminated and in that case AMFND will osafassert */
@@ -1292,9 +1286,6 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 	}
 
 	info = &evt->info.avd->msg_info.d2n_prsc_su;
-
-	avnd_msgid_assert(info->msg_id);
-	cb->rcv_msg_id = info->msg_id;
 
 	/* get the su */
 	su = m_AVND_SUDB_REC_GET(cb->sudb, info->su_name);

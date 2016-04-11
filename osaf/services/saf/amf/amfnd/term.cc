@@ -196,13 +196,9 @@ done:
 ******************************************************************************/
 uint32_t avnd_evt_avd_set_leds_evh(AVND_CB *cb, AVND_EVT *evt)
 {
-	AVSV_D2N_SET_LEDS_MSG_INFO *info = &evt->info.avd->msg_info.d2n_set_leds;
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
-
-	avnd_msgid_assert(info->msg_id);
-	cb->rcv_msg_id = info->msg_id;
 
 	if (cb->led_state == AVND_LED_STATE_GREEN) {
 		/* Nothing to be done we have already got this msg */

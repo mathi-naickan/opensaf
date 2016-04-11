@@ -300,6 +300,93 @@ done:
 	return rc;
 }
 
+/**
+ * @brief  This function update the receive msg id with the msg id sent
+ *         from Amfd.
+ * @param  ptr to avnd_cb.
+ * @param  ptr to evt.
+ * @return  Nothing.
+ */
+static void update_rcv_msg_id(AVND_CB *cb, AVND_EVT *evt)
+{
+	uint32_t msg_id;
+	switch (evt->type) {
+		case AVND_EVT_AVD_OPERATION_REQUEST_MSG:
+			{
+				AVSV_D2N_OPERATION_REQUEST_MSG_INFO *op_info = &evt->info.avd->msg_info.d2n_op_req;
+				msg_id = op_info->msg_id;
+				/* dont update the counter unless AND is up. */
+				if (!m_AVND_CB_IS_AVD_UP(cb))
+					goto done;
+
+				// TODO() hide the below code in a "set_msg_id()" function
+				// If message was not broadcasted, (msg_id == 0)
+				if (msg_id == 0)
+					goto done;
+			}
+			break;
+		case AVND_EVT_AVD_ROLE_CHANGE_MSG:
+			{
+				AVSV_D2N_ROLE_CHANGE_INFO *rc_info = &evt->info.avd->msg_info.d2n_role_change_info;
+				msg_id = rc_info->msg_id;
+				/* dont update the counter unless AND is up. */
+				if (!m_AVND_CB_IS_AVD_UP(cb))
+					goto done;
+			}
+			break;
+		case AVND_EVT_AVD_SU_PRES_MSG:
+			{
+				AVSV_D2N_PRESENCE_SU_MSG_INFO *pres_info = &evt->info.avd->msg_info.d2n_prsc_su;
+				msg_id = pres_info->msg_id;
+				/* dont update the counter unless AND is up. */
+				if (!m_AVND_CB_IS_AVD_UP(cb))
+					return;
+			}
+			break;
+		case AVND_EVT_AVD_REG_SU_MSG:
+			{
+				AVSV_D2N_REG_SU_MSG_INFO *reg_info = &evt->info.avd->msg_info.d2n_reg_su;
+				msg_id = reg_info->msg_id;
+				/* dont update the counter unless AND is up. */
+				if (!m_AVND_CB_IS_AVD_UP(cb))
+					return;
+			}
+			break;
+		case AVND_EVT_AVD_INFO_SU_SI_ASSIGN_MSG:
+			{
+				AVSV_D2N_INFO_SU_SI_ASSIGN_MSG_INFO *susi_info = &evt->info.avd->msg_info.d2n_su_si_assign;
+				msg_id = susi_info->msg_id;
+			}
+			break;
+		case AVND_EVT_AVD_SET_LEDS_MSG:
+			{
+				AVSV_D2N_SET_LEDS_MSG_INFO *led_info = &evt->info.avd->msg_info.d2n_set_leds;
+				msg_id = led_info->msg_id;
+			}
+			break;
+		case AVND_EVT_AVD_ADMIN_OP_REQ_MSG:
+			{
+				AVSV_D2N_ADMIN_OP_REQ_MSG_INFO *adm_info = &evt->info.avd->msg_info.d2n_admin_op_req_info;
+				msg_id = adm_info->msg_id;
+			}
+			break;
+		case AVND_EVT_AVD_REBOOT_MSG:
+			{
+				AVSV_D2N_REBOOT_MSG_INFO *reboot_info = &evt->info.avd->msg_info.d2n_reboot_info;
+				msg_id = reboot_info->msg_id;
+				break;
+			}
+		default:
+			goto done;
+	}
+
+
+	avnd_msgid_assert(msg_id);
+	cb->rcv_msg_id = msg_id;
+done:
+	return;
+}
+
 /****************************************************************************
   Name          : avnd_mds_rcv
  
@@ -432,6 +519,8 @@ uint32_t avnd_mds_rcv(AVND_CB *cb, MDS_CALLBACK_RECEIVE_INFO *rcv_info)
 	/* nullify the msg as it is used in the event */
 	memset(&msg, 0, sizeof(AVND_MSG));
 
+	/* Update the receive msg id counter. */
+	update_rcv_msg_id(cb, evt);
 	/* send the event */
 	rc = avnd_evt_send(cb, evt);
 
