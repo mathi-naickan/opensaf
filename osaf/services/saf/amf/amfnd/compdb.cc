@@ -1587,14 +1587,16 @@ static int comp_init(AVND_COMP *comp, const SaImmAttrValuesT_2 **attributes)
 		comp->clc_info.saAmfCompNumMaxAmStopAttempts = comp_global_attrs.saAmfNumMaxAmStopAttempts;
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompCSISetCallbackTimeout"), attributes,
-			    0, &comp->csi_set_cbk_timeout) != SA_AIS_OK)
+			    0, &comp->csi_set_cbk_timeout) != SA_AIS_OK) {
 		comp->csi_set_cbk_timeout = comptype->saAmfCtDefCallbackTimeout;
 		comp->use_comptype_attr->set(CsiSetCallbackTimeout);
+	}
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompCSIRmvCallbackTimeout"), attributes,
-			    0, &comp->csi_rmv_cbk_timeout) != SA_AIS_OK)
+			    0, &comp->csi_rmv_cbk_timeout) != SA_AIS_OK) {
 		comp->csi_rmv_cbk_timeout = comptype->saAmfCtDefCallbackTimeout;
 		comp->use_comptype_attr->set(CsiRemoveCallbackTimeout);
+	}
 
 	if (immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfCompQuiescingCompleteTimeout"), attributes,
 			    0, &comp->quies_complete_cbk_timeout) != SA_AIS_OK) {
