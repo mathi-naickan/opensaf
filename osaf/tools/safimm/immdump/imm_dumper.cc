@@ -141,8 +141,8 @@ int main(int argc, char* argv[])
     }
 
     while (1) {
-    if ((c = getopt_long(argc, argv, "hp:x:c:", long_options, NULL)) == -1)
-            break;
+            if ((c = getopt_long(argc, argv, "hp:x:c:", long_options, NULL)) == -1)
+                    break;
 
             switch (c) {
                 case 'h':
