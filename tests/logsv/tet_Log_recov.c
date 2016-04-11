@@ -73,8 +73,6 @@ typedef struct {
 } client_t;
 static client_t g_client[MAX_CLIENTS];
 
-static const int wr_delay = 100*1000; /* 100 ms */
-
 typedef enum {
 	NTF_LOG_REC,
 	GEN_LOG_REC
