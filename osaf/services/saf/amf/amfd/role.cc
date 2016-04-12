@@ -364,7 +364,7 @@ static void avd_act_on_sis_in_tol_timer_state()
 static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role)
 {
 	uint32_t status = NCSCC_RC_FAILURE;
-	AVD_AVND *my_node, *failed_node;
+	AVD_AVND *my_node = nullptr, *failed_node;
 	SaAisErrorT rc;
 
 	TRACE_ENTER();
@@ -381,7 +381,7 @@ static uint32_t avd_role_failover(AVD_CL_CB *cb, SaAmfHAStateT role)
 	 */
 	if (AVD_STBY_OUT_OF_SYNC == cb->stby_sync_state) {
 		LOG_ER("FAILOVER StandBy --> Active FAILED, Standby OUT OF SYNC");
-		return NCSCC_RC_FAILURE;
+		goto done;
 	}
 
 	if (nullptr == (my_node = avd_node_find_nodeid(cb->node_id_avd))) {
