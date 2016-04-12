@@ -6559,7 +6559,9 @@ static void immnd_evt_proc_object_modify(IMMND_CB *cb,
 						oi_cl_node->version.majorVersion == 0x2 &&
 						oi_cl_node->version.releaseCode == 'A') {
 					if (applConnArr[ix] == pbeApplierConn) { /* Slave pbe */
-						osafassert(canonicalizedAttrMod); /* Must already be built for primary pbe */
+						if(!canonicalizedAttrMod) { /* Must already be built for primary pbe */
+							canonicalizedAttrMod = immModel_canonicalizeAttrModification(cb, &(evt->info.objModify));	
+						}
 						send_evt.info.imma.info.objModify.attrMods = canonicalizedAttrMod;
 					} else {
 						if (!allWritableAttr) { /* Check if allWritableAttr is already built */
