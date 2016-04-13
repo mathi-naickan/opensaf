@@ -284,21 +284,22 @@ Building `OpenSAF'
 Some features needs to be configured at build time but don't have configure
 support, these are explained here.
 
-1) Configure a non flat MDS addressing scheme (optional) when TIPC is chosen
-as the transport
+1) Configure a non flat MDS addressing scheme (deprecated)
 
-In the default (from 4.3) addressing scheme, TIPC node addresses looks like
-1.1.1, 1.1.2 etc.
+In the default (from OpenSAF 4.3 onwards) addressing scheme, TIPC node addresses
+looks like 1.1.1, 1.1.2 etc, and the slot_id can be in the range from 1 and up
+to 4095 (though note that prior to OpenSAF 5.0, the maximum supported slot_id
+was 255).
 
-To re-enable the old (pre 4.3) non flat addressing, configure the constant
-MDS_USE_SUBSLOT_ID=1 at configure time as in:
+To re-enable the old (pre OpenSAF 4.3) non flat addressing, configure the
+constant MDS_USE_SUBSLOT_ID=1 at configure time as in:
 
     % ./configure CPPFLAGS="-DMDS_USE_SUBSLOT_ID=1 ..."
 
 In the non flat scheme, the slot ID is shifted up 4 bits and subslot ID is 
 added in the 4 LSB. The consequence of this is reduced number of
-addressable TIPC nodes in the cluster. This scheme is more likely to be used
-in xTCA type of systems and produces node addresses like 1.1.31, 1.1.47 etc.
+addressable nodes in the cluster. This scheme is more likely to be used
+in xTCA type of systems and produces TIPC addresses like 1.1.31, 1.1.47 etc.
 
 More configuration is needed, see nid.conf in 00-README.conf
 
