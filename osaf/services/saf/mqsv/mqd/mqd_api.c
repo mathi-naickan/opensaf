@@ -234,10 +234,6 @@ static uint32_t mqd_lib_init(void)
 #endif
 	TRACE_1("saAmfComponentRegister Success");
 
-	/* Bind with ASAPi Layer */
-	mqd_asapi_bind(pMqd);
-	TRACE_1("Initialization Success");
-
 	/* start the AMF Health Check */
 	memset(&healthy, 0, sizeof(SaAmfHealthcheckKeyT));
 	health_key = getenv("MQSV_ENV_HEALTHCHECK_KEY");
@@ -349,6 +345,10 @@ uint32_t initialize_for_assignment(MQD_CB *cb, SaAmfHAStateT ha_state)
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
+
+	/* Bind with ASAPi Layer */
+	mqd_asapi_bind(cb);
+	TRACE_1("Initialization Success");
 
 	cb->fully_initialized = true;
 done:
