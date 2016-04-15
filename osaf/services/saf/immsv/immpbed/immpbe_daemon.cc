@@ -116,8 +116,8 @@ static SaAisErrorT sqlite_prepare_ccb(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT 
 
 			case CCBUTIL_DELETE:
 				TRACE("Delete of object with DN: %s",
-					osaf_extended_name_borrow(ccbUtilOperationData->param.deleteOp.objectName));
-				objectDeleteToPBE(std::string(osaf_extended_name_borrow(ccbUtilOperationData->param.deleteOp.objectName)),
+					osaf_extended_name_borrow(ccbUtilOperationData->param.delete_.objectName));
+				objectDeleteToPBE(std::string(osaf_extended_name_borrow(ccbUtilOperationData->param.delete_.objectName)),
 					sDbHandle);
 					
 				break;

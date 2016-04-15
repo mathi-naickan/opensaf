@@ -232,7 +232,7 @@ void ccbutil_ccbAddDeleteOperation(struct CcbUtilCcbData *ccb,
 	struct Chunk *clist = (struct Chunk*) ccb->memref;
 	struct CcbUtilOperationData *operation =
 		newOperationData(ccb, CCBUTIL_DELETE);
-	operation->param.delete.objectName = dupSaNameT(clist, objectName);
+	operation->param.delete_.objectName = dupSaNameT(clist, objectName);
 
 	str = saAisNameBorrow(objectName);
 	assert(str != NULL);

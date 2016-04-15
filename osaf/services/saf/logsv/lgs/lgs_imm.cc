@@ -1668,7 +1668,7 @@ static SaAisErrorT stream_ccb_completed_delete(SaImmOiHandleT immOiHandle, const
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
-	const char *name = (char*) opdata->param.deleteOp.objectName->value;
+	const char *name = (char*) opdata->param.delete_.objectName->value;
 	log_stream_t *stream = log_stream_get_by_name(name);
 
 	if (stream != NULL) {

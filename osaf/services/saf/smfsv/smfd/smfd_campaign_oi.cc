@@ -247,7 +247,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
                 case CCBUTIL_DELETE:
                 {
                         //Get the DN to the object to delete and read the class name
-                        const std::string objToDelete = osaf_extended_name_borrow(ccbUtilOperationData->param.deleteOp.objectName);
+                        const std::string objToDelete = osaf_extended_name_borrow(ccbUtilOperationData->param.delete_.objectName);
 
                         std::string className;
                         if (immUtil.getClassNameForObject(objToDelete, className) == false) {
@@ -264,7 +264,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 
                                 //Find Campaign object
                                 SmfCampaign *campaign =
-                                        SmfCampaignList::instance()->get(ccbUtilOperationData->param.deleteOp.objectName); //objToDelete
+                                        SmfCampaignList::instance()->get(ccbUtilOperationData->param.delete_.objectName); //objToDelete
                                 if (campaign == NULL) {
                                         LOG_NO("Campaign %s doesn't exists, can't be deleted", objToDelete.c_str());
                                         rc = SA_AIS_ERR_BAD_OPERATION;
@@ -563,8 +563,8 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT cc
 		{
 			//Handle the campaign object
                         if ((long)ccbUtilOperationData->userData == SMF_CLASS_CAMPAIGN) {
-				TRACE("Deleting campaign %s", osaf_extended_name_borrow(ccbUtilOperationData->param.deleteOp.objectName));
-				SmfCampaignList::instance()->del(ccbUtilOperationData->param.deleteOp.objectName);
+				TRACE("Deleting campaign %s", osaf_extended_name_borrow(ccbUtilOperationData->param.delete_.objectName));
+				SmfCampaignList::instance()->del(ccbUtilOperationData->param.delete_.objectName);
 			}
 			break;
 		}

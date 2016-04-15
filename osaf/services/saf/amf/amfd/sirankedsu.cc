@@ -377,7 +377,7 @@ static int avd_sirankedsu_ccb_complete_delete_hdlr(CcbUtilOperationData_t *opdat
 
 	memset(&su_name, 0, sizeof(SaNameT));
 	memset(&si_name, 0, sizeof(SaNameT));
-	avd_susi_namet_init(opdata->param.deleteOp.objectName, &su_name, &si_name);
+	avd_susi_namet_init(opdata->param.delete_.objectName, &su_name, &si_name);
 
 	/* determine if the su is ranked per si */
 	for (std::map<std::pair<std::string, uint32_t>, AVD_SUS_PER_SI_RANK*>::const_iterator
