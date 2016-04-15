@@ -26,10 +26,11 @@ related to your operating system.
 `OpenSAF' Architecture Overview
 ===============================
 
-`OpenSAF' software is distributed in nature. There is a Controller node, which is
-the central entity in the cluster which will control all the other Payload nodes
-in the HA cluster. In the HA cluster there are two System Controllers running in
-Active/Standby mode.
+`OpenSAF' software is distributed in nature. In the HA cluster there are two
+types of nodes: System Controllers and Payloads. One system controller will be
+running in Active mode, another system controller will be running in Standby
+mode, and the rest of the system controllers (if any) will be spares that are
+ready to take over as Active or Standby in case of a fault.
 
 The `OpenSAF' software is divided in to following classes of Modules:
 
@@ -834,12 +835,13 @@ Admin Operations on OpenSAF SUs
 From OpenSAF release 4.4 onwards, the AMF admin operations lock, lock-in,
 unlock, unlock-in is allowed to be performed on the OpenSAF SUs (i.e.
 safSu=<nodename>,safSg=2N,safApp=OpenSAF
-safSu=<nodename>,safSg=NoRed,safApp=OpenSAF)
-However, these commands should be restrictively used, like running them
-from a SMF campaign.  When running this from an SMF campaign,
-OpenSAF shall support the behaviour only when used under
-the supported usecases of OpenSAF. At this point of time,
-there is no evident usecase to support this.
+safSu=<nodename>,safSg=NoRed,safApp=OpenSAF) However, these commands should be
+restrictively used, like running them from a SMF campaign. When running this
+from an SMF campaign, OpenSAF shall support the behaviour only when used under
+the supported usecases of OpenSAF. At this point of time, there is no evident
+usecase to support this. Also note that locking of the 2N SU is currently not
+supported when the system is configured with more than two system controller
+nodes.
 
 Linux Distro-Specific Notes
 ===========================
