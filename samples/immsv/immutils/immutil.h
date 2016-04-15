@@ -36,10 +36,6 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @defgroup CcbUtils Defines an interface for simplified handling of CCBs
  *
@@ -90,7 +86,7 @@ extern "C" {
 			} create;
 			struct {
 				const SaNameT *objectName; // redundant, can be removed
-			} deleteOp;
+			} delete;
 			struct {
 				const SaNameT *objectName; // redundant, can be removed
 				const SaImmAttrModificationT_2 **attrMods;
@@ -705,9 +701,5 @@ extern SaAisErrorT immutil_getAttr(const char *attrName,
                                                                        SaImmAttrDefinitionT_2 **attrDef);
 
 /*@}*/
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
