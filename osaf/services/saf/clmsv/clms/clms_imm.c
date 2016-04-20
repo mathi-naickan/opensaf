@@ -843,7 +843,7 @@ static void clms_imm_admin_op_callback(SaImmOiHandleT immOiHandle,
 		nodeop->admin_op = IMM_LOCK;
 		rc = clms_imm_node_lock(nodeop);
 		if (rc != NCSCC_RC_SUCCESS) {
-			LOG_ER("clms_imm_node_lock failed");
+			LOG_NO("clms_imm_node_lock failed");
 			goto done;
 		}
 
@@ -1975,7 +1975,7 @@ uint32_t clms_imm_node_lock(CLMS_CLUSTER_NODE * nodeop)
 	}
 
 	if (nodeop->node_id == clms_cb->node_id) {
-		LOG_ER("Lock on active node not allowed");
+		LOG_NO("Lock on active node not allowed");
 		nodeop->admin_op = 0;
 		rc = NCSCC_RC_FAILURE;
 		(void)immutil_saImmOiAdminOperationResult(clms_cb->immOiHandle, nodeop->curr_admin_inv,
