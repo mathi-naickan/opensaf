@@ -252,7 +252,7 @@ SaAisErrorT NtfLogger::logNotification(NtfSmartPtr& notif)
                                        &logRecord);
         if (SA_AIS_OK != errorCode)
         {
-            LOG_ER("Failed to log an alarm or security alarm notification (%d)", errorCode);
+            LOG_NO("Failed to log an alarm or security alarm notification (%d)", errorCode);
             if (errorCode == SA_AIS_ERR_LIBRARY || errorCode == SA_AIS_ERR_BAD_HANDLE) {
                 LOG_ER("Fatal error SA_AIS_ERR_LIBRARY or SA_AIS_ERR_BAD_HANDLE; exiting (%d)...", errorCode);
                 exit(EXIT_FAILURE);

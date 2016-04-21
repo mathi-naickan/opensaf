@@ -1272,7 +1272,7 @@ SaAisErrorT ntfsv_sanamet_copy(SaNameT* pDes, SaNameT* pSrc)
 bool ntfsv_sanamet_is_valid(const SaNameT* pName)
 {
 	if (!osaf_is_extended_name_valid(pName)) {
-		LOG_ER("Environment variable SA_ENABLE_EXTENDED_NAMES "
+		LOG_NO("Environment variable SA_ENABLE_EXTENDED_NAMES "
 			"is not set, or not using extended name api");
 		return false;
 	}

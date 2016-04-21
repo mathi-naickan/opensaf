@@ -77,8 +77,9 @@ void saNtfFinalize_04()
     pthread_join(thread, NULL);
     printf("    Return value from thread:%u\n",ret2);
 
-    //saNtfUnsubscribe() may fail with expected return value BAD_HANDLE or TRY_AGAIN.
-    if ((ret2 == SA_AIS_ERR_BAD_HANDLE) || (ret2 == SA_AIS_ERR_TRY_AGAIN))
+    //saNtfUnsubscribe() may fail with expected return value BAD_HANDLE or TRY_AGAIN or NOT_EXIST.
+    if ((ret2 == SA_AIS_ERR_BAD_HANDLE) || (ret2 == SA_AIS_ERR_TRY_AGAIN) ||
+		    (ret2 == SA_AIS_ERR_NOT_EXIST))
 	    ret2 = SA_AIS_OK;
     safassert(ret2,SA_AIS_OK);
     test_validate(ret1, SA_AIS_OK);

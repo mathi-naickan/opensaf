@@ -45,16 +45,12 @@ int lock_clm_node(void)
 {
 	int rc = 0;
 	rc = system(lock_cmd);
-	if (rc != 0)
-		printf("lock of CLM node failed, maybe active controller.\n");
 	return rc;
 }
 int unlock_clm_node(void)
 {
 	int rc = 0;
 	rc = system(unlock_cmd);
-	if (rc != 0)
-		printf("UNLOCK of CLM node failed.\n");
 	return rc;
 }
 
@@ -458,44 +454,64 @@ __attribute__ ((constructor)) static void ntf_clm_constructor(void)
 	//printf("lock_cmd:'%s'\n",lock_cmd);
 	//printf("unlock_cmd:'%s'\n",unlock_cmd);
 
-	/* Check if CLM node lock is allowed on this node.
-	   (On active controller clm lock/shutdown is not allowed.).*/
-	if (lock_clm_node() != 0)
-		return;
-	if (unlock_clm_node() != 0)
-		return;
 
-	test_suite_add(38, "Ntf CLM Integration test suite\n");
+	//Add these test cases on other than active controller.
+	int rc = 0;
+	char role[80];
+	rc = system("which rdegetrole");
+	if (rc == 0) {
+		printf("This is a controller node\n");
+		//Command rdegetrole exists means a controller.
+		memset(buffer, '\0', sizeof(buffer));
+		memset(role, '\0', sizeof(role));
+		strcpy(buffer, "rdegetrole");
+		fp = popen(buffer,"r");
+		if (fgets(role, sizeof(role), fp) != NULL)
+		{
+			if ((ptr = strchr(role, '\n')) != NULL)
+				*ptr = '\0';
+			if (!strcmp((char *) role, "ACTIVE")) {
+				//printf("Active controller node\n");
+				pclose(fp);
+				return;
+			}
+		} 
+		pclose(fp);
+	} else {
+		printf("This is a payload node\n");
+	}
+
+	test_suite_add(40, "Ntf CLM Integration test suite\n");
 
 	//API with A0101 initialization should work.
-	test_case_add(38,ntf_clm_A0101_01, "Send Object Ntf with A0101 init on CLM locked node - SA_AIS_OK");
-	test_case_add(38,ntf_clm_A0101_02, "Send Attribute Ntf with A0101 on CLM locked node - SA_AIS_OK");
-	test_case_add(38,ntf_clm_A0101_03, "Send State Change Ntf with A0101 on CLM locked node - SA_AIS_OK");
-	test_case_add(38,ntf_clm_A0101_04, "Send Alarm Ntf with A0101 init on CLM locked node - SA_AIS_OK");
-	test_case_add(38,ntf_clm_A0101_05, "Send Security Ntf with A0101 on CLM locked node - SA_AIS_OK");
+	test_case_add(40,ntf_clm_A0101_01, "Send Object Ntf with A0101 init on CLM locked node - SA_AIS_OK");
+	test_case_add(40,ntf_clm_A0101_02, "Send Attribute Ntf with A0101 on CLM locked node - SA_AIS_OK");
+	test_case_add(40,ntf_clm_A0101_03, "Send State Change Ntf with A0101 on CLM locked node - SA_AIS_OK");
+	test_case_add(40,ntf_clm_A0101_04, "Send Alarm Ntf with A0101 init on CLM locked node - SA_AIS_OK");
+	test_case_add(40,ntf_clm_A0101_05, "Send Security Ntf with A0101 on CLM locked node - SA_AIS_OK");
 
 	//Each API with A0102 initialization.
-	test_case_add(38,ntf_clm_01, "saNtfInitialize() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_02, "saNtfSelectionObjectGet() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_03, "saNtfDispatch() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_04, "saNtfFinalize() with A0102 on CLM locked node - SA_AIS_OK");
-	test_case_add(38,ntf_clm_05, "saNtfStateChangeNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_06, "saNtfObjectCreateDeleteNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_07, "saNtfAttributeChangeNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_08, "saNtfAlarmNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_09, "saNtfSecurityAlarmNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_10, "saNtfNotificationSend() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_11, "saNtfNotificationFree() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_12, "saNtfStateChangeNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_13, "saNtfObjectCreateDeleteNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_14, "saNtfAttributeChangeNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_15, "saNtfAlarmNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_16, "saNtfSecurityAlarmNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_17, "saNtfNotificationFilterFree() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_18, "saNtfNotificationSubscribe() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_19, "saNtfNotificationUnsubscribe() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_20, "saNtfNotificationReadInitialize() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_21, "saNtfNotificationReadNext() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
-	test_case_add(38,ntf_clm_22, "saNtfNotificationReadFinalize() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_01, "saNtfInitialize() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_02, "saNtfSelectionObjectGet() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_03, "saNtfDispatch() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_04, "saNtfFinalize() with A0102 on CLM locked node - SA_AIS_OK");
+	test_case_add(40,ntf_clm_05, "saNtfStateChangeNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_06, "saNtfObjectCreateDeleteNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_07, "saNtfAttributeChangeNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_08, "saNtfAlarmNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_09, "saNtfSecurityAlarmNotificationAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_10, "saNtfNotificationSend() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_11, "saNtfNotificationFree() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_12, "saNtfStateChangeNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_13, "saNtfObjectCreateDeleteNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_14, "saNtfAttributeChangeNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_15, "saNtfAlarmNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_16, "saNtfSecurityAlarmNotificationFilterAllocate() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_17, "saNtfNotificationFilterFree() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_18, "saNtfNotificationSubscribe() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_19, "saNtfNotificationUnsubscribe() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_20, "saNtfNotificationReadInitialize() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_21, "saNtfNotificationReadNext() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
+	test_case_add(40,ntf_clm_22, "saNtfNotificationReadFinalize() with A0102 on CLM locked node - SA_AIS_ERR_UNAVAILABLE");
 
 }

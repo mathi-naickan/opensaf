@@ -119,7 +119,7 @@ static SaAisErrorT checkNtfValue(v_data* pvdata, SaNtfValueTypeT type, SaNtfValu
 			size_t length_to_copy;
 			void *p;
 			if (value->ptrVal.dataSize < (osaf_extended_name_length(ptr) + 2)) {
-				LOG_ER("The allocated memory is not large enough,"
+				LOG_NO("The allocated memory is not large enough,"
 						" the object will be truncated (%s)"
 						, osaf_extended_name_borrow(ptr));
 				length_to_copy = value->ptrVal.dataSize - 2;		
