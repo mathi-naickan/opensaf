@@ -122,8 +122,8 @@ timespec ElectionStarter::Poll() {
 
 timespec ElectionStarter::CalculateTimeRemainingUntilNextEvent() const {
   timespec timeout;
-  if (controller_nodes_.tree.size() == 0 &&
-      nodes_with_lower_node_id_.tree.size() == 0) {
+  if (controller_nodes_.tree.empty() &&
+      nodes_with_lower_node_id_.tree.empty()) {
     timeout =
         base::Max(controller_nodes_.last_change + election_delay_time_,
                   nodes_with_lower_node_id_.last_change + election_delay_time_,
