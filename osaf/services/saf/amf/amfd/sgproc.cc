@@ -1487,10 +1487,13 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 			process_su_si_response_for_comp(su);
 		} else {
 			if (n2d_msg->msg_info.n2d_su_si_assign.error == NCSCC_RC_SUCCESS) {
-				if ((su->sg_of_su->sg_redundancy_model == SA_AMF_N_WAY_REDUNDANCY_MODEL) && 
-						(su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE)) {
+				if (su->sg_of_su->sg_fsm_state == AVD_SG_FSM_STABLE) {
 					for (const auto& temp_su : su->sg_of_su->list_of_su) {
-						temp_su->complete_admin_op(SA_AIS_OK);
+						SaAmfAdminOperationIdT op_id = temp_su->get_admin_op_id();
+						if ((op_id == SA_AMF_ADMIN_SHUTDOWN) ||
+								(op_id == SA_AMF_ADMIN_LOCK) ||
+								(op_id == SA_AMF_ADMIN_UNLOCK))
+							temp_su->complete_admin_op(SA_AIS_OK);
 					}
 				} else
 					; // wait for SG to become STABLE
