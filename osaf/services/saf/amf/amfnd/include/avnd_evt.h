@@ -164,6 +164,8 @@ typedef struct avnd_evt_tag {
 	MDS_CLIENT_MSG_FORMAT_VER msg_fmt_ver;
 	NCS_IPC_PRIORITY priority;
 	AVND_EVT_TYPE type;
+	bool ack; /* This is used internal to AVND for resolving rcv_msg_id
+		     counter for data verify msg. */
 
 	union {
 		AVSV_DND_MSG *avd;

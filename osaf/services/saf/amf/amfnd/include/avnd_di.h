@@ -81,7 +81,7 @@ AVND_DND_MSG_LIST *avnd_diq_rec_add(struct avnd_cb_tag *cb, AVND_MSG *msg);
 void avnd_diq_rec_del(struct avnd_cb_tag *cb, AVND_DND_MSG_LIST *rec);
 uint32_t avnd_diq_rec_send(struct avnd_cb_tag *cb, AVND_DND_MSG_LIST *rec);
 uint32_t avnd_di_reg_su_rsp_snd(struct avnd_cb_tag *cb, SaNameT *su_name, uint32_t ret_code);
-uint32_t avnd_di_ack_nack_msg_send(struct avnd_cb_tag *cb, uint32_t rcv_id, uint32_t view_num);
+uint32_t avnd_di_ack_nack_msg_send(struct avnd_cb_tag *cb, bool ack, uint32_t view_num);
 extern void avnd_di_uns32_upd_send(int class_id, int attr_id, const SaNameT *dn, uint32_t value);
 void avnd_sync_sisu(struct avnd_cb_tag *cb);
 void avnd_sync_csicomp(struct avnd_cb_tag *cb);

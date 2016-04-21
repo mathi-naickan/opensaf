@@ -105,7 +105,6 @@ uint32_t avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt)
 	cb->su_failover_prob = info->su_failover_prob;
 
 	TRACE_1("AVD send ID count: %u",info->snd_id_cnt);
-	TRACE_1("AVND receive ID count: %u",cb->rcv_msg_id);
 
 	/*
 	 * Verify message ID received in the message. Send Ack if send ID count
@@ -113,15 +112,8 @@ uint32_t avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt)
 	 * mismatch. Reset the receive message ID count. Here after AVD is going to 
 	 * Start with 0.
 	 */
-	avnd_di_ack_nack_msg_send(cb, info->snd_id_cnt, 0);
+	avnd_di_ack_nack_msg_send(cb, evt->ack, 0);
 	/* Log error */
-
-	/*
-	 * We are done with use of rev_msg_id count. Now it is time
-	 * re-set it since all new messages we are going to get with 
-	 * the new counter value.
-	 */
-	cb->rcv_msg_id = 0;
 
 	/*
 	 * Validate send Message ID. Re-send all the messages in the AVND message
