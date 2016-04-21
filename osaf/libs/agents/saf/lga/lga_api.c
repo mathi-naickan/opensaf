@@ -958,10 +958,10 @@ SaAisErrorT saLogStreamOpenAsync_2(SaLogHandleT logHandle,
  */
 static SaAisErrorT handle_log_record(const SaLogRecordT *logRecord,
 	SaNameT *logSvcUsrName,
-	lgsv_write_log_async_req_t *write_param)
+	lgsv_write_log_async_req_t *write_param,
+	SaTimeT *const logTimeStamp)
 {
 	SaAisErrorT ais_rc = SA_AIS_OK;
-	SaTimeT logTimeStamp;
 
 	TRACE_ENTER();
 
@@ -1000,8 +1000,8 @@ static SaAisErrorT handle_log_record(const SaLogRecordT *logRecord,
 
 	/* Set timeStamp data if not provided by application user */
 	if (logRecord->logTimeStamp == SA_TIME_UNKNOWN) {
-		logTimeStamp = setLogTime();
-		write_param->logTimeStamp = &logTimeStamp;
+		*logTimeStamp = setLogTime();
+		write_param->logTimeStamp = logTimeStamp;
 	} else {
 		write_param->logTimeStamp = (SaTimeT *)&logRecord->logTimeStamp;
 	}
@@ -1120,7 +1120,8 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 	/* Validate the log record and if generic header add
 	 * logSvcUsrName from environment variable SA_AMF_COMPONENT_NAME
 	 */
-	ais_rc = handle_log_record(logRecord, &logSvcUsrName, write_param);
+	SaTimeT logTimeStamp;
+	ais_rc = handle_log_record(logRecord, &logSvcUsrName, write_param, &logTimeStamp);
 	if (ais_rc != SA_AIS_OK) {
 		TRACE("%s: Validate Log record Fail", __FUNCTION__);
 		goto done;
