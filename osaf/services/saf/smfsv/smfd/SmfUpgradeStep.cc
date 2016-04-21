@@ -1942,9 +1942,7 @@ SmfUpgradeStep::callActivationCmd()
 		//Start a load thread for each node
 		std::list <std::string>::iterator nodeIt;
 		for (nodeIt = swNodeList.begin(); nodeIt != swNodeList.end(); ++nodeIt) {
-			SmfNodeSwLoadThread *swLoadThread = new SmfNodeSwLoadThread(this,
-										    *nodeIt,
-										    SMF_ACTIVATE_ALL);
+			SmfNodeSwLoadThread *swLoadThread = new SmfNodeSwLoadThread(this, *nodeIt, SMF_ACTIVATE_ALL);
 			swLoadThread->start();
 		}
 
@@ -2027,9 +2025,7 @@ SmfUpgradeStep::callBundleScript(SmfInstallRemoveT i_order,
 		//Start a load thread for each node
 		std::list <std::string>::iterator nodeIt;
 		for (nodeIt = swNodeList.begin(); nodeIt != swNodeList.end(); ++nodeIt) {
-			SmfNodeSwLoadThread *swLoadThread = new SmfNodeSwLoadThread(this,
-										    *nodeIt,
-										    i_order);
+			SmfNodeSwLoadThread *swLoadThread = new SmfNodeSwLoadThread(this, *nodeIt, i_order, &i_bundleList);
 			swLoadThread->start();
 		}
 
@@ -2845,14 +2841,20 @@ SmfNodeSwLoadThread::main(NCSCONTEXT info)
 
 /** 
  * Constructor
+ *
+ * This class operates in two main modes: activate and install/remove. When
+ * install/remove is used a bundle list must be specified. The reason for not
+ * using the bundle list directly from the step is that install and remove
+ * operations are switched during rollback.
  */
-SmfNodeSwLoadThread::SmfNodeSwLoadThread(SmfUpgradeStep * i_step,
-					 std::string i_nodeName,
-					 SmfUpgradeStep::SmfInstallRemoveT i_order):
+SmfNodeSwLoadThread::SmfNodeSwLoadThread(SmfUpgradeStep * i_step, std::string i_nodeName, 
+					 SmfUpgradeStep::SmfInstallRemoveT i_order, 
+					 const std::list<SmfBundleRef> *i_bundleList):
 	m_task_hdl(0),
 	m_step(i_step),
 	m_amfNode(i_nodeName),
-	m_order(i_order)
+        m_order(i_order),
+        m_bundleList(i_bundleList)
 {
 	sem_init(&m_semaphore, 0, 0);
 }
@@ -2914,7 +2916,6 @@ void
 SmfNodeSwLoadThread::main(void)
 {
 	std::list < SmfBundleRef >::const_iterator bundleit;
-	std::list < SmfBundleRef > bundleList;
 	std::string command;
 	std::string cmdAttr;
 	std::string argsAttr;
@@ -2932,15 +2933,8 @@ SmfNodeSwLoadThread::main(void)
 
 	TRACE("Bundle command thread for node [%s] started", m_amfNode.c_str());
  	uint32_t rc = 0;
-	if ((m_order == SmfUpgradeStep::SMF_STEP_OFFLINE_INSTALL) ||
-	    (m_order == SmfUpgradeStep::SMF_STEP_ONLINE_INSTALL)) {
-		    bundleList = m_step->getSwAddList();
-	}
-	else if ((m_order == SmfUpgradeStep::SMF_STEP_OFFLINE_REMOVE) ||
-		 (m_order == SmfUpgradeStep::SMF_STEP_ONLINE_REMOVE)) {
-		    bundleList = m_step->getSwRemoveList();
-	}
-	else if (m_order == SmfUpgradeStep::SMF_ACTIVATE_ALL) {
+
+	if (m_order == SmfUpgradeStep::SMF_ACTIVATE_ALL) {
 		command = smfd_cb->nodeBundleActCmd;
 		swNodeList.push_back(m_amfNode);
 		std::list<std::string>::const_iterator n;
@@ -2968,13 +2962,14 @@ SmfNodeSwLoadThread::main(void)
 		}
 		goto done;
 	}
-	else {
-		LOG_NO("Unknown bundle command order");
+
+	if (m_bundleList == NULL) {
+		LOG_ER("Bundle list must be set for installation/removal");
 		rc = 1;
 		goto done;
 	}
 
-	for (bundleit = bundleList.begin(); bundleit != bundleList.end(); ++bundleit) {
+	for (bundleit = m_bundleList->begin(); bundleit != m_bundleList->end(); ++bundleit) {
 		/* Get bundle object from IMM */
 		if (immUtil.getObject((*bundleit).getBundleDn(), &attributes) == false) {
 			LOG_NO("Fail to read bundle object for bundle DN [%s]",

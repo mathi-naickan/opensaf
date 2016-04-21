@@ -808,7 +808,8 @@ class SmfUpgradeStep {
 //////////////////////////////////////////////////
 class SmfNodeSwLoadThread {
  public:
-  SmfNodeSwLoadThread(SmfUpgradeStep * i_step, std::string i_nodeName, SmfUpgradeStep::SmfInstallRemoveT i_order);
+	SmfNodeSwLoadThread(SmfUpgradeStep * i_step, std::string i_nodeName, SmfUpgradeStep::SmfInstallRemoveT i_order,
+			    const std::list<SmfBundleRef> *i_bundleList=NULL);
 	~SmfNodeSwLoadThread();
 	int start(void);
 
@@ -824,6 +825,7 @@ class SmfNodeSwLoadThread {
 	std::string       m_amfNode;
 	SmfUpgradeStep::SmfInstallRemoveT m_order;
 	sem_t             m_semaphore;
+	const std::list < SmfBundleRef > *m_bundleList;
 };
 
 #endif				// SMFUPGRADESTEP_HH
