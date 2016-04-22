@@ -794,6 +794,19 @@ void avnd_comp_hc_cmd_restart(AVND_COMP *comp)
 	if(rec == NULL)
 		return;
 
+	/*
+	   Before terminating/cleaning up a NPI comp, AMFND stops timer for periodically
+	   invoking command based health check for it. At the time of launching TERMINATE/CLEANUP
+	   command, if already invoked Health Check command is in progress then its response may 
+	   come during the termination phase . If comp is not found instantiated then do not start 
+	   health check timer again.  Exit status of any pending Terminate/cleanup scripts will 
+	   take care of comp's fault management.
+	 */
+	if (!m_AVND_COMP_PRES_STATE_IS_INSTANTIATED(comp)) {
+		TRACE_1("'%s' not instantiated, not starting Command based HC timer",comp->name.value);
+		rec->status = AVND_COMP_HC_STATUS_STABLE;
+		return;
+	}
 	if (rec->status == AVND_COMP_HC_STATUS_SND_TMR_EXPD) {
 		uint32_t rc = avnd_start_tmr(avnd_cb, &rec->tmr, AVND_TMR_HC, rec->period, rec->opq_hdl);
 		osafassert(rc == NCSCC_RC_SUCCESS);
