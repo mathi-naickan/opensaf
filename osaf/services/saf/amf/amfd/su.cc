@@ -1775,7 +1775,7 @@ void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
 		   and before it becomes applier, Act Amfd deletes Comps. Those Comps
 		   will be left out at Standby Amfd. Though this could be rare.*/
 		std::set<std::string> comp_list;
-		for (const auto& comp : su->list_of_comp)
+		for (AVD_COMP *comp = su->list_of_comp; comp; comp = comp->su_comp_next)
 			comp_list.insert(Amf::to_string(&comp->comp_info.name));
 		for (std::set<std::string>::const_iterator iter1 = comp_list.begin();
 				iter1 != comp_list.end(); ++iter1) {
