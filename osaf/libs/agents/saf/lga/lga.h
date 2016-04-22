@@ -115,7 +115,6 @@ typedef struct {
 	MDS_HDL mds_hdl;	/* MDS handle */
 	MDS_DEST lgs_mds_dest;	/* LGS absolute/virtual address */
 	lgs_state_t lgs_state;	/* Indicate current server MDS state */
-	lga_state_t lga_state;  /* Indicate current state of the agent */
 	/* LGS LGA sync params */
 	int lgs_sync_awaited;
 	NCS_SEL_OBJ lgs_sync_sel;

@@ -41,7 +41,6 @@
 /* The main controle block */
 lga_cb_t lga_cb = {
 	.cb_lock = PTHREAD_MUTEX_INITIALIZER,
-	.lga_state = LGA_NORMAL,
 	.lgs_state = LGS_START
 };
 
@@ -124,6 +123,7 @@ SaAisErrorT saLogInitialize(SaLogHandleT *logHandle, const SaLogCallbacksT *call
 	SaAisErrorT ais_rc = SA_AIS_OK;
 	int rc;
 	uint32_t client_id = 0;
+	bool is_locked = false;
 
 	TRACE_ENTER();
 
@@ -155,12 +155,7 @@ SaAisErrorT saLogInitialize(SaLogHandleT *logHandle, const SaLogCallbacksT *call
 	 * Synchronize with mds and recovery thread (mutex)
 	 * NOTE: Nothing to handle if recovery state 1
 	 */
-	pthread_mutex_lock(&lga_cb.cb_lock);
-	lgs_state_t lgs_state = lga_cb.lgs_state;
-	lga_state_t lga_state = lga_cb.lga_state;
-	pthread_mutex_unlock(&lga_cb.cb_lock);
-
-	if (lgs_state == LGS_NO_ACTIVE) {
+	if (is_lgs_state(LGS_NO_ACTIVE)) {
 		/* We have a server but it is temporary unavailable. Client may
 		 * try again
 		 */
@@ -169,7 +164,7 @@ SaAisErrorT saLogInitialize(SaLogHandleT *logHandle, const SaLogCallbacksT *call
 		goto done;
 	}
 
-	if (lga_state == LGA_NO_SERVER) {
+	if (is_lga_state(LGA_NO_SERVER)) {
 		/* We have no server and cannot initialize.
 		 * The client may try again
 		 */
@@ -178,7 +173,10 @@ SaAisErrorT saLogInitialize(SaLogHandleT *logHandle, const SaLogCallbacksT *call
 		goto done;
 	}
 
-	if (lga_state == LGA_RECOVERY2) {
+	/* Synchronize b/w client/recovery thread */
+	recovery2_lock(&is_locked);
+
+	if (is_lga_state(LGA_RECOVERY2)) {
 		/* Auto recovery is ongoing. We have to wait for it to finish.
 		 * The client may try again
 		 */
@@ -252,6 +250,7 @@ SaAisErrorT saLogInitialize(SaLogHandleT *logHandle, const SaLogCallbacksT *call
 	}
 
  done:
+	recovery2_unlock(&is_locked);
 	TRACE_LEAVE2("client_id = %d", client_id);
 	return ais_rc;
 }
@@ -451,6 +450,7 @@ SaAisErrorT saLogFinalize(SaLogHandleT logHandle)
 	lga_client_hdl_rec_t *hdl_rec;
 	SaAisErrorT ais_rc = SA_AIS_OK;
 	uint32_t rc;
+	bool is_locked = false;
 
 	TRACE_ENTER();
 
@@ -466,12 +466,7 @@ SaAisErrorT saLogFinalize(SaLogHandleT logHandle)
 	 * Handle states
 	 * Synchronize with mds and recovery thread (mutex)
 	 */
-	pthread_mutex_lock(&lga_cb.cb_lock);
-	lgs_state_t lgs_state = lga_cb.lgs_state;
-	lga_state_t lga_state = lga_cb.lga_state;
-	pthread_mutex_unlock(&lga_cb.cb_lock);
-
-	if (lgs_state == LGS_NO_ACTIVE) {
+	if (is_lgs_state(LGS_NO_ACTIVE)) {
 		/* We have a server but it is temporary unavailable. Client may
 		 * try again
 		 */
@@ -480,7 +475,7 @@ SaAisErrorT saLogFinalize(SaLogHandleT logHandle)
 		goto done_give_hdl;
 	}
 
-	if (lga_state == LGA_NO_SERVER) {
+	if (is_lga_state(LGA_NO_SERVER)) {
 		/* We have no server but can still finalize client.
 		 * In this situation no message to server is sent
 		 */
@@ -489,7 +484,10 @@ SaAisErrorT saLogFinalize(SaLogHandleT logHandle)
 		goto done_give_hdl;
 	}
 
-	if (lga_state == LGA_RECOVERY2) {
+	/* Synchronize b/w client/recovery thread */
+	recovery2_lock(&is_locked);
+
+	if (is_lga_state(LGA_RECOVERY2)) {
 		/* Auto recovery is ongoing. We have to wait for it to finish.
 		 * The client may try again
 		 */
@@ -498,7 +496,7 @@ SaAisErrorT saLogFinalize(SaLogHandleT logHandle)
 		goto done_give_hdl;
 	}
 
-	if (lga_state == LGA_RECOVERY1) {
+	if (is_lga_state(LGA_RECOVERY1)) {
 		/* We are in recovery state 1. Client may or may not have been
 		 * initialized. If initialized a finalize request must be sent
 		 * to the server else the client is finalized in the agent only
@@ -520,7 +518,7 @@ SaAisErrorT saLogFinalize(SaLogHandleT logHandle)
 
 	if (ais_rc == SA_AIS_OK) {
 		TRACE("%s delete_one_client", __FUNCTION__);
-		(void) delete_one_client(&lga_cb.client_list, hdl_rec);
+		(void) lga_hdl_rec_del(&lga_cb.client_list, hdl_rec);
 	}
 
  done_give_hdl:
@@ -533,6 +531,7 @@ SaAisErrorT saLogFinalize(SaLogHandleT logHandle)
 	}
 
  done:
+	recovery2_unlock(&is_locked);
 	TRACE_LEAVE2("ais_rc = %s", saf_error(ais_rc));
 	return ais_rc;
 }
@@ -740,6 +739,7 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 	uint32_t timeout;
 	uint32_t log_stream_id;
 	uint32_t log_header_type = 0;
+	bool is_locked = false;
 
 	TRACE_ENTER();
 
@@ -760,12 +760,7 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 	 * Handle states
 	 * Synchronize with mds and recovery thread (mutex)
 	 */
-	pthread_mutex_lock(&lga_cb.cb_lock);
-	lgs_state_t lgs_state = lga_cb.lgs_state;
-	lga_state_t lga_state = lga_cb.lga_state;
-	pthread_mutex_unlock(&lga_cb.cb_lock);
-
-	if (lgs_state == LGS_NO_ACTIVE) {
+	if (is_lgs_state(LGS_NO_ACTIVE)) {
 		/* We have a server but it is temporary unavailable. Client may
 		 * try again
 		 */
@@ -774,7 +769,7 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 		goto done_give_hdl;
 	}
 
-	if (lga_state == LGA_NO_SERVER) {
+	if (is_lga_state(LGA_NO_SERVER)) {
 		/* We have no server and cannot open a stream.
 		 * The client may try again
 		 */
@@ -783,7 +778,10 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 		goto done_give_hdl;
 	}
 
-	if (lga_state == LGA_RECOVERY2) {
+	/* Synchronize b/w client/recovery thread */
+	recovery2_lock(&is_locked);
+
+	if (is_lga_state(LGA_RECOVERY2)) {
 		/* Auto recovery is ongoing. We have to wait for it to finish.
 		 * The client may try again
 		 */
@@ -792,17 +790,17 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 		goto done_give_hdl;
 	}
 
-	if (lga_state == LGA_RECOVERY1) {
+	if (is_lga_state(LGA_RECOVERY1)) {
 		/* We are in recovery 1 state.
 		 * Recover client and execute the request
 		 */
-		rc = recover_one_client(hdl_rec);
+		rc = lga_recover_one_client(hdl_rec);
 		if (rc == -1) {
 			/* Client could not be recovered. Delete client and
 			 * return BAD HANDLE
 			 */
 			TRACE("%s delete_one_client", __FUNCTION__);
-			(void) delete_one_client(&lga_cb.client_list, hdl_rec);
+			(void) lga_hdl_rec_del(&lga_cb.client_list, hdl_rec);
 			ais_rc = SA_AIS_ERR_BAD_HANDLE;
 			/* Handles are destroyed so we shall not give handles */
 			goto done;
@@ -833,7 +831,7 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 		open_param->logFileName = (char *) malloc(strlen(logFileCreateAttributes->logFileName) + 1);
 		if (open_param->logFileName == NULL) {
 			ais_rc = SA_AIS_ERR_NO_MEMORY;
-			goto done_give_hdl;
+			goto done_free;
 		}
 		strcpy(open_param->logFileName, logFileCreateAttributes->logFileName);
 
@@ -845,7 +843,7 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 		open_param->logFilePathName = (char *) malloc(len);
 		if (open_param->logFilePathName == NULL) {
 			ais_rc = SA_AIS_ERR_NO_MEMORY;
-			goto done_give_hdl;
+			goto done_free;
 		}
 
 		if (logFileCreateAttributes->logFilePathName == NULL)
@@ -860,21 +858,21 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 	if (timeout < NCS_SAF_MIN_ACCEPT_TIME) {
 		TRACE("Timeout");
 		ais_rc = SA_AIS_ERR_TIMEOUT;
-		goto done_give_hdl;
+		goto done_free;
 	}
 
 	/* Send a sync MDS message to obtain a log stream id */
 	ncs_rc = lga_mds_msg_sync_send(&lga_cb, &msg, &o_msg, timeout, MDS_SEND_PRIORITY_HIGH);
 	if (ncs_rc != NCSCC_RC_SUCCESS) {
 		ais_rc = SA_AIS_ERR_TRY_AGAIN;
-		goto done_give_hdl;
+		goto done_free;
 	}
 
 	ais_rc = o_msg->info.api_resp_info.rc;
 	if (SA_AIS_OK != ais_rc) {
 		TRACE("Bad return status!!! rc = %d", ais_rc);
 		lga_msg_destroy(o_msg);
-		goto done_give_hdl;
+		goto done_free;
 	}
 
     /** Retrieve the log stream id and log stream open id params
@@ -884,7 +882,7 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 
     /** Lock LGA_CB
      **/
-	pthread_mutex_lock(&lga_cb.cb_lock);
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 
     /** Allocate an LGA_LOG_STREAM_HDL_REC structure and insert this
      *  into the list of channel hdl record.
@@ -895,15 +893,15 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 		logStreamName, log_header_type
 		);
 	if (lstr_hdl_rec == NULL) {
-		pthread_mutex_unlock(&lga_cb.cb_lock);
+		osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 		lga_msg_destroy(o_msg);
 		ais_rc = SA_AIS_ERR_NO_MEMORY;
-		goto done_give_hdl;
+		goto done_free;
 	}
 
     /** UnLock LGA_CB
      **/
-	pthread_mutex_unlock(&lga_cb.cb_lock);
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 
 	 /** Give the hdl-mgr allocated hdl to the application and free the response
 	  *  message
@@ -912,12 +910,15 @@ SaAisErrorT saLogStreamOpen_2(SaLogHandleT logHandle,
 
 	lga_msg_destroy(o_msg);
 
- done_give_hdl:
-	ncshm_give_hdl(logHandle);
+ done_free:
 	free(open_param->logFileName);
 	free(open_param->logFilePathName);
 
+ done_give_hdl:
+	ncshm_give_hdl(logHandle);
+
  done:
+	recovery2_unlock(&is_locked);
 	TRACE_LEAVE();
 	return ais_rc;
 }
@@ -1106,6 +1107,7 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 	lgsv_write_log_async_req_t *write_param;
 	SaNameT logSvcUsrName;
 	int rc;
+	bool is_recovery2_locked = false;
 
 	memset(&(msg), 0, sizeof(lgsv_msg_t));
 	write_param = &msg.info.api_info.param.write_log_async;
@@ -1169,12 +1171,7 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 	 * Handle states
 	 * Synchronize with mds and recovery thread (mutex)
 	 */
-	pthread_mutex_lock(&lga_cb.cb_lock);
-	lgs_state_t lgs_state = lga_cb.lgs_state;
-	lga_state_t lga_state = lga_cb.lga_state;
-	pthread_mutex_unlock(&lga_cb.cb_lock);
-
-	if (lgs_state == LGS_NO_ACTIVE) {
+	if (is_lgs_state(LGS_NO_ACTIVE)) {
 		/* We have a server but it is temporarily unavailable.
 		 * Client may try again
 		 */
@@ -1183,7 +1180,7 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 		goto done_give_hdl_all;
 	}
 
-	if (lga_state == LGA_NO_SERVER) {
+	if (is_lga_state(LGA_NO_SERVER)) {
 		/* We have no server and cannot write. The client may try again
 		 */
 		TRACE("\t LGA_NO_SERVER");
@@ -1191,7 +1188,10 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 		goto done_give_hdl_all;
 	}
 
-	if (lga_state == LGA_RECOVERY2) {
+	/* Synchronize b/w client/recovery thread */
+	recovery2_lock(&is_recovery2_locked);
+
+	if (is_lga_state(LGA_RECOVERY2)) {
 		/* Auto recovery is ongoing. We have to wait for it to finish.
 		 * The client may try again
 		 */
@@ -1200,12 +1200,12 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 		goto done_give_hdl_all;
 	}
 
-	if (lga_state == LGA_RECOVERY1) {
+	if (is_lga_state(LGA_RECOVERY1)) {
 		/* We are in recovery 1 state.
 		 * Recover client and execute the request
 		 */
 		TRACE("\t LGA_RECOVERY1");
-		rc = recover_one_client(hdl_rec);
+		rc = lga_recover_one_client(hdl_rec);
 		if (rc == -1) {
 			/* Client could not be recovered. Delete client and
 			 * return BAD HANDLE
@@ -1217,7 +1217,7 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 			 * take a log stream handle
 			 */
 			ncshm_give_hdl(logStreamHandle);
-			(void) delete_one_client(&lga_cb.client_list, hdl_rec);
+			(void) lga_hdl_rec_del(&lga_cb.client_list, hdl_rec);
 			ais_rc = SA_AIS_ERR_BAD_HANDLE;
 			/* Handles are destroyed so we shall not give handles */
 			goto done;
@@ -1245,6 +1245,7 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 	ncshm_give_hdl(logStreamHandle);
 
 done:
+	recovery2_unlock(&is_recovery2_locked);
 	TRACE_LEAVE();
 	return ais_rc;
 }
@@ -1264,6 +1265,7 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 	SaAisErrorT ais_rc = SA_AIS_OK;
 	uint32_t mds_rc;
 	int rc;
+	bool is_locked = false;
 
 	TRACE_ENTER();
 
@@ -1278,12 +1280,7 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 	 * Handle states
 	 * Synchronize with mds and recovery thread (mutex)
 	 */
-	pthread_mutex_lock(&lga_cb.cb_lock);
-	lgs_state_t lgs_state = lga_cb.lgs_state;
-	lga_state_t lga_state = lga_cb.lga_state;
-	pthread_mutex_unlock(&lga_cb.cb_lock);
-
-	if (lgs_state == LGS_NO_ACTIVE) {
+	if (is_lgs_state(LGS_NO_ACTIVE)) {
 		/* We have a server but it is temporarily unavailable. Client may
 		 * try again
 		 */
@@ -1292,7 +1289,10 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 		goto done_give_hdl_stream;
 	}
 
-	if (lga_state == LGA_RECOVERY2) {
+	/* Synchronize b/w client/recovery thread */
+	recovery2_lock(&is_locked);
+
+	if (is_lga_state(LGA_RECOVERY2)) {
 		/* Auto recovery is ongoing. We have to wait for it to finish.
 		 * The client may try again
 		 */
@@ -1309,7 +1309,7 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 		goto done_give_hdl_stream;
 	}
 
-	if (lga_state == LGA_NO_SERVER) {
+	if (is_lga_state(LGA_NO_SERVER)) {
 		/* No server is available. Remove the stream from client database.
 		 * Server side will manage to release resources of this stream when up.
 		 */
@@ -1318,11 +1318,11 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 		goto rmv_stream;
 	}
 
-	if (lga_state == LGA_RECOVERY1) {
+	if (is_lga_state(LGA_RECOVERY1)) {
 		/* We are in recovery 1 state.
 		 * Recover client and execute the request
 		 */
-		rc = recover_one_client(hdl_rec);
+		rc = lga_recover_one_client(hdl_rec);
 		if (rc == -1) {
 			/* Client could not be recovered. Delete client and
 			 * return BAD HANDLE
@@ -1334,7 +1334,7 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 			 * take a log stream handle
 			 */
 			ncshm_give_hdl(logStreamHandle);
-			(void) delete_one_client(&lga_cb.client_list, hdl_rec);
+			(void) lga_hdl_rec_del(&lga_cb.client_list, hdl_rec);
 			ais_rc = SA_AIS_ERR_BAD_HANDLE;
 			/* Handles are destroyed so we shall not give handles */
 			goto done;
@@ -1371,7 +1371,7 @@ SaAisErrorT saLogStreamClose(SaLogStreamHandleT logStreamHandle)
 
 rmv_stream:
 	if (ais_rc == SA_AIS_OK) {
-		pthread_mutex_lock(&lga_cb.cb_lock);
+		osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 
 	/** Delete this log stream & the associated resources with this
          *  instance of log stream open.
@@ -1381,7 +1381,7 @@ rmv_stream:
 			ais_rc = SA_AIS_ERR_LIBRARY;
 		}
 
-		pthread_mutex_unlock(&lga_cb.cb_lock);
+		osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 	}
 
  done_give_hdl_all:
@@ -1390,6 +1390,7 @@ rmv_stream:
 	ncshm_give_hdl(logStreamHandle);
 
  done:
+	recovery2_unlock(&is_locked);
 	TRACE_LEAVE();
 	return ais_rc;
 }

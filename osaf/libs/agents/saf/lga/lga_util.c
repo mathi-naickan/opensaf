@@ -19,6 +19,7 @@
 #include <syslog.h>
 #include "lga.h"
 #include "osaf_poll.h"
+#include "lga_state.h"
 
 /* Variables used during startup/shutdown only */
 static pthread_mutex_t lga_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -50,9 +51,9 @@ static unsigned int lga_create(void)
 	 */
 	osaf_poll_one_fd(m_GET_FD_FROM_SEL_OBJ(lga_cb.lgs_sync_sel), 10000);
 
-	pthread_mutex_lock(&lga_cb.cb_lock);
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 	lga_cb.lgs_sync_awaited = 0;
-	pthread_mutex_unlock(&lga_cb.cb_lock);
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 
 	/* No longer needed */
 	m_NCS_SEL_OBJ_DESTROY(&lga_cb.lgs_sync_sel);
@@ -281,7 +282,7 @@ static uint32_t lga_hdl_cbk_dispatch_block(lga_cb_t *cb, lga_client_hdl_rec_t *h
 unsigned int lga_startup(lga_cb_t *cb)
 {
 	unsigned int rc = NCSCC_RC_SUCCESS;
-	pthread_mutex_lock(&lga_lock);
+	osaf_mutex_lock_ordie(&lga_lock);
 
 	TRACE_ENTER2("lga_use_count: %u", lga_use_count);
 	if (lga_use_count > 0) {
@@ -304,11 +305,11 @@ unsigned int lga_startup(lga_cb_t *cb)
 		/* Agent has successfully been started including communication
 		 * with server
 		 */
-		cb->lga_state = LGA_NORMAL;
+		set_lga_state(LGA_NORMAL);
 	}
 
  done:
-	pthread_mutex_unlock(&lga_lock);
+	osaf_mutex_unlock_ordie(&lga_lock);
 
 	TRACE_LEAVE2("rc: %u, lga_use_count: %u", rc, lga_use_count);
 	return rc;
@@ -331,7 +332,7 @@ unsigned int lga_shutdown_after_last_client(void)
 	unsigned int rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER2("lga_use_count: %u", lga_use_count);
-	pthread_mutex_lock(&lga_lock);
+	osaf_mutex_lock_ordie(&lga_lock);
 
 	if (lga_use_count > 1) {
 		/* Users still exist, just decrement the use count */
@@ -342,7 +343,7 @@ unsigned int lga_shutdown_after_last_client(void)
 		lga_use_count = 0;
 	}
 
-	pthread_mutex_unlock(&lga_lock);
+	osaf_mutex_unlock_ordie(&lga_lock);
 
 	TRACE_LEAVE2("rc: %u, lga_use_count: %u", rc, lga_use_count);
 	return rc;
@@ -367,14 +368,14 @@ unsigned int lga_force_shutdown(void)
 {
 	unsigned int rc = NCSCC_RC_SUCCESS;
 	TRACE_ENTER();
-	pthread_mutex_lock(&lga_lock);
+	osaf_mutex_lock_ordie(&lga_lock);
 	if (lga_use_count > 0) {
 		lga_destroy();
 		rc = ncs_agents_shutdown(); /* Always returns NCSCC_RC_SUCCESS */
 		lga_use_count = 0;
 		TRACE("%s: Forced shutdown. Handles invalidated\n",__FUNCTION__);
 	}
-	pthread_mutex_unlock(&lga_lock);
+	osaf_mutex_unlock_ordie(&lga_lock);
 	TRACE_LEAVE();
 	return rc;
 }
@@ -449,10 +450,7 @@ void lga_hdl_list_del(lga_client_hdl_rec_t **p_client_hdl)
 	/** clean up the channel records for this lga-client
          **/
 		lga_log_stream_hdl_rec_list_del(&client_hdl->stream_list);
-	/** remove the association with hdl-mngr 
-         **/
-		free(client_hdl);
-		client_hdl = 0;
+		lga_free_client_hdl(&client_hdl);
 	}
 	TRACE_LEAVE();
 }
@@ -546,10 +544,7 @@ uint32_t lga_hdl_rec_del(lga_client_hdl_rec_t **list_head, lga_client_hdl_rec_t 
 	/** Free the channel records off this hdl 
          **/
 		lga_log_stream_hdl_rec_list_del(&rm_node->stream_list);
-
-	/** free the hdl rec 
-         **/
-		free(rm_node);
+		lga_free_client_hdl(&rm_node);
 		rc = NCSCC_RC_SUCCESS;
 		goto out;
 	} else {		/* find the rec */
@@ -565,10 +560,7 @@ uint32_t lga_hdl_rec_del(lga_client_hdl_rec_t **list_head, lga_client_hdl_rec_t 
 				ncshm_destroy_hdl(NCS_SERVICE_ID_LGA, rm_node->local_hdl);
 		/** Free the channel records off this lga_hdl  */
 				lga_log_stream_hdl_rec_list_del(&rm_node->stream_list);
-
-		/** free the hdl rec */
-				free(rm_node);
-
+				lga_free_client_hdl(&rm_node);
 				rc = NCSCC_RC_SUCCESS;
 				goto out;
 			}
@@ -708,11 +700,11 @@ lga_client_hdl_rec_t *lga_hdl_rec_add(lga_cb_t *cb, const SaLogCallbacksT *reg_c
      ** CLIENT_HDL_RECORDS for this LGA_CB 
      **/
 
-	pthread_mutex_lock(&cb->cb_lock);
+	osaf_mutex_lock_ordie(&cb->cb_lock);
 	/* add this to the start of the list */
 	rec->next = cb->client_list;
 	cb->client_list = rec;
-	pthread_mutex_unlock(&cb->cb_lock);
+	osaf_mutex_unlock_ordie(&cb->cb_lock);
 
 	goto out;
 

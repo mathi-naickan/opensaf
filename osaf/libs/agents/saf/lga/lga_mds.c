@@ -516,12 +516,12 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info)
 		TRACE("%s\t NCSMDS_NO_ACTIVE", __FUNCTION__);
 		/* This is a temporary server down e.g. during switch/fail over*/
 		if (mds_cb_info->info.svc_evt.i_svc_id == NCSMDS_SVC_ID_LGS) {
-			pthread_mutex_lock(&lga_cb.cb_lock);
+			osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 			TRACE("NCSMDS_NO_ACTIVE");
 
 			memset(&lga_cb.lgs_mds_dest, 0, sizeof(MDS_DEST));
 			lga_cb.lgs_state = LGS_NO_ACTIVE;
-			pthread_mutex_unlock(&lga_cb.cb_lock);
+			osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 		}
 		break;
 	case NCSMDS_DOWN:
@@ -531,11 +531,11 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info)
 		 * no longer valid and clients must register again (initialize)
 		 */
 		if (mds_cb_info->info.svc_evt.i_svc_id == NCSMDS_SVC_ID_LGS) {
-			pthread_mutex_lock(&lga_cb.cb_lock);
+			osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 			TRACE("LGS down");
 			memset(&lga_cb.lgs_mds_dest, 0, sizeof(MDS_DEST));
 			lga_cb.lgs_state = LGS_DOWN;
-			pthread_mutex_unlock(&lga_cb.cb_lock);
+			osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 
 			/* The log server is lost */
 			lga_no_server_state_set();
@@ -548,14 +548,14 @@ static uint32_t lga_mds_svc_evt(struct ncsmds_callback_info *mds_cb_info)
 			TRACE("%s\t NCSMDS_UP" , __FUNCTION__);
 		    /** Store the MDS DEST of the LGS 
                      **/
-			pthread_mutex_lock(&lga_cb.cb_lock);
+			osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 			lga_cb.lgs_mds_dest = mds_cb_info->info.svc_evt.i_dest;
 			lga_cb.lgs_state = LGS_UP;
 			if (lga_cb.lgs_sync_awaited) {
 				/* signal waiting thread */
 				m_NCS_SEL_OBJ_IND(&lga_cb.lgs_sync_sel);
 			}
-			pthread_mutex_unlock(&lga_cb.cb_lock);
+			osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 
 			/* The log server is up */
 			lga_serv_recov1state_set();
@@ -590,7 +590,7 @@ static uint32_t lga_mds_rcv(struct ncsmds_callback_info *mds_cb_info)
 	lgsv_msg_t *lgsv_msg = (lgsv_msg_t *)mds_cb_info->info.receive.i_msg;
 	uint32_t rc;
 
-	pthread_mutex_lock(&lga_cb.cb_lock);
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 
 	/* process the message */
 	rc = lga_lgs_msg_proc(&lga_cb, lgsv_msg, mds_cb_info->info.receive.i_priority);
@@ -598,7 +598,7 @@ static uint32_t lga_mds_rcv(struct ncsmds_callback_info *mds_cb_info)
 		TRACE_2("lga_lgs_msg_proc returned: %d", rc);
 	}
 
-	pthread_mutex_unlock(&lga_cb.cb_lock);
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 
 	return rc;
 }
