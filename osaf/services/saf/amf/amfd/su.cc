@@ -1819,6 +1819,48 @@ void su_ccb_apply_delete_hdlr(struct CcbUtilOperationData *opdata)
 	TRACE_ENTER2("'%s'", su->name.value);
 
 	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
+		/* Check if the comp and related objects are still left. This can
+		   happen on Standby Amfd when it has just read the configuration
+		   and before it becomes applier, Act Amfd deletes Comps. Those Comps
+		   will be left out at Standby Amfd. Though this could be rare.*/
+		std::set<std::string> comp_list;
+		for (const auto& comp : su->list_of_comp)
+			comp_list.insert(Amf::to_string(&comp->comp_info.name));
+		for (std::set<std::string>::const_iterator iter1 = comp_list.begin();
+				iter1 != comp_list.end(); ++iter1) {
+			AVD_COMP *comp = comp_db->find(*iter1);
+
+			//Create a tmp database of compcstype.
+			std::set<std::string> compcstype_list;
+			for (std::map<std::string, AVD_COMPCS_TYPE*>::const_iterator it =
+					compcstype_db->begin();
+					it != compcstype_db->end(); it++) {
+				AVD_COMPCS_TYPE *compcstype = it->second;
+				compcstype_list.insert(Amf::to_string(&compcstype->name));
+			}
+			TRACE("Standby Amfd, comp '%s' not deleted", comp->comp_info.name.value);
+
+			for (std::set<std::string>::const_iterator iter1 = compcstype_list.begin();
+					iter1 != compcstype_list.end(); ++iter1) {
+				AVD_COMPCS_TYPE *compcstype = compcstype_db->find(*iter1);
+				if (compcstype->comp == comp) {
+					TRACE("Standby Amfd, compcstype '%s' not deleted",
+							compcstype->name.value);
+					compcstype_db->erase(Amf::to_string(&compcstype->name));
+					delete compcstype;
+				}
+			}
+			compcstype_list.clear();
+			/* Delete the Comp. */
+			struct CcbUtilOperationData opdata;
+			memset(&opdata.objectName, 0, sizeof(SaNameT));
+			memcpy(opdata.objectName.value, comp->comp_info.name.value,
+					comp->comp_info.name.length);
+			opdata.objectName.length = comp->comp_info.name.length;
+			comp_ccb_apply_delete_hdlr(&opdata);
+		}
+		comp_list.clear();
+
 		su->remove_from_model();
 		delete su;
 		goto done;
