@@ -292,8 +292,10 @@ uint32_t ntfa_ntfs_msg_proc(ntfa_cb_t *cb, ntfsv_msg_t *ntfsv_msg, MDS_SEND_PRIO
                                         return NCSCC_RC_FAILURE;
                                 }
 				//A client becomes stale if Node loses CLM Membership.
-				if (cb->clm_node_state != SA_CLM_NODE_JOINED)
+				if (cb->clm_node_state != SA_CLM_NODE_JOINED) {
 					ntfa_hdl_rec->is_stale_client = true;
+					ntfa_notify_handle_invalid();
+				}
 				ntfa_msg_destroy(ntfsv_msg);
 			}
 			break;

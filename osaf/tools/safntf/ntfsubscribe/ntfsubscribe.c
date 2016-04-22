@@ -152,6 +152,15 @@ static SaAisErrorT waitForNotifications(SaNtfHandleT myHandle, int selectionObje
 
 			if (error != SA_AIS_OK)
 				fprintf(stderr, "ntftool_saNtfDispatch Error %d\n", error);
+			if (error == SA_AIS_ERR_UNAVAILABLE) {
+				fprintf(stderr, "Node lost CLM membership, finalizing ntfHandle.\n");
+				error = saNtfFinalize(ntfHandle);
+				if (error != SA_AIS_OK) {
+					fprintf(stderr, "saNtfFinalize failed - %d\n", error);
+					exit(EXIT_FAILURE);
+				}
+				_Exit(0);
+			}
 		}
 		if ((fds[FD_TERM].revents & POLLIN) || (fds[FD_INT].revents & POLLIN)) {
 

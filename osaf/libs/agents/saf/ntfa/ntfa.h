@@ -196,4 +196,5 @@ extern void ntfa_update_ntfsv_state(ntfa_ntfsv_state_t changedState);
 extern SaAisErrorT ntfa_copy_ntf_filter_ptrs(ntfsv_filter_ptrs_t* pDes,
 								const ntfsv_filter_ptrs_t* pSrc);
 extern SaAisErrorT ntfa_del_ntf_filter_ptrs(ntfsv_filter_ptrs_t* filter_ptrs);
+extern void ntfa_notify_handle_invalid(); 
 #endif   /* !NTFA_H */

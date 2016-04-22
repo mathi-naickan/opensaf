@@ -966,7 +966,8 @@ SaAisErrorT reinitializeClient(ntfa_client_hdl_rec_t* client_hdl) {
 	}
 	if ((rc = o_msg->info.api_resp_info.rc) != SA_AIS_OK) {
 		TRACE("info.api_resp_info.rc:%u", o_msg->info.api_resp_info.rc);
-		rc = SA_AIS_ERR_BAD_HANDLE;
+		if (rc != SA_AIS_ERR_UNAVAILABLE)
+			rc = SA_AIS_ERR_BAD_HANDLE;
 		goto done;
 	}
 
@@ -1033,7 +1034,8 @@ SaAisErrorT recoverReader(ntfa_client_hdl_rec_t* client_hdl, ntfa_reader_hdl_rec
 	osafassert(o_msg != NULL);
 	if ((rc = o_msg->info.api_resp_info.rc) != SA_AIS_OK) {
 		TRACE("o_msg->info.api_resp_info.rc:%u", o_msg->info.api_resp_info.rc);
-		rc = SA_AIS_ERR_BAD_HANDLE;
+		if (rc != SA_AIS_ERR_UNAVAILABLE)
+			rc = SA_AIS_ERR_BAD_HANDLE;
 		goto done;
 	}
 
@@ -1108,7 +1110,8 @@ SaAisErrorT recoverSubscriber(ntfa_client_hdl_rec_t* client_hdl,
 
 	if ((rc = o_msg->info.api_resp_info.rc) != SA_AIS_OK) {
 		TRACE("o_msg->info.api_resp_info.rc:%u", o_msg->info.api_resp_info.rc);
-		rc = SA_AIS_ERR_BAD_HANDLE;
+		if (rc != SA_AIS_ERR_UNAVAILABLE)
+			rc = SA_AIS_ERR_BAD_HANDLE;
 		goto done;
 	}
 
@@ -1437,12 +1440,17 @@ SaAisErrorT saNtfDispatch(SaNtfHandleT ntfHandle, SaDispatchFlagsT dispatchFlags
 	if (!hdl_rec->valid) {
 		/* recovery */
 		if ((rc = recoverClient(hdl_rec)) != SA_AIS_OK) {
-			if ((rc == SA_AIS_ERR_BAD_HANDLE) || (rc == SA_AIS_ERR_UNAVAILABLE)) {
+			if (rc == SA_AIS_ERR_BAD_HANDLE) {
 				ncshm_give_hdl(ntfHandle);
 				osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 				ntfa_hdl_rec_force_del(&ntfa_cb.client_list, hdl_rec);
 				osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 				ntfa_shutdown(false);
+				goto done;
+			}
+			if (rc == SA_AIS_ERR_UNAVAILABLE) {
+				TRACE("Node not CLM member or stale client");
+				ncshm_give_hdl(ntfHandle);
 				goto done;
 			}
 		}
@@ -1807,7 +1815,7 @@ SaAisErrorT saNtfNotificationSend(SaNtfNotificationHandleT notificationHandle)
 		if ((rc = recoverClient(client_rec)) != SA_AIS_OK) {
 			ncshm_give_hdl(client_handle);
 			ncshm_give_hdl(notificationHandle);
-			if ((rc == SA_AIS_ERR_BAD_HANDLE) || (rc == SA_AIS_ERR_UNAVAILABLE)) {
+			if (rc == SA_AIS_ERR_BAD_HANDLE) {
 				osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 				ntfa_hdl_rec_force_del(&ntfa_cb.client_list, client_rec);
 				osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
@@ -2153,7 +2161,7 @@ SaAisErrorT saNtfNotificationSubscribe(const SaNtfNotificationTypeFilterHandlesT
 		if (notificationFilterHandles->alarmFilterHandle)
 			ncshm_give_hdl(notificationFilterHandles->alarmFilterHandle);
 	}
-	if (recovery_failed && ((rc == SA_AIS_ERR_BAD_HANDLE) || (rc == SA_AIS_ERR_UNAVAILABLE))) {
+	if (recovery_failed && (rc == SA_AIS_ERR_BAD_HANDLE)) {
 		osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 		ntfa_hdl_rec_force_del(&ntfa_cb.client_list, client_hdl_rec);
 		osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
@@ -3355,7 +3363,7 @@ SaAisErrorT saNtfNotificationUnsubscribe(SaNtfSubscriptionIdT subscriptionId)
 
 	if (!client_hdl_rec->valid && getServerState() == NTFA_NTFSV_UP) {
 		if ((rc = recoverClient(client_hdl_rec)) != SA_AIS_OK) {
-			if ((rc == SA_AIS_ERR_BAD_HANDLE) || (rc == SA_AIS_ERR_UNAVAILABLE)) {
+			if (rc == SA_AIS_ERR_BAD_HANDLE) {
 				ncshm_give_hdl(ntfHandle);
 				osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 				ntfa_hdl_rec_force_del(&ntfa_cb.client_list, client_hdl_rec);
@@ -3517,7 +3525,7 @@ done_give_client_hdl:
 	}
 
 	ncshm_give_hdl(notificationFilterHandles->alarmFilterHandle);
-	if (recovery_failed && ((rc == SA_AIS_ERR_BAD_HANDLE) || (rc == SA_AIS_ERR_UNAVAILABLE))) {
+	if (recovery_failed && (rc == SA_AIS_ERR_BAD_HANDLE)) {
 		osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 		ntfa_hdl_rec_force_del(&ntfa_cb.client_list, client_hdl_rec);
 		osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
@@ -3621,7 +3629,7 @@ SaAisErrorT saNtfNotificationReadFinalize(SaNtfReadHandleT readhandle)
 
 	if (!client_hdl_rec->valid && getServerState() == NTFA_NTFSV_UP) {
 		if ((rc = recoverClient(client_hdl_rec)) != SA_AIS_OK) {
-			if ((rc == SA_AIS_ERR_BAD_HANDLE) || (rc == SA_AIS_ERR_UNAVAILABLE)) {
+			if (rc == SA_AIS_ERR_BAD_HANDLE) {
 				ncshm_give_hdl(client_hdl_rec->local_hdl);
 				ncshm_give_hdl(readhandle);
 				osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
@@ -3699,7 +3707,7 @@ SaAisErrorT saNtfNotificationReadNext(SaNtfReadHandleT readHandle,
 		if ((rc = recoverClient(client_hdl_rec)) != SA_AIS_OK) {
 			ncshm_give_hdl(client_hdl_rec->local_hdl);
 			ncshm_give_hdl(readHandle);
-			if ((rc == SA_AIS_ERR_BAD_HANDLE) || (rc == SA_AIS_ERR_UNAVAILABLE)) {
+			if (rc == SA_AIS_ERR_BAD_HANDLE) {
 				osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 				ntfa_hdl_rec_force_del(&ntfa_cb.client_list, client_hdl_rec);
 				osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
