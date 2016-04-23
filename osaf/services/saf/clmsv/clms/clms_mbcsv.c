@@ -770,12 +770,6 @@ uint32_t clms_send_async_update(CLMS_CB * cb, CLMS_CKPT_REC * ckpt_rec, uint32_t
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	NCS_MBCSV_ARG mbcsv_arg;
 	TRACE_ENTER();
-
-	if (cb->ckpt_state != COLD_SYNC_COMPLETE) {
-		TRACE("Cold sync is not complete: %u", cb->ckpt_state);
-		return NCSCC_RC_SUCCESS;
-	}
-
 	/* Fill mbcsv specific data */
 	memset(&mbcsv_arg, '\0', sizeof(NCS_MBCSV_ARG));
 	mbcsv_arg.i_op = NCS_MBCSV_OP_SEND_CKPT;
