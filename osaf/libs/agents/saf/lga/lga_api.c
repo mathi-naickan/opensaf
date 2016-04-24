@@ -145,7 +145,6 @@ SaAisErrorT saLogInitialize(SaLogHandleT *logHandle, const SaLogCallbacksT *call
 		version->releaseCode = LOG_RELEASE_CODE;
 		version->majorVersion = LOG_MAJOR_VERSION;
 		version->minorVersion = LOG_MINOR_VERSION;
-		lga_shutdown_after_last_client();
 		ais_rc = SA_AIS_ERR_VERSION;
 		goto done;
 	}
