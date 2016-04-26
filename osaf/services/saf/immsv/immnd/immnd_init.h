@@ -210,6 +210,8 @@ extern "C" {
 
 	void immModel_fetchLastResult(void *searchOp, IMMSV_OM_RSP_SEARCH_NEXT **rsp);
 
+	void immModel_popLastResult(void *searchOp);
+
 	SaBoolT immModel_isSearchOpAccessor(void* searchOp);
 
 	SaBoolT immModel_isSearchOpNonExtendedNameSet(void* searchOp);

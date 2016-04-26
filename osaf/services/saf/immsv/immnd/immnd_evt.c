@@ -1045,6 +1045,11 @@ void search_req_continue(IMMND_CB *cb, IMMSV_OM_RSP_SEARCH_REMOTE *reply, SaUint
 	}
 
 	if (sn) {
+		/* Don't move to the next iteration in searchOp
+		 * if OI resturns ERR_NO_MEMORY or ERR_NO_RESOURCES */
+		if (err != SA_AIS_ERR_NO_MEMORY && err != SA_AIS_ERR_NO_RESOURCES) {
+			immModel_popLastResult(sn->searchOp);
+		}
 		immModel_fetchLastResult(sn->searchOp, &rsp);
 		immModel_clearLastResult(sn->searchOp);
 		isAccessor = immModel_isSearchOpAccessor(sn->searchOp);
@@ -1176,7 +1181,12 @@ void search_req_continue(IMMND_CB *cb, IMMSV_OM_RSP_SEARCH_REMOTE *reply, SaUint
 		LOG_WA("Could not send reply to agent for search-next continuaton");
 	}
 
-	if(isAccessor) {
+	if(isAccessor || /* Accessor case */
+			(err != SA_AIS_OK && err != SA_AIS_ERR_NO_MEMORY && err != SA_AIS_ERR_NO_RESOURCES)) { /* Search case */
+		if (!isAccessor) {
+			/* Finalize search node when it's not ERR_NO_MEMORY or ERR_NO_RESOURCES */
+			TRACE("Finalizing search node, err = %u", err);
+		}
 		if(sn && cl_node) {
 			IMMND_OM_SEARCH_NODE **prev = &(cl_node->searchOpList);
 			IMMND_OM_SEARCH_NODE *n = cl_node->searchOpList;

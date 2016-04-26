@@ -1459,6 +1459,18 @@ immModel_nextResult(IMMND_CB *cb, void* searchOp,
                 if(implDest) { *implDest = 0; }
                 if(implTimeout) { *implTimeout = 0; }
             }
+            /* If it doesn't involve any OI, we can pop out the object.
+               There are 3 cases:
+               1. There are no pure rt attributes
+               2. There are pure rt attributes to fetch but OI detached (*implNodeId==0)
+               3. nextResult() is called by immnd_evt_proc_oi_att_pull_rpl()
+                  to get the updated values for pure rt attributes.
+                  In this case, rtAttrsToFetch==NULL
+             */
+            if (!rtAttrsToFetch || /* Case 3 */
+                    !(*implNodeId)) { /* Case 1 & 2 */
+                op->popLastResult();
+            }
         }
     }
 
@@ -1511,6 +1523,13 @@ immModel_fetchLastResult(void* searchOp, IMMSV_OM_RSP_SEARCH_NEXT** rsp)
 {
     ImmSearchOp* op = (ImmSearchOp *) searchOp;
     *rsp = op->fetchLastResult();
+}
+
+void
+immModel_popLastResult(void *searchOp)
+{
+    ImmSearchOp* op = (ImmSearchOp *) searchOp;
+    op->popLastResult();
 }
 
 void
