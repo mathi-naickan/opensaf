@@ -147,6 +147,15 @@ uint32_t avnd_evt_ava_pg_start_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
+	// if headless, return TRY_AGAIN to application
+	if (cb->is_avd_down == true) {
+		LOG_NO("Director is down. Return try again for PG start.");
+		rc = avnd_amf_resp_send(cb, AVSV_AMF_PG_START, SA_AIS_ERR_TRY_AGAIN,
+					0, &api_info->dest, &evt->mds_ctxt, nullptr, false);
+		TRACE_LEAVE();
+		return rc;
+	}
+
 	/* 
 	 * Update pg db
 	 */
@@ -234,6 +243,15 @@ uint32_t avnd_evt_ava_pg_stop_evh(AVND_CB *cb, AVND_EVT *evt)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
+
+	// if headless, return TRY_AGAIN to application
+	if (cb->is_avd_down == true) {
+		LOG_NO("Director is down. Return try again for PG stop.");
+		rc = avnd_amf_resp_send(cb, AVSV_AMF_PG_STOP, SA_AIS_ERR_TRY_AGAIN,
+					0, &api_info->dest, &evt->mds_ctxt, nullptr, false);
+		TRACE_LEAVE();
+		return rc;
+	}
 
 	/* populate the track key */
 	key.mds_dest = api_info->dest;
