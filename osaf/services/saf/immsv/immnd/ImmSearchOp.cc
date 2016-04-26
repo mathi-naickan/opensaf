@@ -183,8 +183,11 @@ ImmSearchOp::nextResult(IMMSV_OM_RSP_SEARCH_NEXT** rsp, void** implInfo,
             attrl->next = p->attrValuesList;
             p->attrValuesList = attrl;
         }
-        
-        mResultList.pop_front();
+        /* To decide whether to pop out the object or not,
+         * we need to know mNodeId of implInfo.
+         * Since ImplementerInfo is opaque to ImmSearchOp,
+         * we have to do the check in the upper level, at immModel_nextResult(). */
+        // mResultList.pop_front();
         err = SA_AIS_OK;
     } else {
         mLastResult=NULL;
