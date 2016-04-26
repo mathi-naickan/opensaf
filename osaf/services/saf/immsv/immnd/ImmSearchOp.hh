@@ -86,6 +86,7 @@ public:
     bool          isNonExtendedNameSet() {return mNonExtendedName;}
     time_t        getLastSearchTime() { return mLastSearch; }
     void          updateSearchTime() { mLastSearch = time(NULL); }
+    void          popLastResult() { mResultList.pop_front(); }
     void*         syncOsi;
     void*         attrNameList;
     void*         classInfo;
