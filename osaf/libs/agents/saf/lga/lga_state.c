@@ -546,11 +546,11 @@ void lga_serv_recov1state_set(void)
 	TRACE_ENTER();
 
 	if (is_lga_state(LGA_NO_SERVER)) {
-		/* We have not been headless. No recovery shall be done */
-		goto done;
-	} else {
 		set_lga_state(LGA_RECOVERY1);
 		TRACE("lga_state = RECOVERY1");
+	} else {
+		/* We have not been headless. No recovery shall be done */
+		goto done;
 	}
 
 	start_recovery2_thread();
