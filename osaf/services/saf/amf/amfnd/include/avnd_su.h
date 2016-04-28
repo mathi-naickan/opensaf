@@ -423,4 +423,6 @@ bool all_csis_in_assigned_state(const AVND_SU *su);
 bool isAdminRestarted(const AVND_SU *su);
 bool isFailed(const AVND_SU *su);
 bool isRestartSet(const AVND_SU *su);
+bool su_evaluate_restarting_state(AVND_SU *su);
+bool all_csis_in_restarting_state(const AVND_SU *su, AVND_COMP_CSI_REC * exclude_csi = nullptr);
 #endif
