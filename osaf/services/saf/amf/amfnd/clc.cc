@@ -1003,7 +1003,36 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 		if ((SA_AMF_PRESENCE_TERMINATING == prv_st) && (SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)) {
 			/* termination failed.. log it */
 		}
+		//Instantiated -> Restarting.
+		if ((prv_st == SA_AMF_PRESENCE_INSTANTIATED) && (final_st == SA_AMF_PRESENCE_RESTARTING)) {
+			/*
+			   This presence state transition involving RESTARTING state may originate
+			   with or without any SU FSM event :
+			   	a)Without SU FSM event: when component is restartable
+				   and event is fault or RESTART admin op on component.
+			    	b)With SU FSM event: when all comps are restartable and RESTART 
+				  admin op on SU. 
+			   In the case b) SU FSM takes care of moving presence state of SU to
+			   RESTARTING when all of its components (all restartable) are 
+			   in RESTARTING state at any given point of time.
 
+			   In case a), SU FSM never gets triggered because restart of component
+			   is totally restricted to comp FSM. So in this case comp FSM itself 
+			   will have to mark SU's presence state RESTARTING whenever all the components
+			   are in Restarting state. This can occur in:
+				-confs with single restartable component because of fault with comp-restart 
+				 recovery or RESTART admin op on comp. OR
+				-confs with all comp restartable when all comps faults with comp-restart recovery.
+			   So if I am here because of case a) check if I can mark SU RESTARTING. 		
+			 */
+			if ((isRestartSet(comp->su) == false) &&
+				((m_AVND_COMP_IS_FAILED(comp)) || (comp->admin_oper == true)) &&
+				(su_evaluate_restarting_state(comp->su) == true)) {
+				TRACE_1("Comp RESTARTING due to comp-restart recovery or RESTART admin op");
+				avnd_su_pres_state_set(comp->su, SA_AMF_PRESENCE_RESTARTING);
+			}
+			 
+		}
 		/* restarting -> instantiated */
 		if ((SA_AMF_PRESENCE_RESTARTING == prv_st) && (SA_AMF_PRESENCE_INSTANTIATED == final_st)) {
 			/* reset the comp failed flag & set the oper state to enabled */
@@ -1031,6 +1060,16 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 				rc = avnd_comp_csi_reassign(cb, comp);
 				if (NCSCC_RC_SUCCESS != rc)
 					goto done;
+				/*
+				   Mark SU Instantiated when atleast one component moves to instantiated state.
+				   Single comp restarting case or fault of all restartable comps with comp-restart
+				   recovery.  For more details read in transition from INSTANTIATED to RESTARTING.
+				 */
+				if ((comp->su->pres == SA_AMF_PRESENCE_RESTARTING) &&
+						(isRestartSet(comp->su) == false)) {
+					TRACE_1("Comp INSTANTIATED due to comp-restart recovery or RESTART admin op");
+					avnd_su_pres_state_set(comp->su, SA_AMF_PRESENCE_INSTANTIATED);
+				}
 			}
 
 			/* wild case */
@@ -1207,6 +1246,22 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 				goto done;
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_OPER_STATE);
 			clear_error_report_alarm(comp);
+			/*
+			   Mark SU Instantiated when atleast one component moves to instantiated state.
+			   Single comp restarting case or fault of all restartable comps with comp-restart
+			   recovery. Please read detailed explanation in state transition for PI 
+			   comp in PI SU from INSTANTIATED to RESTARTING in this function.
+			 */
+			if ((comp->su->pres == SA_AMF_PRESENCE_RESTARTING)
+					&& (isRestartSet(comp->su) == false)) {
+				TRACE_1("Comp INSTANTIATED due to comp-restart recovery or RESTART admin op");
+				avnd_su_pres_state_set(comp->su, SA_AMF_PRESENCE_INSTANTIATED);
+			}
+			csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+			//Mark CSI ASSIGNED in case of comp-restart recovery and RESTART admin op on comp.
+			if ((isRestartSet(comp->su) == false) &&
+					(m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_RESTARTING(csi)))
+				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi, AVND_COMP_CSI_ASSIGN_STATE_ASSIGNED);
 		}
 
 		/* terminating -> uninstantiated */
@@ -1236,6 +1291,21 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 				goto done;
 			m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, comp, AVND_CKPT_COMP_OPER_STATE);
 		}
+		//Instantiated -> Restarting.
+                if ((prv_st == SA_AMF_PRESENCE_INSTANTIATED) && (final_st == SA_AMF_PRESENCE_RESTARTING)) {
+			//Please read detailed explanation in same state transition for PI comp in PI SU.
+
+			csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+                        if ((isRestartSet(comp->su) == false) &&
+                                ((m_AVND_COMP_IS_FAILED(comp)) || (comp->admin_oper == true))) {
+				//Check if all COMPCSIs are in RESTARTING state execpt this compcsi. 
+				if (all_csis_in_restarting_state(comp->su, csi) == true) {
+					TRACE_1("Comp RESTARTING due to comp-restart recovery or RESTART admin op");
+					avnd_su_pres_state_set(comp->su, SA_AMF_PRESENCE_RESTARTING);
+				}
+			}
+
+                }
 	}
 
 	/* when a comp moves from inst->orph, we need to delete the

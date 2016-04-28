@@ -420,5 +420,7 @@ bool pi_su_all_comps_uninstantiated (const AVND_SU& su);
 bool is_any_non_restartable_comp_assigned(const AVND_SU& su);
 bool isFailed(const AVND_SU *su);
 bool isRestartSet(const AVND_SU *su);
+bool su_evaluate_restarting_state(AVND_SU *su);
+bool all_csis_in_restarting_state(const AVND_SU *su, AVND_COMP_CSI_REC * exclude_csi = NULL);
 
 #endif
