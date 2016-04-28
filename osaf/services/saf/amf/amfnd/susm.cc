@@ -2363,7 +2363,7 @@ uint32_t avnd_su_pres_inst_suterm_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *com
  * @param  ptr to su. 
  * @return  true/false.
  */
-static bool su_evaluate_restarting_state(AVND_SU *su)
+bool su_evaluate_restarting_state(AVND_SU *su)
 {
 	for (AVND_COMP *comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
 		comp;
@@ -2378,11 +2378,13 @@ static bool su_evaluate_restarting_state(AVND_SU *su)
 	return true;
 }
 /**
- * @brief       Checks if all csis of all the sis in this su are in restarting state
+ * @brief       Checks if all csis of all the sis in this su are in restarting state.
+                Also performs same check by excluding the CSI passed in the default arg. 
  * @param [in]  cmp
+ * @param [in]  exclude_csi (default value nullptr)
  * @returns     true/false
  **/
-static bool all_csis_in_restarting_state(const AVND_SU *su)
+bool all_csis_in_restarting_state(const AVND_SU *su, AVND_COMP_CSI_REC *exclude_csi)
 {
         AVND_COMP_CSI_REC *curr_csi;
         AVND_SU_SI_REC *curr_si;
@@ -2392,6 +2394,8 @@ static bool all_csis_in_restarting_state(const AVND_SU *su)
                         curr_si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_si->su_dll_node)) {
                 for (curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_FIRST(&curr_si->csi_list);
                                 curr_csi; curr_csi = (AVND_COMP_CSI_REC *)m_NCS_DBLIST_FIND_NEXT(&curr_csi->si_dll_node)) {
+			if (curr_csi == exclude_csi)
+				continue;
                         if (!m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_RESTARTING(curr_csi)) {
                                 return false;
                         }
