@@ -9000,7 +9000,7 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 				LOG_NO("Avoided canceling coord - SHOULD NOT GET HERE");
 			}
 		} else {
-			LOG_NO("SETTING COORD TO %u CLOUD PROTO", evt->info.ctrl.isCoord);
+			LOG_IN("SETTING COORD TO %u CLOUD PROTO", evt->info.ctrl.isCoord);
 			cb->mIsCoord = evt->info.ctrl.isCoord;
 		}
 		osafassert(!cb->mIsCoord || cb->mCanBeCoord);

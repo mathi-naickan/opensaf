@@ -604,8 +604,8 @@ static void immd_req_sync(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info)
 		if (proc_rc != NCSCC_RC_SUCCESS) {
 			LOG_WA("Failed to send rqsync message err:%u to coord IMMND (%x)",
 			       proc_rc, node_info->immnd_key);
-			goto done;
 		}
+		goto done;
 	}
 
 	if (cb->is_rem_immnd_up && (cb->immd_remote_id == immd_get_slot_and_subslot_id_from_node_id(cb->immnd_coord))) {
