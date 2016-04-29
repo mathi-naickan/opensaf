@@ -6517,6 +6517,11 @@ static void immnd_evt_proc_rt_object_modify(IMMND_CB *cb,
 				if(cb->syncPid > 0) {
 					LOG_WA("STOPPING sync process pid %u", cb->syncPid);
 					kill(cb->syncPid, SIGKILL); /* Immediate stop of the sync process. */
+					/* The server state will be changed to SERVER_READY in immnd_proc_server */
+				} else {
+					/* Sync process is not forked yet, change server state to SERVER_READY */
+					cb->mState = IMM_SERVER_READY;
+					LOG_NO("SERVER STATE: IMM_SERVER_SYNC_SERVER --> IMM_SERVER_READY");
 				}
 			}
 		}
