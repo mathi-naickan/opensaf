@@ -1240,6 +1240,8 @@ void avnd_diq_rec_del(AVND_CB *cb, AVND_DND_MSG_LIST *rec)
 				avnd_diq_rec_send(cb, pending_rec);
 			}
 		}
+		/* resend pg start track */
+		avnd_di_resend_pg_start_track(cb);
 	}
 
 	/* free the avnd message contents */
@@ -1424,6 +1426,40 @@ uint32_t avnd_evt_avd_role_change_evh(AVND_CB *cb, AVND_EVT *evt)
 	if (NCSCC_RC_SUCCESS != (rc = avnd_mds_set_vdest_role(cb, static_cast<SaAmfHAStateT>(mds_role)))) {
 		TRACE_1("avnd_mds_set_vdest_role returned failure");
 		return rc;
+	}
+
+	TRACE_LEAVE();
+	return rc;
+}
+
+/****************************************************************************
+  Name          : avnd_di_resend_pg_start_track
+
+  Description   : This routing will get called on AVD fail-over or coming back
+                  from headless to send the PG start messages to the new AVD.
+
+  Arguments     : cb  - ptr to the AvND control block
+
+  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
+
+  Notes         : None.
+******************************************************************************/
+uint32_t avnd_di_resend_pg_start_track(AVND_CB *cb)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	AVND_PG *pg = 0;
+	SaNameT csi_name;
+	TRACE_ENTER();
+
+	memset(&csi_name, '\0', sizeof(SaNameT));
+
+	while (nullptr != (pg = m_AVND_PGDB_REC_GET_NEXT(cb->pgdb, csi_name))) {
+		rc = avnd_di_pg_act_send(cb, &pg->csi_name, AVSV_PG_TRACK_ACT_START, true);
+
+		if (NCSCC_RC_SUCCESS != rc)
+			break;
+
+		csi_name = pg->csi_name;
 	}
 
 	TRACE_LEAVE();

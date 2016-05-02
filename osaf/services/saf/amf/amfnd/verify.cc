@@ -34,42 +34,6 @@
 
 #include "avnd.h"
 
-static uint32_t avnd_send_pg_start_on_fover(AVND_CB *cb);
-
-/****************************************************************************
-  Name          : avnd_send_pg_start_on_fover
- 
-  Description   : This routing will get called on AVD fail-over to send the
-                  PG start messages to the new AVD.
- 
-  Arguments     : cb  - ptr to the AvND control block
- 
-  Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
- 
-  Notes         : None.
-******************************************************************************/
-static uint32_t avnd_send_pg_start_on_fover(AVND_CB *cb)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	AVND_PG *pg = 0;
-	SaNameT csi_name;
-	TRACE_ENTER();
-
-	memset(&csi_name, '\0', sizeof(SaNameT));
-
-	while (nullptr != (pg = m_AVND_PGDB_REC_GET_NEXT(cb->pgdb, csi_name))) {
-		rc = avnd_di_pg_act_send(cb, &pg->csi_name, AVSV_PG_TRACK_ACT_START, true);
-
-		if (NCSCC_RC_SUCCESS != rc)
-			break;
-
-		csi_name = pg->csi_name;
-	}
-
-	TRACE_LEAVE();
-	return rc;
-}
-
 /****************************************************************************
   Name          : avnd_evt_avd_verify_message
  
@@ -165,7 +129,7 @@ uint32_t avnd_evt_avd_verify_evh(AVND_CB *cb, AVND_EVT *evt)
 	/* 
 	 * Send PG tracking (START) message to new Active.
 	 */
-	avnd_send_pg_start_on_fover(cb);
+	avnd_di_resend_pg_start_track(cb);
 
 
 	TRACE_LEAVE();
