@@ -1504,7 +1504,11 @@ void ntfa_update_ntfsv_state(ntfa_ntfsv_state_t changedState)
 
 	switch (ntfa_cb.ntfa_ntfsv_state){
 	case NTFA_NTFSV_NONE:
-		ntfa_cb.ntfa_ntfsv_state = changedState;
+		if (changedState == NTFA_NTFSV_NEW_ACTIVE) {
+			ntfa_cb.ntfa_ntfsv_state = NTFA_NTFSV_UP;
+		} else {
+			ntfa_cb.ntfa_ntfsv_state = changedState;
+		}
 		break;
 	case NTFA_NTFSV_DOWN:
 		if (changedState == NTFA_NTFSV_NEW_ACTIVE ||
