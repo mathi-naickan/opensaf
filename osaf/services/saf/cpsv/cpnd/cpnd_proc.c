@@ -2354,7 +2354,13 @@ uint32_t cpnd_proc_rdset_start(CPND_CB *cb, CPND_CKPT_NODE *cp_node)
 	}
 
 	if (cp_node->ckpt_lcl_ref_cnt != 0) {
-		LOG_ER("cpnd receives CPND_EVT_D2ND_RDSET_INFO with START while ckpt_lcl_ref_cnt = %d", cp_node->ckpt_lcl_ref_cnt);
+		/*  Ticket #1786
+		 *  The log message also happens in case interval between previous saCkptCheckpointClose() 
+		 *  and saCkptCheckpointOpen() is too short. In this case, the CPD processes the CPND_EVT_A2ND_CKPT_OPEN 
+		 *  (for saCkptCheckpointOpen()) before the CPND_EVT_D2ND_RDSET_INFO. 
+		 *  Then when CPND processes the CPND_EVT_D2ND_RDSET_INFO, it logs this message 
+		 *  although it is not an error in this case.*/
+		LOG_NO("cpnd receives CPND_EVT_D2ND_RDSET_INFO with START while ckpt_lcl_ref_cnt = %d", cp_node->ckpt_lcl_ref_cnt);
 		TRACE_LEAVE();
 		return NCSCC_RC_FAILURE;
 	}
