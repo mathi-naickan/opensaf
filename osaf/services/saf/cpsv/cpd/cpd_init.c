@@ -150,6 +150,53 @@ static uint32_t cpd_extract_destroy_info(int argc, char *argv[], CPD_DESTROY_INF
 	return (NCSCC_RC_SUCCESS);
 }
 
+static SaAisErrorT cpd_clm_init(CPD_CB *cb)
+{
+	SaAisErrorT error;
+	SaClmCallbacksT cpd_clm_cbk;
+
+	/* Callbacks to register with CLM */
+	cpd_clm_cbk.saClmClusterNodeGetCallback = NULL;
+	cpd_clm_cbk.saClmClusterTrackCallback = cpd_clm_cluster_track_cb;
+
+	for (;;) {
+		SaVersionT clm_version;
+		m_CPSV_GET_AMF_VER(clm_version);
+		error = saClmInitialize(&cb->clm_hdl, &cpd_clm_cbk, &clm_version);
+		if (error == SA_AIS_ERR_TRY_AGAIN ||
+		    error == SA_AIS_ERR_TIMEOUT ||
+                    error == SA_AIS_ERR_UNAVAILABLE) {
+			if (error != SA_AIS_ERR_TRY_AGAIN) {
+				LOG_WA("saClmInitialize returned %u",
+				       (unsigned) error);
+			}
+			osaf_nanosleep(&kHundredMilliseconds);
+			continue;
+		}
+		if (error == SA_AIS_OK) break;
+		LOG_ER("Failed to Initialize with CLM: %u", error);
+		return error;
+	}
+
+	error =	saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj);
+	if (error != SA_AIS_OK) {
+		LOG_ER("cpd clm selectionobjget failed %u",error);
+		goto done;
+	}
+
+	/* Start Cluster Tracking */
+	error = saClmClusterTrack(cb->clm_hdl, SA_TRACK_CHANGES_ONLY, NULL);
+	if (error != SA_AIS_OK) {
+		LOG_ER("cpd clm cluster track failed %u",error);
+		goto done;
+        }
+
+done:
+	saClmFinalize(cb->clm_hdl);
+	
+	return error;
+}
+
 /****************************************************************************
  * Name          : cpd_lib_init
  *
@@ -234,8 +281,7 @@ static uint32_t cpd_lib_init(CPD_CREATE_INFO *info)
 		goto amf_reg_err;
 	}
 
-	/* Register with CLM */
-
+	/* Request AMF for Healthcheck */
 	memset(&healthy, 0, sizeof(healthy));
 	health_key = (int8_t *)getenv("CPSV_ENV_HEALTHCHECK_KEY");
 	if (health_key == NULL) {
@@ -257,6 +303,10 @@ static uint32_t cpd_lib_init(CPD_CREATE_INFO *info)
 	if (amf_error != SA_AIS_OK) {
 		LOG_ER("cpd health check start failed");
 	}
+
+	/* Initialize with CLM */
+	if (cpd_clm_init(cb) != SA_AIS_OK)
+		goto cpd_mab_fail;
 
 	if ((rc = initialize_for_assignment(cb, cb->ha_state)) !=
 		NCSCC_RC_SUCCESS) {
@@ -298,9 +348,7 @@ static uint32_t cpd_lib_init(CPD_CREATE_INFO *info)
 uint32_t initialize_for_assignment(CPD_CB *cb, SaAmfHAStateT ha_state)
 {
 	TRACE_ENTER2("ha_state = %d", (int) ha_state);
-	SaClmCallbacksT cpd_clm_cbk;
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	SaAisErrorT error;
 	if (cb->fully_initialized || ha_state == SA_AMF_HA_QUIESCED) {
 		goto done;
 	}
@@ -315,43 +363,6 @@ uint32_t initialize_for_assignment(CPD_CB *cb, SaAmfHAStateT ha_state)
 		goto mbcsv_reg_err;
 	}
 
-	cpd_clm_cbk.saClmClusterNodeGetCallback = NULL;
-	cpd_clm_cbk.saClmClusterTrackCallback = cpd_clm_cluster_track_cb;
-
-	for (;;) {
-		SaVersionT clm_version;
-		m_CPSV_GET_AMF_VER(clm_version);
-		error = saClmInitialize(&cb->clm_hdl, &cpd_clm_cbk, &clm_version);
-		if (error == SA_AIS_ERR_TRY_AGAIN ||
-		    error == SA_AIS_ERR_TIMEOUT ||
-                    error == SA_AIS_ERR_UNAVAILABLE) {
-			if (error != SA_AIS_ERR_TRY_AGAIN) {
-				LOG_WA("saClmInitialize returned %u",
-				       (unsigned) error);
-			}
-			osaf_nanosleep(&kHundredMilliseconds);
-			continue;
-		}
-		if (error == SA_AIS_OK) break;
-		LOG_ER("Failed to Initialize with CLM: %u", error);
-		rc = NCSCC_RC_FAILURE;
-		goto cpd_clm_fail;
-	}
-
-	error =	saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj);
-	if (error != SA_AIS_OK) {
-		LOG_ER("cpd clm selectionobjget failed %u",error);
-		rc = NCSCC_RC_FAILURE;
-		goto cpd_imm_fail;
-	}
-
-	error = saClmClusterTrack(cb->clm_hdl, SA_TRACK_CHANGES_ONLY, NULL);
-	if (error != SA_AIS_OK) {
-		LOG_ER("cpd clm cluster track failed %u",error);
-		rc = NCSCC_RC_FAILURE;
-		goto cpd_imm_fail;
-        }
-
 	if (cpd_imm_init(&cb->immOiHandle, &cb->imm_sel_obj) != SA_AIS_OK) {
 		LOG_ER("cpd imm initialize failed ");
 		rc = NCSCC_RC_FAILURE;
@@ -363,7 +374,6 @@ done:
 	return rc;
 cpd_imm_fail:
 	saClmFinalize(cb->clm_hdl);
-cpd_clm_fail:
 	cpd_mbcsv_finalize(cb);
 mbcsv_reg_err:
 	cpd_mds_unregister(cb);
