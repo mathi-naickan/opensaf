@@ -113,6 +113,43 @@ uint32_t mqd_lib_req(NCS_LIB_REQ_INFO *info)
 	return rc;
 }	/* End of mqd_lib_req() */
 
+static SaAisErrorT mqd_clm_init (MQD_CB *cb)
+{
+	SaAisErrorT saErr = SA_AIS_OK;
+	SaVersionT clm_version;
+	SaClmCallbacksT mqd_clm_cbk;
+
+	m_MQSV_GET_AMF_VER(clm_version);
+	mqd_clm_cbk.saClmClusterNodeGetCallback = NULL;
+	mqd_clm_cbk.saClmClusterTrackCallback = mqd_clm_cluster_track_callback;
+
+	saErr = saClmInitialize(&cb->clm_hdl, &mqd_clm_cbk, &clm_version);
+	if (saErr != SA_AIS_OK) {
+		LOG_ER("saClmInitialize failed with error %u", (unsigned) saErr);
+		return saErr;
+	}
+	TRACE_1("saClmInitialize success");
+
+	saErr = saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj);
+	if (SA_AIS_OK != saErr) {
+		LOG_ER("saClmSelectionObjectGet failed with error %u", (unsigned) saErr);
+		goto done;
+	}
+	TRACE_1("saClmSelectionObjectGet success");
+
+	saErr = saClmClusterTrack(cb->clm_hdl, SA_TRACK_CHANGES_ONLY, NULL);
+	if (SA_AIS_OK != saErr) {
+		LOG_ER("saClmClusterTrack failed with error %u", (unsigned) saErr);
+		goto done;
+	}
+	TRACE_1("saClmClusterTrack success");
+
+done:
+	saClmFinalize(cb->clm_hdl);
+
+	return saErr;
+}
+
 /****************************************************************************\
   PROCEDURE NAME : mqd_lib_init
  
@@ -256,6 +293,13 @@ static uint32_t mqd_lib_init(void)
 		return rc;
 	}
 
+	if (mqd_clm_init(pMqd) != SA_AIS_OK) {
+		mqd_asapi_unbind();
+		saAmfFinalize(pMqd->amf_hdl);
+		ncshm_give_hdl(pMqd->hdl);
+		mqd_cb_shut(pMqd);
+		return NCSCC_RC_FAILURE;
+	}
 	if ((rc = initialize_for_assignment(pMqd, pMqd->ha_state)) !=
 		NCSCC_RC_SUCCESS) {
 		LOG_ER("initialize_for_assignment FAILED %u", (unsigned) rc);
@@ -271,9 +315,8 @@ uint32_t initialize_for_assignment(MQD_CB *cb, SaAmfHAStateT ha_state)
 {
 	TRACE_ENTER2("ha_state = %d", (int) ha_state);
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	SaClmCallbacksT mqd_clm_cbk;
-	SaVersionT clm_version;
 	SaAisErrorT saErr = SA_AIS_OK;
+
 	if (cb->fully_initialized || ha_state == SA_AMF_HA_QUIESCED) {
 		goto done;
 	}
@@ -292,46 +335,6 @@ uint32_t initialize_for_assignment(MQD_CB *cb, SaAmfHAStateT ha_state)
 		mqd_mds_shut(cb);
 		goto done;
 	}
-
-	m_MQSV_GET_AMF_VER(clm_version);
-	mqd_clm_cbk.saClmClusterNodeGetCallback = NULL;
-	mqd_clm_cbk.saClmClusterTrackCallback = mqd_clm_cluster_track_callback;
-
-	saErr = saClmInitialize(&cb->clm_hdl, &mqd_clm_cbk, &clm_version);
-	if (saErr != SA_AIS_OK) {
-		LOG_ER("saClmInitialize failed with error %u", (unsigned) saErr);
-		mqd_mbcsv_finalize(cb);
-		if (mqd_mds_shut(cb) != NCSCC_RC_SUCCESS) {
-			TRACE_2("MDS Deregistration Failed");
-		}
-		rc = NCSCC_RC_FAILURE;
-		goto done;
-	}
-	TRACE_1("saClmInitialize success");
-
-	saErr = saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj);
-	if (SA_AIS_OK != saErr) {
-		LOG_ER("saClmSelectionObjectGet failed with error %u", (unsigned) saErr);
-		mqd_mbcsv_finalize(cb);
-		if (mqd_mds_shut(cb) != NCSCC_RC_SUCCESS) {
-			TRACE_2("MDS Deregistration Failed");
-		}
-		rc = NCSCC_RC_FAILURE;
-		goto done;
-	}
-	TRACE_1("saClmSelectionObjectGet success");
-
-	saErr = saClmClusterTrack(cb->clm_hdl, SA_TRACK_CHANGES_ONLY, NULL);
-	if (SA_AIS_OK != saErr) {
-		LOG_ER("saClmClusterTrack failed with error %u", (unsigned) saErr);
-		mqd_mbcsv_finalize(cb);
-		if (mqd_mds_shut(cb) != NCSCC_RC_SUCCESS) {
-			TRACE_2("MDS Deregistration Failed");
-		}
-		rc = NCSCC_RC_FAILURE;
-		goto done;
-	}
-	TRACE_1("saClmClusterTrack success");
 
 	/* MQD Imm Initialization */
 	saErr = mqd_imm_initialize(cb);
