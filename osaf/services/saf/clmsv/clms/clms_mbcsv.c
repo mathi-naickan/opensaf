@@ -185,7 +185,7 @@ static uint32_t ckpt_proc_finalize_rec(CLMS_CB * cb, CLMS_CKPT_REC * data)
 	}
 	/* Free all resources allocated by this client. */
 	if ((rc = clms_client_delete(param->client_id)) != 0) {
-		LOG_ER("clms_client_delete FAILED: %u", rc);
+		LOG_NO("clms_client_delete failed: %u , Ignoring.", rc);
 		return SA_AIS_ERR_BAD_HANDLE;
 	}
 
