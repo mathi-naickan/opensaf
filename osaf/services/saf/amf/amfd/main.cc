@@ -576,6 +576,14 @@ static uint32_t initialize(void)
 		goto done;
 	}
 
+	// CLM init is independent of this SC's role. Init with CLM early.
+
+	if (avd_clm_init() != SA_AIS_OK) {
+		LOG_EM("avd_clm_init FAILED");
+		rc = NCSCC_RC_FAILURE;
+		goto done;
+	}
+
 	if ((rc = initialize_for_assignment(cb, role))
 		!= NCSCC_RC_SUCCESS) {
 		LOG_ER("initialize_for_assignment FAILED %u", (unsigned) rc);

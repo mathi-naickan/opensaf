@@ -194,11 +194,6 @@ uint32_t initialize_for_assignment(cl_cb_tag* cb, SaAmfHAStateT ha_state)
 		LOG_ER("avsv_mbcsv_register FAILED");
 		goto done;
 	}
-	if (avd_clm_init() != SA_AIS_OK) {
-		LOG_EM("avd_clm_init FAILED");
-		rc = NCSCC_RC_FAILURE;
-		goto done;
-	}
 	if (avd_imm_init(cb) != SA_AIS_OK) {
 		LOG_ER("avd_imm_init FAILED");
 		rc = NCSCC_RC_FAILURE;
