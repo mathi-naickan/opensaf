@@ -113,6 +113,20 @@ static uint32_t eds_se_lib_init(NCS_LIB_REQ_INFO *req_info)
 		exit(EXIT_FAILURE);
 	}
 
+	/* Initialize and Register with CLM */
+	 if (eds_clm_init(eds_cb) != SA_AIS_OK) {
+		LOG_ER("CLM Init failed");
+		/* Release EDU handle */
+		m_NCS_EDU_HDL_FLUSH(&eds_cb->edu_hdl);
+		/* Destroy the hdl for this CB */
+		ncshm_destroy_hdl(NCS_SERVICE_ID_EDS, gl_eds_hdl);
+		gl_eds_hdl = 0;
+		/* Free the control block */
+		m_MMGR_FREE_EDS_CB(eds_cb);
+		TRACE_LEAVE();
+		return NCSCC_RC_FAILURE;
+	}
+
 	if ((rc = initialize_for_assignment(eds_cb, eds_cb->ha_state)) !=
 		NCSCC_RC_SUCCESS) {
 		LOG_ER("initialize_for_assignment FAILED %u", (unsigned) rc);
@@ -128,7 +142,6 @@ uint32_t initialize_for_assignment(EDS_CB *cb, SaAmfHAStateT ha_state)
 {
 	TRACE_ENTER2("ha_state = %d", (int) ha_state);
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	SaAisErrorT error;
 	if (cb->fully_initialized || ha_state == SA_AMF_HA_QUIESCED) {
 		goto done;
 	}
@@ -136,14 +149,6 @@ uint32_t initialize_for_assignment(EDS_CB *cb, SaAmfHAStateT ha_state)
 	/* Bind to MDS */
 	if (NCSCC_RC_SUCCESS != (rc = eds_mds_init(cb))) {
 		LOG_ER("eds mds init failed");
-		goto done;
-	}
-
-	/* Initialize and Register with CLM */
-	error = eds_clm_init(cb);
-	if (error != SA_AIS_OK) {
-		LOG_ER("CLM Init failed: %u", (unsigned) error);
-		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
 
