@@ -147,6 +147,10 @@ static uint32_t ckpt_proc_reg_rec(CLMS_CB * cb, CLMS_CKPT_REC * data)
 			/* Do not allow standby to get out of sync */
 			osafassert(0);
 		}
+
+		if ((clms_cb->ha_state == SA_AMF_HA_STANDBY) || (clms_cb->ha_state == SA_AMF_HA_QUIESCED)) {
+			clms_cb->last_client_id = param->client_id;
+		}
 	}
 
 	TRACE_LEAVE();

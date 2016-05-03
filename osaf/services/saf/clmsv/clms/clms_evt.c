@@ -256,8 +256,11 @@ CLMS_CLIENT_INFO *clms_client_new(MDS_DEST mds_dest, uint32_t client_id)
 	}
 
     /** Initialize the record **/
-	if ((clms_cb->ha_state == SA_AMF_HA_STANDBY) || (clms_cb->ha_state == SA_AMF_HA_QUIESCED))
-		clms_cb->last_client_id = client_id;
+	if ((clms_cb->ha_state == SA_AMF_HA_STANDBY) || (clms_cb->ha_state == SA_AMF_HA_QUIESCED)) {
+		if (client_id > clms_cb->last_client_id) {
+			clms_cb->last_client_id = client_id;
+		}
+	}
 	client->client_id = client_id;
 	client->mds_dest = mds_dest;
 	client->client_id_net = m_NCS_OS_HTONL(client->client_id);
