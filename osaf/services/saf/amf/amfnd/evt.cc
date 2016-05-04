@@ -32,7 +32,6 @@
 */
 
 #include "avnd.h"
-#include "imm.hh"
 
 /****************************************************************************
   Name          : avnd_evt_create
@@ -322,17 +321,9 @@ void avnd_evt_destroy(AVND_EVT *evt)
 ******************************************************************************/
 uint32_t avnd_evt_send(AVND_CB *cb, AVND_EVT *evt)
 {
-	uint32_t rc;
-	if (evt->type == AVND_EVT_AVD_SU_PRES_MSG) {
-		TRACE("AVND_EVT_AVD_REG_SU_MSG");
-		rc = m_NCS_IPC_SEND(&ir_cb.mbx, evt, evt->priority);
-		if (NCSCC_RC_SUCCESS != rc)
-			LOG_CR("AvND send event to mailbox failed, type = %u", evt->type);
-	} else {
-		rc = m_NCS_IPC_SEND(&cb->mbx, evt, evt->priority);
-		if (NCSCC_RC_SUCCESS != rc)
-			LOG_CR("AvND send event to mailbox failed, type = %u", evt->type);
-	}
+	uint32_t rc = m_NCS_IPC_SEND(&cb->mbx, evt, evt->priority);
+	if (NCSCC_RC_SUCCESS != rc)
+		LOG_CR("AvND send event to mailbox failed, type = %u", evt->type);
 
 	return rc;
 }
