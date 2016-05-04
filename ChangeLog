@@ -1,2 +1,951 @@
-OpenSAF 4.7.0 (released 2015-11-01)
+OpenSAF 5.0.0 (released 2016-05-05)
 -----------------------------------
+
+Changes from 4.7.0 to 5.0.0
+---------------------------
+osaf: Support for spare system controllers - 2N + spare SCs
+osaf: Support the case when both controllers are down and the cluster is not rebooted
+pyosaf: AIS interface for the extended  	
+imm: OiCcbObjectModifyCallback for appliers should include attributes that is not modified  	 
+ntf: Integrate NTF service with CLM
+base: Treat failure to use real-time priorities as non-fatal 
+smfd: parallel swBundle removal and installation 	 
+imm: immcfg allow creation/deletion of multiple values for multi attributes 	 
+Remove limitation of max 255 nodes in the cluster 	 
+pyosaf: Add high-level bindings for NTF
+
+Changes from 4.6.0 to 4.7.0
+---------------------------
+
+**AMF enhancements**
+
+- Support for the SI swap administrative operation in the N-way model [#78]
+
+- Improvements to the amf-find and amf-state command line tools [#113], [#1318]
+
+- Specification compliance for passive monitoring [#181]
+
+- Specification compliance for component restart administrative operation [#334]
+
+- Support for the restart administrative operation on SUs [#1455]
+
+- Support for parallel lock/unlock instantiation on AMF node groups [#1327]
+
+**CLM enhancements**
+
+- Support for cluster scale-out [#1453]
+
+**IMM enhancements**
+
+- Periodic auditing of the persistent back-end database [#19]
+
+- Classify the cause of an aborted CCB [#744]
+
+- Performance improvements to sync and runtime data updates [#952], [#1445]
+
+- New administrative operation to abort non-critical CCBs [#1107]
+
+- Improved immcfg tool to support create operation followed by modify [#1283]
+
+- Abort non-critical CCBs when an object implementer is disconnected [#1391]
+
+- Support removal of default attribute values from class definition [#1471]
+
+**LOG enhancements**
+
+- New format tokens for time zone and milliseconds [#593]
+
+- The saflogger tool now uses the default log format and has improved parameter
+  checking [#1433], [#1367]
+
+- Performance and memory usage improvement [#1376]
+
+- Improved support for runtime configuration changes [#1288], [#1387], [#1490]
+
+- New runtime object showing the actual LOG service configuration [#1393]
+
+**MDS enhancements**
+
+- Detect duplicate TIPC addresses on the network [#464]
+
+**Python bindings enhancements**
+
+- New high-level/pythonic bindings for the IMM OI API [#1406]
+
+- Improved IMM OM bindings [#1417], [#1419]
+
+- Consistent handling of retry loops and exceptions [#1434], [#1441]
+
+- New high-level bindings for the LOG API [#1447]
+
+**SMF enhancements**
+
+- Upgrade time improvement [#1401]
+
+Changes from 4.5.0 to 4.6.0
+---------------------------
+
+**General OpenSAF enhancements**
+
+- Support for DNs longer than 255 bytes and RDNs longer than 64 bytes in IMM,
+  NTF and SMF [#191], [#886], [#873], [#930]
+
+- Enhanced security using local user authentication and IMM access authorization
+  [#554], [#938]
+
+
+**AMF enhancements**
+
+- Improvements to the notifications and alarms sent by AMF [#106], [#108]
+
+- Modification of some AMF configuration attributes take immediate effect [#819]
+
+- Allow creation/deletion of unlocked SUs [#911]
+
+
+**CKPT enhancements**
+
+- Improved performance [#770]
+
+
+**IMM enhancements**
+
+- Configigurable OI callback server-side timeout per OI-handle [#16]
+
+- AdminOp on immsv for dumping resource utilization data [#35]
+
+- Auto relase of lingering search handles [#47]
+
+- Support for explicit ccb-validate and explicit ccb-abort [#798]
+
+- Allow admin-operations directly targeting an implementer/applier [#799]
+
+- Allow class schema change to add attribute default [#895]
+
+- Allow modifications of opensafImmSyncBatchSize config atttribute [#934]
+
+
+**LOG enhancements**
+
+- Make log record queue limits configurable in runtime [#921]
+
+
+**MDS enhancements**
+
+- Use TIPC multicast [#851]
+
+
+**SMF enhancements**
+
+- Single step procedures shall only reboot affected nodes [#140]
+
+
+Changes from 4.4 to 4.5
+-----------------------
+    * IMM: Halt sync with SIGKILL insted of SIGTERM and replace assert with error [#1295]
+    * log test: Fix test cases for better handling [#1292]
+    * amfd: segv at configuration validation error #1297
+    * amfd: fix controller swap in 4.4.2 [#1257]
+    * amfd: do not send multiple notificaitons for node admin state [#1284]
+    * amfnd: send comp-failover request to AMFD before assignment response [#1259]
+    * smfd: handle all rc in routine updateImmAttr [#1253]
+    * amfd: reset admin op params during controller role swap [#1257].
+    * amfd: checkpoint node admin state during clm lock [#409]
+    * pyosaf: add  saAis import [#751]
+    * IMM: Larger timeout on cleanup of PRT/class-change request continuations [#1266]
+    * ntfa: fix mutiple mutex lock/unlock on ntfa_cb in saNtfNotificationSend [#1263]
+    * clm: retry when notificationsend return TRY_AGAIN and log error [#1195]
+    * imm: fix memory leak in search init [#1265]
+    * amfd: do not allow duplicate addition of node in a nodegroup[#646]
+    * amfd: send commit message after async updates [#371]
+    * amfnd: issue remove cbk for assigning csi after successful assignment V2[#1046]
+    * amfd: mark unlocked-in amf node disabled upon clm exit [#496].
+    * amfd: update si_dep_state for all the dependents on a failed node [#1045]
+    * IMM: Change log severity from ERror to WArning for PBE missmatch on op-count [#1260]
+    * amfd: add mutex to sync up among amfd threads [#405, #707]
+    * amfd: assign only one csi per NPI component for PI SU  [#1237]
+    * IMM: immsv/README Clarify that augmented CCBs must be kept pure [#1208]
+    * amfd: change LOG_ER to traces in si equal distribution in NpM [#1192]
+    * amfd: fix amfd crash while updating saAmfSGMaxActiveSIsperSU [#1210]
+    * amfd: add SG and SU name in error string [#1174]
+    * amfd: validate parent name of SI and its protecting SG [#1161]
+    * mds: replace static array send buffer with dynamic memory [#1248]
+    * mds/tcp: correct memcopy size of contiguous USRBUF in fragment send [#1247]
+    * log: Fix @Nd token printing empty value [#900]
+    * imm: corrected compilation error [#1250]
+    * imm: Return TRY_AGAIN for CcbApply when fevs_replies_pending greater than or equal to IMMSV_DEFAULT_FEVS_MAX_PENDING [#1250]
+    * amfnd: ignore unwanted events during node failover [#1249]
+    * log: Fill creation time statmp when creating application stream with config object [#975]
+    * imm: exit the pbe when the verification of class returns TRY_AGAIN [#1245]
+    * imm : Added IMM_ERROR check for out_evt type in AugmentCcbInitialize [#1243]
+    * smf: parsing of parent and type combinations possible in activationUnitTemplate [#1199]
+    * amfd: return try_again to si-swap during amfd cold sync [#1169]
+    * uml: Improve the UML cluster simulator [#1197]
+    * mds: correct memcopy size of contiguous USRBUF in fragment send [#1239]
+    * amfd : update SI admin state during shutdown op with fault [#488]
+    * imm: corrected the time return value check if the unix time is reset [#1236]
+    * ntf/safntf: fix ntfsubsribe redirection issue v2[#502]
+    * ntf/safntf: send all types of events using ntfsend [#1102]
+    * ntf/safntf: print lengthAdditionalText with ntfsubscribe -v [#1215]
+    * imm: Trailing slash can be ignored when checking IMMSV_ROOT_DIRECTORY [#1093]
+    * amfa: avoid crash in synchronous saAmfResponse() call [#1233]
+    * log: Incorrect syslog if fail to close files when closing log stream [#1129]
+    * immsv: Correct the jobDuration condition for IMM_SERVER_CLUSTER_WAITING state [#953]
+    * imm: Corrected warning message when sync is taking more than five minuets [#1119]
+    * log: Testcase logtest 4 1 cleanup sfter test [#1178]
+    * clm: fix corner cases in node_down processing [#1221]
+    * clm: fix the case when duplicate node downs are found part 3 [#1221]
+    * clm: remove defective null initialize in the fix for 1221 [#1221]
+    * clm: protect node down processing when checkpointing arrives earlier - v2 [#1221]
+    * ava : free msg response in saAmfResponse() for term cbk [#1220]
+    * Imm: Return TRY_AGAIN when slave PRTA timesout and prepare arrives after the slave timeout [#1211]
+    * amfd: create app data if doesnot exist [#1207]
+    * tools/amf : fix timeout option in amf-adm comand [#1013]
+    * ntfimcn : change LOG_ERR to LOG_NO during shutdown [#1196]
+    * imm: remove CCB timeout when CCB augmentation is closing [#1183]
+    * smfd: no unneccessary delay at node reboot [#1203]
+    * smf: fix mem leak, call saClmFinalize when saClmClusterNodeGet returns error [#1205]
+    * pyosaf: add  saAis import [#751]
+    * amfd: correct logic in si dep in npm red model [#1193]
+    * IMM: Correction to idempotent ObjectImplementerSet during sync [#1202]
+    * pyosaf: add ctypes import [#751]
+    * pyosaf: remove IMM_A_01_01 from saImm.py [#751]
+    * pyosaf: fix saEnumConst.py pylint rating [#751]
+    * pyosaf: fix saImmOm.h pylint rating [#751]
+    * pyosaf: fix saImm.h pylint rating [#751]
+    * pyosaf: fix saAis.h pylint rating [#751]
+    * pyosaf: remove IMM_A_01_01 from saImm.py [#751]
+    * log: Log crash if no parameters in admin operation [#1164]
+    * log: Test IMM OM request to change filter with no parameters [#1164]
+    * log: Add logtestfr to opensaf.spec.in [#1175]
+    * log: Fix oldest file search in log rotation [#1175]
+    * log: Testing file rotation with corrupt file name [#1175]
+    * 2PBE: PBE slave restart during class-create must regenerate imm.db [#1092]
+    * amfd: Update SI dependencies after SU Failover for NpM SG V2 [#1101]
+    * smf: handle the suspended single step cluster reboot campaigns to continue after reboot [#1118]
+    * IMM 2PBE: Slave main thread avoids aborting ccb during prepare [#1080]
+    * amfd: revert role of standby if no act exists [#1191]
+    * IMM 2PBE: Abort-callback before completed-callback aborts sqlite-trans [#1063]
+    * log: Protect waiting for ntfimcn process to exit [#1110]
+    * imm:loading of 2PBE will fail when loaded with xml [#1173]
+    * IMM (2PBE): Fix incorrect transaction abort in slave PBE [#1057]
+    * IMM (PBE): Return NO_RESOURCES to avoid "validation error" from PBE [#1057]
+    * IMM (2PBE): Slave PBE regenerates file when restarted soon after PRT error [#1057]
+    * IMM (2PBE): Fix incorrect transaction abort in slave PBE [#1057]
+    * pyosaf: fix saImmOmAdminOperationInvoke_2 [#1176]
+    * pyosaf: fix saImmOmAdminOperationInvoke_2 [#1176]
+    * immtools:loading XML file with immcfg will not abort when classname is not preset [#1168]
+
+OpenSAF 4.4.2 (released 2015-04-10)
+-----------------------------------
+    * IMM: Halt sync with SIGKILL insted of SIGTERM and replace assert with error [#1295]
+    * log test: Fix test cases for better handling [#1292]
+    * amfd: segv at configuration validation error #1297
+    * amfd: fix controller swap in 4.4.2 [#1257]
+    * amfd: do not send multiple notificaitons for node admin state [#1284]
+    * amfnd: send comp-failover request to AMFD before assignment response [#1259]
+    * smfd: handle all rc in routine updateImmAttr [#1253]
+    * amfd: reset admin op params during controller role swap [#1257].
+    * amfd: checkpoint node admin state during clm lock [#409]
+    * pyosaf: add  saAis import [#751]
+    * IMM: Larger timeout on cleanup of PRT/class-change request continuations [#1266]
+    * ntfa: fix mutiple mutex lock/unlock on ntfa_cb in saNtfNotificationSend [#1263]
+    * clm: retry when notificationsend return TRY_AGAIN and log error [#1195]
+    * imm: fix memory leak in search init [#1265]
+    * amfd: do not allow duplicate addition of node in a nodegroup[#646]
+    * amfd: send commit message after async updates [#371]
+    * amfnd: issue remove cbk for assigning csi after successful assignment V2[#1046]
+    * amfd: mark unlocked-in amf node disabled upon clm exit [#496].
+    * amfd: update si_dep_state for all the dependents on a failed node [#1045]
+    * IMM: Change log severity from ERror to WArning for PBE missmatch on op-count [#1260]
+    * amfd: add mutex to sync up among amfd threads [#405, #707]
+    * amfd: assign only one csi per NPI component for PI SU  [#1237]
+    * IMM: immsv/README Clarify that augmented CCBs must be kept pure [#1208]
+    * amfd: change LOG_ER to traces in si equal distribution in NpM [#1192]
+    * amfd: fix amfd crash while updating saAmfSGMaxActiveSIsperSU [#1210]
+    * amfd: add SG and SU name in error string [#1174]
+    * amfd: validate parent name of SI and its protecting SG [#1161]
+    * mds: replace static array send buffer with dynamic memory [#1248]
+    * mds/tcp: correct memcopy size of contiguous USRBUF in fragment send [#1247]
+    * log: Fix @Nd token printing empty value [#900]
+    * imm: corrected compilation error [#1250]
+    * imm: Return TRY_AGAIN for CcbApply when fevs_replies_pending greater than or equal to IMMSV_DEFAULT_FEVS_MAX_PENDING [#1250]
+    * amfnd: ignore unwanted events during node failover [#1249]
+    * log: Fill creation time statmp when creating application stream with config object [#975]
+    * imm: exit the pbe when the verification of class returns TRY_AGAIN [#1245]
+    * imm : Added IMM_ERROR check for out_evt type in AugmentCcbInitialize [#1243]
+    * smf: parsing of parent and type combinations possible in activationUnitTemplate [#1199]
+    * amfd: return try_again to si-swap during amfd cold sync [#1169]
+    * uml: Improve the UML cluster simulator [#1197]
+    * mds: correct memcopy size of contiguous USRBUF in fragment send [#1239]
+    * amfd : update SI admin state during shutdown op with fault [#488]
+    * imm: corrected the time return value check if the unix time is reset [#1236]
+    * ntf/safntf: fix ntfsubsribe redirection issue v2[#502]
+    * ntf/safntf: send all types of events using ntfsend [#1102]
+    * ntf/safntf: print lengthAdditionalText with ntfsubscribe -v [#1215]
+    * imm: Trailing slash can be ignored when checking IMMSV_ROOT_DIRECTORY [#1093]
+    * amfa: avoid crash in synchronous saAmfResponse() call [#1233]
+    * log: Incorrect syslog if fail to close files when closing log stream [#1129]
+    * immsv: Correct the jobDuration condition for IMM_SERVER_CLUSTER_WAITING state [#953]
+    * imm: Corrected warning message when sync is taking more than five minuets [#1119]
+    * log: Testcase logtest 4 1 cleanup sfter test [#1178]
+    * clm: fix corner cases in node_down processing [#1221]
+    * clm: fix the case when duplicate node downs are found part 3 [#1221]
+    * clm: remove defective null initialize in the fix for 1221 [#1221]
+    * clm: protect node down processing when checkpointing arrives earlier - v2 [#1221]
+    * ava : free msg response in saAmfResponse() for term cbk [#1220]
+    * Imm: Return TRY_AGAIN when slave PRTA timesout and prepare arrives after the slave timeout [#1211]
+    * amfd: create app data if doesnot exist [#1207]
+    * tools/amf : fix timeout option in amf-adm comand [#1013]
+    * ntfimcn : change LOG_ERR to LOG_NO during shutdown [#1196]
+    * imm: remove CCB timeout when CCB augmentation is closing [#1183]
+    * smfd: no unneccessary delay at node reboot [#1203]
+    * smf: fix mem leak, call saClmFinalize when saClmClusterNodeGet returns error [#1205]
+    * pyosaf: add  saAis import [#751]
+    * amfd: correct logic in si dep in npm red model [#1193]
+    * IMM: Correction to idempotent ObjectImplementerSet during sync [#1202]
+    * pyosaf: add ctypes import [#751]
+    * pyosaf: remove IMM_A_01_01 from saImm.py [#751]
+    * pyosaf: fix saEnumConst.py pylint rating [#751]
+    * pyosaf: fix saImmOm.h pylint rating [#751]
+    * pyosaf: fix saImm.h pylint rating [#751]
+    * pyosaf: fix saAis.h pylint rating [#751]
+    * pyosaf: remove IMM_A_01_01 from saImm.py [#751]
+    * log: Log crash if no parameters in admin operation [#1164]
+    * log: Test IMM OM request to change filter with no parameters [#1164]
+    * log: Add logtestfr to opensaf.spec.in [#1175]
+    * log: Fix oldest file search in log rotation [#1175]
+    * log: Testing file rotation with corrupt file name [#1175]
+    * 2PBE: PBE slave restart during class-create must regenerate imm.db [#1092]
+    * amfd: Update SI dependencies after SU Failover for NpM SG V2 [#1101]
+    * smf: handle the suspended single step cluster reboot campaigns to continue after reboot [#1118]
+    * IMM 2PBE: Slave main thread avoids aborting ccb during prepare [#1080]
+    * amfd: revert role of standby if no act exists [#1191]
+    * IMM 2PBE: Abort-callback before completed-callback aborts sqlite-trans [#1063]
+    * log: Protect waiting for ntfimcn process to exit [#1110]
+    * imm:loading of 2PBE will fail when loaded with xml [#1173]
+    * IMM (2PBE): Fix incorrect transaction abort in slave PBE [#1057]
+    * IMM (PBE): Return NO_RESOURCES to avoid "validation error" from PBE [#1057]
+    * IMM (2PBE): Slave PBE regenerates file when restarted soon after PRT error [#1057]
+    * IMM (2PBE): Fix incorrect transaction abort in slave PBE [#1057]
+    * pyosaf: fix saImmOmAdminOperationInvoke_2 [#1176]
+    * pyosaf: fix saImmOmAdminOperationInvoke_2 [#1176]
+    * immtools:loading XML file with immcfg will not abort when classname is not preset [#1168]
+
+OpenSAF 4.3.3 (released 2014-10-07)
+-----------------------------------
+    * IMM: Changed severity to ER for syslog message for fevs out of order #1149
+    * dtm: fix compiler warning [#1152]
+    * dtm: fix NULL ptr dereference [#1152]
+    * imm: fix checks for allocated memory [#1130]
+    * immtools: fix loading long data in immcfg [#1130]
+    * imm: fix loading long data in immload [#1130]
+    * base: remove setgid/setuid calls in execute_timed [#1138]
+    * clm: do not send stale track to the node that rebooted and cameback [#1120]
+    * clm: during failover, process agent down before node downs [#1120]
+    * clm: avoid stale node down processing and unexpected track callback [#1120]
+    * immtools: allocate enough memory for long log format in immcfg [#1089]
+    * imm: add missing check in seach init [#1135]
+    * IMM: Failure to send completed to PBE defaulted to ccb-recovery [#1127]
+    * tools/safntf : validate ntfsend options V3 [#1069]
+    * imm: In immnd_evt_proc_ccb_compl_rsp skip to end if PBE-OI is detached [#1096]
+    * immtools: fix number of admin owner names to one [#1065]
+    * imm:corrected trace log in setImplementer[#1084]
+    * imm: fix memory leak in immload [#1099]
+    * amfd : fix compilation issue [#759]
+    * imm:fix memory leaks in finalizeSync [#1085]
+    * amf : disable oper state of faulty comp if SU is disabled [#1035]
+    * amfd : update saAmfSINumCurr<Actv/Stdby>Assignments in SI during nodefailover [#759]
+    * imm: Corrected trace statement in cleanTheBasement [#1086]
+    * imm:Removed the erase of iterator in migrateObj[#1097]
+    * imm:corrected missing cl_node NULL check for imma resurrect [#1094]
+    * imm:initalized the uninitialized variables in obj_delete and rt_obj_delete[#1098]
+    * imm: check the end ccb iterator before accessing data for ccb augument [#1100]
+    * imm: In saImmOiAugmentCcbInitialize goto function end if om_handle_init fails [#1095]
+    * IMM: Extend osafassert check in ImmModel::adjustEpoch [#1090]
+    * imm:corrected uninitalized error code in ccb delete and Completed rsp [#1103]
+    * imm: Return TRY_AGAIN only when object apllier matches the Re-using implementerset info [#1078]
+    * imm: ccbCreate - Fix expression for appending default values to ccb-create-callback [#1083]
+    * IMM: Add client node NULL-check in immnd_evt_proc_fevs_forward [#1088]
+    * imm: Compare err instead of assign in immnd_evt_proc_rt_object_delete [#1087]
+    * smfd: better handling of admin op SI_SWAP return codes [#940]
+    * base: check and truncate(with character T) logtrace messages >= 1023 bytes [#970]
+    * clm: imm reinit mechanism shall check for impl_set flag in BAD_OPER scenarios [#1067]
+    * IMM: Reduce log severity database size messages [#866]
+    * immtools:corrected variable declaration for immpopulate [#1052]
+    * amfd: submit the left out portion of the fix [#708]
+    * IMM: PBE exits on errors where sqlite-handle has been closed [#996]
+    * imm:Return AIS_OK when m_NCS_IPC_RECEIVE receives NULL in dispatch block[#937]
+    * imm:Return TRY_AGAIN if implemeter is not yet discarded [#946]
+    * imma: add missing lock when traversing client db from mds thread [#1033]
+    * IMM: Document persistence behavior for system attribues [#967]
+    * IMM: immsv/README Clarify when attribute default values get assigned [#968]
+    * imm:corrected memory corruption problem when ccberrorstring is used in modify/create callback[#961]
+    * log: Add new tests for validation of attributes at create/modify stream conf obj [#448]
+    * log: Fix incorrect test cases in current test suite [#448]
+    * log: Fix validity check for IMM create/modify stream [#448]
+    * amfd: instantiate su as per saAmfSGNumPrefInserviceSUs [#445]
+    * amfd: return admin op when csi assign/remove is over [#372]
+    * amfd: return FAILED_OP to RtAttrUpdateCallbackT if RtObjectUpdate_2 fails [#426]
+    * amfd: fix build issue [#582]
+    * amfd: allow lock on su after issue of shutdown [#582]
+    * amfd: start clm track and mark sg stable after node failover [#708]
+    * amfd : fix amfd crash during su level faults in su or node lock [#992]
+    * amfnd : mark SU UNINSTANTIATED if all comps are UNINSTANTIATED during compfailover [#359]
+    * amfnd : mark single comp SU RESTARTING during component restart [#358]
+    * amfd : fix node failover while assigning standby state during si-swap [#309]
+    * amfd : reply for admin operation on SG after its completion [#293]
+    * amfnd: Fix compilation issue on opensaf-4.3.x branch [#870]
+    * amfnd: remove white space [#870]
+    * amfnd: log events relating to error escalation timers [#870]
+    * smf: retry modify information model upon CCB abort post cluster restart [#973]
+    * ntf: Add testcase for testing that 256 is not a valid length for SaNameT [#892]
+    * ntf: Fix validation of length for SaNameT [#892]
+    * log: New testcases for testing max length handling og SaNameT [#891]
+    * log: Fix server error handling if SaNameT length is 256 or bigger [#891]
+    * log: Fix validation of SaNameT length in agent [#891]
+    * ntf: use thread safe localtime_r instead of localtime [#958]
+    * amf: use thread safe localtime_r instead of localtime [#958]
+    * mds: use thread safe localtime_r instead of localtime [#958]
+    * osaf: use thread safe localtime_r instead of localtime [#958]
+    * log: delete associated runtime object whenever app stream is deleted [#917]
+    * IMM:  Provide validation for config changes on imm service objects [#951]
+    * amf : perform node-switchover after component cleanup [#387]
+    * amfd : update dependent dep_state if fail-over of dependent fails [#692]
+    * amfd : standby AMFD should process ccb completed cbk for delete [#947]
+    * log: For overload limits use environment variable value if limit in config object is 0 [#941]
+    * Did osaf_abort() for invalid fd in RDA recv[#928]
+    * amfnd : speed up shutdown of standby SC upon failover during its shutdown [#942]
+    * avd: default saAmfSGNumPrefInserviceSUs to unlimited [#278]
+    * base: Corrected handling of raise_obj, rmv_obj file descriptors of Selection object [#928]
+    * amfd : skip processing of ccb completed cbk at standby amfd [#305]
+    * base: Do not use slashes in the names of POSIX shared memory segments [#909]
+    * amfnd: Fix spelling mistakes [#870]
+    * amfnd: Improve logging for error escalation decisions [#870]
+    * avnd: stop running timers when su is locked-in [#831]
+    * amfd: Remove asserts from validation routines [#849]
+    * amfnd: fix process of proxy proxied cleanup on OpenSAF shutdown [#629]
+    * amfd: send node down notification during controller failover [#914]
+    * avd: create SI to store ckpt:ed dep_state [#926]
+    * log: handle ending quote for messages in variable log records [#882]
+    * smfsv: Comments in ETF schema for SaTimeT unified, all specifies nanoseconds [#925]
+    * amfnd : fix SU restart escalation [#885].
+    * immpbe: unlink any /tmp/imm.db.xxxx file and journal when exiting on error [#869]
+    * clm: pass client_id for deletion to avoid accessing freed memory [#888]
+    * smfd: campaign can be committed after cluster reboot in state completed [#906]
+    * amfd: fix compilation problem [#854]
+    * amfd: return try_again to sg admin unlock-in if any su is in terminating state [#854]
+    * smfd: wait for node destination before command execution [#893]
+    * amfnd : avoid multiple clean up of comps during shutdown phase [#890].
+    * amfd: update RT objects during node-failover of active controller [#494].
+    * amfd: Allow multiple csi addition in single ccb [#750]
+    * amfd: instantiate mw sus when node is joining [#863]
+    * clm: setup mds and mbcsv role first during role change [#800]
+    * clm: process node down outside impl_set thread to avoid race [#800]
+    * avd: fix SU in-service check [#493]
+    * osaf: Fix compilation errors when building with GCC 4.9.0 [#883]
+    * amfd: syslog no assignment of SI when it is unlocked [#867]
+    * log: saflogtest to return EXIT_FAILURE when SaLogWriteLogCallbackT fails [#884]
+    * log: saflogger to return EXIT_FAILURE when SaLogWriteLogCallbackT fails [#884]
+    * log: fix errno usage for calls to strtoul [#841]
+    * log: ignore environment variables when config object exists [#841]
+    * log: Log should not retry when close() returns EINTR [#147]
+    * amfnd: Cancel qscing timer on CSI removal [#583]
+    * amfd: fix infinite loop when processing CLM node tracking [#877]
+    * amfd: assign only one csi per component for NPI SU [#856]
+    * log: allow zero sized log records for app streams [#857]
+    * avd: Respond with TRY_AGAIN to admin ops during a controller switch-over [#821]
+    * amfd: fix imm job update [#868]
+    * OSAF: fix errors compiled with 32-bit compiler [#838]
+    * log: use %z length modifier for printing size_t [#852]
+    * log: saflogger tool to honour try again [#839]
+    * amfnd: update saAmfSURestartCount & saAmfCompRestartCount during escalations [#847]
+    * IMM:Removed Implementer name for config objects while loading [#543]
+    * amfnd: fix re-instantiation of failed component [#844]
+    * avsv: include su_failover in REG_SU msg [#574]
+    * avsv: include and use comp capability in SUSI msg [#574]
+    * avsv: include and use sirank in SUSI msg [#574]
+    * IMM: fix memory leak in IMM [#834]
+    * amfd: return AIS_OK instead of BAD_OP for si-swap admin op [#823]
+    * amfd: act on dependent if sponsor gets unassigned in NoRed [#832]
+    * amfd: return BAD_OP for repair operation for su hosted on absent node [#826]
+    * amfd: return TRY_AGAIN for su/node lockin op if su pres state is not appropriate [#807]
+    * avnd: send SUSI response after cleanup of comp [#822]
+    * avsv: cleanup dnd edu [#574]
+    * cpsv: avoid stale ckpt IMM objects creation if Ckpt Open returns err 18 [#559]
+    * amfnd: fix failover of NPI SU during SU lock with fault [#820]
+    * avd: auto clear comp cleanup failed alarm [#538]
+    * avd: reboot node when term-failed SU [#538]
+    * avd: allow modification of node repair attributes [#538]
+    * amfd: send notification when SI first assigned to SU [#544]
+    * pyosaf: Add support for extended Ckpt api [#802]
+    * logsv: Do not allow NULL pointers for string variables in OI validity check [#771]
+    * logsv: Handle error return from localtime [#805]
+    * logsv: Fix handling of Om initialize / finalize when creating app stream [#804]
+    * IMMTOOLS: fix the schema name for immxml tools to comply with the latest schema known by the release [#796]
+    * smfd: deletion of objects owned by SMF possible regadless of DN [#752]
+    * osaf: Update the commit message template [#791]
+    * amfd: defer switch-over of dependent SI to after sponsor SI [#803]
+    * IMMTOOLS: fix incorrect error message for deleting class in immcfg [#794]
+    * IMM: Use existing PBE mutation record to guard against concurrent class create/delete [#757]
+
+
+OpenSAF 4.3.2 (released 2014-03-05)
+
+    This is a maintenance release. The following items were fixed and/or added:
+
+    * clm: initialize address family length with default value [#800]
+    * IMMTOOLS: add support for forwards compatibility of attribute flags [#116]
+    * IMM: add support for forwards compatibility of attribute flags [#116]
+    * Added tag 4.3.2RC1 for changeset 5503b2656726
+    * release: Update configure.ac for version 4.3.2RC1
+    * java: Replace select() with osaf_poll() to avoid 1024 fd limit [#452]
+    * osaf: Replace select() with osaf_poll() to avoid 1024 fd limit [#452]
+    * base: Add osaf_poll.h and osaf_time.h APIs [#580]
+    * amfnd: handle avadown in shutting down [#778]
+    * amfnd : avoid accessing list of csi in comp after removal of assignments [#739]
+    * amf: set comp oper state to enable when corresponding node is present [#324]
+    * IMM: Improved logging at CCB validation error [#669]
+    * IMM: Adjust log message & severity for intentional PBE termination [#764]
+    * smfd: No interference when error string is set after campaign parsing error [#763]
+    * clm and ntf: increase csisetcallback timeout to 40 seconds [#720]
+    * ntf: initialize saflog() early during clm init [#720]
+    * clm: initialize saflog() early during clm init [#720]
+    * osaf: add a new saflog_init routine [#720]
+    * amfnd : fix cleanup of assigned comp in shutdown [#767]
+    * logsv: Fix assert when switch over after last close of app stream [#714]
+    * cpsv: cpd broadcast cpnd down to all cpnd opened the same ckpt [#530]
+    * amfnd: correct npi su term failure handling during opensaf shutdown [#765]
+    * amfd: create comp if not found during decoding [#761]
+    * amfd: fix errors reported in valgrind [#715]
+    * IMM: Avoid repeated lookup of admo in abort of ccbCreate [#724]
+    * amfd: fix out-of-bounds read from nodelist array [#719]
+    * uml: Update UML environment to Linux 3.13.1, busybox 1.21.1 [#762]
+    * mds: Remove unnecessary syslog message about TIPC importance [#755]
+    * IMM: Correct misleading comment in saImmOm_A_2_12.h (#747)
+    * IMM: Clarify that completed-callback is meaningsless for appliers (#748)
+    * amfnd: escalate comp errors in quiesced HA state [#601]
+    * amfnd: guard failed state file removal [#741]
+    * amfd: remove UNKNOWN word from saflog [#362]
+    * amfnd: ignore healthcheck command response for terminated component [#732]
+    * base: Use default scheduling policy when configured policy is invalid [#690]
+    * base: Reverted the fixed memory leaks in base [#731]
+    * amfd: support for delete of unassigned comp [#691]
+    * amfnd: Correct the check for su [#717]
+    * smfd: attribute saAmfSUMaintenanceCampaign is set for restartable units [#703]
+    * base: memory leaks in base [#712]
+    * java: Fix code indentation and whitespace errors
+    * dtm: Remove non-ASCII character from code comment
+    * IMMTOOLS: fix RDN value with a DN of an associated object in immcfg [#702]
+    * java: Fix compiler warnings and treat warnings as errors [#649]
+    * amfd: Adjust attr value during name_value_pair update [#655]
+    * amf : return ERR_NOT_SUPPORTED for unsupported feature in APIs [#170]
+    * amfd : reset SI admin state to UNLOCKED if fault occurs during SHUTDOWN op [#490]
+    * amfd : honor SI dependency within SU in sufailover recovery [#503]
+    * amfnd : issue remove cbk to all comps when CSIs areunevenly distributed [#233]
+    * amfnd: Reboot payload when link between Controller and Payload flickers [#600]
+    * amfd: Reject admin op if csi add/remove is in progress [#627]
+    * amfd: Return SA_AIS_ERR_BAD_OPERATION if error occurs during si-swap [#214]
+    * amfd: Use correct CLC command to term/clean component [#104]
+    * nid: Fix infinite loops when system calls fail [#645]
+    * amfd: Corrected compiler warning [#91]
+    * amfd: Donot send empty susi to amfnd [#91]
+    * immom/pyosaf: Fix saImmOm.py [#626]
+    * immom/pyosaf: Fix saImmOm.py [#626]
+    * SMF: comparsion of attr saAmfSUMaintenanceCampaign and campaign DN corrected(#640)
+    * immom/pyosaf: Fix saImmOm.py [#626]
+    * IMMND replies BAD_HANDLE if client node is missing for non fevs request [#637]
+    * amfd: enable NPI component oper state during admin repair [#182]
+    * amfa: Fill numberOfItems whensaAmfProtectionGroupTrack or saAmfProtectionGroupTrack_4 return SA_AIS_ERR_NO_SPACE [#189]
+    * amfd: Decrement num_attributes when last attrValue is deleted [#302]
+    * clm: treat ERR_EXIST as TRY_AGAIN and support a flag for pending RTupdates [#528]
+    * SMF: Config parameters are read when node director becomes active (#633)
+    * amf: support CSI remove in unlocked [#194]
+    * amf: support CSI add in unlocked NPI [#194]
+    * immoi/pyosaf: Fix saImmOi.py [#615]
+    * IMM: Support for 'immadm -a (--admin-owner) <admo-name>' [#613]
+    * IMM: corrected Error notifcation when RDN attribute length is greater than 64 [#614]
+    * IMM: fix memory problem in saImmOmSearchNext_2 [#612]
+    * avd: saflog all model changes [#611]
+    * amfd: Instantiate only the uninstantiated SUs in clm track callback [#608]
+    * amf: change saAmfResponse to be synchronous in TerminateCallback context [#570]
+    * leap: change ncs_os_lock to syslog before abort [#605]
+    * CLM: free the allocated memory in CLMA track callback when version B.1.1 [#604]
+    * IMM: free the client node if IMMA intialisation fails [#602]
+    * ckpt/pyosaf: corrected incorrectly specified methods in saCkpt.py [#590]
+    * amfnd : reset assignment flag when no assignment pending on SU [#403]
+    * mds: configurable TIPC importance (minor doc update) [#589]
+    * amfnd: reset HC state at tmr start [#568]
+    * mds: configurable TIPC importance [#589]
+    * lgsv: Incorrect handling of "partial" write of log record to file [#536]
+    * uml: Support both TCP and TIPC transports in UML environment [#587]
+    * logsv: Fix time formatting for logrecords, @Cd and @CD [#565]
+    * logsv: improved error handling in rda callback [#567]
+    * ntf/tests not checking ret code [575]
+    * ntf/test: use stat on ntfsv_test_classes.xml before immcfg [#575]
+    * amfnd: terminate comps when failed NPI SU is in TERMINATING state [#338]
+    * IMM: Fix memory leak when ncs_lock failed in IMM agent [ #563 ]
+    * IMMTEST: Cleanup the code and fix memory problem [#552]
+    * IMM: New active IMMD sends redundant discard-node for payloads [#563]
+    * amfd: exit at MDS quiesced event in wrong state [#516]
+    * IMM: fix memory leak in imma_search_node_delete function [#549]
+    * ntftests: Fix and complete test suites [#303]
+    * avnd: fix print of sizeof [#310]
+    * amfsv: Donot assign SUSI to instantiating SU during SG unlock [#562]
+    * logtest: Backtraces and fixes to handle diff between 4.3 and 4.4 [#541]
+    * logtest: Comment testcases with description of what is tested [#541]
+    * logtest: Fix incorrect error print at FAIL [#541]
+    * logtest: New function for validate in test fm when using external tools e.g. immadm. [#541]
+    * logtest: Replace hard coded root path with root path fetched from log service IMM config object [#541]
+    * smfd: Re-read SaAmfSU attribute saAmfSUHostedByNode until set (#557)
+    * IMM: Abort sync when deadlock detected between sync and PBE (#556)
+    * osaf: Update docs with new component name BASE
+    * IMM: fix memory leak when SaAnyT atrribute is size of 0 [#550]
+    * pyosaf: fix type for additionalText [#553]
+    * pyosaf: correct python bindings for saImmOi [#548]
+    * amfnd: improve validation of received msgs [#310]
+    * IMM: Correction in finalizeSync for veteran implementer-check [#551]
+    * IMM: Correction to ccb handling in immnd_fevs_local_checks() [#535]
+    * IMM: Ignore spurious/redundant ccb-apply from client [#535]
+    * IMM: CcbApply retry logic made fevs safe [#535]
+    * amfnd: handle avaDown event in RESTARTING state [#542]
+    * amfnd: stop opensaf gracefully even if comp clean up fails duing opensaf shutdown [#540]
+    * pyosaf: correct python bindings for saCkpt [#547]
+    * pyosaf: correct python bindings for saClm [#546]
+    * amfnd: correlate clc scripts response event based on comp name [#514]
+
+
+OpenSAF 4.3.1 (released 2013-08-02)
+
+    This is a maintenance release. The following items were fixed and/or added:
+
+    * amfnd: issue callback to healthy components when fault occurs in quiescing state [#492]
+    * amfnd: mark CSI state assigning for quiesced SI in comp restart recovery [#491]
+    * amfnd: report failover after comp cleanup [#474]
+    * plm: fix build errors from gcc version > 4.6 [#527]
+    * dtm: Don't use NULL pointers or uninitialized data in error paths [#526]
+    * osaf: setup sudo for killall cmd and enable amfwdog to use killall as non-root user [#451]
+    * clm: lookup with node_name as key when node lockcallback timesout #[227]
+    * osaf: remove sleep in amf terminatecallback of cpnd, glnd, immnd, mqnd, smfnd to enable amf-adm comp restart [#501]
+    * cpsv: corrected the out of mem issue check of nref_info & cref_info part of ticket [#479]
+    * cpsv: create non-collocated replica Imm run-time object maximum on 3 node [#479]
+    * amfd: update assignment counters when component faults during shutdown op [#307]
+    * fm: adjust reboot settings in the non-root scenario [#478]
+    * fm: fix incompatible enum comparison error in #438
+    * amfd: convert NO_REC recovery to COMP_FAILOVER in CCB modify op [#480]
+    * fm: set rda role when failover is trigerred in the middle of switchover [#438]
+    * amfd: Reset swap_switch if failover happens [#483]
+    * amf: Resequence logs during si-swap of safSi=SC-2N,safApp=OpenSAF [#513]
+    * amfnd: Don't execute terminate command for uninstantiated component [#485]
+    * IMMTOOLS: fix handle finalize in immutil.c [#508]
+    * leap: fix mapping of memory protection flags for mmap [#288]
+    * amfnd: Ignore assignments at OPENSAF SHUTDOWN
+    * amfnd: set SU DISABLED at TERM-FAILED [#481]
+    * osaf: create threads in detached state: [#287]
+    * smfd: campaign reexecution possible [476]
+    * amfnd: fix admin comp restart to terminate [#7]
+    * osaf: Add time supervision of opensaf_reboot [#437]
+    * osaf: update nodeinit.conf softlink during rpm -Uvh [281]
+    * amfnd: set SU DISABLED at TERM-FAILED [#301]
+    * uml: Update to linux 3.9.5, busybox 1.21.0, tipcutils 2.0.3 [#304]
+    * dtm: check both duplicate node_id & node_ip [#236]
+    * pyosaf: fix saAmfInitialize_4 [#446]
+    * amf: allow modify of CSI attrs without locking SI [#353]
+    * IMM: fevs_local_checks does not spam syslog [#355]
+    * dtm: set TCP socket option TCP_NODELAY [#273]
+    * amfnd: remove premature nid response (#45)
+    * Amf: fix node failover on controller [#222]
+    * avsv: failover dependent SIs of other SGs during node lock (#2865)
+    * dtm: call opensaf_reboot script instead of sourcing it (#43)
+    * dtm: change assert to osafassert (#43)
+    * cpsv: verify num users  before deleting non-collocated replicas (#161)
+    * dtm: skip send to non connected nodes (#43)
+    * avsv: allow two SUs on same node in nwayactive (#3066)
+    * immtest: add tests for SA_IMM_PARAM_ADMOP_NAME as first parameter in admin operation invocation (#3138)
+    * immsv: fix parameter position problem of operation name in admin operations (#3138)
+    * leap: remove the assert in sysf_ipc:367
+    * immtools:Printing the status for all the merge cases(#2)
+    * Amf: Add validation during Sg and Su admin operation (#3117)
+    * Amf: Instantiate SU as per configured saAmfSGNumPrefInserviceSUs (#2794)
+    * opensaftools: Fix diffstat generated by review script [#3]
+
+
+
+Changes from OpenSAF 3.0.0 to OpenSAF 3.0.B4
+--------------------------------------------
+2009-03-09 Hans Feldt <hans.feldt@ericsson.com>
+	* LOG IMM Object Implementer
+
+2009-03-08 Anders Bjornerstedt <anders.bjornerstedt@ericsson.com>
+	* IMMSv-A.02.01 service added
+
+2009-03-08 Hans Feldt <hans.feldt@ericsson.com>
+	* Simple unit test framework added
+
+2009-03-08 Kenneth Andersson <kenneth.k.andersson@ericsson.com>
+	Gábor Balla, Arne Eriksson <Arne.R.Eriksson@ericsson.com>
+	Niklas Nilsson, Hans Feldt
+	* NTFSv A.01.01 initial contribution 
+
+Changes from OpenSAF 3.0.0 to OpenSAF 3.0.B3
+--------------------------------------------
+2009-01-07 Nagendra Kumar <nagendra.kumar@emerson.com>
+	* Introduction of Platform Adaptation Interface (PAI).
+	* External Proxy Support.
+
+2009-01-07 Ramesh Babu <ramesh.betham@emerson.com>
+	* Subslot support.
+	* AMF SI-SI Dependency Support.
+
+2009-01-07 Mahesh <mahesh.alla@emerson.com>
+	* CPSv Subslot support.
+
+
+Changes from OpenSAF 3.0.0 to OpenSAF 3.0.B2
+--------------------------------------------
+2008-08-12 Jonathan Fournier <jonathan.fournier@windriver.com>
+	* Build & Packaging Changes
+
+2008-08-12 Troy Heber <troy.heber@hp.com>
+	* OpenSAF Scripts Unification, Build changes
+
+2008-08-12 jozsef.biro <jozsef.biro@nsn.com>
+	* Java Mapping (Java AIS API for OpenSAF) contribution for AMF, CLM.
+
+Changes from OpenSAF 2.0.0 to OpenSAF 3.0.0
+-------------------------------------------
+
+2008-09-24 Mathi <Mathivanan.NP@emerson.com>
+	* EDSv B0301 spec changes with backward compatibility.
+	* Applications can initialize with B0101 OR B0301 functionality.
+
+2008-09-16 Mahesh <mahesh.alla@emerson.com>
+	* CPSv B0202 spec changes with backward compatibility.
+	* Applications can initialize with B0202 OR B0101 functionality.
+
+2008-09-16 Vishal <Vishal.Soni@emerson.com>
+	* MQSv B0301 spec changes with backward compatibility.
+	* Applications can initialize with B0101 OR B0301 functionality.
+
+Changes from OpenSAF 1.2.1 to OpenSAF 1.2.2
+-------------------------------------------
+The following issues were fixed for 1.2.2
+
+2008-07-24 Michael Bishop <michael.bishop@hp.com>
+	* HiSv needs to handle FRUs that are not ATCA (full 5-state hotswap model).
+
+2008-07-28 Mathivanan <mathivanan.np@emerson.com>
+	* seg fault in ncs_cli_maa pressing tab key.
+	* Stopping/shutdown of OpenSAF services not working properly.
+	* ChangeLog/RPM spec Updates.
+
+2008-07-27 Ramesh Babu <ramesh.betham@emerson.com>
+	* No core dumps generated on payloads nodes.
+	* Wrong path to tipc.h file in the Instalation and Configuration User's Huide and other Documentation updates.
+
+Changes from OpenSAF 1.1.0 to OpenSAF 1.2.1
+-------------------------------------------
+The following fixes/enhancements were done for 1.2.1.
+
+2008-06-18 Ramesh Babu <ramesh.betham@emerson.com>
+
+	* CLI commands fail for dtsv on 64-bit and CLI segaults for empty commands.
+	* ncs_mas exits due to seg fault.
+	* ncs_sel_obj_select logs "Too many interrupts" erroneously.
+
+2008-06-12 Hans Feldt <Hans.Feldt@ericsson.com>
+	* seg fault in opensaf_saflogd - lgs_client_new.
+	* Log file rotation does not work at cold start.
+
+2008-06-02 Alla Venkata Mahesh <mahesh.alla@emerson.com>
+	* OpenSAF does not clean all checkpoints from POSIX Shared memory.
+
+2008-06-12 Nagendra Kumar <nagendra.kumar@emerson.com>
+	* ncs_scap exits due to already started timer.
+	* Enhancing rde_rde_config_file.
+	* Controller Redundancy Issues.
+
+2008-06-20 Mathivanan <mathivanan.np@emerson.com>
+	* OpenSAF failed start not handled properly.
+	* OpenSAF CLI fails on a system with only a root user.
+	* PSS division by zero.
+	* NCSScalars Persistance problem.
+	* Support to start all pre-scap/scap processes as 'scripts' by NID.
+	* PSS on standby controller writes to file system.
+	* NIS Not all OpenSAF processes are stopped.
+	* smidump build error.
+	* update INSTALL file with more trouble shooting instructions.
+	* ChangeLog Updates.
+
+2008-06-19 Michael Bishop <michael.bishop@hp.com>
+	* HISv using incorrect value for #define HPI_AUTO_HS_STOP_TMR.
+
+Changes from OpenSAF 1.0.9 to OpenSAF 1.1.0
+-------------------------------------------
+
+2008-05-29 Hans Feldt <Hans.Feldt@ericsson.com>, Arne Eriksson, Niklas Nilsson
+
+	* An initial release Log Service was contributed by Ericsson Team.
+
+Changes from OpenSAF 1.0.8 to OpenSAF 1.0.9
+-------------------------------------------
+	* Some Trivial Fixes
+
+Changes from OpenSAF 1.0.7 to OpenSAF 1.0.8
+-------------------------------------------
+
+2008-04-08 OpenSAF Foudation
+
+	* OpenSAF Foundation is formed (With Emerson Network Power, Ericsson, Nokia Siemens Networks, HP and Sun Microsystems as founding members) and code base is moved to mercurial server.
+
+Changes from OpenSAF 1.0.5 to OpenSAF 1.0.7
+-------------------------------------------
+
+2008-01-08 Alla Venkata Mahesh <mahesh.alla@emerson.com>
+
+	* OpenSAF provides tetware based test infrastructure, and contains Single Node API & Functionality related test suites for all OpenSAF services. For details, refer README file at opensaf/tests directory.
+	* OpenSAF enforces to use 'gcc version 4.1.0' and above. Can also be build with the lower versions by removing '-Wno-pointer-sign' flag from configure.ac.
+
+2008-01-08 Nagendra Kumar <nagendra.kumar@emerson.com>
+
+	* OpenSAF code is now 64-bit compatible, OpenSAF (controller & payload) can run on 64-bit machines as well.
+	* OpenSAF bug-fixes 
+
+2008-01-08 Mathivanan <mathivanan.np@emerson.com>
+
+	* LSB (Linux Standard Base) compliance related changes.
+	* OpenSAF bug-fixes 
+	* The '/etc/init.d/nis_scxb status' command on the ACTIVE controller would give the status of the cluster from the time the OpenSAF is started till a FAILOVER period. Also, this command ('/etc/init.d/nis_pld status' on a payload) would show status/information of a fault/error that occurred with a particular component running on that particular node.
+
+2008-01-08 Vishal Soni <vishal.soni@emerson.com>
+
+	* Stack patch, OpenSAF threads stack size has been limited to 128K.
+
+2008-01-08 Ramesh Babu <ramesh.betham@emerson.com>
+
+	* DLL changes, OpenSAF SAF-specific libraries are dynamical loadable. An external application can load & use SAF libraries dynamically at run-time by using dlopen().
+
+
+Changes from OpenSAF 1.0.4 to OpenSAF 1.0.5
+-------------------------------------------
+
+2007-12-31 Ramesh Babu <rameshb@motorola.com>
+
+	* Copyright header information in OpenSAF codebase has been updated with new License format (LGPL).
+
+2007-12-31 Nagendra Kumar <nagendra@motorola.com>
+
+	* SPSv patch, correction made to OpenSAF 1.0.4 release to support backward compatibility.
+
+Changes from OpenSAF 1.0.3 to OpenSAF 1.0.4
+-------------------------------------------
+
+2007-10-17 Ramesh Babu <rameshb@motorola.com>
+
+	* Made OpenSAF public header files as a stand-alone header files.
+	* OpenSAF public header files are made available in OpenSAF rpm's.
+
+2007-10-17 Vishal Soni <vishal.soni@motorola.com>
+
+	* Removed unwanted OpenSAF shared libraries
+	* OpenSAF just supports 'make' & 'make rpm' commands. 
+	'make install' doesn't have any real mean in OpenSAF context.
+	* Removed SPSv interface from OpenSAF
+
+2007-10-17 Gus  <Gustavo.Leal-isla@motorola.com>
+
+	* OpenSAF 1.0.4 supports HPI-B spec (B.02.01)
+	* Changes in Opensaf installation is necessary. Please refer to the INSTALL file.
+	* OpenSAF supports platform entity paths as defined in SAF HPI B specification. But we observed different platforms are giving entity paths differently. So Modify the following OpenSAF functions based on the entity paths reported by your platform.        - /opensaf/services/hisv/hcd/ham/ham_evt.c  - get_resourceid() line 1450 onwards till 1459.
+	   -  /opensaf/services/hisv/hcd/hsm/hsm.c  - publish_inspending() line 834 onwards till 849 
+	   -  /opensaf/services/hisv/hcd/hsm/hsm.c  -publish_active_healty() line 949 onwards till 963 
+	   -  /opensaf/services/hisv/hcd/hsm/hsm.c  - hcd_hsm()publish_inspending() line 462 onwards till 467 
+
+
+2007-10-17 Hans Feldt  <Hans.Feldt@ericsson.com>
+
+	* UML patch, snmp rpm removal from UML and automatic startup of snmpd
+
+2007-11-01
+	* OpenSAF is tested on Debian4.0R1. Going forward Debian distribution is going to be the official
+	  reference OS for OpenSAF.
+
+Changes from OpenSAF 1.0.2 to OpenSAF 1.0.3
+-------------------------------------------
+ 
+2007-09-10 Ramesh Babu <rameshb@motorola.com>
+
+	* OpenSAF 1.0.3 release now supports 64-bit agent libraries on payloads for use by 64-bit user applications.
+
+2007-09-10 Vishal Soni <vishal.soni@motorola.com>
+
+	* Script to collect log and configuration information is added.
+
+	* smidump is explicitly configured with 'CFLAGS=-m32 CXXFLAGS=-m32' options.
+
+	* 'make distclean' will clean smidump generated files as well.
+
+2007-09-10 Mathivanan <mathi@motorola.com>
+
+	* buildtype='64bit_agent_libs' configure option is introduced for generating 64-bit agent libraries.
+
+	* Build targets for controller, payload and 64bit agent libraries are separated.
+
+        * The get_ha_state is now updated during more error scenarios to return the correct status of the controller.
+
+	* Removed references to nd_cl_hdl from CPA.
+ 
+2007-09-01 Alla Venkata Mahesh <mahesh.alla@motorola.com>
+
+	* AVSv demo will exit appropriately instead of continuously demonstrating restart capability.
+
+2007-08-28 Johan Martensson <johan.xx.martensson@ericsson.com>
+
+	* Resolved header inclusion issue for ncssysf_def.h ncspatricia.h.
+
+
+
+Changes from OpenSAF 1.0.1 to OpenSAF 1.0.2
+-------------------------------------------
+
+2007-07-30 Murthy <murthy.esakonu@motorola.com>
+
+	* In OpenSAF 1.0.2 release, HPI support is withdrawn. Once the OpenSAF is in compliance with HPI-B spec, this feature is going to be advertised.
+
+
+2007-07-18 Ramesh Babu <rameshb@motorola.com>
+
+	* OpenSAF bug fixes
+
+2007-07-18 Mathivanan <mathi@motorola.com>
+
+	* tipc.h has been removed from the OpenSAF distribution.
+
+	* bootstrap.sh: '-f' option is removed for "exec autoreconf -fvi", to avoid the overwrite of autotool generated files like INSTALL, README etc.  
+
+	* 'make rpm' command introduced to create OpenSAF rpms.
+
+	* get_ha_state: A new command is provided in OpenSAF that gives the current HA state of the node.
+
+	* nodeinit.conf: Moved to /etc/opt/opensaf directory.
+
+	* RDF updates the /var/opt/opensaf/node_ha_state file instead of the /etc/opt/opensaf/rde_rde_config_file.
+    
+	* NID, MDS logs and syslog updation during startup is optimized.
+
+	* OpenSAF target rpm checks for package dependencies and conflicts during installation.
+	
+	* net-snmp libraries are picked from net-snmp-config --agent-libs
+
+	* RDF integrated with NID.
+
+	* INSTALL file is updated with troubleshooting information.
+
+2007-07-05 Nicolas Thomas <nicolas.thomas@hp.com>
+
+	* generate_files.sh, generate_smidump.sh: 'set -e' option is added to these scripts. 
+
+	* scanner_smi.l, scanner_sming.l: YYPROTO definitions removed, to resolve compilation issues with latest flex/bison.
+
+
+
