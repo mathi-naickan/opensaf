@@ -191,6 +191,18 @@ static SaUint32T plms_HE_inact_np_to_inspending(PLMS_EVT *evt)
 	plms_presence_state_set(ent,SA_PLM_HE_PRESENCE_ACTIVATING,NULL,
 					SA_NTF_OBJECT_OPERATION,
 					SA_PLM_NTFID_STATE_CHANGE_ROOT);
+
+	/* If entity is disabled don't allow activation */
+	if (ent->entity.he_entity.saPlmHEOperationalState ==
+		SA_PLM_OPERATIONAL_DISABLED)
+	{
+		LOG_ER("Refusing to activate as the entity is in DISABLED"
+			" operational state: %s", ent->dn_name_str);
+
+		ret_err = plms_ent_isolate(ent, false, false);
+		return ret_err;
+	}
+
 	/* If admin state is lckinact, then move this entity back to inact
 	state.*/
 	if (SA_PLM_HE_ADMIN_LOCKED_INACTIVE  == 
