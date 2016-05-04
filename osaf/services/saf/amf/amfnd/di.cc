@@ -525,6 +525,7 @@ uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt)
 		 */
 		if (evt->info.mds.i_change == NCSMDS_UP) {
 			if (cb->amfd_sync_required && cb->led_state == AVND_LED_STATE_GREEN) {
+				cb->rcv_msg_id = 0;
 				avnd_sync_sisu(cb);
 				avnd_sync_csicomp(cb);
 			}
