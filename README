@@ -1,4 +1,4 @@
-This directory contains the 4.7 release of `OpenSAF'.
+This directory contains the 4.7.1 release of `OpenSAF'.
 
 `OpenSAF' is an open source project designed to implement a complete highly
 available operating environment based on Service Availability Forum (SA Forum)
@@ -761,7 +761,7 @@ See file `00-README.uml' for more information about User Mode Linux and `OpenSAF
 Upgrading OpenSAF
 =================
 
-Before installing or upgrading to OpenSAF 4.7, make sure your system meets the
+Before installing or upgrading to OpenSAF 4.7.1, make sure your system meets the
 minimum version requirements of the following system components:
 
 - Linux kernel, version 2.6.32 or later (see note below regarding TIPC, though)
@@ -772,7 +772,7 @@ minimum version requirements of the following system components:
   --enable-imm-pbe)
 
 Pay special attention to the fact that we have increased the minimum required
-version of GCC to 4.8.1 in OpenSAF 4.7, due to the use of the C++11 standard.
+version of GCC to 4.8.1 in OpenSAF 4.7.1, due to the use of the C++11 standard.
 
 When using MDS over TIPC, note that starting with OpenSAF 4.5, the TIPC
 multi-cast feature is being used. Due to TIPC bugs present in old versions of
