@@ -125,7 +125,14 @@ uint32_t avnd_evt_avd_reg_su_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
+	/* dont process unless AvD is up */
+	if (!m_AVND_CB_IS_AVD_UP(cb))
+		goto done;
+
 	info = &evt->info.avd->msg_info.d2n_reg_su;
+
+	avnd_msgid_assert(info->msg_id);
+	cb->rcv_msg_id = info->msg_id;
 
 	/* 
 	 * Check whether SU updates are received after fail-over then
@@ -389,6 +396,8 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 		}
 	}
 
+	avnd_msgid_assert(info->msg_id);
+	cb->rcv_msg_id = info->msg_id;
 
 	if (info->msg_act == AVSV_SUSI_ACT_ASGN) {
 		/* SI rank and CSI capability (originally from SaAmfCtCsType)
@@ -612,6 +621,9 @@ uint32_t avnd_evt_su_admin_op_req(AVND_CB *cb, AVND_EVT *evt)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER2("%s op=%u", info->dn.value, info->oper_id);
+
+	avnd_msgid_assert(info->msg_id);
+	cb->rcv_msg_id = info->msg_id;
 
 	su = m_AVND_SUDB_REC_GET(cb->sudb, info->dn);
 	osafassert(su != nullptr);
