@@ -191,6 +191,8 @@ static SaAisErrorT cpd_clm_init(CPD_CB *cb)
 		goto done;
         }
 
+	return error;
+
 done:
 	saClmFinalize(cb->clm_hdl);
 	
