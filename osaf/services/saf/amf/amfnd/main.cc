@@ -31,7 +31,7 @@
 #include "immutil.h"
 #include "logtrace.h"
 #include "nid_api.h"
-#include <imm.h>
+#include <imm.hh>
 
 #define FD_MBX   0
 #define FD_TERM  1

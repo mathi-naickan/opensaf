@@ -32,7 +32,7 @@
 */
 
 #include "avnd.h"
-#include "imm.h"
+#include "imm.hh"
 
 /****************************************************************************
   Name          : avnd_evt_create

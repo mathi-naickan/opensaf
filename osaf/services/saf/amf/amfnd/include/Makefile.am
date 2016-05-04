@@ -37,5 +37,5 @@ noinst_HEADERS = \
    avnd_tmr.h \
    avnd_util.h \
    avnd_proxy.h \
-   imm.h
+   imm.hh
 
