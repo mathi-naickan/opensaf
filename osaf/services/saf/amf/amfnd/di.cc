@@ -525,7 +525,6 @@ uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt)
 		 */
 		if (evt->info.mds.i_change == NCSMDS_UP) {
 			if (cb->amfd_sync_required && cb->led_state == AVND_LED_STATE_GREEN) {
-				cb->rcv_msg_id = 0;
 				avnd_sync_sisu(cb);
 				avnd_sync_csicomp(cb);
 			}
@@ -671,6 +670,7 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 	}
 
 	// reset msg_id counter
+	cb->rcv_msg_id = 0;
 	cb->snd_msg_id = 0;
 	TRACE_LEAVE();
 	return rc;
@@ -1041,17 +1041,18 @@ uint32_t avnd_di_msg_send(AVND_CB *cb, AVND_MSG *msg)
                   Active AVD.
  
   Arguments     : cb  - ptr to the AvND control block
-                  ack - If counter is Ok. 
+                  rcv_id - Receive message ID for AVND
                   view_num - Cluster view number
  
   Return Values : NCSCC_RC_SUCCESS/NCSCC_RC_FAILURE
  
   Notes         : None.
 ******************************************************************************/
-uint32_t avnd_di_ack_nack_msg_send(AVND_CB *cb, bool ack, uint32_t view_num)
+uint32_t avnd_di_ack_nack_msg_send(AVND_CB *cb, uint32_t rcv_id, uint32_t view_num)
 {
 	AVND_MSG msg;
 	uint32_t rc = NCSCC_RC_SUCCESS;
+	TRACE_ENTER2("Receive id = %u",rcv_id);
 
    /*** send the response to AvD ***/
 	memset(&msg, 0, sizeof(AVND_MSG));
@@ -1062,7 +1063,10 @@ uint32_t avnd_di_ack_nack_msg_send(AVND_CB *cb, bool ack, uint32_t view_num)
 	msg.info.avd->msg_info.n2d_ack_nack_info.msg_id = (cb->snd_msg_id + 1);
 	msg.info.avd->msg_info.n2d_ack_nack_info.node_id = cb->node_info.nodeId;
 
-	msg.info.avd->msg_info.n2d_ack_nack_info.ack = ack;
+	if (rcv_id != cb->rcv_msg_id)
+		msg.info.avd->msg_info.n2d_ack_nack_info.ack = false;
+	else
+		msg.info.avd->msg_info.n2d_ack_nack_info.ack = true;
 
 	TRACE_1("MsgId=%u,ACK=%u",msg.info.avd->msg_info.n2d_ack_nack_info.msg_id,msg.info.avd->msg_info.n2d_ack_nack_info.ack);
 

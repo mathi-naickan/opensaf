@@ -325,24 +325,6 @@ static void update_rcv_msg_id(AVND_CB *cb, AVND_EVT *evt)
 					goto done;
 			}
 			break;
-		case AVND_EVT_AVD_VERIFY_MSG:
-			{
-				AVSV_D2N_DATA_VERIFY_MSG_INFO *verify_info = &evt->info.avd->msg_info.d2n_data_verify;
-				if (verify_info->snd_id_cnt != cb->rcv_msg_id)
-					evt->ack = false;
-				else
-					evt->ack = true;
-				/*
-				 * We are done with use of rev_msg_id count. Now it is time
-				 * re-set it since all new messages we are going to get with
-				 * the new counter value.
-				 */
-
-				cb->rcv_msg_id = 0;
-				goto done;
-			}
-			break;
-
 		case AVND_EVT_AVD_ROLE_CHANGE_MSG:
 			{
 				AVSV_D2N_ROLE_CHANGE_INFO *rc_info = &evt->info.avd->msg_info.d2n_role_change_info;
