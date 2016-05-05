@@ -116,10 +116,14 @@ AVD_SU_SI_STATE avd_su_fsm_state_determine(AVD_SU *su) {
 		   can be in assigned state in transition.*/
 		fsm_state = AVD_SU_SI_STATE_ASGN;
 	} else if ((true == unassingned_flag) && (false == assigned_flag)) {
-		/* Rule 2. => If any one of the SUSI is unassigned, then SU will be said to be Unassigned.*/
+		/* Rule 3. => If any one of the SUSI is unassigned, then SU will be said to be Unassigned.*/
 		fsm_state = AVD_SU_SI_STATE_UNASGN;
 	} else if ((true == assigned_flag) && (false == unassingned_flag)) {
-		/* Rule 3. => All are assigned */ 
+		/* Rule 4. => All are assigned */
+		fsm_state = AVD_SU_SI_STATE_ASGND;
+	} else if ((true == assigned_flag) && (true == unassingned_flag)) {
+		/* Rule 5. => Some are assigned and others are unassigned. This
+		   can happen during shutdown of one SI among others SIs. */
 		fsm_state = AVD_SU_SI_STATE_ASGND;
 	} else {
 		osafassert(0);
