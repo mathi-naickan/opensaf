@@ -34,7 +34,7 @@ from pyosaf.saImm import SaImmClassNameT, SaImmContinuationIdT, \
     SaImmAttrValuesT_2, SaImmSearchOptionsT, SaImmSearchParametersT_2
 
 
-omdll = ctypes.CDLL('libSaImmOm.so.0')
+omdll = ctypes.CDLL('libSaImmOm.so.0', mode=ctypes.RTLD_GLOBAL)
 
 SaImmHandleT = saAis.SaUint64T
 SaImmAdminOwnerHandleT = saAis.SaUint64T
