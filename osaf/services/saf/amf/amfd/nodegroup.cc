@@ -466,6 +466,8 @@ static SaAisErrorT ng_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 		++iter) {
 
 		node = avd_node_get(*iter);
+		if (node == nullptr)
+			continue;
 		
 		TRACE("%s", node->name.value);
 
@@ -583,6 +585,8 @@ static void ng_ccb_apply_delete_hdlr(CcbUtilOperationData_t *opdata)
 		for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
 				iter != ng->saAmfNGNodeList.end(); ++iter) {
 			AVD_AVND *node = avd_node_get(*iter);
+			if (node == nullptr)
+				continue;
 			node->admin_ng = NULL;
 		}
 		ng_delete(ng);
