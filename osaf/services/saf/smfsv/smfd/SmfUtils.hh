@@ -73,7 +73,7 @@ extern "C" {
 }
 #endif
 extern bool waitForNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest);
-extern bool getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest, int *elapsedTime);
+extern bool getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest, int *elapsedTime, int maxWaitTime);
 extern std::string replaceAllCopy(const std::string& i_haystack, const  std::string& i_needle, const  std::string& i_replacement);
 
 ///

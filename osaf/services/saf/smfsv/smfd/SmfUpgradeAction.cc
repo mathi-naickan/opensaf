@@ -183,7 +183,7 @@ SmfCliCommandAction::execute(SaImmOiHandleT i_oiHandle, const std::string* i_rol
 	for (it = m_plmExecEnvList.begin(); it != m_plmExecEnvList.end(); ++it) {
 		const std::string& n = it->getPrefered();
                 SmfndNodeDest nodeDest;
-		if (!getNodeDestination(n, &nodeDest, NULL)) {
+		if (!getNodeDestination(n, &nodeDest, NULL, -1)) {
 			LOG_ER("SmfCliCommandAction no node destination found for node %s", n.c_str());
 			result = SA_AIS_ERR_NOT_EXIST;
 			goto done;
@@ -230,7 +230,7 @@ SmfCliCommandAction::rollback(const std::string& i_rollbackDn)
 	for (it = m_plmExecEnvList.rbegin(); it != m_plmExecEnvList.rend(); it++) {
 		const std::string& n = it->getPrefered();
                 SmfndNodeDest nodeDest;
-		if (!getNodeDestination(n, &nodeDest, NULL)) {
+		if (!getNodeDestination(n, &nodeDest, NULL, -1)) {
 			LOG_ER("SmfCliCommandAction no node destination found for node %s", n.c_str());
 			result = SA_AIS_ERR_NOT_EXIST;
 			goto done;

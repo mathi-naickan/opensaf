@@ -69,13 +69,14 @@ waitForNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
 {
         int interval = 2;  //seconds
         int nodetimeout = smfd_cb->rebootTimeout/1000000000; //seconds
+        int elapsedTime = 0;
 
-        while (!getNodeDestination(i_node, o_nodeDest, NULL)) {
-                if (nodetimeout > 0) {
+        while (!getNodeDestination(i_node, o_nodeDest, &elapsedTime, nodetimeout)) {
+                if (elapsedTime < nodetimeout){
                         TRACE("No destination found, try again wait %d seconds", interval);
                         struct timespec sleepTime = { interval, 0 };
                         osaf_nanosleep(&sleepTime);
-                        nodetimeout -= interval;
+                        elapsedTime = elapsedTime + interval;
                 } else {
                         LOG_NO("no node destination found whitin time limit for node %s", i_node.c_str());
                         return false;
@@ -86,7 +87,7 @@ waitForNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest)
 }
 
 bool 
-getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest, int *elapsedTime)
+getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest, int *elapsedTime, int maxWaitTime)
 {
 	SmfImmUtils immUtil;
 	SaImmAttrValuesT_2 **attributes;
@@ -133,6 +134,12 @@ getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest, int *e
                         timeout--;
                         if (elapsedTime)
                                 *elapsedTime = *elapsedTime + 2*ONE_SECOND;
+                        if (maxWaitTime != -1) {
+                                if (*elapsedTime >= maxWaitTime) {
+                                        LOG_NO("Failed to get node dest for clm node %s", i_node.c_str());
+                                        return false;
+                                }
+                        }
                 }
                 return true;
 
@@ -158,6 +165,14 @@ getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest, int *e
                         timeout--;
                         if (elapsedTime)
                                 *elapsedTime = *elapsedTime + 2*ONE_SECOND;
+
+                        if (maxWaitTime != -1) {
+                                if (*elapsedTime >= maxWaitTime) {
+                                        LOG_NO("Failed to get node dest for clm node %s", i_node.c_str());
+                               	        free(nodeName);
+                                        return false;
+                                }
+	                }
                 }
                 free(nodeName);
         } else {
