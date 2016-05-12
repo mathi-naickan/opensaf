@@ -58,6 +58,18 @@ static bool is_over_max_logrecord(SaUint32T size)
 	return (size > SA_LOG_MAX_RECORD_SIZE);
 }
 
+static bool is_lgs_state(lgs_state_t state)
+{
+	bool rc = false;
+
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
+	if (state == lga_cb.lgs_state)
+		rc = true;
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
+
+	return rc;
+}
+
 static void populate_open_params(lgsv_stream_open_req_t *open_param,
 				 const SaNameT *logStreamName,
 				 lga_client_hdl_rec_t *hdl_rec,

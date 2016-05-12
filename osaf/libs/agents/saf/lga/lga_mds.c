@@ -16,6 +16,7 @@
  */
 
 #include <stdlib.h>
+#include <saf_error.h>
 #include "lga.h"
 #include "lga_state.h"
 
@@ -446,8 +447,9 @@ static uint32_t lga_lgs_msg_proc(lga_cb_t *cb, lgsv_msg_t *lgsv_msg, MDS_SEND_PR
 			{
 				lga_client_hdl_rec_t *lga_hdl_rec;
 
-				TRACE_2("LGSV_LGS_WRITE_LOG_CBK: inv = %d, error = %d",
-					(int)lgsv_msg->info.cbk_info.inv, (int)lgsv_msg->info.cbk_info.write_cbk.error);
+				TRACE_2("LGSV_LGS_WRITE_LOG_CBK: inv_id = %d, cbk_error %s",
+					(int)lgsv_msg->info.cbk_info.inv,
+					saf_error((int)lgsv_msg->info.cbk_info.write_cbk.error));
 
 			/** Create the chan hdl record here before 
                          ** queing this message onto the priority queue
@@ -930,7 +932,8 @@ static uint32_t lga_mds_dec(struct ncsmds_callback_info *info)
 			TRACE_2("LGSV_LGS_CBK_MSG");
 			switch (msg->info.cbk_info.type) {
 			case LGSV_WRITE_LOG_CALLBACK_IND:
-				TRACE_2("decode writelog message");
+				TRACE_2("decode writelog message, lgs_client_id=%d",
+					msg->info.cbk_info.lgs_client_id);
 				total_bytes += lga_dec_write_cbk_msg(uba, msg);
 				break;
 			default:

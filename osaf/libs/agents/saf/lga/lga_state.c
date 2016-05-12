@@ -28,13 +28,6 @@
  * Common data
  */
 
-/* And critical sections. Clients APIs must not pass recovery 2 state check if
- * recovery 2 thread is started but state has not yet been changed by the
- * thread. Also the thread must not start recovery if an API is executing and
- * has passed the recovery 2 check
- */
-static pthread_mutex_t lga_recov2_lock = PTHREAD_MUTEX_INITIALIZER;
-
 /* Selection object for terminating recovery thread for state 2 (after timeout)
  * NOTE: Only for recovery2_thread
  */
@@ -228,7 +221,10 @@ static int initialize_one_client(lga_client_hdl_rec_t *p_client)
 
 	TRACE_ENTER();
 
-	if (p_client->initialized_flag == true) {
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
+	bool initialized_flag = p_client->initialized_flag;
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
+	if (initialized_flag == true) {
 		/* The client is already initialized */
 		rc = 1;
 		goto done;
@@ -242,11 +238,13 @@ static int initialize_one_client(lga_client_hdl_rec_t *p_client)
 	/* Restore the client Id with the one returned by the LGS and
 	 * set the initialized flag
 	 */
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 	p_client->lgs_client_id = client_id;
 	p_client->initialized_flag = true;
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 
 done:
-	TRACE_LEAVE2("rc = %d", rc);
+	TRACE_LEAVE2("rc = %d, client_id = %d", rc, client_id);
 	return rc;
 }
 
@@ -267,7 +265,10 @@ static int recover_one_stream(lga_log_stream_hdl_rec_t *p_stream)
 
 	TRACE_ENTER();
 
-	if (p_stream->recovered_flag == true) {
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
+	bool recovered_flag = p_stream->recovered_flag;
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
+	if (recovered_flag == true) {
 		/* The stream is already recovered */
 		rc = 1;
 		goto done;
@@ -282,8 +283,10 @@ static int recover_one_stream(lga_log_stream_hdl_rec_t *p_stream)
 	/* Restore the stream Id with the Id returned by the LGS and
 	 * set the recovered flag
 	 */
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 	p_stream->lgs_log_stream_id = stream_id;
 	p_stream->recovered_flag = true;
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
 
 done:
 	TRACE_LEAVE2("rc = %d", rc);
@@ -588,9 +591,10 @@ int lga_recover_one_client(lga_client_hdl_rec_t *p_client)
 
 	TRACE_ENTER();
 
-	/* Synchronize b/w client/mds thread */
 	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
-	if (p_client->recovered_flag == true) {
+	bool recovered_flag = p_client->recovered_flag;
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
+	if (recovered_flag == true) {
 		/* Client is already recovered */
 		TRACE("\t Already recovered");
 		goto done;
@@ -620,35 +624,20 @@ int lga_recover_one_client(lga_client_hdl_rec_t *p_client)
 		p_stream = p_stream->next;
 	}
 
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
 	p_client->recovered_flag = true;
-done:
 	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
+done:
 	TRACE_LEAVE();
 	return rc;
 }
 
-/**
- * Free the memory allocated for one client handle with mutext protection.
- *
- * @param p_client_hdl
- * @return void
+/* Clients APIs must not pass recovery 2 state check if
+ * recovery 2 thread is started but state has not yet been changed by the
+ * thread. Also the thread must not start recovery if an API is executing and
+ * has passed the recovery 2 check
  */
-void lga_free_client_hdl(lga_client_hdl_rec_t **p_client_hdl)
-{
-	lga_client_hdl_rec_t *client_hdl = NULL;
-
-	/* Synchronize b/w client & mds thread */
-	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
-
-	client_hdl = *p_client_hdl;
-	if (client_hdl == NULL) goto done;
-
-	free(client_hdl);
-	client_hdl = NULL;
-
-done:
-	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
-}
+static pthread_mutex_t lga_recov2_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void lga_recovery2_lock(void)
 {
@@ -658,29 +647,6 @@ void lga_recovery2_lock(void)
 void lga_recovery2_unlock(void)
 {
 	osaf_mutex_unlock_ordie(&lga_recov2_lock);
-}
-
-//>
-// Handling lga_cb.lgs_state and lga_state in thread safe
-//<
-
-void set_lgs_state(lgs_state_t state)
-{
-	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
-	lga_cb.lgs_state = state;
-	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
-}
-
-bool is_lgs_state(lgs_state_t state)
-{
-	bool rc = false;
-
-	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
-	if (state == lga_cb.lgs_state)
-		rc = true;
-	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
-
-	return rc;
 }
 
 typedef struct {

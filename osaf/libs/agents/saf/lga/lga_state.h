@@ -30,11 +30,8 @@ void lga_serv_recov1state_set(void);
 int lga_recover_one_client(lga_client_hdl_rec_t *p_client);
 void lga_recovery2_lock(void);
 void lga_recovery2_unlock(void);
-void lga_free_client_hdl(lga_client_hdl_rec_t **p_client_hdl);
 
-void set_lgs_state(lgs_state_t state);
 void set_lga_state(lga_state_t state);
-bool is_lgs_state(lgs_state_t state);
 bool is_lga_state(lga_state_t state);
 
 
@@ -48,7 +45,6 @@ bool is_lga_state(lga_state_t state);
 static inline void recovery2_lock(bool *is_locked)
 {
 	if (is_lga_state(LGA_RECOVERY1) || is_lga_state(LGA_RECOVERY2)) {
-		/* TBD: Is this optimization really needed? */
 		lga_recovery2_lock();
 		*is_locked = true;
 	}

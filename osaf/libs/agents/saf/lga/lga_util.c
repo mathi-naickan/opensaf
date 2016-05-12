@@ -273,6 +273,29 @@ static uint32_t lga_hdl_cbk_dispatch_block(lga_cb_t *cb, lga_client_hdl_rec_t *h
 }
 
 /**
+ * Free the memory allocated for one client handle with mutex protection.
+ *
+ * @param p_client_hdl
+ * @return void
+ */
+static void lga_free_client_hdl(lga_client_hdl_rec_t **p_client_hdl)
+{
+	lga_client_hdl_rec_t *client_hdl = NULL;
+
+	/* Synchronize b/w client & mds thread */
+	osaf_mutex_lock_ordie(&lga_cb.cb_lock);
+
+	client_hdl = *p_client_hdl;
+	if (client_hdl == NULL) goto done;
+
+	free(client_hdl);
+	client_hdl = NULL;
+
+done:
+	osaf_mutex_unlock_ordie(&lga_cb.cb_lock);
+}
+
+/**
  * Initiate the agent when first used.
  * Start NCS service
  * Register with MDS
@@ -413,7 +436,11 @@ void lga_msg_destroy(lgsv_msg_t *msg)
 
   Return Values : LGA_CLIENT_HDL_REC * or NULL
  
-  Notes         : None
+  Notes         : The lga_cb in-parameter is most likely pointing to the global
+ *                lga_cb structure and that is not thread safe. If that is the
+ *                case the lga_cb data must be protected by a mutex before
+ *                calling this function.
+ *
 ******************************************************************************/
 lga_client_hdl_rec_t *lga_find_hdl_rec_by_regid(lga_cb_t *lga_cb, uint32_t client_id)
 {
