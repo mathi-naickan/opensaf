@@ -2028,7 +2028,7 @@ SmfUpgradeStep::callActivationCmd()
 		      actCommand.c_str(), getSwNode().c_str());
 		TRACE("Get node destination for %s", getSwNode().c_str());
 
-		if (!getNodeDestination(getSwNode(), &nodeDest, NULL)) {
+		if (!getNodeDestination(getSwNode(), &nodeDest, NULL, -1)) {
 			LOG_NO("no node destination found for node %s", getSwNode().c_str());
 			result = false;
 			goto done;
@@ -2378,7 +2378,7 @@ SmfUpgradeStep::nodeReboot()
 	cmd = smfd_cb->smfNodeRebootCmd;
 
 	for (listIt = nodeList.begin(); listIt != nodeList.end(); ++listIt) {
-                if (!getNodeDestination(*listIt, &nodeDest, NULL)) {
+                if (!getNodeDestination(*listIt, &nodeDest, NULL, -1)) {
                         LOG_NO("SmfUpgradeStep::nodeReboot: no node destination found for node %s", (*listIt).c_str());
                         result = false;
                         goto done;
@@ -2419,7 +2419,7 @@ SmfUpgradeStep::nodeReboot()
 
 	while (true) {
                 for (nodeIt = rebootedNodeList.begin(); nodeIt != rebootedNodeList.end();) {
-                        if(getNodeDestination((*nodeIt).node_name, &nodeDest, &elapsedTime)) {
+                        if(getNodeDestination((*nodeIt).node_name, &nodeDest, &elapsedTime, -1)) {
                                 /* Check if node UP counter have been stepped */
                                 if(nodeDest.nd_up_cntr > (*nodeIt).nd_up_cntr) {
                                         cmdNodeList.push_back(*nodeIt);           //Save rebooted nodes for next step
@@ -2460,7 +2460,7 @@ SmfUpgradeStep::nodeReboot()
 
 	while (true) {
                 for (nodeIt = cmdNodeList.begin(); nodeIt != cmdNodeList.end();) {
-                        if(getNodeDestination((*nodeIt).node_name, &nodeDest, NULL)) {
+                        if(getNodeDestination((*nodeIt).node_name, &nodeDest, NULL, -1)) {
                                 if (smfnd_exec_remote_cmd(cmd.c_str(), &nodeDest, cliTimeout, 0) == 0) {
                                         nodeIt = cmdNodeList.erase(nodeIt);  //The node have accepted the command
                                 }
