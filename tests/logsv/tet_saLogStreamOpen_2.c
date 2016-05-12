@@ -724,6 +724,8 @@ extern void saLogWriteLogAsync_14(void);
 extern void saLogWriteLogAsync_15(void);
 extern void saLogWriteLogAsync_16(void);
 extern void saLogWriteLogAsync_17(void);
+extern void saLogWriteLogAsync_18(void);
+extern void saLogWriteLogAsync_19(void);
 extern void saLogWriteLogCallbackT_01(void);
 extern void saLogWriteLogCallbackT_02(void);
 extern void saLogWriteLogCallbackT_03(void);
@@ -774,6 +776,8 @@ __attribute__ ((constructor)) static void saLibraryLifeCycle_constructor(void)
     test_case_add(2, saLogWriteLogAsync_15, "saLogWriteAsyncLog() NTF notificationObject length == 256");
     test_case_add(2, saLogWriteLogAsync_16, "saLogWriteAsyncLog() NTF notifyingObject length == 256");
     test_case_add(2, saLogWriteLogAsync_17, "saLogWriteLogAsync() Generic logSvcUsrName length == 256");
+    test_case_add(2, saLogWriteLogAsync_18, "saLogWriteLogAsync() logBufSize > strlen(logBuf) + 1");
+    test_case_add(2, saLogWriteLogAsync_19, "saLogWriteLogAsync() logBufSize > SA_LOG_MAX_RECORD_SIZE");
     test_case_add(2, saLogWriteLogCallbackT_01, "saLogWriteLogCallbackT() SA_DISPATCH_ONE");
     test_case_add(2, saLogWriteLogCallbackT_02, "saLogWriteLogCallbackT() SA_DISPATCH_ALL");
     test_case_add(2, saLogFilterSetCallbackT_01, "saLogFilterSetCallbackT OK");
