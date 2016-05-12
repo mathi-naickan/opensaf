@@ -31,6 +31,7 @@
 #include "SmfUpgradeStep.hh"
 #include "SmfCampaign.hh"
 #include "SmfUpgradeProcedure.hh"
+#include "SmfUpgradeCampaign.hh"
 #include "SmfUpgradeMethod.hh"
 #include "SmfProcedureThread.hh"
 #include "SmfStepState.hh"
@@ -1362,13 +1363,82 @@ SmfUpgradeStep::calculateStepType()
 	//If rolling upgrade check the first AU of the step
 	std::string className;
 	std::string firstAuDu;
+	std::list < unitNameAndState >::const_iterator unitIt;
+
 	if (this->getProcedure()->getUpgradeMethod()->getUpgradeMethod() == SA_SMF_SINGLE_STEP) {
 		//Single step
 		//Try the activation unit list, if empty try the deactivation unit list
 		if (!this->getActivationUnitList().empty()) {
 			firstAuDu = this->getActivationUnitList().front().name;
+			// When SMF_MERGE_TO_SINGLE_STEP feature is enabled and the step requires reboot,
+			// i.e. when saSmfBundleInstallOfflineScope or saSmfBundleRemoveOfflineScope is 
+			// set to SA_SMF_CMD_SCOPE_PLM_EE and when smfSSAffectedNodesEnable is true then
+			// Choose the type with the highest scope i.e. safAmfNode for enabling node reboot.
+			// Therefore, If first entry is not of type safAmfNode, look for it in the rest of the actedOn list.
+			// Note: ignore matches for comp, su since node is a part of their DNs.
+			if (rebootNeeded && !(firstAuDu.find("safAmfNode") == 0) && 
+				SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->getProcExecutionMode() 
+						== SMF_MERGE_TO_SINGLE_STEP) {
+			for (unitIt = this->getActivationUnitList().begin();
+				unitIt != this->getActivationUnitList().end(); ++unitIt) {
+				if(!((*unitIt).name.find("safComp") == 0) && !((*unitIt).name.find("safSu") == 0)
+									&& (*unitIt).name.find("safAmfNode") == 0){
+					firstAuDu = unitIt->name;
+					break;
+				}
+			}
+			if (!firstAuDu.find("safAmfNode") == 0) {
+				// There is no safAmfNode in actedOn list, now walk through swAdd Bundles list.
+ 				std::list < SmfBundleRef >::const_iterator bundleit;
+                		for (bundleit = m_swAddList.begin(); bundleit != m_swAddList.end(); ++bundleit) {
+                			std::list<SmfPlmExecEnv>::const_iterator ee;
+                			for (ee = bundleit->getPlmExecEnvList().begin();
+							ee != bundleit->getPlmExecEnvList().end(); ee++) {
+                        			std::string const& amfnode = ee->getAmfNode();
+                        			if (amfnode.length() != 0) {
+							firstAuDu = amfnode;
+							break;
+                        			}
+                			}
+					if (firstAuDu.find("safAmfNode"))
+						break;
+				} //End - walk through swAdd bundle list
+			}
+			} //End - Look ahead in the lists of actedOn and swAdd bundles to find for safAmfNode
 		} else if (!this->getDeactivationUnitList().empty()) {
 			firstAuDu = this->getDeactivationUnitList().front().name;
+			// When SMF_MERGE_TO_SINGLE_STEP feature is enabled and reboot is enabled,
+			// choose the highest of the DU types for letting reboot happen.
+			//If first entry is not of type safAmfNode, find it in the rest of the list.
+			if (rebootNeeded && !(firstAuDu.find("safAmfNode") == 0) &&
+				SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->getProcExecutionMode() 
+						== SMF_MERGE_TO_SINGLE_STEP) {
+			for (unitIt = this->getDeactivationUnitList().begin();
+				unitIt != this->getDeactivationUnitList().end(); ++unitIt) {
+				if(!((*unitIt).name.find("safComp") == 0) && !((*unitIt).name.find("safSu") == 0)
+									&& (*unitIt).name.find("safAmfNode") == 0){
+					firstAuDu = unitIt->name;
+					break;
+				}
+			}
+                        if (!firstAuDu.find("safAmfNode") == 0) {
+                                // There is no safAmfNode in actedOn list, now walk through swRemove Bundles list.
+                                std::list < SmfBundleRef >::const_iterator bundleit;
+                                for (bundleit = m_swRemoveList.begin(); bundleit != m_swRemoveList.end(); ++bundleit) {
+                                        std::list<SmfPlmExecEnv>::const_iterator ee;
+                                        for (ee = bundleit->getPlmExecEnvList().begin();
+                                                        ee != bundleit->getPlmExecEnvList().end(); ee++) {
+                                                std::string const& amfnode = ee->getAmfNode();
+                                                if (amfnode.length() != 0) {
+                                                        firstAuDu = amfnode;
+                                                        break;
+                                                }
+                                        }
+					if (firstAuDu.find("safAmfNode"))
+						break;
+                                } //End - walk through swRemove bundle list
+                        }
+			} //End - Look ahead in the lists of actedOn and swRemove bundles to find for safAmfNode
 		} else {
 			//No activation/deactivation, just SW installation
 			className = "SaAmfNode";
