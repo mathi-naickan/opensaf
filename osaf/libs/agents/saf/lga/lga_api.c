@@ -33,6 +33,20 @@ lga_cb_t lga_cb = {
 	.cb_lock = PTHREAD_MUTEX_INITIALIZER,
 };
 
+static bool is_well_know_stream(const char* dn)
+{
+	if (strcmp(dn, SA_LOG_STREAM_ALARM) == 0) return true;
+	if (strcmp(dn, SA_LOG_STREAM_NOTIFICATION) == 0) return true;
+	if (strcmp(dn, SA_LOG_STREAM_SYSTEM) == 0) return true;
+
+	return false;
+}
+
+static bool is_over_max_logrecord(SaUint32T size)
+{
+	return (size > SA_LOG_MAX_RECORD_SIZE);
+}
+
 static void populate_open_params(lgsv_stream_open_req_t *open_param,
 				 const SaNameT *logStreamName,
 				 lga_client_hdl_rec_t *hdl_rec,
@@ -44,9 +58,7 @@ static void populate_open_params(lgsv_stream_open_req_t *open_param,
 	open_param->lstr_name = *logStreamName;
 
 	if (logFileCreateAttributes == NULL ||
-	    strcmp((const char *)logStreamName->value, SA_LOG_STREAM_NOTIFICATION) == 0 ||
-	    strcmp((const char *)logStreamName->value, SA_LOG_STREAM_ALARM) == 0 ||
-	    strcmp((const char *)logStreamName->value, SA_LOG_STREAM_SYSTEM) == 0) {
+	    is_well_know_stream((const char *)logStreamName->value) == true) {
 		open_param->logFileFmt = NULL;
 		open_param->logFileFmtLength = 0;
 		open_param->maxLogFileSize = 0;
@@ -457,10 +469,8 @@ static SaAisErrorT validate_open_params(SaLogHandleT logHandle,
 
 	/* Check log stream input parameters */
 	/* The well known log streams */
-	if (strcmp((char *)logStreamName->value, SA_LOG_STREAM_ALARM) == 0 ||
-	    strcmp((char *)logStreamName->value, SA_LOG_STREAM_NOTIFICATION) == 0 ||
-	    strcmp((char *)logStreamName->value, SA_LOG_STREAM_SYSTEM) == 0) {
-		/* SA_AIS_ERR_INVALID_PARAM, bullet 3 in SAI-AIS-LOG-A.02.01 
+	if (is_well_know_stream((const char *)logStreamName->value) == true) {
+		/* SA_AIS_ERR_INVALID_PARAM, bullet 3 in SAI-AIS-LOG-A.02.01
 		   Section 3.6.1, Return Values */
 		if ((NULL != logFileCreateAttributes) || (logStreamOpenFlags == SA_LOG_STREAM_CREATE)) {
 			TRACE("SA_AIS_ERR_INVALID_PARAM, logStreamOpenFlags");
@@ -541,7 +551,7 @@ static SaAisErrorT validate_open_params(SaLogHandleT logHandle,
 			/* Verify that the fixedLogRecordSize is in valid range */
 			if ((logFileCreateAttributes->maxLogRecordSize != 0) &&
 				((logFileCreateAttributes->maxLogRecordSize < SA_LOG_MIN_RECORD_SIZE) ||
-				(logFileCreateAttributes->maxLogRecordSize > SA_LOG_MAX_RECORD_SIZE))) {
+				 (is_over_max_logrecord(logFileCreateAttributes->maxLogRecordSize) == true))) {
 				TRACE("maxLogRecordSize is invalid");
 				return SA_AIS_ERR_INVALID_PARAM;
 			}
@@ -870,6 +880,28 @@ SaAisErrorT saLogWriteLogAsync(SaLogStreamHandleT logStreamHandle,
 		TRACE("ncshm_take_hdl logStreamHandle FAILED!");
 		rc = SA_AIS_ERR_BAD_HANDLE;
 		goto done;
+	}
+
+	if (logRecord->logBuffer != NULL && logRecord->logBuffer->logBuf != NULL) {
+		SaSizeT size = logRecord->logBuffer->logBufSize;
+		if (is_well_know_stream((const char*)lstr_hdl_rec->log_stream_name.value) == true) {
+			bool sizeOver = size > strlen((char *)logRecord->logBuffer->logBuf) + 1;
+			/* Prevent log client accidently assign too big number to logBufSize. */
+			if (sizeOver == true) {
+				TRACE("logBufSize > strlen(logBuf) + 1");
+				ncshm_give_hdl(logStreamHandle);
+				rc = SA_AIS_ERR_INVALID_PARAM;
+				goto done;
+			}
+		}
+
+		/* Prevent sending too big data to server side */
+		if (is_over_max_logrecord(size) == true) {
+			TRACE("logBuf data is too big (max: %d)", SA_LOG_MAX_RECORD_SIZE);
+			ncshm_give_hdl(logStreamHandle);
+			rc = SA_AIS_ERR_INVALID_PARAM;
+			goto done;
+		}
 	}
 
 	/* SA_AIS_ERR_INVALID_PARAM, bullet 1 in SAI-AIS-LOG-A.02.01 

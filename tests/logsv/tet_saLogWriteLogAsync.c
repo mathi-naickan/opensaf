@@ -514,3 +514,42 @@ void saLogWriteLogAsync_17(void)
 		test_validate(rc1, SA_AIS_ERR_INVALID_PARAM);
 	}
 }
+
+
+/**
+ * saLogWriteAsyncLog() - logBufSize > strlen(logBuf) + 1
+ */
+void saLogWriteLogAsync_18(void)
+{
+	SaInvocationT invocation = 0;
+
+	strcpy((char*)genLogRecord.logBuffer->logBuf, __FUNCTION__);
+	genLogRecord.logBuffer->logBufSize = strlen(__FUNCTION__) + 2;
+	safassert(saLogInitialize(&logHandle, &logCallbacks, &logVersion), SA_AIS_OK);
+	safassert(saLogStreamOpen_2(logHandle, &systemStreamName, NULL, 0,
+				    SA_TIME_ONE_SECOND, &logStreamHandle), SA_AIS_OK);
+	rc = saLogWriteLogAsync(logStreamHandle, invocation, 0, &genLogRecord);
+	safassert(saLogFinalize(logHandle), SA_AIS_OK);
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
+
+/**
+ * saLogWriteAsyncLog() - big logBufSize > SA_LOG_MAX_RECORD_SIZE
+ */
+void saLogWriteLogAsync_19(void)
+{
+	SaInvocationT invocation = 0;
+	char logBuf[SA_LOG_MAX_RECORD_SIZE + 10];
+
+	memset(logBuf, 'A', sizeof(logBuf));
+	logBuf[sizeof(logBuf) - 1] = '\0';
+
+	genLogRecord.logBuffer->logBuf = (SaUint8T *)&logBuf;
+	genLogRecord.logBuffer->logBufSize = SA_LOG_MAX_RECORD_SIZE + 10;
+	safassert(saLogInitialize(&logHandle, &logCallbacks, &logVersion), SA_AIS_OK);
+	safassert(saLogStreamOpen_2(logHandle, &systemStreamName, NULL, 0,
+				    SA_TIME_ONE_SECOND, &logStreamHandle), SA_AIS_OK);
+	rc = saLogWriteLogAsync(logStreamHandle, invocation, 0, &genLogRecord);
+	safassert(saLogFinalize(logHandle), SA_AIS_OK);
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
