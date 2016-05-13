@@ -1017,6 +1017,11 @@ static void imma_proc_obj_delete(IMMA_CB *cb, bool hasLongDn, IMMA_EVT *evt)
 		callback->lcl_imm_hdl = implHandle;
 		callback->ccbID = evt->info.objDelete.ccbId;
 		callback->inv = evt->info.objDelete.adminOwnerId;	/*ugly */
+		if (!callback->inv) {
+			/* callback->inv == 0 means PBE (CCB or PRTO) or applier upcall, no reply. */
+			osafassert(cl_node->isPbe || cl_node->isApplier);
+		}
+
 		osaf_extended_name_steal(evt->info.objDelete.objectName.buf, &callback->name);
 		evt->info.objDelete.objectName.buf = NULL;
 		evt->info.objDelete.objectName.size = 0;
@@ -1119,6 +1124,14 @@ static void imma_proc_obj_create(IMMA_CB *cb, bool dnOrRdnIsLong, IMMA_EVT *evt)
 		callback->lcl_imm_hdl = implHandle;
 		callback->ccbID = evt->info.objCreate.ccbId;
 		callback->inv = evt->info.objCreate.adminOwnerId;	/*Actually continuationId */
+		if (!callback->inv) {
+			/* callback->inv == 0 means PBE CCB obj create upcall, NO reply.
+			   But note that for PBE PRTO, callback->inv != 0 and we reply
+			   immediately (no completed upcall).
+			   Added support for applier & special applier OI. No reply to server there either.
+			 */
+			osafassert(cl_node->isPbe || cl_node->isApplier);
+		}
 
 		osaf_extended_name_steal(evt->info.objCreate.parentOrObjectDn.buf, &callback->name);
 		evt->info.objCreate.parentOrObjectDn.buf = NULL;
@@ -1208,6 +1221,10 @@ static void imma_proc_obj_modify(IMMA_CB *cb, bool hasLongDNs, IMMA_EVT *evt)
 		callback->ccbID = evt->info.objModify.ccbId;
 		callback->inv = evt->info.objModify.adminOwnerId;
 		/*Actually continuationId */
+		if (!callback->inv) {
+			/* callback->inv == 0 means PBE CCB modify upcall, no reply. */
+			osafassert(cl_node->isPbe || cl_node->isApplier);
+		}
 
 		osaf_extended_name_steal(evt->info.objModify.objectName.buf, &callback->name);
 		evt->info.objModify.objectName.buf = NULL;
@@ -2496,13 +2513,6 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 
 					/*async fevs */
 					localEr = imma_evt_fake_evs(cb, &ccbObjCrRpl, NULL, 0, cl_node->handle, &locked, false);
-				} else {
-					/* callback->inv == 0 means PBE CCB obj create upcall, NO reply.
-					   But note that for PBE PRTO, callback->inv != 0 and we reply
-					   immediately (no completed upcall. 
-					   Added support for applier & special applier OI. No reply to server there either.
-					*/
-					osafassert(cl_node->isPbe || cl_node->isApplier);
 				}
 
 				if (locked) {
@@ -2666,9 +2676,6 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 						/*Cant do anything but log error and drop this reply. */
 						TRACE_3("CcbObjectDeleteCallback: send reply to IMMND failed");
 					}
-				} else {
-					/* callback->inv == 0 means PBE (CCB or PRTO) or applier upcall, no reply. */
-					osafassert(cl_node->isPbe || cl_node->isApplier);
 				}
 
 				if (locked) {
@@ -2902,9 +2909,6 @@ static bool imma_process_callback_info(IMMA_CB *cb, IMMA_CLIENT_NODE *cl_node,
 					/*async fevs */
 					localEr = imma_evt_fake_evs(cb, &ccbObjModRpl, NULL, 0,
 						cl_node->handle, &locked, false);
-				} else {
-					/* callback->inv == 0 means PBE CCB modify upcall, no reply. */
-					osafassert(cl_node->isPbe || cl_node->isApplier);
 				}
 
 				if (locked) {
