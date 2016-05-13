@@ -321,6 +321,8 @@ typedef struct cpnd_cb_tag {
 	bool scAbsenceAllowed;
 	bool shm_alloc_guaranteed;
 
+	NCS_SEL_OBJ clm_updated_sel_obj; /* The CLM select object updated event */
+
 } CPND_CB;
 
 /* CB prototypes */

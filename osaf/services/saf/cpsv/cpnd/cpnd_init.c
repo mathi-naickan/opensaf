@@ -30,12 +30,14 @@
 #include <daemon.h>
 #include "cpnd.h"
 #include "osaf_poll.h"
+#include "osaf_time.h"
 
 enum {
 	FD_TERM,
 	FD_MBX,
 	FD_AMF,
 	FD_CLM,
+	FD_CLM_UPDATED,
 	NUMBER_OF_FDS
 };
 
@@ -56,6 +58,10 @@ static uint32_t cpnd_cb_db_init(CPND_CB *cb);
 static uint32_t cpnd_cb_db_destroy(CPND_CB *cb);
 
 static bool cpnd_clear_mbx(NCSCONTEXT arg, NCSCONTEXT msg);
+
+static SaAisErrorT cpnd_clm_init(void);
+
+static SaAisErrorT cpnd_start_clm_init_bg();
 
 void cpnd_main_process(CPND_CB *cb);
 
@@ -173,16 +179,10 @@ static uint32_t cpnd_lib_init(CPND_CREATE_INFO *info)
 	void *shm_ptr;
 	GBL_SHM_PTR gbl_shm_addr;
 	memset(&cpnd_open_req, '\0', sizeof(cpnd_open_req));
-	SaVersionT clm_version;
-	SaClmClusterNodeT cluster_node;
-	SaClmHandleT clmHandle;
 
-	m_CPSV_GET_AMF_VER(clm_version);
-	SaClmCallbacksT gen_cbk;
 	char *ptr;
 
 	TRACE_ENTER();
-	memset(&cluster_node, 0, sizeof(SaClmClusterNodeT));
 
 	/* allocate a CB  */
 	cb = m_MMGR_ALLOC_CPND_CB;
@@ -237,38 +237,14 @@ static uint32_t cpnd_lib_init(CPND_CREATE_INFO *info)
 		LOG_ER("cpnd ipc attach failed");
 		goto cpnd_ipc_att_fail;
 	}
-	gen_cbk.saClmClusterNodeGetCallback = NULL;
-	gen_cbk.saClmClusterTrackCallback = cpnd_clm_cluster_track_cb;
-	rc = saClmInitialize(&clmHandle, &gen_cbk, &clm_version);
-	while (rc == SA_AIS_ERR_TRY_AGAIN) {
-		usleep(1000000);
-		rc = saClmInitialize(&clmHandle, &gen_cbk, &clm_version);
-	}
 
+	/* Initalize the CLM service */
+	rc = cpnd_clm_init();
 	if (rc != SA_AIS_OK) {
 		LOG_ER("cpnd clm init failed with return value:%d",rc);
 		goto cpnd_clm_init_fail;
 	}
-	cb->clm_hdl = clmHandle;
 
-        if (SA_AIS_OK != (rc = saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj))) {
-		LOG_ER("cpnd clm selection object Get failed with return value:%d",rc);
-	 	TRACE_LEAVE();
-                return rc;
-        }
-
-	rc = saClmClusterNodeGet(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID, CPND_CLM_API_TIMEOUT, &cluster_node);
-	if (rc != SA_AIS_OK) {
-		LOG_ER("cpnd clm node get failed with return value:%d",rc);
-		goto cpnd_clm_fail;
-	}
-	cb->nodeid = cluster_node.nodeId;
-
-	rc = saClmClusterTrack(cb->clm_hdl, (SA_TRACK_CURRENT | SA_TRACK_CHANGES), NULL);
-	if (rc != SA_AIS_OK) {
-		LOG_ER("cpnd clm clusterTrack failed with return value:%d",rc);
-		goto cpnd_clm_fail;
-	}
 	/* Initialise with the AMF service */
 	if (cpnd_amf_init(cb) != NCSCC_RC_SUCCESS) {
 		LOG_ER("cpnd amf init failed");
@@ -283,7 +259,7 @@ static uint32_t cpnd_lib_init(CPND_CREATE_INFO *info)
 
 	/* CODE  FOR THE NO REDUNDANCY */
 	memset(&gbl_shm_addr, 0, sizeof(GBL_SHM_PTR));
-	shm_ptr = cpnd_restart_shm_create(&cpnd_open_req, cb, cluster_node.nodeId);
+	shm_ptr = cpnd_restart_shm_create(&cpnd_open_req, cb, cb->nodeid);
 	if (shm_ptr) {
 		gbl_shm_addr.base_addr = shm_ptr;	/* Store base address of shared memory, but not used for any operations as of now */
 		gbl_shm_addr.cli_addr = shm_ptr + sizeof(CPND_SHM_VERSION);
@@ -339,9 +315,6 @@ static uint32_t cpnd_lib_init(CPND_CREATE_INFO *info)
 
  cpnd_mds_fail:
 	m_NCS_TASK_STOP(cb->task_hdl);
-
- cpnd_clm_fail:
-	saClmFinalize(cb->clm_hdl);
 
  cpnd_clm_init_fail:
 	m_NCS_IPC_DETACH(&cb->cpnd_mbx, cpnd_clear_mbx, cb);
@@ -533,6 +506,10 @@ void cpnd_main_process(CPND_CB *cb)
 	struct pollfd fds[NUMBER_OF_FDS];
 	int term_fd;
 
+	ncs_sel_obj_create(&cb->clm_updated_sel_obj);
+	fds[FD_CLM_UPDATED].fd = m_GET_FD_FROM_SEL_OBJ(cb->clm_updated_sel_obj);
+	fds[FD_CLM_UPDATED].events = POLLIN;
+
 	mbx_fd = ncs_ipc_get_sel_obj(&cb->cpnd_mbx);
 	fds[FD_MBX].fd = m_GET_FD_FROM_SEL_OBJ(mbx_fd);
 	fds[FD_MBX].events = POLLIN;
@@ -578,31 +555,22 @@ void cpnd_main_process(CPND_CB *cb)
 			}
 		}
 
+		/* process all the CLM messages */
 		if (fds[FD_CLM].revents & POLLIN) {
 			clm_error = saClmDispatch(cb->clm_hdl, SA_DISPATCH_ALL);
 			if (clm_error == SA_AIS_ERR_BAD_HANDLE) {
-				SaVersionT clm_version;
-				SaClmHandleT clmHandle;
-				SaClmCallbacksT gen_cbk;
-
 				LOG_NO("Bad CLM handle. Reinitializing.");
-				usleep(100000);
+				osaf_nanosleep(&kHundredMilliseconds);
 
-				m_CPSV_GET_AMF_VER(clm_version);
-				gen_cbk.saClmClusterNodeGetCallback = NULL;
-				gen_cbk.saClmClusterTrackCallback = cpnd_clm_cluster_track_cb;
+				cpnd_start_clm_init_bg();
 
-				clm_error = saClmInitialize(&clmHandle, &gen_cbk, &clm_version);
-				if (clm_error != SA_AIS_OK) {
-					 LOG_ER("cpnd clm init failed with return value:%d", clm_error);
-					  TRACE_LEAVE();
-					   return;
-				}
-				cb->clm_hdl = clmHandle;
+				/* Ignore the FD_CLM */
+				fds[FD_CLM].fd = -1;
 			} else if (clm_error != SA_AIS_OK) {
 				LOG_ER("cpnd clm dispatch failure %u", clm_error);
 			}
 		}
+
 		/* process the CPND Mail box */
 		if (fds[FD_MBX].revents & POLLIN) {
 
@@ -611,7 +579,148 @@ void cpnd_main_process(CPND_CB *cb)
 				cpnd_process_evt(evt);
 			}
 		}
+
+		/* process the CLM object updated event */
+		if (fds[FD_CLM_UPDATED].revents & POLLIN) {
+			fds[FD_CLM].fd = cb->clm_sel_obj;
+			LOG_NO("CLM selection object was updated. (%lld)", cb->clm_sel_obj);
+
+			ncs_sel_obj_rmv_ind(&cb->clm_updated_sel_obj, true, true);
+		}
 	}
 	TRACE_LEAVE();
 	return;
+}
+
+/****************************************************************************
+ * Name          : cpnd_clm_init
+ *
+ * Description   : This function initialize CLM, get Node Id, and enalbe 
+ *                 tracking callback.
+ *
+ * Arguments     : -
+ *
+ * Return Values : -
+ *
+ * Notes         : None.
+ *****************************************************************************/
+static SaAisErrorT cpnd_clm_init(void)
+{	
+	CPND_CB *cb = NULL;
+	SaAisErrorT rc = SA_AIS_OK;
+	SaVersionT clm_version;
+	SaClmClusterNodeT cluster_node;
+	SaClmHandleT clmHandle;
+	m_CPSV_GET_AMF_VER(clm_version);
+	SaClmCallbacksT gen_cbk;
+
+	cb = m_CPND_TAKE_CPND_CB;
+
+	TRACE_ENTER();
+
+	memset(&cluster_node, 0, sizeof(SaClmClusterNodeT));
+
+	gen_cbk.saClmClusterNodeGetCallback = NULL;
+	gen_cbk.saClmClusterTrackCallback = cpnd_clm_cluster_track_cb;
+	rc = saClmInitialize(&clmHandle, &gen_cbk, &clm_version);
+	while (rc == SA_AIS_ERR_TRY_AGAIN || rc == SA_AIS_ERR_TIMEOUT || 
+		rc == SA_AIS_ERR_NO_RESOURCES || rc == SA_AIS_ERR_UNAVAILABLE) {
+		if (rc != SA_AIS_ERR_TRY_AGAIN) {
+			LOG_WA("cpnd_lib_init: saClmInitialize returned %u", rc);
+		}
+		osaf_nanosleep(&kHundredMilliseconds);
+		rc = saClmInitialize(&clmHandle, &gen_cbk, &clm_version);
+	}
+
+	if (rc != SA_AIS_OK) {
+		LOG_ER("cpnd clm init failed with return value:%d",rc);
+		goto cpnd_clm_initialize_fail;
+	}
+
+	cb->clm_hdl = clmHandle;
+
+	if (SA_AIS_OK != (rc = saClmSelectionObjectGet(cb->clm_hdl, &cb->clm_sel_obj))) {
+		LOG_ER("cpnd clm selection object Get failed with return value:%d",rc);
+		goto cpnd_clm_fail;
+	}
+
+	TRACE("cpnd clm selection object = %lld", cb->clm_sel_obj);
+
+	rc = saClmClusterNodeGet(cb->clm_hdl, SA_CLM_LOCAL_NODE_ID, CPND_CLM_API_TIMEOUT, &cluster_node);
+	if (rc != SA_AIS_OK) {
+		LOG_ER("cpnd clm node get failed with return value:%d",rc);
+		goto cpnd_clm_fail;
+	}
+	cb->nodeid = cluster_node.nodeId;
+
+	rc = saClmClusterTrack(cb->clm_hdl, (SA_TRACK_CURRENT | SA_TRACK_CHANGES), NULL);
+	if (rc != SA_AIS_OK) {
+		LOG_ER("cpnd clm clusterTrack failed with return value:%d",rc);
+		goto cpnd_clm_fail;
+	}
+
+	/* Notify main process to update clm select object */
+	ncs_sel_obj_ind(&cb->clm_updated_sel_obj);
+
+	TRACE_LEAVE();
+	return rc;
+
+ cpnd_clm_fail:
+	saClmFinalize(cb->clm_hdl);
+
+ cpnd_clm_initialize_fail:
+	TRACE_LEAVE();
+	return rc;
+}
+
+/****************************************************************************
+ * Name          : cpnd_clm_init_thread
+ *
+ * Description   : This function is thread function to initialize clm
+ *
+ * Arguments     : -
+ *
+ * Return Values : -
+ *
+ * Notes         : None.
+ *****************************************************************************/
+static void* cpnd_clm_init_thread(void* arg)
+{
+	TRACE_ENTER();
+
+	SaAisErrorT rc = cpnd_clm_init();
+	if (rc != SA_AIS_OK) {
+		exit(EXIT_FAILURE);
+	}
+
+	TRACE_LEAVE();
+	return NULL;
+}
+
+/****************************************************************************
+ * Name          : cpnd_start_clm_init_bg
+ *
+ * Description   : This function is to start initialize clm thread
+ *
+ * Arguments     : -
+ *
+ * Return Values : -
+ *
+ * Notes         : None.
+ *****************************************************************************/
+static SaAisErrorT cpnd_start_clm_init_bg()
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, cpnd_clm_init_thread, NULL) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	pthread_attr_destroy(&attr);
+
+	return SA_AIS_OK;
 }
