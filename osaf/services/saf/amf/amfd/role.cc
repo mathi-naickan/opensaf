@@ -259,11 +259,6 @@ uint32_t avd_active_role_initialization(AVD_CL_CB *cb, SaAmfHAStateT role)
 
 	TRACE_ENTER();
 
-	if (avd_clm_track_start() != SA_AIS_OK) {
-		LOG_ER("avd_clm_track_start FAILED");
-		goto done;
-	}
-
 	if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
 		LOG_ER("avd_imm_config_get FAILED");
 		goto done;
@@ -277,6 +272,11 @@ uint32_t avd_active_role_initialization(AVD_CL_CB *cb, SaAmfHAStateT role)
 	}
 
 	avd_imm_update_runtime_attrs();
+
+	if (avd_clm_track_start() != SA_AIS_OK) {
+		LOG_ER("avd_clm_track_start FAILED");
+		goto done;
+	}
 
 	status = NCSCC_RC_SUCCESS;
 done:
