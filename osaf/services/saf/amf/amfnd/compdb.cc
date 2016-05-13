@@ -1841,7 +1841,12 @@ unsigned int avnd_comp_config_get_su(AVND_SU *su)
 
 	TRACE_ENTER2("SU'%s'", su->name.value);
 
-	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
+	error = saImmOmInitialize(&immOmHandle, NULL, &immVersion);
+	if (error != SA_AIS_OK) {
+		LOG_CR("saImmOmInitialize failed: %u", error);
+		rc = NCSCC_RC_OUT_OF_MEM;
+		goto done;
+	}
 	searchParam.searchOneAttr.attrName = const_cast<SaImmAttrNameT>("SaImmAttrClassName");
 	searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
 	searchParam.searchOneAttr.attrValue = &className;
@@ -1872,6 +1877,7 @@ unsigned int avnd_comp_config_get_su(AVND_SU *su)
 	(void)immutil_saImmOmSearchFinalize(searchHandle);
  done1:
 	immutil_saImmOmFinalize(immOmHandle);
+ done:
 	TRACE_LEAVE();
 	return rc;
 }
