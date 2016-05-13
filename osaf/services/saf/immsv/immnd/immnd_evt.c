@@ -9538,6 +9538,24 @@ static void immnd_evt_proc_admo_hard_finalize(IMMND_CB *cb,
 			TRACE("Failed in hard remove of admin owner %u. Preload?", evt->info.admFinReq.adm_owner_id);
 		}
 	}
+
+	/* If we receive admo hard finalize in the gap between sending sync-finalize message and
+	 * receiving it back from fevs (mSyncFinalizing == true), we need to re-broadcast the message again.
+	 * The sync-clients need this re-broadcasted message because
+	 * the dead admo are included in sync-finalize message.
+	 * The coord (this) and veterans will also recevie this as duplicated message
+	 * but they will just drop it as the admo id can't be found. */
+	if (cb->mSyncFinalizing) {
+		IMMSV_EVT send_evt;
+		memset(&send_evt, '\0', sizeof(IMMSV_EVT));
+		send_evt.type = IMMSV_EVT_TYPE_IMMD;
+		send_evt.info.immd.type = IMMD_EVT_ND2D_ADMO_HARD_FINALIZE;
+		send_evt.info.immd.info.admoId = evt->info.admFinReq.adm_owner_id;
+		if(immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt) != NCSCC_RC_SUCCESS) {
+			LOG_ER("Failure to broadcast discard admo id:%u ", evt->info.admFinReq.adm_owner_id);
+		}
+	}
+
 	TRACE_LEAVE();
 }
 

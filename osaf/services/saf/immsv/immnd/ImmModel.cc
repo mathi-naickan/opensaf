@@ -17706,23 +17706,10 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
             
             //verify currently existing AdminOwners.
 
+            /* We can't remove the dying ROF==FALSE admo before verifying.
+             * There may be ROF=FALSE admo marked as dying when coord is
+             * generating the sync-finalize message. */
             AdminOwnerVector::iterator i2;
-            for(i2=sOwnerVector.begin(); i2!=sOwnerVector.end();) {
-                if((*i2)->mDying && !((*i2)->mReleaseOnFinalize)) {
-                    LOG_WA("Removing admin owner %u %s (ROF==FALSE) which is in demise, "
-                        "BEFORE receiving sync/verify message", 
-                        (*i2)->mId,
-                        (*i2)->mAdminOwnerName.c_str());
-                    osafassert(adminOwnerDelete((*i2)->mId, true) == SA_AIS_OK);
-                    //lookup of admin owner again.
-
-                    //restart of iteration again.
-                    i2=sOwnerVector.begin();
-                } else {
-                    ++i2;
-                }
-            }
-            
             ImmsvAdmoList* ai = req->adminOwners;
             for(; ai!=NULL; ai=ai->next) {
                 int nrofTouchedObjs=0;
@@ -17749,11 +17736,12 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 }
 
                 if(info->mDying != ai->isDying) {
-                    LOG_ER("Sync-verify: Established node has "
+                    LOG_WA("Sync-verify: Established node has "
                         "different isDying flag (%u) for AdminOwner "
                         "%s, should be %u.", info->mDying, 
                         ownerName.c_str(), ai->isDying);
-                    abort();
+                    /* We don't abort here because mDying can be set on veterans
+                     * when coord is generating sync-finalize message. */
                 }
                 if(info->mReleaseOnFinalize != ai->releaseOnFinalize) {
                     LOG_ER("Sync-verify: Established node has "
@@ -17786,11 +17774,11 @@ ImmModel::finalizeSync(ImmsvOmFinalizeSync* req, bool isCoord,
                 }
             }
 
+            /* Removing all dying admo, both ROF=TRUE and ROF=FALSE */
             for(i2=sOwnerVector.begin(); i2!=sOwnerVector.end();) {
                 if((*i2)->mDying) {
-                    osafassert((*i2)->mReleaseOnFinalize);
-                    LOG_WA("Removing admin owner %u %s (ROF==TRUE) which is in demise, "
-                        "AFTER receiving sync/verify message", 
+                    LOG_WA("Removing admin owner %u %s which is in demise, "
+                        "AFTER receiving sync/verify message",
                         (*i2)->mId,
                         (*i2)->mAdminOwnerName.c_str());
                     osafassert(adminOwnerDelete((*i2)->mId, true) == SA_AIS_OK);
