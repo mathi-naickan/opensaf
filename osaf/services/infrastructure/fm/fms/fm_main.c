@@ -193,6 +193,13 @@ int main(int argc, char *argv[])
 	if (fm_rda_init(fm_cb) != NCSCC_RC_SUCCESS) {
 		goto fm_init_failed;
 	}
+	if (fm_cb->role == PCS_RDA_ACTIVE &&
+	    fm_cb->activation_supervision_tmr_val != 0) {
+		LOG_NO("Starting initial activation supervision: %" PRIu64 "ms",
+		       10 * (uint64_t) fm_cb->activation_supervision_tmr_val);
+		fm_tmr_start(&fm_cb->activation_supervision_tmr,
+			     fm_cb->activation_supervision_tmr_val);
+	}
 	if ((control_tipc = getenv("OPENSAF_MANAGE_TIPC")) == NULL)
 		fm_cb->control_tipc = false;
 	else if (strncmp(control_tipc, "yes", 3) == 0)
@@ -559,7 +566,7 @@ static void fm_evt_proc_rda_callback(FM_CB *cb, FM_EVT *evt)
 
 	TRACE_ENTER2("%d", (int) evt->info.rda_info.role);
 	if (evt->info.rda_info.role != PCS_RDA_ACTIVE &&
-	    cb->promote_active_tmr.status == FM_TMR_RUNNING) {
+	    cb->activation_supervision_tmr.status == FM_TMR_RUNNING) {
 		fm_tmr_stop(&cb->activation_supervision_tmr);
 		LOG_NO("Stopped activation supervision due to new role %u",
 		       (unsigned) evt->info.rda_info.role);
@@ -568,7 +575,7 @@ static void fm_evt_proc_rda_callback(FM_CB *cb, FM_EVT *evt)
 	    cb->role != PCS_RDA_ACTIVE &&
 	    cb->amf_state != SA_AMF_HA_ACTIVE &&
 	    cb->activation_supervision_tmr_val != 0 &&
-	    cb->promote_active_tmr.status != FM_TMR_RUNNING) {
+	    cb->activation_supervision_tmr.status != FM_TMR_RUNNING) {
 		LOG_NO("Starting activation supervision: %" PRIu64 "ms",
 		       10 * (uint64_t) cb->activation_supervision_tmr_val);
 		fm_tmr_start(&cb->activation_supervision_tmr,
