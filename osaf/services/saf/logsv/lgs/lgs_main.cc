@@ -37,6 +37,7 @@
 #include "lgs_file.h"
 #include "osaf_utility.h"
 #include "lgs_recov.h"
+#include "immutil.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -88,6 +89,8 @@ uint32_t mbox_low[NCS_IPC_PRIORITY_MAX];
  * used in the mds thread.
  */
 pthread_mutex_t lgs_mbox_init_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 static struct pollfd fds[FD_NUM];
 static nfds_t nfds = FD_NUM;
@@ -273,6 +276,18 @@ static uint32_t log_initialize(void)
 	uint32_t rc = NCSCC_RC_FAILURE;
 
 	TRACE_ENTER();
+
+	/**
+	 * Setup immutils profile once and for all.
+	 * This profile says immutil_ API will be blocked
+	 * up to 0.5s and no terminated when failed.
+	 *
+	 * Use IMM API directly if wants to change above immutil_ behavior.
+	 * Otherwise, there is possibility of race condition.
+	 */
+	immutilWrapperProfile.errorsAreFatal = 0;    /* No reboot when fail */
+	immutilWrapperProfile.nTries         = 500;  /* Times */
+	immutilWrapperProfile.retryInterval  = 1000; /* ms */
 
 	/* Determine how this process was started, by NID or AMF */
 	if (getenv("SA_AMF_COMPONENT_NAME") == NULL)

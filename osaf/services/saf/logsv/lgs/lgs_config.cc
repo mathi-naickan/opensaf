@@ -36,7 +36,6 @@
 #include "lgs_file.h"
 #include "lgs.h"
 
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
 static SaVersionT immVersion = { 'A', 2, 11 };
 
 /* Mutex for making read and write of configuration data thread safe */
@@ -792,15 +791,22 @@ static void read_logsv_config_obj_2() {
 	SaImmAttrValuesT_2 **attributes;
 	int i = 0;
 	int n;
-
-	int asetting = immutilWrapperProfile.errorsAreFatal;
 	SaAisErrorT om_rc = SA_AIS_OK;
 
 	TRACE_ENTER();
 
 	/* NOTE: immutil init will osaf_assert if error */
-	(void) immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
-	(void) immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
+	om_rc = immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
+	if (om_rc != SA_AIS_OK) {
+		LOG_ER("immutil_saImmOmInitialize failed: %s", saf_error(om_rc));
+		osaf_abort(0);
+	}
+
+	om_rc = immutil_saImmOmAccessorInitialize(omHandle, &accessorHandle);
+	if (om_rc != SA_AIS_OK) {
+		LOG_ER("immutil_saImmOmAccessorInitialize failed: %s", saf_error(om_rc));
+		osaf_abort(0);
+	}
 
 	n = snprintf((char *) objectName.value, SA_MAX_NAME_LENGTH, "%s",
 			LGS_IMM_LOG_CONFIGURATION);
@@ -811,8 +817,13 @@ static void read_logsv_config_obj_2() {
 	objectName.length = strlen((char *) objectName.value);
 
 	/* Get all attributes of the object */
-	if (immutil_saImmOmAccessorGet_2(accessorHandle, &objectName, NULL, &attributes) != SA_AIS_OK) {
-		LOG_NO("%s immutil_saImmOmAccessorGet_2 Fail", __FUNCTION__);
+	if ((om_rc = immutil_saImmOmAccessorGet_2(
+		     accessorHandle,
+		     &objectName,
+		     NULL,
+		     &attributes)) != SA_AIS_OK) {
+		LOG_NO("%s immutil_saImmOmAccessorGet_2 Fail: %s",
+		       __FUNCTION__, saf_error(om_rc));
 		goto done;
 	}
 	else {
@@ -903,16 +914,17 @@ static void read_logsv_config_obj_2() {
 
 done:
 	/* Do not abort if error when finalizing */
-	immutilWrapperProfile.errorsAreFatal = 0;	/* Disable immutil abort */
 	om_rc = immutil_saImmOmAccessorFinalize(accessorHandle);
 	if (om_rc != SA_AIS_OK) {
-		LOG_NO("%s immutil_saImmOmAccessorFinalize() Fail %d",__FUNCTION__, om_rc);
+		LOG_NO("%s immutil_saImmOmAccessorFinalize() Fail %s",
+		       __FUNCTION__, saf_error(om_rc));
 	}
+
 	om_rc = immutil_saImmOmFinalize(omHandle);
 	if (om_rc != SA_AIS_OK) {
-		LOG_NO("%s immutil_saImmOmFinalize() Fail %d",__FUNCTION__, om_rc);
+		LOG_NO("%s immutil_saImmOmFinalize() Fail %s",
+		       __FUNCTION__, saf_error(om_rc));
 	}
-	immutilWrapperProfile.errorsAreFatal = asetting; /* Enable again */
 
 	TRACE_LEAVE();
 }
@@ -1389,10 +1401,11 @@ void conf_runtime_obj_create(SaImmOiHandleT immOiHandle)
 	parent_name.length = strlen((char *) parent_name.value);
 	parent_name_p = &parent_name;
 
-	rc = saImmOiRtObjectCreate_2(immOiHandle,
-			const_cast<SaImmClassNameT>("OpenSafLogCurrentConfig"),
-			parent_name_p,
-			attrValues);
+	rc = immutil_saImmOiRtObjectCreate_2(
+		immOiHandle,
+		const_cast<SaImmClassNameT>("OpenSafLogCurrentConfig"),
+		parent_name_p,
+		attrValues);
 
 	if (rc == SA_AIS_ERR_EXIST) {
 		TRACE("Server runtime configuration object already exist");
@@ -1417,6 +1430,7 @@ void conf_runtime_obj_hdl(SaImmOiHandleT immOiHandle, const SaImmAttrNameT *attr
 	int i = 0;
 	char *str_val = NULL;
 	SaUint32T u32_val = 0;
+	SaAisErrorT ais_rc = SA_AIS_OK;
 
 	TRACE_ENTER();
 
@@ -1425,83 +1439,89 @@ void conf_runtime_obj_hdl(SaImmOiHandleT immOiHandle, const SaImmAttrNameT *attr
 		if (!strcmp(attributeName, LOG_ROOT_DIRECTORY)) {
 			str_val = (char *)
 				lgs_cfg_get(LGS_IMM_LOG_ROOT_DIRECTORY);
-			(void)immutil_update_one_rattr(immOiHandle,
+			ais_rc = immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SASTRINGT,
 				&str_val);
 		} else if (!strcmp(attributeName, LOG_DATA_GROUPNAME)) {
 			str_val = (char *)
 				lgs_cfg_get(LGS_IMM_DATA_GROUPNAME);
-			(void)immutil_update_one_rattr(immOiHandle,
+			ais_rc = immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SASTRINGT,
 				&str_val);
 		} else if (!strcmp(attributeName, LOG_STREAM_FILE_FORMAT)) {
 			str_val = (char *)
 				lgs_cfg_get(LGS_IMM_LOG_STREAM_FILE_FORMAT);
-			(void)immutil_update_one_rattr(immOiHandle,
+			ais_rc = immutil_update_one_rattr(immOiHandle,
 			   LGS_CFG_RUNTIME_OBJECT,
 			   attributeName, SA_IMM_ATTR_SASTRINGT,
 			   &str_val);
 		} else if (!strcmp(attributeName, LOG_MAX_LOGRECSIZE)) {
 			u32_val = *(SaUint32T *)
 				lgs_cfg_get(LGS_IMM_LOG_MAX_LOGRECSIZE);
-			(void) immutil_update_one_rattr(immOiHandle,
+			ais_rc =  immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SAUINT32T,
 				&u32_val);
 		} else if (!strcmp(attributeName, LOG_STREAM_SYSTEM_HIGH_LIMIT)) {
 			u32_val = *(SaUint32T *)
 				lgs_cfg_get(LGS_IMM_LOG_STREAM_SYSTEM_HIGH_LIMIT);
-			(void) immutil_update_one_rattr(immOiHandle,
+			ais_rc =  immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SAUINT32T,
 				&u32_val);
 		} else if (!strcmp(attributeName, LOG_STREAM_SYSTEM_LOW_LIMIT)) {
 			u32_val = *(SaUint32T *)
 				lgs_cfg_get(LGS_IMM_LOG_STREAM_SYSTEM_LOW_LIMIT);
-			(void) immutil_update_one_rattr(immOiHandle,
+			ais_rc =  immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SAUINT32T,
 				&u32_val);
 		} else if (!strcmp(attributeName, LOG_STREAM_APP_HIGH_LIMIT)) {
 			u32_val = *(SaUint32T *)
 				lgs_cfg_get(LGS_IMM_LOG_STREAM_APP_HIGH_LIMIT);
-			(void) immutil_update_one_rattr(immOiHandle,
+			ais_rc =  immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SAUINT32T,
 				&u32_val);
 		} else if (!strcmp(attributeName, LOG_STREAM_APP_LOW_LIMIT)) {
 			u32_val = *(SaUint32T *)
 				lgs_cfg_get(LGS_IMM_LOG_STREAM_APP_LOW_LIMIT);
-			(void) immutil_update_one_rattr(immOiHandle,
+			ais_rc =  immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SAUINT32T,
 				&u32_val);
 		} else if (!strcmp(attributeName, LOG_MAX_APPLICATION_STREAMS)) {
 			u32_val = *(SaUint32T *)
 				lgs_cfg_get(LGS_IMM_LOG_MAX_APPLICATION_STREAMS);
-			(void) immutil_update_one_rattr(immOiHandle,
+			ais_rc =  immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SAUINT32T,
 				&u32_val);
 		} else if (!strcmp(attributeName, LOG_FILE_IO_TIMEOUT)) {
 			u32_val = *(SaUint32T *)
 				lgs_cfg_get(LGS_IMM_FILEHDL_TIMEOUT);
-			(void) immutil_update_one_rattr(immOiHandle,
+			ais_rc =  immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SAUINT32T,
 				&u32_val);
 		} else if (!strcmp(attributeName, LOG_FILE_SYS_CONFIG)) {
 			u32_val = *(SaUint32T *)
 				lgs_cfg_get(LGS_IMM_LOG_FILESYS_CFG);
-			(void) immutil_update_one_rattr(immOiHandle,
+			ais_rc =  immutil_update_one_rattr(immOiHandle,
 				LGS_CFG_RUNTIME_OBJECT,
 				attributeName, SA_IMM_ATTR_SAUINT32T,
 				&u32_val);
 		} else {
 			TRACE("%s: unknown attribute %s",
 				__FUNCTION__, attributeName);
+		}
+
+		if (ais_rc != SA_AIS_OK) {
+			LOG_ER("immutil_update_one_rattr (%s) failed: %s",
+			       attributeName, saf_error(ais_rc));
+			osaf_abort(0);
 		}
 	}
 

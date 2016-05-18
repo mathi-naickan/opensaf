@@ -24,8 +24,6 @@
 #include "lgs_config.h"
 #include "immutil.h"
 
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
-
 static void close_all_files()
 {
 	log_stream_t *stream;
@@ -78,8 +76,6 @@ static SaAisErrorT amf_active_state_handler(lgs_cb_t *cb, SaInvocationT invocati
 	}
 
 done:
-	immutilWrapperProfile.nTries = 20; /* Reset retry time to more normal value. */
-	immutilWrapperProfile.errorsAreFatal = 1;
 	/* Update role independent of stream processing */
 	lgs_cb->mds_role = V_DEST_RL_ACTIVE;
 	TRACE_LEAVE();
@@ -127,13 +123,16 @@ static SaAisErrorT amf_standby_state_handler(lgs_cb_t *cb, SaInvocationT invocat
  *****************************************************************************/
 static SaAisErrorT amf_quiescing_state_handler(lgs_cb_t *cb, SaInvocationT invocation)
 {
+	SaAisErrorT ais_rc = SA_AIS_OK;
+
 	TRACE_ENTER2("HA QUIESCING request");
 	close_all_files();
 
 	/* Give up our IMM OI implementer role */
-	immutilWrapperProfile.errorsAreFatal = 0;
-	(void)immutil_saImmOiImplementerClear(cb->immOiHandle);
-	immutilWrapperProfile.errorsAreFatal = 1;
+	ais_rc = immutil_saImmOiImplementerClear(cb->immOiHandle);
+	if (ais_rc != SA_AIS_OK) {
+		LOG_WA("immutil_saImmOiImplementerClear failed: %s", saf_error(ais_rc));
+	}
 
 	lgs_stop_gcfg_applier();
 
@@ -162,9 +161,10 @@ static SaAisErrorT amf_quiesced_state_handler(lgs_cb_t *cb, SaInvocationT invoca
 	close_all_files();
 
 	/* Give up our IMM OI implementer role */
-	immutilWrapperProfile.errorsAreFatal = 0;
-	(void)immutil_saImmOiImplementerClear(cb->immOiHandle);
-	immutilWrapperProfile.errorsAreFatal = 1;
+	rc = immutil_saImmOiImplementerClear(cb->immOiHandle);
+	if (rc != SA_AIS_OK) {
+		LOG_WA("immutil_saImmOiImplementerClear failed: %s", saf_error(rc));
+	}
 
 	lgs_stop_gcfg_applier();
 

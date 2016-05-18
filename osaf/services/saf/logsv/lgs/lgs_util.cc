@@ -32,7 +32,6 @@
 #include <grp.h>
 #include <osaf_time.h>
 
-#include "immutil.h"
 #include "lgs.h"
 #include "lgs_file.h"
 #include "lgs_filehdl.h"

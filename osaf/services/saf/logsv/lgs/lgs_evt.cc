@@ -16,7 +16,6 @@
  */
 
 #include <stdlib.h>
-#include "immutil.h"
 #include "osaf_time.h"
 #include "saf_error.h"
 
@@ -29,8 +28,6 @@
 #define m_LOG_VER_IS_VALID(ver)   \
    ( (ver->releaseCode == LOG_RELEASE_CODE) && \
      (ver->majorVersion == LOG_MAJOR_VERSION || ver->minorVersion == LOG_MINOR_VERSION))
-
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
 
 static uint32_t process_api_evt(lgsv_lgs_evt_t *evt);
 static uint32_t proc_lga_updn_mds_msg(lgsv_lgs_evt_t *evt);

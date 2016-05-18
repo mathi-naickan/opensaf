@@ -117,8 +117,6 @@ typedef enum {
 
 static th_state_t th_state = TH_NOT_STARTED;
 
-extern struct ImmutilWrapperProfile immutilWrapperProfile;
-
 /******************************************************************************
  * Outside applier thread
  ******************************************************************************/
@@ -609,11 +607,6 @@ static int read_network_name()
 	/*
 	 * Initialize an IMM object manager
 	 */
-	// Wait up to 500ms
-	immutilWrapperProfile.errorsAreFatal = 0;
-	immutilWrapperProfile.nTries = 500;
-	immutilWrapperProfile.retryInterval = 1000;
-
 	ais_rc = immutil_saImmOmInitialize(&om_handle, NULL, &immVersion);
 	if (ais_rc != SA_AIS_OK) {
 		TRACE("immutil_saImmOmInitialize FAIL %s", saf_error(ais_rc));
@@ -735,11 +728,6 @@ static int applier_init(SaImmOiHandleT *imm_appl_hdl,
 		goto done;
 	}
 
-	// Wait up to 500ms
-	immutilWrapperProfile.errorsAreFatal = 0;
-	immutilWrapperProfile.nTries = 500;
-	immutilWrapperProfile.retryInterval = 1000;
-
 	/* Initialize OI for applier and get OI handle */
 	ais_rc = immutil_saImmOiInitialize_2(imm_appl_hdl, &callbacks, &immVersion);
 	if (ais_rc != SA_AIS_OK) {
@@ -804,10 +792,6 @@ static int applier_set_name_class(SaImmOiHandleT imm_appl_hdl)
 	}
 
 	/* Become applier */
-	immutilWrapperProfile.errorsAreFatal = 0;
-	immutilWrapperProfile.nTries = 500;
-	immutilWrapperProfile.retryInterval = 1000;
-
 	ais_rc = immutil_saImmOiImplementerSet(imm_appl_hdl, applier_name);
 	if (ais_rc != SA_AIS_OK) {
 		LOG_WA("immutil_saImmOiImplementerSet Failed %s", saf_error(ais_rc));
@@ -859,11 +843,6 @@ static void applier_finalize(SaImmOiHandleT imm_appl_hdl)
 	if (imm_appl_hdl != 0) {
 		/* We have a handle to finalize */
 		TRACE("saImmOiFinalize");
-
-		immutilWrapperProfile.errorsAreFatal = 0;
-		immutilWrapperProfile.nTries = 500;
-		immutilWrapperProfile.retryInterval = 1000;
-
 		ais_rc = immutil_saImmOiFinalize(imm_appl_hdl);
 		if (ais_rc != SA_AIS_OK) {
 			TRACE("immutil_saImmOiFinalize Failed %s", saf_error(ais_rc));
