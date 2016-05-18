@@ -659,9 +659,6 @@ static SaAisErrorT cpnd_clm_init(void)
 		goto cpnd_clm_fail;
 	}
 
-	/* Notify main process to update clm select object */
-	ncs_sel_obj_ind(&cb->clm_updated_sel_obj);
-
 	TRACE_LEAVE();
 	return rc;
 
@@ -686,12 +683,17 @@ static SaAisErrorT cpnd_clm_init(void)
  *****************************************************************************/
 static void* cpnd_clm_init_thread(void* arg)
 {
+	CPND_CB *cb = m_CPND_TAKE_CPND_CB;
+
 	TRACE_ENTER();
 
 	SaAisErrorT rc = cpnd_clm_init();
 	if (rc != SA_AIS_OK) {
 		exit(EXIT_FAILURE);
 	}
+
+	/* Notify main process to update clm select object */
+	ncs_sel_obj_ind(&cb->clm_updated_sel_obj);
 
 	TRACE_LEAVE();
 	return NULL;
