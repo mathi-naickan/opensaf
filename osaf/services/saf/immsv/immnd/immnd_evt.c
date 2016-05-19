@@ -2040,8 +2040,9 @@ static uint32_t	immnd_evt_proc_cl_imma_timeout(IMMND_CB *cb, IMMND_EVT *evt)
 		   MDS reply info. This will also clear the handle for new use in
                    sending syncronous requests.
 		*/
-		memset(&(cl_node->tmpSinfo), 0, sizeof(IMMSV_SEND_INFO));
-		osafassert(immnd_mds_client_not_busy(&(cl_node->tmpSinfo))==SA_AIS_OK);
+		immnd_proc_imma_discard_connection(cb, cl_node);
+		osafassert(immnd_client_node_del(cb, cl_node)  == NCSCC_RC_SUCCESS);
+		free(cl_node);
 	} else {
 		/* The request could not be purged (depends on request type),
 		   or the reply has already been arrived but came too late
