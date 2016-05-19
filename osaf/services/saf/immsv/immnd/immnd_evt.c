@@ -2137,6 +2137,7 @@ static uint32_t immnd_evt_proc_imm_resurrect(IMMND_CB *cb,
     
     if(cb->node_id != nodeId) {
         LOG_ER("Rejecting OM client resurrect from wrong node! %x", nodeId);
+        free(cl_node);
         error = SA_AIS_ERR_FAILED_OPERATION;
         goto agent_rsp;
     }

@@ -423,11 +423,15 @@ uint32_t immnd_introduceMe(IMMND_CB *cb)
 		send_evt.info.immd.info.ctrl_msg.dir.size);
 
 	if (!immnd_is_immd_up(cb)) {
-		return NCSCC_RC_FAILURE;
+		rc = NCSCC_RC_FAILURE;
+		goto error;
 	}
 
 	rc = immnd_mds_msg_send(cb, NCSMDS_SVC_ID_IMMD, cb->immd_mdest_id, &send_evt);
+
+error:
 	free(mdirDup);
+
 	return rc;
 }
 
