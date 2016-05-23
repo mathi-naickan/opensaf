@@ -772,6 +772,8 @@ uint32_t avnd_err_rcvr_comp_failover(AVND_CB *cb, AVND_COMP *failed_comp)
 		m_AVND_SU_FAILED_SET(su);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 	}
+	//Remember component-failover/su-failover context. 
+	m_AVND_SU_FAILOVER_SET(failed_comp->su);
 
 	/* update su oper state */
 	m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
@@ -824,6 +826,9 @@ uint32_t avnd_err_rcvr_su_failover(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_c
 		su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 	}
+	//Remember component-failover/su-failover context. 
+	m_AVND_SU_FAILOVER_SET(failed_comp->su);
+
 	LOG_NO("Terminating components of '%s'(abruptly & unordered)",su->name.value);
 	/* Unordered cleanup of components of failed SU */
 	for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
@@ -918,6 +923,8 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 		reset_suRestart_flag(failed_su);
 		failed_su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
+		//Remember su-failover context.
+		m_AVND_SU_FAILOVER_SET(failed_comp->su);
 
 		LOG_NO("Terminating components of '%s'(abruptly & unordered)",failed_su->name.value);
 		/* Unordered cleanup of components of failed SU */
@@ -1046,6 +1053,8 @@ uint32_t avnd_err_su_repair(AVND_CB *cb, AVND_SU *su)
 	if (all_comps_terminated_in_su(su) == true)
 		is_uninst = true;
 
+	//Reset component-failover here. SU failover is reset as part of REPAIRED admin op.
+	m_AVND_SU_FAILOVER_RESET(su);
 	/* scan & instantiate failed pi comps */
 	for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
 	     comp; comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
@@ -1568,7 +1577,7 @@ uint32_t avnd_err_rcvr_node_failfast(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP 
 bool is_no_assignment_due_to_escalations(AVND_SU *su)
 {
 	TRACE_ENTER();
-	if (((sufailover_in_progress(su) == true) && (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_2)) || 
+	if ((sufailover_in_progress(su) == true) || 
 			(sufailover_during_nodeswitchover(su) == true) ||
 			(avnd_cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATING) || 
 			(avnd_cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATED))  {

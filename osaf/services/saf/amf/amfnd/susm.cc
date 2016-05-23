@@ -1724,8 +1724,7 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 					((su_all_comps_restartable(*su) == true) ||
 					 ((su_all_comps_restartable(*su) == false) 
 					  && (is_any_non_restartable_comp_assigned(*su) == false)) ||
-					 ((su->su_err_esc_level == AVND_ERR_ESC_LEVEL_2) &&
-					  (su->si_list.n_nodes == 0)))) {
+					 ((m_AVND_SU_IS_FAILOVER(su)) && (su->si_list.n_nodes == 0)))) {
 					/*
 					   It means all comps are terminated in surestart recovery or 
 					   admin op. For non restartable SU with no non restartable comp
@@ -3556,8 +3555,9 @@ uint32_t avnd_su_pres_instfailed_compuninst(AVND_CB *cb, AVND_SU *su, AVND_COMP 
 bool sufailover_in_progress(const AVND_SU *su)
 {
 	if (m_AVND_SU_IS_FAILED(su) && (su->sufailover) && (!m_AVND_SU_IS_RESTART(su)) &&
-			 (avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED) && (!su->is_ncs))
-				return true;
+			(avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED) && (!su->is_ncs) &&
+			m_AVND_SU_IS_FAILOVER(su))
+		return true;
 	return false;
 }
 
@@ -3571,7 +3571,7 @@ bool sufailover_during_nodeswitchover(const AVND_SU *su)
 {
 	if ((m_AVND_SU_IS_FAILED(su) && (su->sufailover) && (!m_AVND_SU_IS_RESTART(su)) &&
 				(avnd_cb->term_state == AVND_TERM_STATE_NODE_SWITCHOVER_STARTED) && 
-				(!su->is_ncs)))
+				(!su->is_ncs) && (m_AVND_SU_IS_FAILOVER(su))))
 		return true;
 
 	return false;
