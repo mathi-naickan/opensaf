@@ -1989,7 +1989,7 @@ uint32_t avnd_comp_clc_inst_clean_hdler(AVND_CB *cb, AVND_COMP *comp)
 		if (m_AVND_SU_IS_RESTART(comp->su) && m_AVND_COMP_IS_RESTART_DIS(comp) &&
 				(comp->csi_list.n_nodes > 0) &&
 				(m_AVND_SU_IS_PREINSTANTIABLE(comp->su) &&
-				 (comp->su->su_err_esc_level != AVND_ERR_ESC_LEVEL_2))) {
+				 (!m_AVND_SU_IS_FAILOVER(comp->su)))) {
 			/* A non-restartable assigned healthy component(DisableRestart=1) and
 			   context is surestart recovery, first perform reassignment for this 
 			   component to other SU then clean it up.
@@ -2291,7 +2291,7 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 	if (m_AVND_COMP_IS_FAILED(comp) && m_AVND_SU_IS_FAILED(su) &&
 			m_AVND_SU_IS_PREINSTANTIABLE(su) && (su->sufailover == false) &&
 			(avnd_cb->oper_state != SA_AMF_OPERATIONAL_DISABLED) && 
-			(su->su_err_esc_level == AVND_ERR_ESC_LEVEL_2)) {
+			(m_AVND_SU_IS_FAILOVER(su))) {
 		/* yes, request director to orchestrate component failover */
 		rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
 	}
