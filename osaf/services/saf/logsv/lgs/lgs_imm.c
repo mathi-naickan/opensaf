@@ -389,13 +389,19 @@ static void adminOperationCallback(SaImmOiHandleT immOiHandle,
 
 	if (opId == SA_LOG_ADMIN_CHANGE_FILTER) {
 		/* Only allowed to update runtime objects (application streams) */
+		/**
+		 * className holds a pointer to an duplicated memory (strdup).
+		 * Must be free after done using.
+		 */
 		SaImmClassNameT className = immutil_get_className(objectName);
 
 		if (!strcmp(className, "SaLogStreamConfig")) {
 			(void)immutil_saImmOiAdminOperationResult(immOiHandle,
 						  invocation, SA_AIS_ERR_NOT_SUPPORTED);
+			free(className);
 			goto done;
 		}
+		free(className);
 
 		if (stream->streamType != STREAM_TYPE_APPLICATION) {
 			report_om_error(immOiHandle, invocation,
