@@ -420,7 +420,7 @@ CPND_CKPT_SECTION_INFO *cpnd_ckpt_sec_add(CPND_CKPT_NODE *cp_node, SaCkptSection
 		pSecPtr->sec_id.id = m_MMGR_ALLOC_CPND_DEFAULT(pSecPtr->sec_id.idLen);
 		if (pSecPtr->sec_id.id == NULL) {
 			LOG_ER("cpnd sect memory allocation failed");
-			return NULL;
+			goto sec_id_allocate_fails;
 		}
 		memset(pSecPtr->sec_id.id, '\0', pSecPtr->sec_id.idLen);
 
@@ -445,10 +445,7 @@ CPND_CKPT_SECTION_INFO *cpnd_ckpt_sec_add(CPND_CKPT_NODE *cp_node, SaCkptSection
 	rc = cpnd_ckpt_sec_add_db(&cp_node->replica_info, pSecPtr);
 	if (rc == NCSCC_RC_FAILURE) {
 		LOG_ER("unable to add section to database");
-		m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
-		pSecPtr = NULL;
-		TRACE_LEAVE();
-		return pSecPtr;	
+		goto section_add_fails;
 	}
 	
 	cp_node->replica_info.n_secs++;
@@ -456,23 +453,31 @@ CPND_CKPT_SECTION_INFO *cpnd_ckpt_sec_add(CPND_CKPT_NODE *cp_node, SaCkptSection
 	/* UPDATE THE SECTION HEADER */
 	rc = cpnd_sec_hdr_update(pSecPtr, cp_node);
 	if (rc == NCSCC_RC_FAILURE) {
-		TRACE_4("cpnd sect hdr update failed");
-		cpnd_ckpt_sec_del(cp_node, id);
-		m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
-		pSecPtr = NULL;
+		LOG_NO("cpnd sect hdr update failed");
+		goto section_hdr_update_fails;
 	}
 	/* UPDATE THE CHECKPOINT HEADER */
 	rc = cpnd_ckpt_hdr_update(cp_node);
 	if (rc == NCSCC_RC_FAILURE) {
-		TRACE_4("cpnd ckpt hdr update failed");
-		cpnd_ckpt_sec_del(cp_node, id);
-		m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
-		pSecPtr = NULL;
+		LOG_NO("cpnd ckpt hdr update failed");
+		goto ckpt_hdr_update_fails;
 	}
 
 	TRACE_LEAVE();
 	return pSecPtr;
 
+ section_hdr_update_fails:
+ ckpt_hdr_update_fails:
+	cpnd_ckpt_sec_del(cp_node, id);
+
+ section_add_fails:
+	if (pSecPtr->sec_id.id != NULL) 
+		m_MMGR_FREE_CPND_DEFAULT(pSecPtr->sec_id.id);
+
+ sec_id_allocate_fails:
+	m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
+	TRACE_LEAVE();
+	return NULL;
 }
 
 /****************************************************************************
