@@ -255,6 +255,7 @@ cpnd_ckpt_sec_add_db(CPND_CKPT_REPLICA_INFO *replicaInfo,
     if (!p.second) {
       LOG_ER("unable to add section info to map");
       rc = NCSCC_RC_FAILURE;
+      return rc;
     }
   }
   else {
@@ -270,8 +271,12 @@ cpnd_ckpt_sec_add_db(CPND_CKPT_REPLICA_INFO *replicaInfo,
       std::make_pair(sectionInfo->lcl_sec_id, sectionInfo)));
 
     if (!p.second) {
-      LOG_ER("unable to add section info to local section id map");
+      LOG_ER("unable to add section info to local section id map - the id %d already existed", 
+             sectionInfo->lcl_sec_id);
       rc = NCSCC_RC_FAILURE;
+
+      /* Erase the element was inserted into section_db */
+      map->erase(&sectionInfo->sec_id);
     }
   }
   else {

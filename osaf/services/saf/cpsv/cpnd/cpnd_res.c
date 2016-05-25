@@ -241,6 +241,7 @@ uint32_t cpnd_ckpt_replica_create_res(NCS_OS_POSIX_SHM_REQ_INFO *open_req, char 
 			pSecPtr->sec_id.id = m_MMGR_ALLOC_CPND_DEFAULT(pSecPtr->sec_id.idLen);
 			if (pSecPtr->sec_id.id == NULL) {
 				TRACE_4("cpnd default allocation failed for sec_id length");
+				m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
 				rc = NCSCC_RC_FAILURE;
 				goto end;
 			}
@@ -252,7 +253,15 @@ uint32_t cpnd_ckpt_replica_create_res(NCS_OS_POSIX_SHM_REQ_INFO *open_req, char 
 		pSecPtr->exp_tmr = sect_hdr.exp_tmr;
 		pSecPtr->lastUpdate = sect_hdr.lastUpdate;
 
-		cpnd_res_ckpt_sec_add(pSecPtr, *cp_node);
+		rc = cpnd_res_ckpt_sec_add(pSecPtr, *cp_node);
+		if (rc != NCSCC_RC_SUCCESS) {
+			LOG_NO("cpnd restart create replica - add section fails");
+			if (pSecPtr->sec_id.id != NULL) 
+				m_MMGR_FREE_CPND_DEFAULT(pSecPtr->sec_id.id); \
+			m_MMGR_FREE_CPND_CPND_CKPT_SECTION_INFO(pSecPtr);
+			goto end;
+		}
+		
 		memset(&sect_hdr, '\0', sizeof(CPSV_SECT_HDR));
 
 		(*cp_node)->replica_info.mem_used += pSecPtr->sec_size;
