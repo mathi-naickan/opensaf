@@ -43,6 +43,13 @@ pkgpyosafutilslogdir = $(pythondir)/pyosaf/utils/log
 pkgpyosafutilsimmoidir = $(pythondir)/pyosaf/utils/immoi
 pkgpyosafutilsntfdir = $(pythondir)/pyosaf/utils/ntf
 
+cpplint:
+	@cpplint=$$(find $(top_srcdir)/tests -name cpplint.py -mtime -30); \
+	test -z "$$cpplint" && wget -O $(top_srcdir)/tests/cpplint.py https://raw.githubusercontent.com/google/styleguide/gh-pages/cpplint/cpplint.py 2>&1 && touch $(top_srcdir)/tests/cpplint.py; \
+	find . -path '*/.[a-zA-Z0-9]*' -or -path '*/cluster_sim_uml/*' -prune -or \( -name '*.[CH]' -or -name '*.hh' -or -name '*.[ch]pp' -or -name '*.[ch]xx' \) -exec echo "Invalid file name: {}" \; 1>&2 ; \
+	find . -path '*/.[a-zA-Z0-9]*' -or -path '*/cluster_sim_uml/*' -prune -or \( -name '*.cc' -or -name '*.h' \) -exec python $(top_srcdir)/tests/cpplint.py --extensions=cc,h {} \; ; \
+	true
+
 shellcheck:
 	@files=$$(grep --exclude-dir=cluster_sim_uml --exclude-dir='.[a-zA-Z0-9]*' -E '^#\! */bin/(ba)?sh' -rlI .); \
 	if test -n "$$files"; then \
@@ -53,4 +60,4 @@ shellcheck:
 	fi; \
 	true
 
-.PHONY: shellcheck
+.PHONY: cpplint shellcheck
