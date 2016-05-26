@@ -253,6 +253,14 @@ uninstall-hook:
 docs:
 	doxygen
 
+cppcheck:
+	@for i in $$(find osaf -name '*.h' -exec dirname {} \; | sort | uniq); do echo "$$i"; dirname "$$i"; done | sort | uniq > tests/cppcheck_includes.txt
+	@cppcheck -DSA_EXTENDED_NAME_SOURCE -D__USE_GNU -D__cplusplus=201103L -DIMMA_OI -DIMMA_OM -DASAPi_DEBUG=1 -DHAVE_CONFIG_H -DNCS_CPA=1 -DNCS_CPD=1 -DNCS_CPND=1 -DNCS_EDA=1 -DNCS_EDS=1 -DNCS_GLA=1 -DNCS_GLD=1 -DNCS_GLND=1 -DNCSL_ENV_INIT_HM=1 -DNCSL_ENV_INIT_TMR=1 -DUSE_LITTLE_ENDIAN=1 -DNCS_MBCSV=1 -DNCS_MQA=1 -DNCS_MQD=1 -DNCS_MQND=1 -DRLIMIT_RTPRIO -DTIPC_SUB_CANCEL -DENABLE_AIS_PLM -DLIBXML_SAX1_ENABLED -DLIBXML_XPATH_ENABLED --enable=all --includes-file=tests/cppcheck_includes.txt --suppress=unusedFunction:osaf/libs/common/ais/aisa_api.c --xml-version=2 osaf tests/cppcheck_append.cc 2> tests/cppcheck_result.xml
+	@echo "The result can be found in the file tests/cppcheck_result.xml"
+	@echo "Use the follwing command to view it: cppcheck-gui tests/cppcheck_result.xml"
+
+.PHONY: cppcheck
+
 clean-local:
 	-rm -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz
 if ENABLE_RPM_TARGET
