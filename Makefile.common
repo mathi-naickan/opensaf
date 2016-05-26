@@ -40,3 +40,15 @@ pkgpyosafutilsimmomdir = $(pythondir)/pyosaf/utils/immom
 pkgpyosafutilsclmdir = $(pythondir)/pyosaf/utils/clm
 pkgpyosafutilslogdir = $(pythondir)/pyosaf/utils/log
 pkgpyosafutilsimmoidir = $(pythondir)/pyosaf/utils/immoi
+
+shellcheck:
+	@files=$$(grep --exclude-dir=cluster_sim_uml --exclude-dir='.[a-zA-Z0-9]*' -E '^#\! */bin/(ba)?sh' -rlI .); \
+	if test -n "$$files"; then \
+	   files=$$(hg status --no-status --clean --modified $$files); \
+	   if test -n "$$files"; then \
+	      shellcheck --shell=sh $$files; \
+	   fi; \
+	fi; \
+	true
+
+.PHONY: shellcheck
