@@ -472,6 +472,7 @@ uint32_t immnd_mds_get_handle(IMMND_CB *cb);
 /* File : ----  immnd_evt.c */
 void immnd_process_evt(void);
 uint32_t immnd_evt_destroy(IMMSV_EVT *evt, SaBoolT onheap, uint32_t line);
+void freeSearchNext(IMMSV_OM_RSP_SEARCH_NEXT *rsp, SaBoolT freeTop);
 /* End : ----  immnd_evt.c  */
 
 /* File : ----  immnd_proc.c */
