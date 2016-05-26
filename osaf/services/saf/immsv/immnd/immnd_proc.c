@@ -97,10 +97,16 @@ uint32_t immnd_proc_imma_discard_connection(IMMND_CB *cb, IMMND_IMM_CLIENT_NODE 
 
 	/* 1. Discard searchOps. */
 	while (cl_node->searchOpList) {
+		IMMSV_OM_RSP_SEARCH_NEXT *rsp = NULL;
 		sn = cl_node->searchOpList;
 		cl_node->searchOpList = sn->next;
 		sn->next = NULL;
 		TRACE_5("Discarding search op %u", sn->searchId);
+		immModel_fetchLastResult(sn->searchOp, &rsp);
+		immModel_clearLastResult(sn->searchOp);
+		if (rsp) {
+			freeSearchNext(rsp, true);
+		}
 		immModel_deleteSearchOp(sn->searchOp);
 		sn->searchOp = NULL;
 		free(sn);

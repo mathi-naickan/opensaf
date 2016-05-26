@@ -226,8 +226,6 @@ static void immnd_evt_ccb_abort(IMMND_CB *cb, SaUint32T ccbId, SaUint32T **clien
 
 static uint32_t immnd_evt_proc_reset(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND_INFO *sinfo);
 
-static void freeSearchNext(IMMSV_OM_RSP_SEARCH_NEXT *rsp, SaBoolT freeTop);
-
 #if 0				/* Only for debug */
 static void printImmValue(SaImmValueTypeT t, IMMSV_EDU_ATTR_VAL *v)
 {
@@ -1371,7 +1369,7 @@ static uint32_t immnd_evt_proc_oi_att_pull_rpl(IMMND_CB *cb, IMMND_EVT *evt, IMM
 	return rc;
 }
 
-static void freeSearchNext(IMMSV_OM_RSP_SEARCH_NEXT *rsp, SaBoolT freeTop)
+void freeSearchNext(IMMSV_OM_RSP_SEARCH_NEXT *rsp, SaBoolT freeTop)
 {
 	IMMSV_ATTR_VALUES_LIST *al = NULL;
 	TRACE_ENTER();

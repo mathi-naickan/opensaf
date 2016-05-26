@@ -492,6 +492,7 @@ void immnd_process_evt(void);
 uint32_t immnd_evt_destroy(IMMSV_EVT *evt, SaBoolT onheap, uint32_t line);
 void immnd_evt_proc_admo_hard_finalize(IMMND_CB *cb, IMMND_EVT *evt,
 	SaBoolT originatedAtThisNd, SaImmHandleT clnt_hdl, MDS_DEST reply_dest);
+void freeSearchNext(IMMSV_OM_RSP_SEARCH_NEXT *rsp, SaBoolT freeTop);
 
 /* End : ----  immnd_evt.c  */
 
