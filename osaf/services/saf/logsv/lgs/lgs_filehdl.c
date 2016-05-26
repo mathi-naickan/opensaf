@@ -280,8 +280,8 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 	 * returned SA_AIS_TRY_AGAIN). 
 	 */
 	if (*timeout_f == true) {
-		TRACE("Timeout, removing last log record");
-		file_length = lseek(params_in->fd, -bytes_written, SEEK_END);
+		LOG_NO("Timeout, removing last log record");
+		file_length = lseek(params_in->fd, -((off_t)bytes_written), SEEK_END);
 		if (file_length != -1) {
 			do { 
 				rc = ftruncate(params_in->fd, file_length);
