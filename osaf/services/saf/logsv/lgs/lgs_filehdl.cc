@@ -263,7 +263,6 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 		if (bytes_written < params_in->record_size)
 			goto retry;
 	}
-
  	osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
 
 	/* If the thread was hanging and has timed out and the log record was
@@ -271,8 +270,8 @@ int write_log_record_hdl(void *indata, void *outdata, size_t max_outsize, bool *
 	 * returned SA_AIS_TRY_AGAIN).
 	 */
 	if (*timeout_f == true) {
-		TRACE("Timeout, removing last log record");
-		file_length = lseek(params_in->fd, -bytes_written, SEEK_END);
+		LOG_NO("Timeout, removing last log record");
+		file_length = lseek(params_in->fd, -((off_t)bytes_written), SEEK_END);
 		if (file_length != -1) {
 			do {
 				rc = ftruncate(params_in->fd, file_length);
