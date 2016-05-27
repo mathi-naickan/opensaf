@@ -144,6 +144,7 @@ public:
 	void update_sirank(uint32_t newSiRank);
 	bool si_dep_states_check();
         const AVD_SIRANKEDSU *get_si_ranked_su(const std::string &su_name) const;
+	bool is_active() const;
 private:
 	AVD_SI(const AVD_SI&);
 	AVD_SI& operator=(const AVD_SI&);
