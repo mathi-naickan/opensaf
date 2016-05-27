@@ -413,6 +413,7 @@ static uint32_t avd_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 			if ((evt_info->i_node_id != cb->node_id_avd) && (m_MDS_DEST_IS_AN_ADEST(evt_info->i_dest))) {
 				cb->node_id_avd_other = evt_info->i_node_id;
 				cb->other_avd_adest = evt_info->i_dest;
+				cb->stby_sync_state = AVD_STBY_OUT_OF_SYNC;
 			}
 			break;
 
