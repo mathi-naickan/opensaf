@@ -141,6 +141,7 @@ public:
 	bool is_sirank_valid(uint32_t newSiRank) const;
 	void update_sirank(uint32_t newSiRank);
 	bool si_dep_states_check();
+	bool is_active() const;
 private:
 	AVD_SI(const AVD_SI&);
 	AVD_SI& operator=(const AVD_SI&);

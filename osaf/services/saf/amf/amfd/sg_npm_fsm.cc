@@ -721,8 +721,11 @@ static AVD_SU *avd_sg_npm_su_chose_asgn(AVD_CL_CB *cb, AVD_SG *sg)
 	while (si_iter != sg->list_of_si.end()) {
 		i_si = *si_iter;
 
-		/* verify that the SI has active assignments and needs standby assignments. */
-		if ((i_si->list_of_sisu == AVD_SU_SI_REL_NULL) || (i_si->list_of_sisu->si_next != AVD_SU_SI_REL_NULL)) {
+		/* verify that the SI has active assignments and needs standby assignments.
+                   Also check if active assignment is valid or not.*/
+		if ((i_si->list_of_sisu == AVD_SU_SI_REL_NULL) ||
+				(i_si->list_of_sisu->si_next != AVD_SU_SI_REL_NULL) ||
+				(i_si->is_active() == false)) {
 			++si_iter;
 			continue;
 		}

@@ -1501,3 +1501,19 @@ void AVD_SI::update_sirank(uint32_t newSiRank)
 	saAmfSIRank = (newSiRank == 0) ? ~0U : newSiRank;
 	sg->add_si(this);
 }
+/**
+  + * @brief       Checks whether SI has atleast one valid active assignment.
+  + * @return      true/false
+  + **/
+bool AVD_SI::is_active() const
+{
+	for (AVD_SU_SI_REL *sisu = list_of_sisu; sisu != nullptr; sisu = sisu->si_next) {
+		if ((sisu->state == SA_AMF_HA_ACTIVE) && (sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
+				(sisu->su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
