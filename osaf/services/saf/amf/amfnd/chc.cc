@@ -934,6 +934,16 @@ uint32_t avnd_comp_hc_rec_tmr_exp(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_HC_REC
 
 	TRACE_ENTER2("%s - %s, sts: %u", comp->name.value, rec->key.key, rec->status);
 
+	/* There is a chance that the term command has been issued to comp and
+	   the timer has expired and it is in mail box. 
+	   So, if the component is not in healthy state, then don't start HC. */
+
+	if (!m_AVND_COMP_PRES_STATE_IS_INSTANTIATED(comp)) {
+		TRACE_1("'%s' not instantiated, not starting HC", comp->name.value);
+		rec->status = AVND_COMP_HC_STATUS_STABLE;
+		return rc;
+	}
+
 	if (m_AVND_COMP_HC_REC_IS_AMF_INITIATED(rec)) {
 		if (rec->status == AVND_COMP_HC_STATUS_STABLE)
 			if (comp->is_hc_cmd_configured &&
