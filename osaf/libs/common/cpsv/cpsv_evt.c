@@ -616,6 +616,10 @@ char* cpsv_evt_str(CPSV_EVT *evt, char *o_evt_str, size_t len)
 			snprintf(o_evt_str, len, "CPND_EVT_A2ND_ARRIVAL_CB_UNREG(hdl=%llu)", 
 				evt->info.cpnd.info.arr_ntfy.client_hdl);
 			break;
+		case CPND_EVT_D2ND_CKPT_INFO_UPDATE_ACK:
+			snprintf(o_evt_str, len, "CPND_EVT_D2ND_CKPT_INFO_UPDATE_ACK(err=%u)",
+				evt->info.cpnd.info.ckpt_info_update_ack.error);
+			break;
 		default:
 			snprintf(o_evt_str, len, "INVALID_CPND_TYPE(type = %d)", evt->info.cpnd.type);
 			break;
@@ -772,6 +776,12 @@ char* cpsv_evt_str(CPSV_EVT *evt, char *o_evt_str, size_t len)
 				info->ckpt_id, m_NCS_NODE_ID_FROM_MDS_DEST(info->mds_dest));
 			break;
 		}
+		case CPA_EVT_ND2A_CKPT_DESTROY:
+		{
+			CPSV_CKPT_ID_INFO *info = &evt->info.cpa.info.ckpt_destroy;
+			snprintf(o_evt_str, len, "[%llu] CPA_EVT_ND2A_CKPT_DESTROY", info->ckpt_id);
+			break;
+		}
 		default:
 			snprintf(o_evt_str, len, "INVALID_CPA_TYPE(type = %d)", evt->info.cpa.type);
 			break;
@@ -893,6 +903,16 @@ char* cpsv_evt_str(CPSV_EVT *evt, char *o_evt_str, size_t len)
 			CPD_TMR_INFO *info = &evt->info.cpd.info.tmr_info;
 			snprintf(o_evt_str, len, "CPD_EVT_TIME_OUT(type=%u, node=0x%X)", info->type, 
 				m_NCS_NODE_ID_FROM_MDS_DEST(info->info.cpnd_dest));
+			break;
+		}
+		case CPD_EVT_ND2D_CKPT_INFO_UPDATE:
+		{
+			CPSV_ND2D_CKPT_INFO_UPD *info = &evt->info.cpd.info.ckpt_info;
+			snprintf(o_evt_str, len, "[%llu] CPD_EVT_ND2D_CKPT_INFO_UPDATE(%s, creationFlags=0x%X, "
+				"openFlags=0x%X, numbers[U/W/R]=[%u/%u/%u], active=%s, last=%s)", info->ckpt_id,
+				info->ckpt_name.value, info->attributes.creationFlags, info->ckpt_flags, info->num_users,
+				info->num_writers, info->num_readers, info->is_active ? "true" : "false",
+				info->is_last ? "true" : "false");
 			break;
 		}
 		default:
