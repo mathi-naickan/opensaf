@@ -96,6 +96,7 @@ SaUint32T plms_proc_standby_active_role_change()
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
+
 /***********************************************************************
  * Name          : plms_build_epath_to_entity_map_tree
  *
@@ -110,6 +111,8 @@ SaUint32T plms_proc_standby_active_role_change()
 SaUint32T plms_build_epath_to_entity_map_tree()
 {
 	SaUint32T (* hsm_func_ptr)(SaInt8T *epath_str,SaHpiEntityPathT *epath_ptr) = NULL;
+	SaUint32T (* hsm_get_state_model)(const SaHpiEntityPathT *epath_ptr,
+						PLMS_HPI_STATE_MODEL *model) = NULL;
 	PLMS_EPATH_TO_ENTITY_MAP_INFO *epath_to_ent;
 	PLMS_ENTITY *plm_ent;
 	PLMS_CB       *cb = plms_cb;
@@ -120,6 +123,13 @@ SaUint32T plms_build_epath_to_entity_map_tree()
 		LOG_ER("dlsym() of HPI lib failed with error %s", dlerror());
 		return NCSCC_RC_FAILURE;
 	}
+
+	hsm_get_state_model = dlsym(cb->hpi_intf_hdl, "plms_get_hotswap_model");
+	if ( NULL == hsm_get_state_model ) {
+		LOG_ER("dlsym() for plms_get_hotswap_model failed %s", dlerror());
+		return NCSCC_RC_FAILURE;
+	}
+
 	plm_ent = (PLMS_ENTITY *) ncs_patricia_tree_getnext(&cb->entity_info,
 			(SaUint8T *) 0);
 	while (plm_ent != NULL) {
@@ -152,6 +162,13 @@ SaUint32T plms_build_epath_to_entity_map_tree()
 			}
 			TRACE("Entity Path: %s of entity: %s added to epath_to_ent_map tree",
 				plm_ent->entity.he_entity.saPlmHECurrEntityPath, plm_ent->dn_name_str);
+
+			/* get the state model so we can perform HPI operations */
+			ret_err = (*hsm_get_state_model)(&epath_to_ent->epath_key, &plm_ent->state_model);
+			if ( NCSCC_RC_SUCCESS != ret_err  ){
+				LOG_ER("unable to get state_model %d", ret_err);
+				return ret_err;
+			}
 		}
 		plm_ent = (PLMS_ENTITY *) ncs_patricia_tree_getnext(&cb->entity_info,
 			(SaUint8T *) &plm_ent->dn_name);

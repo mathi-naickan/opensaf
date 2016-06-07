@@ -51,6 +51,8 @@ PLMS_HSM_CB     *hsm_cb = &_hsm_cb;
 ***********************************************************************/
 SaUint32T plms_hsm_initialize(PLMS_HPI_CONFIG *hpi_cfg);
 SaUint32T plms_hsm_finalize(void);
+SaUint32T plms_get_hotswap_model(const SaHpiEntityPathT *,
+					PLMS_HPI_STATE_MODEL *);
 static SaUint32T hsm_get_hotswap_model(SaHpiRptEntryT *rpt_entry,
                              	       SaUint32T      *hotswap_state_model); 
 static SaUint32T hsm_send_hotswap_event(SaHpiRptEntryT   *rpt_entry, 
@@ -237,6 +239,51 @@ SaUint32T plms_hsm_finalize(void)
 	
 	return NCSCC_RC_SUCCESS;
 }    
+
+SaUint32T plms_get_hotswap_model(const SaHpiEntityPathT *epath_ptr,
+					PLMS_HPI_STATE_MODEL *model)
+{
+	PLMS_HSM_CB *cb = hsm_cb;
+	SaUint32T rc = NCSCC_RC_SUCCESS;
+
+	do {
+		SaHpiUint32T instanceId = SAHPI_FIRST_ENTRY;
+		SaHpiResourceIdT resourceId = 0;
+		SaHpiInstrumentIdT instrumentId = 0;
+		SaHpiUint32T rptUpdateCount = 0;
+
+		SaErrorT hpirc = saHpiGetIdByEntityPath(cb->session_id,
+							*epath_ptr,
+							SAHPI_NO_RECORD,
+							&instanceId,
+							&resourceId,
+							&instrumentId,
+							&rptUpdateCount);
+
+		if (hpirc != SA_OK) {
+			LOG_ER("failed to get resource id: %i", hpirc);
+			rc = NCSCC_RC_FAILURE;
+			break;
+		}
+
+		SaHpiRptEntryT rptEntry;
+
+		hpirc = saHpiRptEntryGetByResourceId(cb->session_id,
+							resourceId,
+							&rptEntry);
+
+		if (hpirc != SA_OK) {
+			LOG_ER("failed to get rpt entry id: %i", hpirc);
+			rc = NCSCC_RC_FAILURE;
+			break;
+		}
+
+		rc = hsm_get_hotswap_model(&rptEntry, model);
+	} while (false);
+
+	return rc;
+}
+
 /*********************************************************************
  * Name		: plms_send_hpi_evt_ntf
  *  
