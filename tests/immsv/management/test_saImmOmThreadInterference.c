@@ -57,9 +57,9 @@ static void *implementer_thread(void *arg) {
 
 	isReady = 1;
 
-	while(1) {
+	while(!isOmDone) {
 		ret = poll(fd, 1, 1000);
-		if(ret == 1)
+		if(ret == 1 && !isOmDone)
 			if((err = saImmOiDispatch(immOiHandle, SA_DISPATCH_ONE)) != SA_AIS_OK)
 				break;
 	}
@@ -119,6 +119,7 @@ void saImmOmThreadInterference_01(void) {
 	/* implementer */
 	isReady = 0;
 	isOiDone = 0;
+	isOmDone = 0;
 	safassert(saImmOiInitialize_2(&immOiHandle, &immOiCallbacks, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiObjectImplementerSet(immOiHandle, &objectName, SA_IMM_ONE), SA_AIS_OK);
@@ -129,7 +130,6 @@ void saImmOmThreadInterference_01(void) {
 
 	/* "lock" IMM OM handle */
 	isReady = 0;
-	isOmDone = 0;
 	isAdminOperDone = 0;
 	assert(!pthread_create(&threadid2, NULL, lockomhandle_thread, &ownerHandle));
 
