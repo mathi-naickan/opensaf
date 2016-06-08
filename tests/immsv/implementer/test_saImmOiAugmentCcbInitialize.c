@@ -43,9 +43,11 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback_response = SA_AIS_OK;
 
 /* will be increased every time when any callback is called */
 static int callbackCounter = 0;
+static pthread_mutex_t callbackCounterLock = PTHREAD_MUTEX_INITIALIZER;
 
 /* count how many threads is running */
 static int threadCounter = 0;
+static pthread_mutex_t threadCounterLock = PTHREAD_MUTEX_INITIALIZER;
 
 static SaImmAttrValueT attrValues[] = { (SaImmAttrValueT)&rdnObj2, NULL };
 static SaImmAttrValuesT_2 rdnAttrValue = {
@@ -113,12 +115,56 @@ static const SaImmOiCallbacksT_2 augCallbacks = {
     NULL
 };
 
+static void increaseCallbackCounter() {
+    int rc = 0;
+    rc = pthread_mutex_lock(&callbackCounterLock);
+    safassert(rc, 0);
+    callbackCounter++;
+    rc = pthread_mutex_unlock(&callbackCounterLock);
+    safassert(rc, 0);
+}
+
+static void resetCallbackCounter() {
+    int rc = 0;
+    rc = pthread_mutex_lock(&callbackCounterLock);
+    safassert(rc, 0);
+    callbackCounter = 0;
+    rc = pthread_mutex_unlock(&callbackCounterLock);
+    safassert(rc, 0);
+}
+
+static void increaseThreadCounter() {
+    int rc = 0;
+    rc = pthread_mutex_lock(&threadCounterLock);
+    safassert(rc, 0);
+    threadCounter++;
+    rc = pthread_mutex_unlock(&threadCounterLock);
+    safassert(rc, 0);
+}
+
+static void decreaseThreadCounter() {
+    int rc = 0;
+    rc = pthread_mutex_lock(&threadCounterLock);
+    safassert(rc, 0);
+    threadCounter--;
+    rc = pthread_mutex_unlock(&threadCounterLock);
+    safassert(rc, 0);
+}
+
+static void resetThreadCounter() {
+    int rc = 0;
+    rc = pthread_mutex_lock(&threadCounterLock);
+    safassert(rc, 0);
+    threadCounter = 0;
+    rc = pthread_mutex_unlock(&threadCounterLock);
+    safassert(rc, 0);
+}
 
 static void saImmOiCcbAbortCallback(SaImmOiHandleT immOiHandle,
     SaImmOiCcbIdT ccbId)
 {
     TRACE_ENTER2();
-    callbackCounter++;
+    increaseCallbackCounter();
     TRACE_LEAVE2();
 }
 
@@ -126,7 +172,7 @@ static void saImmOiCcbApplyCallback(SaImmOiHandleT immOiHandle,
     SaImmOiCcbIdT ccbId)
 {
     TRACE_ENTER2();
-    callbackCounter++;
+    increaseCallbackCounter();
     TRACE_LEAVE2();
 }
 
@@ -134,7 +180,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle,
     SaImmOiCcbIdT ccbId)
 {
     TRACE_ENTER2();
-    callbackCounter++;
+    increaseCallbackCounter();
     TRACE_LEAVE2();
     return saImmOiCcbCompletedCallback_response;
 }
@@ -146,7 +192,7 @@ static SaAisErrorT saImmOiCcbObjectCreateCallback(SaImmOiHandleT immOiHandle,
     const SaImmAttrValuesT_2 **attr)
 {
     TRACE_ENTER2("%llu, %s, %s\n", ccbId, className, parentName->value);
-    callbackCounter++;
+    increaseCallbackCounter();
     if(saImmOiCcbObjectCreateCallback_response != SA_AIS_OK)
     	safassert(saImmOiCcbSetErrorString(immOiHandle, ccbId, (SaStringT)"Set error string in saImmOiCcbObjectCreateCallback"), SA_AIS_OK);
     TRACE_LEAVE2();
@@ -158,7 +204,7 @@ static SaAisErrorT saImmOiCcbObjectDeleteCallback(SaImmOiHandleT immOiHandle,
     const SaNameT *objectName)
 {
     TRACE_ENTER2("%llu, %s\n", ccbId, objectName->value);
-    callbackCounter++;
+    increaseCallbackCounter();
     if(saImmOiCcbObjectDeleteCallback_response != SA_AIS_OK)
     	safassert(saImmOiCcbSetErrorString(immOiHandle, ccbId, (SaStringT)"Set error string in saImmOiCcbObjectDeleteCallback"), SA_AIS_OK);
     TRACE_LEAVE2();
@@ -171,7 +217,7 @@ static SaAisErrorT saImmOiCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
     const SaImmAttrModificationT_2 **attrMods)
 {
     TRACE_ENTER2("%llu, %s\n", ccbId, objectName->value);
-    callbackCounter++;
+    increaseCallbackCounter();
     if(saImmOiCcbObjectModifyCallback_response != SA_AIS_OK)
     	safassert(saImmOiCcbSetErrorString(immOiHandle, ccbId, (SaStringT)"Set error string in saImmOiCcbObjectModifyCallback"), SA_AIS_OK);
     TRACE_LEAVE2();
@@ -189,7 +235,7 @@ static SaAisErrorT saImmOiAugCcbObjectCreateCallback(SaImmOiHandleT immOiHandle,
     SaImmAdminOwnerHandleT ownerHandle;
 
     TRACE_ENTER2("%llu, %s, %s\n", ccbId, className, parentName->value);
-    callbackCounter++;
+    increaseCallbackCounter();
     safassert(saImmOiAugmentCcbInitialize(immOiHandle, ccbId, &ccbHandle, &ownerHandle), SA_AIS_OK);
     if((rc = saImmOmCcbObjectCreate_2(ccbHandle, className, parentName, (const SaImmAttrValuesT_2 **)createAttrValues)) == SA_AIS_OK)
     	rc = saImmOmCcbApply(ccbHandle);
@@ -207,7 +253,7 @@ static SaAisErrorT saImmOiAugCcbObjectDeleteCallback(SaImmOiHandleT immOiHandle,
     const SaNameT *objectNames[] = { &rdnObj2, NULL };
 
     TRACE_ENTER2("%llu, %s\n", ccbId, objectName->value);
-    callbackCounter++;
+    increaseCallbackCounter();
     safassert(saImmOiAugmentCcbInitialize(immOiHandle, ccbId, &ccbHandle, &ownerHandle), SA_AIS_OK);
     if(useAdminOwner)
     	safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
@@ -228,7 +274,7 @@ static SaAisErrorT saImmOiAugCcbObjectModifyCallback(SaImmOiHandleT immOiHandle,
     const SaNameT *objectNames[] = { &rdnObj2, NULL };
 
     TRACE_ENTER2("%llu, %s\n", ccbId, objectName->value);
-    callbackCounter++;
+    increaseCallbackCounter();
     safassert(saImmOiAugmentCcbInitialize(immOiHandle, ccbId, &ccbHandle, &ownerHandle), SA_AIS_OK);
     if(useAdminOwner)
     	safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK); 
@@ -304,7 +350,7 @@ static void *immOiObjectDispatchThread(void *arg)
 
     TRACE_ENTER();
 
-    threadCounter++;
+    increaseThreadCounter();
 
     safassert(saImmOiInitialize_2(&handle, immArg->callbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(handle, implementerName), SA_AIS_OK);
@@ -341,7 +387,7 @@ static void *immOiObjectDispatchThread(void *arg)
     safassert(saImmOiImplementerClear(handle), SA_AIS_OK);
     safassert(saImmOiFinalize(handle), SA_AIS_OK);
 
-    threadCounter--;
+    decreaseThreadCounter();
 
     TRACE_LEAVE();
 
@@ -359,7 +405,7 @@ static void *immOiClassDispatchThread(void *arg) {
 
     TRACE_ENTER();
 
-    threadCounter++;
+    increaseThreadCounter();
 
     safassert(saImmOiInitialize_2(&handle, immArg->callbacks, &immVersion), SA_AIS_OK);
     safassert(saImmOiImplementerSet(handle, implementerName), SA_AIS_OK);
@@ -389,7 +435,7 @@ static void *immOiClassDispatchThread(void *arg) {
     safassert(saImmOiImplementerClear(handle), SA_AIS_OK);
     safassert(saImmOiFinalize(handle), SA_AIS_OK);
 
-    threadCounter--;
+    decreaseThreadCounter();
 
     TRACE_LEAVE();
 
@@ -416,7 +462,7 @@ static void saImmOiCcbAugmentInitialize_01(void)
     arg.callbacks = (SaImmOiCallbacksT_2 *)&augCallbacks;
     arg.implementerName = (SaImmOiImplementerNameT)__FUNCTION__;
     classDispatchThreadIsSet = 0;
-    threadCounter = 0;
+    resetThreadCounter();
     assert(pthread_create(&threadid, NULL, immOiClassDispatchThread, (void *)&arg) == 0);
     while(!classDispatchThreadIsSet)
     	usleep(500);
@@ -424,13 +470,13 @@ static void saImmOiCcbAugmentInitialize_01(void)
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
     /* create objects */
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = config_object_create(ccbHandle, NULL, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
     assert(callbackCounter == 1);
 
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = config_object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
@@ -444,7 +490,7 @@ static void saImmOiCcbAugmentInitialize_01(void)
     assert(callbackCounter == 3);
 
 	/* Delete objects */
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = saImmOmCcbObjectDelete(ccbHandle, &rdnObj1)) != SA_AIS_OK)
     	goto done;
 
@@ -496,7 +542,7 @@ static void saImmOiCcbAugmentInitialize_02(void)
     arg.callbacks = (SaImmOiCallbacksT_2 *)&augCallbacks;
     arg.implementerName = (SaImmOiImplementerNameT)__FUNCTION__;
     objectDispatchThreadIsSet = 0;
-    threadCounter = 0;
+    resetThreadCounter();
     assert(pthread_create(&threadid, NULL, immOiObjectDispatchThread, (void *)&arg) == 0);
     while(!objectDispatchThreadIsSet)
     	usleep(500);
@@ -506,7 +552,7 @@ static void saImmOiCcbAugmentInitialize_02(void)
     safassert(saImmOmAdminOwnerSet(ownerHandle, objectNames, SA_IMM_ONE), SA_AIS_OK);
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = config_object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
@@ -519,7 +565,7 @@ static void saImmOiCcbAugmentInitialize_02(void)
         usleep(500);
     assert(callbackCounter == 3);
 
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = saImmOmCcbObjectDelete(ccbHandle, &rdnObj1)) != SA_AIS_OK)
     	goto done;
 
@@ -576,7 +622,7 @@ static void saImmOiCcbAugmentInitialize_03(void)
     arg[1].callbacks = (SaImmOiCallbacksT_2 *)&callbacks;
     arg[1].implementerName = (SaImmOiImplementerNameT)"TestImplementer2";
 
-    threadCounter = 0;
+    resetThreadCounter();
     objectDispatchThreadIsSet = 0;
     assert(pthread_create(&threadid1, NULL, immOiObjectDispatchThread, (void *)&(arg[0])) == 0);
     while(!objectDispatchThreadIsSet)
@@ -592,7 +638,7 @@ static void saImmOiCcbAugmentInitialize_03(void)
     safassert(saImmOmCcbInitialize(ownerHandle, 0, &ccbHandle), SA_AIS_OK);
 
     /* Modify objects */
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = config_object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
@@ -607,7 +653,7 @@ static void saImmOiCcbAugmentInitialize_03(void)
     assert(callbackCounter == 6);
 
     /* Delete objects */
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = saImmOmCcbObjectDelete(ccbHandle, &rdnObj1)) != SA_AIS_OK)
     	goto done;
 
@@ -663,7 +709,7 @@ static void saImmOiCcbAugmentInitialize_04(void)
     arg[1].callbacks = (SaImmOiCallbacksT_2 *)&callbacks;
     arg[1].implementerName = (SaImmOiImplementerNameT)"TestImplementer2";
 
-    threadCounter = 0;
+    resetThreadCounter();
     objectDispatchThreadIsSet = 0;
     assert(pthread_create(&threadid1, NULL, immOiObjectDispatchThread, (void *)&(arg[0])) == 0);
     while(!objectDispatchThreadIsSet)
@@ -681,7 +727,7 @@ static void saImmOiCcbAugmentInitialize_04(void)
     useAdminOwner = 1;
 
     /* Modify objects */
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = config_object_modify(ccbHandle, &rdnObj1)) != SA_AIS_OK)
         goto done;
 
@@ -696,7 +742,7 @@ static void saImmOiCcbAugmentInitialize_04(void)
     assert(callbackCounter == 6);
 
     /* Delete objects */
-    callbackCounter = 0;	/* reset callback counter */
+    resetCallbackCounter();
     if ((rc = saImmOmCcbObjectDelete(ccbHandle, &rdnObj1)) != SA_AIS_OK)
     	goto done;
 
