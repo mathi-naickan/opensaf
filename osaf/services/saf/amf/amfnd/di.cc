@@ -595,6 +595,7 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 			/* Ignore the other AVD Adest Down.*/
 			if(evt->info.mds.mds_dest == cb->active_avd_adest)
 				avnd_cb->cont_reboot_in_progress = true;
+			TRACE_LEAVE();
 			return rc;
 		}
 	}
@@ -604,7 +605,9 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	LOG_WA("AMF director unexpectedly crashed");
 
-	if (cb->scs_absence_max_duration == 0) {
+	// if headless is disabled OR if the amfd down came from the local node, just reboot
+	if (cb->scs_absence_max_duration == 0 ||
+		evt->info.mds.node_id == ncs_get_node_id()) {
 		/* Don't issue reboot if it has been already issued.*/
 		if (false == cb->reboot_in_progress) {
 			cb->reboot_in_progress = true;
