@@ -1113,7 +1113,16 @@ uint32_t ntfa_mds_msg_sync_send(ntfa_cb_t *cb, ntfsv_msg_t *i_msg, ntfsv_msg_t *
 	mds_info.info.svc_send.i_msg = (NCSCONTEXT)i_msg;
 	mds_info.info.svc_send.i_to_svc = NCSMDS_SVC_ID_NTFS;
 	mds_info.info.svc_send.i_sendtype = MDS_SENDTYPE_SNDRSP;
-	mds_info.info.svc_send.i_priority = MDS_SEND_PRIORITY_HIGH;	/* fixme? */
+
+	/* Lower priority of initialize_req msg so that the other existing
+	 * life cycle msg can be completed, for multiple handles usage.
+	 */
+	if (i_msg->info.api_info.type == NTFSV_INITIALIZE_REQ) {
+		mds_info.info.svc_send.i_priority = MDS_SEND_PRIORITY_MEDIUM;
+	} else {
+		mds_info.info.svc_send.i_priority = MDS_SEND_PRIORITY_HIGH;
+	}
+
 	/* fill the sub send rsp strcuture */
 	mds_info.info.svc_send.info.sndrsp.i_time_to_wait = timeout;	/* timeto wait in 10ms FIX!!! */
 	mds_info.info.svc_send.info.sndrsp.i_to_dest = cb->ntfs_mds_dest;
