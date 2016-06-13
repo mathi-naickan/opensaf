@@ -1059,6 +1059,9 @@ done:
  * - If only rotated log file: Name = NULL, Size = 0, Id = fr rotated file,
  *                             rc = OK
  *
+ * NOTE: This function allocates memory pointed to by par_out->curFileName.
+ *       This memory has to be freed in the caller context thread.
+ *
  * @param indata[in]      gfp_in_t
  *        file_name: File name prefix (name part before time stamps)
  *        file_path: Full path to directory root path + rel path
@@ -1127,8 +1130,7 @@ int lgs_get_file_params_hdl(void *indata, void *outdata, size_t max_outsize)
 	par_out->logRecordId = rec_id;
 	par_out->curFileSize = file_size;
 	if (file_name_cur.empty() == false) {
-		// This memory will be deleted in log_stream_open_file_restore()
-		// who wants to get the info from this memory - par_out->curFileName
+		// This allocated memory will be freed by the caller
 		par_out->curFileName = static_cast<char *>(
 			calloc(1, file_name_cur.size() + 1));
 		if (par_out->curFileName == NULL) {
@@ -1142,7 +1144,10 @@ int lgs_get_file_params_hdl(void *indata, void *outdata, size_t max_outsize)
 		ptr_str = strstr(par_out->curFileName, ".log");
 		if (ptr_str == NULL) {
 			TRACE("%s: Could not find .log extension Fail", __FUNCTION__);
+			free(par_out->curFileName);
+			par_out->curFileName = NULL;
 			rc = -1;
+			goto done;
 		}
 		*ptr_str = '\0';
 	}

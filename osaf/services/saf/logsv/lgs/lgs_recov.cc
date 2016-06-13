@@ -716,14 +716,8 @@ int log_stream_open_file_restore(log_stream_t *stream)
 	 */
 
 	if (int_rc == -1) {
-		/* No relevant file info found. Recovery fail */
+		/* Recovery fail. Has problem with I/O handling or memory allocation */
 		TRACE("%s: lgs_get_file_params_h Fail", __FUNCTION__);
-		rc_out = -1;
-		goto done;
-	}
-
-	if (int_rc == 0) {
-		/* Cluster is probably installed from scratch */
 		rc_out = -1;
 		goto done;
 	}
@@ -731,9 +725,11 @@ int log_stream_open_file_restore(log_stream_t *stream)
 	/* If no current log file create a file name
 	 */
 	if (par_out.curFileName == NULL) {
-		/* There is no current log file. Create a file name */
-		stream->logFileCurrent = stream->fileName + "_" + lgs_get_time(NULL);
-		TRACE("\t A new file name for current log file is created");
+		/* There is no current log file. Consider as logsv starts from scratch */
+		TRACE("\t Create new cfg/logfile for stream (%s)", stream->name);
+		log_stream_open_fileinit(stream);
+		stream->creationTimeStamp = lgs_get_SaTime();
+		goto done;
 	} else {
 		stream->logFileCurrent = par_out.curFileName;
 	}

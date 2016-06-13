@@ -1585,6 +1585,9 @@ void saLogRecov_write_0(void)
 		tst_res = TST_FAIL;
 
 	rc_validate(tst_res, TST_PASS);
+
+	// Close stream
+	tst_StreamClose(g_client[0].glob_logStreamHandle[0]);
 }
 
 /**
@@ -1600,6 +1603,9 @@ void saLogRecov_write_1(void)
 		tst_res = TST_FAIL;
 
 	rc_validate(tst_res, TST_PASS);
+
+	// Close stream
+	tst_StreamClose(g_client[0].glob_logStreamHandle[1]);
 }
 
 /**
@@ -1615,6 +1621,9 @@ void saLogRecov_write_2(void)
 		tst_res = TST_FAIL;
 
 	rc_validate(tst_res, TST_PASS);
+
+	// Close stream
+	tst_StreamClose(g_client[0].glob_logStreamHandle[2]);
 }
 
 /**
@@ -1630,6 +1639,9 @@ void saLogRecov_write_3(void)
 		tst_res = TST_FAIL;
 
 	rc_validate(tst_res, TST_PASS);
+
+	// Close stream
+	tst_StreamClose(g_client[0].glob_logStreamHandle[3]);
 }
 
 /**
@@ -1645,6 +1657,9 @@ void saLogRecov_write_4(void)
 		tst_res = TST_FAIL;
 
 	rc_validate(tst_res, TST_PASS);
+
+	// Close stream
+	tst_StreamClose(g_client[0].glob_logStreamHandle[4]);
 }
 
 /**
@@ -1660,6 +1675,9 @@ void saLogRecov_write_5(void)
 		tst_res = TST_FAIL;
 
 	rc_validate(tst_res, TST_PASS);
+
+	// Close stream
+	tst_StreamClose(g_client[0].glob_logStreamHandle[5]);
 }
 
 /**
@@ -1675,6 +1693,9 @@ void saLogRecov_write_6(void)
 		tst_res = TST_FAIL;
 
 	rc_validate(tst_res, TST_PASS);
+
+	// Close stream
+	tst_StreamClose(g_client[0].glob_logStreamHandle[6]);
 }
 
 /**
@@ -1690,6 +1711,9 @@ void saLogRecov_write_7(void)
 		tst_res = TST_FAIL;
 
 	rc_validate(tst_res, TST_PASS);
+
+	// Close stream
+	tst_StreamClose(g_client[0].glob_logStreamHandle[7]);
 }
 
 /**
