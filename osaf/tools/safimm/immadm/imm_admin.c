@@ -159,10 +159,13 @@ static int init_param(SaImmAdminOperationParamsT_2 *param, char *arg)
 
 	param->paramBuffer = immutil_new_attrValue(param->paramType, attrValue);
 
-	if (param->paramBuffer == NULL)
-		return -1;
+	if (param->paramBuffer == NULL) {
+		res = -1;
+		goto done;
+	}
 
  done:
+	free(tmp);
 	return res;
 }
 
