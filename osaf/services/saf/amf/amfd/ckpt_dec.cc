@@ -3060,7 +3060,12 @@ static uint32_t dec_ng_admin_state(AVD_CL_CB *cb, NCS_MBCSV_CB_DEC *dec)
 	TRACE_ENTER();
 	osaf_decode_sanamet(&dec->i_uba, &name);
 	AVD_AMF_NG *ng = nodegroup_db->find(Amf::to_string(&name));
-	osafassert(ng != NULL);
+	if (ng == nullptr) {
+		LOG_WA("Could not find %s in nodegroup_db", name.value);
+		cb->async_updt_cnt.ng_updt++;
+		TRACE_LEAVE();
+		return NCSCC_RC_SUCCESS;
+	}
 	osaf_decode_uint32(&dec->i_uba, (uint32_t*)&ng->saAmfNGAdminState);
 	cb->async_updt_cnt.ng_updt++;
 
