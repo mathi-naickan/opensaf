@@ -457,6 +457,11 @@ static AVD_AVND *map_su_to_node(AVD_SU *su)
 	/* If node is configured in SU we are done */
 	if (strstr((char *)su->saAmfSUHostNodeOrNodeGroup.value, "safAmfNode=") != nullptr) {
 		node = avd_node_get(&su->saAmfSUHostNodeOrNodeGroup);
+		if (node == nullptr) {
+			LOG_WA("Could not find: %s in su: %s", su->saAmfSUHostNodeOrNodeGroup.value, su->name.value);
+			TRACE_LEAVE();
+			return node;
+		}
 		goto done;
 	}
 
@@ -495,7 +500,14 @@ static AVD_AVND *map_su_to_node(AVD_SU *su)
 	}
 
 	/* All nodes already have an SU mapped for the SG. Return a node in the node group. */
-	node = avd_node_get(*ng->saAmfNGNodeList.begin());
+        node_iter = ng->saAmfNGNodeList.begin();
+        if (node_iter != ng->saAmfNGNodeList.end()) {
+		node = avd_node_get(*ng->saAmfNGNodeList.begin());
+        } else {
+		LOG_WA("%s is empty", su->saAmfSUHostNodeOrNodeGroup.value);
+		TRACE_LEAVE();
+		return nullptr;
+	}
 done:
 	memcpy(&su->saAmfSUHostedByNode, &node->name, sizeof(SaNameT));
 	TRACE_LEAVE2("hosted by %s", node->name.value);

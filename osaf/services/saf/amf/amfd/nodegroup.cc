@@ -453,6 +453,12 @@ static SaAisErrorT ng_ccb_completed_delete_hdlr(CcbUtilOperationData_t *opdata)
 	AVD_AVND *node;
 	AVD_AMF_NG *ng = avd_ng_get(&opdata->objectName);
 
+        if (ng == nullptr) {
+		LOG_WA("Could not find %s in nodegroup_db", opdata->objectName.value);
+		TRACE_LEAVE();
+		return SA_AIS_OK;
+        }
+
 	TRACE_ENTER2("%u", ng->number_nodes());
 	std::set<std::string>::const_iterator iter;
 	if ((ng->saAmfNGAdminState != SA_AMF_ADMIN_LOCKED) &&
@@ -581,6 +587,11 @@ static void ng_ccb_apply_delete_hdlr(CcbUtilOperationData_t *opdata)
 {
 	TRACE_ENTER();
 	AVD_AMF_NG *ng = avd_ng_get(&opdata->objectName);
+	if (ng == nullptr) {
+		LOG_WA("Could not find %s in nodegroup_db", opdata->objectName.value);
+		TRACE_LEAVE();
+		return;
+	}
 	SaAmfAdminStateT old_admin_state = ng->saAmfNGAdminState;
 	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE) {
 		//Since AMF will delete NG, clear its pointers in node.
