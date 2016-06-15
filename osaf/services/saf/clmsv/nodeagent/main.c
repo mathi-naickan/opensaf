@@ -729,6 +729,11 @@ int main(int argc, char *argv[])
 		ElectionStarterConstructor(clmna_cb->nid_started,
 					   clmna_cb->node_info.node_id);
 
+	if (clmna_cb->nid_started &&
+	    nid_notify("CLMNA", rc, NULL) != NCSCC_RC_SUCCESS) {
+		LOG_ER("nid notify failed");
+	}
+
 	fds[FD_TERM].fd = term_fd;
 	fds[FD_TERM].events = POLLIN;
 	fds[FD_AMF].fd = clmna_cb->nid_started ?
