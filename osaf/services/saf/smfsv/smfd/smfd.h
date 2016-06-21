@@ -96,6 +96,9 @@ extern "C" {
 
 	void smfd_cb_lock();
 	void smfd_cb_unlock();
+	void smfd_imm_lock();
+	void smfd_imm_unlock();
+	int smfd_imm_trylock();
 
 #ifdef __cplusplus
 }

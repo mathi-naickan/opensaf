@@ -743,11 +743,26 @@ uint32_t create_campaign_objects(smfd_cb_t * cb)
  */
 uint32_t updateImmAttr(const char *dn, SaImmAttrNameT attributeName, SaImmValueTypeT attrValueType, void *value)
 {
+	smfd_imm_lock();
 	SaAisErrorT rc = immutil_update_one_rattr(smfd_cb->campaignOiHandle, dn, attributeName, attrValueType, value);
+	smfd_imm_unlock();
+
 	if (rc != SA_AIS_OK) {
-		LOG_ER("updateImmAttr(): immutil_update_one_rattr FAILED, rc = %d, going to assert", (int)rc);
-		osafassert(0);
+		if (rc == SA_AIS_ERR_BAD_HANDLE){
+			/* If there is IMMND restart in the middle of campign, there is chance that
+			 *  the camiaign thread with Rt-update will get timeout, because the update
+			 *  has been sent to IMMND, before the reply is sent back to OI(SMFD) the IMMND
+			 *  is restarted and BAD_HANDLE is returned after API timout.
+			 */
+
+			LOG_WA("updateImmAttr(): immutil_update_one_rattr FAILED, rc = %d,"
+					"OI handle will be resurrected", (int)rc);
+		} else {
+			LOG_ER("updateImmAttr(): immutil_update_one_rattr FAILED, rc = %d, going to assert", (int)rc);
+			osafassert(0);
+		}
 	}
+
 	return NCSCC_RC_SUCCESS;
 }
 
