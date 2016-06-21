@@ -96,6 +96,49 @@ void smfd_cb_unlock()
 	}
 }
 
+int smfd_imm_trylock()
+{
+        TRACE_ENTER();
+        int err ;
+
+        err = pthread_mutex_trylock(&(smfd_cb->imm_lock));
+        if (err != 0) {
+                if ( err == EBUSY ){
+                        LOG_WA("Lock failed eith EBUSY pthread_mutex_trylock for imm %d", err);
+                        return 1;
+                } else {
+                        LOG_ER("Lock failed pthread_mutex_trylock for imm %d", err);
+                        abort();
+                }
+        }
+        return err;
+        TRACE_LEAVE();
+}
+
+void smfd_imm_lock()
+{
+        TRACE_ENTER();
+
+        if (pthread_mutex_lock(&(smfd_cb->imm_lock)) != 0) {
+                LOG_ER("Lock failed pthread_mutex_lock for imm");
+                abort();
+        }
+        TRACE_LEAVE();
+}
+
+
+void smfd_imm_unlock()
+{
+        TRACE_ENTER();
+        if (pthread_mutex_unlock(&(smfd_cb->imm_lock)) != 0) {
+                LOG_ER("Unlock failed pthread_mutex_unlock for imm");
+                abort();
+        }
+        TRACE_LEAVE();
+}
+
+
+
 /****************************************************************************
  * Name          : smfd_cb_init
  *
@@ -112,7 +155,7 @@ uint32_t smfd_cb_init(smfd_cb_t * smfd_cb)
 {
 	TRACE_ENTER();
 
-	pthread_mutexattr_t mutex_attr;
+	pthread_mutexattr_t mutex_attr, mutex_attr1;
 
 	smfd_cb->amfSelectionObject = -1;
 	smfd_cb->campaignSelectionObject = -1;
@@ -159,6 +202,28 @@ uint32_t smfd_cb_init(smfd_cb_t * smfd_cb)
 		LOG_ER("Failed pthread_mutexattr_destroy");
 		return NCSCC_RC_FAILURE;
 	}
+
+	if (pthread_mutexattr_init(&mutex_attr1) != 0) {
+		LOG_ER("Failed pthread_mutexattr_init used for imm");
+		return NCSCC_RC_FAILURE;
+	}
+
+	if (pthread_mutexattr_settype(&mutex_attr1, PTHREAD_MUTEX_RECURSIVE) != 0) {
+		LOG_ER("Failed pthread_mutexattr_settype used for imm");
+		pthread_mutexattr_destroy(&mutex_attr1);
+		return NCSCC_RC_FAILURE;
+	}
+
+	if (pthread_mutex_init(&(smfd_cb->imm_lock), &mutex_attr1) != 0) {
+		LOG_ER("Failed pthread_mutex_init used for imm");
+		pthread_mutexattr_destroy(&mutex_attr1);
+		return NCSCC_RC_FAILURE;
+	}
+
+	if (pthread_mutexattr_destroy(&mutex_attr1) != 0) {
+		LOG_ER("Failed pthread_mutexattr_destroy used for imm");
+		return NCSCC_RC_FAILURE;
+        }
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
@@ -335,9 +400,22 @@ static void main_process(void)
 
 		/* Process all the Imm callback events */
 		if (fds[SMFD_COI_FD].revents & POLLIN) {
-			if ((error =
-			     saImmOiDispatch(smfd_cb->campaignOiHandle,
-					     SA_DISPATCH_ALL)) != SA_AIS_OK) {
+			if ( smfd_imm_trylock() == 0 ) {
+
+				/* In the case of IMMND restart, If trylock succedes then the oiDispatch
+				 * is called and IMM OI will get resurrected. Otherwise, the campign
+				 * thread has taken the imm_lock. Campign thread will resurrect the IMM
+				 * OI handle. trylock is used to unlock the main thread, if the
+				 * immlock is taken by campaign thread.
+				 */
+
+				error = saImmOiDispatch(smfd_cb->campaignOiHandle,
+						SA_DISPATCH_ALL);
+				smfd_imm_unlock();
+			}
+
+			if (error != SA_AIS_OK) {
+
 				/*
 				 ** BAD_HANDLE is interpreted as an IMM service restart. Try
 				 ** reinitialize the IMM OI API in a background thread and let

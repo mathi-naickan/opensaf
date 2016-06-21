@@ -68,6 +68,7 @@ typedef struct smfd_cb {
 	SMFD_SMFND_ADEST_INVID_MAP *smfnd_list;     /* SMFNDs need to respond to the callback. */
 	uint32_t no_of_smfnd;
 	pthread_mutex_t lock;                     /* Used by smfd_cb_t lock/unlock functions */
+	pthread_mutex_t imm_lock;		  /* Used when IMM OI handle is shared between campaign thread and main thread*/
 	uint32_t maxDnLength;                     /* Max DN length */
         uint32_t procExecutionMode;               /* Control the procedure execution modes
                                                      SMF_STANDARD 0
