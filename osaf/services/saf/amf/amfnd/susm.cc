@@ -1166,9 +1166,12 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 
 		/* 
 		 * Removal signifies an end to the recovery phase. Initiate repair
-		 * unless a NODE level recovery action is in progress.
+		 * unless a NODE level or su-failover recovery action is in progress.
+		 * Also repair must be done after informing to AMFD about comp-failover and
+		 * after removal of assignment.
 		 */
 		if (m_AVND_SU_IS_FAILED(su) && !su->si_list.n_nodes &&
+                     (!m_AVND_SU_IS_FAILOVER(su)) && (su->sufailover == false) &&
 		    (cb->oper_state == SA_AMF_OPERATIONAL_ENABLED) && (!m_AVND_SU_IS_RESTART(su)))
 			rc = avnd_err_su_repair(cb, su);
 	}
