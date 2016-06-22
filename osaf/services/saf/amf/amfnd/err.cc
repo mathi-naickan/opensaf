@@ -1082,8 +1082,6 @@ uint32_t avnd_err_su_repair(AVND_CB *cb, AVND_SU *su)
 	if (all_comps_terminated_in_su(su) == true)
 		is_uninst = true;
 
-	//Reset component-failover here. SU failover is reset as part of REPAIRED admin op.
-	m_AVND_SU_FAILOVER_RESET(su);
 	/* scan & instantiate failed pi comps */
 	for (comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
 	     comp; comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
