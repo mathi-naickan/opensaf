@@ -1134,6 +1134,26 @@ SaAisErrorT immutil_saImmOiInitialize_2(SaImmOiHandleT * immOiHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOiInitialize_o3(SaImmOiHandleT * immOiHandle, const SaImmOiCallbacksT_o3 *immOiCallbacks,
+										 const SaVersionT * version)
+{
+	/* Version parameter is in/out i.e. must be mutable and should not be
+	   re-used from previous call in a retry loop. */
+	SaVersionT localVer = *version;
+
+	SaAisErrorT rc = saImmOiInitialize_o3(immOiHandle, immOiCallbacks, &localVer);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		localVer = *version;
+		rc = saImmOiInitialize_o3(immOiHandle, immOiCallbacks, &localVer);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError("saImmOiInitialize_o3 FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOiSelectionObjectGet(SaImmOiHandleT immOiHandle,
 					      SaSelectionObjectT *
 					      selectionObject)
@@ -1192,6 +1212,66 @@ SaAisErrorT immutil_saImmOiClassImplementerRelease(SaImmOiHandleT immOiHandle,
 	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
 		immutilError("saImmOiClassImplementerRelease FAILED, rc = %d",
 			     (int) rc);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOiObjectImplementerSet(SaImmOiHandleT immOiHandle, const SaNameT *objectName,
+												SaImmScopeT scope)
+{
+	SaAisErrorT rc = saImmOiObjectImplementerSet(immOiHandle, objectName, scope);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOiObjectImplementerSet(immOiHandle, objectName, scope);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOiObjectImplementerSet_o3(SaImmOiHandleT immOiHandle, const char* objectName,
+												   SaImmScopeT scope)
+{
+	SaAisErrorT rc = saImmOiObjectImplementerSet_o3(immOiHandle, (SaConstStringT) objectName, scope);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOiObjectImplementerSet_o3(immOiHandle, (SaConstStringT) objectName, scope);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOiObjectImplementerRelease(SaImmOiHandleT immOiHandle, const SaNameT *objectName,
+													SaImmScopeT scope)
+{
+	SaAisErrorT rc = saImmOiObjectImplementerRelease(immOiHandle, objectName, scope);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOiObjectImplementerRelease(immOiHandle, objectName, scope);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOiObjectImplementerRelease_o3(SaImmOiHandleT immOiHandle, const char* objectName,
+													   SaImmScopeT scope)
+{
+	SaAisErrorT rc = saImmOiObjectImplementerRelease_o3(immOiHandle, (SaConstStringT) objectName, scope);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOiObjectImplementerRelease_o3(immOiHandle, (SaConstStringT) objectName, scope);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
 	return rc;
 }
 
@@ -1269,6 +1349,21 @@ SaAisErrorT immutil_saImmOiRtObjectCreate_o2(SaImmOiHandleT immOiHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOiRtObjectCreate_o3(SaImmOiHandleT immOiHandle, const SaImmClassNameT className,
+											 const char* objectName, const SaImmAttrValuesT_2 **attrValues)
+{
+	SaAisErrorT rc = saImmOiRtObjectCreate_o3(immOiHandle, className, (SaConstStringT) objectName, attrValues);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOiRtObjectCreate_o3(immOiHandle, className, (SaConstStringT) objectName, attrValues);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOiRtObjectDelete(SaImmOiHandleT immOiHandle,
 					  const SaNameT * objectName)
 {
@@ -1295,6 +1390,20 @@ SaAisErrorT immutil_saImmOiRtObjectDelete_o2(SaImmOiHandleT immOiHandle,
 		osaf_extended_name_clear(&obj_name);
 
 	SaAisErrorT rc = immutil_saImmOiRtObjectDelete(immOiHandle, &obj_name);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOiRtObjectDelete_o3(SaImmOiHandleT immOiHandle, const char* objectName)
+{
+	SaAisErrorT rc = saImmOiRtObjectDelete_o3(immOiHandle, (SaConstStringT) objectName);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOiRtObjectDelete_o3(immOiHandle, (SaConstStringT) objectName);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
 	return rc;
 }
 
@@ -1331,6 +1440,20 @@ SaAisErrorT immutil_saImmOiRtObjectUpdate_o2(SaImmOiHandleT immOiHandle,
 
 	SaAisErrorT rc =
 		immutil_saImmOiRtObjectUpdate_2(immOiHandle, &obj_name, attrMods);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOiRtObjectUpdate_o3(SaImmOiHandleT immOiHandle, const char* objectName, const SaImmAttrModificationT_2 **attrMods)
+{
+	SaAisErrorT rc = saImmOiRtObjectUpdate_o3(immOiHandle, (SaConstStringT) objectName, attrMods);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOiRtObjectUpdate_o3(immOiHandle, (SaConstStringT) objectName, attrMods);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
 	return rc;
 }
 
@@ -1378,6 +1501,21 @@ SaAisErrorT immutil_saImmOiAdminOperationResult_o2(SaImmOiHandleT immOiHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOiAugmentCcbInitialize(SaImmOiHandleT immOiHandle, SaImmOiCcbIdT ccbId64,
+												SaImmCcbHandleT *ccbHandle, SaImmAdminOwnerHandleT *ownerHandle)
+{
+	SaAisErrorT rc = saImmOiAugmentCcbInitialize(immOiHandle, ccbId64, ccbHandle, ownerHandle);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOiAugmentCcbInitialize(immOiHandle, ccbId64, ccbHandle, ownerHandle);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError("saImmOiAugmentCcbInitialize FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOmInitialize(SaImmHandleT * immHandle,
 				      const SaImmCallbacksT * immCallbacks,
 				      const SaVersionT * version)
@@ -1397,6 +1535,40 @@ SaAisErrorT immutil_saImmOmInitialize(SaImmHandleT * immHandle,
 	}
 	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
 		immutilError("saImmOmInitialize FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOmInitialize_o2(SaImmHandleT *immHandle, const SaImmCallbacksT_o2 *immCallbacks,
+										 SaVersionT *version)
+{
+	/* Version parameter is in/out i.e. must be mutable and should not be
+	   re-used from previous call in a retry loop. */
+	SaVersionT localVer = *version;
+
+	SaAisErrorT rc = saImmOmInitialize_o2(immHandle, immCallbacks, &localVer);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		localVer = *version;
+		rc = saImmOmInitialize_o2(immHandle, immCallbacks, &localVer);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOmSelectionObjectGet(SaImmHandleT immHandle, SaSelectionObjectT *selectionObject)
+{
+	SaAisErrorT rc = saImmOmSelectionObjectGet(immHandle, selectionObject);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmSelectionObjectGet(immHandle, selectionObject);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
 	return rc;
 }
 
@@ -1469,6 +1641,21 @@ SaAisErrorT immutil_saImmOmAccessorGet_o2(SaImmAccessorHandleT accessorHandle,
 	SaAisErrorT rc =
 		immutil_saImmOmAccessorGet_2(accessorHandle, &obj_name,
 					     attributeNames, attributes);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOmAccessorGet_o3(SaImmAccessorHandleT accessorHandle, const char* objectName,
+										  const SaImmAttrNameT *attributeNames, SaImmAttrValuesT_2 ***attributes)
+{
+	SaAisErrorT rc = saImmOmAccessorGet_o3(accessorHandle, (SaConstStringT) objectName, attributeNames, attributes);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmAccessorGet_o3(accessorHandle, (SaConstStringT) objectName, attributeNames, attributes);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && rc != SA_AIS_ERR_NOT_EXIST && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
 	return rc;
 }
 
@@ -1588,6 +1775,27 @@ SaAisErrorT immutil_saImmOmSearchInitialize_o2(SaImmHandleT immHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOmSearchInitialize_o3(SaImmHandleT immHandle, const char* rootName,
+											   SaImmScopeT scope, SaImmSearchOptionsT searchOptions,
+											   const SaImmSearchParametersT_2 *searchParam, const SaImmAttrNameT *attributeNames,
+											   SaImmSearchHandleT *searchHandle)
+{
+	SaAisErrorT rc = saImmOmSearchInitialize_o3(immHandle, (SaConstStringT) rootName, scope,searchOptions,
+												searchParam, attributeNames, searchHandle);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmSearchInitialize_o3(immHandle, (SaConstStringT) rootName, scope, searchOptions,
+										searchParam, attributeNames, searchHandle);
+		nTries++;
+	}
+	if (rc == SA_AIS_ERR_NOT_EXIST)
+		return rc;
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOmSearchFinalize(SaImmSearchHandleT searchHandle)
 {
 	SaAisErrorT rc = saImmOmSearchFinalize(searchHandle);
@@ -1642,6 +1850,23 @@ SaAisErrorT immutil_saImmOmSearchNext_o2(SaImmSearchHandleT searchHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOmSearchNext_o3(SaImmSearchHandleT searchHandle, char** objectName,
+										 SaImmAttrValuesT_2 ***attributes)
+{
+	SaAisErrorT rc = saImmOmSearchNext_o3(searchHandle, (SaStringT*) objectName, attributes);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmSearchNext_o3(searchHandle, (SaStringT*) objectName, attributes);
+		nTries++;
+	}
+	if (rc == SA_AIS_ERR_NOT_EXIST)
+		return rc;
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOmAdminOwnerClear(SaImmHandleT immHandle,
 					   const SaNameT ** objectNames,
 					   SaImmScopeT scope)
@@ -1689,6 +1914,21 @@ SaAisErrorT immutil_saImmOmAdminOwnerClear_o2(SaImmHandleT immHandle,
 	}
 	free(obj_names);
 
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOmAdminOwnerClear_o3(SaImmHandleT immHandle, const char** objectNames,
+											  SaImmScopeT scope)
+{
+	SaAisErrorT rc = saImmOmAdminOwnerClear_o3(immHandle, (SaConstStringT*) objectNames, scope);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmAdminOwnerClear_o3(immHandle, (SaConstStringT*) objectNames, scope);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
 	return rc;
 }
 
@@ -1915,6 +2155,21 @@ SaAisErrorT immutil_saImmOmAdminOwnerSet_o2(SaImmAdminOwnerHandleT ownerHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOmAdminOwnerSet_o3(SaImmAdminOwnerHandleT adminOwnerHandle, const char** objectNames,
+											SaImmScopeT scope)
+{
+	SaAisErrorT rc = saImmOmAdminOwnerSet_o3(adminOwnerHandle, (SaConstStringT*) objectNames, scope);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmAdminOwnerSet_o3(adminOwnerHandle, (SaConstStringT*) objectNames, scope);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOmAdminOwnerRelease(SaImmAdminOwnerHandleT ownerHandle,
 					     const SaNameT ** name,
 					     SaImmScopeT scope)
@@ -1963,6 +2218,21 @@ SaAisErrorT immutil_saImmOmAdminOwnerRelease_o2(SaImmAdminOwnerHandleT
 	}
 	free(obj_names);
 
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOmAdminOwnerRelease_o3(SaImmAdminOwnerHandleT adminOwnerHandle, const char** objectNames,
+												SaImmScopeT scope)
+{
+	SaAisErrorT rc = saImmOmAdminOwnerRelease_o3(adminOwnerHandle, (SaConstStringT*) objectNames, scope);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmAdminOwnerRelease_o3(adminOwnerHandle, (SaConstStringT*) objectNames, scope);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
 	return rc;
 }
 
@@ -2071,6 +2341,56 @@ SaAisErrorT immutil_saImmOmAdminOperationInvoke_2(SaImmAdminOwnerHandleT
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOmAdminOperationInvoke_o3(SaImmAdminOwnerHandleT ownerHandle, const char* objectName,
+												   SaImmContinuationIdT continuationId, SaImmAdminOperationIdT operationId,
+												   const SaImmAdminOperationParamsT_2 **params, SaAisErrorT *operationReturnValue,
+												   SaTimeT timeout, SaImmAdminOperationParamsT_2 ***returnParams) {
+	SaAisErrorT rc = saImmOmAdminOperationInvoke_o3(ownerHandle, (SaConstStringT) objectName, continuationId,
+													operationId, params, operationReturnValue, timeout, returnParams);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmAdminOperationInvoke_o3(ownerHandle, (SaConstStringT) objectName, continuationId,
+											operationId, params, operationReturnValue, timeout, returnParams);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOmAdminOperationInvokeAsync_2(SaImmAdminOwnerHandleT ownerHandle, SaInvocationT userInvocation,
+													   const SaNameT *objectName, SaImmContinuationIdT continuationId,
+													   SaImmAdminOperationIdT operationId, const SaImmAdminOperationParamsT_2 **params)
+{
+	SaAisErrorT rc = saImmOmAdminOperationInvokeAsync_2(ownerHandle, userInvocation, objectName, continuationId, operationId, params);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmAdminOperationInvokeAsync_2(ownerHandle, userInvocation, objectName, continuationId, operationId, params);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOmAdminOperationInvokeAsync_o3(SaImmAdminOwnerHandleT ownerHandle, SaInvocationT userInvocation,
+														const char* objectName, SaImmContinuationIdT continuationId,
+														SaImmAdminOperationIdT operationId, const SaImmAdminOperationParamsT_2 **params)
+{
+	SaAisErrorT rc = saImmOmAdminOperationInvokeAsync_o3(ownerHandle, userInvocation, (SaConstStringT) objectName, continuationId, operationId, params);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmAdminOperationInvokeAsync_o3(ownerHandle, userInvocation, (SaConstStringT) objectName, continuationId, operationId, params);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOmCcbObjectCreate_2(SaImmCcbHandleT immCcbHandle,
 					     const SaImmClassNameT className,
 					     const SaNameT * parent,
@@ -2112,6 +2432,21 @@ SaAisErrorT immutil_saImmOmCcbObjectCreate_o2(SaImmCcbHandleT immCcbHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOmCcbObjectCreate_o3(SaImmCcbHandleT ccbHandle, const char* className,
+											  const char* const objectName, const SaImmAttrValuesT_2 **attrValues)
+{
+	SaAisErrorT rc = saImmOmCcbObjectCreate_o3(ccbHandle, (const SaImmClassNameT) className, (const SaConstStringT) objectName, attrValues);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmCcbObjectCreate_o3(ccbHandle, (const SaImmClassNameT) className, (const SaConstStringT) objectName, attrValues);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOmCcbObjectModify_2(SaImmCcbHandleT immCcbHandle,
 					     const SaNameT * objectName,
 					     const SaImmAttrModificationT_2 **
@@ -2149,6 +2484,21 @@ SaAisErrorT immutil_saImmOmCcbObjectModify_o2(SaImmCcbHandleT immCcbHandle,
 	return rc;
 }
 
+SaAisErrorT immutil_saImmOmCcbObjectModify_o3(SaImmCcbHandleT ccbHandle, const char* objectName,
+											  const SaImmAttrModificationT_2 **attrMods)
+{
+	SaAisErrorT rc = saImmOmCcbObjectModify_o3(ccbHandle, (SaConstStringT) objectName, attrMods);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmCcbObjectModify_o3(ccbHandle, (SaConstStringT) objectName, attrMods);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
+	return rc;
+}
+
 SaAisErrorT immutil_saImmOmCcbObjectDelete(SaImmCcbHandleT immCcbHandle,
 					   const SaNameT * objectName)
 {
@@ -2176,6 +2526,20 @@ SaAisErrorT immutil_saImmOmCcbObjectDelete_o2(SaImmCcbHandleT immCcbHandle,
 
 	SaAisErrorT rc =
 		immutil_saImmOmCcbObjectDelete(immCcbHandle, &obj_name);
+	return rc;
+}
+
+SaAisErrorT immutil_saImmOmCcbObjectDelete_o3(SaImmCcbHandleT ccbHandle, const char* objectName)
+{
+	SaAisErrorT rc = saImmOmCcbObjectDelete_o3(ccbHandle, (SaConstStringT) objectName);
+	unsigned int nTries = 1;
+	while (rc == SA_AIS_ERR_TRY_AGAIN && nTries < immutilWrapperProfile.nTries) {
+		usleep(immutilWrapperProfile.retryInterval * 1000);
+		rc = saImmOmCcbObjectDelete_o3(ccbHandle, (SaConstStringT) objectName);
+		nTries++;
+	}
+	if (rc != SA_AIS_OK && immutilWrapperProfile.errorsAreFatal)
+		immutilError(" FAILED, rc = %d", (int) rc);
 	return rc;
 }
 
