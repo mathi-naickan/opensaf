@@ -372,6 +372,7 @@ typedef enum {
     CKPT_SECTION_CREATE_GEN2_T,
     CKPT_SECTION_CREATE_INVALID_PARAM3_T,
     CKPT_SECTION_CREATE_LONG_SECION_ID_SUCCESS_T,
+    CKPT_SECTION_CREATE_TOO_LONG_SECION_ID_SUCCESS_T,
 }CKPT_SECTION_CREATE_TC_TYPE;
                                                                                                                                                                      
                                                                                                                                                                      

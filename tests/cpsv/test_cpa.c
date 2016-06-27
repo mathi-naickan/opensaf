@@ -303,8 +303,11 @@ void fill_testcase_data()
    tcd.invalidSection.idLen = 3;
    tcd.invalidSection.id = tcd.sec_id4;
 
-   tcd.long_section_id.idLen = 30;
-   tcd.long_section_id.id = (SaUint8T *)"long_section_id_size=30_00000";
+   tcd.long_section_id.idLen = 49;
+   tcd.long_section_id.id = (SaUint8T *)"long_section_id_size=30_0000000000000000000000000";
+
+   tcd.too_long_section_id.idLen = 50;
+   tcd.too_long_section_id.id = (SaUint8T *)"long_section_id_size=30_00000000000000000000000000";
 
    fill_sec_attri(&tcd.general_attr,&tcd.section1,SA_TIME_ONE_DAY);
    fill_sec_attri(&tcd.expiration_attr,&tcd.section2,SA_TIME_END);
@@ -315,6 +318,7 @@ void fill_testcase_data()
    fill_sec_attri(&tcd.special_attr3,&tcd.section7,SA_TIME_END);
    fill_sec_attri(&tcd.invalid_attr,&tcd.invalid_sec,SA_TIME_END);
    fill_sec_attri(&tcd.section_attr_with_long_id, &tcd.long_section_id, SA_TIME_END);
+   fill_sec_attri(&tcd.section_attr_with_too_long_id, &tcd.too_long_section_id, SA_TIME_END);
 
    strcpy(tcd.data1,"This is data1");
    strcpy(tcd.data2,"This is data2");
@@ -3679,6 +3683,34 @@ final1:
   test_validate(result, TEST_PASS);
 }
 
+void cpsv_it_seccreate_20()
+{
+  int result;
+  printHead("To verify section create with section id length longer than MAX_SEC_ID_LEN(50)");
+  result = test_ckptInitialize(CKPT_INIT_SUCCESS_T,TEST_CONFIG_MODE);
+  if(result != TEST_PASS)
+     goto final1;
+
+  tcd.all_replicas.maxSectionIdSize = 100;
+  result = test_ckptOpen(CKPT_OPEN_ALL_CREATE_SUCCESS_T,TEST_CONFIG_MODE);
+  if(result != TEST_PASS)
+     goto final2;
+
+  result = test_ckptOpen(CKPT_OPEN_ALL_WRITE_SUCCESS_T,TEST_CONFIG_MODE);
+  if(result != TEST_PASS)
+     goto final3;
+
+  result = test_ckptSectionCreate(CKPT_SECTION_CREATE_TOO_LONG_SECION_ID_SUCCESS_T, TEST_NONCONFIG_MODE);
+
+final3:
+  test_ckpt_cleanup(CPSV_CLEAN_ALL_REPLICAS_CKPT);
+final2:
+  test_cpsv_cleanup(CPSV_CLEAN_INIT_SUCCESS_T);
+final1:
+  printResult(result);
+  test_validate(result, TEST_PASS);
+}
+
 /******* saCkptSectionDelete ******/
 
 
@@ -6932,6 +6964,7 @@ __attribute__ ((constructor)) static void ckpt_cpa_test_constructor(void) {
   test_case_add(11, cpsv_it_seccreate_17, "To verify section create with section idSize zero");
   test_case_add(11, cpsv_it_seccreate_18, "To verify free of section create with generated sectionId");
   test_case_add(11, cpsv_it_seccreate_19, "To verify section create with long section id");
+  test_case_add(11, cpsv_it_seccreate_20, "To verify section create with section id length longer than MAX_SEC_ID_LEN(50)");
 
   test_suite_add(12, "CKPT API saCkptSectionDelete()");
   test_case_add(12, cpsv_it_secdel_01, "To verify section delete with arbitrary handle");

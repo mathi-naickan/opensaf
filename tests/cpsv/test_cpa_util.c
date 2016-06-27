@@ -674,6 +674,8 @@ struct SafCheckpointSectionCreate API_SectionCreate[]= {
     [CKPT_SECTION_CREATE_LONG_SECION_ID_SUCCESS_T]    = {&tcd.all_replicas_Writehdl ,&tcd.section_attr_with_long_id,tcd.data1,&tcd.size,
                                            SA_AIS_OK,"Section id long_id Created in all replicas ckpt"},    
 
+    [CKPT_SECTION_CREATE_TOO_LONG_SECION_ID_SUCCESS_T]    = {&tcd.all_replicas_Writehdl ,&tcd.section_attr_with_too_long_id,tcd.data1,&tcd.size,
+                                           SA_AIS_ERR_INVALID_PARAM,"Section id long_id Created in all replicas ckpt"},    
 };
 
 
