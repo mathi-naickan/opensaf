@@ -51,11 +51,13 @@ void avd_process_state_info_queue(AVD_CL_CB *cb)
 	uint32_t i;
 	const auto queue_size = cb->evt_queue.size();
 	AVD_EVT_QUEUE *queue_evt = nullptr;
+	/* Counter for Act Amfnd node up message.*/
+	static int act_amfnd_node_up_count = 0;
 
 	TRACE_ENTER();
 
 	TRACE("queue_size before processing: %lu", (unsigned long) queue_size);
-
+	act_amfnd_node_up_count ++;
 	// recover assignments from state info
 	for(i=0 ; i<queue_size ; i++) {
 		queue_evt = cb->evt_queue.front();
@@ -91,6 +93,13 @@ void avd_process_state_info_queue(AVD_CL_CB *cb)
 		}
 	}
 
+	/* Alarms shouldn't be reset in next subsequent node up message.
+	   Because in the previous node up messages queue_size might have
+	   been zero. In the subsequent node up messages, this might cause
+	   alarm_sent to get reset and this may cause unassigned alarm to
+	   exist even those SIs are assigned after some time.*/
+	if (act_amfnd_node_up_count > 1) goto done;
+
 	// Once active amfd looks up the state info from queue, that means node sync
 	// finishes. Therefore, if the queue is empty, this active amfd is coming
 	// from a cluster restart, the alarm state should be reset.
@@ -115,6 +124,7 @@ void avd_process_state_info_queue(AVD_CL_CB *cb)
 			}
 		}
 	}
+done:
 	TRACE("queue_size after processing: %lu", (unsigned long) cb->evt_queue.size());
 	TRACE_LEAVE();
 }
