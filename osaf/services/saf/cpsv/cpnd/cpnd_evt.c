@@ -2151,6 +2151,7 @@ static uint32_t cpnd_evt_proc_ckpt_sect_create(CPND_CB *cb, CPND_EVT *evt, CPSV_
 	CPSV_CKPT_DATA *ckpt_data = NULL;
 	SaTimeT now, duration;
 	int64_t time_stamp, giga_sec, result;
+	uint16_t sec_id_len = evt->info.sec_creatReq.sec_attri.sectionId->idLen;
 
 	TRACE_ENTER();
 	memset(&send_evt, '\0', sizeof(CPSV_EVT));
@@ -2189,6 +2190,16 @@ static uint32_t cpnd_evt_proc_ckpt_sect_create(CPND_CB *cb, CPND_EVT *evt, CPSV_
 		TRACE_4("cpnd ckpt sect create failed for ckpt_id:%llx,return value:%d",evt->info.sec_creatReq.ckpt_id, SA_AIS_ERR_INVALID_PARAM);
 		goto agent_rsp;
 	}
+
+	if (sec_id_len >= MAX_SEC_ID_LEN) {
+		send_evt.type = CPSV_EVT_TYPE_CPA;
+		send_evt.info.cpa.type = CPA_EVT_ND2A_SEC_CREATE_RSP;
+		send_evt.info.cpa.info.sec_creat_rsp.error = SA_AIS_ERR_INVALID_PARAM;
+		LOG_NO("cpnd ckpt sect create failed for ckpt_id:%llx,return value:%d - sec_id_len:%d over supported limit %d",
+				evt->info.sec_creatReq.ckpt_id, SA_AIS_ERR_INVALID_PARAM, sec_id_len, MAX_SEC_ID_LEN);
+		goto agent_rsp;
+	}
+
 	if (evt->info.sec_creatReq.sec_attri.sectionId->id == NULL &&
 	    evt->info.sec_creatReq.sec_attri.sectionId->idLen == 0) {
 		if (cp_node->create_attrib.maxSections > 1) {
