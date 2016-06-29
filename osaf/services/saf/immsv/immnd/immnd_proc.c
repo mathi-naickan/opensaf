@@ -2097,9 +2097,9 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 					cb->pbePid = 0;
 					LOG_NO("PBE has terminated due to SC absence");
 				} else {
-					cb->pbePid = 0;
 					LOG_WA("SC were absent and PBE appears hung, sending SIGKILL");
 					kill(cb->pbePid, SIGKILL);
+					cb->pbePid = 0;
 				}
 			}
 			break;
