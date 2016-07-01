@@ -1901,6 +1901,50 @@ done:
 	rc = system(command);
 }
 
+
+//>
+// For test suite #12
+//<
+/**
+ * Create 02 configurable app streams
+ */
+void saLogRecov_createCfgAppStreams()
+{
+	int rc;
+	char command[256];
+
+	/* DN under RDN safApp=safLogservice */
+	sprintf(command, "immcfg -c SaLogStreamConfig safLgStrCfg=testCfgAppStream,safApp=safLogService "
+		"-a saLogStreamFileName=testCfgAppStream -a saLogStreamPathName=suite12");
+	rc = system(command);
+	rc_validate(WEXITSTATUS(rc), 0);
+
+	/* DN not under safApp=safLogService */
+	sprintf(command, "immcfg -c SaLogStreamConfig safLgStrCfg=testCfgAppStream1 "
+		"-a saLogStreamFileName=testCfgAppStream1 -a saLogStreamPathName=suite12");
+	rc = system(command);
+	rc_validate(WEXITSTATUS(rc), 0);
+}
+
+/**
+ * Create 02 configurable app streams
+ */
+void saLogRecov_delCfgAppStreams()
+{
+	int rc;
+	char command[256];
+
+	/* DN under RDN safApp=safLogservice */
+	sprintf(command, "immcfg -d safLgStrCfg=testCfgAppStream,safApp=safLogService ");
+	rc = system(command);
+	rc_validate(WEXITSTATUS(rc), 0);
+
+	/* DN not under safApp=safLogService */
+	sprintf(command, "immcfg -d safLgStrCfg=testCfgAppStream1");
+	rc = system(command);
+	rc_validate(WEXITSTATUS(rc), 0);
+}
+
 /**
  * Test suite 9
  * Testing recovery of "runtime" app streams
@@ -1996,4 +2040,17 @@ void add_suite_11(void)
 	test_case_add(11, saLogRecov_closeRtStream, "SC nodes stopped: close the stream, OK");
 	test_case_add(11, saLogRecov_req_node_start, ""); /* Start SC nodes */
 	test_case_add(11, saLogRecov_verRtStream_cleanup, "SC nodes started: after 10 mins, the stream is cleanup, OK");
+}
+
+/**
+ * Test suite 12
+ * Verify created configurable app streams can be deleted after headless.
+ */
+void add_suite_12(void)
+{
+	test_suite_add(12, "LOG Server down/up: verify app streams can be deleted after headless");
+	test_case_add(12, saLogRecov_createCfgAppStreams, "Create 02 configurable app streams");
+	test_case_add(12, saLogRecov_req_node_stop, ""); /* Stop SC nodes */
+	test_case_add(12, saLogRecov_req_node_start, ""); /* Start SC nodes */
+	test_case_add(12, saLogRecov_delCfgAppStreams, "SC nodes started: delete created app streams");
 }

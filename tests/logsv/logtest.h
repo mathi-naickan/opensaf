@@ -98,6 +98,7 @@ void print_t(const char *format, ...) __attribute__ ((format(printf, 1, 2)));
 void add_suite_9(void);
 void add_suite_10(void);
 void add_suite_11(void);
+void add_suite_12(void);
 
 int get_active_sc(void);
 int get_attr_value(SaNameT *inObjName, char *inAttr, void *outValue);

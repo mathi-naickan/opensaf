@@ -144,6 +144,21 @@ static void report_om_error(SaImmOiHandleT immOiHandle, SaInvocationT invocation
 }
 
 /**
+ * Check to see if given DN is well-known stream or notE
+ *
+ * @param dn stream DN
+ * @ret true if well-known stream, false otherwise
+ */
+static bool is_well_know_stream(const char* dn)
+{
+	if (strcmp(dn, SA_LOG_STREAM_ALARM) == 0) return true;
+	if (strcmp(dn, SA_LOG_STREAM_NOTIFICATION) == 0) return true;
+	if (strcmp(dn, SA_LOG_STREAM_SYSTEM) == 0) return true;
+
+	return false;
+}
+
+/**
  * Pack and send a log service config checkpoint using mbcsv
  * @param stream
  * 
@@ -1694,7 +1709,11 @@ static SaAisErrorT stream_ccb_completed_delete(SaImmOiHandleT immOiHandle, const
 	log_stream_t *stream = log_stream_get_by_name(name);
 
 	if (stream != NULL) {
-		if (stream->streamId < 3) {
+		/**
+		 * Use stream name (DN) to regcogize if the stream is well-known or not
+		 * instead of using streamID. This is to avoid any mishandling on streamId.
+		 */
+		if (is_well_know_stream(name)) {
 			report_oi_error(immOiHandle, opdata->ccbId,
 					"Stream delete: well known stream '%s' cannot be deleted", name);
 			goto done;
@@ -2713,13 +2732,11 @@ SaAisErrorT lgs_imm_init_configStreams(lgs_cb_t *cb)
 	SaImmSearchHandleT immSearchHandle;
 	SaImmSearchParametersT_2 objectSearch;
 	SaImmAttrValuesT_2 **attributes;
+	int wellknownStreamId = 0;
+	int appStreamId = 3;
 	int streamId = 0;
 	SaNameT objectName;
-	SaNameT root_name;
-
-	strcpy((char *) root_name.value, "safApp=safLogService");
-	root_name.length = sizeof("safApp=safLogService");
-
+	const char *className = "SaLogStreamConfig";
 
 	TRACE_ENTER();
 
@@ -2735,27 +2752,36 @@ SaAisErrorT lgs_imm_init_configStreams(lgs_cb_t *cb)
 		osaf_abort(0);
 	}
 
-	/* Search for all objects of class "SaLogStreamConfig" */
-	objectSearch.searchOneAttr.attrName = const_cast<SaImmAttrNameT>("safLgStrCfg");
+	/* Search for all objects of class "SaLogStreamConfig". */
+	/* Should not base on the attribute name `safLgStrCfg` as the user can create any class having that name */
+	objectSearch.searchOneAttr.attrName = const_cast<SaImmAttrNameT>("SaImmAttrClassName");
 	objectSearch.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
-	objectSearch.searchOneAttr.attrValue = NULL;
+	objectSearch.searchOneAttr.attrValue = &className;
 
-	if ((om_rc = immutil_saImmOmSearchInitialize_2(omHandle, &root_name,
+	/**
+	 * Search from root as app stream DN name can be any - maybe not under the RDN `safApp=safLogService`
+	 * Therefore, searching all class under `safApp=safLogService` might miss configurable app stream
+	 * eg: app stream with DN `saLgStrCfg=test`
+	 */
+	if ((om_rc = immutil_saImmOmSearchInitialize_2(omHandle, NULL,
 			SA_IMM_SUBTREE, SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_NO_ATTR,
 			&objectSearch, NULL, /* Get no attributes */
 			&immSearchHandle)) == SA_AIS_OK) {
 
 		while (immutil_saImmOmSearchNext_2(immSearchHandle, &objectName, &attributes) == SA_AIS_OK) {
-			/* Note: Here is creationTimeStamp and severityFilter set
-			 * Can be recovered if scAbseceAllowed
+			/**
+			 * With headless mode enabled, when lgsv restarts, there could be other configurable app streams.
+			 * It differs from legacy mode in which no app stream could be exist at startup.
+			 *
+			 * With well-known streams, stream ID is in reserved numbers [0-2].
 			 */
+			streamId = is_well_know_stream((char *)objectName.value)? wellknownStreamId++:appStreamId++;
 			ais_rc = stream_create_and_configure((char*) objectName.value,
 					&stream, streamId, accessorHandle);
 			if (ais_rc != SA_AIS_OK) {
 				LOG_WA("stream_create_and_configure failed %d", ais_rc);
 				goto done;
 			}
-			streamId += 1;
 		}
 	}
 

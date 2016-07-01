@@ -505,6 +505,7 @@ int main(int argc, char **argv)
 			add_suite_9();
 			add_suite_10();
 			add_suite_11();
+			add_suite_12();
 			test_list();
 			exit(0);
 		case 'e':
@@ -535,6 +536,7 @@ int main(int argc, char **argv)
 			add_suite_9();
 			add_suite_10();
 			add_suite_11();
+			add_suite_12();
 			break;
 		case 'v':
 			if (silent_flg == true) {
