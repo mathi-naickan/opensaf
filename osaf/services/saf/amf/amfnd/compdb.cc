@@ -1827,10 +1827,9 @@ unsigned int avnd_comp_config_get_su(AVND_SU *su)
 
 	TRACE_ENTER2("SU'%s'", su->name.value);
 
-	error = saImmOmInitialize(&immOmHandle, nullptr, &immVersion);
+	error = saImmOmInitialize_cond(&immOmHandle, nullptr, &immVersion);
 	if (error != SA_AIS_OK) {
 		LOG_CR("saImmOmInitialize failed: %u", error);
-		rc = NCSCC_RC_OUT_OF_MEM;
 		goto done;
 	}
 	searchParam.searchOneAttr.attrName = const_cast<SaImmAttrNameT>("SaImmAttrClassName");
