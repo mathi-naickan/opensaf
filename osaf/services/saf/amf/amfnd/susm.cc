@@ -1399,18 +1399,12 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 		   Fix for the above problem is that Middleware Components wont be dynamically added in the case 
 		   of openSAF SUs, so don't refresh config info if it is openSAF SU. */
 
-		if ((false == su->is_ncs) && ((rc = avnd_comp_config_get_su(su)) != NCSCC_RC_SUCCESS)) {
-			if (rc == NCSCC_RC_OUT_OF_MEM && su->comp_list.n_nodes > 0) {
-				// @todo this is a temporary workaround: IMM is not accepting OM connections
-				// and a SU needs to be restarted.
-				LOG_CR("'%s': failed to refresh components in SU. Attempt to reuse old config", __FUNCTION__);
-			} else {
-				m_AVND_SU_REG_FAILED_SET(su);
-				/* Will transition to instantiation-failed when instantiated */
-				LOG_ER("'%s':FAILED", __FUNCTION__);
-				rc = NCSCC_RC_FAILURE;
-				goto done;
-			}
+		if ((false == su->is_ncs) && (avnd_comp_config_get_su(su) != NCSCC_RC_SUCCESS)) {
+			m_AVND_SU_REG_FAILED_SET(su);
+			/* Will transition to instantiation-failed when instantiated */
+			LOG_ER("'%s':FAILED", __FUNCTION__); 
+			rc = NCSCC_RC_FAILURE;
+			goto done;
 		}
 		/* trigger su instantiation for pi su */
 		if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
