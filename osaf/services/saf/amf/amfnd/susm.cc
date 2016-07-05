@@ -34,6 +34,7 @@
 */
 
 #include "avnd.h"
+#include "imm.h"
 
 /* static function declarations */
 static uint32_t avnd_su_pres_uninst_suinst_hdler(AVND_CB *, AVND_SU *, AVND_COMP *);
@@ -1338,54 +1339,16 @@ uint32_t avnd_evt_avd_su_pres_evh(AVND_CB *cb, AVND_EVT *evt)
 				goto done;
 		}
 	} else { /* => instantiate the su */
-		TRACE("SU term state is set to false");
-		/* Reset admn term operation flag */
-		m_AVND_SU_ADMN_TERM_RESET(su);
-		/* Add components belonging to this SU if components were not added before.
-		   This can happen in runtime when SU is first added and then comp. When SU is added amfd will 
-		   send SU info to amfnd, at this point of time no component exists in IMM DB, so SU list of comp is 
-		   empty. When comp are added later, it is not sent to amfnd as amfnd reads comp info from IMM DB. 
-		   Now when unlock-inst is done then avnd_evt_avd_su_pres_msg is called. At this point of time, we 
-		   are not having Comp info in SU list, so need to add it.
+		AVND_EVT *evt_ir = 0;
+		TRACE("Sending to Imm thread.");
+		evt_ir = avnd_evt_create(cb, AVND_EVT_IR, 0, nullptr, &info->su_name, 0, 0);
+		rc = m_NCS_IPC_SEND(&ir_cb.mbx, evt_ir, evt_ir->priority);
+		if (NCSCC_RC_SUCCESS != rc)
+			LOG_CR("AvND send event to IR mailbox failed, type = %u", evt_ir->type);
+		/* if failure, free the event */
+		if (NCSCC_RC_SUCCESS != rc && evt_ir)
+			avnd_evt_destroy(evt_ir);
 
-		   If component exists as it would be in case controller is coming up with all entities configured,
-		   then avnd_comp_config_get_su() will not read anything, it will return success. 
-
-		   Trying to read config info of openSAF SUs may result in a deadlock condition when IMMND calls AMF
-		   register sync call(after AMF invokes instantiate script in NoRed SU instantiation sequence) and 
-		   amfnd reads immsv database using search_initializie sync api(AMF reads database for middleware 
-		   2N SUs during 2N Red SU instantiation). This is purely dependent on timing when immnd is 
-		   registering with AMF and AMF is reading config from immnd during controller coming up. 
-		   Fix for the above problem is that Middleware Components wont be dynamically added in the case 
-		   of openSAF SUs, so don't refresh config info if it is openSAF SU. */
-
-		if ((false == su->is_ncs) && (avnd_comp_config_get_su(su) != NCSCC_RC_SUCCESS)) {
-			if (cb->scs_absence_max_duration == 0) {
-				 m_AVND_SU_REG_FAILED_SET(su);
-				/* Will transition to instantiation-failed when instantiated */
-				LOG_ER("'%s':FAILED", __FUNCTION__);
-				rc = NCSCC_RC_FAILURE;
-			goto done;
-			} else {
-				// @TODO(garylee) this is a temporary workaround: IMM is not accepting OM connections
-				// and a component needs to be restarted.
-				LOG_CR("'%s': failed to refresh components in SU. Attempt to reuse old config", __FUNCTION__);
-			}
-		}
-		/* trigger su instantiation for pi su */
-		if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
-			TRACE("SU instantiation for PI SUs, running the SU presence state FSM:'%s'", su->name.value); 
-			rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_INST);
-		}
-		else {
-			if (m_AVND_SU_IS_REG_FAILED(su)) {
-				/* The SU configuration is bad, we cannot do much other transition to failed state */
-				TRACE_2("SU Configuration is bad");
-				avnd_su_pres_state_set(cb, su, SA_AMF_PRESENCE_INSTANTIATION_FAILED);
-				m_AVND_SU_ALL_TERM_RESET(su);
-			} else
-				osafassert(0);
-		}
 	}
 
 done:
@@ -3784,5 +3747,86 @@ uint32_t avnd_su_pres_inst_compinst_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP *c
 	}
 done:
 	TRACE_LEAVE2("%u", rc);
+	return rc;
+}
+
+/**
+ * @brief       This function processes events from IR thread.
+ *
+ * @param       ptr to the AvND control block
+ * @param       ptr to the AvND event
+ *
+ * @return      NCSCC_RC_FAILURE/NCSCC_RC_SUCCESS
+ */
+uint32_t avnd_evt_ir_evh(struct avnd_cb_tag *cb, struct avnd_evt_tag *evt)
+{
+	uint32_t rc = NCSCC_RC_SUCCESS;
+	AVND_SU *su = 0;
+	TRACE_ENTER2("su name '%s'", evt->info.ir_evt.su_name.value);
+
+	/* get the su */
+	su = m_AVND_SUDB_REC_GET(cb->sudb, evt->info.ir_evt.su_name);
+	if (!su) {
+		TRACE("SU'%s', not found in DB", evt->info.ir_evt.su_name.value);
+		goto done;
+	}
+
+	TRACE("SU term state is set to false");
+	/* Reset admn term operation flag */
+	m_AVND_SU_ADMN_TERM_RESET(su);
+	/* Add components belonging to this SU if components were not added before.
+	   This can happen in runtime when SU is first added and then comp. When SU is added amfd will
+	   send SU info to amfnd, at this point of time no component exists in IMM DB, so SU list of comp is
+	   empty. When comp are added later, it is not sent to amfnd as amfnd reads comp info from IMM DB.
+	   Now when unlock-inst is done then avnd_evt_avd_su_pres_msg is called. At this point of time, we
+	   are not having Comp info in SU list, so need to add it.
+
+	   If component exists as it would be in case controller is coming up with all entities configured,
+	   then avnd_comp_config_get_su() will not read anything, it will return success.
+
+	   Trying to read config info of openSAF SUs may result in a deadlock condition when IMMND calls AMF
+	   register sync call(after AMF invokes instantiate script in NoRed SU instantiation sequence) and
+	   amfnd reads immsv database using search_initializie sync api(AMF reads database for middleware
+	   2N SUs during 2N Red SU instantiation). This is purely dependent on timing when immnd is
+	   registering with AMF and AMF is reading config from immnd during controller coming up.
+	   Fix for the above problem is that Middleware Components wont be dynamically added in the case
+	   of openSAF SUs, so don't refresh config info if it is openSAF SU. */
+
+	if ((false == su->is_ncs) && (evt->info.ir_evt.status == false)) {
+		if (cb->scs_absence_max_duration == 0) {
+			m_AVND_SU_REG_FAILED_SET(su);
+			/* Will transition to instantiation-failed when instantiated */
+			LOG_ER("'%s':FAILED", __FUNCTION__);
+			rc = NCSCC_RC_FAILURE;
+			goto done;
+		} else {
+			// @TODO(garylee) this is a temporary workaround: IMM is not accepting OM connections
+			// and a component needs to be restarted.
+			LOG_CR("'%s': failed to refresh components in SU. Attempt to reuse old config", __FUNCTION__);
+		}
+	}
+	/* trigger su instantiation for pi su */
+	if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
+		/* Update the comp oper state. */
+		for (AVND_COMP *comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
+				comp;
+				comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+			m_AVND_COMP_OPER_STATE_AVD_SYNC(avnd_cb, comp, rc);
+		}
+		TRACE("SU instantiation for PI SUs, running the SU presence state FSM:'%s'", su->name.value);
+		rc = avnd_su_pres_fsm_run(cb, su, 0, AVND_SU_PRES_FSM_EV_INST);
+	}
+	else {
+		if (m_AVND_SU_IS_REG_FAILED(su)) {
+			/* The SU configuration is bad, we cannot do much other transition to failed state */
+			TRACE_2("SU Configuration is bad");
+			avnd_su_pres_state_set(cb, su, SA_AMF_PRESENCE_INSTANTIATION_FAILED);
+			m_AVND_SU_ALL_TERM_RESET(su);
+		} else
+			osafassert(0);
+	}
+
+done:
+	TRACE_LEAVE();
 	return rc;
 }

@@ -1017,9 +1017,9 @@ uint32_t avnd_err_rcvr_node_failover(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP 
 		failed_su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
 	}
 	/* Unordered cleanup of all local application components */
-	for (comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)nullptr);
+	for (comp = (AVND_COMP *)compdb_rec_get_next(&cb->compdb, (uint8_t *)nullptr);
 		  comp != nullptr;
-		  comp = (AVND_COMP *) ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)&comp->name)) {
+		  comp = (AVND_COMP *) compdb_rec_get_next(&cb->compdb, (uint8_t *)&comp->name)) {
 
 		if (comp->su->is_ncs || comp->su->su_is_external)
 			continue;
@@ -1502,7 +1502,7 @@ uint32_t avnd_evt_tmr_node_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 	
 	LOG_NO("SU failover probation timer expired");
 
-	su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
+	su = (AVND_SU *)sudb_rec_get_next(&cb->sudb, (uint8_t *)0);
 	while (su != 0) {
 		/* Only reset to those Sus, which have affected the node err esc.*/
 		if (su->su_err_esc_level == AVND_ERR_ESC_LEVEL_2) {
@@ -1513,7 +1513,7 @@ uint32_t avnd_evt_tmr_node_err_esc_evh(AVND_CB *cb, AVND_EVT *evt)
 					&su->name, su->su_restart_cnt);
 			su->su_err_esc_level = AVND_ERR_ESC_LEVEL_0;
 		}
-		su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)&su->name);
+		su = (AVND_SU *)sudb_rec_get_next(&cb->sudb, (uint8_t *)&su->name);
 	}
 
 	/* reset all parameters */
@@ -1612,9 +1612,9 @@ void cleanup_all_comps_and_reboot(AVND_CB *cb)
 	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	/* Unordered cleanup of all local application components */
-	for (comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)nullptr);
+	for (comp = (AVND_COMP *)compdb_rec_get_next(&cb->compdb, (uint8_t *)nullptr);
 		  comp != nullptr;
-		  comp = (AVND_COMP *) ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)&comp->name)) {
+		  comp = (AVND_COMP *) compdb_rec_get_next(&cb->compdb, (uint8_t *)&comp->name)) {
 
 		if (comp->su->is_ncs || comp->su->su_is_external)
 			continue;

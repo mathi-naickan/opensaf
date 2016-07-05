@@ -37,8 +37,11 @@
 #include <saImmOm.h>
 #include <immutil.h>
 #include <string>
+#include "osaf_utility.h"
 
 static NCS_PATRICIA_TREE hctypedb;	/* healthcheck type db */
+static pthread_mutex_t hcdb_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t hctypedb_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /****************************************************************************
   Name          : avnd_hcdb_init
@@ -72,7 +75,10 @@ AVND_HC *avnd_hcdb_rec_get(AVND_CB *cb, AVSV_HLT_KEY *hc_key)
 	memset(&dn, 0, sizeof(dn));
 	dn.length = snprintf((char *)dn.value, SA_MAX_NAME_LENGTH, "safHealthcheckKey=%s,%s",
 		hc_key->name.key, hc_key->comp_name.value);
-	return (AVND_HC *)ncs_patricia_tree_get(&cb->hcdb, (uint8_t *)&dn);
+	osaf_mutex_lock_ordie(&hcdb_mutex);
+	AVND_HC *hc = (AVND_HC *)ncs_patricia_tree_get(&cb->hcdb, (uint8_t *)&dn);
+	osaf_mutex_unlock_ordie(&hcdb_mutex);
+	return hc;
 }
 
 AVND_HCTYPE *avnd_hctypedb_rec_get(const SaNameT *comp_type_dn, const SaAmfHealthcheckKeyT *key)
@@ -82,7 +88,10 @@ AVND_HCTYPE *avnd_hctypedb_rec_get(const SaNameT *comp_type_dn, const SaAmfHealt
 	memset(&dn, 0, sizeof(dn));
 	dn.length = snprintf((char *)dn.value, SA_MAX_NAME_LENGTH, "safHealthcheckKey=%s,%s",
 			     key->key, comp_type_dn->value);
-	return (AVND_HCTYPE *)ncs_patricia_tree_get(&hctypedb, (uint8_t *)&dn);
+	osaf_mutex_lock_ordie(&hctypedb_mutex);
+	AVND_HCTYPE *hctype = (AVND_HCTYPE *)ncs_patricia_tree_get(&hctypedb, (uint8_t *)&dn);
+	osaf_mutex_unlock_ordie(&hctypedb_mutex);
+	return hctype;
 }
 
 /****************************************************************************
@@ -126,7 +135,9 @@ AVND_HC *avnd_hcdb_rec_add(AVND_CB *cb, AVND_HC_PARAM *info, uint32_t *rc)
 	/* Add to the patricia tree */
 	hc->tree_node.bit = 0;
 	hc->tree_node.key_info = (uint8_t *)&hc->key;
+	osaf_mutex_lock_ordie(&hcdb_mutex);
 	*rc = ncs_patricia_tree_add(&cb->hcdb, &hc->tree_node);
+	osaf_mutex_unlock_ordie(&hcdb_mutex);
 	if (NCSCC_RC_SUCCESS != *rc) {
 		*rc = AVND_ERR_TREE;
 		goto err;
@@ -170,7 +181,9 @@ uint32_t avnd_hcdb_rec_del(AVND_CB *cb, AVSV_HLT_KEY *hc_key)
 	}
 
 	/* remove from the patricia tree */
+	osaf_mutex_lock_ordie(&hcdb_mutex);
 	rc = ncs_patricia_tree_del(&cb->hcdb, &hc->tree_node);
+	osaf_mutex_unlock_ordie(&hcdb_mutex);
 	if (NCSCC_RC_SUCCESS != rc) {
 		rc = AVND_ERR_TREE;
 		goto err;
@@ -209,7 +222,9 @@ static AVND_HC *hc_create(AVND_CB *cb, SaNameT *dn, const SaImmAttrValuesT_2 **a
 	memcpy(hc->name.value, dn->value, dn->length);
 	hc->name.length = dn->length;
 	hc->tree_node.key_info = (uint8_t *)&hc->name;
+	osaf_mutex_lock_ordie(&hcdb_mutex);
 	rc = ncs_patricia_tree_add(&cb->hcdb, &hc->tree_node);
+	osaf_mutex_unlock_ordie(&hcdb_mutex);
 
  done:
 	if (rc != NCSCC_RC_SUCCESS) {
@@ -291,7 +306,9 @@ static AVND_HCTYPE *hctype_create(AVND_CB *cb, SaNameT *dn, const SaImmAttrValue
 	}
 
 	hc->tree_node.key_info = (uint8_t *)&hc->name;
+	osaf_mutex_lock_ordie(&hctypedb_mutex);
 	rc = ncs_patricia_tree_add(&hctypedb, &hc->tree_node);
+	osaf_mutex_unlock_ordie(&hctypedb_mutex);
 
  done:
 	if (rc != NCSCC_RC_SUCCESS) {
@@ -331,13 +348,17 @@ SaAisErrorT avnd_hctype_config_get(SaImmHandleT immOmHandle, const SaNameT *comp
 		TRACE_1("'%s'", hc_name.value);
 		//A record may get created in the context of some other component of same comptype.
 		AVND_HCTYPE *hctype = nullptr;
+		osaf_mutex_lock_ordie(&hctypedb_mutex);
 		if ((hctype = (AVND_HCTYPE *)ncs_patricia_tree_get(&hctypedb,
 						(uint8_t *)&hc_name)) == nullptr) {
+			osaf_mutex_unlock_ordie(&hctypedb_mutex);
 			if (hctype_create(avnd_cb, &hc_name, attributes) == nullptr)
 				goto done2;
 		}
-		else 
+		else {
 			TRACE_2("Record already exists");
+			osaf_mutex_unlock_ordie(&hctypedb_mutex);
+		}
 	}
 
 	error = SA_AIS_OK;
@@ -388,7 +409,7 @@ static void comp_hctype_update_compdb(AVND_CB *cb, AVSV_PARAM_INFO *param)
 	osafassert(comp_type_name);
 	
 	// 2. search each component for a matching compType
-	comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)0);
+	comp = (AVND_COMP *)compdb_rec_get_next(&cb->compdb, (uint8_t *)0);
 	while (comp != 0) {
 		if (strncmp((const char*) comp->saAmfCompType.value, comp_type_name, comp->saAmfCompType.length) == 0) {
 
@@ -429,7 +450,7 @@ static void comp_hctype_update_compdb(AVND_CB *cb, AVSV_PARAM_INFO *param)
 				}
 			}
 		}	
-		comp = (AVND_COMP *) ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)&comp->name);
+		comp = (AVND_COMP *) compdb_rec_get_next(&cb->compdb, (uint8_t *)&comp->name);
 	}
 }
 
@@ -439,7 +460,9 @@ uint32_t avnd_hc_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 
 	TRACE_ENTER2("'%s'", param->name.value);
 	
+	osaf_mutex_lock_ordie(&hcdb_mutex);
 	AVND_HC *hc = (AVND_HC *)ncs_patricia_tree_get(&cb->hcdb, (uint8_t *)&param->name);
+	osaf_mutex_unlock_ordie(&hcdb_mutex);
 
 	switch (param->act) {
 	case AVSV_OBJ_OPR_MOD: {
@@ -468,7 +491,9 @@ uint32_t avnd_hc_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 
 	case AVSV_OBJ_OPR_DEL: {
 		if (hc != nullptr) {
+			osaf_mutex_lock_ordie(&hcdb_mutex);
 			rc = ncs_patricia_tree_del(&cb->hcdb, &hc->tree_node);
+			osaf_mutex_unlock_ordie(&hcdb_mutex);
 			osafassert(rc == NCSCC_RC_SUCCESS);
 			LOG_IN("Deleted '%s'", param->name.value);
 		} else {
@@ -498,7 +523,9 @@ uint32_t avnd_hctype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 	uint32_t rc = NCSCC_RC_FAILURE;
 
 	TRACE_ENTER2("'%s'", param->name.value);
+	osaf_mutex_lock_ordie(&hctypedb_mutex);
 	AVND_HCTYPE *hctype = (AVND_HCTYPE *)ncs_patricia_tree_get(&hctypedb, (uint8_t *)&param->name);
+	osaf_mutex_unlock_ordie(&hctypedb_mutex);
 	
 	switch (param->act) {
 	case AVSV_OBJ_OPR_MOD: {
@@ -529,7 +556,9 @@ uint32_t avnd_hctype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 
 	case AVSV_OBJ_OPR_DEL: {
 		if (hctype != nullptr) {
+			osaf_mutex_lock_ordie(&hctypedb_mutex);
 			rc = ncs_patricia_tree_del(&hctypedb, &hctype->tree_node);
+			osaf_mutex_unlock_ordie(&hctypedb_mutex);
 			osafassert(rc == NCSCC_RC_SUCCESS);
 			LOG_IN("Deleted '%s'", param->name.value);
 		} else {

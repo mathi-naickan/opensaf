@@ -37,7 +37,9 @@
 #include <logtrace.h>
 
 #include <avnd.h>
+#include "osaf_utility.h"
 
+static pthread_mutex_t compdb_mutex = PTHREAD_MUTEX_INITIALIZER;
 //
 // TODO(HANO) Temporary use this function instead of strdup which uses malloc.
 // Later on remove this function and use std::string instead
@@ -433,7 +435,9 @@ AVND_COMP *avnd_compdb_rec_add(AVND_CB *cb, AVND_COMP_PARAM *info, uint32_t *rc)
 	 */
 	comp->tree_node.bit = 0;
 	comp->tree_node.key_info = (uint8_t *)&comp->name;
+	osaf_mutex_lock_ordie(&compdb_mutex);
 	*rc = ncs_patricia_tree_add(&cb->compdb, &comp->tree_node);
+	osaf_mutex_unlock_ordie(&compdb_mutex);
 	if (NCSCC_RC_SUCCESS != *rc) {
 		*rc = AVND_ERR_TREE;
 		goto err;
@@ -463,8 +467,11 @@ AVND_COMP *avnd_compdb_rec_add(AVND_CB *cb, AVND_COMP_PARAM *info, uint32_t *rc)
 	return comp;
 
  err:
-	if (AVND_ERR_DLL == *rc)
+	if (AVND_ERR_DLL == *rc) {
+		osaf_mutex_lock_ordie(&compdb_mutex);
 		ncs_patricia_tree_del(&cb->compdb, &comp->tree_node);
+		osaf_mutex_unlock_ordie(&compdb_mutex);
+	}
 
 	if (comp) {
 		if (comp->comp_hdl)
@@ -538,7 +545,9 @@ uint32_t avnd_compdb_rec_del(AVND_CB *cb, SaNameT *name)
 	/* 
 	 * Remove from the patricia tree.
 	 */
+	osaf_mutex_lock_ordie(&compdb_mutex);
 	rc = ncs_patricia_tree_del(&cb->compdb, &comp->tree_node);
+	osaf_mutex_unlock_ordie(&compdb_mutex);
 	if (NCSCC_RC_SUCCESS != rc) {
 		LOG_ER("%s: %s tree del failed", __FUNCTION__, name->value);
 		rc = AVND_ERR_TREE;
@@ -893,7 +902,7 @@ uint32_t avnd_comptype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 		osafassert(comp_type_name);
 		// 2. search each component for a matching compType
 
-		comp = (AVND_COMP *) ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *) 0);
+		comp = (AVND_COMP *) compdb_rec_get_next(&cb->compdb, (uint8_t *) 0);
 		while (comp != 0) {
 			if (strncmp((const char*) comp->saAmfCompType.value, comp_type_name, comp->saAmfCompType.length) == 0) {
 				// 3. comptype found, check if component uses this comptype attribute value or if 
@@ -1017,7 +1026,7 @@ uint32_t avnd_comptype_oper_req(AVND_CB *cb, AVSV_PARAM_INFO *param)
 					LOG_WA("Unexpected attribute id: %d", param->attr_id);
 				}
 			}
-			comp = (AVND_COMP *) ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *) & comp->name);
+			comp = (AVND_COMP *) compdb_rec_get_next(&cb->compdb, (uint8_t *) & comp->name);
 		}
 	}
 	case AVSV_OBJ_OPR_DEL:
@@ -1740,9 +1749,6 @@ static AVND_COMP *avnd_comp_create(const SaNameT *comp_name, const SaImmAttrValu
 
 	comp->avd_updt_flag = false;
 
-	/* synchronize comp oper state */
-	m_AVND_COMP_OPER_STATE_AVD_SYNC(avnd_cb, comp, rc);
-
 //	comp->cap = info->cap;
 	comp->node_id = avnd_cb->node_info.nodeId;
 	comp->pres = SA_AMF_PRESENCE_UNINSTANTIATED;
@@ -1764,10 +1770,13 @@ static AVND_COMP *avnd_comp_create(const SaNameT *comp_name, const SaImmAttrValu
 
 	/* Add to the patricia tree. */
 	comp->tree_node.key_info = (uint8_t *)&comp->name;
+	osaf_mutex_lock_ordie(&compdb_mutex);
 	if(ncs_patricia_tree_add(&avnd_cb->compdb, &comp->tree_node) != NCSCC_RC_SUCCESS) {
 		LOG_ER("ncs_patricia_tree_add FAILED for '%s'", comp_name->value);
+		osaf_mutex_unlock_ordie(&compdb_mutex);
 		goto done;
 	}
+	osaf_mutex_unlock_ordie(&compdb_mutex);
 
 	/* Add to the comp-list (maintained by su) */
 	m_AVND_SUDB_REC_COMP_ADD(*su, *comp, rc);
@@ -1931,3 +1940,28 @@ done1:
 	return res;
 }
 
+/**
+ * This function return Comp rec.
+ * @param Pointer to COMPDB.
+ * @param Pointer to Comp name.
+ * @return Pointer to Comp.
+ */
+AVND_COMP *compdb_rec_get(NCS_PATRICIA_TREE *compdb, const SaNameT *name) {
+	osaf_mutex_lock_ordie(&compdb_mutex);
+	AVND_COMP *comp = (AVND_COMP *)ncs_patricia_tree_get(compdb, (uint8_t *)(name));
+	osaf_mutex_unlock_ordie(&compdb_mutex);
+	return comp;
+}
+
+/**
+ * This function return next Comp rec.
+ * @param Pointer to COMPDB.
+ * @param Pointer to COMP name.
+ * @return Pointer to COMP.
+ */
+AVND_COMP *compdb_rec_get_next(NCS_PATRICIA_TREE *compdb, uint8_t *name) {
+	osaf_mutex_lock_ordie(&compdb_mutex);
+	AVND_COMP *comp = (AVND_COMP *)ncs_patricia_tree_getnext(compdb, (uint8_t *)(name));
+	osaf_mutex_unlock_ordie(&compdb_mutex);
+	return comp;
+}

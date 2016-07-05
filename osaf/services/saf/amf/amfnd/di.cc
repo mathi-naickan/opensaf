@@ -653,7 +653,7 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	// check for pending messages FROM director
 	// scan all SUs "siq" message list, if anyone is not empty reboot
-	const AVND_SU *su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
+	const AVND_SU *su = (AVND_SU *)sudb_rec_get_next(&cb->sudb, (uint8_t *)0);
 	while (su != 0) {
 		LOG_NO("Checking '%s' for pending messages", su->name.value);
 
@@ -672,7 +672,7 @@ uint32_t avnd_evt_mds_avd_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 			}
 		}
 
-		su = (AVND_SU *)ncs_patricia_tree_getnext(
+		su = (AVND_SU *)sudb_rec_get_next(
 			&cb->sudb, (uint8_t *)&su->name);
 	}
 	// record we are now 'headless'
@@ -1546,7 +1546,7 @@ void avnd_sync_csicomp(AVND_CB *cb)
 	msg.info.avd->msg_info.n2d_nd_csicomp_state_info.csicomp_list = nullptr;
 
 	// add CSICOMP objects
-	comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)0);
+	comp = (AVND_COMP *)compdb_rec_get_next(&cb->compdb, (uint8_t *)0);
 	while (comp != nullptr) {
 		TRACE("syncing comp: %s", comp->name.value);
 		for (csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
@@ -1569,7 +1569,7 @@ void avnd_sync_csicomp(AVND_CB *cb)
 		}
 
 		add_comp_state_info(&msg, comp);
-		comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)&comp->name);
+		comp = (AVND_COMP *)compdb_rec_get_next(&cb->compdb, (uint8_t *)&comp->name);
 	}
 
 	LOG_NO("%d CSICOMP states synced", msg.info.avd->msg_info.n2d_nd_csicomp_state_info.num_csicomp);
@@ -1614,7 +1614,7 @@ void avnd_sync_sisu(AVND_CB *cb)
 	msg.info.avd->msg_info.n2d_nd_sisu_state_info.sisu_list = nullptr;
 
 	// gather SISU states
-	su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
+	su = (AVND_SU *)sudb_rec_get_next(&cb->sudb, (uint8_t *)0);
 	while (su != nullptr) {
 		TRACE("syncing su: %s", su->name.value);
 
@@ -1632,7 +1632,7 @@ void avnd_sync_sisu(AVND_CB *cb)
 
 		add_su_state_info(&msg, su);
 
-		su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)&su->name);
+		su = (AVND_SU *)sudb_rec_get_next(&cb->sudb, (uint8_t *)&su->name);
 	}
 
 	LOG_NO("%d SISU states sent", msg.info.avd->msg_info.n2d_nd_sisu_state_info.num_sisu);

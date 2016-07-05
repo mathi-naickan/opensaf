@@ -326,18 +326,11 @@ typedef struct avnd_su_tag {
 
 /* macro to get the SU recrod from the SU database */
 #define m_AVND_SUDB_REC_GET(sudb, name) \
-           (AVND_SU *)ncs_patricia_tree_get(&(sudb), (uint8_t *)&(name))
-
-/* macro to get the next SU recrod from the SU database */
-#define m_AVND_SUDB_REC_GET_NEXT(sudb, name) \
-           (AVND_SU *)ncs_patricia_tree_getnext(&(sudb), (uint8_t *)&(name))
+	sudb_rec_get(&(sudb), &(name))
 
 /* macro to add a component to the su-comp list */
 #define m_AVND_SUDB_REC_COMP_ADD(su, comp, rc) \
-{ \
-   (comp).su_dll_node.key = (uint8_t *)&((comp).inst_level); \
-   (rc) = ncs_db_link_list_add(&(su).comp_list, &(comp).su_dll_node); \
-};
+	sudb_rec_comp_add(&su, &comp, &rc)
 
 /* macro to remove a component from the su-comp list */
 #define m_AVND_SUDB_REC_COMP_REM(su, comp) \
@@ -424,4 +417,7 @@ bool isFailed(const AVND_SU *su);
 bool isRestartSet(const AVND_SU *su);
 bool su_evaluate_restarting_state(AVND_SU *su);
 bool all_csis_in_restarting_state(const AVND_SU *su, AVND_COMP_CSI_REC * exclude_csi = nullptr);
+extern AVND_SU *sudb_rec_get(NCS_PATRICIA_TREE *sudb, const SaNameT *name);
+extern AVND_SU *sudb_rec_get_next(NCS_PATRICIA_TREE *sudb, uint8_t *name);
+extern void sudb_rec_comp_add(AVND_SU *su, AVND_COMP *comp, uint32_t *rc);
 #endif

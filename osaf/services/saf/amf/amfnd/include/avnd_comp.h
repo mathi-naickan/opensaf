@@ -590,11 +590,11 @@ typedef struct avnd_comp_tag {
 
 /* macro to get a component record from comp-db */
 #define m_AVND_COMPDB_REC_GET(compdb, name) \
-   (AVND_COMP *)ncs_patricia_tree_get(&(compdb), (uint8_t *)&(name))
+	compdb_rec_get(&(compdb), &(name))
 
 /* macro to get the next component record from comp-db */
 #define m_AVND_COMPDB_REC_GET_NEXT(compdb, name) \
-   (AVND_COMP *)ncs_patricia_tree_getnext(&(compdb), (uint8_t *)&(name))
+	compdb_rec_get_next(&(compdb), (uint8_t *)&(name))
 
 /* macro to add a csi record to the comp-csi list */
 #define m_AVND_COMPDB_REC_CSI_ADD(comp, csi, rc) \
@@ -922,5 +922,7 @@ extern void comp_reset_restart_count(const struct avnd_cb_tag *cb, AVND_COMP *co
 extern void clear_error_report_alarm(AVND_COMP *comp);
 bool nonrestartable(const AVND_COMP *comp);
 uint32_t csi_count(const AVND_COMP *comp);
+extern AVND_COMP *compdb_rec_get(NCS_PATRICIA_TREE *compdb, const SaNameT *name);
+extern AVND_COMP *compdb_rec_get_next(NCS_PATRICIA_TREE *compdb, uint8_t *name);
 
 #endif   /* !AVND_COMP_H */

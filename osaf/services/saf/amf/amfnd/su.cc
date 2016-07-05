@@ -245,7 +245,7 @@ static uint32_t avnd_avd_su_update_on_fover(AVND_CB *cb, AVSV_D2N_REG_SU_MSG_INF
 	 * updates are not received in the message.
 	 */
 	memset(&su_name, 0, sizeof(SaNameT));
-	while (nullptr != (su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)&su_name))) {
+	while (nullptr != (su = (AVND_SU *)sudb_rec_get_next(&cb->sudb, (uint8_t *)&su_name))) {
 		su_name = su->name;
 
 		if (false == su->avd_updt_flag) {
@@ -595,14 +595,14 @@ uint32_t avnd_su_curr_info_del(AVND_CB *cb, AVND_SU *su)
 static bool comp_in_term_failed_state(void)
 {
 	AVND_COMP *comp =
-		(AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
+		(AVND_COMP *)compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)0);
 
 	while (comp != nullptr) {
 		if (comp->pres == SA_AMF_PRESENCE_TERMINATION_FAILED)
 			return true;
 
 		comp = (AVND_COMP *)
-		    ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)&comp->name);
+		    compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)&comp->name);
 	}
 
 	return false;

@@ -43,4 +43,6 @@ class ImmReader {
 		void operator=(const ImmReader&);
 };
 
+extern uint32_t avnd_evt_ir_evh(struct avnd_cb_tag *cb, struct avnd_evt_tag *evt);
+
 #endif

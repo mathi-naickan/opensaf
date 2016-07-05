@@ -30,11 +30,11 @@
 
 /* macro to get a component record from comp-db */
 #define m_AVND_INT_EXT_COMPDB_REC_GET(compdb, name) \
-   (AVND_COMP *)ncs_patricia_tree_get(&(compdb), (uint8_t *)&(name))
+	compdb_rec_get(&(compdb), &(name))
 
 /* macro to get the next component record from comp-db */
 #define m_AVND_INT_EXT_COMPDB_REC_GET_NEXT(compdb, name) \
-   (AVND_COMP *)ncs_patricia_tree_getnext(&(compdb), (uint8_t *)&(name))
+	compdb_rec_get_next(&(compdb), (uint8_t *)&(name))
 
 typedef struct avnd_node_id_to_mds_dest_map_tag {
 	NCS_PATRICIA_NODE tree_node;

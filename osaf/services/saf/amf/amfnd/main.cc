@@ -31,6 +31,7 @@
 #include "immutil.h"
 #include "logtrace.h"
 #include "nid_api.h"
+#include <imm.h>
 
 #define FD_MBX   0
 #define FD_TERM  1
@@ -117,7 +118,8 @@ extern const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX] = {
 	avnd_evt_comp_pres_fsm_evh,	/* AVND_EVT_COMP_PRES_FSM_EV */
 	avnd_evt_last_step_term_evh,	/* AVND_EVT_LAST_STEP_TERM */
 	avnd_evt_pid_exit_evh,	/* AVND_EVT_PID_EXIT */
-	avnd_evt_tmr_qscing_cmpl_evh	/* AVND_EVT_TMR_QSCING_CMPL */
+	avnd_evt_tmr_qscing_cmpl_evh,	/* AVND_EVT_TMR_QSCING_CMPL */
+	avnd_evt_ir_evh	/* AVND_EVT_IR */
 };
 
 extern struct ImmutilWrapperProfile immutilWrapperProfile;
@@ -534,7 +536,7 @@ void avnd_main_process(void)
 		LOG_ER("signal TERM failed: %s", strerror(errno));
 		goto done;
 	}
-
+	ImmReader::imm_reader_thread_create();
 	mbx_fd = ncs_ipc_get_sel_obj(&avnd_cb->mbx);
 	fds[FD_MBX].fd = mbx_fd.rmv_obj;
 	fds[FD_MBX].events = POLLIN;
@@ -634,6 +636,7 @@ void avnd_evt_process(AVND_EVT *evt)
 done:
 	if (evt)
 		avnd_evt_destroy(evt);
+	TRACE_LEAVE();
 }
 
 /*****************************************************************************

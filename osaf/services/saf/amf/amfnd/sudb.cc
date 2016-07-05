@@ -29,6 +29,9 @@
 
 #include "avnd.h"
 #include <immutil.h>
+#include "osaf_utility.h"
+
+static pthread_mutex_t sudb_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /****************************************************************************
   Name          : avnd_sudb_init
@@ -143,7 +146,9 @@ AVND_SU *avnd_sudb_rec_add(AVND_CB *cb, AVND_SU_PARAM *info, uint32_t *rc)
 	 */
 	su->tree_node.bit = 0;
 	su->tree_node.key_info = (uint8_t *)&su->name;
+	osaf_mutex_lock_ordie(&sudb_mutex);
 	*rc = ncs_patricia_tree_add(&cb->sudb, &su->tree_node);
+	osaf_mutex_unlock_ordie(&sudb_mutex);
 	if (NCSCC_RC_SUCCESS != *rc) {
 		*rc = AVND_ERR_TREE;
 		goto err;
@@ -205,7 +210,9 @@ uint32_t avnd_sudb_rec_del(AVND_CB *cb, SaNameT *name)
 	osafassert(su->si_list.n_nodes == 0);
 
 	/* remove from the patricia tree */
+	osaf_mutex_lock_ordie(&sudb_mutex);
 	rc = ncs_patricia_tree_del(&cb->sudb, &su->tree_node);
+	osaf_mutex_unlock_ordie(&sudb_mutex);
 	if (NCSCC_RC_SUCCESS != rc) {
 		LOG_NO("%s: %s tree del failed", __FUNCTION__, su->name.value);
 		rc = AVND_ERR_TREE;
@@ -270,3 +277,43 @@ done:
 	TRACE_LEAVE();
 	return rc;
 }
+
+/**
+ * This function return SU rec.
+ * @param Pointer to SUDB.
+ * @param Pointer to SU name.
+ * @return Pointer to SU.
+ */
+AVND_SU * sudb_rec_get(NCS_PATRICIA_TREE *sudb, const SaNameT *name) {
+	osaf_mutex_lock_ordie(&sudb_mutex);
+	AVND_SU *su = (AVND_SU *)ncs_patricia_tree_get(sudb, (uint8_t *)(name));
+	osaf_mutex_unlock_ordie(&sudb_mutex);
+	return su;
+}
+
+/**
+ * This function return next SU rec.
+ * @param Pointer to SUDB.
+ * @param Pointer to SU name.
+ * @return Pointer to SU.
+ */
+AVND_SU *sudb_rec_get_next(NCS_PATRICIA_TREE *sudb, uint8_t *name) {
+        osaf_mutex_lock_ordie(&sudb_mutex);
+        AVND_SU *su = (AVND_SU *)ncs_patricia_tree_getnext(sudb, (uint8_t *)(name));
+        osaf_mutex_unlock_ordie(&sudb_mutex);
+        return su;
+}
+
+/**
+ * This function adds comp to the comp-list
+ * @param Pointer to SUDB.
+ * @param Pointer to SU name.
+ * @return Pointer to SU.
+ */
+void sudb_rec_comp_add(AVND_SU *su, AVND_COMP *comp, uint32_t *rc) {
+	osaf_mutex_lock_ordie(&sudb_mutex);
+	comp->su_dll_node.key = (uint8_t *)&((comp)->inst_level);
+	*rc = ncs_db_link_list_add(&(su)->comp_list, &(comp)->su_dll_node);
+	osaf_mutex_unlock_ordie(&sudb_mutex);
+}
+
