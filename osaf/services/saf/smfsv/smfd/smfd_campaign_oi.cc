@@ -1168,7 +1168,6 @@ uint32_t read_config_and_set_control_block(smfd_cb_t * cb)
 	if((smfNodeBundleActCmd != NULL) && (strcmp(smfNodeBundleActCmd,"") != 0)) {
 		 cb->nodeBundleActCmd = strdup(smfNodeBundleActCmd);
 	}
-	cb->nodeBundleActCmd = strdup(smfNodeBundleActCmd);
 	cb->smfSiSwapSiName = strdup(smfSiSwapSiName);
 	cb->smfSiSwapMaxRetry = *smfSiSwapMaxRetry;
 	cb->smfCampMaxRestart = *smfCampMaxRestart;
