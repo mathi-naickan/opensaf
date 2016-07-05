@@ -1165,6 +1165,9 @@ uint32_t read_config_and_set_control_block(smfd_cb_t * cb)
 	cb->adminOpTimeout = *adminOpTimeout;
 	cb->cliTimeout = *cliTimeout;
 	cb->rebootTimeout = *rebootTimeout;
+	if((smfNodeBundleActCmd != NULL) && (strcmp(smfNodeBundleActCmd,"") != 0)) {
+		 cb->nodeBundleActCmd = strdup(smfNodeBundleActCmd);
+	}
 	cb->nodeBundleActCmd = strdup(smfNodeBundleActCmd);
 	cb->smfSiSwapSiName = strdup(smfSiSwapSiName);
 	cb->smfSiSwapMaxRetry = *smfSiSwapMaxRetry;
