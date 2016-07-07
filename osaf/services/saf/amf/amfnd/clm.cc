@@ -54,12 +54,12 @@ static void clm_node_left(SaClmNodeIdT node_id)
 	   
 		LOG_NO("This node has exited the cluster");
 		avnd_cb->node_info.member = SA_FALSE;
-		comp = (AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
+		comp = (AVND_COMP *)compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)0);
 		while( comp != NULL ) {
 			if(comp->su->is_ncs != true ) {
 				avnd_comp_clc_fsm_run(avnd_cb, comp, AVND_COMP_CLC_PRES_FSM_EV_TERM);
 			}
-			comp = (AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb,(uint8_t *)&comp->name);
+			comp = (AVND_COMP *)compdb_rec_get_next(&avnd_cb->compdb,(uint8_t *)&comp->name);
 		}
 		goto done;
 	}

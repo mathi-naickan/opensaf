@@ -37,6 +37,7 @@
 #include <logtrace.h>
 
 #include <avnd.h>
+#include <avnd_su.h>
 
 /* static function declarations */
 static uint32_t avnd_comp_clc_uninst_inst_hdler(AVND_CB *, AVND_COMP *);
@@ -707,7 +708,7 @@ static int all_comps_terminated(void)
 	TRACE_ENTER();
 
 	/* Scan all components to see if we're done terminating all comps */
-	comp = (AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
+	comp = (AVND_COMP *)compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)0);
 	while (comp != 0) {
 		if ((comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) &&
 		    (comp->pres != SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
@@ -717,7 +718,7 @@ static int all_comps_terminated(void)
 			break;
 		}
 
-		comp = (AVND_COMP *) ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)&comp->name);
+		comp = (AVND_COMP *) compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)&comp->name);
 	}
 
 	TRACE_LEAVE2("%d", all_comps_terminated);
@@ -733,9 +734,9 @@ static bool all_app_comps_terminated(void)
 {
 	AVND_COMP *comp;
 
-	for (comp = (AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
+	for (comp = (AVND_COMP *)compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)0);
 		  comp;
-		  comp = (AVND_COMP *) ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)&comp->name)) {
+		  comp = (AVND_COMP *) compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)&comp->name)) {
 
 		/* Skip OpenSAF and external components */
 		if (comp->su->is_ncs || comp->su->su_is_external)
@@ -786,7 +787,7 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 				rc = avnd_di_oper_send(cb, cb->failed_su, SA_AMF_NODE_FAILOVER);
 				osafassert(NCSCC_RC_SUCCESS == rc);
 				/* delete all SUSI record in amfnd database */
-				tmp_su = (AVND_SU *)ncs_patricia_tree_getnext(&cb->sudb, (uint8_t *)0);
+				tmp_su = (AVND_SU *)sudb_rec_get_next(&cb->sudb, (uint8_t *)0);
 				while (tmp_su != NULL) {
 					if (tmp_su->is_ncs || tmp_su->su_is_external) {
 						/* Don't delete middleware SUSI. We are only performing appl
@@ -795,7 +796,7 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 					} else {
 						avnd_su_si_del(cb, &tmp_su->name);
 					}
-					tmp_su = (AVND_SU *) ncs_patricia_tree_getnext(&cb->sudb,
+					tmp_su = (AVND_SU *) sudb_rec_get_next(&cb->sudb,
 							(uint8_t *)&tmp_su->name);
 
 				}

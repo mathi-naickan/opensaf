@@ -40,5 +40,6 @@ noinst_HEADERS = \
    avnd_ckpt_msg.h \
    avnd_ckpt_updt.h \
    avnd_mbcsv.h \
-   avnd_proxy.h
+   avnd_proxy.h \
+   imm.h
 

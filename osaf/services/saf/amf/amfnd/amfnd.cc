@@ -399,9 +399,9 @@ uint32_t avnd_evt_avd_reboot_evh(AVND_CB *cb, AVND_EVT *evt)
 	   TODO: This for loop can be removed if AVD remembers and checkpoints 
 	   alarms sent due to error report.
 	 */
-	for (AVND_COMP *comp = (AVND_COMP *)ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)0);
+	for (AVND_COMP *comp = (AVND_COMP *)compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)0);
 		  comp;
-		  comp = (AVND_COMP *) ncs_patricia_tree_getnext(&avnd_cb->compdb, (uint8_t *)&comp->name)) {
+		  comp = (AVND_COMP *) compdb_rec_get_next(&avnd_cb->compdb, (uint8_t *)&comp->name)) {
 
 		/* Skip OpenSAF and external components */
 		if (comp->su->is_ncs || comp->su->su_is_external)

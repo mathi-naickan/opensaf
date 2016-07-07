@@ -64,7 +64,7 @@ void avnd_last_step_clean(AVND_CB *cb)
 
 	LOG_NO("Terminating all AMF components");
 
-	comp = (AVND_COMP *)ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)0);
+	comp = (AVND_COMP *)compdb_rec_get_next(&cb->compdb, (uint8_t *)0);
 	while (comp != NULL) {
 		if (false == comp->su->su_is_external) {
 			/* Don't call cleanup script for PI/NPI components in UNINSTANTIATED state.*/
@@ -80,7 +80,7 @@ void avnd_last_step_clean(AVND_CB *cb)
 		}
 
 		comp = (AVND_COMP *)
-		    ncs_patricia_tree_getnext(&cb->compdb, (uint8_t *)&comp->name);
+		    compdb_rec_get_next(&cb->compdb, (uint8_t *)&comp->name);
 	}
 
 	/* Stop was called early or some other problem */

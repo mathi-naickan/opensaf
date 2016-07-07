@@ -168,6 +168,11 @@ AVND_EVT *avnd_evt_create(AVND_CB *cb,
 		/* nothing to be copied, evt type should do. */
 		break;
 
+	case AVND_EVT_IR:
+		/* Only SU name to be copied. */
+		memcpy(&evt->info.ir_evt.su_name, info, sizeof(SaNameT));
+		break;
+
 	case AVND_EVT_PID_EXIT:
 		evt->info.pm_evt.comp_name = ((AVND_COMP_PM_REC *)info)->comp->name;
 		evt->info.pm_evt.pid = ((AVND_COMP_PM_REC *)info)->pid;
@@ -292,6 +297,10 @@ void avnd_evt_destroy(AVND_EVT *evt)
 
 		/* PID exist event */
 	case AVND_EVT_PID_EXIT:
+		break;
+
+		/* Imm Reader event */
+	case AVND_EVT_IR:
 		break;
 
 	default:

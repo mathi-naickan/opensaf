@@ -65,7 +65,8 @@ osafamfnd_SOURCES = \
 	term.cc \
 	tmr.cc \
 	util.cc \
-	verify.cc 
+	verify.cc \
+	imm.cc
 
 osafamfnd_LDADD = \
 	$(top_builddir)/osaf/tools/safimm/src/libimmutil.la \
