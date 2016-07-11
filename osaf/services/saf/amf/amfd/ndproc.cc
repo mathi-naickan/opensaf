@@ -810,7 +810,7 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	}
 
 	if ((node->node_state == AVD_AVND_STATE_ABSENT) || (node->node_state == AVD_AVND_STATE_GO_DOWN)) {
-		LOG_ER("%s: node %x, receive msg_id(%u) in invalid node state %u",
+		LOG_WA("%s: node %x, receive msg_id(%u) in invalid node state %u",
 			__FUNCTION__, node->node_info.nodeId,
 			n2d_msg->msg_info.n2d_data_req.msg_id, node->node_state);
 
