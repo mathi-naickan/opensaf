@@ -815,10 +815,28 @@ static void si_admin_op_cb(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 
 	si = avd_si_get(objectName);
 	
-	if ((operationId != SA_AMF_ADMIN_SI_SWAP) && (si->sg_of_si->sg_ncs_spec == true)) {
+	if ((operationId != SA_AMF_ADMIN_SI_SWAP) && (operationId != SA_AMF_ADMIN_LOCK) &&
+			(operationId != SA_AMF_ADMIN_UNLOCK) && (si->sg_of_si->sg_ncs_spec == true)) {
 		report_admin_op_error(immOiHandle, invocation, SA_AIS_ERR_NOT_SUPPORTED, NULL,
 				"Admin operation %llu on MW SI is not allowed", operationId);
 		goto done;
+	}
+	if (((operationId == SA_AMF_ADMIN_LOCK) || (operationId == SA_AMF_ADMIN_UNLOCK)) &&
+			(si->sg_of_si->sg_ncs_spec == true)) { 
+		if (si->sg_of_si->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL) {
+			report_admin_op_error(immOiHandle, invocation, 
+					SA_AIS_ERR_NOT_SUPPORTED, nullptr,
+					"Admin operation %llu on MW 2N SI is not allowed", operationId);
+			goto done;
+		} else if ((si->sg_of_si->sg_redundancy_model == SA_AMF_NO_REDUNDANCY_MODEL) &&
+				(si->list_of_sisu != nullptr) && (operationId == SA_AMF_ADMIN_LOCK) &&
+				(avd_cb->node_id_avd == si->list_of_sisu->su->su_on_node->node_info.nodeId)) {
+			//No specific reason, but conforming to existing notions for active SC.
+			report_admin_op_error(immOiHandle, invocation, 
+				SA_AIS_ERR_NOT_SUPPORTED, nullptr,
+				"Admin lock of MW SI assigned on Active SC is not allowed");
+			goto done;
+		}
 	}
 	/* if Tolerance timer is running for any SI's withing this SG, then return SA_AIS_ERR_TRY_AGAIN */
         if (sg_is_tolerance_timer_running_for_any_si(si->sg_of_si)) {
