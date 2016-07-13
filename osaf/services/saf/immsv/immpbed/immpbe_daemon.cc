@@ -1373,7 +1373,7 @@ static SaAisErrorT saImmOiCcbCompletedCallback(SaImmOiHandleT immOiHandle, SaImm
 
 	if ((ccbUtilCcbData = ccbutil_findCcbData(ccbId)) == NULL) {
 		LOG_WA("Failed to find CCB object for %llx/%llu - checking DB file for outcome", ccbId, ccbId);
-		rc = getCcbOutcomeFromPbe(sDbHandle, ccbId, sEpoch);/* rc=BAD_OPERATION or OK */
+		rc = getCcbOutcomeFromPbe(sDbHandle, ccbId, sEpoch);/* rc=NO_RESOURCES or OK */
 		(void) ccbutil_getCcbData(ccbId); /*generate an empty record*/
 		goto done;
 	}

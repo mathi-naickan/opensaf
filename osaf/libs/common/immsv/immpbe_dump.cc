@@ -3053,7 +3053,7 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T cur
 	sqlite3* dbHandle = (sqlite3 *) db_handle;
 	sqlite3_stmt *stmt;
 	int rc=0;
-	SaAisErrorT err = SA_AIS_ERR_BAD_OPERATION;
+	SaAisErrorT err = SA_AIS_ERR_NO_RESOURCES;
 	bool badfile=false;
 
 	TRACE_ENTER2("get Outcome for ccb:%llu", ccbId);
@@ -3067,7 +3067,7 @@ SaAisErrorT getCcbOutcomeFromPbe(void* db_handle, SaUint64T ccbId, SaUint32T cur
 	if(rc == SQLITE_DONE) {
 		sqlite3_reset(stmt);
 		LOG_NO("getCcbOutcomeFromPbe: Could not find ccb %llu presume ABORT", ccbId);
-		err = SA_AIS_ERR_BAD_OPERATION;
+		err = SA_AIS_ERR_NO_RESOURCES;
 	} else if(rc != SQLITE_ROW) {
 		LOG_ER("SQL statement ('%s') failed because:\n %s",
 				preparedSql[SQL_SEL_CCB_COMMITS], sqlite3_errmsg(dbHandle));
