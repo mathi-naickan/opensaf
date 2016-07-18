@@ -111,7 +111,12 @@ void ImmReader::ir_process_event(AVND_EVT *evt) {
 		goto done;
 	}
 
-	res = avnd_comp_config_get_su(su);
+	if(false == su->is_ncs) {
+		res = avnd_comp_config_get_su(su);
+	} else {
+		res = NCSCC_RC_FAILURE;
+	}
+
 	{
 		AVND_EVT *evt_ir = 0;
 		TRACE("Sending to main thread.");
