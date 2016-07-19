@@ -826,7 +826,7 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 		TRACE("Term state is SHUTDOWN STARTED, event '%s'", pres_state_evt[ev]);
 		switch (ev) {
 			case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC:
-				avnd_comp_pres_state_set(cb, comp, SA_AMF_PRESENCE_UNINSTANTIATED);
+				avnd_comp_pres_state_set(comp, SA_AMF_PRESENCE_UNINSTANTIATED);
 				if (all_comps_terminated()) {
 					LOG_NO("Terminated all AMF components");
 					LOG_NO("Shutdown completed, exiting");
