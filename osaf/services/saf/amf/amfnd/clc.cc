@@ -822,7 +822,7 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 	if ((cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED) &&
 			m_AVND_SU_IS_PREINSTANTIABLE(comp->su) &&
 			(!m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp)) &&
-			(comp->pres == SA_AMF_PRESENCE_TERMINATING)) {
+			(comp->pres == SA_AMF_PRESENCE_TERMINATING) && (!comp->csi_list.n_nodes)) {
 		TRACE("Term state is SHUTDOWN STARTED, event '%s'", pres_state_evt[ev]);
 		switch (ev) {
 			case AVND_COMP_CLC_PRES_FSM_EV_CLEANUP_SUCC:
