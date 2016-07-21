@@ -6527,7 +6527,13 @@ SaAisErrorT saImmOmCcbObjectRead(SaImmCcbHandleT ccbHandle, SaConstStringT objec
 			goto done;
 		}
 
+		osafassert(out_evt);
+		osafassert(out_evt->type == IMMSV_EVT_TYPE_IMMA);
+		osafassert(out_evt->info.imma.type == IMMA_EVT_ND2A_IMM_ERROR);
 		rc = out_evt->info.imma.info.errRsp.error;
+		free(out_evt);
+		out_evt = NULL;
+
 		if(rc != SA_AIS_OK ) { 
 			goto done;
 		}
