@@ -224,7 +224,7 @@ unsigned int ncs_os_task(NCS_OS_TASK *task, NCS_OS_TASK_REQUEST request)
 					    (void *(*)(void *))task->info.create.i_entry_point,
 					    task->info.create.i_ep_arg);
 			if (rc == EPERM && policy != SCHED_OTHER) {
-				LOG_WA("pthread_create failed with EPERM, "
+				LOG_IN("pthread_create failed with EPERM, "
 					"falling back to SCHED_OTHER policy "
 					"for %s", task->info.create.i_name);
 				policy = SCHED_OTHER;
