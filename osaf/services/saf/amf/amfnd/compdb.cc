@@ -1908,9 +1908,19 @@ int avnd_comp_config_reinit(AVND_COMP *comp)
 	TRACE_1("%s", comp->name.value);
 
 	error = saImmOmInitialize_cond(&immOmHandle, nullptr, &immVersion);
+	/* If this is a case of headless, then proceed without reading the
+	   configuration. */
 	if (error != SA_AIS_OK) {
-		LOG_CR("saImmOmInitialize FAILED for '%s'", comp->name.value);
-		goto done1;
+		if (avnd_cb->is_avd_down == true) {
+			LOG_WA("saImmOmInitialize FAILED(error: '%u') for '%s' in"
+					" headless state, continuing with old configuration",
+					error, comp->name.value);
+			res = 0;
+			goto done1;
+		} else {
+			LOG_CR("saImmOmInitialize FAILED for '%s', error %u", comp->name.value, error);
+			goto done1;
+		}
 	}
 	error = immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
 	if (error != SA_AIS_OK) {
