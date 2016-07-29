@@ -695,12 +695,12 @@ static void hydra_config_get(AVND_CB *cb)
 	dn.length = strlen((char *)dn.value);
 
 	immutil_saImmOmInitialize(&immOmHandle, nullptr, &immVersion);
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
-	rc = immutil_saImmOmAccessorGet_2(accessorHandle, &dn, attributeNames,
+	amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
+	rc = amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, &dn, attributeNames,
 		(SaImmAttrValuesT_2 ***)&attributes);
 
 	if (rc != SA_AIS_OK) {
-		LOG_WA("saImmOmAccessorGet_2 FAILED %u for %s", rc, dn.value);
+		LOG_WA("amf_saImmOmAccessorGet_2 FAILED %u for %s", rc, dn.value);
 		goto done;
 	}
 

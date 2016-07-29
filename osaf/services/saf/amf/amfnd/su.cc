@@ -68,13 +68,13 @@ static bool get_su_failover(const SaNameT *name)
 		LOG_CR("saImmOmInitialize failed: %u", error);
 		goto done1;
 	}
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+	amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
 
 	/* Use an attribute name list to avoid reading runtime attributes which
 	 * causes callbacks executed in AMF director. */
-	if (immutil_saImmOmAccessorGet_2(accessorHandle, name, attributeNames,
+	if (amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, name, attributeNames,
 		(SaImmAttrValuesT_2 ***)&attributes) != SA_AIS_OK) {
-		LOG_ER("saImmOmAccessorGet_2 FAILED for '%s'", name->value);
+		LOG_ER("amf_saImmOmAccessorGet_2 FAILED for '%s'", name->value);
 		goto done;
 	}
 
@@ -86,7 +86,7 @@ static bool get_su_failover(const SaNameT *name)
 
 			attributeNames[0] = const_cast<SaImmAttrNameT>("saAmfSutDefSUFailover");
 			attributeNames[1] = nullptr;
-			if (immutil_saImmOmAccessorGet_2(accessorHandle, &sutype, nullptr,
+			if (amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, &sutype, nullptr,
 					(SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
 				immutil_getAttr(const_cast<SaImmAttrNameT>("saAmfSutDefSUFailover"),
 					attributes, 0, &sufailover);
@@ -332,9 +332,9 @@ static uint32_t get_sirank(const SaNameT *dn)
 		LOG_CR("saImmOmInitialize failed: %u", error);
 		goto done;
 	}
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+	amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
 
-	osafassert((error = immutil_saImmOmAccessorGet_2(accessorHandle, dn,
+	osafassert((error = amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, dn,
 		attributeNames, (SaImmAttrValuesT_2 ***)&attributes)) == SA_AIS_OK);
 
 	osafassert((error = immutil_getAttr(attributeNames[0], attributes, 0, &rank)) == SA_AIS_OK);
