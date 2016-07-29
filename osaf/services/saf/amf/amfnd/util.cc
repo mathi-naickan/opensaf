@@ -30,7 +30,7 @@
   
 ******************************************************************************
 */
-
+#include <immutil.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -640,6 +640,95 @@ void amf_cbk_free(AVSV_AMF_CBK_INFO *cbk_info)
 	delete cbk_info;
 
 	return;
+}
+
+SaAisErrorT amf_saImmOmInitialize(SaImmHandleT& immHandle)
+{
+	SaVersionT immVersion = { 'A', 2, 11 };
+	return saImmOmInitialize(&immHandle, NULL, &immVersion);
+}
+
+SaAisErrorT amf_saImmOmAccessorInitialize(SaImmHandleT& immHandle,
+	SaImmAccessorHandleT& accessorHandle)
+{
+	// note: this will handle SA_AIS_ERR_BAD_HANDLE just once
+	SaAisErrorT rc = immutil_saImmOmAccessorInitialize(immHandle, &accessorHandle);
+	if (rc == SA_AIS_ERR_BAD_HANDLE) {
+		saImmOmFinalize(immHandle);
+		rc = amf_saImmOmInitialize(immHandle);
+
+		// re-attempt immutil_saImmOmAccessorInitialize once more
+		if (rc == SA_AIS_OK) {
+			rc = immutil_saImmOmAccessorInitialize(immHandle, &accessorHandle);
+		}
+	}
+
+	return rc;
+}
+
+SaAisErrorT amf_saImmOmSearchInitialize_2(SaImmHandleT& immHandle,
+	const SaNameT * rootName,
+	SaImmScopeT scope,
+	SaImmSearchOptionsT searchOptions,
+	const SaImmSearchParametersT_2 *
+	searchParam,
+	const SaImmAttrNameT *
+	attributeNames,
+	SaImmSearchHandleT& searchHandle)
+{
+	// note: this will handle SA_AIS_ERR_BAD_HANDLE just once
+	SaAisErrorT rc = immutil_saImmOmSearchInitialize_2(immHandle,
+		rootName,
+		scope,
+		searchOptions,
+		searchParam,
+		attributeNames,
+		&searchHandle);
+
+	if (rc == SA_AIS_ERR_BAD_HANDLE) {
+		immutil_saImmOmFinalize(immHandle);
+		rc = amf_saImmOmInitialize(immHandle);
+
+		// re-attempt immutil_saImmOmSearchInitialize_2 once more
+		if (rc == SA_AIS_OK) {
+			rc = immutil_saImmOmSearchInitialize_2(immHandle,
+				rootName,
+				scope,
+				searchOptions,
+				searchParam,
+				attributeNames,
+				&searchHandle);
+		}
+	}
+	return rc;
+}
+
+SaAisErrorT amf_saImmOmAccessorGet_2(SaImmHandleT& immHandle,
+	SaImmAccessorHandleT& accessorHandle,
+	const SaNameT * objectName,
+	const SaImmAttrNameT * attributeNames,
+	SaImmAttrValuesT_2 *** attributes)
+{
+	// note: this will handle SA_AIS_ERR_BAD_HANDLE just once
+	SaAisErrorT rc = immutil_saImmOmAccessorGet_2(accessorHandle,
+		objectName, attributeNames, attributes);
+	
+	if (rc == SA_AIS_ERR_BAD_HANDLE) {
+		immutil_saImmOmAccessorFinalize(accessorHandle);
+		immutil_saImmOmFinalize(immHandle);
+		rc = amf_saImmOmInitialize(immHandle);
+
+		if (rc == SA_AIS_OK) {
+			rc = amf_saImmOmAccessorInitialize(immHandle, accessorHandle);
+		}
+
+		if (rc == SA_AIS_OK) {
+			rc = immutil_saImmOmAccessorGet_2(accessorHandle,
+				objectName, attributeNames, attributes);
+		}
+	}
+
+	return rc;
 }
 
 /****************************************************************************

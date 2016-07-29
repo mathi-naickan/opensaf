@@ -256,9 +256,9 @@ SaAisErrorT avnd_hc_config_get(AVND_COMP *comp)
 	searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
 	searchParam.searchOneAttr.attrValue = &className;
 
-	error = immutil_saImmOmSearchInitialize_2(immOmHandle, &comp_dn,
+	error = amf_saImmOmSearchInitialize_2(immOmHandle, &comp_dn,
 		SA_IMM_SUBTREE, SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR,
-		&searchParam, NULL, &searchHandle);
+		&searchParam, NULL, searchHandle);
 
 	if (SA_AIS_OK != error) {
 		LOG_ER("saImmOmSearchInitialize_2 failed: %u", error);
@@ -331,9 +331,9 @@ SaAisErrorT avnd_hctype_config_get(SaImmHandleT immOmHandle, const SaNameT *comp
 	searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
 	searchParam.searchOneAttr.attrValue = &className;
 
-	error = immutil_saImmOmSearchInitialize_2(immOmHandle, comptype_dn,
+	error = amf_saImmOmSearchInitialize_2(immOmHandle, comptype_dn,
 		SA_IMM_SUBTREE, SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR,
-		&searchParam, NULL, &searchHandle);
+		&searchParam, NULL, searchHandle);
 
 	if (SA_AIS_OK != error) {
 		LOG_ER("saImmOmSearchInitialize_2 failed: %u", error);

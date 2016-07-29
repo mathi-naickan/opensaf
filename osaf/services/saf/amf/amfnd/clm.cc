@@ -123,9 +123,9 @@ static void clm_to_amf_node(void)
 
 	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
 
-	error = immutil_saImmOmSearchInitialize_2(immOmHandle, NULL, SA_IMM_SUBTREE,
+	error = amf_saImmOmSearchInitialize_2(immOmHandle, NULL, SA_IMM_SUBTREE,
 					SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_ALL_ATTR,
-					&searchParam,NULL, &searchHandle);
+					&searchParam, NULL, searchHandle);
 
 	if (SA_AIS_OK != error) {
 		LOG_ER("No objects found");

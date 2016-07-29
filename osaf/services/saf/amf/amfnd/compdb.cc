@@ -39,6 +39,7 @@
 #include <avnd.h>
 #include "osaf_utility.h"
 
+extern struct ImmutilWrapperProfile immutilWrapperProfile;
 static pthread_mutex_t compdb_mutex = PTHREAD_MUTEX_INITIALIZER;
 //
 // TODO(HANO) Temporary use this function instead of strdup which uses malloc.
@@ -128,8 +129,8 @@ static SaAisErrorT avnd_compglobalattrs_config_get(SaImmHandleT immOmHandle)
 
 	dn.length = strlen((char *)dn.value);
 
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
-	rc = immutil_saImmOmAccessorGet_2(accessorHandle, &dn, NULL, (SaImmAttrValuesT_2 ***)&attributes);
+	amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
+	rc = amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, &dn, NULL, (SaImmAttrValuesT_2 ***)&attributes);
 	if (rc != SA_AIS_OK) {
 		LOG_ER("saImmOmAccessorGet_2 FAILED %u", rc);
 		goto done;
@@ -1145,10 +1146,10 @@ static amf_comp_type_t *avnd_comptype_create(SaImmHandleT immOmHandle, const SaN
 
 	compt = new amf_comp_type_t();
 
-	(void)immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+	(void)amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
 
-	if (immutil_saImmOmAccessorGet_2(accessorHandle, dn, NULL, (SaImmAttrValuesT_2 ***)&attributes) != SA_AIS_OK) {
-		LOG_ER("saImmOmAccessorGet_2 FAILED for '%s'", dn->value);
+	if (amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, dn, NULL, (SaImmAttrValuesT_2 ***)&attributes) != SA_AIS_OK) {
+		LOG_ER("amf_saImmOmAccessorGet_2 FAILED for '%s'", dn->value);
 		goto done;
 	}
 
@@ -1351,10 +1352,10 @@ static int get_string_attr_from_imm(SaImmOiHandleT immOmHandle, SaImmAttrNameT a
 	SaAisErrorT error;
 	TRACE_ENTER();
 
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+	amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
 
-	if ((error = immutil_saImmOmAccessorGet_2(accessorHandle, dn, attributeNames, (SaImmAttrValuesT_2 ***)&attributes)) != SA_AIS_OK) {
-		TRACE("saImmOmAccessorGet FAILED %u for %s", error, dn->value);
+	if ((error = amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, dn, attributeNames, (SaImmAttrValuesT_2 ***)&attributes)) != SA_AIS_OK) {
+		TRACE("amf_saImmOmAccessorGet FAILED %u for %s", error, dn->value);
 		goto done;
 	}
 
@@ -1847,40 +1848,61 @@ unsigned int avnd_comp_config_get_su(AVND_SU *su)
 	AVND_COMP *comp;
 	SaImmHandleT immOmHandle;
 	SaVersionT immVersion = { 'A', 2, 11 };
-
+	uint32_t no_of_retries = 0;
+	const uint32_t MAX_NO_RETRIES = immutilWrapperProfile.nTries;
 	TRACE_ENTER2("SU'%s'", su->name.value);
 
-	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
-	searchParam.searchOneAttr.attrName = const_cast<SaImmAttrNameT>("SaImmAttrClassName");
-	searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
-	searchParam.searchOneAttr.attrValue = &className;
-
-	if ((error = immutil_saImmOmSearchInitialize_2(immOmHandle, &su->name,
-		SA_IMM_SUBTREE, SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_CONFIG_ATTR,
-		&searchParam, NULL, &searchHandle)) != SA_AIS_OK) {
-
-		LOG_ER("saImmOmSearchInitialize_2 failed: %u", error);
-		goto done1;
-	}
-
-	while (immutil_saImmOmSearchNext_2(searchHandle, &comp_name,
-		(SaImmAttrValuesT_2 ***)&attributes) == SA_AIS_OK) {
-
-		TRACE_1("'%s'", comp_name.value);
-		if(0 == m_AVND_COMPDB_REC_GET(avnd_cb->compdb, comp_name)) {
-			if ((comp = avnd_comp_create(&comp_name, attributes, su)) == NULL)
-				goto done2;
-
-			avnd_hc_config_get(comp);
+	// this loop construct is to handle BAD_HANDLE from immutil_saImmOmSearchNext_2()
+	while (++no_of_retries < MAX_NO_RETRIES) {
+		error = immutil_saImmOmInitialize(&immOmHandle, nullptr, &immVersion);
+		if (error != SA_AIS_OK) {
+			LOG_CR("saImmOmInitialize failed: %u", error);
+			goto done;
 		}
-	}
+		searchParam.searchOneAttr.attrName = const_cast<SaImmAttrNameT> ("SaImmAttrClassName");
+		searchParam.searchOneAttr.attrValueType = SA_IMM_ATTR_SASTRINGT;
+		searchParam.searchOneAttr.attrValue = &className;
 
-	rc = NCSCC_RC_SUCCESS;
+		if ((error = amf_saImmOmSearchInitialize_2(immOmHandle, &su->name,
+			SA_IMM_SUBTREE, SA_IMM_SEARCH_ONE_ATTR | SA_IMM_SEARCH_GET_CONFIG_ATTR,
+			&searchParam, nullptr, searchHandle)) != SA_AIS_OK) {
+
+			LOG_ER("amf_saImmOmSearchInitialize_2 failed: %u", error);
+			goto done1;
+		}
+
+		while (error == SA_AIS_OK) {
+			error = immutil_saImmOmSearchNext_2(searchHandle, &comp_name,
+				(SaImmAttrValuesT_2 ***) & attributes);
+
+			if (error != SA_AIS_OK) {
+				break;
+			}
+
+			TRACE_1("'%s'", comp_name.value);
+			if (0 == m_AVND_COMPDB_REC_GET(avnd_cb->compdb, comp_name)) {
+				if ((comp = avnd_comp_create(&comp_name, attributes, su)) == nullptr)
+					goto done2;
+
+				avnd_hc_config_get(comp);
+			}
+		}
+
+		if (error == SA_AIS_ERR_BAD_HANDLE) {
+			immutil_saImmOmSearchFinalize(searchHandle);
+			immutil_saImmOmFinalize(immOmHandle);
+			continue;
+		}
+
+		rc = NCSCC_RC_SUCCESS;
+		break;
+	}
 
  done2:
 	(void)immutil_saImmOmSearchFinalize(searchHandle);
  done1:
 	immutil_saImmOmFinalize(immOmHandle);
+ done:
 	TRACE_LEAVE();
 	return rc;
 }
@@ -1899,6 +1921,7 @@ int avnd_comp_config_reinit(AVND_COMP *comp)
 	const SaImmAttrValuesT_2 **attributes;
 	SaImmHandleT immOmHandle;
 	SaVersionT immVersion = { 'A', 2, 1 };
+	SaAisErrorT error;
 
 	TRACE_ENTER2("'%s'", comp->name.value);
 
@@ -1916,13 +1939,16 @@ int avnd_comp_config_reinit(AVND_COMP *comp)
 	TRACE_1("%s", comp->name.value);
 
 	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
-
-	if (immutil_saImmOmAccessorGet_2(accessorHandle, &comp->name, NULL,
+	error = amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
+	if (error != SA_AIS_OK) {
+		LOG_CR("amf_saImmOmAccessorInitialize FAILED for '%s'", comp->name.value);
+		goto done2;
+	}
+	if (amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, &comp->name, NULL,
 		(SaImmAttrValuesT_2 ***)&attributes) != SA_AIS_OK) {
 
-		LOG_ER("saImmOmAccessorGet_2 FAILED for '%s'", comp->name.value);
-		goto done2;
+		LOG_ER("amf_saImmOmAccessorGet_2 FAILED for '%s'", comp->name.value);
+		goto done3;
 	}
 
 	res = comp_init(comp, attributes);
@@ -1932,8 +1958,9 @@ int avnd_comp_config_reinit(AVND_COMP *comp)
 	/* need to get HC type configuration also if that has been recently created */
 	avnd_hctype_config_get(immOmHandle, &comp->saAmfCompType);
 
-done2:
+done3:
 	immutil_saImmOmAccessorFinalize(accessorHandle);
+done2:
 	immutil_saImmOmFinalize(immOmHandle);
 done1:
 	TRACE_LEAVE2("%u", res);

@@ -56,5 +56,20 @@ void amf_csi_attr_list_free(SaAmfCSIAttributeListT *attrs);
 uint32_t amf_cbk_copy(AVSV_AMF_CBK_INFO **o_dcbk, const AVSV_AMF_CBK_INFO *scbk);
 void amf_cbk_free(AVSV_AMF_CBK_INFO* cbk_info);
 void nd2nd_avnd_msg_free(AVSV_ND2ND_AVND_MSG *msg);
-
+SaAisErrorT amf_saImmOmAccessorInitialize(SaImmHandleT& immHandle,
+	SaImmAccessorHandleT& accessorHandle);
+SaAisErrorT amf_saImmOmSearchInitialize_2(SaImmHandleT& immHandle,
+	const SaNameT * rootName,
+	SaImmScopeT scope,
+	SaImmSearchOptionsT searchOptions,
+	const SaImmSearchParametersT_2 *
+	searchParam,
+	const SaImmAttrNameT *
+	attributeNames,
+	SaImmSearchHandleT& searchHandle);
+SaAisErrorT amf_saImmOmAccessorGet_2(SaImmHandleT& immHandle,
+	SaImmAccessorHandleT& accessorHandle,
+	const SaNameT * objectName,
+	const SaImmAttrNameT * attributeNames,
+	SaImmAttrValuesT_2 *** attributes);
 #endif   /* !AVND_UTIL_H */

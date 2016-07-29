@@ -255,9 +255,9 @@ static void get_cstype(SaImmHandleT immOmHandle,
 	// TODO remove, just for test
 	LOG_NO("get_cstype: csi = '%s'", csi_name->value);
 
-	if ((error = immutil_saImmOmAccessorGet_2(accessorHandle, csi_name,
+	if ((error = amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, csi_name,
 			attributeNames,	(SaImmAttrValuesT_2 ***)&attributes)) != SA_AIS_OK) {
-		LOG_ER("saImmOmAccessorGet FAILED %u for %s", error, csi_name->value);
+		LOG_ER("amf_saImmOmAccessorGet FAILED %u for %s", error, csi_name->value);
 		osafassert(0);
 	}
 
@@ -286,14 +286,14 @@ static SaAmfCompCapabilityModelT get_comp_capability(const SaNameT *comp_type,
 	TRACE_ENTER2("comptype = '%s' : csi = '%s'", comp_type->value, csi_name->value);
 
 	immutil_saImmOmInitialize(&immOmHandle, NULL, &immVersion);
-	immutil_saImmOmAccessorInitialize(immOmHandle, &accessorHandle);
+	amf_saImmOmAccessorInitialize(immOmHandle, accessorHandle);
 
 	get_cstype(immOmHandle, accessorHandle, csi_name, &cs_type);
 	avsv_create_association_class_dn(&cs_type, comp_type, "safSupportedCsType", &dn);
 
-	if ((error = immutil_saImmOmAccessorGet_2(accessorHandle, &dn, attributeNames,
+	if ((error = amf_saImmOmAccessorGet_2(immOmHandle, accessorHandle, &dn, attributeNames,
 			(SaImmAttrValuesT_2 ***)&attributes)) != SA_AIS_OK) {
-		LOG_ER("saImmOmAccessorGet FAILED %u for'%s'", error, dn.value);
+		LOG_ER("amf_saImmOmAccessorGet FAILED %u for'%s'", error, dn.value);
 		goto done;
 	}
 
