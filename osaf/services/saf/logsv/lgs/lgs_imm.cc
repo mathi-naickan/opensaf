@@ -2275,7 +2275,7 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 	bool new_cfg_file_needed = false;
 	struct timespec curtime_tspec;
 	std::string fileName;
-	bool modify = false;
+	bool stream_filename_modified = false;
 
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, opdata->objectName.value);
 
@@ -2295,7 +2295,7 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 
 		if (!strcmp(attribute->attrName, "saLogStreamFileName")) {
 			fileName = *((char **)value);
-			modify = true;
+			stream_filename_modified = true;
 		} else if (!strcmp(attribute->attrName, "saLogStreamMaxLogFileSize")) {
 			SaUint64T maxLogFileSize = *((SaUint64T *)value);
 			stream->maxLogFileSize = maxLogFileSize;
@@ -2337,18 +2337,8 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 	time_t cur_time = curtime_tspec.tv_sec;
 	std::string root_path = static_cast<const char *>(lgs_cfg_get(LGS_IMM_LOG_ROOT_DIRECTORY));
 
-	if (new_cfg_file_needed) {
-		int rc;
-		if ((rc = log_stream_config_change(LGS_STREAM_CREATE_FILES,
-				root_path, stream,
-				current_logfile_name, &cur_time))
-				!= 0) {
-			LOG_ER("log_stream_config_change failed: %d", rc);
-		}
-	}
-
 	/* Fix for ticket #1346 */
-	if (modify) {
+	if (stream_filename_modified) {
 		int rc;
 		if ((rc = log_stream_config_change(!LGS_STREAM_CREATE_FILES,
 			root_path, stream, current_logfile_name, &cur_time))
@@ -2366,8 +2356,18 @@ static void stream_ccb_apply_modify(const CcbUtilOperationData_t *opdata)
 		stream->logFileCurrent = stream->fileName + "_" + current_time;
 
 		// Create the new log file based on updated configuration
-		*stream->p_fd = log_file_open(root_path,
-			stream, stream->logFileCurrent, NULL);
+		if ((*stream->p_fd = log_file_open(root_path,
+			stream, stream->logFileCurrent, NULL)) == -1)
+			LOG_ER("New log file could not be created for stream: %s",
+				stream->name);
+	} else if (new_cfg_file_needed) {
+		int rc;
+		if ((rc = log_stream_config_change(LGS_STREAM_CREATE_FILES,
+				root_path, stream,
+				current_logfile_name, &cur_time))
+				!= 0) {
+			LOG_ER("log_stream_config_change failed: %d", rc);
+		}
 	}
 
 	/* Checkpoint to standby LOG server */
