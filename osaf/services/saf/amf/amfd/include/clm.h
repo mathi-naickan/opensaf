@@ -21,10 +21,14 @@
 #ifndef _AVD_CLM_H
 #define _AVD_CLM_H
 
-extern SaAisErrorT avd_clm_init(void);
+struct cl_cb_tag;
+
+
+extern SaAisErrorT avd_clm_init(struct cl_cb_tag*);
 extern SaAisErrorT avd_clm_track_start(void);
 extern SaAisErrorT avd_clm_track_stop(void);
 extern void clm_node_terminate(AVD_AVND *node);
+extern SaAisErrorT avd_start_clm_init_bg(void);
 
 #endif
 

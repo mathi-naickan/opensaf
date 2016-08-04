@@ -47,6 +47,7 @@
 
 #include <list>
 #include <queue>
+#include <atomic>
 
 class AVD_SI;
 class AVD_AVND;
@@ -193,7 +194,7 @@ typedef struct cl_cb_tag {
 				   since the cluster boot time */
 
 	/********** NTF related params      ***********/
-	SaNtfHandleT ntfHandle;
+	std::atomic<SaNtfHandleT> ntfHandle;
 
 	/********Peer AvD related*********************/
 	AVD_EXT_COMP_INFO ext_comp_info;
@@ -207,8 +208,8 @@ typedef struct cl_cb_tag {
 	bool is_implementer;
 
 	/* Clm stuff */
-	SaClmHandleT clmHandle;
-	SaSelectionObjectT clm_sel_obj;
+	std::atomic<SaClmHandleT> clmHandle;
+	std::atomic<SaSelectionObjectT> clm_sel_obj;
 
 	bool fully_initialized;
 	bool swap_switch; /* true - In middle of role switch. */

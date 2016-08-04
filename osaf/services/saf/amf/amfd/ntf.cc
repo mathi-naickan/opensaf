@@ -25,6 +25,7 @@
 #include <logtrace.h>
 #include <util.h>
 #include <ntf.h>
+#include "osaf_time.h"
 
 /*****************************************************************************
   Name          :  avd_send_comp_inst_failed_alarm
@@ -572,6 +573,12 @@ uint32_t sendAlarmNotificationAvd(AVD_CL_CB *avd_cb,
 		return status;
 	}
 
+	if (avd_cb->ntfHandle == 0) {
+		LOG_ER("NTF handle has not been initialized, alarm notification "
+				"for (%s) will be lost", ntf_object.value);
+		return status;
+	}
+
 	if (type != 0) {
 		add_info_items = 1;
 		allocation_size = SA_NTF_ALLOC_SYSTEM_LIMIT;
@@ -660,6 +667,13 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 		LOG_WA("State change notification lost for '%s'", ntf_object.value);
 		return status;
 	}
+
+	if (avd_cb->ntfHandle == 0) {
+		LOG_WA("NTF handle has not been initialized, state change notification "
+				"for (%s) will be lost", ntf_object.value);
+		return status;
+	}
+
 	if (additional_info_is_present == true) {
 		add_info_items = 1;
 		allocation_size = SA_NTF_ALLOC_SYSTEM_LIMIT;
@@ -770,4 +784,75 @@ void avd_send_error_report_ntf(const SaNameT *name, SaAmfRecommendedRecoveryT re
 	TRACE_LEAVE();
 }
 
+SaAisErrorT avd_ntf_init(AVD_CL_CB* cb)
+{
+	SaAisErrorT error = SA_AIS_OK;
+	SaNtfHandleT ntf_handle;
+	TRACE_ENTER();
 
+	// reset handle
+	cb->ntfHandle = 0;
+
+	/*
+	 * TODO: to be re-factored as CLM initialization thread
+	 */
+	for (;;) {
+		SaVersionT ntfVersion = { 'A', 0x01, 0x01 };
+
+		error = saNtfInitialize(&ntf_handle, NULL, &ntfVersion);
+		if (error == SA_AIS_ERR_TRY_AGAIN ||
+		    error == SA_AIS_ERR_TIMEOUT ||
+                    error == SA_AIS_ERR_UNAVAILABLE) {
+			if (error != SA_AIS_ERR_TRY_AGAIN) {
+				LOG_WA("saNtfInitialize returned %u",
+				       (unsigned) error);
+			}
+			osaf_nanosleep(&kHundredMilliseconds);
+			continue;
+		}
+		if (error == SA_AIS_OK) {
+			break;
+		} else {
+			LOG_ER("Failed to Initialize with NTF: %u", error);
+			goto done;
+		}
+	}
+	cb->ntfHandle = ntf_handle;
+	TRACE("Successfully initialized NTF");
+
+done:
+	TRACE_LEAVE();
+	return error;
+}
+
+static void* avd_ntf_init_thread(void* arg)
+{
+	TRACE_ENTER();
+	AVD_CL_CB* cb = static_cast<AVD_CL_CB*>(arg);
+
+	if (avd_ntf_init(cb) != SA_AIS_OK) {
+		LOG_ER("avd_clm_init FAILED");
+		goto done;
+	}
+
+done:
+	TRACE_LEAVE();
+	return nullptr;
+}
+
+SaAisErrorT avd_start_ntf_init_bg(void)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, avd_ntf_init_thread, avd_cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	pthread_attr_destroy(&attr);
+
+	return SA_AIS_OK;
+}

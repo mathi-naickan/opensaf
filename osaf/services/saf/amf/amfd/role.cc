@@ -174,9 +174,8 @@ void avd_role_change_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 uint32_t initialize_for_assignment(cl_cb_tag* cb, SaAmfHAStateT ha_state)
 {
 	TRACE_ENTER2("ha_state = %d", static_cast<int>(ha_state));
-	SaVersionT ntfVersion = {'A', 0x01, 0x01};
 	uint32_t rc = NCSCC_RC_SUCCESS;
-	SaAisErrorT error;
+
 	if (cb->fully_initialized) goto done;
 	cb->avail_state_avd = ha_state;
 	if (ha_state == SA_AMF_HA_QUIESCED) {
@@ -194,17 +193,25 @@ uint32_t initialize_for_assignment(cl_cb_tag* cb, SaAmfHAStateT ha_state)
 		LOG_ER("avsv_mbcsv_register FAILED");
 		goto done;
 	}
+	// Initialize CLM handle in thread
+	if (avd_start_clm_init_bg() != SA_AIS_OK) {
+		LOG_EM("avd_clm_init FAILED");
+		rc = NCSCC_RC_FAILURE;
+		goto done;
+	}
+
 	if (avd_imm_init(cb) != SA_AIS_OK) {
 		LOG_ER("avd_imm_init FAILED");
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}
-	if ((error = saNtfInitialize(&cb->ntfHandle, nullptr, &ntfVersion)) !=
-	    SA_AIS_OK) {
-		LOG_ER("saNtfInitialize Failed (%u)", error);
-		rc = NCSCC_RC_FAILURE;
+
+	// Initialize NTF handle in thread
+	if (avd_start_ntf_init_bg() != SA_AIS_OK) {
+		LOG_EM("avd_start_ntf_init_bg FAILED");
 		goto done;
 	}
+
 	if ((rc = avd_mds_set_vdest_role(cb, ha_state)) != NCSCC_RC_SUCCESS) {
 		LOG_ER("avd_mds_set_vdest_role FAILED");
 		goto done;
@@ -272,11 +279,6 @@ uint32_t avd_active_role_initialization(AVD_CL_CB *cb, SaAmfHAStateT role)
 	}
 
 	avd_imm_update_runtime_attrs();
-
-	if (avd_clm_track_start() != SA_AIS_OK) {
-		LOG_ER("avd_clm_track_start FAILED");
-		goto done;
-	}
 
 	status = NCSCC_RC_SUCCESS;
 done:

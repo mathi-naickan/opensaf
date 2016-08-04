@@ -105,4 +105,7 @@ void avd_alarm_clear(const SaNameT *name, SaUint16T minorId, uint32_t probableCa
 
 void avd_send_error_report_ntf(const SaNameT *name, SaAmfRecommendedRecoveryT recovery);
 
+extern SaAisErrorT avd_ntf_init(struct cl_cb_tag*);
+extern SaAisErrorT avd_start_ntf_init_bg(void);
+
 #endif

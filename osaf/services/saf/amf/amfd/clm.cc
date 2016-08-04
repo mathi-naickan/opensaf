@@ -386,14 +386,26 @@ static const SaClmCallbacksT_4 clm_callbacks = {
 	/*.saClmClusterTrackCallback =*/ clm_track_cb
 };
 
-SaAisErrorT avd_clm_init(void)
+SaAisErrorT avd_clm_init(AVD_CL_CB* cb)
 {
-        SaAisErrorT error = SA_AIS_OK;
+	SaAisErrorT error = SA_AIS_OK;
+	SaClmHandleT clm_handle = 0;
+	SaSelectionObjectT sel_obj = 0;
 
+	cb->clmHandle = 0;
+	cb->clm_sel_obj = 0;
 	TRACE_ENTER();
+	/*
+	 * TODO: This CLM initialization thread can be re-factored
+	 * after having osaf dedicated thread, so that all APIs calls
+	 * to external service can be automatically retried with result
+	 * code (TRY_AGAIN, TIMEOUT, UNAVAILABLE), or reinitialized within
+	 * BAD_HANDLE. Also, duplicated codes in initialization thread
+	 * will be moved to osaf dedicated thread
+	 */
 	for (;;) {
 		SaVersionT Version = { 'B', 4, 1 };
-		error = saClmInitialize_4(&avd_cb->clmHandle, &clm_callbacks, &Version);
+		error = saClmInitialize_4(&clm_handle, &clm_callbacks, &Version);
 		if (error == SA_AIS_ERR_TRY_AGAIN ||
 		    error == SA_AIS_ERR_TIMEOUT ||
                     error == SA_AIS_ERR_UNAVAILABLE) {
@@ -404,15 +416,21 @@ SaAisErrorT avd_clm_init(void)
 			osaf_nanosleep(&kHundredMilliseconds);
 			continue;
 		}
-		if (error == SA_AIS_OK) break;
-		LOG_ER("Failed to Initialize with CLM: %u", error);
-		goto done;
+		if (error == SA_AIS_OK) {
+			break;
+		}else {
+			LOG_ER("Failed to Initialize with CLM: %u", error);
+			goto done;
+		}
 	}
-	error = saClmSelectionObjectGet(avd_cb->clmHandle, &avd_cb->clm_sel_obj);
-	if (SA_AIS_OK != error) { 
+	cb->clmHandle = clm_handle;
+	error = saClmSelectionObjectGet(cb->clmHandle, &sel_obj);
+	if (error != SA_AIS_OK) {
 		LOG_ER("Failed to get selection object from CLM %u", error);
+		cb->clmHandle = 0;
 		goto done;
 	}
+	cb->clm_sel_obj = sel_obj;
 
 	TRACE("Successfully initialized CLM");
 
@@ -428,10 +446,15 @@ SaAisErrorT avd_clm_track_start(void)
         
 	TRACE_ENTER();
 	error = saClmClusterTrack_4(avd_cb->clmHandle, trackFlags, nullptr);
-        if (SA_AIS_OK != error)
-                LOG_ER("Failed to start cluster tracking %u", error);
-
-        TRACE_LEAVE();
+	if (error != SA_AIS_OK) {
+		if (error == SA_AIS_ERR_TRY_AGAIN || error == SA_AIS_ERR_TIMEOUT ||
+			error == SA_AIS_ERR_UNAVAILABLE) {
+			LOG_WA("Failed to start cluster tracking %u", error);
+		} else {
+			LOG_ER("Failed to start cluster tracking %u", error);
+		}
+	}
+	TRACE_LEAVE();
 	return error;
 }
 
@@ -468,3 +491,55 @@ void clm_node_terminate(AVD_AVND *node)
 	else
 		TRACE("Waiting for the pending SU presence state updates");
 }
+
+static void* avd_clm_init_thread(void* arg)
+{
+	TRACE_ENTER();
+	AVD_CL_CB* cb = static_cast<AVD_CL_CB*>(arg);
+	SaAisErrorT error = SA_AIS_OK;
+
+	if (avd_clm_init(cb) != SA_AIS_OK) {
+		LOG_ER("avd_clm_init FAILED");
+		goto done;
+	}
+
+	if (cb->avail_state_avd == SA_AMF_HA_ACTIVE) {
+		for (;;) {
+			error = avd_clm_track_start();
+			if (error == SA_AIS_ERR_TRY_AGAIN ||
+				error == SA_AIS_ERR_TIMEOUT ||
+					error == SA_AIS_ERR_UNAVAILABLE) {
+				osaf_nanosleep(&kHundredMilliseconds);
+				continue;
+			}
+			if (error == SA_AIS_OK) {
+				break;
+			} else {
+				LOG_ER("avd_clm_track_start FAILED, error: %u", error);
+				goto done;
+			}
+		}
+	}
+
+done:
+	TRACE_LEAVE();
+	return nullptr;
+}
+
+SaAisErrorT avd_start_clm_init_bg(void)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, avd_clm_init_thread, avd_cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	pthread_attr_destroy(&attr);
+	return SA_AIS_OK;
+}
+
+
