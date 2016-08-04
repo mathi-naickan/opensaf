@@ -621,6 +621,12 @@ static void *plms_hsm(void)
 			}
 
 			if (active) {
+				if (event.EventDataUnion.HotSwapEvent.HotSwapState == SAHPI_HS_STATE_ACTIVE &&
+					event.EventDataUnion.HotSwapEvent.PreviousHotSwapState == SAHPI_HS_STATE_ACTIVE)
+				{
+					retriev_idr_info = true;
+				}
+
 				hsm_send_hotswap_event(&rpt_entry,hotswap_state_model,event.EventDataUnion.HotSwapEvent.HotSwapState,
 							event.EventDataUnion.HotSwapEvent.PreviousHotSwapState,retriev_idr_info);
 			}

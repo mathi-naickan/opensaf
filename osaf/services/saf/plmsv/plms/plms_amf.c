@@ -265,8 +265,14 @@ plms_amf_CSI_set_callback(SaInvocationT invocation, const SaNameT *compName,
 			pthread_cond_signal(&hrb_ha_state.cond);
 			pthread_mutex_unlock(&hrb_ha_state.mutex);
 		}
-                /* PLMC initialize */
-                if(!cb->plmc_initialized){
+
+                /* If this is not a switchover and HPI is enabled, then let hsm
+		*  init PLMC.
+		*/
+		if((!cb->hpi_cfg.hpi_support ||
+			prev_haState == SA_AMF_HA_STANDBY) &&
+			!cb->plmc_initialized)
+		{
                         TRACE("Initializing PLMC");
                         rc = plmc_initialize(plms_plmc_connect_cbk,
                                                 plms_plmc_udp_cbk,
