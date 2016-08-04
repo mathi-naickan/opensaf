@@ -572,11 +572,6 @@ uint32_t avnd_su_curr_info_del(AVND_CB *cb, AVND_SU *su)
 		su->su_restart_cnt = 0;
 		avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSURestartCount_ID, &su->name, su->su_restart_cnt);
 		/* stop su_err_esc_tmr TBD Later */
-
-		/* disable the oper state (if pi su) */
-		if (m_AVND_SU_IS_PREINSTANTIABLE(su) && (su->admin_op_Id != SA_AMF_ADMIN_RESTART)) {
-			m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
-		}
 	}
 
 	/* scan & delete the current info store in each component */
