@@ -41,7 +41,8 @@
 /* The main controle block */
 lga_cb_t lga_cb = {
 	.cb_lock = PTHREAD_MUTEX_INITIALIZER,
-	.lgs_state = LGS_START
+	.lgs_state = LGS_START,
+	.client_list = NULL
 };
 
 static bool is_well_know_stream(const char* dn)

@@ -356,7 +356,7 @@ static void *recovery2_thread(void *dummy)
 	lga_client_hdl_rec_t *p_client;
 	p_client = lga_cb.client_list;
 
-	while (p_client != NULL) {
+	while (p_client != NULL && p_client->recovered_flag == false) {
 		/* Exit if requested to */
 		rc = osaf_poll_one_fd(state2_terminate_sel_obj.rmv_obj, 0);
 		if (rc > 0) {
