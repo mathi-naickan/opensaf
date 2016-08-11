@@ -2555,10 +2555,17 @@ static uint32_t immnd_evt_proc_impl_set(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEND
            in a subsequent implementerSet over fevs arriving before this implementerSet
            arrives back over fevs. See finalizeSync #1871.
         */
+	SaUint32T impl_id;
 	send_evt.info.imma.info.implSetRsp.error =
-		immModel_implIsFree(cb, evt->info.implSet.impl_name.buf);
+		immModel_implIsFree(cb, &evt->info.implSet, &impl_id);
+
 
 	if(send_evt.info.imma.info.implSetRsp.error != SA_AIS_OK) {
+		if (impl_id && send_evt.info.imma.info.implSetRsp.error == SA_AIS_ERR_EXIST) {
+			/* Immediately respond OK to agent */
+			send_evt.info.imma.info.implSetRsp.error = SA_AIS_OK;
+			send_evt.info.imma.info.implSetRsp.implId = impl_id;
+		}
 		goto agent_rsp;
 	}
 

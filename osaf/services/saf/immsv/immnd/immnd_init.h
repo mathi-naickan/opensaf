@@ -438,7 +438,7 @@ extern "C" {
 	bool immModel_pbeNotWritable(IMMND_CB *cb);
 
 	SaAisErrorT immModel_implIsFree(IMMND_CB *cb,
-		const SaImmOiImplementerNameT implName);
+		const IMMSV_OI_IMPLSET_REQ *req, SaUint32T *impl_id);
 
 	SaAisErrorT immModel_resourceDisplay(IMMND_CB *cb, 
 		const struct ImmsvAdminOperationParam *reqparams,
