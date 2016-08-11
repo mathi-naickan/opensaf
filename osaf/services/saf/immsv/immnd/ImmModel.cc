@@ -1634,8 +1634,10 @@ immModel_implementerSet(IMMND_CB *cb, const IMMSV_OCTET_STRING* implName,
 }
 
 SaAisErrorT 
-immModel_implIsFree(IMMND_CB *cb, const SaImmOiImplementerNameT impName)
+immModel_implIsFree(IMMND_CB *cb, const IMMSV_OI_IMPLSET_REQ *req, SaUint32T *impl_id)
 {
+    *impl_id = 0;
+    SaImmOiImplementerNameT impName = req->impl_name.buf;
     std::string implName(impName);
     if(implName.empty()) {
         LOG_NO("ERR_INVALID_PARAM: Empty implementer name");
@@ -1649,6 +1651,12 @@ immModel_implIsFree(IMMND_CB *cb, const SaImmOiImplementerNameT impName)
 
     if(impl->mId == 0) {return SA_AIS_OK;}
     if(impl->mDying) {return SA_AIS_ERR_TRY_AGAIN;}
+
+    /* Check for redundant request that comes from previously timed out client */
+    if (impl->mConn == m_IMMSV_UNPACK_HANDLE_HIGH(req->client_hdl) &&
+            impl->mNodeId == m_IMMSV_UNPACK_HANDLE_LOW(req->client_hdl)) {
+        *impl_id = impl->mId;
+    }
 
     return SA_AIS_ERR_EXIST;
 }
