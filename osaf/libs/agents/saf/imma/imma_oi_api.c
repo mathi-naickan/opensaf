@@ -1425,7 +1425,15 @@ SaAisErrorT saImmOiImplementerSet(SaImmOiHandleT immOiHandle, const SaImmOiImple
 		}
 	}
 
-	if(rc != SA_AIS_OK && cl_node) { /* Revert any flags set optimistically. */
+	/* Revert any flags set optimistically.
+	 *
+	 * In case of SA_AIS_ERR_TIMEOUT, we don't revert the flag to prevent
+	 * the library from crashing when receiving upcalls.
+	 *
+	 * cl_node->mImplementerId is not set in case of errors, so clients
+	 * have to either finalize the handle or retry to set implementer.
+	 */
+	if(rc != SA_AIS_OK && rc != SA_AIS_ERR_TIMEOUT && cl_node) {
 		cl_node->isApplier = 0x0;
 		cl_node->isPbe = 0x0;
 	}
