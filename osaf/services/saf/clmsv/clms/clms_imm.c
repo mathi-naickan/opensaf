@@ -1401,7 +1401,7 @@ static SaAisErrorT clms_imm_ccb_obj_create_callback(SaImmOiHandleT immOiHandle,
 		/* Find the RDN attribute and store the object DN */
 		while ((attrValue = attr[i++]) != NULL) {
 			if (!strncmp(attrValue->attrName, "safCluster", 10)) {
-				rc = SA_AIS_ERR_NOT_SUPPORTED;
+				rc = SA_AIS_ERR_BAD_OPERATION;
 				goto done;
 			} else if (!strncmp(attrValue->attrName, "safNode", 7)) {
 				if (attrValue->attrValueType == SA_IMM_ATTR_SASTRINGT) {
@@ -1423,7 +1423,7 @@ static SaAisErrorT clms_imm_ccb_obj_create_callback(SaImmOiHandleT immOiHandle,
 
 	if ((rt = clms_node_dn_chk(&operation->objectName)) != NCSCC_RC_SUCCESS) {
 		TRACE("Node DN name is incorrect");
-		rc = SA_AIS_ERR_INVALID_PARAM;
+		rc = SA_AIS_ERR_BAD_OPERATION;
 	}
 
  done:
@@ -1452,7 +1452,7 @@ static SaAisErrorT clms_imm_ccb_obj_delete_callback(SaImmOiHandleT immOiHandle,
 
 	if (!strncmp((const char *)objectName->value, "safCluster=", 11)) {
 		LOG_ER("Deletion of the present single cluster Object not supported");
-		rc = SA_AIS_ERR_NOT_SUPPORTED;
+		rc = SA_AIS_ERR_BAD_OPERATION;
 	}
 
 	TRACE_LEAVE();
@@ -1547,11 +1547,11 @@ SaAisErrorT clms_node_ccb_comp_modify(CcbUtilOperationData_t * opdata)
 			}
 		} else if (!strcmp(attribute->attrName, "saClmNodeAddressFamily")) {
 			LOG_NO("Modification of saClmNodeAddressFamily of object %s not allowed",opdata->objectName.value);
-			rc = SA_AIS_ERR_NOT_SUPPORTED;
+			rc = SA_AIS_ERR_BAD_OPERATION;
 			goto done;
 		} else if (!strcmp(attribute->attrName, "saClmNodeAddress")) {
 			LOG_NO("Modification of saClmNodeAddress of object %s not allowed",opdata->objectName.value);
-			rc = SA_AIS_ERR_NOT_SUPPORTED;
+			rc = SA_AIS_ERR_BAD_OPERATION;
 			goto done;
 		} else if (!strcmp(attribute->attrName, "saClmNodeLockCallbackTimeout")) {
 			SaTimeT Timeout = *((SaTimeT *)value);
@@ -1567,7 +1567,7 @@ SaAisErrorT clms_node_ccb_comp_modify(CcbUtilOperationData_t * opdata)
 				goto done;
 			} else {
 				LOG_NO("saClmNodeEE attribute change of object %s is not supported",opdata->objectName.value);
-				rc = SA_AIS_ERR_NOT_SUPPORTED;
+				rc = SA_AIS_ERR_BAD_OPERATION;
 				goto done;
 			}
 		} else {
