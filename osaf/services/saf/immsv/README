@@ -2779,6 +2779,8 @@ provided during absent SC depends on the particular service. In the case
 of the IMM service, the service provided during SC absence is in essence 
 only the reading of config data.
 
+See: osaf/services/saf/immsv/README.SC_ABSENCE for details.
+
 
 Add attribute definition flag SA_IMM_ATTR_STRONG_DEFAULT (5.0)
 ===============================================================

@@ -1,0 +1,78 @@
+SC ABSENCE: Allow IMMNDs to survive SC absence (5.0)
+====================================================
+Prior to this enhancement, absence of both SCs will cause IMMNDs to restart,
+also the cluster will be reboot by AMF. With this feature, IMMNDs on payloads
+continue to provide limited service until an SC is back.
+
+
+CONFIGURATION
+=============
+To enable this feature, IMMSV_SC_ABSENCE_ALLOWED environment variable must be
+set for IMMD (immd.conf)
+
+    export IMMSV_SC_ABSENCE_ALLOWED=900
+
+The value indicates the number of seconds cluster will tolerate SC absence,
+value of zero indicates the feature is disabled.
+See immd.conf for more details.
+
+
+IMMND
+=====
+With SC absence feature enabled, IMMNDs on payloads now can be coordinator.
+That can happen even when the SCs are not absent.
+
+For example, the cluster only has one SC and IMMND on SC restarts, one of the
+IMMNDs on payloads will be elected as new coordinator. Without SC absence
+enabled, the cluster will not tolerate that situation and a cluster reboot will
+occur.
+
+If PBE is configured together with this feature, make sure that the shared file
+system (where sqlite database is located) is accessible from all nodes of the
+cluster.
+
+Upon receiving the IMMD down event, payload based IMMNDs unregister with MDS
+and then:
+- remove all local clients,
+- discard all implementers,
+- finalize all admin owners,
+- abort all non-critical CCBs.
+
+That means the IMMNDs only keep class definitions and object information in
+their memories during SC absence.
+
+After cleaning up those things, MDS will be registered again to allow clients to
+read the objects but only config data can be read because there's currently no
+OI attached for runtime data.
+
+Other operations with IMM service will get SA_AIS_ERR_TRY_AGAIN during SC
+absence.
+If you retry the APIs on SA_AIS_ERR_TRY_AGAIN, you should retry at least the
+amount of time that you set for IMMSV_SC_ABSENCE_ALLOWED.
+
+If you get SA_AIS_ERR_BAD_HANDLE, you must re-initialize the handles.
+
+
+IMMD
+====
+After coming back from SC absence, the active IMMD will wait for the veteran
+IMMNDs to introduce for 3 seconds. If there's no introduction from veteran IMMND
+within 3 seconds, IMMD will start to load from repository. This is to avoid the
+race condition where IMMD receives and processes introduce message from the
+local IMMND or a newly joined IMMND before the veteran IMMNDs.
+
+The veteran IMMNDs also include highest fevs, latest id of implementer/admo/ccb
+in the introduce message to help IMMD restore these counters back to the state
+right before SC absence.
+
+IMMD then elects one of the veteran IMMNDs as new coordinator and the data is
+sync'ed to the SC based IMMNDs. After that, IMM service becomes fully functional
+again.
+
+
+SC ABSENCE and 2PBE
+===================
+Support for absent IMMD is incompatible with 2PBE. If both are configured then
+2PBE will win and the absence of IMMD feature will be ignored. An error message
+is printed in this case to the syslog at startup.
+
