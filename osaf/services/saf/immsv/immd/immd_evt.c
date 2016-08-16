@@ -732,7 +732,11 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info, bool 
 		cb->immnd_coord = node_info->immnd_key;
 		cb->payload_coord_dest = node_info->immnd_dest;
 		node_info->isCoord = true;
-	}
+	} else if(cb->immnd_coord == 0 && cb->mIs2Pbe){
+		LOG_NO("IMMND found at %x Cluster is loading. 2PBE configured => Wait.", node_info->immnd_key);
+		accept_evt.info.immnd.info.ctrl.canBeCoord = 2; /* 2PBE => order preload. */
+        }
+
 
 	if (node_info->isCoord) {
 		accept_evt.info.immnd.info.ctrl.isCoord = true;
@@ -1979,7 +1983,17 @@ static uint32_t immd_evt_proc_2pbe_preload(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEN
 			evt->info.pbe2.epoch, evt->info.pbe2.maxCcbId,
 			evt->info.pbe2.maxCommitTime);
 		cb->remPbe = evt->info.pbe2;
+	} else if (!cb->is_rem_immnd_up && !cb->immd_remote_up) {
+		LOG_NO("2PBE preload info from first remote SC can be standby Epoch: %u MaxCcb:%u MaxTime%u",
+				evt->info.pbe2.epoch, evt->info.pbe2.maxCcbId,
+				evt->info.pbe2.maxCommitTime);
+		cb->is_rem_immnd_up = true;
+		cb->rem_immnd_dest = sinfo->dest;
+		cb->remPbe = evt->info.pbe2;
+	} else if (cb->is_rem_immnd_up){
+		LOG_NO("2PBE preload info from remote SC may be from spare will be discarded");
 	}
+
 
 	if(cb->m2PbeCanLoad) {
 		LOG_NO("m2PbeCanLoad already set (timeout ?)");
@@ -2632,6 +2646,7 @@ static uint32_t immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 		TRACE_5("Process MDS EVT NCSMDS_RED_UP, my PID:%u", getpid());
 		if (cb->node_id != mds_info->node_id) {
 			MDS_DEST tmpDest = 0LL;
+			uint32_t immnd_remote_id = 0;
 			TRACE_5("Remote IMMD is UP.");
 
 			cb->immd_remote_id = immd_get_slot_and_subslot_id_from_node_id(mds_info->node_id);
@@ -2654,13 +2669,30 @@ static uint32_t immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 						TRACE_5("Located STDBY IMMND =  %x node_id:%x",
 							immd_get_slot_and_subslot_id_from_node_id(mds_info->node_id),
 							mds_info->node_id);
-						immd_accept_node(cb, node_info, true, false); /* <==== Can not be sc-absence veteran if on sc. */
+						if(!cb->is_rem_immnd_up){
+							immd_accept_node(cb, node_info, true, false); /* <==== Can not be sc-absence veteran if on sc. */
+						} else if (cb->is_rem_immnd_up && cb->mIs2Pbe){
+							immnd_remote_id = 
+							     immd_get_slot_and_subslot_id_from_mds_dest(node_info->immnd_dest);
+						}
+						if(cb->is_rem_immnd_up && cb->mIs2Pbe){ /* The immnd and immd must be from same node*/
+							TRACE("The immd_remote_id =%d immnd_remote_id=%d", 
+								cb->immd_remote_id, immnd_remote_id);
+							osafassert(cb->immd_remote_id == immnd_remote_id);
+						}
 					}
+
 					/* Break out of while-1. We found */
 					break;
 				}
 				tmpDest = node_info->immnd_dest;
 				immd_immnd_info_node_getnext(&cb->immnd_tree, &tmpDest, &node_info);
+			}
+			/* From OpenSAF 5.1 with #79 the mds_register for immd will happen after amfd started.
+			   Ihe IMMND should have started.synced or loaded before the IMMD registers #1925
+			*/
+			if ( cb->mIs2Pbe && cb->mds_role == V_DEST_RL_STANDBY){
+				cb->m2PbeCanLoad = true;
 			}
 		}
 		break;

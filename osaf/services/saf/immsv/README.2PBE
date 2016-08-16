@@ -175,3 +175,10 @@ toggle this flag on.
 For "normal", but unplanned, processor restarts, we recommend that this flag not be
 toggled on. This means that for such processor restarts, persistent writes will not be
 allowed untill both SCs are available again.
+
+2PBE with spares(#79 & #1925)
+----------------------------
+From OpenSAF 5.0 the mds_register for IMMD is delayed until amfd comes up and gives role.
+Because of this the standby role is delayed. When spares are configured there is a chance 
+that chosen standby immnd can be from different node than the actual node which got 
+standby role. It is not recommended to configure 2PBE with spares.

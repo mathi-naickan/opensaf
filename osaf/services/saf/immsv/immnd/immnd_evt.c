@@ -8934,7 +8934,7 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 		}
 
 		cb->mCanBeCoord = evt->info.ctrl.canBeCoord;
-		if((cb->mCanBeCoord == 2) && (cb->m2Pbe < 2)) {
+		if((cb->mCanBeCoord == 2) && (cb->m2Pbe < 2) && immnd_cb->isNodeTypeController) {
 			LOG_NO("2PBE startup arbitration initiated from IMMD");
 			cb->m2Pbe = 2;
 			/* mCanBeCoord > 0  => This immnd resides on an SC. */
@@ -8947,6 +8947,8 @@ static uint32_t immnd_evt_proc_intro_rsp(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_SEN
 			if(evt->info.ctrl.isCoord == 0) {
 				LOG_NO("2PBE other IMMND chosen as coord");
 			}
+		} else if ((cb->mCanBeCoord == 2) && !immnd_cb->isNodeTypeController) {
+			cb->mCanBeCoord = 0;
 		}
 
 		if(cb->m2Pbe && cb->mCanBeCoord) {

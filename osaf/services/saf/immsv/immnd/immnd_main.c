@@ -168,6 +168,28 @@ static uint32_t immnd_initialize(char *progname)
 		LOG_NO("Persistent Back-End capability configured, Pbe file:%s (suffix may get added)",
 			immnd_cb->mPbeFile);
 	}
+	
+	FILE *fp;
+	char node_type[20];
+	fp = fopen(PKGSYSCONFDIR "/node_type", "r");
+	if (fp == NULL) {
+		LOG_ER("Could not open file %s - %s", PKGSYSCONFDIR "/node_type", strerror(errno));
+		goto done;
+	}
+	if(EOF == fscanf(fp, "%15s", node_type)) {
+                LOG_ER("Could not read node type - %s", strerror(errno));
+                fclose(fp);
+                goto done;
+        }
+	if (strcmp(node_type,"controller")==0){
+		immnd_cb->isNodeTypeController = true;
+	} else if (strcmp(node_type,"payload")==0){
+		immnd_cb->isNodeTypeController = false;
+	} else {
+		LOG_ER("Wrong node type is specified for the node");
+		goto done;
+	}
+	fclose(fp);
 
 	immnd_cb->mRim = SA_IMM_INIT_FROM_FILE;
 	immnd_cb->mPbeVeteran = SA_FALSE;
