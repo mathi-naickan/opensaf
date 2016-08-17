@@ -298,7 +298,7 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		uint32_t rc_node_up;
 		avnd->node_up_msg_count++;
 		rc_node_up = avd_count_node_up(cb);
-		if (rc_node_up == sync_nd_size-1) {
+		if (rc_node_up == sync_nd_size) {
 			if (cb->node_sync_tmr.is_active) {
 				avd_stop_tmr(cb, &cb->node_sync_tmr);
 				TRACE("stop NodeSync timer");
