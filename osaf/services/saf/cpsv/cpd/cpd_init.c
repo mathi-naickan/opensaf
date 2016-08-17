@@ -61,6 +61,8 @@ static uint32_t cpd_lib_destroy(CPD_DESTROY_INFO *info);
 
 static bool cpd_clear_mbx(NCSCONTEXT arg, NCSCONTEXT msg);
 
+static SaAisErrorT cpd_clm_init_bg(CPD_CB *cb);
+
 void cpd_main_process(CPD_CB *cb);
 
 /****************************************************************************
@@ -197,6 +199,63 @@ done:
 	saClmFinalize(cb->clm_hdl);
 	
 	return error;
+}
+
+/****************************************************************************
+ * Name          : cpd_clm_init_thread
+ *
+ * Description   : This function is thread function to initialize clm
+ *
+ * Arguments     : -
+ *
+ * Return Values : -
+ *
+ * Notes         : None.
+ *****************************************************************************/
+static void* cpd_clm_init_thread(void* arg)
+{
+	CPD_CB *cb = (CPD_CB*)arg;
+
+	TRACE_ENTER();
+
+	SaAisErrorT rc = cpd_clm_init(cb);
+	if (rc != SA_AIS_OK) {
+		exit(EXIT_FAILURE);
+	}
+
+	/* Notify main process to update clm select object */
+	ncs_sel_obj_ind((NCS_SEL_OBJ*)&cb->clm_sel_obj);
+
+	TRACE_LEAVE();
+	return NULL;
+}
+
+/****************************************************************************
+ * Name          : cpd_clm_init_bg
+ *
+ * Description   : This function is to start initialize clm thread
+ *
+ * Arguments     : -
+ *
+ * Return Values : -
+ *
+ * Notes         : None.
+ *****************************************************************************/
+static SaAisErrorT cpd_clm_init_bg(CPD_CB *cb)
+{
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	if (pthread_create(&thread, &attr, cpd_clm_init_thread, cb) != 0) {
+		LOG_ER("pthread_create FAILED: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	pthread_attr_destroy(&attr);
+
+	return SA_AIS_OK;
 }
 
 /****************************************************************************
@@ -572,7 +631,13 @@ void cpd_main_process(CPD_CB *cb)
 		if (fds[FD_CLM].revents & POLLIN) {
 			/* dispatch all the CLM pending function */
 			error = saClmDispatch(cb->clm_hdl, SA_DISPATCH_ALL);
-			if (error != SA_AIS_OK) {
+			if (error == SA_AIS_ERR_BAD_HANDLE) {
+				LOG_NO("Bad CLM handle. Reinitializing.");
+				osaf_nanosleep(&kHundredMilliseconds);
+				cpd_clm_init_bg(cb);
+				/* Ignore the FD_CLM */
+				fds[FD_CLM].fd = -1;
+			} else if (error != SA_AIS_OK) {
 				LOG_ER("saClmDispatch failed: %u", error);
 			}
 		}
