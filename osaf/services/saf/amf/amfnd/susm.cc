@@ -1885,7 +1885,9 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 			rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
 
 			/* si assignment/removal failed.. inform AvD */
-			rc = avnd_di_susi_resp_send(cb, su, m_AVND_SU_IS_ALL_SI(su) ? 0 : si);
+			/* Send response to Amfd only when there is a pending assignment. */
+			if (m_AVND_SU_IS_ASSIGN_PEND(su))
+				rc = avnd_di_susi_resp_send(cb, su, m_AVND_SU_IS_ALL_SI(su) ? 0 : si);
 		}
 
 		/* instantiating -> term-failed */
