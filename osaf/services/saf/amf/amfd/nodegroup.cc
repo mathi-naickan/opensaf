@@ -551,10 +551,37 @@ static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 	unsigned j = 0;
 	const SaImmAttrModificationT_2 *mod;
 	AVD_AMF_NG *ng;
-
+	SaAisErrorT rc;
+	const SaImmAttrValuesT_2 **attributes;
+	SaImmAccessorHandleT accessorHandle;
 	TRACE_ENTER();
 
 	ng = avd_ng_get(&opdata->objectName);
+	if (ng == nullptr) {
+		TRACE("%p", ng);
+		/* During Standby cold sync, there may be chance that
+		   node group creation was missed in-between config read
+		   and being applier, so re-read config again.
+		   Once it is read, then below ADD/DEL logic may not be
+		   needed because config will be the latest, but just keeping
+		   because they are not causing any harm.*/
+		immutil_saImmOmAccessorInitialize(avd_cb->immOmHandle, &accessorHandle);
+		rc = immutil_saImmOmAccessorGet_2(accessorHandle, &opdata->objectName,
+				nullptr, (SaImmAttrValuesT_2 ***)&attributes);
+		if (rc != SA_AIS_OK) {
+			LOG_ER("saImmOmAccessorGet_2 FAILED %u for %s", rc, opdata->objectName.value);
+			goto done;
+		}
+		TRACE("'%s'", opdata->objectName.value);
+		if ((ng = ng_create(&opdata->objectName, attributes)) == nullptr) {
+			LOG_ER("ng_create failed for %s", opdata->objectName.value);
+			goto done;
+		}
+		nodegroup_db->insert(Amf::to_string(&ng->name), ng);
+		TRACE("ng '%s' created with number_nodes '%u'", ng->name.value,
+				ng->number_nodes());
+		immutil_saImmOmAccessorFinalize(accessorHandle);
+	}
 
 	while ((mod = opdata->param.modify.attrMods[i++]) != nullptr) {
 		switch (mod->modType) {
@@ -563,7 +590,7 @@ static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 				ng->saAmfNGNodeList.insert(Amf::to_string((SaNameT*)mod->modAttr.attrValues[j]));
 			}
 
-			TRACE("number_nodes %u", ng->number_nodes());
+			TRACE("number_nodes after addition %u", ng->number_nodes());
 			break;
 		}
 		case SA_IMM_ATTR_VALUES_DELETE: {
@@ -572,14 +599,14 @@ static void ng_ccb_apply_modify_hdlr(CcbUtilOperationData_t *opdata)
 				ng->saAmfNGNodeList.erase(Amf::to_string((SaNameT*)mod->modAttr.attrValues[j]));
 			}
 
-			TRACE("number_nodes %u", ng->number_nodes());
+			TRACE("number_nodes left after deletion %u", ng->number_nodes());
 			break;
 		}
 		default:
 			osafassert(0);
 		}
 	}
-
+done:
 	TRACE_LEAVE();
 }
 
