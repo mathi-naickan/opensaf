@@ -2141,12 +2141,12 @@ uint32_t avd_sg_su_oper_list_del(AVD_CL_CB *cb, AVD_SU *su, bool ckpt)
 	TRACE_ENTER2("'%s'", su->name.value);
 
 	if (su_oper_list.empty() == true) {
-		LOG_ER("%s: su_oper_list empty", __FUNCTION__);
+		LOG_WA("%s: su_oper_list empty", __FUNCTION__);
 		goto done;
 	}
 	
 	if (elem == su_oper_list.end()) {
-		LOG_ER("%s: su not found", __FUNCTION__);
+		LOG_WA("%s: su not found", __FUNCTION__);
 		rc = NCSCC_RC_FAILURE;
 		goto done;
 	}	
