@@ -3343,9 +3343,7 @@ void SG_2N::node_fail(AVD_CL_CB *cb, AVD_SU *su) {
 
 		if ((avd_su_state_determine(su) != SA_AMF_HA_STANDBY) &&
 		    !((avd_su_state_determine(su) == SA_AMF_HA_QUIESCED) &&
-		      (avd_su_fsm_state_determine(su) == AVD_SU_SI_STATE_UNASGN)
-		    )
-		    ) {
+		      (avd_su_fsm_state_determine(su) == AVD_SU_SI_STATE_UNASGN))) {
 			/* SU is not standby */
 			a_susi = avd_sg_2n_act_susi(cb, su->sg_of_su, &s_susi);
 
@@ -3392,11 +3390,27 @@ void SG_2N::node_fail(AVD_CL_CB *cb, AVD_SU *su) {
 				} else {
 					/* the other SU has quiesced or standby assigned and is in the 
 					 * operation list and is out of service.
-					 * Send a D2N-INFO_SU_SI_ASSIGN with remove all to that SU. 
+					 * Send a D2N-INFO_SU_SI_ASSIGN with remove all to that SU
+					 * if not sent already. 
 					 * Remove this SU from operation list. Free the 
 					 * SU SI relationships of this SU.
 					 */
-					avd_sg_su_si_del_snd(cb, o_su);
+
+
+					/*
+					   As mentioned above other su (o_su) is OOS for quiesced or
+					   standby state, it means some admin operation is going on it or 
+					   it has faulted (su level) which led to OOS. 
+					   In this function, we are processing node_fail of active/quiesced 
+					   su. These active/quiesced assignments will be deleted because of 
+					   node fault and also other su cannot be made active as it is OOS. 
+					   So AMF will have to remove assignments of other su (o_su) also. 
+					   Since o_su is OOS, there is a possibility that AMF would have
+					   sent deletion of assignment to it because of admin op or fault.
+					   If not sent then send it now.
+					 */
+					if (all_unassigned(o_su) == false)
+						avd_sg_su_si_del_snd(cb, o_su);
 					su->delete_all_susis();
 					avd_sg_su_oper_list_del(cb, su, false);
 					m_AVD_CHK_OPLIST(o_su, flag);
