@@ -826,6 +826,13 @@ uint32_t avnd_err_rcvr_su_failover(AVND_CB *cb, AVND_SU *su, AVND_COMP *failed_c
 		su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, su, AVND_CKPT_SU_FLAG_CHANGE);
 	}
+	/* If SU faulted during assignments, reset its pending assignment flag. AMFD will perform
+	   fail-over as a part of recovery request.*/
+	if (m_AVND_SU_IS_ALL_SI(su)) {
+		TRACE_1("Reset pending assignment flag in su.");
+		m_AVND_SU_ALL_SI_RESET(su);
+	}
+
 	//Remember component-failover/su-failover context. 
 	m_AVND_SU_FAILOVER_SET(failed_comp->su);
 
@@ -907,6 +914,12 @@ uint32_t avnd_err_rcvr_node_switchover(AVND_CB *cb, AVND_SU *failed_su, AVND_COM
 	if (m_AVND_SU_IS_RESTART(failed_su))
 		failed_su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
 
+	/* If SU faulted during assignments, reset its pending assignment flag. AMFD will perform
+	   fail-over as a part of recovery request.*/
+	if ((m_AVND_SU_IS_ALL_SI(failed_su)) && (failed_comp->su->sufailover == true)) {
+		TRACE_1("Reset pending assignment flag in su.");
+		m_AVND_SU_ALL_SI_RESET(failed_su);
+	}
 	/* In nodeswitchover context:
 	   a)If saAmfSUFailover is set for the faulted SU then this SU will be failed-over  
 	   	as a single entity. 
@@ -996,6 +1009,12 @@ uint32_t avnd_err_rcvr_node_failover(AVND_CB *cb, AVND_SU *failed_su, AVND_COMP 
 		reset_suRestart_flag(failed_su);
 		failed_su->admin_op_Id = static_cast<SaAmfAdminOperationIdT>(0);
 		m_AVND_SEND_CKPT_UPDT_ASYNC_UPDT(cb, failed_su, AVND_CKPT_SU_FLAG_CHANGE);
+	}
+	/* If SU faulted during assignments, reset its pending assignment flag. AMFD will perform
+	   fail-over as a part of recovery request or node down.*/
+	if (m_AVND_SU_IS_ALL_SI(failed_su)) {
+		TRACE_1("Reset pending assignment flag in su.");
+		m_AVND_SU_ALL_SI_RESET(failed_su);
 	}
 	/* Unordered cleanup of all local application components */
 	for (comp = (AVND_COMP *)compdb_rec_get_next(&cb->compdb, (uint8_t *)nullptr);

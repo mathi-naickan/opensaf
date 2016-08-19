@@ -425,6 +425,22 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 				goto done;
 			}
 		}
+		/*
+		   SU failover and Node-switchover (with sufailover true) is in progress
+		   and AMFND gets deletion of assignment for failed SU. Since AMFND launches 
+		   cleanup of all the components failed SU, it must discard deletion of assignment 
+		   in it. After successful cleanup of all the components, AMFND sends recovery
+		   request to AMFD and it will take care of failover of this failed SU. Also AMFD 
+		   will be able to respond to any pending admin op while processing recovery request.
+		   For Node-failover, assignment can be discarded for any SU as AMFND launches clean up 
+		   of all the components.
+		 */
+		if ((sufailover_in_progress(su) || sufailover_during_nodeswitchover(su) ||
+			(cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATING)) &&
+				(info->msg_act == AVSV_SUSI_ACT_DEL)) {
+			TRACE_2("Discarding assignment deletion for '%s'", su->name.value);
+			goto done;
+		}
 	}
 
 	if (cb->term_state == AVND_TERM_STATE_NODE_FAILOVER_TERMINATED) {
