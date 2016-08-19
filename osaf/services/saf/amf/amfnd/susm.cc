@@ -1129,7 +1129,7 @@ uint32_t avnd_su_si_oper_done(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
 
 	/* finally delete the si(s) if they are removed */
 	curr_si = (si) ? si : (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
-	if (m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVED(curr_si)) {
+	if ((curr_si != nullptr) && m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVED(curr_si)) {
 		rc = (si) ? avnd_su_si_rec_del(cb, &su->name, &si->name) : avnd_su_si_del(cb, &su->name);
 		if (NCSCC_RC_SUCCESS != rc)
 			goto done;
