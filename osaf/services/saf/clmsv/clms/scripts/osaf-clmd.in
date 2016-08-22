@@ -13,14 +13,14 @@
 ### END INIT INFO
 
 osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
-prog="osafclmd"
+osafprog="osafclmd"
 initscript=`basename $0`
 
 # Source LSB functions library
 . /lib/lsb/init-functions
 
 if [ ! -r $osafdirfile ]; then
-	logger -t $prog "can't read $osafdirfile, exiting."
+	logger -t $osafprog "can't read $osafdirfile, exiting."
 	exit 6
 else
 	. $osafdirfile
@@ -28,8 +28,8 @@ else
 	. $pkgsysconfdir/clmd.conf
 fi	
 
-binary=$pkglibdir/$prog
-pidfile=$pkgpiddir/$prog.pid
+binary=$pkglibdir/$osafprog
+pidfile=$pkgpiddir/$osafprog.pid
 lockfile=$lockdir/$initscript
 
 RETVAL=0
@@ -44,7 +44,7 @@ start() {
 		exit 5
 	fi
 	export CLMD_COMP_NAME_FILE=$COMPNAMEFILE
-	echo -n "Starting $prog: "
+	echo -n "Starting $osafprog: "
 	start_daemon -p $pidfile $binary $args
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
@@ -58,7 +58,7 @@ start() {
 }
 
 instantiate() {
-	echo -n "AMF Instantiating $prog: "
+	echo -n "AMF Instantiating $osafprog: "
 	echo $SA_AMF_COMPONENT_NAME > $COMPNAMEFILE
 	pidofproc -p $pidfile $binary
 	RETVAL=$?
@@ -78,7 +78,7 @@ instantiate() {
 }
 
 stop() {
-	echo -n "Stopping $prog: "
+	echo -n "Stopping $osafprog: "
 	killproc -p $pidfile $binary
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
@@ -103,9 +103,9 @@ tryrestart() {
 }
 
 reload() {
-	echo -n "Reloading $prog: "
+	echo -n "Reloading $osafprog: "
 	log_warning_msg
-	logger -t $prog "reloading configuration is currently an unimplemented LSB feature"
+	logger -t $osafprog "reloading configuration is currently an unimplemented LSB feature"
 	return 3
 }
 

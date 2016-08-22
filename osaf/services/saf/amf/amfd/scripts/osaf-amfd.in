@@ -13,14 +13,14 @@
 ### END INIT INFO
 
 osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
-prog="osafamfd"
+osafprog="osafamfd"
 initscript=`basename $0`
 
 # Source LSB functions library
 . /lib/lsb/init-functions
 
 if [ ! -r $osafdirfile ]; then
-	logger -t $prog "can't read $osafdirfile, exiting."
+	logger -t $osafprog "can't read $osafdirfile, exiting."
 	exit 6
 else
 	. $osafdirfile
@@ -28,8 +28,8 @@ else
 	. $pkgsysconfdir/amfd.conf
 fi	
 
-binary=$pkglibdir/$prog
-pidfile=$pkgpiddir/$prog.pid
+binary=$pkglibdir/$osafprog
+pidfile=$pkgpiddir/$osafprog.pid
 lockfile=$lockdir/$initscript
 
 RETVAL=0
@@ -42,7 +42,7 @@ start() {
 		echo "$NID_MAGIC:$NIDSERV:$DAEMON_NOT_FND" > $NIDFIFO
 		exit 5
 	fi
-	echo -n "Starting $prog: "
+	echo -n "Starting $osafprog: "
 	start_daemon -p $pidfile $binary $args
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
@@ -56,7 +56,7 @@ start() {
 }
 
 stop() {
-	echo -n "Stopping $prog: "
+	echo -n "Stopping $osafprog: "
 	killproc -p $pidfile $binary
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
@@ -80,8 +80,8 @@ tryrestart() {
 }
 
 reload() {
-	echo -n "Reloading $prog: "
-	logger -t $prog "reloading configuration is currently an unimplemented LSB feature"
+	echo -n "Reloading $osafprog: "
+	logger -t $osafprog "reloading configuration is currently an unimplemented LSB feature"
 	log_warning_msg
 	return 3
 }

@@ -20,7 +20,7 @@ osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
 . /lib/lsb/init-functions
 
 if [ ! -r $osafdirfile ]; then
-	logger -t $prog "can't read $osafdirfile, exiting."
+	logger -t $osafprog "can't read $osafdirfile, exiting."
 	exit 6
 else
 	. $osafdirfile
@@ -28,19 +28,19 @@ else
 fi
 
 if [ ! "$MDS_TRANSPORT" = "TIPC" ] ; then
-	prog="osafdtmd"
+	osafprog="osafdtmd"
 
 	#Read the pid of dtmd.
 	count=0
 	while true
 	do
 		if [ $count -eq 15 ] ; then
-			logger -s -t $prog "dtmd failed to come up. "
+			logger -s -t $osafprog "dtmd failed to come up. "
 			$pkglibdir/opensaf_reboot 0
 			exit 0;
 		fi
 		
-		pidval=`cat $pkgpiddir/$prog.pid`
+		pidval=`cat $pkgpiddir/$osafprog.pid`
 		if  ! test -d /proc/$pidval ; then
 			#dtmd may not have been spawned yet, wait for it.
 			sleep 1
@@ -68,7 +68,7 @@ do
 		while [ $count -le 15 ]
 		do
 			if  ! test -d /proc/$pidval ; then
-				logger -s -t $prog "$prog Process down, Rebooting the node"
+				logger -s -t $osafprog "$osafprog Process down, Rebooting the node"
 				$pkglibdir/opensaf_reboot 0
 				exit 0;
 			fi

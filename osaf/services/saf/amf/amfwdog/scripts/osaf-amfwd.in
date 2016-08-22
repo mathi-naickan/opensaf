@@ -13,14 +13,14 @@
 ### END INIT INFO
 
 osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
-prog="osafamfwd"
+osafprog="osafamfwd"
 initscript=`basename $0`
 
 # Source LSB functions library
 . /lib/lsb/init-functions
 
 if [ ! -r $osafdirfile ]; then
-	logger -t $prog "can't read $osafdirfile, exiting."
+	logger -t $osafprog "can't read $osafdirfile, exiting."
 	exit 6
 else
 	. $osafdirfile
@@ -28,10 +28,10 @@ else
 	. $pkgsysconfdir/amfwdog.conf
 fi	
 
-binary=$pkglibdir/$prog
-pidfile=$pkgpiddir/$prog.pid
+binary=$pkglibdir/$osafprog
+pidfile=$pkgpiddir/$osafprog.pid
 lockfile=$lockdir/$initscript
-termfile=$pkgpiddir/$prog"_termstate"
+termfile=$pkgpiddir/$osafprog"_termstate"
 
 RETVAL=0
 
@@ -48,7 +48,7 @@ start() {
 	[ -e $termfile ] && killproc -p $pidfile $binary
 
 	[ -x $binary ] || exit 5
-	echo -n "Starting $prog: "
+	echo -n "Starting $osafprog: "
 	start_daemon -p $pidfile $binary $args
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
@@ -62,7 +62,7 @@ start() {
 }
 
 stop() {
-	echo -n "Stopping $prog: "
+	echo -n "Stopping $osafprog: "
 	killproc -p $pidfile $binary
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
@@ -87,9 +87,9 @@ tryrestart() {
 }
 
 reload() {
-	echo -n "Reloading $prog: "
+	echo -n "Reloading $osafprog: "
 	log_warning_msg
-	logger -t $prog "reloading configuration is currently an unimplemented LSB feature"
+	logger -t $osafprog "reloading configuration is currently an unimplemented LSB feature"
 	return 3
 }
 

@@ -18,7 +18,7 @@ osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
 . /lib/lsb/init-functions
  
 if [ ! -r $osafdirfile ]; then
-	logger -t $prog "can't read $osafdirfile, exiting."
+	logger -t $osafprog "can't read $osafdirfile, exiting."
 	exit 6
 else
 	. $osafdirfile
@@ -30,7 +30,7 @@ MANAGE_TIPC=${OPENSAF_MANAGE_TIPC:="yes"}
 RETVAL=0
 
 if [ ! "$MDS_TRANSPORT" = "TIPC" ] ; then
-	prog="osafdtmd"
+	osafprog="osafdtmd"
 fi
 
 start() {

@@ -13,21 +13,21 @@
 ### END INIT INFO
 
 osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
-prog="opensafd"
+osafprog="opensafd"
 
 # Source LSB functions library
 . /lib/lsb/init-functions
 
 if [ ! -r $osafdirfile ]; then
-	logger -t $prog "can't read $osafdirfile, exiting."
+	logger -t $osafprog "can't read $osafdirfile, exiting."
 	exit 6
 else
 	. $osafdirfile
 	. $pkgsysconfdir/nid.conf
 fi	
 
-binary=$pkglibdir/$prog
-lockfile=$lockdir/$prog
+binary=$pkglibdir/$osafprog
+lockfile=$lockdir/$osafprog
 amfnd_bin=$pkglibdir/osafamfnd
 amfnd_pid=$pkgpiddir/osafamfnd.pid
 
@@ -51,7 +51,7 @@ unload_tipc() {
 	if [ $MANAGE_TIPC = "yes" ] && grep tipc /proc/modules >/dev/null 2>&1; then
 		modprobe -r tipc >/dev/null 2>&1
 		if [ $? -eq 1 ]; then
-			logger -t $prog "warning: TIPC module unloading failed"
+			logger -t $osafprog "warning: TIPC module unloading failed"
 		fi
 	fi
 }
@@ -61,7 +61,7 @@ check_tipc() {
 	if [ ! -x /sbin/tipc-config ]; then
 		which tipc-config >/dev/null 2>&1
 		if [ $? -eq 1 ] ; then
-			logger -s -t $prog "Can't find tipc-config in the PATH, exiting."
+			logger -s -t $osafprog "Can't find tipc-config in the PATH, exiting."
 			exit 5
 		fi
 	fi
@@ -72,7 +72,7 @@ check_tipc() {
 check_env() {
 	# Make sure this kernel has POSIX shared memory configured
 	if [ ! -d /dev/shm ]; then
-		logger -s -t $prog "POSIX shared memory (/dev/shm) not enabled, exiting."
+		logger -s -t $osafprog "POSIX shared memory (/dev/shm) not enabled, exiting."
 		exit 6
 	fi
 
@@ -212,7 +212,7 @@ start() {
 	check_env
 	check_transport
 
-	logger -t $prog "Starting OpenSAF Services($osafversion - $osafcshash) (Using $MDS_TRANSPORT)"
+	logger -t $osafprog "Starting OpenSAF Services($osafversion - $osafcshash) (Using $MDS_TRANSPORT)"
 
 	# Comment/Uncomment if you want cores disabled/enabled
 	#enable_coredump
@@ -221,25 +221,25 @@ start() {
 	start_daemon $binary $args
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
-		logger -t $prog "OpenSAF($osafversion - $osafcshash) services successfully started"
+		logger -t $osafprog "OpenSAF($osafversion - $osafcshash) services successfully started"
 		touch $lockfile
 		log_success_msg
 	else
 		final_clean
 		log_failure_msg
 		if [ $REBOOT_ON_FAIL_TIMEOUT -ne 0 ]; then
-			logger -t $prog "Starting OpenSAF failed, rebooting..." 
+			logger -t $osafprog "Starting OpenSAF failed, rebooting..." 
 			sleep $REBOOT_ON_FAIL_TIMEOUT
 			/sbin/reboot &
 		else
-			logger -t $prog "Starting OpenSAF failed"
+			logger -t $osafprog "Starting OpenSAF failed"
 		fi
 	fi
 	return $RETVAL
 }
 
 stop() {
-	logger -t $prog "Stopping OpenSAF Services"
+	logger -t $osafprog "Stopping OpenSAF Services"
 
 	killall -s KILL osaf-transport-monitor >/dev/null 2>&1
 
@@ -255,7 +255,7 @@ stop() {
 		done
 		[ -d /proc/$amfpid ] && RETVAL=1
 		if [ $RETVAL -eq 1 ]; then
-			logger -t $prog "amfnd has not yet exited, killing it forcibly."
+			logger -t $osafprog "amfnd has not yet exited, killing it forcibly."
 			kill -9 $amfpid 
 		fi
 	else
@@ -265,18 +265,18 @@ stop() {
 	final_clean
 
 	if [ $RETVAL -eq 0 ]; then
-		logger -t $prog "OpenSAF services successfully stopped"
+		logger -t $osafprog "OpenSAF services successfully stopped"
 		log_success_msg
 	else
 		log_failure_msg
 		# If AMF fails to terminate its components,
 		# this system is out of control, reboot it now!
 		if [ $REBOOT_ON_FAIL_TIMEOUT -ne 0 ]; then
-			logger -t $prog "Stopping OpenSAF failed, rebooting..."
+			logger -t $osafprog "Stopping OpenSAF failed, rebooting..."
 			sleep $REBOOT_ON_FAIL_TIMEOUT
 			/sbin/shutdown -r now "OpenSAF termination failed (timeout)"
 		else
-			logger -t $prog "Stoping OpenSAF failed"
+			logger -t $osafprog "Stoping OpenSAF failed"
 		fi
 	fi
 	return $RETVAL
@@ -293,9 +293,9 @@ tryrestart() {
 }
 
 reload() {
-	echo -n "Reloading $prog: "
+	echo -n "Reloading $osafprog: "
 	log_warning_msg
-	logger -t $prog "reloading configuration is currently an unimplemented LSB feature"
+	logger -t $osafprog "reloading configuration is currently an unimplemented LSB feature"
 	return 3
 }
 
