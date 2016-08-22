@@ -3523,17 +3523,16 @@ SaAisErrorT saCkptCheckpointWrite(SaCkptCheckpointHandleT checkpointHandle,
 	/* Unlock cpa_lock before calling mds api */
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
-	for (iter = 0; iter < numberOfElements; iter++) {
+	for (iter = 0; iter < numberOfElements; iter++) 
 		all_ioVector_size += ioVector[iter].dataSize;
-		time_out = CPA_WAIT_TIME(all_ioVector_size);
- 
-		if (time_out < CPSV_WAIT_TIME) {
-			time_out = CPSV_WAIT_TIME;
-		}
-		proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(gc_node->active_mds_dest),
-				&evt, &out_evt, time_out);
-
+		
+	time_out = CPA_WAIT_TIME(all_ioVector_size);
+ 	if (time_out < CPSV_WAIT_TIME) {
+		time_out = CPSV_WAIT_TIME;
 	}
+	
+	proc_rc = cpa_mds_msg_sync_send(cb->cpa_mds_hdl, &(gc_node->active_mds_dest),
+				&evt, &out_evt, time_out);
 	/* Generate rc from proc_rc */
 	switch (proc_rc)
 	{
