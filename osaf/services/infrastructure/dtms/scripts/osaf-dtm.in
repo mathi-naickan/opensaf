@@ -13,7 +13,7 @@
 ### END INIT INFO
 
 osafdirfile=@sysconfdir@/@PACKAGE_NAME@/osafdir.conf
-prog="osafdtmd"
+osafprog="osafdtmd"
 initscript=`basename $0`
 
 # Source LSB functions library
@@ -21,7 +21,7 @@ initscript=`basename $0`
 
 
 if [ ! -r $osafdirfile ]; then
-	logger -s -t $prog "can't read $osafdirfile, exiting."
+	logger -s -t $osafprog "can't read $osafdirfile, exiting."
 	exit 6
 else
 	. $osafdirfile
@@ -29,8 +29,8 @@ else
 	. $pkgsysconfdir/nid.conf
 fi
 
-binary=$pkglibdir/$prog
-pidfile=$pkgpiddir/$prog.pid
+binary=$pkglibdir/$osafprog
+pidfile=$pkgpiddir/$osafprog.pid
 lockfile=$lockdir/$initscript
 
 RETVAL=0
@@ -41,7 +41,7 @@ start() {
 		return 5
 	fi
 
-	echo -n "Starting $prog: "
+	echo -n "Starting $osafprog: "
 	start_daemon -p $pidfile $binary  $args
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ]; then
@@ -54,8 +54,8 @@ start() {
 }
 
 stop() {
-	echo -n "Stopping $prog: "
-	killproc -p $pidfile $prog
+	echo -n "Stopping $osafprog: "
+	killproc -p $pidfile $osafprog
 	RETVAL=$?
 	if [ $RETVAL -eq 0 ] || [ $RETVAL -eq 7 ]; then
 		rm -f $lockfile
@@ -78,9 +78,9 @@ tryrestart() {
 }
 
 reload() {
-	echo -n "Reloading $prog: "
+	echo -n "Reloading $osafprog: "
 	log_warning_msg
-	logger -t $prog "reloading configuration is currently an unimplemented LSB feature"
+	logger -t $osafprog "reloading configuration is currently an unimplemented LSB feature"
 	return 3
 }
 
@@ -94,16 +94,16 @@ status() {
 	pid=`pidofproc -p ${pidfile} ${binary}`
 	ret=$?
 	if [ $ret -eq 0 ]; then
-		log_success_msg "$prog is running"
+		log_success_msg "$osafprog is running"
 		return $ret
 	elif [ $ret -eq 1 ]; then
-		log_warning_msg "$prog is dead and /var/run pid file exists"
+		log_warning_msg "$osafprog is dead and /var/run pid file exists"
 	elif [ $ret -eq 2 ]; then
-		log_warning_msg "$prog is dead and /var/lock lock file exists"
+		log_warning_msg "$osafprog is dead and /var/lock lock file exists"
 	elif [ $ret -eq 3 ]; then
-		echo "$prog is not running"
+		echo "$osafprog is not running"
 	elif [ $ret -eq 4 ]; then
-		log_warning_msg "$prog or service status is unknown"
+		log_warning_msg "$osafprog or service status is unknown"
 	fi
 	return $ret
 }
