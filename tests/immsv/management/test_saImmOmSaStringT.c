@@ -24,7 +24,6 @@
 #include "immtest.h"
 
 static int mainThreadReady;
-static int oiThreadExit;
 
 // Parameters from saImmOmAdminOperationInvokeCallback
 static SaInvocationT callbackInvocation = 0;
@@ -72,26 +71,28 @@ static const SaImmCallbacksT immOmCallback = {
 static void *oi_thread(void *arg) {
 	SaImmOiHandleT immOiHandle = *(SaImmOiHandleT *)arg;
 	SaSelectionObjectT selObj;
-	struct pollfd fds[1];
+	struct pollfd fds[2];
+	int rc;
 
 	safassert(saImmOiSelectionObjectGet(immOiHandle, &selObj), SA_AIS_OK);
-	while(!oiThreadExit) {
-		mainThreadReady = 1;
-		fds[0].fd = (int)selObj;
-		fds[0].events = POLLIN;
-		if(poll(fds, 1, 1000) < 1) {
-			continue;
-		}
-		if(fds[0].revents != POLLIN) {
-			break;
-		}
+	mainThreadReady = 1;
 
-		if(fds[0].fd == (int)selObj) {
+	fds[0].fd = (int)selObj;
+	fds[0].events = POLLIN;
+	fds[1].fd = stopFd[0];
+	fds[1].events = POLLIN;
+
+	while (1) {
+		rc = poll(fds, 2, -1);
+		if (rc == -1)
+			fprintf(stderr, "poll error: %s\n", strerror(errno));
+
+		if (fds[0].revents & POLLIN)
 			saImmOiDispatch(immOiHandle, SA_DISPATCH_ONE);
-		}
-	}
 
-	oiThreadExit = 0;
+		if (fds[1].revents & POLLIN)
+			break;
+	}
 
 	return NULL;
 }
@@ -342,7 +343,6 @@ static void saImmOmSaStringT_08(void) {
 	const SaImmAdminOperationParamsT_2 *params[2] = { &param, NULL };
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 
 	safassert(saImmOmInitialize(&immOmHandle, &immOmCallback, &immVersion), SA_AIS_OK);
@@ -354,6 +354,7 @@ static void saImmOmSaStringT_08(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -385,8 +386,9 @@ static void saImmOmSaStringT_08(void) {
 		}
 	}
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	test_validate(rc, SA_AIS_OK);
 

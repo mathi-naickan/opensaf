@@ -159,46 +159,33 @@ enum {
 	S_DISP_FINISH
 };
 
-// -1 for infinite loop, exit with setting s_dispatch_exit = 0
-static int s_dispatch_repeat = 0;
-static int s_dispatch_exit = 0;
 static int s_dispatch_status = 0;
-static SaImmOiHandleT s_dispatch_oi_handle = 0;
 
 static void *dispatchThread(void *param) {
-	SaImmOiHandleT oiHandle = s_dispatch_oi_handle;
+	SaImmOiHandleT oiHandle = *((SaImmOiHandleT*) param);
 	SaSelectionObjectT selObj;
-	int repeat = s_dispatch_repeat ? s_dispatch_repeat : -1;
-	int waittime = (repeat == -1) ? 10 : -1;
 	int rc;
-	struct pollfd fd;
+	struct pollfd fds[2];
 
 	safassert(saImmOiSelectionObjectGet(oiHandle, &selObj), SA_AIS_OK);
-
 	s_dispatch_status = S_DISP_READY;
 
-	while(repeat) {
-		fd.fd = selObj;
-		fd.events = POLLIN;
-		rc = poll(&fd, 1, waittime);
-		if(!rc) {
-			if(s_dispatch_exit)
-				repeat = 0;
-			continue;
-		}
-		assert(rc != -1);
+	fds[0].fd = (int) selObj;
+	fds[0].events = POLLIN;
+	fds[1].fd = stopFd[0];
+	fds[1].events = POLLIN;
 
-		saImmOiDispatch(oiHandle, SA_DISPATCH_ONE);
+	while(1) {
+		rc = poll(fds, 2, -1);
+		if (rc == -1)
+			fprintf(stderr, "poll error: %s\n", strerror(errno));
 
-		if(repeat > 0) {
-			repeat--;
-		} else if(s_dispatch_exit) {
-			// Exit from loop
-			repeat = 0;
-		}
+		if (fds[0].revents & POLLIN)
+			saImmOiDispatch(oiHandle, SA_DISPATCH_ONE);
+
+		if (fds[1].revents & POLLIN)
+			break;
 	}
-
-	s_dispatch_status = S_DISP_FINISH;
 
 	return NULL;
 }
@@ -223,11 +210,9 @@ static void saImmOiLongDn_01(void) {
 	safassert(saImmOiInitialize_2(&immOiHandle, &localImmOiCallbacks, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
-	s_dispatch_repeat = 0;
-	s_dispatch_oi_handle = immOiHandle;
-	s_dispatch_exit = 0;
-	s_dispatch_status = 0;
-	assert(pthread_create(&threadid, NULL, dispatchThread, NULL) == 0);
+	s_dispatch_status = S_DISP_START;
+	pipe_stop_fd();
+	assert(pthread_create(&threadid, NULL, dispatchThread, &immOiHandle) == 0);
 
 	while(s_dispatch_status != S_DISP_READY) {
 		usleep(100);
@@ -249,10 +234,9 @@ static void saImmOiLongDn_01(void) {
 	safassert(saImmOiClassImplementerRelease(immOiHandle, configClassName), SA_AIS_OK);
 
 	// Wait for thread to exit
-	s_dispatch_exit = 1;
-	while(s_dispatch_status != S_DISP_FINISH) {
-		usleep(100);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 
@@ -289,11 +273,9 @@ static void saImmOiLongDn_02(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
-	s_dispatch_repeat = 0;
-	s_dispatch_oi_handle = immOiHandle;
-	s_dispatch_exit = 0;
-	s_dispatch_status = 0;
-	pthread_create(&threadid, NULL, dispatchThread, NULL);
+	s_dispatch_status = S_DISP_START;
+	pipe_stop_fd();
+	pthread_create(&threadid, NULL, dispatchThread, &immOiHandle);
 
 	while(s_dispatch_status != S_DISP_READY) {
 		usleep(100);
@@ -314,10 +296,9 @@ static void saImmOiLongDn_02(void) {
 	safassert(saImmOiClassImplementerRelease(immOiHandle, configClassName), SA_AIS_OK);
 
 	// Wait for thread to exit
-	s_dispatch_exit = 1;
-	while(s_dispatch_status != S_DISP_FINISH) {
-		usleep(100);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 
@@ -346,11 +327,9 @@ static void saImmOiLongDn_03(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
-	s_dispatch_repeat = 0;
-	s_dispatch_oi_handle = immOiHandle;
-	s_dispatch_exit = 0;
-	s_dispatch_status = 0;
-	pthread_create(&threadid, NULL, dispatchThread, NULL);
+	s_dispatch_status = S_DISP_START;
+	pipe_stop_fd();
+	pthread_create(&threadid, NULL, dispatchThread, &immOiHandle);
 
 	while(s_dispatch_status != S_DISP_READY) {
 		usleep(100);
@@ -371,10 +350,9 @@ static void saImmOiLongDn_03(void) {
 	safassert(saImmOiClassImplementerRelease(immOiHandle, configClassName), SA_AIS_OK);
 
 	// Wait for thread to exit
-	s_dispatch_exit = 1;
-	while(s_dispatch_status != S_DISP_FINISH) {
-		usleep(100);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 
@@ -400,11 +378,9 @@ static void saImmOiLongDn_04(void) {
 	safassert(saImmOiInitialize_2(&immOiHandle, &localImmOiCallbacks, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
-	s_dispatch_repeat = 0;
-	s_dispatch_oi_handle = immOiHandle;
-	s_dispatch_exit = 0;
-	s_dispatch_status = 0;
-	pthread_create(&threadid, NULL, dispatchThread, NULL);
+	s_dispatch_status = S_DISP_START;
+	pipe_stop_fd();
+	pthread_create(&threadid, NULL, dispatchThread, &immOiHandle);
 
 	while(s_dispatch_status != S_DISP_READY) {
 		usleep(100);
@@ -422,10 +398,9 @@ static void saImmOiLongDn_04(void) {
 	safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
 	// Wait for thread to exit
-	s_dispatch_exit = 1;
-	while(s_dispatch_status != S_DISP_FINISH) {
-		usleep(100);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 
@@ -451,11 +426,9 @@ static void saImmOiLongDn_05(void) {
 	safassert(saImmOiInitialize_2(&immOiHandle, &localImmOiCallbacks, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
-	s_dispatch_repeat = 0;
-	s_dispatch_oi_handle = immOiHandle;
-	s_dispatch_exit = 0;
-	s_dispatch_status = 0;
-	pthread_create(&threadid, NULL, dispatchThread, NULL);
+	s_dispatch_status = S_DISP_START;
+	pipe_stop_fd();
+	pthread_create(&threadid, NULL, dispatchThread, &immOiHandle);
 
 	while(s_dispatch_status != S_DISP_READY) {
 		usleep(100);
@@ -494,10 +467,9 @@ static void saImmOiLongDn_05(void) {
 	safassert(saImmOmFinalize(immOmHandle), SA_AIS_OK);
 
 	// Wait for thread to exit
-	s_dispatch_exit = 1;
-	while(s_dispatch_status != S_DISP_FINISH) {
-		usleep(100);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 
@@ -533,11 +505,9 @@ static void saImmOiLongDn_06(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
-	s_dispatch_repeat = 0;
-	s_dispatch_oi_handle = immOiHandle;
-	s_dispatch_exit = 0;
-	s_dispatch_status = 0;
-	pthread_create(&threadid, NULL, dispatchThread, NULL);
+	s_dispatch_status = S_DISP_START;
+	pipe_stop_fd();
+	pthread_create(&threadid, NULL, dispatchThread, &immOiHandle);
 
 	while(s_dispatch_status != S_DISP_READY) {
 		usleep(100);
@@ -564,10 +534,9 @@ static void saImmOiLongDn_06(void) {
 	safassert(saImmOiClassImplementerRelease(immOiHandle, configClassName), SA_AIS_OK);
 
 	// Wait for thread to exit
-	s_dispatch_exit = 1;
-	while(s_dispatch_status != S_DISP_FINISH) {
-		usleep(100);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
 

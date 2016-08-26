@@ -104,7 +104,7 @@ void *saImmOiImplementerSet_modify_thread(void *arg) {
 	SaImmOiCallbacksT_2 configImmOiCallbacks = { NULL , NULL , NULL , NULL , NULL , NULL , saImmOiImplementerSet_ModifyCallback , NULL };
 	SaImmOiCallbacksT_2 rtImmOiCallbacks = { NULL , NULL , NULL , NULL , NULL , NULL , NULL , saImmOiImplementerSet_RtAttrUpdateCallbackT };
 	SaNameT rdn = { 5, "obj=1" };
-	struct pollfd pfd;
+	struct pollfd fds[2];
 	int rc = 1;
 	int config = 1;
 
@@ -127,14 +127,22 @@ void *saImmOiImplementerSet_modify_thread(void *arg) {
 		safassert(saImmOiClassImplementerSet(immOiHandle, saImmOiImplementerSet_className), SA_AIS_OK);
 	}
 
+	fds[0].fd = (int) selObj;
+	fds[0].events = POLLIN;
+	fds[1].fd = stopFd[0];
+	fds[1].events = POLLIN;
 	*ready = 1;
 
-	while((!rc || rc == 1) && *ready) {
-		pfd.fd = selObj;
-		pfd.events = POLLIN;
-		rc = poll(&pfd, 1, 100);
+	while (1) {
+		rc = poll(fds, 2, -1);
+		if (rc == -1)
+			fprintf(stderr, "poll error: %s\n", strerror(errno));
 
-		safassert(saImmOiDispatch(immOiHandle, SA_DISPATCH_ONE), SA_AIS_OK);
+		if (fds[0].revents & POLLIN)
+			safassert(saImmOiDispatch(immOiHandle, SA_DISPATCH_ONE), SA_AIS_OK);
+
+		if (fds[1].revents & POLLIN)
+			break;
 	}
 
 	if(!config) {
@@ -145,8 +153,6 @@ void *saImmOiImplementerSet_modify_thread(void *arg) {
 
 	safassert(saImmOiImplementerClear(immOiHandle), SA_AIS_OK);
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
-
-	*ready = 1;
 
 	return NULL;
 }
@@ -175,6 +181,7 @@ void saImmOiImplementerSet_06(void)
 	config_class_create(immHandle);
 	safassert(object_create(immHandle, ownerHandle, configClassName, &obj1, NULL, NULL), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, saImmOiImplementerSet_modify_thread, &ready));
 
 	while(!ready) {
@@ -188,11 +195,9 @@ void saImmOiImplementerSet_06(void)
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 
-	ready = 0;
-
-	while(!ready) {
-		usleep(100000);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(object_delete(ownerHandle, &obj1, 0), SA_AIS_OK);
 	config_class_delete(immHandle);
@@ -228,6 +233,7 @@ void saImmOiImplementerSet_07(void)
 	config_class_create(immHandle);
 	safassert(object_create(immHandle, ownerHandle, configClassName, &obj1, NULL, NULL), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, saImmOiImplementerSet_modify_thread, &ready));
 
 	while(!ready) {
@@ -243,11 +249,9 @@ void saImmOiImplementerSet_07(void)
 	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
 	safassert(saImmOmFinalize(immHandle), SA_AIS_OK);
 
-	ready = 0;
-
-	while(!ready) {
-		usleep(100000);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	const SaNameT *objectNames[2] = { &obj1, NULL };
 	safassert(saImmOmInitialize(&immHandle, NULL, &immVersion), SA_AIS_OK);
@@ -280,6 +284,7 @@ void saImmOiImplementerSet_08(void)
 
 	safassert(saImmOmInitialize(&immHandle, NULL, &immVersion), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, saImmOiImplementerSet_modify_thread, &ready));
 
 	while(!ready) {
@@ -292,11 +297,9 @@ void saImmOiImplementerSet_08(void)
 
 	safassert(saImmOmAccessorFinalize(accessorHandle), SA_AIS_OK);
 
-	ready = 0;
-
-	while(!ready) {
-		usleep(100000);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmFinalize(immHandle), SA_AIS_OK);
 
@@ -321,6 +324,7 @@ void saImmOiImplementerSet_09(void)
 
 	safassert(saImmOmInitialize(&immHandle, NULL, &immVersion), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, saImmOiImplementerSet_modify_thread, &ready));
 
 	while(!ready) {
@@ -333,11 +337,9 @@ void saImmOiImplementerSet_09(void)
 
 	safassert(saImmOmAccessorFinalize(accessorHandle), SA_AIS_OK);
 
-	ready = 0;
-
-	while(!ready) {
-		usleep(100000);
-	}
+	indicate_stop_fd();
+	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmFinalize(immHandle), SA_AIS_OK);
 
