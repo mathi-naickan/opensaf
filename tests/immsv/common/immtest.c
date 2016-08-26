@@ -114,9 +114,6 @@ int main(int argc, char **argv)
     if(test_cleanup)
         test_cleanup();
 
-    /* Added pthread_exit() to remove dlopen@@GLIBC leak from valgrind */
-    pthread_exit(NULL);
-
     return rc;
 }  
 
