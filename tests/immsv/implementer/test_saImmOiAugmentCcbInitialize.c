@@ -345,7 +345,7 @@ static void *immOiObjectDispatchThread(void *arg)
     SaImmOiImplementerNameT implementerName = immArg->implementerName;
     SaImmOiHandleT handle;
     SaSelectionObjectT selObj;
-    struct pollfd fds[1];
+    struct pollfd fds[2];
     int ret;
 
     TRACE_ENTER();
@@ -361,21 +361,22 @@ static void *immOiObjectDispatchThread(void *arg)
 
     fds[0].fd = (int) selObj;
     fds[0].events = POLLIN;
+    fds[1].fd = stopFd[0];
+    fds[1].events = POLLIN;
 
     objectDispatchThreadIsSet = 1;
 
     while(1)
     {
-        ret = poll(fds, 1, 2000);
-        if (ret == 0)
-        {
-            TRACE("poll timeout\n");
-            break;
-        }
+        ret = poll(fds, 2, -1);
         if (ret == -1)
             fprintf(stderr, "poll error: %s\n", strerror(errno));
 
-        safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
+        if (fds[0].revents & POLLIN)
+            safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
+
+        if (fds[1].revents & POLLIN)
+            break;
     }
 
     /* Objects might be deleted, so in saImmOiObjectImplementerRelease
@@ -400,7 +401,7 @@ static void *immOiClassDispatchThread(void *arg) {
     SaImmOiImplementerNameT implementerName = immArg->implementerName;
     SaImmOiHandleT handle;
     SaSelectionObjectT selObj;
-    struct pollfd fds[1];
+    struct pollfd fds[2];
     int ret;
 
     TRACE_ENTER();
@@ -414,21 +415,23 @@ static void *immOiClassDispatchThread(void *arg) {
 
     fds[0].fd = (int) selObj;
     fds[0].events = POLLIN;
+    fds[1].fd = stopFd[0];
+    fds[1].events = POLLIN;
+
 
     classDispatchThreadIsSet = 1;
 
     while(1)
     {
-        ret = poll(fds, 1, 2000);
-        if (ret == 0)
-        {
-            TRACE("poll timeout\n");
-            break;
-        }
+        ret = poll(fds, 2, -1);
         if (ret == -1)
             fprintf(stderr, "poll error: %s\n", strerror(errno));
 
-        safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
+        if (fds[0].revents & POLLIN)
+            safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
+
+        if (fds[1].revents & POLLIN)
+            break;
     }
 
     safassert(saImmOiClassImplementerRelease(handle, className), SA_AIS_OK);
@@ -463,6 +466,7 @@ static void saImmOiCcbAugmentInitialize_01(void)
     arg.implementerName = (SaImmOiImplementerNameT)__FUNCTION__;
     classDispatchThreadIsSet = 0;
     resetThreadCounter();
+    pipe_stop_fd();
     assert(pthread_create(&threadid, NULL, immOiClassDispatchThread, (void *)&arg) == 0);
     while(!classDispatchThreadIsSet)
     	usleep(500);
@@ -499,7 +503,9 @@ static void saImmOiCcbAugmentInitialize_01(void)
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
 done:
+    indicate_stop_fd();
     pthread_join(threadid, NULL);
+    close_stop_fd();
 
     test_validate(rc, SA_AIS_OK);
 
@@ -543,6 +549,7 @@ static void saImmOiCcbAugmentInitialize_02(void)
     arg.implementerName = (SaImmOiImplementerNameT)__FUNCTION__;
     objectDispatchThreadIsSet = 0;
     resetThreadCounter();
+    pipe_stop_fd();
     assert(pthread_create(&threadid, NULL, immOiObjectDispatchThread, (void *)&arg) == 0);
     while(!objectDispatchThreadIsSet)
     	usleep(500);
@@ -574,7 +581,9 @@ static void saImmOiCcbAugmentInitialize_02(void)
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
 done:
+    indicate_stop_fd();
 	pthread_join(threadid, NULL);
+    close_stop_fd();
 
 	if(!testValidate) {
 		test_validate(rc, SA_AIS_OK);
@@ -622,6 +631,7 @@ static void saImmOiCcbAugmentInitialize_03(void)
     arg[1].callbacks = (SaImmOiCallbacksT_2 *)&callbacks;
     arg[1].implementerName = (SaImmOiImplementerNameT)"TestImplementer2";
 
+    pipe_stop_fd();
     resetThreadCounter();
     objectDispatchThreadIsSet = 0;
     assert(pthread_create(&threadid1, NULL, immOiObjectDispatchThread, (void *)&(arg[0])) == 0);
@@ -663,8 +673,10 @@ static void saImmOiCcbAugmentInitialize_03(void)
     safassert(saImmOmCcbApply(ccbHandle), SA_AIS_OK);
 
 done:
+    indicate_stop_fd();
 	pthread_join(threadid1, NULL);
 	pthread_join(threadid2, NULL);
+    close_stop_fd();
 
 	test_validate(rc, SA_AIS_OK);
 
@@ -709,6 +721,7 @@ static void saImmOiCcbAugmentInitialize_04(void)
     arg[1].callbacks = (SaImmOiCallbacksT_2 *)&callbacks;
     arg[1].implementerName = (SaImmOiImplementerNameT)"TestImplementer2";
 
+    pipe_stop_fd();
     resetThreadCounter();
     objectDispatchThreadIsSet = 0;
     assert(pthread_create(&threadid1, NULL, immOiObjectDispatchThread, (void *)&(arg[0])) == 0);
@@ -754,8 +767,10 @@ static void saImmOiCcbAugmentInitialize_04(void)
 done:
 	useAdminOwner = 0;
 
+    indicate_stop_fd();
 	pthread_join(threadid1, NULL);
 	pthread_join(threadid2, NULL);
+    close_stop_fd();
 
 	test_validate(rc, SA_AIS_OK);
 

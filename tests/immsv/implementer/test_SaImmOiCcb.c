@@ -171,7 +171,7 @@ done:
  */
 static void *objectImplementerThreadMain(void *arg)
 {
-    struct pollfd fds[1];
+    struct pollfd fds[2];
     int ret;
     char buf[256];
     const SaImmOiImplementerNameT implementerName = buf;
@@ -189,20 +189,21 @@ static void *objectImplementerThreadMain(void *arg)
 
     fds[0].fd = (int) selObj;
     fds[0].events = POLLIN;
+    fds[1].fd = stopFd[0];
+    fds[1].events = POLLIN;
 
     /* We can receive five callbacks: create, delete, modify, completed & apply */
     while(1)
     {
-        ret = poll(fds, 1, 2000);
-        if (ret == 0)
-        {
-            TRACE("poll timeout\n");
-            break;
-        }
+        ret = poll(fds, 2, -1);
         if (ret == -1)
             fprintf(stderr, "poll error: %s\n", strerror(errno));
 
-        safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
+        if (fds[0].revents & POLLIN)
+            safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
+
+        if (fds[1].revents & POLLIN)
+            break;
     }
 
     if (saImmOiObjectImplementerRelease(handle, objectName, SA_IMM_ONE) == SA_AIS_ERR_NOT_EXIST)
@@ -223,7 +224,7 @@ static void *objectImplementerThreadMain(void *arg)
  */
 static void *classImplementerThreadMain(void *arg)
 {
-    struct pollfd fds[1];
+    struct pollfd fds[2];
     int ret;
     const SaImmOiImplementerNameT implementerName = (SaImmOiImplementerNameT) __FUNCTION__;
     SaSelectionObjectT selObj;
@@ -239,19 +240,20 @@ static void *classImplementerThreadMain(void *arg)
 
     fds[0].fd = (int) selObj;
     fds[0].events = POLLIN;
+    fds[1].fd = stopFd[0];
+    fds[1].events = POLLIN;
 
     while(1)
     {
-        ret = poll(fds, 1, 2000);
-        if (ret == 0)
-        {
-            TRACE("poll timeout\n");
-            break;
-        }
+        ret = poll(fds, 2, -1);
         if (ret == -1)
             fprintf(stderr, "poll error: %s\n", strerror(errno));
 
-        safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
+        if (fds[0].revents & POLLIN)
+            safassert(saImmOiDispatch(handle, SA_DISPATCH_ONE), SA_AIS_OK);
+
+        if (fds[1].revents & POLLIN)
+            break;
     }
 
     safassert(saImmOiClassImplementerRelease(handle, className), SA_AIS_OK);
@@ -409,6 +411,7 @@ static void saImmOiCcb_01(void)
     TRACE_ENTER();
     om_setup();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&thread[0], NULL, objectImplementerThreadMain, &dnObj1);
     assert(res == 0);
@@ -418,8 +421,10 @@ static void saImmOiCcb_01(void)
     sleep(1); /* Race condition, allow implementer threads to set up !*/
     rc = om_ccb_exec(0);
 
+    indicate_stop_fd();
     pthread_join(thread[0], NULL);
     pthread_join(thread[1], NULL);
+    close_stop_fd();
 
     test_validate(rc, SA_AIS_OK);
 
@@ -435,6 +440,7 @@ static void saImmOiCcb_02(void)
     TRACE_ENTER();
     om_setup();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&thread[0], NULL, objectImplementerThreadMain, &dnObj1);
     assert(res == 0);
@@ -445,8 +451,10 @@ static void saImmOiCcb_02(void)
     sleep(1); /* Race condition, allow implementer threads to set up!*/
     rc = om_ccb_exec(0);
 
+    indicate_stop_fd();
     pthread_join(thread[0], NULL);
     pthread_join(thread[1], NULL);
+    close_stop_fd();
 
     if(rc != SA_AIS_ERR_BAD_OPERATION) {
         /* Note  that the error code returned by implementer need not
@@ -472,6 +480,7 @@ static void saImmOiCcb_03(void)
     TRACE_ENTER();
     om_setup();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&thread[0], NULL, classImplementerThreadMain, configClassName);
     assert(res == 0);
@@ -479,7 +488,9 @@ static void saImmOiCcb_03(void)
     sleep(1); /* Race condition, allow implementer threads to set up!*/
     rc = om_ccb_exec(0);
 
+    indicate_stop_fd();
     pthread_join(thread[0], NULL);
+    close_stop_fd();
  
     test_validate(rc, SA_AIS_OK);
 
@@ -495,6 +506,7 @@ static void saImmOiCcb_04(void)
     TRACE_ENTER();
     om_setup();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&threadid, NULL, classImplementerThreadMain, configClassName);
     assert(res == 0);
@@ -503,7 +515,9 @@ static void saImmOiCcb_04(void)
     sleep(1); /* Race condition, allow implementer threads to set up!*/
     rc = om_ccb_exec(0);
 
+    indicate_stop_fd();
     pthread_join(threadid, NULL);
+    close_stop_fd();
  
     if(rc != SA_AIS_ERR_BAD_OPERATION) {
         /* Note  that the error code returned by implementer need not
@@ -530,6 +544,7 @@ static void saImmOiCcb_05(void)
     TRACE_ENTER();
     om_setup();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&threadid, NULL, classImplementerThreadMain, configClassName);
     assert(res == 0);
@@ -555,7 +570,9 @@ static void saImmOiCcb_05(void)
     }
     free(returnErrorStrings);
 
+    indicate_stop_fd();
     pthread_join(threadid, NULL);
+    close_stop_fd();
 
     if(rc != SA_AIS_ERR_BAD_OPERATION) {
         /* Note  that the error code returned by implementer need not
@@ -581,6 +598,7 @@ static void saImmOiCcb_06(void)
     TRACE_ENTER();
     om_setup();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&thread[0], NULL, objectImplementerThreadMain, &dnObj1);
     assert(res == 0);
@@ -590,8 +608,10 @@ static void saImmOiCcb_06(void)
     sleep(1); /* Race condition, allow implementer threads to set up !*/
     rc = om_ccb_exec(1);
 
+    indicate_stop_fd();
     pthread_join(thread[0], NULL);
     pthread_join(thread[1], NULL);
+    close_stop_fd();
 
     test_validate(rc, SA_AIS_OK);
 
@@ -607,6 +627,7 @@ static void saImmOiCcb_07(void)
     TRACE_ENTER();
     om_setup();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&thread[0], NULL, objectImplementerThreadMain, &dnObj1);
     assert(res == 0);
@@ -616,8 +637,10 @@ static void saImmOiCcb_07(void)
     sleep(1); /* Race condition, allow implementer threads to set up !*/
     rc = om_ccb_exec(2);
 
+    indicate_stop_fd();
     pthread_join(thread[0], NULL);
     pthread_join(thread[1], NULL);
+    close_stop_fd();
 
     test_validate(rc, SA_AIS_OK);
 
@@ -633,6 +656,7 @@ static void saImmOiCcb_08(void)
     TRACE_ENTER();
     om_setup();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&thread[0], NULL, objectImplementerThreadMain, &dnObj1);
     assert(res == 0);
@@ -643,8 +667,10 @@ static void saImmOiCcb_08(void)
     sleep(1); /* Race condition, allow implementer threads to set up!*/
     rc = om_ccb_exec(3);
 
+    indicate_stop_fd();
     pthread_join(thread[0], NULL);
     pthread_join(thread[1], NULL);
+    close_stop_fd();
 
     test_validate(rc, SA_AIS_ERR_FAILED_OPERATION);
 
@@ -668,6 +694,7 @@ static void saImmOiCcb_09(void)
 
     TRACE_ENTER();
 
+    pipe_stop_fd();
     /* Create implementer threads */
     res = pthread_create(&threadid, NULL, classImplementerThreadMain, configClassName);
     assert(res == 0);
@@ -706,7 +733,9 @@ static void saImmOiCcb_09(void)
     safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
     safassert(saImmOmFinalize(omHandle), SA_AIS_OK);
 
+    indicate_stop_fd();
     pthread_join(threadid, NULL);
+    close_stop_fd();
 
     saImmOiCcbCompletedCallback_response = SA_AIS_OK;
     TRACE_LEAVE();

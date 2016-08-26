@@ -34,6 +34,7 @@ extern const SaVersionT constImmVersion;
 extern SaVersionT immVersion;
 extern SaAisErrorT rc;
 extern SaSelectionObjectT selectionObject;
+extern int stopFd[];
 
 /* Management globals */
 extern SaImmHandleT immOmHandle;
@@ -49,6 +50,9 @@ extern SaImmHandleT immOiHandle;
 extern SaImmOiCallbacksT_2 immOiCallbacks;
 
 /* Common functions */
+void pipe_stop_fd();
+void indicate_stop_fd();
+void close_stop_fd();
 SaAisErrorT config_class_create(SaImmHandleT immHandle);
 SaAisErrorT config_class_delete(SaImmHandleT immHandle);
 SaAisErrorT runtime_class_create(SaImmHandleT immHandle);
