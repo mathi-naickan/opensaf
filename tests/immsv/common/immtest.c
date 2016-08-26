@@ -46,6 +46,8 @@ const SaConstStringT rootObjS = "Obj1,rdn=root";
 void (*test_setup)(void) = NULL;
 void (*test_cleanup)(void) = NULL;
 
+int stopFd[2] = { -1, -1};
+
 void usage(const char *progname) {
 	printf("Usage: %s [-h] [--help] [--longDn] [suite [testcase]]\n\n", progname);
 	printf("OPTIONS:\n");
@@ -118,6 +120,31 @@ int main(int argc, char **argv)
 
     return rc;
 }  
+
+void pipe_stop_fd() {
+    if (pipe(stopFd) != 0) {
+        fprintf(stderr, "Failed to pipe fd\n");
+        exit(1);
+    }
+}
+
+void indicate_stop_fd() {
+    uint64_t num = rand(); /* Just a random number */
+    ssize_t bytes = write(stopFd[1], &num, sizeof(uint64_t));
+    if (bytes != sizeof(uint64_t)) {
+        fprintf(stderr, "Failed to write to fd\n");
+        exit(1);
+    }
+}
+
+void close_stop_fd() {
+    if (close(stopFd[0]) != 0 || close(stopFd[1]) != 0) {
+        fprintf(stderr, "Failed to close fd\n");
+        exit(1);
+    }
+    stopFd[0] = -1;
+    stopFd[1] = -1;
+}
 
 SaAisErrorT config_class_create(SaImmHandleT immHandle)
 {

@@ -25,7 +25,6 @@
 #include "immtest.h"
 
 static int mainThreadReady;
-static int oiThreadExit;
 
 static char *expectedRdnAttr;
 static SaStringT expectedObjectName;	// Used for both DN and RDN checks
@@ -240,23 +239,27 @@ static const SaImmOiCallbacksT_2 immOiCallbacks_2 = {
 static void *oi_thread(void *arg) {
 	SaImmOiHandleT immOiHandle = *(SaImmOiHandleT *)arg;
 	SaSelectionObjectT selObj;
-	struct pollfd fds[1];
+	struct pollfd fds[2];
+	int rc;
 
 	safassert(saImmOiSelectionObjectGet(immOiHandle, &selObj), SA_AIS_OK);
 	mainThreadReady = 1;
-	while(!oiThreadExit) {
-		fds[0].fd = (int)selObj;
-		fds[0].events = POLLIN;
-		if(poll(fds, 1, 1000) < 1) {
-			continue;
-		}
-		if(fds[0].revents != POLLIN) {
-			break;
-		}
 
-		if(fds[0].fd == (int)selObj) {
+	fds[0].fd = (int)selObj;
+	fds[0].events = POLLIN;
+	fds[1].fd = stopFd[0];
+	fds[1].events = POLLIN;
+
+	while (1) {
+		rc = poll(fds, 2, -1);
+		if (rc == -1)
+			fprintf(stderr, "poll error: %s\n", strerror(errno));
+
+		if (fds[0].revents & POLLIN)
 			saImmOiDispatch(immOiHandle, SA_DISPATCH_ONE);
-		}
+
+		if (fds[1].revents & POLLIN)
+			break;
 	}
 
 	return NULL;
@@ -324,13 +327,13 @@ static void saImmOiSaStringT_01(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 
 	safassert(saImmOiInitialize_o3(&immOiHandle, &immOiCallbacks_o3, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -348,8 +351,9 @@ static void saImmOiSaStringT_01(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
@@ -376,7 +380,6 @@ static void saImmOiSaStringT_02(void) {
 	SaNameT expParentName = { strlen("rdn=root"), "rdn=root" };
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = "obj=1";	// RDN
 	expectedParentName = &expParentName;
 	expectedRdnAttr = "rdn";
@@ -385,6 +388,7 @@ static void saImmOiSaStringT_02(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -402,8 +406,9 @@ static void saImmOiSaStringT_02(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
@@ -432,13 +437,13 @@ static void saImmOiSaStringT_03(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = "obj=1,rdn=root";
 
 	safassert(saImmOiInitialize_o3(&immOiHandle, &immOiCallbacks_o3, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -456,8 +461,9 @@ static void saImmOiSaStringT_03(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
@@ -484,7 +490,6 @@ static void saImmOiSaStringT_04(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 
 	safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
@@ -497,6 +502,7 @@ static void saImmOiSaStringT_04(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -512,8 +518,9 @@ static void saImmOiSaStringT_04(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 
@@ -543,7 +550,6 @@ static void saImmOiSaStringT_05(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 
 	safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
@@ -556,6 +562,7 @@ static void saImmOiSaStringT_05(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -571,8 +578,9 @@ static void saImmOiSaStringT_05(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 
@@ -602,7 +610,6 @@ static void saImmOiSaStringT_06(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = (SaStringT)dn.value;
 
 	safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
@@ -615,6 +622,7 @@ static void saImmOiSaStringT_06(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -629,8 +637,9 @@ static void saImmOiSaStringT_06(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 
@@ -655,7 +664,6 @@ static void saImmOiSaStringT_07(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 
 	safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
@@ -668,6 +676,7 @@ static void saImmOiSaStringT_07(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -687,8 +696,9 @@ static void saImmOiSaStringT_07(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
@@ -710,7 +720,6 @@ static void saImmOiSaStringT_08(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 
 	safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
@@ -723,6 +732,7 @@ static void saImmOiSaStringT_08(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -742,8 +752,9 @@ static void saImmOiSaStringT_08(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
@@ -765,7 +776,6 @@ static void saImmOiSaStringT_09(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = (SaStringT)dn.value;
 
 	safassert(saImmOmInitialize(&immOmHandle, NULL, &immVersion), SA_AIS_OK);
@@ -778,6 +788,7 @@ static void saImmOiSaStringT_09(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -796,8 +807,9 @@ static void saImmOiSaStringT_09(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmCcbFinalize(ccbHandle), SA_AIS_OK);
 	safassert(saImmOmAdminOwnerFinalize(ownerHandle), SA_AIS_OK);
@@ -816,11 +828,11 @@ static void saImmOiSaStringT_10(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 
 	safassert(saImmOiInitialize_o3(&immOiHandle, &immOiCallbacks_o3, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -834,8 +846,9 @@ static void saImmOiSaStringT_10(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiImplementerClear(immOiHandle), SA_AIS_OK);
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
@@ -848,11 +861,11 @@ static void saImmOiSaStringT_11(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 
 	safassert(saImmOiInitialize_o3(&immOiHandle, &immOiCallbacks_o3, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -866,8 +879,9 @@ static void saImmOiSaStringT_11(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiImplementerClear(immOiHandle), SA_AIS_OK);
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
@@ -880,12 +894,12 @@ static void saImmOiSaStringT_12(void) {
 	pthread_t threadid;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 
 	safassert(saImmOiInitialize_o3(&immOiHandle, &immOiCallbacks_o3, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -899,8 +913,9 @@ static void saImmOiSaStringT_12(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOiImplementerClear(immOiHandle), SA_AIS_OK);
 	safassert(saImmOiFinalize(immOiHandle), SA_AIS_OK);
@@ -917,7 +932,6 @@ static void saImmOiSaStringT_13(void) {
 	SaImmAttrValuesT_2 **attributes;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 	srand((int)time(NULL));
 	expectedU32 = (SaUint32T)rand();
@@ -929,6 +943,7 @@ static void saImmOiSaStringT_13(void) {
 	safassert(saImmOiInitialize_o3(&immOiHandle, &immOiCallbacks_o3, &immVersion), SA_AIS_OK);
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -957,8 +972,9 @@ static void saImmOiSaStringT_13(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	safassert(saImmOmAccessorFinalize(accessorHandle), SA_AIS_OK);
 	safassert(saImmOmFinalize(immHandle), SA_AIS_OK);
@@ -983,7 +999,6 @@ static void saImmOiSaStringT_14(void) {
 	SaAisErrorT returnError;
 
 	mainThreadReady = 0;
-	oiThreadExit = 0;
 	expectedObjectName = dn;
 	srand((int)time(NULL));
 	expectedU32 = (SaUint32T)rand();
@@ -1003,6 +1018,7 @@ static void saImmOiSaStringT_14(void) {
 	safassert(saImmOiImplementerSet(immOiHandle, implementerName), SA_AIS_OK);
 	safassert(saImmOiClassImplementerSet(immOiHandle, configClassName), SA_AIS_OK);
 
+	pipe_stop_fd();
 	assert(!pthread_create(&threadid, NULL, oi_thread, (void *)&immOiHandle));
 
 	// Wait OI thread to be ready
@@ -1028,8 +1044,9 @@ static void saImmOiSaStringT_14(void) {
 
 	test_validate(rc, SA_AIS_OK);
 
-	oiThreadExit = 1;
+	indicate_stop_fd();
 	pthread_join(threadid, NULL);
+	close_stop_fd();
 
 	saImmOmAdminOperationMemoryFree(ownerHandle, returnParams);
 
