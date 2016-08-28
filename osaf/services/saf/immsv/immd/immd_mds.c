@@ -541,6 +541,9 @@ static uint32_t immd_mds_svc_evt(IMMD_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *svc_e
 	IMMSV_EVT *evt = NULL;
 	uint32_t rc;
 
+	LOG_NO("MDS event from svc_id %u (change:%d, dest:%" PRIu64 ")",
+			svc_evt->i_svc_id, svc_evt->i_change, svc_evt->i_dest);
+
 	evt = calloc(1, sizeof(IMMSV_EVT));
 
 	if (!evt) {

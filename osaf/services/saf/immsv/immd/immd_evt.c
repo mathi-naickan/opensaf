@@ -855,6 +855,35 @@ static void immd_accept_node(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *node_info, bool 
 	TRACE_LEAVE();
 }
 
+static IMMD_IMMND_INFO_NODE* immd_add_immnd_node(IMMD_CB *cb, MDS_DEST dest) {
+	bool add_flag = true;
+	IMMD_IMMND_INFO_NODE* node_info;
+
+	immd_immnd_info_node_find_add(&cb->immnd_tree, &dest, &node_info, &add_flag);
+	if (!node_info) {
+		LOG_ER("Failed to add IMMND node dest %" PRIu64, dest);
+		return NULL;
+	}
+
+	if (add_flag) {
+		TRACE("IMMND node has already been added, dest %" PRIu64, dest);
+	}
+
+	if (m_IMMND_IS_ON_SCXB(cb->immd_self_id, immd_get_slot_and_subslot_id_from_mds_dest(dest))) {
+		TRACE_5("Added local IMMND");
+		cb->is_loc_immnd_up = true;
+		cb->loc_immnd_dest = dest;
+	} else if (m_IMMND_IS_ON_SCXB(cb->immd_remote_id, immd_get_slot_and_subslot_id_from_mds_dest(dest))) {
+		TRACE_5("Added remote IMMND - node_id:%x", m_NCS_NODE_ID_FROM_MDS_DEST(dest));
+		cb->is_rem_immnd_up = true;
+		cb->rem_immnd_dest = dest;
+	}
+
+	LOG_IN("Added IMMND node with dest %" PRIu64, dest);
+
+	return node_info;
+}
+
 /****************************************************************************
  * Name          : immd_evt_proc_immnd_announce_dump
  *
@@ -1358,9 +1387,12 @@ static uint32_t immd_evt_proc_immnd_intro(IMMD_CB *cb, IMMD_EVT *evt, IMMSV_SEND
 
 	immd_immnd_info_node_get(&cb->immnd_tree, &sinfo->dest, &node_info);
 	if (!node_info) {
-		LOG_WA("Node not found %" PRIu64, sinfo->dest);
-		proc_rc = NCSCC_RC_FAILURE;
-		goto done;
+		LOG_WA("Node not found dest %" PRIu64 ", add the missing IMMND node", sinfo->dest);
+		node_info = immd_add_immnd_node(cb, sinfo->dest);
+		if (!node_info) {
+			proc_rc = NCSCC_RC_FAILURE;
+			goto done;
+		}
 	}
 
 	oldPid = node_info->immnd_execPid;
@@ -2605,13 +2637,9 @@ static uint32_t immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 {
 	IMMSV_MDS_INFO *mds_info;
 	IMMD_IMMND_INFO_NODE *node_info = NULL;
-	bool add_flag = true;
-	uint32_t phy_slot_sub_slot;
 	TRACE_ENTER();
 
 	mds_info = &evt->info.mds_info;
-
-	memset(&phy_slot_sub_slot, 0, sizeof(uint32_t));
 
 	if (mds_info->svc_id == NCSMDS_SVC_ID_IMMND)
 		TRACE_5("Received IMMND service event");
@@ -2705,51 +2733,13 @@ static uint32_t immd_evt_proc_mds_evt(IMMD_CB *cb, IMMD_EVT *evt)
 		}
 
 		if (mds_info->svc_id == NCSMDS_SVC_ID_IMMND) {
-			phy_slot_sub_slot = immd_get_slot_and_subslot_id_from_mds_dest(mds_info->dest);
-			immd_immnd_info_node_find_add(&cb->immnd_tree, &mds_info->dest, &node_info, &add_flag);
-			LOG_IN("node with dest ADDED %" PRIu64, mds_info->dest);
-
-			if (m_IMMND_IS_ON_SCXB(cb->immd_self_id,
-					       immd_get_slot_and_subslot_id_from_mds_dest(mds_info->dest))) {
-				TRACE_5("NCSMDS_UP for IMMND local");
-				cb->is_loc_immnd_up = true;
-				cb->loc_immnd_dest = mds_info->dest;
-				if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-					TRACE_5("NCSMDS_UP IMMND THIS IMMD is ACTIVE");
-				}
-			}
-
-			/* When IMMND ON STANDBY COMES UP */
-			if (m_IMMND_IS_ON_SCXB(cb->immd_remote_id,
-					       immd_get_slot_and_subslot_id_from_mds_dest(mds_info->dest))) {
-				TRACE_5("REMOTE IMMND UP - node:%x", mds_info->node_id);
-				cb->is_rem_immnd_up = true;	//ABT BUGFIX 080811
-				cb->rem_immnd_dest = mds_info->dest;
-				if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-					TRACE_5("NCSMDS_UP for REMOTE IMMND, THIS IMMD is ACTIVE");
-				}
-			}
-
 			if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-				immd_immnd_info_node_get(&cb->immnd_tree, &mds_info->dest, &node_info);
-				if (!node_info) {
-					TRACE_5("ABT WE SHOULD NEVER GET HERE");
-					/*ABT NOT SURE WHAT THIS BRANCH MEANS, CHECK Ckpt code */
-					goto done;
-				} else {
-					TRACE_5("NCSMDS_UP and THIS IMMD is ACTIVE: up_proc");
-				}
+				TRACE_5("NCSMDS_UP and this IMMD is ACTIVE");
+			} else if (cb->ha_state == SA_AMF_HA_STANDBY) {
+				TRACE_5("NCSMDS_UP and this IMMD is STANDBY");
 			}
 
-			if (cb->ha_state == SA_AMF_HA_STANDBY) {
-				immd_immnd_info_node_get(&cb->immnd_tree, &mds_info->dest, &node_info);
-				if (!node_info) {
-					TRACE_5("ABT WE SHOULD NEVER GET HERE. NCSMDS_UP and THIS IMMD is SBY");
-					goto done;
-				} else {
-					TRACE_5("NCSMDS_UP and THIS IMMD is SBY");
-				}
-			}
+			immd_add_immnd_node(cb, mds_info->dest);
 		}
 
 		break;
