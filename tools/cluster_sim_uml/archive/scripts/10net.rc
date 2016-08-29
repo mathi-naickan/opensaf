@@ -21,8 +21,8 @@ errquit() {
     exit 1
 }
 
-p=`ifconfig eth0 | grep HWaddr | sed -e 's,.*HWaddr,,' |cut -d: -f6 |tr -d ' '`
-q=`ifconfig eth0 | grep HWaddr | sed -e 's,.*HWaddr,,' |cut -d: -f5 |tr -d ' '`
+p=$(ifconfig eth0 | grep HWaddr | sed -e 's,.*HWaddr,,' |cut -d: -f6 |tr -d ' ')
+q=$(ifconfig eth0 | grep HWaddr | sed -e 's,.*HWaddr,,' |cut -d: -f5 |tr -d ' ')
 test -n "$p" || errquit "No eth0 address found"
 test -n "$q" || errquit "No eth0 address found"
 ifconfig eth0 192.168.$((0x$q)).$((0x$p)) netmask 255.255.0.0

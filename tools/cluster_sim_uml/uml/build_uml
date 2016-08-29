@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 #
 #      -*- OpenSAF  -*-
 #
@@ -39,15 +39,15 @@
 ##              busybox versions (default ./config).
 ##   $KVER -    The Linux kernel version to use.
 ##   $BBVER -   The BusyBox version to use.
-##   $TIPCUTILSVER - The TIPC Util version to use.
+##   $IPROUTE2VER - The iproute2 version to use.
 ##
 ## Sub-commands:
 ##
 
-pgm=`basename $0`
-dir=`dirname $0`; dir=`cd $dir; pwd`
-tmp=$(mktemp -d /tmp/${pgm}$$.XXXXXXXXXX)
-no_of_processors=$(ls -1d /sys/devices/system/cpu/cpu[0-9]* | wc -l)
+pgm=$(basename "$0")
+dir=$(dirname "$0"); dir=$(cd "$dir"; pwd)
+tmp=$(mktemp -d /tmp/"${pgm}"$$.XXXXXXXXXX)
+no_of_processors=$(find /sys/devices/system/cpu -name 'cpu[0-9]*' -print | wc -l)
 if [ "$no_of_processors" -le 0 ]; then
     no_of_processors=1
 fi
@@ -58,26 +58,27 @@ die() {
     exit 1
 }
 help() {
-    grep '^##' $0 | cut -c3-
+    grep '^##' "$0" | cut -c3-
     rm -rf "$tmp"
     exit 0
 }
 test -n "$1" || help
-cd $dir
+cd "$dir"
 archive=${ARCHIVE:-$dir/archive}
 configd=${CONFIGD:-$dir/config}
 
-kver=${KVER:-4.5}
-kbasedir=`echo $kver | cut -d. -f1`.x
+kver=${KVER:-4.7.2}
+kbasedir=$(echo "$kver" | cut -d. -f1).x
 #kurlbase=${KURLBASE:-"https://www.kernel.org/pub/linux/kernel/v$kbasedir"}
 kurlbase=${KURLBASE:-"http://ftp.funet.fi/pub/mirrors/ftp.kernel.org/pub/linux/kernel/v$kbasedir"}
 kernel_decompress=xz
 kurl="$kurlbase/linux-$kver.tar.xz"
-kernel_sha1sum='18d8e415f57a1fe4322faec441e45b6d2383b7d1  linux-4.5.tar.xz'
+kernel_sha1sum='eb9e03765e02f93533b1efc3635a634f20779084  linux-4.7.2.tar.xz'
 
-tipcutilsver=${TIPCUTILSVER:-2.1.1}
-tipcutilsurl="http://prdownloads.sourceforge.net/tipc/tipcutils-$tipcutilsver.tar"
-tipcutils_sha1sum='b8bf8ad949d17fb3cfae78cd74e71f28e5f9bfaa  tipcutils-2.1.1.tar'
+iproute2ver=${IPROUTE2VER:-4.7.0}
+iproute2url="https://www.kernel.org/pub/linux/utils/net/iproute2/iproute2-$iproute2ver.tar.xz"
+#iproute2url="http://ftp.funet.fi/pub/mirrors/ftp.kernel.org/pub/linux/utils/net/iproute2/iproute2-$iproute2ver.tar.xz"
+iproute2_sha1sum='eafdefb9ebe7c840fa4ea8ea111554e3650a3c5a  iproute2-4.7.0.tar.xz'
 
 bbver=${BBVER:-1.24.2}
 bburl="http://busybox.net/downloads/busybox-$bbver.tar.bz2"
@@ -90,7 +91,7 @@ umlutils_sha1sum='4e10de8e0f5bf681fa295572009518b77fd8a1dd  uml_utilities_200708
 arch=$(uname -m)
 gid=$(id -g)
 
-if [ $arch = x86_64 ]; then
+if [ "$arch" = x86_64 ]; then
     lib_dir=lib64
 else
     lib_dir=lib
@@ -103,23 +104,23 @@ cmd_info() {
     echo "Base dir: $dir"
     echo "Archive: $archive"
     echo "Linux kernel $kver:"
-    f=$archive/$(basename $kurl)
-    test -r $f && exists="(exists)"
+    f=$archive/$(basename "$kurl")
+    test -r "$f" && exists="(exists)"
     echo "    $f $exists"
     echo "    $kurl"
     echo "BusyBox $bbver:"
     f=$archive/$(basename $bburl)
-    test -r $f && exists="(exists)"
+    test -r "$f" && exists="(exists)"
     echo "    $f $exists"
     echo "    $bburl"
-    echo "TIPC Utils $tipcutilsver:"
-    f=$archive/$(basename $tipcutilsurl)
-    test -r $f && exists="(exists)"
+    echo "iproute2  $iproute2ver:"
+    f=$archive/$(basename $iproute2url)
+    test -r "$f" && exists="(exists)"
     echo "    $f $exists"
-    echo "    $tipcutilsurl"
+    echo "    $iproute2url"
     echo "UML Utils $umlutilsver:"
     f=$archive/$(basename $umlutilsurl)
-    test -r $f && exists="(exists)"
+    test -r "$f" && exists="(exists)"
     echo "    $f $exists"
     echo "    $umlutilsurl"
 }
@@ -146,7 +147,7 @@ cmd_gen_initramfs_list() {
 ##
 cmd_download() {
     mkdir -p $archive
-    for a in $kurl $bburl $umlutilsurl $tipcutilsurl; do
+    for a in $kurl $bburl $umlutilsurl $iproute2url; do
 	f=$(basename $a)
 	if test -s $archive/$f; then
 	    echo "Already downloaded [$f]"
@@ -158,7 +159,7 @@ cmd_download() {
     done
     if [ ! -e $archive/.checksum_ok ]; then
 	: > $archive/SHA1SUMS
-	echo "$tipcutils_sha1sum" >> $archive/SHA1SUMS
+	echo "$iproute2_sha1sum" >> $archive/SHA1SUMS
 	echo "$bb_sha1sum" >> $archive/SHA1SUMS
 	echo "$umlutils_sha1sum" >> $archive/SHA1SUMS
 	echo "$kernel_sha1sum" >> $archive/SHA1SUMS
@@ -175,7 +176,7 @@ cmd_clean_if_needed() {
     clean_needed=0
     test -d linux-$kver || clean_needed=1
     test -d busybox-$bbver || clean_needed=1
-    test -d tipcutils-$tipcutilsver || clean_needed=1
+    test -d iproute2-$iproute2ver || clean_needed=1
     test -d tools-$umlutilsver || clean_needed=1
     if [ "$clean_needed" -eq "1" ]; then
 	cd "$dir/.."
@@ -282,7 +283,7 @@ cmd_build_busybox()
 
 ##   create_initramfs
 ##     Build an incomplete ramfs; kernel modules are missing
-##     Dependent on busybox and tipc-utils.
+##     Dependent on busybox and iproute2.
 ##
 cmd_create_initramfs()
 {
@@ -301,15 +302,15 @@ cmd_create_initramfs()
     rm -Rf root/bin root/sbin
     ln -s usr/bin root/bin
     ln -s usr/sbin root/sbin
-    cp -L bin/tipc-config root/usr/sbin
+    cp -L bin/tipc root/sbin
     cp -L bin/busybox root/usr/bin
     for n in usr/bin/sh usr/sbin/init; do
         ln -fs /usr/bin/busybox root/$n
     done
     cp -L `ldd ./bin/busybox | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,'` root/$lib_dir
-    local all_dirs=`ldd ./bin/busybox | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,' | sed -e 's:/[^/]*$::'`
+    local all_dirs=`ldd ./bin/tipc | tr -s ' \t' '\n' | grep /lib | sed -e 's,/tls,,' | sed -e 's:/[^/]*$::'`
     for d in $all_dirs; do
-	cp -L $d/libnss_files.so.? $d/libpthread.so.? $d/libm.so.? root/$lib_dir 2> /dev/null
+	cp -L $d/libnss_files.so.? $d/libpthread.so.? $d/libm.so.? $d/libmnl.so.? root/$lib_dir 2> /dev/null
     done
     for n in passwd group; do
 	sed -i -e "s/OPENSAF_USER/$UID/g" root/etc/$n
@@ -346,45 +347,36 @@ cmd_build_umlutils()
     cp tools-${umlutilsver}/uml_net/uml_net bin || die "Could not build uml_net"
 }
 
-##   build_tipcutils
-##     Extract and build tipcutils.
+##   build_iproute2
+##     Extract and build iproute2.
 ##
-cmd_build_tipcutils()
+cmd_build_iproute2()
 {
-    if test -e bin/tipc-config; then
-	echo "Already built [bin/tipc-config]"
+    if test -e bin/tipc; then
+	echo "Already built [bin/tipc]"
         return 0
     fi
-    f=$archive/$(basename $tipcutilsurl)
+    f=$archive/$(basename $iproute2url)
     test -r $f || die "Not downloaded [$f]"
-    rm -rf tipcutils-$tipcutilsver
-    tar xf $f
-    if [ -x "tipcutils-$tipcutilsver/bootstrap" ]; then
-	cd "tipcutils-$tipcutilsver"
-	./bootstrap
-	cd "$dir"
-    fi
-    if [ -x tipcutils-$tipcutilsver/configure ]; then
-	cd tipcutils-$tipcutilsver
-	mkdir linux
-	cp "$dir/linux-$kver/include/uapi/linux/tipc.h" linux
-	./configure
-	make -j$no_of_processors
-	cd $dir
-	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin || die "Could not build tipc-config"
-    else
-	make -C tipcutils-$tipcutilsver INCLUDE_PATH="$dir/linux-$kver/include" EXTRAS="-I$dir/linux-$kver/arch/x86/include"
-	cp tipcutils-$tipcutilsver/tipc-config/tipc-config bin || die "Could not build tipc-config"
-    fi
+    rm -rf iproute2-$iproute2ver
+    tar Jxf $f
+    cd iproute2-$iproute2ver
+    ./configure
+    cd tipc
+    mkdir linux
+    cp $dir/linux-$kver/include/uapi/linux/tipc*.h linux
+    make -j$no_of_processors CFLAGS="-s -O2 -I." tipc
+    cd $dir
+    cp iproute2-$iproute2ver/tipc/tipc bin || die "Could not build tipc"
 }
 
 ##   clean
 ##     Cleanup. Downloaded files are *not* removed.
 ##
 cmd_clean() {
-    rm -rf linux-$kver busybox-$bbver root tipcutils-$tipcutilsver\
+    rm -rf linux-$kver busybox-$bbver root iproute2-$iproute2ver\
         tools-$umlutilsver linux-extract-dir
-    for n in busybox tipc-config uml_mconsole uml_switch uml_net\
+    for n in busybox tipc uml_mconsole uml_switch uml_net\
         linux port-helper tunctl; do
 	rm -f bin/$n
     done
@@ -398,7 +390,7 @@ cmd_all() {
     cmd_download
     cmd_clean_if_needed
     cmd_extract_kernel
-    cmd_build_tipcutils
+    cmd_build_iproute2
     cmd_build_busybox
     cmd_create_initramfs
     cmd_build_linux

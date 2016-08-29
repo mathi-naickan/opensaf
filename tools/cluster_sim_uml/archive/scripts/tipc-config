@@ -1,0 +1,82 @@
+#!/bin/ash
+#
+#      -*- OpenSAF  -*-
+#
+# (C) Copyright 2016 The OpenSAF Foundation
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
+#
+# Author(s): Ericsson AB
+#
+
+if [ "$#" -eq 0 -o "$1" = "-help" -o "$1" = "-h" -o "$1" = "--help" ]; then
+    cat <<EOF
+Usage:
+       tipc-config command [command ...]
+
+  valid commands:
+  -addr                                      Get node address
+  -a     =<addr>                             Set node address
+  -b                                         Get bearers
+  -bd    =<bearerpat>                        Disable bearer
+  -be    =<bearer>                           Enable bearer
+  -help                                      This usage list
+  -l                                         Get links to domain
+  -lt    =<linkpat>|<bearer>|<media>/<value> Set link tolerance
+  -netid[=<value>]                           Get/set network id
+  -nt                                        Get name table
+EOF
+    exit 1
+fi
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+	-addr)
+	    echo "node address: $(/sbin/tipc node get address)"
+	    ;;
+	-a=*)
+	    /sbin/tipc node set address "$(echo "$1" | cut -d= -f2)"
+	    ;;
+	-b)
+	    echo "Bearers:"
+	    /sbin/tipc bearer list
+	    ;;
+	-bd=*)
+	    /sbin/tipc bearer disable media eth device "$(echo "$1" | cut -d: -f2)"
+	    ;;
+	-be=*)
+	    /sbin/tipc bearer enable media eth device "$(echo "$1" | cut -d: -f2)"
+	    ;;
+	-l)
+	    echo "Links:"
+	    /sbin/tipc link list
+	    ;;
+	-lt=*)
+	    tolerance=$(echo "$1" | cut -d= -f2)
+	    link=$(echo "$tolerance" | cut -d/ -f1)
+	    value=$(echo "$tolerance" | cut -d/ -f2)
+	    /sbin/tipc link set tolerance "$value" link "$link"
+	    ;;
+	-netid)
+	    echo "current network id: $(/sbin/tipc node get netid)"
+	    ;;
+	-netid=*)
+	    /sbin/tipc node set netid "$(echo "$1" | cut -d= -f2)"
+	    ;;
+	-nt)
+	    /sbin/tipc nametable show
+	    ;;
+	*)
+	    echo "$0: unrecognized option '$1'" 1>&2
+	    exit 1
+	    ;;
+    esac
+    shift
+done

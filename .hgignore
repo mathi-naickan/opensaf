@@ -144,6 +144,6 @@ syntax: regexp
 ^tools/cluster_sim_uml/uml/bin/uml_switch$
 ^tools/cluster_sim_uml/uml/busybox-[0-9]
 ^tools/cluster_sim_uml/uml/linux-[0-9]
-^tools/cluster_sim_uml/uml/tipcutils-[0-9]
+^tools/cluster_sim_uml/uml/iproute2-[0-9]
 ^tools/cluster_sim_uml/uml/tools-[0-9]
 ^tools/cluster_sim_uml/uml/root/

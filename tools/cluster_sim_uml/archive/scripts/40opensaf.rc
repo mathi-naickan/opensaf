@@ -21,11 +21,11 @@
 # and finally the start of OpenSAF
 
 REPL_DIR=repl-opensaf
-HOSTNAME=`hostname`
-eval `echo $HOSTNAME | sed 's/\(.*\)-\(.*\)/hosttype=\1 hostnumber=\2/'`
-immxml_sc_count=$(grep 'SC SC-' /hostfs/rootfs/usr/local/share/opensaf/immxml/nodes.cfg | wc -l)
+OSAF_HOSTNAME=$(hostname)
+eval "$(echo "$OSAF_HOSTNAME" | sed 's/\(.*\)-\(.*\)/hosttype=\1 hostnumber=\2/')"
+immxml_sc_count=$(grep -c 'SC SC-' /hostfs/rootfs/usr/local/share/opensaf/immxml/nodes.cfg)
 
-if test `uname -m` = "x86_64"; then
+if test "$(uname -m)" = "x86_64"; then
    export LD_LIBRARY_PATH="/lib64:/usr/lib64:/usr/local/lib64:/usr/local/lib64/opensaf"
    test -r /usr/local/lib64 || ln -s lib /usr/local/lib64
 else
@@ -50,7 +50,7 @@ ln -s /hostfs/repl-opensaf /repl_opensaf
 
 mkdir -p /repl_opensaf/saflog
 
-if [ $hostnumber -le $immxml_sc_count ]; then
+if [ "$hostnumber" -le "$immxml_sc_count" ]; then
     ln -sf /etc/opensaf/nodeinit.conf.controller /etc/opensaf/nodeinit.conf
     echo controller > /etc/opensaf/node_type
 else
@@ -61,7 +61,7 @@ fi
 rm -f /etc/opensaf/slot_id
 rm -f /etc/opensaf/subslot_id
 rm -f /etc/opensaf/node_id
-echo $hostnumber > /etc/opensaf/slot_id
+echo "$hostnumber" > /etc/opensaf/slot_id
 echo 15 > /etc/opensaf/subslot_id
 sed -i "s/DTM_NODE_IP=.*/DTM_NODE_IP=192.168.$((hostnumber / 256)).$((hostnumber % 256))/" /etc/opensaf/dtmd.conf
 

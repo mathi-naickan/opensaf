@@ -23,28 +23,28 @@ die() {
 	exit 1
 }
 
-test -f "$PWD/$0" || die 'Must execute $0 from directory where it is located'
+test -f "$PWD/$0" || die "Must execute $0 from directory where it is located"
 export CLUSTER_SIM_UML_DIR=$PWD
 export PATH=${PWD}/uml/bin:${PATH}
 test -d ./rootfs || die "No shadow root at [./root]"
 
 UML_DIR=$CLUSTER_SIM_UML_DIR/uml
 REPL_DIR=repl-opensaf
-test -x $UML_DIR/bin/uml_start || die "Not executable [$UML_DIR/bin/uml_start]"
+test -x "$UML_DIR/bin/uml_start" || die "Not executable [$UML_DIR/bin/uml_start]"
 
-immxml_sc_count=$(grep 'SC SC-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg | wc -l)
-immxml_pl_count=$(grep 'PL PL-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg | wc -l)
+immxml_sc_count=$(grep -c 'SC SC-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg)
+immxml_pl_count=$(grep -c 'PL PL-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg)
 immxml_node_count=$((immxml_sc_count + immxml_pl_count))
 NUMNODES=${2:-$immxml_node_count}
 OSAF_UML_MAX_TERMS=${OSAF_UML_MAX_TERMS:-5}
 IPADDRBASE=${IPADDRBASE:-192.168}
 PIDFILEDIR=/tmp/${USER}_opensaf
 OSAF_UML_MEMSIZE=${OSAF_UML_MEMSIZE:-128M}
-uid=`id -u`
+uid=$(id -u)
 
 check_binaries() {
-    for i in tipc-config busybox linux uml_switch port-helper tunctl uml_mconsole uml_net; do
-	test -x $UML_DIR/bin/$i || die "Not executable [$UML_DIR/bin/$i]"
+    for i in tipc busybox linux uml_switch port-helper tunctl uml_mconsole uml_net; do
+	test -x "$UML_DIR/bin/$i" || die "Not executable [$UML_DIR/bin/$i]"
     done
 }
 

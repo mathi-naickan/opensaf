@@ -139,9 +139,9 @@ repl-opensaf	This directory contains a simulated shared replicated disk
 	Soft links are created from directories in the shadow root file system
 	into this directory.
 
-rootfs/var/<node name>	This directory is the node unique '/var'
-			  directory. It contains e.g. the system log from each
-			  node, stdouts for the components, core dumps and so on.
+rootfs/var/<node name> This directory is the node unique '/var' directory. It
+		       contains e.g. the system log from each node, stdouts for
+		       the components, core dumps and so on.
 
 
 STARTUP SEQUENCE
@@ -182,31 +182,21 @@ this network setup. If host network access is required, please read UML
 documentation.
 
 
-COMMAND LINE INTERFACE (CLI)
-
-To access the opensaf CLI, first switch to the super user using the 'su' command.
-Then start the CLI with: 'ncs_cli_maa'. Online help is provided and to exit the
-CLI use the command 'clishut'.
-
-
 SOFTWARE REQUIREMENTS
 
-UML should run on any 3.x and 4.x host kernel. If the host kernel is patched for SKAS3
-mode, you will get better guest (UML) kernel performance.
+UML should run on any Linux 3.x or 4.x host kernel with GNU C Library version
+2.14 or later. 32-bit and 64-bit are verified.
 
-32 and 64 bit are verified.
+The following Debian/Ubuntu packages are known to work. Also make sure that you
+have installed the corresponding development packages for these libraries.
 
-GNU C Library version 2.11 or later
-
-The following packages are known to work:
-
-- bash 4.3 (needed by opensaf scripts)
-- libdaemon0 0.14 (needed by tipc-config)
-- libgcc1 4.9.3 (needed by scap)
-- libncurses5 5.9 (needed by bash)
-- libnl-3-200 3.2.21 (needed by tipc-config)
-- libstdc++6 4.8.2 (needed by scap)
-- readline6 6.3 (needed by bash)
+- bash          4.3
+- libc6         2.23
+- libgcc1       6.0.1
+- libmnl0       1.0.3
+- libncurses5   6.0
+- libreadline6  6.3
+- libstdc++6    5.3.1
 
 OPTIONAL DEVELOPMENT TOOLS
 
