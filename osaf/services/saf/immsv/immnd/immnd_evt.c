@@ -3010,63 +3010,47 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 		}
 	}
 
-	if (evt->info.fevsReq.sender_count) { /* Special handling before forwarding. */
-		if(evt->info.fevsReq.sender_count > 0x1) {
-			/* sender_count greater than 1 if this is an admop message.
-			   This is to generate a request continuation at the client
-			   node BEFORE sending the request over fevs. Otherwise there
-			   is a risk that the reply may arrive back at the request node,
-			   before the request arrives over fevs. This can happen because
-			   the reply is not sent over the fevs "bottleneck". 
-			*/
-			SaUint32T conn = m_IMMSV_UNPACK_HANDLE_HIGH(client_hdl);
-			SaInvocationT saInv = (SaInvocationT) evt->info.fevsReq.sender_count;
+	/* Special handling before forwarding. */
+	if ((evt->info.fevsReq.sender_count == 0x1) && !(cl_node && cl_node->mIsSync) &&
+		(immModel_immNotWritable(cb) ||  (cb->mSyncFinalizing && cb->fevs_out_count))) {
+		/* sender_count set to 1 if we are to check locally for writability
+		  before sending to IMMD. This to avoid broadcasting requests that
+		  are doomed anyway. The clause '!(cl_node && cl_node->mIsSync)' is there to
+		  allow the immsync process to use saImmOmClassCreate. The local
+		  check is skipped for immsync resulting in the class-creaet message
+		  to be broadcast over fevs. The class create will be rejected at
+		  all normal nodes with TRY_AGAIN, but accepted at sync clients.
+		  See #2754.
 
-			immModel_setAdmReqContinuation(cb, saInv, conn);
+		  Immnd coord opens for writability when finalizeSync message is generated.
+		  But finalizeSync is asyncronous since 4.1 and may get enqueued into the out queue,
+		  instead of being sent immediately. While finalizeSync is in the out queue,
+					  syncronous fevs messages that require writability, could bypass finalizeSync.
+		  This is BAD because such messages can arrive back here at coord and be
+		  accepted, but will be rejected at other nodes until they receive finalizeSync
+		  and open for writes.
 
-		} else if((evt->info.fevsReq.sender_count == 0x1) && !(cl_node && cl_node->mIsSync) &&
-			(immModel_immNotWritable(cb) ||  (cb->mSyncFinalizing && cb->fevs_out_count))) {
-			/* sender_count set to 1 if we are to check locally for writability
-			  before sending to IMMD. This to avoid broadcasting requests that 
-			  are doomed anyway. The clause '!(cl_node && cl_node->mIsSync)' is there to 
-			  allow the immsync process to use saImmOmClassCreate. The local
-			  check is skipped for immsync resulting in the class-creaet message
-			  to be broadcast over fevs. The class create will be rejected at
-			  all normal nodes with TRY_AGAIN, but accepted at sync clients.
-			  See #2754.
+		  Such bypass is prevented here by also screening on mSyncFinalizing,
+		  which is true starting when coord generates finalize sync and ends when coord
+		  receives its own finalize sync. This is actually more restrivtive than
+		  necessary. An optimization is to detect when finalizeSync is
+		  actually sent from coord, instead of waiting until it is received.
+		  As soon as it is has been sent from the coord, any subsequent sends
+		  from coord can not bypass the finalizeSync. We dont quite capture
+		  the send of finalizeSync, but if the out-queue is empty, then we
+		  know finalizeSync must have been sent.
 
-			  Immnd coord opens for writability when finalizeSync message is generated.
-			  But finalizeSync is asyncronous since 4.1 and may get enqueued into the out queue,
-			  instead of being sent immediately. While finalizeSync is in the out queue,
-                          syncronous fevs messages that require writability, could bypass finalizeSync.
-			  This is BAD because such messages can arrive back here at coord and be
-			  accepted, but will be rejected at other nodes until they receive finalizeSync
-			  and open for writes.
+		  Note that fevs messages that do not require IMMND writability, such
+		  as runtime-attribute-updates, will not be affected by this.
+		*/
 
-			  Such bypass is prevented here by also screening on mSyncFinalizing,
-			  which is true starting when coord generates finalize sync and ends when coord
-			  receives its own finalize sync. This is actually more restrivtive than
-			  necessary. An optimization is to detect when finalizeSync is
-			  actually sent from coord, instead of waiting until it is received.
-			  As soon as it is has been sent from the coord, any subsequent sends
-			  from coord can not bypass the finalizeSync. We dont quite capture
-			  the send of finalizeSync, but if the out-queue is empty, then we 
-			  know finalizeSync must have been sent. 
-
-			  Note that fevs messages that do not require IMMND writability, such
-			  as runtime-attribute-updates, will not be affected by this.
-			*/
-
-			if(asyncReq) {
-				LOG_IN("Rare case (?) of enqueueing async & write message "
-					"due to on-going sync.");
-				immnd_enqueue_outgoing_fevs_msg(cb, client_hdl, 
-					&(evt->info.fevsReq.msg));
-				return NCSCC_RC_SUCCESS;
-			} else {
-				error = SA_AIS_ERR_TRY_AGAIN;
-				goto agent_rsp;
-			}
+		if (asyncReq) {
+			LOG_IN("Rare case (?) of enqueueing async & write message due to on-going sync.");
+			immnd_enqueue_outgoing_fevs_msg(cb, client_hdl, &(evt->info.fevsReq.msg));
+			return NCSCC_RC_SUCCESS;
+		} else {
+			error = SA_AIS_ERR_TRY_AGAIN;
+			goto agent_rsp;
 		}
 	}
 
@@ -3147,6 +3131,20 @@ static uint32_t immnd_evt_proc_fevs_forward(IMMND_CB *cb, IMMND_EVT *evt, IMMSV_
 	   Note should set up a wait time for the continuation roughly in line
 	   with IMMSV_WAIT_TIME. */
 	osafassert(rc == NCSCC_RC_SUCCESS);
+
+	if (evt->info.fevsReq.sender_count > 0x1) {
+		/* sender_count greater than 1 if this is an admop message.
+		 This is to generate a request continuation at the client
+		 node BEFORE sending the request over fevs. Otherwise there
+		 is a risk that the reply may arrive back at the request node,
+		 before the request arrives over fevs. This can happen because
+		 the reply is not sent over the fevs "bottleneck".
+		 */
+		SaUint32T conn = m_IMMSV_UNPACK_HANDLE_HIGH(client_hdl);
+		SaInvocationT saInv = (SaInvocationT) evt->info.fevsReq.sender_count;
+
+		immModel_setAdmReqContinuation(cb, saInv, conn);
+	}
 
 	if(cl_node && sinfo && !asyncReq) {
 		cl_node->tmpSinfo = *sinfo;	//TODO: should be part of continuation?
