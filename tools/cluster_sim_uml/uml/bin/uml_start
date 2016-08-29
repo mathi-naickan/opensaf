@@ -22,15 +22,15 @@ function errquit() {
 }
 
 
-test -n "$CLUSTER_SIM_UML_DIR" || errquit '$CLUSTER_SIM_UML_DIR is not set'
+test -n "$CLUSTER_SIM_UML_DIR" || errquit "$CLUSTER_SIM_UML_DIR is not set"
 UML_DIR=$CLUSTER_SIM_UML_DIR/uml
 
 umlx="$UML_DIR/bin/linux"
-test -x $umlx || errquit "$umlx not executable"
+test -x "$umlx" || errquit "$umlx not executable"
 test -n "$1" || errquit "No processor number specified"
 
 p=$1
-hostdir=`pwd`
+hostdir=$(pwd)
 shift
-uid=`id -u`
-exec $umlx rw hostdir=$hostdir eth0=daemon,2:0:0:1:$(printf "%x" $((p / 256))):$(printf "%x" $((p % 256))),unix,/tmp/uml-${uid}.ctl con0=fd:0,fd:1 con=pts $*
+uid=$(id -u)
+exec "$umlx" rw hostdir="$hostdir" eth0=daemon,2:0:0:1:"$(printf "%x" $((p / 256)))":"$(printf "%x" $((p % 256)))",unix,/tmp/uml-"${uid}".ctl con0=fd:0,fd:1 con=pts "$@"

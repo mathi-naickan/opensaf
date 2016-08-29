@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 #
 #      -*- OpenSAF  -*-
 #
@@ -26,10 +26,10 @@
 ## Subcommands;
 ##
 
-prg=`basename $0`
-dir=`dirname $0`; dir=`cd $dir; pwd`
-tmp=$(mktemp -d /tmp/${prg}$$.XXXXXXXXXX)
-no_of_processors=$(ls -1d /sys/devices/system/cpu/cpu[0-9]* | wc -l)
+prg=$(basename "$0")
+dir=$(dirname "$0"); dir=$(cd "$dir"; pwd)
+tmp=$(mktemp -d /tmp/"${prg}"$$.XXXXXXXXXX)
+no_of_processors=$(find /sys/devices/system/cpu -name 'cpu[0-9]*' -print | wc -l)
 if [ "$no_of_processors" -le 0 ]; then
     no_of_processors=1
 fi
@@ -44,15 +44,14 @@ die() {
 ##     Help printout.
 ##
 cmd_help() {
-    grep '^##' $dir/$prg | cut -c3-
+    grep '^##' "$dir/$prg" | cut -c3-
 }
 
 # "make install" always install to /usr/local/lib no matter 32/64 bit
 lib_dir=lib
 
 opensaf_home=$(cd ../..; pwd)
-top=`pwd`
-bin=$top/bin
+top=$(pwd)
 archive=$top/archive
 scripts=$archive/scripts
 root=$top/rootfs
@@ -63,10 +62,10 @@ appconfig=${APPCONFIG:-"${opensaf_home}/samples/amf/sa_aware/AppConfig-2N.xml"}
 ##     Return required (and found) dynamic libs for programs.
 ##
 cmd_getlibs() {
-    for n in $@; do
-	test -x $n || continue
-	file -L $n | grep -q "dynamically linked\|shared object" || continue
-	ldd $n | grep -o '/[^ ]*' | sed -e 's,/tls,,'
+    for n in "$@"; do
+	test -x "$n" || continue
+	file -L "$n" | grep -q "dynamically linked\|shared object" || continue
+	ldd "$n" | grep -o '/[^ ]*' | sed -e 's,/tls,,'
     done
 }
 
@@ -76,7 +75,7 @@ cmd_build_testprog() {
     installd=$top/rootfs/opt/amf_demo
     immxml=$top/rootfs/etc/opensaf/imm.xml
 
-    mkdir -p $installd
+    mkdir -p "$installd"
     cp $src/amf_demo_script $installd
     gcc -g -O2 -Wall -fPIC -I$opensaf_home/osaf/libs/saf/include \
 	-o $installd/amf_demo $src/amf_demo.c \
@@ -152,11 +151,11 @@ cmd_create_rootfs()
 
     install -m 755 $archive/scripts/*.rc etc/init.d
     cp $scripts/profile etc
-    cp $scripts/reboot $scripts/shutdown usr/sbin
+    cp $scripts/reboot $scripts/shutdown $scripts/tipc-config usr/sbin
     mkdir -p root/www/cgi-bin
     cp $scripts/rshd root/www/cgi-bin
     cp $scripts/rsh $scripts/rcp $scripts/sudo usr/bin
-    chmod +x usr/sbin/shutdown root/www/cgi-bin/rshd usr/bin/rsh usr/bin/rcp usr/bin/sudo
+    chmod +x usr/sbin/shutdown usr/sbin/tipc-config root/www/cgi-bin/rshd usr/bin/rsh usr/bin/rcp usr/bin/sudo
 
     echo "Copy some needed extra programs (bash, ...)"
     install /bin/bash usr/bin
