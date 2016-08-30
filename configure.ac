@@ -15,7 +15,7 @@
 #
 
 AC_PREREQ([2.61])
-AC_INIT([opensaf], [5.1.M0], [opensaf-users@lists.sourceforge.net], [opensaf])
+AC_INIT([opensaf], [5.1.FC], [opensaf-users@lists.sourceforge.net], [opensaf])
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_SYSTEM
 AC_CONFIG_SRCDIR([opensaf.spec.in])
