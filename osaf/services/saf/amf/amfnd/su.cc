@@ -417,11 +417,11 @@ uint32_t avnd_evt_avd_info_su_si_assign_evh(AVND_CB *cb, AVND_EVT *evt)
 	} else {
 		if (osaf_extended_name_length(&info->si_name) > 0) {
 			if (avnd_su_si_rec_get(cb, info_su_name, Amf::to_string(&info->si_name)) == nullptr)
-				LOG_WA("susi_assign_evh: '%s' is not assigned to '%s'",
+				LOG_ER("susi_assign_evh: '%s' is not assigned to '%s'",
 						osaf_extended_name_borrow(&info->si_name), su->name.c_str());
 		} else {
 			if (m_NCS_DBLIST_FIND_FIRST(&su->si_list) == nullptr) {
-				LOG_ER("susi_assign_evh: '%s' has no assignments", su->name.c_str());
+				LOG_WA("susi_assign_evh: '%s' has no assignments", su->name.c_str());
 				/* Some times AMFD sends redundant message for removal of assignments.
 				   If removal of assignments is already done for the SU then complete
 				   the assignment process here.
