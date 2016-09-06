@@ -175,7 +175,8 @@ typedef struct ava_hdl_db_tag {
 
 /* Macro to determine if pg callback was supplied during saAmfInitialize() */
 #define m_AVA_HDL_IS_PG_CBK_PRESENT(hdl_rec) \
-           ( hdl_rec->reg_cbk.saAmfProtectionGroupTrackCallback )
+           ( hdl_rec->reg_cbk.saAmfProtectionGroupTrackCallback  || \
+             hdl_rec->reg_cbk.saAmfProtectionGroupTrackCallback_4)
 
 /* define all flags here */
 #define AVA_HDL_CBK_RESP_DONE                0x00000001
