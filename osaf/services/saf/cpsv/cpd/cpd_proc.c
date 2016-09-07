@@ -764,22 +764,20 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 
 				}
 				/* if(ckpt_node->is_active_exists == false) */
-				if ((ckpt_node->ckpt_on_scxb1 == 0) && (ckpt_node->ckpt_on_scxb2 == 0)) {
-					if (!cpd_is_noncollocated_replica_present_on_payload(cb, ckpt_node)) {
+				if (ckpt_node->num_users == 0) {
 
-						/* Zero Clients for  non-collocated Ckpt , Start ret timer , 
-						   broadcast to all CPNDs */
-						memset(&send_evt, 0, sizeof(CPSV_EVT));
-						send_evt.type = CPSV_EVT_TYPE_CPND;
-						send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_RDSET;
-						send_evt.info.cpnd.info.rdset.ckpt_id = ckpt_node->ckpt_id;
-						send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_START;
-						(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
+					/* Zero Clients for  non-collocated Ckpt , Start ret timer , 
+					   broadcast to all CPNDs */
+					memset(&send_evt, 0, sizeof(CPSV_EVT));
+					send_evt.type = CPSV_EVT_TYPE_CPND;
+					send_evt.info.cpnd.type = CPND_EVT_D2ND_CKPT_RDSET;
+					send_evt.info.cpnd.info.rdset.ckpt_id = ckpt_node->ckpt_id;
+					send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_START;
+					(void)cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
 
-						TRACE_4("cpd ckpt rdset success for ckpt_id:%llx,active dest:%"PRIu64,
-							ckpt_node->ckpt_id, ckpt_node->active_dest);
+					TRACE_4("cpd ckpt rdset success for ckpt_id:%llx,active dest:%"PRIu64,
+						ckpt_node->ckpt_id, ckpt_node->active_dest);
 
-					}
 				}
 		                /* This is to delete the node from reploc_tree */
                 		cpd_ckpt_reploc_get(&cb->ckpt_reploc_tree, &key_info, &rep_info);
