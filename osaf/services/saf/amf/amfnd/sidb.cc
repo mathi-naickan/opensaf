@@ -185,8 +185,9 @@ AVND_SU_SI_REC *avnd_su_si_rec_add(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_PARAM *p
 	/*
 	 * Update the rest of the parameters with default values.
 	 */
-	TRACE("Marking curr assigned state of '%s' unassigned.",si_rec->name.value);
+	TRACE("Marking curr and previous assigned state of '%s' unassigned.",si_rec->name.value);
 	m_AVND_SU_SI_CURR_ASSIGN_STATE_SET(si_rec, AVND_SU_SI_ASSIGN_STATE_UNASSIGNED);
+	m_AVND_SU_SI_PRV_ASSIGN_STATE_SET(si_rec, AVND_SU_SI_ASSIGN_STATE_UNASSIGNED);
 
 	/*
 	 * Add the csi records.
