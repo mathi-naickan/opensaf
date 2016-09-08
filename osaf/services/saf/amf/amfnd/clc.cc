@@ -815,6 +815,8 @@ uint32_t avnd_comp_clc_fsm_run(AVND_CB *cb, AVND_COMP *comp, AVND_COMP_CLC_PRES_
 				if (all_comps_terminated()) {
 					LOG_NO("Terminated all AMF components");
 					LOG_NO("Shutdown completed, exiting");
+					cb->nodeid_mdsdest_db.deleteAll();
+					cb->hctypedb.deleteAll();
 					exit(0);
 				} else {
 					TRACE("Do nothing");
@@ -2301,6 +2303,8 @@ uint32_t avnd_comp_clc_terming_cleansucc_hdler(AVND_CB *cb, AVND_COMP *comp)
 		if (all_comps_terminated()) {
 			LOG_NO("Terminated all AMF components");
 			LOG_NO("Shutdown completed, exiting");
+			cb->nodeid_mdsdest_db.deleteAll();
+			cb->hctypedb.deleteAll();
 			exit(0);
 		}
 	}
@@ -2362,6 +2366,8 @@ uint32_t avnd_comp_clc_terming_cleanfail_hdler(AVND_CB *cb, AVND_COMP *comp)
 			all_comps_terminated()) {
 		LOG_WA("Terminated all AMF components (with failures)");
 		LOG_NO("Shutdown completed, exiting");
+		cb->nodeid_mdsdest_db.deleteAll();
+		cb->hctypedb.deleteAll();
 		exit(0);
 	}
 

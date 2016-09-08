@@ -73,6 +73,7 @@ class AmfDb {
   public:
    unsigned int insert(const Key &key, T *obj);
    void erase(const Key &key);
+   void deleteAll();
    T *find(const Key &name);
    T *findNext(const Key &name);
    
@@ -117,6 +118,16 @@ template <typename Key, typename T>
 void AmfDb<Key, T>::erase(const Key &key) {
   db.erase(key);
 }
+
+//
+template <typename Key, typename T>
+void AmfDb<Key, T>::deleteAll() {
+  for (const auto& it: db) {
+	delete it.second;
+  }
+  db.clear();
+}
+
 
 //
 template <typename Key, typename T>

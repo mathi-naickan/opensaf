@@ -58,8 +58,6 @@ extern const AVND_EVT_HDLR g_avnd_func_list[AVND_EVT_MAX];
 void avnd_last_step_clean(AVND_CB *cb)
 {
 	AVND_COMP *comp;
-	AVND_NODEID_TO_MDSDEST_MAP *rec = nullptr;
-	AVND_HCTYPE *hc = nullptr;
 	int cleanup_call_cnt = 0;
 
 	TRACE_ENTER();
@@ -86,19 +84,9 @@ void avnd_last_step_clean(AVND_CB *cb)
 	/* Stop was called early or some other problem */
 	if (cleanup_call_cnt == 0) {
 		LOG_NO("No component to terminate, exiting");
+		cb->nodeid_mdsdest_db.deleteAll();
+		cb->hctypedb.deleteAll();
 		exit(0);
-	}
-
-	/* Clean all node id stored in nodeid_mdsdest_db */
-	for (const auto& node: cb->nodeid_mdsdest_db) {
-		rec = node.second;
-		delete rec;
-	}
-
-	/* Clean all hctype stored in cb->hctypedb */
-	for (const auto& hctype: cb->hctypedb) {
-		hc = hctype.second;
-		delete hc;
 	}
 
 	TRACE_LEAVE();
