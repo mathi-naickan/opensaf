@@ -164,7 +164,9 @@ int lgs_client_delete(uint32_t client_id, time_t *closetime_ptr)
 		lgs_stream_list_t *tmp_rec;
 		log_stream_t *stream = log_stream_get_by_id(cur_rec->stream_id);
 		TRACE_4("client_id: %u, REMOVE stream id: %u", client->client_id, cur_rec->stream_id);
-		log_stream_close(&stream, &closetime);
+		if (stream != NULL) {
+			log_stream_close(&stream, &closetime);
+		}
 		tmp_rec = cur_rec->next;
 		free(cur_rec);
 		cur_rec = tmp_rec;
