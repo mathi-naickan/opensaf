@@ -1846,8 +1846,20 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 			/* Don't send su-oper state msg, just update su oper state
 			 * AMF has lost control over this component and the operator needs
 			 * to repair this node. Failover is not possible in this state.
+			 *
+			 * There exists one case which is not related to fail-over situation
+			 * and related to fresh assignments in SU. When AMFD sends fresh assignments
+			 * for a SU to AMFND, a SU can go into term-failed state during
+			 * instantiation. In TERM-FAILED state, AMFND cleans up all the comps
+			 * of SU. So AMFND can send su-oper state message so that AMFD can
+			 * mark SG stable and make way for admin repair.
 			 */
-			avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSUOperState_ID, &su->name, su->oper);
+			if ((si != nullptr) && (si->prv_assign_state == AVND_SU_SI_ASSIGN_STATE_UNASSIGNED)) {
+				rc = avnd_di_oper_send(cb, su, AVSV_ERR_RCVR_SU_FAILOVER);
+				avnd_su_si_del(avnd_cb, &su->name);
+			} else {
+				avnd_di_uns32_upd_send(AVSV_SA_AMF_SU, saAmfSUOperState_ID, &su->name, su->oper);
+			}
 		}
 		
 		if ((prv_st == SA_AMF_PRESENCE_INSTANTIATED) &&
