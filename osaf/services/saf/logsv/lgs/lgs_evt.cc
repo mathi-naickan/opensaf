@@ -803,6 +803,7 @@ SaAisErrorT create_new_app_stream(
 	log_stream_t *stream;
 	SaBoolT twelveHourModeFlag;
 	SaUint32T logMaxLogrecsize_conf = 0;
+	const char *dnPrefix = "safLgStr=";
 
 	TRACE_ENTER();
 
@@ -875,7 +876,7 @@ SaAisErrorT create_new_app_stream(
 	}
 
 	/* Verify that the name seems to be a DN */
-	if (strncmp("safLgStr=", (char *)open_sync_param->lstr_name.value, sizeof("safLgStr=") != 0)) {
+	if (strncmp(dnPrefix, (char *)open_sync_param->lstr_name.value, strlen(dnPrefix)) != 0) {
 		TRACE("'%s' is not a valid stream name => invalid param", open_sync_param->lstr_name.value);
 		rc = SA_AIS_ERR_INVALID_PARAM;
 		goto done;
