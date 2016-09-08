@@ -2443,7 +2443,7 @@ void verDefaultLogFileFmt(void)
 	rc = system(command);
 	if (WEXITSTATUS(rc) == 0) {
 		/* Send an system log to app stream */
-		rc = system("saflogger -a safLgStrCfg=verDefaultLogFileFmt");
+		rc = system("saflogger -a safLgStr=verDefaultLogFileFmt");
 		if (WEXITSTATUS(rc)) {
 			/* Failed to send log record to app stream */
 			fprintf(stderr, "Failed to invoke saflogger -a\n");
@@ -2457,7 +2457,7 @@ void verDefaultLogFileFmt(void)
 		/* Verify the content of log file if it is reflected with right format */
 		sprintf(appLogPath, "%s/saflogger", log_root_path);
 		sprintf(command, VERIFY_CMD_, appLogPath,
-			"safLgStrCfg=verDefaultLogFileFmt",	tZoneMillP);
+			"safLgStr=verDefaultLogFileFmt",	tZoneMillP);
 
 		rc = system(command);
 		if (rc == -1) {

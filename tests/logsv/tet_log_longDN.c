@@ -905,7 +905,7 @@ void longDNIn_AppStreamDN(void)
 	memset(appStreamDN, 'D', sizeof(appStreamDN) - 1);
 
 	// Perform testing
-	sprintf(command, "saflogger -a safLgStrCfg=%s -f longDN longDN_test", appStreamDN);
+	sprintf(command, "saflogger -a safLgStr=%s -f longDN longDN_test", appStreamDN);
 	rc = system(command);
 	if (WEXITSTATUS(rc) != 0) {
 		fprintf(stderr, "Failed to perform cmd = %s\n", command);

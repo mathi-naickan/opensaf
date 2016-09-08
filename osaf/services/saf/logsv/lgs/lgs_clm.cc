@@ -93,7 +93,7 @@ static uint32_t lgs_clm_node_find(NODE_ID clm_node_id) {
  */
 static uint32_t lgs_clm_node_add(NODE_ID clm_node_id) {
   TRACE_ENTER();
-  uint32_t rc;
+  uint32_t rc = NCSCC_RC_SUCCESS;
   lgs_clm_node_t *clm_node;
 
   clm_node = new lgs_clm_node_t();

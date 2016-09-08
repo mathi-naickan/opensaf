@@ -799,6 +799,7 @@ SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param, log_s
   SaUint32T logMaxLogrecsize_conf = 0;
   SaConstStringT str_name;
   int num, err = 0;
+  const char *dnPrefix = "safLgStr=";
 
   TRACE_ENTER();
 
@@ -873,7 +874,7 @@ SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param, log_s
 
   /* Verify that the name seems to be a DN */
   str_name = osaf_extended_name_borrow(&open_sync_param->lstr_name);
-  if (strncmp("safLgStr=", str_name, sizeof("safLgStr=") != 0)) {
+  if (strncmp(dnPrefix, str_name, strlen(dnPrefix)) != 0) {
     TRACE("'%s' is not a valid stream name => invalid param", str_name);
     rc = SA_AIS_ERR_INVALID_PARAM;
     goto done;
