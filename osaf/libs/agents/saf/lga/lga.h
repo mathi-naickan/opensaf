@@ -79,6 +79,7 @@ typedef struct lga_client_hdl_rec {
                                * streams are recovered
                                */
   bool is_stale_client;  /* Status of client based on the CLM status of node.*/
+  SaVersionT version; /* the API version is being used by client, used for CLM status */
 } lga_client_hdl_rec_t;
 
 /* States of the server */

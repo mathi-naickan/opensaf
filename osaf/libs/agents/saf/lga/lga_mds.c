@@ -545,9 +545,15 @@ static uint32_t lga_lgs_msg_proc(lga_cb_t *cb, lgsv_msg_t *lgsv_msg, MDS_SEND_PR
 					  library handles and all resources associated with these handles. Hence, it is recommended
 					  for the processes to finalize the library handles as soon as the processes
 					  detect that the node left the membership.*/
-					lga_hdl_rec->is_stale_client = true;
-					TRACE("CLM_NODE callback is_stale_client: %d clm_node_state: %d",
-							lga_hdl_rec->is_stale_client, cb->clm_node_state);
+					 
+					/*Old LGA clients A.02.01 are always clm member */
+					if (!((lga_hdl_rec->version.releaseCode == LOG_RELEASE_CODE_0) &&
+							(lga_hdl_rec->version.majorVersion == LOG_MAJOR_VERSION_0) &&
+							(lga_hdl_rec->version.minorVersion == LOG_MINOR_VERSION_0))) {
+						lga_hdl_rec->is_stale_client = true;
+						TRACE("CLM_NODE callback is_stale_client: %d clm_node_state: %d",
+								lga_hdl_rec->is_stale_client, cb->clm_node_state);
+					}
 				}
 				lga_msg_destroy(lgsv_msg);
 			}

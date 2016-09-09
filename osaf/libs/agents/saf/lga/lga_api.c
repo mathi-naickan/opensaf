@@ -164,7 +164,8 @@ SaAisErrorT saLogInitialize(SaLogHandleT *logHandle, const SaLogCallbacksT *call
 	/* validate the version */
 	if ((version->releaseCode == LOG_RELEASE_CODE) && (version->majorVersion <= LOG_MAJOR_VERSION)) {
 		version->majorVersion = LOG_MAJOR_VERSION;
-		version->minorVersion = LOG_MINOR_VERSION;
+		if (version->minorVersion != LOG_MINOR_VERSION_0)
+			version->minorVersion = LOG_MINOR_VERSION;
 	} else {
 		TRACE("version FAILED, required: %c.%u.%u, supported: %c.%u.%u\n",
 		      version->releaseCode, version->majorVersion, version->minorVersion,
@@ -264,6 +265,7 @@ SaAisErrorT saLogInitialize(SaLogHandleT *logHandle, const SaLogCallbacksT *call
 
 	/* pass the handle value to the appl */
 	*logHandle = lga_hdl_rec->local_hdl;
+	lga_hdl_rec->version = *version;
 
  err:
 	/* free up the response message */
