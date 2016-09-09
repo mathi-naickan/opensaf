@@ -49,7 +49,8 @@ static void fill_ntf_header_part_clms(SaNtfNotificationHeaderT *notificationHead
 	notificationHeader->notificationClassId->majorId = majorId;
 	notificationHeader->notificationClassId->minorId = minorId;
 
-	(void)strcpy(notificationHeader->additionalText, (SaInt8T *)add_text);
+	(void)strncpy(notificationHeader->additionalText, (SaInt8T *)add_text,
+		notificationHeader->lengthAdditionalText);
 
 }
 
@@ -63,13 +64,20 @@ static uint32_t sendStateChangeNotificationClms(CLMS_CB * clms_cb,
 	uint32_t status = NCSCC_RC_FAILURE;
 	int msecs_waited;
 	SaNtfStateChangeNotificationT myStateNotification;
+	SaUint32T text_len = 0;
+
+	// AIS: additionalText must be consistent with lengthAdditionalText
+	if (add_text != 0) {
+		text_len = strnlen((const char *)add_text,
+				   ADDITION_TEXT_LENGTH) + 1;
+	}
 
 	status = saNtfStateChangeNotificationAllocate(clms_cb->ntf_hdl,	/* handle to Notification Service instance */
 						      &myStateNotification,
 						      /* number of correlated notifications */
 						      0,
 						      /* length of additional text */
-						      ADDITION_TEXT_LENGTH,
+						      text_len,
 						      /* number of additional info items */
 						      0,
 						      /* number of state changes */
