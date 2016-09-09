@@ -20,7 +20,7 @@
 
 /* CPD definations */
 #define CPD_CPND_DOWN_RETENTION_TIME 600	/* 100 Milli Sec */
-#define CPD_CKPT_UPDATE_TIME 600	/* 10 Milli Sec */
+#define CPD_CKPT_UPDATE_TIME 300	/* 10 Milli Sec */
 #define CPD_CLM_API_TIMEOUT 10000000000LL
 /* The count of non colloc replicas created by CPSv (Policy) */
 #define CPD_NON_COLLOC_CREATED_REPLICA_CNT 1
