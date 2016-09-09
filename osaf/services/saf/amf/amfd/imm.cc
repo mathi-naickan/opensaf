@@ -644,6 +644,12 @@ static AVSV_AMF_CLASS_ID object_name_to_class_type(const std::string& obj_name)
 		// prefix contains all the chars before the first comma
 		class_type = amf_type_map[prefix];
 	} else {
+		//For immadm -a safAmfService -o 99 safAmfService.
+		if (obj_name.compare(implementerName) == 0 ||
+		    obj_name.compare(0, strlen(applierNamePrefix), applierNamePrefix) == 0) {
+			//return invalid class id for operation 99 to dump amf state.
+			return class_type;
+		}
 		LOG_NO("unknown type: %s", obj_name.c_str());
 		osafassert(false);
 	}
