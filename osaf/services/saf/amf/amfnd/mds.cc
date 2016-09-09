@@ -557,8 +557,11 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 			break;
 
 		case NCSMDS_SVC_ID_AVA:
-			/*  New AvA has come up. Dont do anything now */
-			agent_mds_ver_db[evt_info->i_dest] = (MDS_SVC_PVT_SUB_PART_VER)evt_info->i_rem_svc_pvt_ver;
+			//Post MDS info of the agent.
+			evt = avnd_evt_create(cb, AVND_EVT_AMFA_MDS_VER_INFO, 0, &evt_info->i_dest, 0, 0, 0);
+			evt->info.amfa_mds_info.mds_dest = evt_info->i_dest;
+			evt->info.amfa_mds_info.mds_version= evt_info->i_rem_svc_pvt_ver;
+			
 			break;
 
 		case NCSMDS_SVC_ID_AVND:
@@ -605,7 +608,6 @@ uint32_t avnd_mds_svc_evt(AVND_CB *cb, MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 			break;
 
 		case NCSMDS_SVC_ID_AVA:
-			agent_mds_ver_db.erase(evt_info->i_dest);
 			evt = avnd_evt_create(cb, AVND_EVT_MDS_AVA_DN, 0, &evt_info->i_dest, 0, 0, 0);
 			break;
 

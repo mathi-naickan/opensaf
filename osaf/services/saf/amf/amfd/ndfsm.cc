@@ -650,6 +650,9 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	AVD_AVND *node = avd_node_find_nodeid(evt->info.node_id);
 
 	TRACE_ENTER2("%x, %p", evt->info.node_id, node);
+	
+	//update MDS version db.
+	nds_mds_ver_db.erase(evt->info.node_id);
 
 	if (node != nullptr) {
 		// Do nothing if the local node goes down. Most likely due to system shutdown.
@@ -1019,5 +1022,17 @@ void avd_tmr_snd_hb_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	avd_stop_tmr(cb, &cb->heartbeat_tmr);
 	avd_start_tmr(cb, &cb->heartbeat_tmr, cb->heartbeat_tmr_period);
 	TRACE_LEAVE();
+}
+
+/**
+ * @brief  This event is for remembering MDS version for AMFND.
+ * @param  ptr to AVD_CL_CB 
+ * @param  ptr to AVD_EVT
+ */
+void avd_avnd_mds_info_evh(AVD_CL_CB *cb, AVD_EVT *evt) {
+  TRACE_ENTER2("MDS version:%d, nodeid:%x",
+    evt->info.nd_mds_info.mds_version, evt->info.nd_mds_info.node_id);
+  nds_mds_ver_db[evt->info.nd_mds_info.node_id] = evt->info.nd_mds_info.mds_version;
+  TRACE_LEAVE();
 }
 

@@ -183,6 +183,8 @@ AVND_EVT *avnd_evt_create(AVND_CB *cb,
 		evt->info.pm_evt.pm_rec = (AVND_COMP_PM_REC *)info;
 		break;
 
+	case AVND_EVT_AMFA_MDS_VER_INFO:
+		break;
 	default:
 		delete evt;
 		evt = nullptr;
@@ -311,6 +313,8 @@ void avnd_evt_destroy(AVND_EVT *evt)
 		/* Imm Reader event */
 	case AVND_EVT_IR:
 		osaf_extended_name_free(&evt->info.ir_evt.su_name);
+		break;
+	case AVND_EVT_AMFA_MDS_VER_INFO:
 		break;
 
 	default:

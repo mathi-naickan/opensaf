@@ -395,6 +395,8 @@ uint32_t avnd_evt_mds_ava_dn_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	TRACE_ENTER();
 
+	//update MDS version db.
+	agent_mds_ver_db.erase(mds_evt->mds_dest);
 	/* get the matching registered comp (if any) */
 	for (comp = avnd_compdb_rec_get_next(cb->compdb, "");
 		 comp != nullptr;
@@ -3002,5 +3004,19 @@ void avnd_amf_pxied_comp_clean_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
 {
 	cbk->type = AVSV_AMF_PXIED_COMP_CLEAN;
 	osaf_extended_name_alloc(cn.c_str(), &cbk->param.comp_term.comp_name);
+}
+
+/**
+ * @brief  This event is for remembering MDS dest and version of agent. 
+ * @param  ptr to AVND_CB 
+ * @param  ptr to AVND_EVT 
+ * @return uint32_t
+ */
+uint32_t avnd_amfa_mds_info_evh(AVND_CB *cb, AVND_EVT *evt) {
+  TRACE_ENTER2("mds_dest :%lu, MDS version:%d",
+    evt->info.amfa_mds_info.mds_dest, evt->info.amfa_mds_info.mds_version);
+  agent_mds_ver_db[evt->info.amfa_mds_info.mds_dest] =  evt->info.amfa_mds_info.mds_version;
+  TRACE_LEAVE();
+  return NCSCC_RC_SUCCESS;
 }
 

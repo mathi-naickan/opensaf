@@ -112,6 +112,7 @@ typedef enum avnd_evt_type {
 	AVND_EVT_PID_EXIT,
 	AVND_EVT_TMR_QSCING_CMPL,
 	AVND_EVT_IR,
+	AVND_EVT_AMFA_MDS_VER_INFO,
 
 	AVND_EVT_MAX
 } AVND_EVT_TYPE;
@@ -164,6 +165,12 @@ typedef struct avnd_ir_evt {
 	bool status;	/* Result of Imm read, true is succ. */
 } AVND_IR_EVT;
 
+struct AVND_EVT_AMFA_MDS_INFO {
+	MDS_DEST mds_dest;
+	MDS_SVC_PVT_SUB_PART_VER mds_version;
+};
+
+
 /* AVND top-level event structure */
 typedef struct avnd_evt_tag {
 	struct avnd_evt_tag *next;
@@ -183,6 +190,7 @@ typedef struct avnd_evt_tag {
 		AVND_COMP_FSM_EVT comp_fsm;
 		AVND_PM_MON_EVT pm_evt;
 		AVND_IR_EVT ir_evt;
+		AVND_EVT_AMFA_MDS_INFO amfa_mds_info;
 	} info;
 
 } AVND_EVT;

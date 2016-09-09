@@ -117,5 +117,6 @@ uint32_t avnd_evt_avd_hb_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
 uint32_t avnd_evt_tmr_avd_hb_duration_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
 uint32_t avnd_evt_tmr_sc_absence_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
 uint32_t avnd_evt_avd_reboot_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
+uint32_t avnd_amfa_mds_info_evh(struct avnd_cb_tag *, struct avnd_evt_tag *);
 
 #endif

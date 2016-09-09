@@ -79,6 +79,7 @@ void avd_node_down_mw_susi_failover(AVD_CL_CB *cb, AVD_AVND *avnd);
 void avd_node_down_func(AVD_CL_CB *cb, AVD_AVND *avnd);
 void avd_nd_sisu_state_info_evh(AVD_CL_CB *cb, struct AVD_EVT *evt);
 void avd_nd_compcsi_state_info_evh(AVD_CL_CB *cb, struct AVD_EVT *evt);
+void avd_avnd_mds_info_evh(AVD_CL_CB *cb, AVD_EVT *evt);
 uint32_t avd_node_down(AVD_CL_CB *cb, SaClmNodeIdT node_id);
 AVD_AVND *avd_msg_sanity_chk(AVD_EVT *evt, SaClmNodeIdT node_id,
 	AVSV_DND_MSG_TYPE msg_typ, uint32_t msg_id);

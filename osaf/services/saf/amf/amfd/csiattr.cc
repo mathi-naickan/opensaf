@@ -509,6 +509,8 @@ static void csiattr_change_send_msg(AVD_CSI *csi) {
     compcsi = compcsi->csi_csicomp_next) {
     auto it = nds_mds_ver_db.find(compcsi->comp->su->su_on_node->node_info.nodeId);
 
+    if (it == nds_mds_ver_db.end()) 
+      continue; 
     //Check if this amfnd is capable of this functionality.
     if (it->second < AVSV_AVD_AVND_MSG_FMT_VER_7) {
       TRACE_3("not sending to '%s' on :%x with mds version:'%u'",

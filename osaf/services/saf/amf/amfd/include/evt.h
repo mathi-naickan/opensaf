@@ -70,14 +70,20 @@ typedef enum avd_evt_type {
 	AVD_EVT_ASSIGN_SI_DEP_STATE,
 	AVD_IMM_REINITIALIZED,
 	AVD_EVT_UNASSIGN_SI_DEP_STATE,
+	AVD_EVT_ND_MDS_VER_INFO,
 	AVD_EVT_MAX
 } AVD_EVT_TYPE;
 
+struct AVD_EVT_ND_MDS_INFO {
+	SaClmNodeIdT node_id;
+	MDS_SVC_PVT_SUB_PART_VER mds_version;
+};
 union AVD_EVT_INFO {
 	AVD_DND_MSG *avnd_msg;
 	AVD_D2D_MSG *avd_msg;
 	SaClmNodeIdT node_id;
 	AVD_TMR tmr;
+	AVD_EVT_ND_MDS_INFO nd_mds_info;
 	AVD_EVT_INFO() {new(&tmr) AVD_TMR();}
 	~AVD_EVT_INFO() {tmr.~AVD_TMR();}
 };

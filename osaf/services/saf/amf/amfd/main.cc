@@ -123,7 +123,8 @@ static const AVD_EVT_HDLR g_actv_list[AVD_EVT_MAX] = {
 	avd_role_switch_ncs_su_evh,  /* AVD_EVT_SWITCH_NCS_SU */
 	avd_sidep_assign_evh, /* AVD_EVT_ASSIGN_SI_DEP_STATE */
 	invalid_evh,		/* AVD_EVT_INVALID */
-	avd_sidep_unassign_evh /* AVD_EVT_UNASSIGN_SI_DEP_STATE */
+	avd_sidep_unassign_evh, /* AVD_EVT_UNASSIGN_SI_DEP_STATE */
+	avd_avnd_mds_info_evh, /* AVD_EVT_ND_MDS_VER_INFO*/
 };
 
 /* list of all the function pointers related to handling the events
@@ -164,7 +165,10 @@ static const AVD_EVT_HDLR g_stndby_list[AVD_EVT_MAX] = {
 	/* Role change Event processing */
 	avd_role_change_evh,	/* AVD_EVT_ROLE_CHANGE */
 	standby_invalid_evh,	/* AVD_EVT_SWITCH_NCS_SU */
-	standby_invalid_evh	/* AVD_EVT_SI_DEP_STATE */
+	standby_invalid_evh,	/* AVD_EVT_ASSIGN_SI_DEP_STATE*/
+	standby_invalid_evh,	/* AVD_EVT_INVALID */
+	standby_invalid_evh,	/* AVD_EVT_UNASSIGN_SI_DEP_STATE*/
+	avd_avnd_mds_info_evh /* AVD_EVT_ND_MDS_VER_INFO*/
 };
 
 /* list of all the function pointers related to handling the events
@@ -205,7 +209,10 @@ static const AVD_EVT_HDLR g_quiesc_list[AVD_EVT_MAX] = {
 	/* Role change Event processing */
 	avd_role_change_evh,	/* AVD_EVT_ROLE_CHANGE */
 	qsd_invalid_evh,	/* AVD_EVT_SWITCH_NCS_SU */
-	qsd_invalid_evh	/* AVD_EVT_TMR_SI_DEP_TOL */
+	qsd_invalid_evh,	       /* AVD_EVT_TMR_SI_DEP_TOL */
+	qsd_invalid_evh,	/* AVD_EVT_INVALID */
+	qsd_invalid_evh,	/* AVD_EVT_UNASSIGN_SI_DEP_STATE*/
+	avd_avnd_mds_info_evh /* AVD_EVT_ND_MDS_VER_INFO*/
 };
 
 /*****************************************************************************
