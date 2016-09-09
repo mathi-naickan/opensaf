@@ -117,17 +117,8 @@ static SaAisErrorT clma_validate_flags_buf(clma_client_hdl_rec_t * hdl_rec, SaUi
 
 	/* validate the notify buffer */
 	if ((flags & SA_TRACK_CURRENT) && buf && buf->notification) {
-		uint32_t i;
-
 		if (!buf->numberOfItems)
 			return SA_AIS_ERR_INVALID_PARAM;
-
-		// Check that nodeName is not longer than 255
-		for(i=0; i<buf->numberOfItems; i++) {
-			if(osaf_extended_name_length(&buf->notification[i].clusterNode.nodeName) >= SA_MAX_NAME_LENGTH) {
-				return SA_AIS_ERR_INVALID_PARAM;
-			}
-		}
 	}
 
 	/* Validate if flag is TRACK_CURRENT and no callback and no buffer provided */
@@ -167,23 +158,9 @@ static SaAisErrorT clma_validate_flags_buf_4(clma_client_hdl_rec_t * hdl_rec, Sa
 
 	/* validate the notify buffer */
 	if ((flags & SA_TRACK_CURRENT) && buf && buf->notification) {
-		uint32_t i;
-
 		if (!buf->numberOfItems) {
 			TRACE_LEAVE();
 			return SA_AIS_ERR_INVALID_PARAM;
-		}
-
-		// Check that nodeName and EE are not longer than 255
-		for(i=0; i<buf->numberOfItems; i++) {
-			if(osaf_extended_name_length(&buf->notification[i].clusterNode.nodeName) >= SA_MAX_NAME_LENGTH) {
-				TRACE_LEAVE();
-				return SA_AIS_ERR_INVALID_PARAM;
-			}
-			if(osaf_extended_name_length(&buf->notification[i].clusterNode.executionEnvironment) >= SA_MAX_NAME_LENGTH) {
-				TRACE_LEAVE();
-				return SA_AIS_ERR_INVALID_PARAM;
-			}
 		}
 	}
 
