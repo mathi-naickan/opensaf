@@ -73,10 +73,9 @@ class SmfUpgradeProcedure;
     m_waitToCommit(0),
     m_waitToAllowNewCampaign(0),
     m_noOfExecutingProc(0),
-    m_noOfProcResponses(0),
-    m_procExecutionMode(0)
+    m_noOfProcResponses(0)
 {
-
+        m_execControlHdl = new SmfExecControlObjHandler();
 }
 
 // ------------------------------------------------------------------------------
@@ -84,22 +83,30 @@ class SmfUpgradeProcedure;
 // ------------------------------------------------------------------------------
 SmfUpgradeCampaign::~SmfUpgradeCampaign()
 {
-	TRACE_ENTER();
-        //Delete merged procedure first since it contain references to other proc
-	//Check campaign state, if verify fails the campaign is still in state initial
-	//and the merged procedure is not yet created.
-	if ((getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) &&
-	    (m_state->getState() != SA_SMF_CMPG_INITIAL)) {
-                delete(m_mergedProcedure);
+        TRACE_ENTER();
+        for (auto& it: m_procedure) {
+                delete it;
         }
+        m_procedure.clear();
+        for (auto& it: m_originalProcedures) {
+                delete it;
+        }
+        m_originalProcedures.clear();
 
-	std::vector < SmfUpgradeProcedure * >::iterator iter;
+        delete m_execControlHdl;
 
-	for (iter = m_procedure.begin(); iter != m_procedure.end(); ++iter) {
-		delete(*iter);
-	}
+        TRACE_LEAVE();
+}
 
-	TRACE_LEAVE();
+// ------------------------------------------------------------------------------
+// addMergedProcedure()
+// ------------------------------------------------------------------------------
+void SmfUpgradeCampaign::addMergedProcedure(SmfUpgradeProcedure* procedure) {
+        if (m_originalProcedures.size() == 0) {
+                m_originalProcedures = m_procedure;
+                m_procedure.clear();
+        }
+        m_procedure.push_back(procedure);
 }
 
 // ------------------------------------------------------------------------------
@@ -1015,9 +1022,6 @@ SmfUpgradeCampaign::continueExec()
             // Refresh local variable.
             currentState = m_state->getState();
         }
-
-	//Read and set the ProcExecutionMode after cluster reboot
-	setProcExecutionMode(smfd_cb->procExecutionMode);
 
         //Start procedure threads
         if (SmfCampaignThread::instance()->campaign()->startProcedureThreads() != SA_AIS_OK) {

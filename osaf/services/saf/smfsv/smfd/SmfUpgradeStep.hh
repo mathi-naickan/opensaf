@@ -707,6 +707,12 @@ class SmfUpgradeStep {
 /// @return   true on success else false
 ///
 	bool readSmfClusterControllers();
+///
+/// Purpose:  Set step state
+/// @param    The state
+/// @return   None
+///
+	void setStepState(SaSmfStepStateT i_state);
 
         friend class SmfStepState;
 
@@ -759,13 +765,6 @@ class SmfUpgradeStep {
 /// @return   -
 ///
 	void setImmStateAndSendNotification(SaSmfStepStateT i_state);
-
-///
-/// Purpose:  Set step state
-/// @param    The state
-/// @return   None
-///
-	void setStepState(SaSmfStepStateT i_state);
 
 ///
 /// Purpose: Disables copy constructor

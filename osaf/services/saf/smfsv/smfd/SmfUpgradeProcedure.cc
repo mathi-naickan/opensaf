@@ -20,6 +20,7 @@
  * ========================================================================
  */
 #include <string>
+#include <algorithm>
 #include <vector>
 #include <sstream>
 
@@ -51,6 +52,7 @@
 #include "SmfUpgradeAction.hh"
 #include "SmfUtils.hh"
 #include "smfd.h"
+#include "SmfExecControl.h"
 
 // This static member variable is the object counter for upgrade procedures
 unsigned long SmfUpgradeProcedure::s_procCounter = 1;
@@ -146,6 +148,14 @@ SmfUpgradeProcedure::~SmfUpgradeProcedure()
                         delete(*stepit);
                 }
         }
+        //} else {
+        //        unsigned int execMode = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->getProcExecutionMode();
+        //        if (execMode == SMF_BALANCED_MODE) {
+        //                for (auto& step : m_procSteps) {
+        //                        delete step;
+        //                }
+        //        }
+        //}
 
 	TRACE_LEAVE();
 }
@@ -424,7 +434,9 @@ SmfUpgradeProcedure::getUpgradeMethod(void)
 void 
 SmfUpgradeProcedure::addProcInitAction(SmfUpgradeAction * i_action)
 {
-	m_procInitAction.push_back(i_action);
+        if (std::find(m_procInitAction.begin(), m_procInitAction.end(), i_action) == m_procInitAction.end()) {
+                m_procInitAction.push_back(i_action);
+        }
 }
 
 //------------------------------------------------------------------------------
@@ -433,7 +445,9 @@ SmfUpgradeProcedure::addProcInitAction(SmfUpgradeAction * i_action)
 void 
 SmfUpgradeProcedure::addProcWrapupAction(SmfUpgradeAction * i_action)
 {
-	m_procWrapupAction.push_back(i_action);
+        if (std::find(m_procWrapupAction.begin(), m_procWrapupAction.end(), i_action) == m_procWrapupAction.end()) {
+                m_procWrapupAction.push_back(i_action);
+        }
 }
 
 //------------------------------------------------------------------------------
@@ -461,6 +475,13 @@ void
 SmfUpgradeProcedure::switchOver()
 {
 	TRACE_ENTER();
+        // If this assert triggers nodesForSingleStep was configured to
+        // contain controllers which is not possible for now.
+        if (!getBalancedGroup().empty()) {
+                LOG_ER("Unexpected SI-swap for balanced procedure. nodesForSingleStep possibly contains controller node");
+                osafassert(0);
+        }
+
 	TRACE("SmfUpgradeProcedure::switchOver: Create the restart indicator");
 	SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->createSmfRestartIndicator();
 
@@ -801,28 +822,37 @@ void SmfUpgradeProcedure::getCallbackList(const SmfUpgradeMethod* i_upgradeMetho
 		switch((*cbkiter)->getAtAction()) {
 			case SmfCallback::beforeLock:
 			{
-				/*Add this callback ptr to the beforeLock list */
-				m_beforeLock.push_back(*cbkiter);
+                                if (std::find(m_beforeLock.begin(), m_beforeLock.end(), (*cbkiter)) == m_beforeLock.end()){
+                                        m_beforeLock.push_back(*cbkiter);
+                                }
 				break;
 			}
 			case SmfCallback::beforeTermination:
 			{
-				m_beforeTerm.push_back(*cbkiter);
+                                if (std::find(m_beforeTerm.begin(), m_beforeTerm.end(), (*cbkiter)) == m_beforeTerm.end()){
+                                        m_beforeTerm.push_back(*cbkiter);
+                                }
 				break;
 			}
 			case SmfCallback::afterImmModification:
 			{
-				m_afterImmModify.push_back(*cbkiter);
+                                if (std::find(m_afterImmModify.begin(), m_afterImmModify.end(), (*cbkiter)) == m_afterImmModify.end()){
+                                        m_afterImmModify.push_back(*cbkiter);
+                                }
 				break;
 			}
 			case SmfCallback::afterInstantiation:
 			{
-				m_afterInstantiate.push_back(*cbkiter);
+                                if (std::find(m_afterInstantiate.begin(), m_afterInstantiate.end(), (*cbkiter)) == m_afterInstantiate.end()){
+                                        m_afterInstantiate.push_back(*cbkiter);
+                                }
 				break;
 			}
 			case SmfCallback::afterUnlock:
 			{
-				m_afterUnlock.push_back(*cbkiter);
+                                if (std::find(m_afterUnlock.begin(), m_afterUnlock.end(), (*cbkiter)) == m_afterUnlock.end()){
+                                        m_afterUnlock.push_back(*cbkiter);
+                                }
 				break;
 			}
 			default:
@@ -1171,7 +1201,7 @@ SmfUpgradeProcedure::mergeStepIntoSingleStep(SmfUpgradeProcedure * i_proc, SmfUp
         std::list < unitNameAndState > forAddRemoveDU;
 	std::list < unitNameAndState > tmpDU;
         SmfUpgradeCampaign * camp = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign();
-        const std::vector < SmfUpgradeProcedure * >& procedures = camp->getProcedures();
+        const std::vector < SmfUpgradeProcedure * >& procedures = camp->getOriginalProcedures();
         std::vector < SmfUpgradeProcedure * >::const_iterator proc_iter;
         for (proc_iter = procedures.begin(); proc_iter != procedures.end(); proc_iter++) {
                 LOG_NO("Merging [%s] into a single step procedure", (*proc_iter)->getName().c_str());
@@ -2775,12 +2805,16 @@ SmfUpgradeProcedure::getImmSteps()
 		return SA_AIS_ERR_NOT_EXIST;
 	}
 
+        unsigned int execMode = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->getProcExecutionMode();
 	if (upgradeMethod->getUpgradeMethod() == SA_SMF_ROLLING) {
-		TRACE("Rolling upgrade");
-		rc = getImmStepsRolling();
+                TRACE("Rolling upgrade");
+                rc = getImmStepsRolling();
+                if (execMode == SMF_BALANCED_MODE) {
+                        // We get here after a SI SWAP, some steps will be merged, mark them as completed
+                        execctrl::disableMergeSteps(this);
+                }
 	} else if (upgradeMethod->getUpgradeMethod() == SA_SMF_SINGLE_STEP) {
-                if (SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->getProcExecutionMode()
-		    == SMF_MERGE_TO_SINGLE_STEP) {  //This is a merged single step
+                if (execMode == SMF_MERGE_TO_SINGLE_STEP) {  //This is a merged single step
                         TRACE("Merged single step upgrade");
                         rc = getImmStepsMergedSingleStep();
                 } else { //This is a written normal single step
@@ -3140,7 +3174,7 @@ SmfUpgradeProcedure::getImmStepsMergedSingleStep()
 		int initActionId = 1;
 		int wrapupActionId = 1;
 		SmfUpgradeCampaign * camp = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign();
-		const std::vector < SmfUpgradeProcedure * >& procedures = camp->getProcedures();
+		const std::vector < SmfUpgradeProcedure * >& procedures = camp->getOriginalProcedures();
 		std::vector < SmfUpgradeProcedure * >::const_iterator proc_iter;
 		for (proc_iter = procedures.begin(); proc_iter != procedures.end(); proc_iter++) {
 			LOG_NO("SmfUpgradeProcedure::getImmStepsMergedSingleStep: Fetch callbacks and wrapup actions from [%s]",
@@ -3415,7 +3449,7 @@ SmfUpgradeProcedure::bundleRefFromSsCampaignImmModel(SmfUpgradeStep *i_newStep)
 	//----------------------------------------------------------------
 	//Read all the bundles to add/remove from the parsed camaign
         SmfUpgradeCampaign * camp = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign();
-	const std::vector < SmfUpgradeProcedure * >& procedures = camp->getProcedures();
+	const std::vector < SmfUpgradeProcedure * >& procedures = camp->getOriginalProcedures();
 	std::vector < SmfUpgradeProcedure * >::const_iterator proc_iter;
 	std::list < SmfBundleRef > bundlesOldProcSS;
 	std::list < SmfBundleRef *> bundlesOldProcRO;

@@ -28,6 +28,7 @@
 #include "SmfCampaignInit.hh"
 #include "SmfCampaignWrapup.hh"
 #include "SmfCampaignThread.hh"
+#include "SmfExecControlHdl.h"
 
 class SmfUpgradeProcedure;
 class SmfCampState;
@@ -400,35 +401,27 @@ void verify();
         SaAisErrorT checkSmfRestartIndicator();
 
 ///
-/// Purpose: get procedure list
-/// @param   None.
-/// @return  list of procedures.
+/// Purpose: Get the unmodified procedures, no merged procedures included
 ///
-	const std::vector < SmfUpgradeProcedure * >& getProcedures() { return m_procedure; }
+	const std::vector<SmfUpgradeProcedure*>& getOriginalProcedures() { return m_originalProcedures; };
 
-/// Purpose: set the merged procedure
-/// @param   A SmfUpgradeProcedure *
-/// @return  the procedure.
 ///
-	void setMergedProc(SmfUpgradeProcedure * proc) { m_mergedProcedure = proc; }
+/// Purpose: Add the merged procedure while saving the original
+///
+	void addMergedProcedure(SmfUpgradeProcedure* procedure);
 
-/// Purpose: get the merged procedure
-/// @param   None.
-/// @return  the procedure.
 ///
-	SmfUpgradeProcedure * getMergedProc() { return m_mergedProcedure; }
+/// Purpose: Can be used with any procedure execution mode
+///
+	const std::vector<SmfUpgradeProcedure*>& getProcedures() { return m_procedure; }
 
-/// Purpose: Set the procedure ecxecution mode
-/// @param   The execution mode.
-/// @return  none
-///
-	void setProcExecutionMode(int i_procExecutionMode) { m_procExecutionMode = i_procExecutionMode; }
+        SmfExecControlObjHandler* getExecControlHdl() { return m_execControlHdl; }
 
 /// Purpose: Get the procedure ecxecution mode
 /// @param   none
 /// @return  The execution mode.
 ///
-	int getProcExecutionMode() { return m_procExecutionMode; }
+        SaUint32T getProcExecutionMode() { return m_execControlHdl->procExecMode(NULL); }
 
 	SmfCampaignInit & getCampaignInit() { return  m_campInit; }
 	SmfCampaignWrapup & getCampaignWrapup() { return  m_campWrapup; }
@@ -482,12 +475,12 @@ private:
         std::string m_configurationBase;
 	SmfCampaignInit m_campInit;
 	SmfCampaignWrapup m_campWrapup;
-        std::vector < SmfUpgradeProcedure * >m_procedure;
-        SmfUpgradeProcedure * m_mergedProcedure;
+        std::vector<SmfUpgradeProcedure*> m_procedure;
+        std::vector<SmfUpgradeProcedure*> m_originalProcedures;
         SaTimeT m_waitToCommit;
         SaTimeT m_waitToAllowNewCampaign;
 	int m_noOfExecutingProc;
         int m_noOfProcResponses;
-	int m_procExecutionMode;
+        SmfExecControlObjHandler* m_execControlHdl;
 };
 #endif				// __SMFUPGRADECAMPAIGN_H

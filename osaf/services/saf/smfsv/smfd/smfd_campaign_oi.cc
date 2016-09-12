@@ -886,32 +886,6 @@ uint32_t campaign_oi_init(smfd_cb_t * cb)
 	return NCSCC_RC_SUCCESS;
 }
 
-SaUint32T readExecControlObject(const char* openSafSmfExecControlDN)
-{
-	SmfImmUtils immUtil;
-	SaImmAttrValuesT_2 **attributes;
-	if (openSafSmfExecControlDN == NULL || strcmp(openSafSmfExecControlDN, "") == 0) {
-		LOG_NO("%s is not set, using standard mode", OPENSAF_SMF_EXEC_CONTROL);
-		openSafSmfExecControlDN = NULL;
-		return SMF_STANDARD_MODE;
-	}
-	else {
-		LOG_NO("%s is set to %s", OPENSAF_SMF_EXEC_CONTROL, openSafSmfExecControlDN);
-	}
-	if (immUtil.getObject(openSafSmfExecControlDN, &attributes) == false) {
-		LOG_NO("Failed to get object from attribute %s, using standard mode", OPENSAF_SMF_EXEC_CONTROL);
-		return SMF_STANDARD_MODE;
-	}
-	const SaUint32T* mode = immutil_getUint32Attr((const SaImmAttrValuesT_2 **)attributes,
-		"procExecMode", 0);
-	if (mode == NULL) {
-		LOG_WA("Attribute value was NULL for procExecMode, using standard mode");
-		return SMF_STANDARD_MODE;
-	}
-	LOG_NO("procExecMode is set to %u", *mode);
-	return *mode;
-}
-
 /**
  * read SMF configuration object and set control block data accordingly.
  * @param cb
@@ -1152,11 +1126,6 @@ uint32_t read_config_and_set_control_block(smfd_cb_t * cb)
 		LOG_NO("smfKeepDuState = %d", *keepDuState);
 	}
 
-	const char* smfExecControlDN = immutil_getStringAttr((const SaImmAttrValuesT_2 **)attributes,
-							     OPENSAF_SMF_EXEC_CONTROL, 0);
-
-	SaUint32T procExecMode = readExecControlObject(smfExecControlDN);
-
 	cb->backupCreateCmd = strdup(backupCreateCmd);
 	cb->bundleCheckCmd = strdup(bundleCheckCmd);
 	cb->nodeCheckCmd = strdup(nodeCheckCmd);
@@ -1177,7 +1146,6 @@ uint32_t read_config_and_set_control_block(smfd_cb_t * cb)
 	cb->smfVerifyEnable = *smfVerifyEnable;
 	cb->smfVerifyTimeout = *verifyTimeout;
 	cb->smfKeepDuState = *keepDuState;
-	cb->procExecutionMode = procExecMode;
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;

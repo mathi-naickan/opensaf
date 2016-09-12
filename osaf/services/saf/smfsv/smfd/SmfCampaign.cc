@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <new>
 #include <vector>
+#include <algorithm>
 #include <string>
 #include <sys/time.h>
 
@@ -30,7 +31,9 @@
 #include "SmfUpgradeProcedure.hh"
 #include "SmfUpgradeMethod.hh"
 #include "SmfProcedureThread.hh"
+#include "SmfUpgradeAction.hh"
 #include "SmfUtils.hh"
+#include "SmfExecControl.h"
 
 #include "saAis.h"
 #include <saSmf.h>
@@ -661,6 +664,10 @@ SmfCampaign::initExecution(void)
 SaAisErrorT
 SmfCampaign::startProcedureThreads()
 {
+        // If any procedure start goes badly two things happen: delete of the
+        // upgrade campaign pointer to terminate and remove previously started
+        // procedures. Return SA_AIS_OK to not change campaign state and allow
+        // reexecution
         TRACE_ENTER();
         SmfUpgradeCampaign *p_uc = getUpgradeCampaign();
         if (p_uc->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
@@ -676,24 +683,24 @@ SmfCampaign::startProcedureThreads()
                 std::string singleProcDN = singleProc->getProcName() + "," +
                         SmfCampaignThread::instance()->campaign()->getDn();
                 singleProc->setDn(singleProcDN);
-                p_uc->setMergedProc(singleProc);
+                p_uc->addMergedProcedure(singleProc);
 
-                /* Start procedure thread */
-                SmfProcedureThread *procThread = new SmfProcedureThread(singleProc);
-                /* The procThread will set itself when started correctly */
-                singleProc->setProcThread(NULL);
-
-                LOG_NO("SmfCampaign::startProcedureThreads, Starting procedure thread %s",
-                       singleProc->getProcName().c_str());
-                procThread->start();
-                /* Check if procedure thread started correctly */
-                if (singleProc->getProcThread() == NULL) {
-                        std::string error = "Start of procedure thread failed for " + singleProcDN;
-                        LOG_ER("%s", error.c_str());
-                        SmfCampaignThread::instance()->campaign()->setError(error);
-                        delete p_uc; // To terminate and remove any previously started procedure threads
-                        /* Don't change campaign state to allow reexecution */
+                if (startProcedure(singleProc) == false) {
+                        delete p_uc;
                         return SA_AIS_OK;
+                }
+        } else if (p_uc->getProcExecutionMode() == SMF_BALANCED_MODE) {
+                if (!execctrl::createBalancedProcs()) {
+                        return SA_AIS_ERR_INIT;
+                }
+                auto procedures = p_uc->getProcedures();
+                TRACE("SmfCampaign::startProcedureThreads, number of procedures=[%zu]", procedures.size());
+                for (auto proc: procedures) {
+                        proc->setDn(proc->getProcName() + "," + SmfCampaignThread::instance()->campaign()->getDn());
+                        if (startProcedure(proc) == false) {
+                                delete p_uc;
+                                return SA_AIS_OK;
+                        }
                 }
         } else {
                 const std::vector < SmfUpgradeProcedure * >& procedures = p_uc->getProcedures();
@@ -718,29 +725,35 @@ SmfCampaign::startProcedureThreads()
                         }
                         (*iter)->setDn(dn);
 
-                        /* Start procedure thread */
-                        SmfProcedureThread *procThread = new SmfProcedureThread(*iter);
-                        /* The procThread will set itself when started correctly */
-                        (*iter)->setProcThread(NULL);
-
-                        TRACE("SmfCampaign::startProcedureThreads, Starting procedure thread %s", (*iter)->getProcName().c_str());
-                        procThread->start();
-
-                        /* Check if procedure thread started correctly */
-                        if ((*iter)->getProcThread() == NULL) {
-                                std::string error = "Start of procedure thread failed for " + dn;
-                                LOG_ER("%s", error.c_str());
-                                SmfCampaignThread::instance()->campaign()->setError(error);
-                                delete p_uc; // To terminate and remove any previously started procedure threads
-                                /* Don't change campaign state to allow reexecution */
+                        if (startProcedure(*iter) == false) {
+                                delete p_uc;
                                 return SA_AIS_OK;
                         }
-
                         iter++;
                 }
         }
         TRACE_LEAVE();
         return SA_AIS_OK; //Will never return here, just for compiler
+}
+
+//--------------------------------------------------------------------------
+// Starts one upgrade procedure thread, return false on failure
+//--------------------------------------------------------------------------
+bool
+SmfCampaign::startProcedure(SmfUpgradeProcedure* procedure) {
+        SmfProcedureThread *procedure_thread = new SmfProcedureThread(procedure);
+        // The procThread will set itself when started correctly
+        procedure->setProcThread(nullptr);
+        TRACE("SmfCampaign::startProcedure dn: %s", procedure->getDn().c_str());
+        procedure_thread->start();
+
+        if (procedure->getProcThread() == nullptr) {
+                std::string error = "Start of procedure thread failed for " + procedure->getDn();
+                LOG_ER("%s", error.c_str());
+                SmfCampaignThread::instance()->campaign()->setError(error);
+                return false;
+        }
+        return true;
 }
 
 /** 

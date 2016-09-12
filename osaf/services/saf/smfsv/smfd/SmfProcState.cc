@@ -36,6 +36,7 @@
 #include "SmfRollback.hh"
 #include "SmfUtils.hh"
 #include "smfd.h"
+#include "SmfExecControl.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -241,14 +242,32 @@ SmfProcStateInitial::executeInit(SmfUpgradeProcedure * i_proc)
 {
 	TRACE_ENTER();
 	LOG_NO("PROC: Start procedure init actions");
-        if (SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->getProcExecutionMode() 
-	    == SMF_MERGE_TO_SINGLE_STEP) {
+        auto camp = SmfCampaignThread::instance()->campaign();
+        int procExecMode = camp->getUpgradeCampaign()->getProcExecutionMode();
+        if (procExecMode == SMF_MERGE_TO_SINGLE_STEP) {
                 LOG_NO("SmfProcStateInitial::executeInit, Merge procedures into single step");
                 if( !i_proc->mergeStepIntoSingleStep(i_proc)) {
                         changeState(i_proc, SmfProcStateExecFailed::instance());
                         LOG_NO("SmfProcStateExecuting::executeInit:Rolling to single merging failes");
                         TRACE_LEAVE();
                         return SMF_PROC_FAILED;
+                }
+        } else if (procExecMode == SMF_BALANCED_MODE) {
+                if (i_proc->getBalancedGroup().empty()) {
+                        TRACE("SmfProcStateInitial::executeInit, Calculate steps for original procedure");
+                        if (!i_proc->calculateSteps()) {
+                                LOG_NO("SmfProcStateExecuting::Step calculation failed");
+                                return SMF_PROC_FAILED;
+                        }
+                        execctrl::disableMergeSteps(i_proc);
+                } else {
+                        LOG_NO("SmfProcStateInitial::executeInit, create step for balanced procedure");
+                        if (!execctrl::createStepForBalancedProc(i_proc)) {
+                                changeState(i_proc, SmfProcStateExecFailed::instance());
+                                LOG_NO("SmfProcStateExecuting::executeInit: failed to create balanced steps");
+                                TRACE_LEAVE();
+                                return SMF_PROC_FAILED;
+                        }
                 }
         } else {
                 TRACE("SmfProcStateInitial::executeInit, Calculate steps");
@@ -351,10 +370,12 @@ SmfProcStateExecuting::executeStep(SmfUpgradeProcedure * i_proc)
 	std::vector < SmfUpgradeStep * >::const_iterator iter;
         const std::vector < SmfUpgradeStep * >& procSteps = i_proc->getProcSteps();
         unsigned int execStepNo = procSteps.size();
+        TRACE("total -execStepNo %d", execStepNo);
 
         for (iter = procSteps.begin(); iter != procSteps.end(); iter++) {
                 SmfStepResultT stepResult;
                 execStepNo--;
+                TRACE("-execStepNo %d, dn: %s", execStepNo, (*iter)->getDn().c_str());
 
                 /* Try executing the step */
                 stepResult = (*iter)->execute();

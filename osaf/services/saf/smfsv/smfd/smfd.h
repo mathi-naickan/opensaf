@@ -60,7 +60,7 @@ extern "C" {
 /* SMF execution modes */
 #define SMF_STANDARD_MODE 0
 #define SMF_MERGE_TO_SINGLE_STEP 1
-#define SMF_MERGE_TO_NODE_ROLLING 2
+#define SMF_BALANCED_MODE 2
 
 /* ========================================================================
  *   TYPE DEFINITIONS

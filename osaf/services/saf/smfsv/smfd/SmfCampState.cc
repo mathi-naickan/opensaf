@@ -32,8 +32,10 @@
 #include "SmfCampaignThread.hh"
 #include "SmfCampaign.hh"
 #include "SmfProcedureThread.hh"
+#include "smfsv_defs.h"
 #include <immutil.h>
 #include <sstream>
+#include "SmfUpgradeAction.hh"
 /* ========================================================================
  *   DEFINITIONS
  * ========================================================================
@@ -268,6 +270,7 @@ SmfCampStateInitial::execute(SmfUpgradeCampaign * i_camp)
 	std::string s;
 	std::stringstream out;
 	SmfCampResultT initResult;
+        auto exechdl = i_camp->getExecControlHdl();
 
 	TRACE("SmfCampStateInitial::execute implementation");
 
@@ -280,6 +283,9 @@ SmfCampStateInitial::execute(SmfUpgradeCampaign * i_camp)
 	if (prerequsitescheck(i_camp, error) != SA_AIS_OK) {
 		goto exit_error;
 	}
+        if (exechdl->smfProtectExecControlDuringInit(NULL)) {
+                exechdl->install();
+        }
 
 	//Verify pre-check
 	if (smfd_cb->smfVerifyEnable == SA_TRUE) {
@@ -338,10 +344,9 @@ SmfCampStateInitial::execute(SmfUpgradeCampaign * i_camp)
 		//To be sure the smfd_cb is updated also for this thread, read the config again.
 		read_config_and_set_control_block(smfd_cb);
 
-		//Save the smfd_cb->procExecutionMode in the campaign. If configuration
-		//is altered after the <campaignInitilatization> portion it shall not 
-		//affect the running campaign.
-		i_camp->setProcExecutionMode(smfd_cb->procExecutionMode);
+                if (!exechdl->smfProtectExecControlDuringInit(NULL)) {
+                        exechdl->install();
+                }
 
 		LOG_NO("SmfCampStateInitial::execute: startProcedureThreads()");
                 if (SmfCampaignThread::instance()->campaign()->startProcedureThreads() != SA_AIS_OK) {
@@ -757,19 +762,12 @@ SmfCampStateExecuting::execute(SmfUpgradeCampaign * i_camp)
 
 	TRACE("SmfCampStateExecuting::execute, Do some checking");
 
-	//Set the ProcExecutionMode in restarted campaign
-	i_camp->setProcExecutionMode(smfd_cb->procExecutionMode);
 
 	//If a running campaign was restarted on another node, the procedures in executing state
 	//must be restarted. The execution shall continue at step execution phase. The procedure initialization
 	//and step calculation was performed before the move of control.
 
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
         std::vector < SmfUpgradeProcedure * >::iterator iter;
 	bool execProcFound = false;
@@ -817,13 +815,7 @@ SmfCampStateExecuting::executeProc(SmfUpgradeCampaign * i_camp)
 	//The procedure vector is sorted in execution level order (low -> high)
 	//Lowest number shall be executed first.
 
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
-
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 	int execLevel = -1;
 
@@ -912,12 +904,7 @@ SmfCampStateExecuting::suspend(SmfUpgradeCampaign * i_camp)
 	TRACE("SmfCampStateExecuting::suspend implementation");
 
 	/* Send suspend message to all procedures */
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 
@@ -966,12 +953,7 @@ SmfCampStateExecuting::procResult(SmfUpgradeCampaign *  i_camp,
                 LOG_NO("CAMP: Procedure %s returned STEPUNDONE", i_procedure->getProcName().c_str());
 
                 /* Send suspend message to all procedures */
-                std::vector < SmfUpgradeProcedure * > procedures;
-                if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                        procedures.push_back(i_camp->getMergedProc());
-                } else {
-                        procedures = i_camp->getProcedures();
-                }
+                std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
         	std::vector < SmfUpgradeProcedure * >::iterator iter;
         	for (iter = procedures.begin(); iter != procedures.end(); ++iter) {
@@ -1114,21 +1096,8 @@ SmfCampStateExecCompleted::commit(SmfUpgradeCampaign * i_camp)
         i_camp->resetMaintenanceState(); // No action if it fails
 
         //Remove the procedure runtime objects
-       if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                i_camp->getMergedProc()->commit();
-
-        } else {
-               std::vector < SmfUpgradeProcedure * > procedures;
-               if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                       procedures.push_back(i_camp->getMergedProc());
-               } else {
-                       procedures = i_camp->getProcedures();
-               }
-
-                std::vector < SmfUpgradeProcedure * >::iterator iter;
-                for (iter = procedures.begin(); iter != procedures.end(); ++iter) {
-                        (*iter)->commit();
-                }
+        for (auto proc: i_camp->getProcedures()) {
+            proc->commit();
         }
 
         i_camp->removeRunTimeObjects(); // No action if it fails
@@ -1209,16 +1178,7 @@ SmfCampStateSuspendingExec::execute(SmfUpgradeCampaign * i_camp)
 	TRACE_ENTER();
 	TRACE("SmfCampStateSuspendingExec::execute implementation");
 
-	//Set the ProcExecutionMode in case campaign was restarted 
-	//in while in SuspendingExec state
-	i_camp->setProcExecutionMode(smfd_cb->procExecutionMode);
-
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 	bool initialFound = false;
@@ -1353,17 +1313,8 @@ SmfCampStateExecSuspended::execute(SmfUpgradeCampaign * i_camp)
 	TRACE_ENTER();
 	TRACE("SmfCampStateExecSuspended::execute implementation");
 
-	//Set the ProcExecutionMode in case campaign was restarted 
-	//in while in suspended state
-	i_camp->setProcExecutionMode(smfd_cb->procExecutionMode);
-
 	/* Send execute to all suspended procedures */
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 
@@ -1423,12 +1374,7 @@ SmfCampStateExecSuspended::rollback(SmfUpgradeCampaign * i_camp)
 	}
 
 	/* Send rollback to all suspended procedures */
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 
@@ -1723,17 +1669,8 @@ SmfCampStateSuspendedByErrorDetected::execute(SmfUpgradeCampaign * i_camp)
 	TRACE_ENTER();
 	TRACE("SmfCampStateSuspendedByErrorDetected::execute implementation");
 
-	//Set the ProcExecutionMode in case campaign was restarted 
-	//in while in suspendedByErrorDetected state
-	i_camp->setProcExecutionMode(smfd_cb->procExecutionMode);
-
 	/* Send execute to all suspended/undone procedures */
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 
@@ -1789,12 +1726,7 @@ SmfCampStateSuspendedByErrorDetected::rollback(SmfUpgradeCampaign * i_camp)
 	}
 
 	/* Send rollback to all suspended/undone procedures */
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 
@@ -1873,12 +1805,7 @@ SmfCampRollingBack::rollback(SmfUpgradeCampaign * i_camp)
 	TRACE_ENTER();
 	TRACE("SmfCampRollingBack::rollback implementation");
 
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::reverse_iterator iter;
 
@@ -1960,12 +1887,7 @@ SmfCampRollingBack::rollbackProc(SmfUpgradeCampaign * i_camp)
 	//The procedure vector is sorted in execution level order (low -> high)
 	//Highest number shall be rolled back first so start from end of list.
 
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                procedures.push_back(i_camp->getMergedProc());
-        } else {
-                procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::reverse_iterator iter;
 
@@ -2017,7 +1939,8 @@ SmfCampRollingBack::rollbackSingleMergeProc(SmfUpgradeCampaign * i_camp)
 {
 	TRACE_ENTER();
 	LOG_NO("CAMP:: Rollback merged single step procedure only");
-        SmfUpgradeProcedure * mergedProc = i_camp->getMergedProc();
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
+        SmfUpgradeProcedure * mergedProc = procedures.at(0);
         if (mergedProc->getState() == SA_SMF_PROC_COMPLETED) {
                 SmfProcedureThread *procThread = mergedProc->getProcThread();
                 PROCEDURE_EVT *evt = new PROCEDURE_EVT();
@@ -2046,12 +1969,7 @@ SmfCampRollingBack::suspend(SmfUpgradeCampaign * i_camp)
 	TRACE("SmfCampRollingBack::suspend implementation");
 
 	/* Send suspend message to all procedures */
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-          procedures.push_back(i_camp->getMergedProc());
-        } else {
-          procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 
@@ -2172,12 +2090,7 @@ SmfCampRollbackSuspended::rollback(SmfUpgradeCampaign * i_camp)
 	TRACE("SmfCampRollbackSuspended::rollback implementation");
 
 	/* Send rollback to all suspended procedures */
-        std::vector < SmfUpgradeProcedure * > procedures;
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-          procedures.push_back(i_camp->getMergedProc());
-        } else {
-          procedures = i_camp->getProcedures();
-        }
+        std::vector<SmfUpgradeProcedure*> procedures = i_camp->getProcedures();
 
 	std::vector < SmfUpgradeProcedure * >::iterator iter;
 
@@ -2345,16 +2258,8 @@ SmfCampRollbackCompleted::commit(SmfUpgradeCampaign * i_camp)
         i_camp->resetMaintenanceState(); // No action if it fails
 
         //Remove the procedure runtime objects
-        if (i_camp->getProcExecutionMode() == SMF_MERGE_TO_SINGLE_STEP) {
-                i_camp->getMergedProc()->commit();
-
-        } else {
-                const std::vector < SmfUpgradeProcedure * >& procedures = i_camp->getProcedures();
-                std::vector < SmfUpgradeProcedure * >::const_iterator iter;
-
-                for (iter = procedures.begin(); iter != procedures.end(); ++iter) {
-                        (*iter)->commit();
-                }
+        for (auto proc: i_camp->getProcedures()) {
+            proc->commit();
         }
         
         i_camp->removeRunTimeObjects(); // No action if it fails

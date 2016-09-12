@@ -107,6 +107,7 @@ class SmfCampaign {
         void stopElapsedTime();
 
  private:
+        bool startProcedure(SmfUpgradeProcedure* procedure);
 
 	std::string m_dn;
 	std::string m_cmpg;

@@ -551,7 +551,7 @@ class SmfUpgradeProcedure {
 /// @param    -
 /// @return   The list of upgrade steps.
 ///
-        const std::vector < SmfUpgradeStep * >& getProcSteps() { return m_procSteps; }
+        std::vector < SmfUpgradeStep * >& getProcSteps() { return m_procSteps; }
 
 ///
 /// Purpose:  Add the list of upgrade steps
@@ -585,6 +585,8 @@ class SmfUpgradeProcedure {
 /// @return   The list of wrapup actions.
 ///
         const std::vector < SmfUpgradeAction * >& getWrapupActions() { return m_procWrapupAction; }
+
+        void clearWrapupActions() { m_procWrapupAction.clear(); }
 
 ///
 /// Purpose:  Add the list of wrapup actions
@@ -717,14 +719,25 @@ class SmfUpgradeProcedure {
 	friend class SmfProcState;
 	friend class SmfCampStateSuspendingExec;
 
- private:
-
 ///
 /// Purpose:  Get iformation from AMF config in IMM about Components, SUs and nodes needed for upgrade 
 /// @param    A reference to a std::multimap<std::string, objectInst>
 /// @return   Bool true if successful otherwise false.
 ///
 	bool getImmComponentInfo(std::multimap<std::string, objectInst> &i_objects);
+
+///
+/// Purpose: When merging with SMF_BALANCED_MODE we need to keep track of which balanced group procedures belong to.
+///
+        const std::vector<std::string>& getBalancedGroup() { return m_balancedGroup; }
+
+///
+/// Purpose: When merging with SMF_BALANCED_MODE we need to keep track of which balanced group procedures belong to.
+///
+        void setBalancedGroup(std::vector<std::string> group) { m_balancedGroup = group; }
+
+ private:
+
 
 ///
 /// Purpose:  Change the procedure stste. If i_onlyInternalState == false, the IMM procedure object is updated and 
@@ -765,6 +778,7 @@ class SmfUpgradeProcedure {
         std::list < SmfCallback * >m_afterUnlock;   //Container of the procedure callbacks to be invoked onstep, ataction
 	sem_t m_semaphore;
         bool m_isMergedProcedure;
+        std::vector<std::string> m_balancedGroup;
 };
 
 //////////////////////////////////////////////////
