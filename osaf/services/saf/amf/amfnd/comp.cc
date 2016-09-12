@@ -3013,7 +3013,7 @@ void avnd_amf_pxied_comp_clean_cbk_fill(AVSV_AMF_CBK_INFO *cbk,
  * @return uint32_t
  */
 uint32_t avnd_amfa_mds_info_evh(AVND_CB *cb, AVND_EVT *evt) {
-  TRACE_ENTER2("mds_dest :%lu, MDS version:%d",
+  TRACE_ENTER2("mds_dest :%" PRIx64 ", MDS version:%d",
     evt->info.amfa_mds_info.mds_dest, evt->info.amfa_mds_info.mds_version);
   agent_mds_ver_db[evt->info.amfa_mds_info.mds_dest] =  evt->info.amfa_mds_info.mds_version;
   TRACE_LEAVE();
