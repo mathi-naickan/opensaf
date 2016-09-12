@@ -890,20 +890,6 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 				}
 			}
 		} else {	/* if(su->sg_of_su->sg_ncs_spec == true) */
-			if (avd_cb->scs_absence_max_duration > 0 &&
-				su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED &&
-				su->saAmfSUPreInstantiable == false) {
-				// this is to allow non NPI SUs to be repaired if
-				// headless mode is enabled. Otherwise, the code
-				// following will assume the SU is already in service
-				// when it failed to instantiate while headless
-
-				if (cb->init_state == AVD_APP_STATE) {
-					LOG_NO("Setting NPI SU '%s' to OOS after headless state", su->name.c_str());
-					su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
-				}
-			}
-
 			/* If oper state of Uninstantiated SU got ENABLED so try to instantiate it 
 			   after evaluating SG. */
 			if (su->saAmfSUPresenceState == SA_AMF_PRESENCE_UNINSTANTIATED) {

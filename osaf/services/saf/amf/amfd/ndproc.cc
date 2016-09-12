@@ -974,10 +974,6 @@ void avd_data_update_req_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 					su->set_oper_state(l_val);
 				}
 
-				if (su->is_in_service() == true) {
-					su->set_readiness_state(SA_AMF_READINESS_IN_SERVICE);
-				}
-
 				break;
 			case saAmfSUPresenceState_ID:
 				TRACE("su pres state");
