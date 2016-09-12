@@ -25,8 +25,9 @@
 #define OPENSAF_BASE_OSAF_POLL_H_
 
 #include <poll.h>
-#include <time.h>
 #include <signal.h>
+#include <stdint.h>
+#include <time.h>
 
 #ifdef  __cplusplus
 extern "C" {

@@ -15,12 +15,12 @@
  *
  */
 
+#include "osaf_poll.h"
 #include <errno.h>
 #include <limits.h>
+#include "logtrace.h"
 #include "osaf_time.h"
 #include "osaf_utility.h"
-#include "logtrace.h"
-#include "osaf_poll.h"
 
 
 static unsigned osaf_poll_no_timeout(struct pollfd* io_fds, nfds_t i_nfds);
