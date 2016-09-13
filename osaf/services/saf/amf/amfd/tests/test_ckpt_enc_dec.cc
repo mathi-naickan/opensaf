@@ -350,19 +350,18 @@ TEST_F(CkptEncDecTest, testEncDecAvdNodeConfig) {
     avnd.node_info.nodeAddress.value + 64,
     std::back_inserter(decoded_address),
     [](int c){return c + '0';});
-
-  ASSERT_EQ(avnd.node_info.nodeId, 1);
+  ASSERT_EQ(avnd.node_info.nodeId, static_cast<SaClmNodeIdT>(1));
   ASSERT_EQ(avnd.node_info.nodeAddress.family, SA_CLM_AF_INET6);
-  ASSERT_EQ(avnd.node_info.nodeAddress.length, 64);
+  ASSERT_EQ(avnd.node_info.nodeAddress.length, static_cast<SaUint16T>(64));
   ASSERT_EQ(decoded_address, address);
   ASSERT_EQ(avnd.node_info.member, SA_TRUE);
-  ASSERT_EQ(avnd.node_info.bootTimestamp, 0x3322118877665544);
-  ASSERT_EQ(avnd.node_info.initialViewNumber, 0x8877665544332211);
+  ASSERT_EQ(avnd.node_info.bootTimestamp, static_cast<SaTimeT>(0x3322118877665544));
+  ASSERT_EQ(avnd.node_info.initialViewNumber, static_cast<SaUint64T>(0x8877665544332211));
   ASSERT_EQ(avnd.name, name);
-  ASSERT_EQ(avnd.adest, 0x4433221188776655);
+  ASSERT_EQ(avnd.adest, static_cast<MDS_DEST>(0x4433221188776655));
   ASSERT_EQ(avnd.saAmfNodeAdminState, SA_AMF_ADMIN_UNLOCKED);
   ASSERT_EQ(avnd.saAmfNodeOperState, SA_AMF_OPERATIONAL_ENABLED);
   ASSERT_EQ(avnd.node_state, AVD_AVND_STATE_NCS_INIT);
-  ASSERT_EQ(avnd.rcv_msg_id, 0xA);
-  ASSERT_EQ(avnd.snd_msg_id, 0xB);
+  ASSERT_EQ(avnd.rcv_msg_id, static_cast<uint32_t>(0xA));
+  ASSERT_EQ(avnd.snd_msg_id, static_cast<uint32_t>(0xB));
 }
