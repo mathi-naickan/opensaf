@@ -46,6 +46,7 @@
 class AVD_SU;
 class AVD_SI;
 class AVD_APP;
+class AVD_AMF_NG;
 
 /* The valid SG FSM states. */
 typedef enum {
@@ -576,8 +577,8 @@ private:
 #define m_AVD_SET_SG_ADMIN_SI(cb,si) (si)->sg_of_si->set_admin_si((si))
 #define m_AVD_CLEAR_SG_ADMIN_SI(cb,sg) (sg)->clear_admin_si()
 #define m_AVD_CHK_OPLIST(i_su,flag) (flag) = (i_su)->sg_of_su->in_su_oper_list(i_su)
-
-void avd_sg_read_headless_cached_rta(AVD_CL_CB *cb);
+void avd_sg_read_headless_fsm_state_cached_rta(AVD_CL_CB *cb);
+void avd_sg_read_headless_su_oper_list_cached_rta(AVD_CL_CB *cb);
 
 extern void avd_sg_delete(AVD_SG *sg);
 extern void avd_sg_db_add(AVD_SG *sg);

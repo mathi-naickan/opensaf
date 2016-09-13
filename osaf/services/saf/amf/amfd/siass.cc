@@ -261,7 +261,9 @@ void avd_susi_read_headless_cached_rta(AVD_CL_CB *cb)
 						m_AVD_SET_SG_ADMIN_SI(cb, si);
 				}
 			}
-
+			// only restore if not done
+			if (susi->su->su_on_node->admin_ng == nullptr)
+				avd_ng_restore_headless_states(cb, susi);
 		} else {
 			// This susi does not exist after headless, but it's still in IMM
 			// delete it for now

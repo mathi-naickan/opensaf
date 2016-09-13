@@ -129,8 +129,9 @@ void avd_process_state_info_queue(AVD_CL_CB *cb)
 	// Reading sg must be after reading susi
 	if (found_state_info == true) {
 		avd_compcsi_cleanup_imm_object(cb);
+		avd_sg_read_headless_fsm_state_cached_rta(cb);
 		avd_susi_read_headless_cached_rta(cb);
-		avd_sg_read_headless_cached_rta(cb);
+		avd_sg_read_headless_su_oper_list_cached_rta(cb);
 		avd_su_read_headless_cached_rta(cb);
 	}
 done:

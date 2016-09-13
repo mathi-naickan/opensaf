@@ -1098,7 +1098,7 @@ void avd_su_si_assign_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 		}
 
 		if (su->list_of_susi == AVD_SU_SI_REL_NULL) {
-			LOG_ER("%s: no susis", __FUNCTION__);
+			LOG_WA("%s: no susis", __FUNCTION__);
 			goto done;
 		}
 

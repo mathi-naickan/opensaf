@@ -1356,3 +1356,86 @@ void avd_ng_constructor(void)
 			ng_ccb_apply_cb);
 }
 
+/*
+ * @brief: Restore nodegroup related variables which are used in nodegroup
+ *         operations before headless. The main variables are @admin_ng,
+ *         @ng_using_saAmfSGAdminState, and the saAmfSGAdminState which
+ *         is borrowed by nodegroup operation on 2N SG
+ * @param: control block, and susi is being read after headless
+ * @return: void
+ */
+
+void avd_ng_restore_headless_states(AVD_CL_CB *cb, struct avd_su_si_rel_tag* susi) {
+
+	TRACE_ENTER();
+	osafassert(cb->scs_absence_max_duration > 0);
+	// In order to restore nodegroup operation, AMF needs to know exactly
+	// whether nodegroup operation was running during headless up on @susi
+	// If susi is in QUIESCED/QUIESCING or being removed while its related
+	// entities su, si, sg are not in LOCKED and SHUTTING_DOWN, that means
+	// either node or nodegroup MUST be in LOCKED or SHUTTING_DOWN.
+	// In case of SHUTTING_DOWN saAmfNGAdminState, that's enough to know
+	// a nodegroup operation was running. However, if saAmfNGAdminState is
+	// in LOCKED, this case is an ambiguity of locking a node.
+	// The reason of differentiation of locking a node or nodegroup is because
+	// 2N SG uses both AVD_SG_FSM_SG_ADMIN and AVD_SG_FSM_SU_OPER for nodegroup
+	// operation while AVD_SG_FSM_SU_OPER is only used for node operation.
+	// When 2N SG uses AVD_SG_FSM_SG_ADMIN for nodegroup, the saAmfSGAdminState
+	// is borrowed (but not updated to IMM) to run the admin operation sequence.
+	// Therefore, after headless if AVD_SG_FSM_SG_ADMIN was being used for nodegroup
+	// then saAmfSGAdminState also needs to be set.
+
+	// Make sure su, si, sg are not in LOCKED, SHUTTING_DOWN
+	if (susi->su->saAmfSUAdminState != SA_AMF_ADMIN_LOCKED &&
+			susi->su->saAmfSUAdminState != SA_AMF_ADMIN_SHUTTING_DOWN &&
+			susi->si->saAmfSIAdminState != SA_AMF_ADMIN_LOCKED &&
+			susi->si->saAmfSIAdminState != SA_AMF_ADMIN_SHUTTING_DOWN &&
+			susi->su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_LOCKED &&
+			susi->su->sg_of_su->saAmfSGAdminState != SA_AMF_ADMIN_SHUTTING_DOWN) {
+
+		// susi are in state transition
+		if (susi->state == SA_AMF_HA_QUIESCED || susi->state == SA_AMF_HA_QUIESCING ||
+				susi->fsm == AVD_SU_SI_STATE_UNASGN) {
+
+	    	for (std::map<std::string, AVD_AMF_NG*>::const_iterator it = nodegroup_db->begin();
+	    		it != nodegroup_db->end(); it++) {
+	    		AVD_AMF_NG *ng = it->second;
+	    		for (std::set<std::string>::const_iterator iter = ng->saAmfNGNodeList.begin();
+	    				iter != ng->saAmfNGNodeList.end(); ++iter) {
+	    			AVD_AVND *node = avd_node_get(*iter);
+
+	    			if (susi->su->su_on_node == node) {
+	    				// Nodegroup was shutting down, also needs to check whether nodegroup
+	    				// operation was borrowing SG ADMIN FSM code (for 2N only)
+	    				if (ng->saAmfNGAdminState == SA_AMF_ADMIN_SHUTTING_DOWN) {
+	    					node->admin_ng = ng;
+	    					if (susi->su->sg_of_su->sg_fsm_state == AVD_SG_FSM_SG_ADMIN) {
+	    						osafassert(susi->su->sg_of_su->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL);
+								susi->su->sg_of_su->ng_using_saAmfSGAdminState = true;
+								susi->su->sg_of_su->saAmfSGAdminState = ng->saAmfNGAdminState;
+								m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, susi->su->sg_of_su, AVSV_CKPT_SG_ADMIN_STATE);
+	    					}
+	    				}
+	    				// Node group was LOCKED, AMFD treat nodegroup and node operation in the same view,
+	    				// except nodegroup was borrowing SG ADMIN FSM. This is because the other case that
+	    				// nodegroup operation was only SG SU_OPER FSM, which is the same as of node operation
+	    				if (ng->saAmfNGAdminState == SA_AMF_ADMIN_LOCKED) {
+	    					if(susi->su->sg_of_su->sg_fsm_state == AVD_SG_FSM_SG_ADMIN) {
+	    						osafassert(susi->su->sg_of_su->sg_redundancy_model == SA_AMF_2N_REDUNDANCY_MODEL);
+								node->admin_ng = ng;
+								susi->su->sg_of_su->ng_using_saAmfSGAdminState = true;
+								susi->su->sg_of_su->saAmfSGAdminState = ng->saAmfNGAdminState;
+								m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, susi->su->sg_of_su, AVSV_CKPT_SG_ADMIN_STATE);
+	    					}
+	    				}
+						TRACE("Restore nodegroup operation, SG(%s), ng_using_saAmfSGAdminState: %u, saAmfSGAdminState:%u",
+								susi->su->sg_of_su->name.c_str(), susi->su->sg_of_su->ng_using_saAmfSGAdminState,
+								susi->su->sg_of_su->saAmfSGAdminState);
+
+	    			}
+	    		}
+	    	}
+		}
+	}
+	TRACE_LEAVE();
+}
