@@ -714,6 +714,96 @@ void saNtfNotificationSend_12(void)
     test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
 }
 
+void send_mismatch_addtext(void) {
+	SaNtfObjectCreateDeleteNotificationT myNotification;
+
+	saNotificationAllocationParamsT myNotificationAllocationParams;
+	saNotificationFilterAllocationParamsT myNotificationFilterAllocationParams;
+	saNotificationParamsT myNotificationParams;
+
+	fillInDefaultValues(&myNotificationAllocationParams,
+			&myNotificationFilterAllocationParams, &myNotificationParams);
+
+	safassert(saNtfInitialize(&ntfHandle, NULL, &ntfVersion), SA_AIS_OK);
+	safassert(saNtfObjectCreateDeleteNotificationAllocate(
+					ntfHandle, /* handle to Notification Service instance */
+					&myNotification,
+					/* number of correlated notifications */
+					myNotificationAllocationParams.numCorrelatedNotifications,
+					/* length of additional text */
+					myNotificationAllocationParams.lengthAdditionalText + 1,
+					/* number of additional info items*/
+					myNotificationAllocationParams.numAdditionalInfo,
+					/* number of state changes */
+					myNotificationAllocationParams.numObjectAttributes,
+					/* use default allocation size */
+					myNotificationAllocationParams.variableDataSize), SA_AIS_OK);
+
+	/* Event type */
+	*(myNotification.notificationHeader.eventType) = SA_NTF_OBJECT_CREATION;
+
+	/* event time to be set automatically to current
+	 time by saNtfNotificationSend */
+	*(myNotification.notificationHeader.eventTime)
+			= myNotificationParams.eventTime;
+
+	/* Set Notification Object */
+	myNotification.notificationHeader.notificationObject->length
+			= myNotificationParams.notificationObject.length;
+	(void) memcpy(myNotification.notificationHeader.notificationObject->value,
+			myNotificationParams.notificationObject.value,
+			myNotificationParams.notificationObject.length);
+
+	/* Set Notifying Object */
+	myNotification.notificationHeader.notifyingObject->length
+			= myNotificationParams.notifyingObject.length;
+	(void) memcpy(myNotification.notificationHeader.notifyingObject->value,
+			myNotificationParams.notifyingObject.value,
+			myNotificationParams.notifyingObject.length);
+
+	/* set Notification Class Identifier */
+	/* vendor id 33333 is not an existing SNMP enterprise number.
+	 Just an example */
+	myNotification.notificationHeader.notificationClassId->vendorId
+			= myNotificationParams.notificationClassId.vendorId;
+
+	/* sub id of this notification class within "name space" of vendor ID */
+	myNotification.notificationHeader.notificationClassId->majorId
+			= myNotificationParams.notificationClassId.majorId;
+	myNotification.notificationHeader.notificationClassId->minorId
+			= myNotificationParams.notificationClassId.minorId;
+
+	// Mismatch b/w `lengthAdditionalText` vs `additionalText`
+	(void) strncpy(myNotification.notificationHeader.additionalText,
+			myNotificationParams.additionalText,
+			myNotificationAllocationParams.lengthAdditionalText);
+
+	/* Set source indicator */
+	*myNotification.sourceIndicator
+			= myNotificationParams.objectCreateDeleteSourceIndicator;
+
+	/* Set objectAttibutes */
+	myNotification.objectAttributes[0].attributeId
+			= myNotificationParams.objectAttributes[0].attributeId;
+	myNotification.objectAttributes[0].attributeType
+			= myNotificationParams.objectAttributes[0].attributeType;
+	myNotification.objectAttributes[0].attributeValue.int32Val
+			= myNotificationParams.objectAttributes[0].attributeValue.int32Val;
+
+	myNotificationParams.eventType
+			= myNotificationParams.objectCreateDeleteEventType;
+	fill_header_part(&myNotification.notificationHeader,
+			(saNotificationParamsT *) &myNotificationParams,
+			myNotificationAllocationParams.lengthAdditionalText);
+
+	rc = saNtfNotificationSend(myNotification.notificationHandle);
+
+        free(myNotificationParams.additionalText);
+	safassert(saNtfNotificationFree(myNotification.notificationHandle), SA_AIS_OK);
+	safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
+	test_validate(rc, SA_AIS_ERR_INVALID_PARAM);
+}
+
 __attribute__ ((constructor)) static void saNtfNotificationSend_constructor(
 		void) {
 	test_suite_add(8, "Producer API 3 send");
@@ -740,5 +830,7 @@ __attribute__ ((constructor)) static void saNtfNotificationSend_constructor(
 					  "securityAlarmDetector.valueType failed SA_AIS_ERR_INVALID_PARAM");
 	test_case_add(8, saNtfNotificationSend_12,
 					  "saNtfNotificationSend ObjectCreateDeleteNotification  SaNameT length == 256");	
+	test_case_add(8, send_mismatch_addtext,
+		      "saNtfNotificationSend with mismatched in additionalText and lengthAdditionalText");
 }
 

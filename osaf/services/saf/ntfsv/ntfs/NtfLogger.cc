@@ -189,7 +189,7 @@ SaAisErrorT NtfLogger::logNotification(NtfSmartPtr& notif) {
   /* Write to the log if we're the local node */
   SaAisErrorT  errorCode = SA_AIS_OK;
   SaLogHeaderT logHeader;
-  char addTextBuf[MAX_ADDITIONAL_TEXT_LENGTH];
+  char addTextBuf[MAX_ADDITIONAL_TEXT_LENGTH] = {0};
   SaLogBufferT logBuffer;
   ntfsv_send_not_req_t* sendNotInfo;
   SaNtfNotificationHeaderT *ntfHeader;

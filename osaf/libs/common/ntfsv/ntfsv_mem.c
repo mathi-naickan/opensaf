@@ -136,6 +136,14 @@ SaAisErrorT ntfsv_alloc_ntf_header(SaNtfNotificationHeaderT *notificationHeader,
 		TRACE("NULL pointer in *notificationHeader!");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
+
+	// Early intervention
+	if (lengthAdditionalText > MAX_ADDITIONAL_TEXT_LENGTH) {
+		TRACE("lengthAdditionalText is too long");
+		TRACE_LEAVE();
+		return SA_AIS_ERR_INVALID_PARAM;
+	}
+
 	notificationHeader->numCorrelatedNotifications = numCorrelatedNotifications;
 	notificationHeader->lengthAdditionalText = lengthAdditionalText;
 	notificationHeader->numAdditionalInfo = numAdditionalInfo;
@@ -222,7 +230,7 @@ SaAisErrorT ntfsv_alloc_ntf_header(SaNtfNotificationHeaderT *notificationHeader,
 
 	/* Additional text */
 	if (lengthAdditionalText != 0) {
-		notificationHeader->additionalText = (SaStringT)malloc(lengthAdditionalText * sizeof(char));
+		notificationHeader->additionalText = (SaStringT)calloc(1, lengthAdditionalText * sizeof(char));
 		if (notificationHeader->additionalText == NULL) {
 			TRACE("Out of memory in additionalText field");
 			rc = SA_AIS_ERR_NO_MEMORY;

@@ -797,7 +797,7 @@ void createObjectCreateDeleteNotification(SaNtfHandleT ntfHandle,
 			ntfHandle, /* handle to Notification Service instance */
 			myObjCrDelNotification,
 			0,
-			(SaUint16T)(sizeof(DEFAULT_ADDITIONAL_TEXT) +1),
+			(SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) +1),
 			0,
 			2,
 			SA_NTF_ALLOC_SYSTEM_LIMIT), SA_AIS_OK);
@@ -840,7 +840,7 @@ void createObjectCreateDeleteNotification(SaNtfHandleT ntfHandle,
 	/* set additional text and additional info */
 	(void) strncpy(head->additionalText,
 			DEFAULT_ADDITIONAL_TEXT,
-			(SaUint16T)(sizeof(DEFAULT_ADDITIONAL_TEXT) +1));
+			(SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) +1));
 
 	/* Set source indicator */
 	*(myObjCrDelNotification->sourceIndicator) = SA_NTF_UNKNOWN_OPERATION;
@@ -852,7 +852,6 @@ void createObjectCreateDeleteNotification(SaNtfHandleT ntfHandle,
 	myObjCrDelNotification->objectAttributes[1].attributeId = 1;
 	myObjCrDelNotification->objectAttributes[1].attributeType = SA_NTF_VALUE_INT32;
 	myObjCrDelNotification->objectAttributes[1].attributeValue.int32Val = 2;
-
 }
 
 

@@ -34,7 +34,6 @@ extern "C" {
 /*MAX length of addtionaltext conforms to MAX value of logMaxLogrecsize
   as mentioned in LOGSV PR doc Section 3.5.2.1*/
 #define MAX_ADDITIONAL_TEXT_LENGTH 65535
-#define MAX_DISCARDED_NOTIFICATIONS 1024
 
 /* Message type enums */
 typedef enum {
