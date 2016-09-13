@@ -1155,6 +1155,8 @@ static uint32_t mqd_copy_data_to_cold_sync_structure(MQD_OBJ_INFO *obj_info, MQD
 			LOG_CR("%s:%u: ERR_MEMORY: Failed To Allocate Memory", __FILE__, __LINE__);
 			return SA_AIS_ERR_NO_MEMORY;
 		}
+		
+		memset(mbcsv_info->ilist_info, 0, mbcsv_info->ilist_cnt * sizeof(SaNameT));
 	}
 	mbcsv_info->track_cnt = obj_info->tlist.count;
 	if (mbcsv_info->track_cnt) {
@@ -1164,6 +1166,8 @@ static uint32_t mqd_copy_data_to_cold_sync_structure(MQD_OBJ_INFO *obj_info, MQD
 			LOG_CR("%s:%u: ERR_MEMORY: Failed To Allocate Memory", __FILE__, __LINE__);
 			return SA_AIS_ERR_NO_MEMORY;
 		}
+
+		memset(mbcsv_info->track_info, 0, mbcsv_info->track_cnt * sizeof(MQD_A2S_TRACK_INFO));
 	}
 	itr.state = 0;
 
