@@ -27,6 +27,10 @@
 #include "dtm_socket.h"
 #include "dtm_node.h"
 
+#ifndef TCP_USER_TIMEOUT
+#define TCP_USER_TIMEOUT 18
+#endif
+
 #define MYPORT "6900"
 #define MAXBUFLEN 100
 
@@ -74,6 +78,7 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 
 	TRACE_ENTER();
 	int comm_keepidle_time, comm_keepalive_intvl, comm_keepalive_probes;
+	unsigned int comm_user_timeout; 
 	int so_keepalive;
 	int smode = 1;
 
@@ -82,6 +87,7 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 	comm_keepidle_time = dtms_cb->comm_keepidle_time;
 	comm_keepalive_intvl = dtms_cb->comm_keepalive_intvl;
 	comm_keepalive_probes = dtms_cb->comm_keepalive_probes;
+	comm_user_timeout = dtms_cb->comm_user_timeout;
 
 	if (so_keepalive == true) {
 		socklen_t optlen;
@@ -96,7 +102,7 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 
 		/* Set TCP_KEEPIDLE */
 		optlen = sizeof(comm_keepidle_time);
-		if (setsockopt(sock_desc, SOL_TCP, TCP_KEEPIDLE, &comm_keepidle_time, optlen) < 0) {
+		if (setsockopt(sock_desc, IPPROTO_TCP, TCP_KEEPIDLE, &comm_keepidle_time, optlen) < 0) {
 			LOG_ER("DTM :setsockopt TCP_KEEPIDLE failed err :%s ", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
@@ -104,7 +110,7 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 
 		/* Set TCP_KEEPINTVL */
 		optlen = sizeof(comm_keepalive_intvl);
-		if (setsockopt(sock_desc, SOL_TCP, TCP_KEEPINTVL, &comm_keepalive_intvl, optlen) < 0) {
+		if (setsockopt(sock_desc, IPPROTO_TCP, TCP_KEEPINTVL, &comm_keepalive_intvl, optlen) < 0) {
 			LOG_ER("DTM :setsockopt TCP_KEEPINTVL failed err :%s ", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
@@ -112,11 +118,20 @@ static uint32_t set_keepalive(DTM_INTERNODE_CB * dtms_cb, int sock_desc)
 
 		/* Set TCP_KEEPCNT */
 		optlen = sizeof(comm_keepalive_probes);
-		if (setsockopt(sock_desc, SOL_TCP, TCP_KEEPCNT, &comm_keepalive_probes, optlen) < 0) {
+		if (setsockopt(sock_desc, IPPROTO_TCP, TCP_KEEPCNT, &comm_keepalive_probes, optlen) < 0) {
 			LOG_ER("DTM :setsockopt TCP_KEEPCNT  failed err :%s", strerror(errno));
 			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
 			return NCSCC_RC_FAILURE;
 		}
+
+		/* Set TCP_USER_TIMEOUT  timeout in milliseconds [ms]  */
+		optlen = sizeof(comm_user_timeout);
+		if (setsockopt(sock_desc, IPPROTO_TCP, TCP_USER_TIMEOUT, &comm_user_timeout, optlen) < 0) {
+			LOG_ER("DTM :setsockopt TCP_USER_TIMEOUT failed err :%s ", strerror(errno));
+			TRACE_LEAVE2("rc :%d", NCSCC_RC_FAILURE);
+			return NCSCC_RC_FAILURE;
+		}
+
 	}
 
 	if ((setsockopt(sock_desc, SOL_SOCKET, SO_REUSEADDR, (void *)&smode, sizeof(smode)) == -1)) {
