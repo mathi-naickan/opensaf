@@ -90,6 +90,7 @@ typedef struct dtm_internode_cb {
 	int comm_keepidle_time;
 	int comm_keepalive_intvl;
 	int comm_keepalive_probes;
+	unsigned int comm_user_timeout;  // tcp socket user timeout in milliseconds [ms]
 	int32_t sock_sndbuf_size; /* The value of SO_SNDBUF */
 	int32_t sock_rcvbuf_size; /* The value of SO_RCVBUF */
 	SYSF_MBX mbx;

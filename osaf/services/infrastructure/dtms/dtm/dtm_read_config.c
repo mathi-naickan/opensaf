@@ -33,6 +33,7 @@ extern uint32_t intranode_max_processes;
 #define KEEPALIVE_PROBES 9
 #define DIS_TIME_OUT 5
 #define BCAST_FRE 250
+#define USER_TIMEOUT 1500  //1.5 sec to match other transport 
 
 const char *IN6ADDR_LINK_LOCAL = "ff02::1";       /* IPv6, Scope:Link multicast address */ 
 const char *IN6ADDR_LINK_GLOBAL = "ff0e::1";      /* IPv6, Scope:Global multicast address */
@@ -94,7 +95,9 @@ void dtm_print_config(DTM_INTERNODE_CB * config)
  	TRACE("  %d", config->comm_keepalive_intvl);
  	TRACE("  COMM_KEEPALIVE_PROBES: ");
  	TRACE("  %d", config->comm_keepalive_probes);
- 	TRACE("  DTM_INI_DIS_TIMEOUT_SECS: ");
+ 	TRACE("  COMM_TCP_USER_TIMEOUT: ");
+	TRACE("  %d", config->comm_user_timeout);
+	TRACE("  DTM_INI_DIS_TIMEOUT_SECS: ");
  	TRACE("  %d", config->initial_dis_timeout);
  	TRACE("  DTM_BCAST_FRE_MSECS: ");
 	TRACE("  %d", config->bcast_msg_freq);
@@ -226,6 +229,7 @@ int dtm_read_config(DTM_INTERNODE_CB * config, char *dtm_config_file)
 	config->comm_keepidle_time = KEEPIDLE_TIME;
 	config->comm_keepalive_intvl = KEEPALIVE_INTVL;
 	config->comm_keepalive_probes = KEEPALIVE_PROBES;
+	config->comm_keepidle_time = USER_TIMEOUT;
 	config->i_addr_family = DTM_IP_ADDR_TYPE_IPV4;
 	config->bcast_msg_freq = BCAST_FRE;
 	config->initial_dis_timeout = DIS_TIME_OUT;
@@ -436,6 +440,18 @@ int dtm_read_config(DTM_INTERNODE_CB * config, char *dtm_config_file)
 				tag_len = 0;
 
 			}
+			if (strncmp(line, "DTM_TCP_USER_TIMEOUT=", strlen("DTM_TCP_USER_TIMEOUT=")) == 0) {
+				tag_len = strlen("DTM_TCP_USER_TIMEOUT=");
+				config->comm_user_timeout = atoi(&line[tag_len]);
+				if (config->comm_user_timeout < 0) {
+					LOG_ER("DTM:comm_user_timeout must be zero or a positive integer");
+					fclose(dtm_conf_file);
+					return -1;
+				}
+
+				tag = 0;
+				tag_len = 0;
+                        }
 			if (strncmp(line, "DTM_SOCK_SND_RCV_BUF_SIZE=", strlen("DTM_SOCK_SND_RCV_BUF_SIZE=")) == 0) {
 				tag_len = strlen("DTM_SOCK_SND_RCV_BUF_SIZE=");
 				uint32_t sndbuf_size = 0; /* Send buffer size */
