@@ -33,6 +33,7 @@
 
 #include "logtrace.h"
 #include "saImm.h"
+#include "osaf_extended_name.h"
 
 #include "SmfUtils.hh"
 
@@ -369,25 +370,34 @@ bool
 SmfCampaignXmlParser::parseUpgradeProcedure(SmfUpgradeProcedure * io_up, xmlNode * i_node)
 {
 	TRACE_ENTER();
-	char *s;
+	char *procedure_name;
 	xmlNsPtr ns = 0;
 	xmlNode *cur = i_node->xmlChildrenNode;
 
-	if ((s = (char *)xmlGetProp(i_node, (const xmlChar *)"safSmfProcedure"))) {
-                int procLen = strlen (s);
-                if (procLen > OSAF_MAX_RDN_LENGTH) {
-                        LOG_NO("SmfCampaignXmlParser::parseUpgradeProcedure: Procedure name too long %d (max %d), %s", procLen, OSAF_MAX_RDN_LENGTH, s);
-			xmlFree(s);
+	TRACE("osaf_is_extended_names_enabled() = %d",
+         osaf_is_extended_names_enabled());
+	procedure_name = (char *)xmlGetProp(i_node, (const xmlChar *)"safSmfProcedure");
+	if (procedure_name != 0)
+	{
+                int procLen = strlen (procedure_name);
+                if (!osaf_is_extended_names_enabled() &&
+		    procLen > OSAF_MAX_RDN_LENGTH) {
+                        LOG_NO("SmfCampaignXmlParser::parseUpgradeProcedure: "
+			    "Procedure name too long %d (max %d), %s",
+			       procLen, OSAF_MAX_RDN_LENGTH, procedure_name);
+			xmlFree(procedure_name);
 			TRACE_LEAVE();
                         return false;
                 }
 
-		io_up->setProcName(s);
-		xmlFree(s);
+		io_up->setProcName(procedure_name);
+		xmlFree(procedure_name);
 	}
-	if ((s = (char *)xmlGetProp(i_node, (const xmlChar *)"saSmfExecLevel"))) {
-		io_up->setExecLevel(s);
-		xmlFree(s);
+
+	procedure_name = (char *)xmlGetProp(i_node, (const xmlChar *)"saSmfExecLevel");
+	if (procedure_name != 0) {
+		io_up->setExecLevel(procedure_name);
+		xmlFree(procedure_name);
 	}
 
 	m_actionId = 1; // reset action id for init actions

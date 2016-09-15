@@ -251,6 +251,8 @@ static uint32_t initialize_smfd(void)
 		goto done;
 	}
 
+	osaf_extended_name_init();
+
 	/* Initialize smfd control block */
 	if (smfd_cb_init(smfd_cb) != NCSCC_RC_SUCCESS) {
 		TRACE("smfd_cb_init FAILED");

@@ -898,6 +898,7 @@ uint32_t read_config_and_set_control_block(smfd_cb_t * cb)
 
 	//Read IMM configuration for long DNs and set cb data structure
         //The long DN info is configured in IMM not in SMF config object
+        TRACE("3. %s: read_IMM_long_DN_config_and_set_control_block()",__FUNCTION__);
 	if (!immutil.read_IMM_long_DN_config_and_set_control_block(cb)) {
 		LOG_ER("read_IMM_long_DN_config_and_set_control_block FAIL");
 		return NCSCC_RC_FAILURE;

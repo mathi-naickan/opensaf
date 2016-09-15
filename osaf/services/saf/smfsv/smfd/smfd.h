@@ -48,7 +48,6 @@ extern "C" {
  *   DEFINITIONS
  * ========================================================================
  */
-#define DEFAULT_MAX_DN_LENGTH 255
 #define IMM_CONFIG_OBJECT_DN "opensafImm=opensafImm,safApp=safImmService"
 #define IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME "longDnsAllowed"
 #define SMF_SAF_APP_DN "safApp=safSmfService"

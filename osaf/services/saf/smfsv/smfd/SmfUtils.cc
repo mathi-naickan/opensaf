@@ -751,7 +751,8 @@ SmfImmUtils::read_IMM_long_DN_config_and_set_control_block(smfd_cb_t * cb)
 	 * since once it is enabled, is never turned off again.
 	 */
 	if(cb->maxDnLength == maxDnLength) {
-		TRACE("read_IMM_long_DN_config_and_set_control_block(): Long DNs already enabled");
+		TRACE("read_IMM_long_DN_config_and_set_control_block(): "
+		    "Long DNs already enabled");
 		TRACE_LEAVE();
 		return true;
 	}
@@ -760,25 +761,35 @@ SmfImmUtils::read_IMM_long_DN_config_and_set_control_block(smfd_cb_t * cb)
 	 * to make sure that a value is set,
 	 * even if this function fails to get the config from IMM.
 	 */
-	cb->maxDnLength = DEFAULT_MAX_DN_LENGTH;
+	//cb->maxDnLength = DEFAULT_MAX_DN_LENGTH;
+	cb->maxDnLength = SA_MAX_UNEXTENDED_NAME_LENGTH - 1;
 
 	SaImmAttrValuesT_2 **attributes;
 
 	if(getObject(IMM_CONFIG_OBJECT_DN, &attributes) == false) {
-                LOG_ER("Could not get IMM config object from IMM %s", IMM_CONFIG_OBJECT_DN);
+                LOG_ER("Could not get IMM config object from IMM %s",
+		       IMM_CONFIG_OBJECT_DN);
                 TRACE_LEAVE();
                 return false;
 	}
 
-	const SaUint32T *longDnsAllowed = immutil_getUint32Attr((const SaImmAttrValuesT_2 **)attributes, IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, 0);
+	const SaUint32T *longDnsAllowed = immutil_getUint32Attr(
+		(const SaImmAttrValuesT_2 **)attributes,
+		IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, 0);
 	if(longDnsAllowed) {
 		TRACE("%s=%u", IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, *longDnsAllowed);
-		if(*longDnsAllowed == 0)
-			cb->maxDnLength = DEFAULT_MAX_DN_LENGTH;
-		else
+		if(*longDnsAllowed == 0) {
+			cb->maxDnLength = SA_MAX_UNEXTENDED_NAME_LENGTH - 1;
+		}
+		else {
 			cb->maxDnLength = maxDnLength;
-	} else
-		LOG_NO("Could not get long DN config [%s %s], use default DN length", IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, IMM_CONFIG_OBJECT_DN);
+		}
+	} else {
+		LOG_NO("Could not get long DN config [%s %s], "
+		    "use default DN length",
+			IMM_LONG_DN_CONFIG_ATTRIBUTE_NAME, IMM_CONFIG_OBJECT_DN);
+	}
+
 	TRACE_LEAVE();
 	return true;
 }

@@ -70,7 +70,7 @@ typedef struct smfd_cb {
 	pthread_mutex_t lock;                     /* Used by smfd_cb_t lock/unlock functions */
 	pthread_mutex_t imm_lock;		  /* Used when IMM OI handle is shared between campaign thread and main thread*/
 	uint32_t maxDnLength;                     /* Max DN length */
-
+        bool long_dn_allowed;
 } smfd_cb_t;
 
 #ifdef __cplusplus
