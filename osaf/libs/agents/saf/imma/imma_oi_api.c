@@ -3753,6 +3753,7 @@ SaAisErrorT saImmOiAugmentCcbInitialize(
 		} else {
 			TRACE("ERR_LIBRARY: Error in library linkage. libSaImmOm.so is not linked");
 			rc = SA_AIS_ERR_LIBRARY;
+			goto done;
 		}
 
 		if(rc != SA_AIS_OK) {
