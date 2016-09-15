@@ -187,6 +187,7 @@ static uint32_t immnd_initialize(char *progname)
 		immnd_cb->isNodeTypeController = false;
 	} else {
 		LOG_ER("Wrong node type is specified for the node");
+		fclose(fp);
 		goto done;
 	}
 	fclose(fp);
