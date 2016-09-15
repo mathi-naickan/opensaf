@@ -2866,6 +2866,45 @@ IMMSV_MAX_CCBS 10000
 
 The user can not configure the values less than the default values.
 
+Veteran max timeout is made cofigurable in case of SC Absence (5.1)
+===================================================================
+http://sourceforge.net/p/opensaf/tickets/1974/
+
+IMMSV_SC_ABSENCE_VETERAN_MAX_WAIT is the IMMD waits for veteran IMMNDs after 
+SC absence. If IMMD processes the intro messages from new IMMNDs before the intro
+messages from veteran IMMNDs, IMM service will start to load from file instead of 
+syncing data from veteran nodes. The IMMSV_SC_ABSENCE_VETERAN_MAX_WAIT will 
+prevent that from happening.
+
+Note that during a fresh cluster startup, IMMD also waits for veteran IMMNDs.
+Setting this value to large will slow down the cluster startup. This timeout is 
+only used with SC absence enabled. When SC absence is disabled, IMMD will not wait 
+for the veteran IMMNDs.
+
+The IMMSV_SC_ABSENCE_VETERAN_MAX_WAIT is present in immd.conf.
+The default value (when the environment variable is not set) is 3 seconds.
+
+export IMMSV_SC_ABSENCE_VETERAN_MAX_WAIT=3
+
+immcfg allows admin-owner in explicit commit mode (5.1)
+===============================================================
+https://sourceforge.net/p/opensaf/tickets/1383/
+
+immcfg in explicit commit mode, will not be able to set adminOwnerName.
+This enhancemnt removes the restriction.
+
+immcfg -o adminOwnerName.
+
+--ccb-apply and --ccb-abort will finalize the admin owner.
+if -o option is not specified default admin-owner is considered.
+
+immadm can explicitly set ReleaseOnFinalize (5.1)
+=======================================================
+https://sourceforge.net/p/opensaf/tickets/1937/
+
+with this enhancement immadm introduces a new flag '-r' for setting ROF (Release On Finalize) flag.
+The default value for ROF (when -r option is not specified) is SA_FALSE.
+
 Notes on upgrading from OpenSAF 5.0 to OpenSAF 5.1
 ================================================================
 OpenSAF5.1 makes the IMM attributes as configurable (#195).
