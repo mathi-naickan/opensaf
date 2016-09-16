@@ -571,6 +571,7 @@ static SaImmRepositoryInitModeT immInitMode = SA_IMM_INIT_FROM_FILE;
 static SaUint32T sCcbIdLongDnGuard  = 0; /* Disallow long DN additions if longDnsAllowed is being changed in ccb*/
 static bool      sIsLongDnLoaded   = false; /* track long DNs before opensafImm=opensafImm,safApp=safImmService is created */
 static bool      sAbortNonCriticalCcbs = false; /* Set to true at coord by the special imm admin-op to abort ccbs #1107 */
+static SaUint32T sTerminatedCcbcount = 0; /* Terminated ccbs count. calculated at cleanTheBasement  for every second*/ 
 
 struct AttrFlagIncludes
 {
@@ -4208,7 +4209,7 @@ ImmModel::verifySchemaChange(const std::string& className, ClassInfo * oldClassI
 
                 if ( !verifyFailed && attName == immMaxCcbs) {
                     val = newAttr->mDefaultValue.getValue_int();
-                    if( sCcbVector.size() > val){
+                    if( (sCcbVector.size() - sTerminatedCcbcount) > val){
                         LOG_NO("The Number of Ccbs in the cluster %zu greater than the schema change"
                                  "value %d", sCcbVector.size(), val);
                         verifyFailed = true;
@@ -5329,7 +5330,7 @@ ImmModel::ccbCreate(SaUint32T adminOwnerId,
         osafassert(!(avi->second->isMultiValued()));
         ImmAttrValue* valuep = avi->second;
         unsigned int maxCcbs= valuep->getValue_int();
-        if (sCcbVector.size() >= maxCcbs){
+        if ((sCcbVector.size()- sTerminatedCcbcount) >= maxCcbs){
             LOG_NO("ERR_NO_RESOURCES: maximum Ccbs limit %d has been reached for the cluster",
                           maxCcbs);
             TRACE_LEAVE();
@@ -7636,7 +7637,7 @@ SaAisErrorT ImmModel::verifyImmLimits(ObjectInfo* object,
     } else {
         val = IMMSV_MAX_CCBS;
     }
-    if(sCcbVector.size() > val){
+    if((sCcbVector.size()- sTerminatedCcbcount) > val){
         LOG_NO("ERR_NO_RESOURCES: maximum ccbs limit %d has been reched for the cluster",
                           val);
         err = SA_AIS_ERR_NO_RESOURCES;
@@ -8568,7 +8569,9 @@ SaAisErrorT ImmModel::ccbObjectCreate(ImmsvOmCcbObjectCreate* req,
                         sIsLongDnLoaded = true;
                     }
                     err = verifyImmLimits(object, immObjectDn);
-                    setCcbErrorString(ccb, IMM_RESOURCE_ABORT "Verifying of immLimits failed");
+                    if( err != SA_AIS_OK) {
+                        setCcbErrorString(ccb, IMM_RESOURCE_ABORT "Verifying of immLimits failed");
+                    }
                 } else {
                     setCcbErrorString(ccb,
                         "IMM: ERR_BAD_OPERATION: Imm not allowing creates of instances of class '%s'",
@@ -14085,13 +14088,34 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
     //do and solves the problem. 
 
     i3 = sCcbVector.begin();
+    int terminatedCcbTime = 300, val;
+    ObjectInfo* immObject = NULL;
+    ImmAttrValueMap::iterator avi;
+    ObjectMap::iterator oi = sObjectMap.find(immObjectDn);
+    osafassert(oi != sObjectMap.end() && oi->second);
+    immObject = oi->second;
+
+    avi = immObject->mAttrValueMap.find(immMaxCcbs);
+
+    if( avi != immObject->mAttrValueMap.end()){
+        osafassert(avi->second);
+        val = (SaUint32T)avi->second->getValue_int();
+    } else {
+        val = IMMSV_MAX_CCBS;
+    }
+
+    if( sTerminatedCcbcount > (SaUint32T) 2*val){
+        terminatedCcbTime = 120;
+    }
+    sTerminatedCcbcount = 0;
     while (i3 != sCcbVector.end()) {
         if((*i3)->mState > IMM_CCB_CRITICAL) {
+            sTerminatedCcbcount++;
             /* Garbage Collect ccbInfo more than five minutes old */
             if(osaf_timespec_compare(&(*i3)->mWaitStartTime, &kZeroSeconds) &&
-                    osaf_timer_is_expired_sec(&now, &(*i3)->mWaitStartTime, 300)) {
-                TRACE_5("Removing CCB %u terminated more than 5 minutes ago", 
-                    (*i3)->mId);
+                    osaf_timer_is_expired_sec(&now, &(*i3)->mWaitStartTime, terminatedCcbTime)) {
+                TRACE_5("Removing CCB %u terminated more than %d minutes ago", 
+                    (*i3)->mId, terminatedCcbTime/60 );
                 (*i3)->mState = IMM_CCB_ILLEGAL;
                 delete (*i3);
                 i3 = sCcbVector.erase(i3);

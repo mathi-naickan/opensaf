@@ -2866,6 +2866,11 @@ IMMSV_MAX_CCBS 10000
 
 The user can not configure the values less than the default values.
 
+The value for maxCcbs are the acive ccbs present in the cluster.
+The terminated CCBs will be removed from the cluser after 5 minutes.
+If the number of terminated CCBs are greater than "2 * maxCcbs" then 
+CCBs will be removed from the cluster after 2 minutes.
+
 Veteran max timeout is made cofigurable in case of SC Absence (5.1)
 ===================================================================
 http://sourceforge.net/p/opensaf/tickets/1974/

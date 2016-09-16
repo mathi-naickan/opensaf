@@ -2145,7 +2145,7 @@ uint32_t immnd_proc_server(uint32_t *timeout)
 			}
 		}
 
-		if((cb->mStep == 0) || (osaf_timespec_compare(&cb->mCleanedHouseAt, &jobDurationTs)) || cb->mForceClean) {
+		if((cb->mStep == 0) || (osaf_timespec_compare(&jobDurationTs, &cb->mCleanedHouseAt )) || cb->mForceClean) {
 			immnd_cleanTheHouse(cb, coord == 1);
 			cb->mCleanedHouseAt = jobDurationTs;
 			if(cb->mForceClean) {
