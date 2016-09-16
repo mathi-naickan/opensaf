@@ -2852,7 +2852,7 @@ IMM Hardcoded limits as config parameters (5.1)
 ===============================================================
 http://sourceforge.net/p/opensaf/tickets/195/
 
-The enhancemnets makes IMM limits configurable. The limits like maxClasses,
+The enhancemnet makes IMM limits configurable. The limits like maxClasses,
 maxImplementers, maxAdminowners and maxCcbs are allowed as configurable.
 The limits are added as attributes to the imm object 
 "opensafImm=opensafImm,safApp=safImmService".
@@ -2866,12 +2866,12 @@ IMMSV_MAX_CCBS 10000
 
 The user can not configure the values less than the default values.
 
-The value for maxCcbs are the acive ccbs present in the cluster.
-The terminated CCBs will be removed from the cluser after 5 minutes.
+The value for maxCcbs are the active ccbs present in the cluster.
+The terminated CCBs will be removed from the cluster after 5 minutes.
 If the number of terminated CCBs are greater than "2 * maxCcbs" then 
 CCBs will be removed from the cluster after 2 minutes.
 
-Veteran max timeout is made cofigurable in case of SC Absence (5.1)
+Veteran max timeout is made configurable in case of SC Absence (5.1)
 ===================================================================
 http://sourceforge.net/p/opensaf/tickets/1974/
 
@@ -2896,7 +2896,7 @@ immcfg allows admin-owner in explicit commit mode (5.1)
 https://sourceforge.net/p/opensaf/tickets/1383/
 
 immcfg in explicit commit mode, will not be able to set adminOwnerName.
-This enhancemnt removes the restriction.
+This enhancement removes the restriction.
 
 immcfg -o adminOwnerName.
 
@@ -2910,13 +2910,13 @@ https://sourceforge.net/p/opensaf/tickets/1937/
 with this enhancement immadm introduces a new flag '-r' for setting ROF (Release On Finalize) flag.
 The default value for ROF (when -r option is not specified) is SA_FALSE.
 
-Notes on upgrading from OpenSAF 5.0 to OpenSAF 5.1
+Notes on upgrading to OpenSAF 5.1
 ================================================================
 OpenSAF5.1 makes the IMM attributes as configurable (#195).
 During a rolling upgrade from an earlier OpenSAF release to the 5.1 
-release there will be nodes executing the older release concurrently
-with nodes executing OpenSAF 5.0. Nodes executing the earlier release will not
-recognize the new attributes introduced in imm config object from nodes executing 5.0.
+release there will be nodes executing the older release concurrently.
+Nodes executing the earlier release will not recognize the new attributes 
+introduced in imm config object from nodes executing 5.0.
 
 Because of this upgrade issue, the new attribute flag added in OpenSAF 5.1 is
 not allowed unless a flag is toggled on in the opensafImmNostdFlags runtime
