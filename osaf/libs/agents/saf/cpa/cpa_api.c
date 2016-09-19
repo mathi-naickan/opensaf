@@ -4110,7 +4110,12 @@ SaAisErrorT saCkptCheckpointSynchronize(SaCkptCheckpointHandleT checkpointHandle
 				SA_AIS_ERR_INVALID_PARAM, checkpointHandle);
 		rc =SA_AIS_ERR_INVALID_PARAM;
 		goto done;
+	} else if (timeout > (SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND)) {
+		TRACE_4("Cpa CkptSynchronize: timeout > MDS_MAX_TIMEOUT setting to MDS max timeout value:%lld, checkpointHandle:%llx",
+				(SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND), checkpointHandle);
+		timeout = (SA_TIME_ONE_MILLISECOND * MDS_MAX_TIMEOUT_MILLISECOND);
 	}
+
 
 	/* retrieve CPA CB */
 	m_CPA_RETRIEVE_CB(cb);
@@ -4197,12 +4202,6 @@ SaAisErrorT saCkptCheckpointSynchronize(SaCkptCheckpointHandleT checkpointHandle
 
 	/* Convert the time from saTimeT to millisecs */
 	timeout = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
-
-	if (timeout < CPSV_WAIT_TIME) {
-		rc = SA_AIS_ERR_TIMEOUT;
-		TRACE_4("cpa CkptSynchronize Api failed with return value:%d,ckptHandle:%llx ", rc, checkpointHandle);
-		goto fail1;
-	}
 
 	m_NCS_UNLOCK(&cb->cb_lock, NCS_LOCK_WRITE);
 
