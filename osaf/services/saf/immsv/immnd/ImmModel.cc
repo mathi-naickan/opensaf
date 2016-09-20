@@ -14110,7 +14110,6 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
     sTerminatedCcbcount = 0;
     while (i3 != sCcbVector.end()) {
         if((*i3)->mState > IMM_CCB_CRITICAL) {
-            sTerminatedCcbcount++;
             /* Garbage Collect ccbInfo more than five minutes old */
             if(osaf_timespec_compare(&(*i3)->mWaitStartTime, &kZeroSeconds) &&
                     osaf_timer_is_expired_sec(&now, &(*i3)->mWaitStartTime, terminatedCcbTime)) {
@@ -14121,6 +14120,7 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
                 i3 = sCcbVector.erase(i3);
                 continue;
             }
+            sTerminatedCcbcount++;
         } else if(iAmCoord) {
             //Fetch CcbIds for Ccbs that have waited too long on an implementer
             //AND ccbIds for ccbs in critical and marked with PbeRestartedId.
@@ -14195,6 +14195,7 @@ ImmModel::cleanTheBasement(InvocVector& admReqs,
         }
         ++i3;
     }
+    osafassert(sTerminatedCcbcount <= sCcbVector.size());
 
     if(sAbortNonCriticalCcbs) {
         LOG_IN("sAbortNonCriticalCcbs reset to false");
