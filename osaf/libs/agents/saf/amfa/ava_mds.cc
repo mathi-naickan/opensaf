@@ -1298,9 +1298,9 @@ void ava_fill_pg_stop_msg(AVSV_NDA_AVA_MSG* msg, MDS_DEST dst,
 	msg->type = AVSV_AVA_API_MSG;
 	msg->info.api_info.type = AVSV_AMF_PG_STOP;
 	msg->info.api_info.dest = dst;
-	msg->info.api_info.param.ha_get.hdl = hdl;
+	msg->info.api_info.param.pg_stop.hdl = hdl;
 	osaf_extended_name_alloc(osaf_extended_name_borrow(&csi_name),
-			&msg->info.api_info.param.ha_get.csi_name);
+			&msg->info.api_info.param.pg_stop.csi_name);
 }
 void ava_fill_error_report_msg(AVSV_NDA_AVA_MSG* msg, MDS_DEST dst,
 		SaAmfHandleT hdl, SaNameT comp_name, SaTimeT time,
