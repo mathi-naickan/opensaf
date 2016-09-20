@@ -975,6 +975,14 @@ void saLogOi_48(void)
 	/* Path to test directory */
 	sprintf(tstdir, "%s/xxtest", log_root_path);
 
+	/* Remove 'tstdir' if it already exists */
+	sprintf(command, "rm -rf %s/", tstdir);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+		goto done;
+	}
+
 	/* Create test directory */
 	sprintf(command, "mkdir -p %s", tstdir);
 	rc = tet_system(command);
@@ -998,7 +1006,7 @@ void saLogOi_48(void)
 	if (rc != 0) {
 		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
 		tst_stat = 1;
-		goto done_remove;
+		goto done;
 	}
 
 	/* Change back */
@@ -1007,15 +1015,6 @@ void saLogOi_48(void)
 	if (rc != 0) {
 		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
 		tst_stat = 1;
-		goto done_remove;
-	}
-
-done_remove:
-	/* Remove xxtest no longer used */
-	sprintf(command, "rm -rf %s/", tstdir);
-	rc = tet_system(command);
-	if (rc != 0) {
-		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
 		goto done;
 	}
 
