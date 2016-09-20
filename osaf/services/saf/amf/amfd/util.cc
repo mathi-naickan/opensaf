@@ -957,7 +957,7 @@ uint32_t avd_snd_susi_msg(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi,
 						}
 					}
 				} else {
-					osaf_extended_name_alloc(osaf_extended_name_borrow(&l_compcsi->csi->list_compcsi->comp->comp_info.name),
+					osaf_extended_name_alloc(osaf_extended_name_borrow(&l_compcsi->csi_csicomp_next->comp->comp_info.name),
 						&compcsi_info->active_comp_name);
 
 					if ((trans_dsc == SA_AMF_CSI_QUIESCED) &&

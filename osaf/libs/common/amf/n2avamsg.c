@@ -333,17 +333,15 @@ uint32_t avsv_amf_cbk_copy(AVSV_AMF_CBK_INFO **o_dcbk, AVSV_AMF_CBK_INFO *scbk)
 
 		/* Copy csi state description */
 		if (scbk->param.csi_set.ha == SA_AMF_HA_ACTIVE) {
-			if (osaf_is_an_extended_name(&scbk->param.csi_set.csi_desc.csiStateDescriptor.activeDescriptor.activeCompName)) {
-				osaf_extended_name_alloc(osaf_extended_name_borrow(&scbk->param.csi_set.csi_desc.csiStateDescriptor.activeDescriptor.activeCompName),
-										 &(*o_dcbk)->param.csi_set.csi_desc.csiStateDescriptor.activeDescriptor.activeCompName);
-			}
+			//osaf_extended_name_alloc() takes care of long and short dn.
+			osaf_extended_name_alloc(osaf_extended_name_borrow(&scbk->param.csi_set.csi_desc.csiStateDescriptor.activeDescriptor.activeCompName),
+					&(*o_dcbk)->param.csi_set.csi_desc.csiStateDescriptor.activeDescriptor.activeCompName);
 		}
 
 		if (scbk->param.csi_set.ha == SA_AMF_HA_STANDBY) {
-			if (osaf_is_an_extended_name(&scbk->param.csi_set.csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName)) {
-				osaf_extended_name_alloc(osaf_extended_name_borrow(&scbk->param.csi_set.csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName),
-										 &(*o_dcbk)->param.csi_set.csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName);
-			}
+			//osaf_extended_name_alloc() takes care of long and short dn.
+			osaf_extended_name_alloc(osaf_extended_name_borrow(&scbk->param.csi_set.csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName),
+					&(*o_dcbk)->param.csi_set.csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName);
 		}
 
 		/* copy the amf csi attr list */

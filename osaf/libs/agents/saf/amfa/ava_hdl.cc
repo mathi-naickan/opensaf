@@ -624,21 +624,31 @@ uint32_t ava_hdl_cbk_rec_prc(AVSV_AMF_CBK_INFO *info, OsafAmfCallbacksT *reg_cbk
 			AVSV_AMF_CSI_SET_PARAM *csi_set = &info->param.csi_set;
 
 			if (!ava_sanamet_is_valid(&csi_set->csi_desc.csiName) ||
-				!ava_sanamet_is_valid(&csi_set->comp_name) ||
-				!ava_sanamet_is_valid(&csi_set->csi_desc.csiStateDescriptor.activeDescriptor.activeCompName) ||
-				!ava_sanamet_is_valid(&csi_set->csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName)) {
+				!ava_sanamet_is_valid(&csi_set->comp_name)) {
 				rc = SA_AIS_ERR_NAME_TOO_LONG;
 			}
+			bool actv_or_stdby = true;
+			if ((csi_set->ha == SA_AMF_HA_ACTIVE) && 
+					(csi_set->csi_desc.csiStateDescriptor.activeDescriptor.transitionDescriptor != SA_AMF_CSI_NEW_ASSIGN)) {
+				actv_or_stdby = ava_sanamet_is_valid(&csi_set->csi_desc.csiStateDescriptor.activeDescriptor.activeCompName);
+			} else if (csi_set->ha == SA_AMF_HA_STANDBY) {
+				actv_or_stdby = ava_sanamet_is_valid(&csi_set->csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName);
+			}
+			if (!actv_or_stdby)
+				rc = SA_AIS_ERR_NAME_TOO_LONG;
 
 			if (rc == SA_AIS_OK && reg_cbk->saAmfCSISetCallback) {
 				TRACE("CSISet: CSIName = %s, CSIFlags = %d, HA state = %d",
 					osaf_extended_name_borrow(&csi_set->csi_desc.csiName),csi_set->csi_desc.csiFlags,csi_set->ha);
-				TRACE("CSISet: Active Transition Descriptor = %u, Active Component Name = %s",
-					csi_set->csi_desc.csiStateDescriptor.activeDescriptor.transitionDescriptor,
-					osaf_extended_name_borrow(&csi_set->csi_desc.csiStateDescriptor.activeDescriptor.activeCompName));
-				TRACE("CSISet: ActiveCompName = %s, StandbyRank = %u",
-					osaf_extended_name_borrow(&csi_set->csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName),
-					csi_set->csi_desc.csiStateDescriptor.standbyDescriptor.standbyRank);
+				if ((csi_set->ha == SA_AMF_HA_ACTIVE) && 
+					(csi_set->csi_desc.csiStateDescriptor.activeDescriptor.transitionDescriptor != SA_AMF_CSI_NEW_ASSIGN))
+					TRACE("CSISet: Active Transition Descriptor = %u, Active Component Name = %s",
+							csi_set->csi_desc.csiStateDescriptor.activeDescriptor.transitionDescriptor,
+							osaf_extended_name_borrow(&csi_set->csi_desc.csiStateDescriptor.activeDescriptor.activeCompName));
+				if (csi_set->ha == SA_AMF_HA_STANDBY)
+					TRACE("CSISet: ActiveCompName = %s, StandbyRank = %u",
+							osaf_extended_name_borrow(&csi_set->csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName),
+							csi_set->csi_desc.csiStateDescriptor.standbyDescriptor.standbyRank);
 				TRACE("Invoking component's saAmfCSISetCallback: InvocationId = %llx, component name = %s",
 					info->inv,osaf_extended_name_borrow(&csi_set->comp_name));
 				reg_cbk->saAmfCSISetCallback(info->inv,

@@ -2027,7 +2027,6 @@ uint32_t avnd_comp_cbk_send(AVND_CB *cb,
 										&csi_desc.csiStateDescriptor.standbyDescriptor.activeCompName);
 
 				csi_desc.csiStateDescriptor.standbyDescriptor.standbyRank = curr_csi->standby_rank;
-				osaf_extended_name_clear(&csi_desc.csiStateDescriptor.activeDescriptor.activeCompName);
 			}
 
 			/* copy the attributes */
