@@ -60,6 +60,7 @@ static char v_saLogStreamLogFileFormat[1024] = {0};
 static uint32_t v_saLogStreamFixedLogRecordSize = 200;
 static char v_saLogStreamFileName[256] = {0};
 static uint32_t v_longDnsAllowed = 0;
+static bool g_setLongDnsAllowed = false;
 
 typedef enum {
 	E_ALARM,
@@ -103,6 +104,65 @@ SaConstStringT notificationObjDf = "NotificationObj_Test_LongDN";
 static void logWriteLogCallbackT(SaInvocationT invocation, SaAisErrorT error);
 static SaLogCallbacksT logCallbacksLd = { 0, 0, logWriteLogCallbackT };
 
+
+//>
+// Enable long DN in IMM it is not set on current system
+//
+// NOTE: Need long DN enabled in case of creating long DN in IMM.
+// means, test case #4 and #5 require this.
+//<
+static int enableLongDN(void)
+{
+	int rc;
+	char command[MAX_DATA] = {0};
+
+	saAisNameLend(s_opensafImm, &sa_opensafImm);
+	rc = get_attr_value(&sa_opensafImm, "longDnsAllowed", &v_longDnsAllowed);
+	if (rc == -1) {
+		/* Failed, use default one */
+		fprintf(stderr, "Failed to get attribute longDnsAllowed value from IMM\n");
+	}
+
+	// No need to enable if long DN is set on current system
+	if (v_longDnsAllowed != 0) return 0;
+
+	/* Enable long DN in IMM */
+	sprintf(command, "immcfg -o safImmService -a longDnsAllowed=1 %s", s_opensafImm);
+	rc = system(command);
+	if (WEXITSTATUS(rc) != 0) {
+		fprintf(stderr, "Failed to enable long DN \n");
+		return 1;
+	}
+
+	g_setLongDnsAllowed = true;
+	return 0;
+}
+
+//>
+// Restore the longDnsAllowed
+//<
+static void disableLongDN(void)
+{
+	int rc;
+	char command[MAX_DATA] = {0};
+
+	// No need to enable if long DN is set on current system
+	if (g_setLongDnsAllowed == false) return;
+
+	sprintf(command, "immcfg -o safImmService -a longDnsAllowed=%d %s",
+		v_longDnsAllowed, s_opensafImm);
+
+	/* Restore back to previous value */
+	rc = system(command);
+	if (WEXITSTATUS(rc) != 0) {
+		fprintf(stderr, "Failed to restore longDnsAllowed \n");
+		return;
+	}
+
+	g_setLongDnsAllowed = 0;
+	v_longDnsAllowed = 0;
+}
+
 //>
 // Following attributes are backup before performing testing
 // logMaxLogrecsize;
@@ -115,12 +175,6 @@ static int backupData(stream_type_t type)
 {
 	int rc;
 
-	saAisNameLend(s_opensafImm, &sa_opensafImm);
-	rc = get_attr_value(&sa_opensafImm, "longDnsAllowed", &v_longDnsAllowed);
-	if (rc == -1) {
-		/* Failed, use default one */
-		fprintf(stderr, "Failed to get attribute longDnsAllowed value from IMM\n");
-	}
 	rc = get_attr_value(&configurationObject, "logMaxLogrecsize", &v_logMaxLogrecsize);
 	if (rc == -1) {
 		/* Failed, use default one */
@@ -229,12 +283,6 @@ static int setUpTestEnv(stream_type_t type)
 	int rc;
 	char command[MAX_DATA];
 
-	/* Enable long DN feature */
-	rc = system("immcfg -m -a longDnsAllowed=1 opensafImm=opensafImm,safApp=safImmService");
-	if (WEXITSTATUS(rc) != 0) {
-		fprintf(stderr, "Failed to enable long DN \n");
-		return -1;
-	}
 	sprintf(command, "immcfg -a logMaxLogrecsize=%d "
 		"logConfig=1,safApp=safLogService 2> /dev/null", SA_LOG_MAX_RECORD_SIZE);
 	rc = system(command);
@@ -284,12 +332,6 @@ void restoreData(stream_type_t type)
 {
 	int rc;
 	char command[MAX_DATA];
-
-	sprintf(command, "immcfg -a longDnsAllowed=%d %s", v_longDnsAllowed, s_opensafImm);
-	rc = system(command);
-	if (WEXITSTATUS(rc) != 0) {
-		fprintf(stderr, "Failed to perform cmd = %s\n", command);
-	}
 
 	sprintf(command, "immcfg -a logMaxLogrecsize=%d "
 		"logConfig=1,safApp=safLogService 2> /dev/null", v_logMaxLogrecsize);
@@ -824,6 +866,13 @@ void longDN_AppStream(void)
 	int rc;
 	SaAisErrorT ais;
 
+	rc = enableLongDN();
+	if (rc != 0) {
+		fprintf(stderr, "failed to enable long DN in IMM\n");
+		rc_validate(WEXITSTATUS(rc), 0);
+		return;
+	}
+
 	rc = backupData(E_APPLI);
 	if (rc != 0) {
 		fprintf(stderr, "Backup data failed\n");
@@ -873,6 +922,7 @@ void longDN_AppStream(void)
 done_init:
 	endLog();
 done:
+	disableLongDN();
 	restoreData(E_APPLI);
 }
 
@@ -884,17 +934,9 @@ void longDNIn_AppStreamDN(void)
 	int rc;
 	char command[3000];
 
-	// Backup default setting
-	saAisNameLend(s_opensafImm, &sa_opensafImm);
-	rc = get_attr_value(&sa_opensafImm, "longDnsAllowed", &v_longDnsAllowed);
-	if (rc == -1) {
-		/* Failed, use default one */
-		fprintf(stderr, "Failed to get attribute longDnsAllowed value from IMM\n");
-	}
-
 	/* Enable long DN feature */
-	rc = system("immcfg -m -a longDnsAllowed=1 opensafImm=opensafImm,safApp=safImmService");
-	if (WEXITSTATUS(rc) != 0) {
+	rc = enableLongDN();
+	if (rc != 0) {
 		fprintf(stderr, "Failed to enable long DN \n");
 		rc_validate(WEXITSTATUS(rc), 0);
 		return;
@@ -916,12 +958,7 @@ void longDNIn_AppStreamDN(void)
 	rc_validate(WEXITSTATUS(rc), 0);
 done:
 	// Restore data
-	sprintf(command, "immcfg -a longDnsAllowed=%d %s", v_longDnsAllowed, s_opensafImm);
-	rc = system(command);
-	if (WEXITSTATUS(rc) != 0) {
-		fprintf(stderr, "Failed to perform cmd = %s\n", command);
-	}
-
+	disableLongDN();
 }
 
 //>
@@ -1116,17 +1153,9 @@ void longDN_AppStrDN_Over_MaxDn(void)
 	int rc;
 	char command[kOsafMaxDnLength + 100];
 
-	// Backup default setting
-	saAisNameLend(s_opensafImm, &sa_opensafImm);
-	rc = get_attr_value(&sa_opensafImm, "longDnsAllowed", &v_longDnsAllowed);
-	if (rc == -1) {
-		/* Failed, use default one */
-		fprintf(stderr, "Failed to get attribute longDnsAllowed value from IMM\n");
-	}
-
 	/* Enable long DN feature */
-	rc = system("immcfg -m -a longDnsAllowed=1 opensafImm=opensafImm,safApp=safImmService");
-	if (WEXITSTATUS(rc) != 0) {
+	rc = enableLongDN();
+	if (rc != 0) {
 		fprintf(stderr, "Failed to enable long DN \n");
 		rc_validate(WEXITSTATUS(rc), 0);
 		return;
@@ -1147,12 +1176,7 @@ void longDN_AppStrDN_Over_MaxDn(void)
 	rc_validate(1, 0);
 done:
 	// Restore data
-	sprintf(command, "immcfg -a longDnsAllowed=%d %s", v_longDnsAllowed, s_opensafImm);
-	rc = system(command);
-	if (WEXITSTATUS(rc) != 0) {
-		fprintf(stderr, "Failed to perform cmd = %s\n", command);
-	}
-
+	disableLongDN();
 }
 
 //>>
@@ -1164,21 +1188,7 @@ void longDNIn_AppStreamDN_ButNoF(void)
 	int rc;
 	char command[3000];
 
-	// Backup default setting
-	saAisNameLend(s_opensafImm, &sa_opensafImm);
-	rc = get_attr_value(&sa_opensafImm, "longDnsAllowed", &v_longDnsAllowed);
-	if (rc == -1) {
-		/* Failed, use default one */
-		fprintf(stderr, "Failed to get attribute longDnsAllowed value from IMM\n");
-	}
-
-	/* Enable long DN feature */
-	rc = system("immcfg -m -a longDnsAllowed=1 opensafImm=opensafImm,safApp=safImmService");
-	if (WEXITSTATUS(rc) != 0) {
-		fprintf(stderr, "Failed to enable long DN \n");
-		rc_validate(WEXITSTATUS(rc), 0);
-		return;
-	}
+	// No need to enable long DN in IMM here as err will be returned at saflogger tool.
 
 	// Preparing data
 	char appStreamDN[1000] = {0};
@@ -1189,18 +1199,10 @@ void longDNIn_AppStreamDN_ButNoF(void)
 	rc = system(command);
 	if (WEXITSTATUS(rc) != 0) {
 		rc_validate(0, 0);
-		goto done;
+		return;
 	}
 
 	rc_validate(WEXITSTATUS(rc), 0);
-done:
-	// Restore data
-	sprintf(command, "immcfg -a longDnsAllowed=%d %s", v_longDnsAllowed, s_opensafImm);
-	rc = system(command);
-	if (WEXITSTATUS(rc) != 0) {
-		fprintf(stderr, "Failed to perform cmd = %s\n", command);
-	}
-
 }
 
 /*
