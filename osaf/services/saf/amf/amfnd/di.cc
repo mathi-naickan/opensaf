@@ -548,7 +548,7 @@ uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt)
 		 * but only sync info is sent for recovery
 		 */
 		if (evt->info.mds.i_change == NCSMDS_UP) {
-			if (cb->amfd_sync_required && cb->led_state == AVND_LED_STATE_GREEN) {
+			if (cb->is_avd_down && cb->led_state == AVND_LED_STATE_GREEN) {
 				avnd_sync_sisu(cb);
 				avnd_sync_csicomp(cb);
 			}
@@ -560,7 +560,7 @@ uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt)
 		 * provided that the no-active timer in MDS has not expired. We only want to send
 		 * node_up/sync info in case of recovery.
 		 */
-		if (evt->info.mds.i_change == NCSMDS_NEW_ACTIVE && cb->amfd_sync_required) {
+		if (evt->info.mds.i_change == NCSMDS_NEW_ACTIVE && cb->is_avd_down) {
 			if (cb->led_state == AVND_LED_STATE_GREEN) {
 				LOG_NO("Sending node up due to NCSMDS_NEW_ACTIVE");
 
@@ -570,9 +570,9 @@ uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt)
 				avnd_send_node_up_msg();
 			}
 		}
+		cb->is_avd_down = false;
 	}
 
-	cb->is_avd_down = false;
 	if (m_AVND_TMR_IS_ACTIVE(cb->sc_absence_tmr))
 		avnd_stop_tmr(cb, &cb->sc_absence_tmr);
 
@@ -871,7 +871,7 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
                                su->name.c_str());
         }
 
-        if (cb->is_avd_down == true) {
+        if (cb->is_avd_down == true || cb->amfd_sync_required == true) {
         	// We are in headless, buffer this msg
         	msg.info.avd->msg_info.n2d_su_si_assign.msg_id = 0;
         	if (avnd_diq_rec_add(cb, &msg) == nullptr) {
@@ -1270,7 +1270,6 @@ void avnd_diq_rec_del(AVND_CB *cb, AVND_DND_MSG_LIST *rec)
 	/* stop the AvD msg response timer */
 	if (m_AVND_TMR_IS_ACTIVE(rec->resp_tmr)) {
 		m_AVND_TMR_MSG_RESP_STOP(cb, *rec);
-		avnd_diq_rec_send_buffered_msg(cb);
 		/* resend pg start track */
 		avnd_di_resend_pg_start_track(cb);
 	}

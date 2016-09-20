@@ -203,13 +203,15 @@ uint32_t avnd_evt_avd_set_leds_evh(AVND_CB *cb, AVND_EVT *evt)
 
 	avnd_msgid_assert(info->msg_id);
 	cb->rcv_msg_id = info->msg_id;
-
+	cb->amfd_sync_required = false;
 	if (cb->led_state == AVND_LED_STATE_GREEN) {
-		/* Nothing to be done we have already got this msg */
+		// Resend buffered headless msg
+		avnd_diq_rec_send_buffered_msg(cb);
 		goto done;
 	}
 
 	cb->led_state = AVND_LED_STATE_GREEN;
+
 
 	/* Notify the NIS script/deamon that we have fully come up */
 	rc = nid_notify(const_cast<char*>("AMFND"), NCSCC_RC_SUCCESS, nullptr);

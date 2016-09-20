@@ -182,8 +182,6 @@ uint32_t avnd_evt_avd_node_up_evh(AVND_CB *cb, AVND_EVT *evt)
 	cb->su_failover_max = info->su_failover_max;
 	cb->su_failover_prob = info->su_failover_prob;
 
-	cb->amfd_sync_required = false;
-
 	TRACE_LEAVE();
 	return rc;
 }

@@ -54,9 +54,11 @@ void avd_cluster_tmr_init_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 {
 	TRACE_ENTER();
 	AVD_SU *su = nullptr;
+	AVD_AVND *node = nullptr;
 	saflog(LOG_NOTICE, amfSvcUsrName, "Cluster startup timeout, assigning SIs to SUs");
 
 	osafassert(evt->info.tmr.type == AVD_TMR_CL_INIT);
+	LOG_NO("Cluster startup is done");
 
 	if (avd_cluster->saAmfClusterAdminState != SA_AMF_ADMIN_UNLOCKED) {
 		LOG_WA("Admin state of cluster is locked");
@@ -71,6 +73,19 @@ void avd_cluster_tmr_init_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	/* change state to application state. */
 	cb->init_state = AVD_APP_STATE;
 	m_AVSV_SEND_CKPT_UPDT_ASYNC_UPDT(cb, cb, AVSV_CKPT_AVD_CB_CONFIG);
+
+	// Resend set_leds message to all veteran nodes after cluster startup
+	// to waits for all veteran nodes becoming ENABLED
+	// This set_leds message will enables AMFND starting sending susi assignment
+	// message to AMFD
+	for (std::map<std::string, AVD_AVND *>::const_iterator it = node_name_db->begin();
+			it != node_name_db->end(); it++) {
+		node = it->second;
+		if (node->node_state == AVD_AVND_STATE_PRESENT &&
+			node->node_info.nodeId != cb->node_id_avd &&
+			node->node_info.nodeId != cb->node_id_avd_other)
+			avd_snd_set_leds_msg(cb, node);
+	}
 
 	/* call the realignment routine for each of the SGs in the
 	 * system that are not NCS specific.

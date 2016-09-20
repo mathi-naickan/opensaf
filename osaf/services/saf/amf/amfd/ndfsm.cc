@@ -400,19 +400,24 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	if (n2d_msg->msg_info.n2d_node_up.leds_set == true) {
 		TRACE("node %x is already up", avnd->node_info.nodeId);
 
-		if (cb->node_sync_window_closed == true && avnd->node_up_msg_count == 0) {
-			LOG_WA("Received new node_up_msg from node:%s after node sync window, "
-				"sending node reboot order to target node",
+		if (avnd->reboot) {
+			LOG_WA("Sending node reboot order to node:%s, due to nodeFailFast during headless",
 				osaf_extended_name_borrow(&n2d_msg->msg_info.n2d_node_up.node_name));
-				avd_d2n_reboot_snd(avnd);
-				goto done;
-		} else if (avnd->reboot) {
-			// delayed node failfast
+		} else if (cb->node_sync_window_closed == true && avnd->node_up_msg_count == 0) {
+			LOG_WA("Sending node reboot order to node:%s, due to first node_up_msg after node sync window",
+				osaf_extended_name_borrow(&n2d_msg->msg_info.n2d_node_up.node_name));
+			avnd->reboot = true;
+		} else if (cb->init_state == AVD_APP_STATE) {
+			LOG_WA("Sending node reboot order to node:%s, due to late node_up_msg after cluster startup timeout",
+				osaf_extended_name_borrow(&n2d_msg->msg_info.n2d_node_up.node_name));
+			avnd->reboot = true;
+		}
+
+		if (avnd->reboot) {
 			avd_d2n_reboot_snd(avnd);
 			avnd->reboot = false;
 			goto done;
-		}
-		else {
+		} else {
 			// this node is already up
 			avd_node_state_set(avnd, AVD_AVND_STATE_PRESENT);
 			avd_node_oper_state_set(avnd, SA_AMF_OPERATIONAL_ENABLED);
@@ -434,6 +439,19 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 			for (const auto& su :avnd->list_of_su) {
 				if (su->is_in_service())
 					su->set_readiness_state(SA_AMF_READINESS_IN_SERVICE);
+			}
+			// Start/Restart cluster init timer to wait for all node becomes PRESENT
+			// and all SUs are IN-SERVICE
+			// NOTE: start cluster init timer with NODE_SYNC_PERIOD. This NODE_SYNC_PERIOD
+			// is defined to sync node_up message of one node. The reason is using
+			// NODE_SYNC_PERIOD is that saAmfClusterStartupTimeout can be configured with a
+			// too large or even too small, that will cause the presence state synchronization
+			// of all nodes unstable.
+			cb->amf_init_tmr.type = AVD_TMR_CL_INIT;
+			avd_start_tmr(cb,&(cb->amf_init_tmr), AVSV_DEF_NODE_SYNC_PERIOD);
+			if (cluster_su_instantiation_done(cb, nullptr) == true) {
+				avd_stop_tmr(cb, &cb->amf_init_tmr);
+				cluster_startup_expiry_event_generate(cb);
 			}
 			goto node_joined;
 		}
