@@ -42,6 +42,7 @@ uint32_t clmsv_decodeSaNameT(NCS_UBAID *uba, SaNameT *name)
 	total_bytes += 2;
 	ncs_decode_n_octets_from_uba(uba, (uint8_t *)value, (uint32_t)length);
 	value[length] = 0;
+	memset(name, 0, sizeof(SaNameT));
 	osaf_extended_name_lend(value, name);
 	total_bytes += length;
 	return total_bytes;
