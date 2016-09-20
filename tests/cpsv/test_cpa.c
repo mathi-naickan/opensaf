@@ -45,7 +45,7 @@ const char *saf_error_string[] = {
 #endif
 
 #define VALID_EXTENDED_NAME_LENGTH 400
-#define INVALID_EXTENDED_NAME_LENGTH 2049
+#define INVALID_EXTENDED_NAME_LENGTH 2050
 
 
 extern int gl_prev_act;
