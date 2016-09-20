@@ -509,7 +509,7 @@ SaAisErrorT scoutage_saNtfObjectCreateDeleteNotificationAllocate(SaNtfHandleT nt
 			ntf_handle,
 			objCreateDelete_notification,
 			0,
-			(SaUint16T)(sizeof(DEFAULT_ADDITIONAL_TEXT) +1),
+			(SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) +1),
 			0,
 			2,
 			SA_NTF_ALLOC_SYSTEM_LIMIT);

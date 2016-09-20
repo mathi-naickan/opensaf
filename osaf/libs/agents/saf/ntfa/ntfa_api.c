@@ -552,19 +552,20 @@ static SaAisErrorT checkHeader(v_data *pvdata, SaNtfNotificationHeaderT *nh)
 
 	// AIS: additionalText must be consistent with lengthAdditionalText
 	if (nh->additionalText == NULL && nh->lengthAdditionalText != 0) {
-		TRACE_1("Mismatch b/w additionalText and lengthAdditionalText");
+		LOG_ER("additionalText is NULL and lengthAdditionalText:%u", nh->lengthAdditionalText);
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
 	if (nh->lengthAdditionalText > MAX_ADDITIONAL_TEXT_LENGTH) {
-		TRACE_1("lengthAdditionalText is too long");
+		LOG_ER("lengthAdditionalText is too long");
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 
 	SaUint16T len = nh->lengthAdditionalText;
 	SaStringT addT = nh->additionalText;
 	if ((addT != NULL) && (len != strlen(addT) + 1)) {
-		TRACE_1("Mismatch b/w additionalText and lengthAdditionalText");
+		LOG_ER("Mismatch size b/w additionalText:%u and lengthAdditionalText:%u",
+				(SaUint16T)(strlen(addT) + 1), len);
 		return SA_AIS_ERR_INVALID_PARAM;
 	}
 

@@ -266,7 +266,7 @@ void saNtfArrayGetTest_common_prep(void)
 			ntfHandle,
 			&myAlarmNotification,
 			0,
-			sizeof(DEFAULT_ADDITIONAL_TEXT),  
+			(SaUint16T)(strlen(DEFAULT_ADDITIONAL_TEXT) + 1),
 			0,
 			0,
 			0,
@@ -289,7 +289,7 @@ void saNtfArrayGetTest_common_prep(void)
 	strncpy((char*)myAlarmNotification.notificationHeader.notifyingObject->value,
 			"ngo", 4);
 	strncpy(myAlarmNotification.notificationHeader.additionalText,
-		  DEFAULT_ADDITIONAL_TEXT, sizeof(DEFAULT_ADDITIONAL_TEXT));
+		  DEFAULT_ADDITIONAL_TEXT, strlen(DEFAULT_ADDITIONAL_TEXT) + 1);
 
     myAlarmNotification.proposedRepairActions[0].actionValueType = SA_NTF_VALUE_ARRAY;
     if((rc = saNtfArrayValAllocate(
