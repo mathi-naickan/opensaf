@@ -265,6 +265,7 @@ static void immd_saf_csi_set_cb(SaInvocationT invocation,
 				immd_proc_elect_coord(cb, true);
 			}
 			immd_db_purge_fevs(cb);
+			immd_pending_discards(cb);
 		}
 	}
 

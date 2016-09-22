@@ -2582,7 +2582,7 @@ static uint32_t immd_evt_proc_rda_callback(IMMD_CB *cb, IMMD_EVT *evt)
 			immd_proc_elect_coord(cb, true);
 		}
 		immd_db_purge_fevs(cb);
-		immd_pending_payload_discards(cb); /*Ensure node down for payloads.*/
+		immd_pending_discards(cb);
 	}
 done:
 	TRACE_LEAVE();
