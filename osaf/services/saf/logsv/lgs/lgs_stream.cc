@@ -37,9 +37,9 @@
 
 static log_stream_t **stream_array;
 /* We have at least the 3 well known streams. */
-static unsigned int stream_array_size = 3;
+static uint32_t stream_array_size = 3;
 /* Current number of streams */
-static unsigned int numb_of_streams;
+static uint32_t numb_of_streams;
 
 static const uint32_t kInvalidId = static_cast<uint32_t> (-1);
 
@@ -102,13 +102,47 @@ done:
 }
 
 /**
- * Get current number of openning streams
+ * Iterate all existing log streams in cluster (NOT thread safe).
+ * This function should be called within main thread.
  *
- * @param: none
- * @return current number of opening streams
+ * @param jstart default is false. True if just starting the loop
+ * @out end - true if reach the end
+ * @return pointer to log stream
+ *
+ * Usage:
+ *   SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
+ *   while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+ *      jstart = SA_FALSE;
+ *      // Do somethings with stream
+ *   }
  */
-unsigned int get_number_of_streams() {
-  return numb_of_streams;
+log_stream_t *iterate_all_streams(SaBoolT &end, SaBoolT jstart) {
+  static uint32_t count = 0, stream_id = 0;
+  log_stream_t *stream = nullptr;
+
+  end = SA_FALSE;
+  while (stream == nullptr) {
+    // Begin the iteration, reset the data
+    if (jstart == SA_TRUE) {
+      count = 0;
+      stream_id = 0;
+      jstart = SA_FALSE;
+    }
+
+    // Reach the end of stream_array or get all existing streams.
+    if (stream_id >= stream_array_size || count >= numb_of_streams) {
+      end = SA_TRUE;
+      break;
+    }
+
+    stream = log_stream_get_by_id(stream_id);
+    stream_id++;
+
+    // count only if stream_id exists
+    if (stream != nullptr) count++;
+  }
+
+  return stream;
 }
 
 /**

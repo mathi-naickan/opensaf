@@ -264,7 +264,6 @@ done:
 uint32_t lgs_mbcsv_change_HA_state(lgs_cb_t *cb, SaAmfHAStateT ha_state) {
   TRACE_ENTER();
   NCS_MBCSV_ARG mbcsv_arg;
-  int num;
 
   memset(&mbcsv_arg, '\0', sizeof(NCS_MBCSV_ARG));
 
@@ -287,9 +286,10 @@ uint32_t lgs_mbcsv_change_HA_state(lgs_cb_t *cb, SaAmfHAStateT ha_state) {
    */
   log_stream_t *stream;
   if (lgs_is_split_file_system()) {
-    num = get_number_of_streams();
-    stream = log_stream_get_by_id(--num);
-    while (stream != NULL) { /* Iterate over all streams */
+    // Iterate all existing log streams in cluster.
+    SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
+    while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+      jstart = SA_FALSE;
       if (ha_state == SA_AMF_HA_ACTIVE) {
         stream->logFileCurrent = stream->stb_logFileCurrent;
         stream->curFileSize = stream->stb_curFileSize;
@@ -300,8 +300,6 @@ uint32_t lgs_mbcsv_change_HA_state(lgs_cb_t *cb, SaAmfHAStateT ha_state) {
         stream->stb_curFileSize = stream->curFileSize;
         *stream->p_fd = -1; /* Reopen files */
       }
-
-      stream = log_stream_get_by_id(--num);
     }
   }
 
@@ -612,7 +610,6 @@ static uint32_t edu_enc_streams(lgs_cb_t *cb, NCS_UBAID *uba) {
   uint32_t rc = NCSCC_RC_SUCCESS, num_rec = 0;
   uint8_t *pheader = NULL;
   lgsv_ckpt_header_t ckpt_hdr;
-  int num;
 
   /* Prepare reg. structure to encode */
   ckpt_stream_rec = static_cast<lgs_ckpt_stream_open_t *>(malloc(sizeof(lgs_ckpt_stream_open_t)));
@@ -630,10 +627,11 @@ static uint32_t edu_enc_streams(lgs_cb_t *cb, NCS_UBAID *uba) {
   }
   ncs_enc_claim_space(uba, sizeof(lgsv_ckpt_header_t));
 
-  num = get_number_of_streams();
-  log_stream_rec = log_stream_get_by_id(--num);
   /* Walk through the reg list and encode record by record */
-  while (log_stream_rec != NULL) {
+  // Iterate all existing log streams in cluster.
+  SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
+  while ((log_stream_rec = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
     lgs_ckpt_stream_open_set(log_stream_rec, ckpt_stream_rec);
     rc = m_NCS_EDU_EXEC(&cb->edu_hdl,
                         edp_ed_open_stream_rec, uba, EDP_OP_TYPE_ENC, ckpt_stream_rec, &ederror);
@@ -645,7 +643,6 @@ static uint32_t edu_enc_streams(lgs_cb_t *cb, NCS_UBAID *uba) {
       return rc;
     }
     ++num_rec;
-    log_stream_rec = log_stream_get_by_id(--num);
   }                       /* End while RegRec */
 
   /* Encode RegHeader */

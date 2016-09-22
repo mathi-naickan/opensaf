@@ -458,7 +458,7 @@ int lgs_cfg_verify_root_dir(const std::string &root_str_in) {
   int rc = 0;
   log_stream_t *stream = NULL;
   size_t n = root_str_in.size();
-  int num;
+  SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
 
   if (n > PATH_MAX) {
     LOG_NO("verify_root_dir Fail. Path > PATH_MAX");
@@ -470,17 +470,15 @@ int lgs_cfg_verify_root_dir(const std::string &root_str_in) {
    * Make sure that the path /rootPath/streamPath/<fileName><tail>
    * must not be larger than PATH_MAX.
    */
-  num = get_number_of_streams();
-  stream = log_stream_get_by_id(--num);
-  while (stream != NULL) {
+  // Iterate all existing log streams in cluster.
+  while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
     if (lgs_is_valid_pathlength(stream->pathName, stream->fileName,
                                 root_str_in) == false) {
       TRACE("The rootPath is invalid (%s)", root_str_in.c_str());
       rc = -1;
       goto done;
     }
-
-    stream = log_stream_get_by_id(--num);
   }
 
   if (lgs_path_is_writeable_dir_h(root_str_in) == false) {

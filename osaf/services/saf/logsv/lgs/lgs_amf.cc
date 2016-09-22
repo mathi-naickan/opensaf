@@ -26,13 +26,13 @@
 
 static void close_all_files() {
   log_stream_t *stream;
-  int num = get_number_of_streams();
-  stream = log_stream_get_by_id(--num);
-  while (stream != NULL) {
+  SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
+
+  // Iterate all existing log streams in cluster.
+  while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
     if (log_stream_file_close(stream) != 0)
       LOG_WA("Could not close file for stream %s", stream->name.c_str());
-
-    stream = log_stream_get_by_id(--num);
   }
 }
 
@@ -52,7 +52,8 @@ static void close_all_files() {
 static SaAisErrorT amf_active_state_handler(lgs_cb_t *cb, SaInvocationT invocation) {
   log_stream_t *stream;
   SaAisErrorT error = SA_AIS_OK;
-  int num;
+  SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
+  uint32_t count = 0;
 
   TRACE_ENTER2("HA ACTIVE request");
 
@@ -65,15 +66,15 @@ static SaAisErrorT amf_active_state_handler(lgs_cb_t *cb, SaInvocationT invocati
   conf_runtime_obj_create(cb->immOiHandle);
   lgs_start_gcfg_applier();
 
-  /* check existing streams */
-  num = get_number_of_streams();
-  stream = log_stream_get_by_id(--num);
-  if (!stream)
-    LOG_ER("No streams exist!");
-  while (stream != NULL) {
+  // Iterate all existing log streams in cluster.
+  while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
     *stream->p_fd = -1; /* First Initialize fd */
-    stream = log_stream_get_by_id(--num);
+    count++;
   }
+
+  if (count == 0)
+    LOG_ER("No streams exist!");
 
 done:
   /* Update role independent of stream processing */

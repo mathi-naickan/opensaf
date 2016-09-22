@@ -130,7 +130,7 @@ extern void log_stream_print(log_stream_t *stream);
 extern log_stream_t *log_stream_get_by_id(uint32_t id);
 extern bool check_max_stream();
 void log_free_stream_resources(log_stream_t *stream);
-unsigned int get_number_of_streams();
+log_stream_t *iterate_all_streams(SaBoolT &end, SaBoolT jstart);
 extern log_stream_t *log_stream_get_by_name(const std::string &name);
 
 #endif

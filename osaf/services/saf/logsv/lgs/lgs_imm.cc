@@ -1022,7 +1022,6 @@ bool chk_filepath_stream_exist(
   log_stream_t *i_stream = NULL;
   std::string i_fileName;
   std::string i_pathName;
-  int num;
   bool rc = false;
 
   TRACE_ENTER();
@@ -1072,17 +1071,16 @@ bool chk_filepath_stream_exist(
 
   /* Check if any stream has given filename and path */
   TRACE("Check if any stream has given filename and path");
-  num = get_number_of_streams();
-  i_stream = log_stream_get_by_id(--num);
-  while (i_stream != NULL) {
+  // Iterate all existing log streams in cluster.
+  SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
+  while ((i_stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
     TRACE("Check stream \"%s\"", i_stream->name.c_str());
     if ((i_stream->fileName == i_fileName) &&
         (i_stream->pathName == i_pathName)) {
       rc = true;
       break;
     }
-
-    i_stream = log_stream_get_by_id(--num);
   }
 
   TRACE_LEAVE2("rc = %d", rc);
@@ -1832,15 +1830,14 @@ void logRootDirectory_filemove(
   TRACE_ENTER();
   log_stream_t *stream;
   std::string current_logfile;
-  int num;
-
+  SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
   /* Close and rename files at current path
    */
-  num = get_number_of_streams();
-  stream = log_stream_get_by_id(--num);
-  while (stream != NULL) {
-    TRACE("Handling file %s", stream->logFileCurrent.c_str());
+  // Iterate all existing log streams in cluster.
+  while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
 
+    TRACE("Handling file %s", stream->logFileCurrent.c_str());
     if (lgs_cb->ha_state == SA_AMF_HA_ACTIVE) {
       current_logfile = stream->logFileCurrent;
     } else {
@@ -1855,21 +1852,22 @@ void logRootDirectory_filemove(
       LOG_ER("Old log files could not be renamed and closed for stream: %s",
              stream->name.c_str());
     }
-    stream = log_stream_get_by_id(--num);
   }
 
   /* Create new files at new path
    */
-  num = get_number_of_streams();
-  stream = log_stream_get_by_id(--num);
-  while (stream != NULL) {
+  char *current_time;
+  endloop = SA_FALSE;
+  jstart = SA_TRUE;
+  while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
     if (lgs_create_config_file_h(new_logRootDirectory, stream) != 0) {
       LOG_ER("New config file could not be created for stream: %s",
              stream->name.c_str());
     }
 
     /* Create the new log file based on updated configuration */
-    char *current_time = lgs_get_time(cur_time_in);
+    current_time = lgs_get_time(cur_time_in);
     stream->logFileCurrent = stream->fileName + "_" + current_time;
 
     if ((*stream->p_fd = log_file_open(new_logRootDirectory,
@@ -1882,8 +1880,8 @@ void logRootDirectory_filemove(
      * Used if standby and configured for split file system
      */
     stream->stb_logFileCurrent = stream->logFileCurrent;
-    stream = log_stream_get_by_id(--num);
   }
+
   TRACE_LEAVE();
 }
 
@@ -1898,7 +1896,6 @@ void logRootDirectory_filemove(
 void logDataGroupname_fileown(const char *new_logDataGroupname) {
   TRACE_ENTER();
   log_stream_t *stream;
-  int num;
 
   if (new_logDataGroupname == NULL) {
     LOG_ER("Data group is NULL");
@@ -1910,13 +1907,14 @@ void logDataGroupname_fileown(const char *new_logDataGroupname) {
     /* Not attribute values deletion
      * Change ownership of log files to this new group
      */
-    num = get_number_of_streams();
-    stream = log_stream_get_by_id(--num);
-    while (stream != NULL) {
+    // Iterate all existing log streams in cluster.
+    SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
+    while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+      jstart = SA_FALSE;
       lgs_own_log_files_h(stream, new_logDataGroupname);
-      stream = log_stream_get_by_id(--num);
     }
   }
+
   TRACE_LEAVE();
 }
 
@@ -2708,10 +2706,10 @@ SaAisErrorT lgs_imm_init_configStreams(lgs_cb_t *cb) {
   SaImmAttrValuesT_2 **attributes;
   int wellknownStreamId = 0;
   int appStreamId = 3;
-  int streamId = 0, num;
+  uint32_t streamId = 0;
   SaNameT objectName;
   const char *className = "SaLogStreamConfig";
-
+  SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
   TRACE_ENTER();
 
   om_rc = immutil_saImmOmInitialize(&omHandle, NULL, &immVersion);
@@ -2774,9 +2772,9 @@ SaAisErrorT lgs_imm_init_configStreams(lgs_cb_t *cb) {
     osaf_abort(0);
   }
 
-  num = get_number_of_streams();
-  stream = log_stream_get_by_id(--num);
-  while (stream != NULL) {
+  // Iterate all existing log streams in cluster.
+  while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
     if (cb->scAbsenceAllowed != 0) {
       int_rc = log_stream_open_file_restore(stream);
       if (int_rc == -1) {
@@ -2802,8 +2800,6 @@ SaAisErrorT lgs_imm_init_configStreams(lgs_cb_t *cb) {
       LOG_ER("immutil_update_one_rattr failed %s", saf_error(ais_rc));
       osaf_abort(0);
     }
-
-    stream = log_stream_get_by_id(--num);
   }
 
 done:

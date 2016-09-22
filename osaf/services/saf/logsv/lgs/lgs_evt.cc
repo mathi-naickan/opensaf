@@ -532,14 +532,17 @@ static uint32_t proc_rda_cb_msg(lgsv_lgs_evt_t *evt) {
     lgs_process_lga_down_list();
 
     /* Check existing streams */
-    int num = get_number_of_streams();
-    stream = log_stream_get_by_id(--num);
-    if (!stream)
-      LOG_ER("No streams exist!");
-    while (stream != NULL) {
+    // Iterate all existing log streams in cluster.
+    uint32_t count = 0;
+    SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
+    while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+      jstart = SA_FALSE;
       *stream->p_fd = -1; /* Initialize fd */
-      stream = log_stream_get_by_id(--num);
+      count++;
     }
+
+    if (count == 0)
+      LOG_ER("No streams exist!");
   }
 
   TRACE_LEAVE();
@@ -800,7 +803,8 @@ SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param, log_s
   SaBoolT twelveHourModeFlag;
   SaUint32T logMaxLogrecsize_conf = 0;
   SaConstStringT str_name;
-  int num, err = 0;
+  int err = 0;
+  SaBoolT endloop = SA_FALSE, jstart = SA_TRUE;
   const char *dnPrefix = "safLgStr=";
 
   TRACE_ENTER();
@@ -862,16 +866,15 @@ SaAisErrorT create_new_app_stream(lgsv_stream_open_req_t *open_sync_param, log_s
   }
 
   /* Verify that path and file are unique */
-  num = get_number_of_streams();
-  stream = log_stream_get_by_id(--num);
-  while (stream != NULL) {
+  // Iterate all existing log streams in cluster.
+  while ((stream = iterate_all_streams(endloop, jstart)) && !endloop) {
+    jstart = SA_FALSE;
     if ((stream->fileName == open_sync_param->logFileName) &&
         (stream->pathName == open_sync_param->logFilePathName)) {
       TRACE("pathname already exist");
       rc = SA_AIS_ERR_INVALID_PARAM;
       goto done;
     }
-    stream = log_stream_get_by_id(--num);
   }
 
   /* Verify that the name seems to be a DN */
