@@ -660,11 +660,21 @@ static uint32_t avd_prep_csi_attr_info(AVD_CL_CB *cb, AVSV_SUSI_ASGN *compcsi_in
 	/* Scan the list of attributes for the CSI and add it to the message */
 	while ((attr_ptr != nullptr) && (compcsi_info->attrs.number < compcsi->csi->num_attributes)) {
 		memcpy(i_ptr, &attr_ptr->name_value, sizeof(AVSV_ATTR_NAME_VAL));
+		osaf_extended_name_alloc(osaf_extended_name_borrow(&attr_ptr->name_value.name),
+				&i_ptr->name);
+		osaf_extended_name_alloc(osaf_extended_name_borrow(&attr_ptr->name_value.value),
+				&i_ptr->value);
+		if (attr_ptr->name_value.string_ptr != nullptr) {
+			i_ptr->string_ptr = new char[strlen(attr_ptr->name_value.string_ptr)+1];
+			memcpy(i_ptr->string_ptr, attr_ptr->name_value.string_ptr,
+					strlen(attr_ptr->name_value.string_ptr)+1);
+		} else {
+			i_ptr->string_ptr = nullptr;
+		}
 		compcsi_info->attrs.number++;
 		i_ptr = i_ptr + 1;
 		attr_ptr = attr_ptr->attr_next;
 	}
-
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;
 }
@@ -1692,8 +1702,12 @@ static void free_d2n_susi_msg_info(AVSV_DND_MSG *susi_msg)
 		compcsi_info = susi_msg->msg_info.d2n_su_si_assign.list;
 		susi_msg->msg_info.d2n_su_si_assign.list = compcsi_info->next;
 		if (compcsi_info->attrs.list != nullptr) {
-			osaf_extended_name_free(&compcsi_info->attrs.list->name);
-			osaf_extended_name_free(&compcsi_info->attrs.list->value);
+                        for (uint16_t i = 0; i < compcsi_info->attrs.number; i++) {
+                                osaf_extended_name_free(&compcsi_info->attrs.list[i].name);
+                                osaf_extended_name_free(&compcsi_info->attrs.list[i].value);
+                                delete [] compcsi_info->attrs.list[i].string_ptr;
+                                compcsi_info->attrs.list[i].string_ptr = nullptr;
+                        }
 			delete [] (compcsi_info->attrs.list);
 			compcsi_info->attrs.list = nullptr;
 		}
@@ -1739,10 +1753,17 @@ static void free_d2n_compcsi_info(AVSV_DND_MSG *compcsi_msg) {
   osaf_extended_name_free(&compcsi->csi_name);
 
   if (compcsi->info.attrs.list != nullptr) {
+    for (uint16_t i = 0; i < compcsi->info.attrs.number; i++) {
+      osaf_extended_name_free(&compcsi->info.attrs.list[i].name);
+      osaf_extended_name_free(&compcsi->info.attrs.list[i].value);
+      delete [] compcsi->info.attrs.list[i].string_ptr;
+      compcsi->info.attrs.list[i].string_ptr = nullptr;
+    }
     delete [] (compcsi->info.attrs.list);
     compcsi->info.attrs.list = nullptr;
   }
 }
+
 /****************************************************************************
   Name          : d2n_msg_free
  
@@ -2030,11 +2051,21 @@ uint32_t avd_snd_compcsi_msg(AVD_COMP *comp, AVD_CSI *csi, AVD_COMP_CSI_REL *com
 
       /* Scan the list of attributes for the CSI and add it to the message */
       while ((attr_ptr_db != nullptr) &&
-		      (ptr_csiattr_msg->number < compcsi->csi->num_attributes)) {
-	      memcpy(i_ptr_msg, &attr_ptr_db->name_value, sizeof(AVSV_ATTR_NAME_VAL));
-	      ptr_csiattr_msg->number++;
-	      i_ptr_msg = i_ptr_msg + 1;
-	      attr_ptr_db = attr_ptr_db->attr_next;
+        (ptr_csiattr_msg->number < compcsi->csi->num_attributes)) {
+	osaf_extended_name_alloc(osaf_extended_name_borrow(&attr_ptr_db->name_value.name),
+          &i_ptr_msg->name);
+	osaf_extended_name_alloc(osaf_extended_name_borrow(&attr_ptr_db->name_value.value),
+          &i_ptr_msg->value);
+	if (attr_ptr_db->name_value.string_ptr != nullptr) {
+	  i_ptr_msg->string_ptr = new char[strlen(attr_ptr_db->name_value.string_ptr)+1];
+	  memcpy(i_ptr_msg->string_ptr, attr_ptr_db->name_value.string_ptr,
+	    strlen(attr_ptr_db->name_value.string_ptr)+1);
+	} else {
+	    i_ptr_msg->string_ptr = nullptr;
+	}
+	ptr_csiattr_msg->number++;
+	i_ptr_msg = i_ptr_msg + 1;
+	attr_ptr_db = attr_ptr_db->attr_next;
       }
       break;
     }

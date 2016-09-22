@@ -397,3 +397,30 @@ SaAisErrorT amf_saImmOmAccessorGet_o2(SaImmHandleT& immHandle,
 
 	return rc;
 }
+
+void amfnd_free_csi_attr_list(AVSV_CSI_ATTRS *attrs) {
+  if (attrs == nullptr)
+    return;
+  for (uint16_t i = 0; i < attrs->number; i++) {
+    osaf_extended_name_free(&attrs->list[i].name);
+    osaf_extended_name_free(&attrs->list[i].value);
+    free(attrs->list[i].string_ptr);
+    attrs->list[i].string_ptr = nullptr;
+  }
+  free(attrs->list);
+  attrs->list = nullptr;
+}
+
+void amfnd_copy_csi_attrs(AVSV_CSI_ATTRS *src_attrs, AVSV_CSI_ATTRS *dest_attrs) {
+  for (uint16_t i = 0; i < src_attrs->number; i++) {
+    osaf_extended_name_alloc(osaf_extended_name_borrow(&src_attrs->list[i].name),
+      &dest_attrs->list[i].name);
+    osaf_extended_name_alloc(osaf_extended_name_borrow(&src_attrs->list[i].value),
+      &dest_attrs->list[i].value);
+     //Let string.ptr points to original one, we never free it. Also
+     //encode callback takes care of encoding it.
+    if (src_attrs->list[i].string_ptr != nullptr) 
+      dest_attrs->list[i].string_ptr = src_attrs->list[i].string_ptr; 
+  }
+}
+

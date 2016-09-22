@@ -844,6 +844,12 @@ static uint32_t enc_csi_attr_change_cbk(NCS_UBAID *uba, AVSV_NDA_AVA_MSG *msg) {
     ncs_encode_16bit(&p8, len);
     ncs_enc_claim_space(uba, 2);
     rc = ncs_encode_n_octets_in_uba(uba, (uint8_t *)value, (len + 1));
+    // free value
+    if (value != nullptr && value != csi_attr_change->attrs.list[i].string_ptr) {
+      delete[] value;
+      value = nullptr;
+    }
+
     if (NCSCC_RC_SUCCESS != rc)
       goto done;
   }

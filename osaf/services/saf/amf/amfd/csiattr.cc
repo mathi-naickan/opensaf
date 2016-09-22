@@ -579,6 +579,7 @@ static void csiattr_modify_apply(CcbUtilOperationData_t *opdata)
 					osaf_extended_name_alloc(csi_attr_name.c_str(), &csiattr->name_value.name);
 					csiattr->name_value.string_ptr = new char[strlen(value)+1]();
 					memcpy(csiattr->name_value.string_ptr, value, strlen(value)+1 );
+					osaf_extended_name_alloc(csiattr->name_value.string_ptr, &csiattr->name_value.value);
 				} /* for  */
 			}
 			/* add the modified csiattr values to parent csi */

@@ -356,7 +356,8 @@ uint32_t avsv_amf_cbk_copy(AVSV_AMF_CBK_INFO **o_dcbk, AVSV_AMF_CBK_INFO *scbk)
 		osaf_extended_name_alloc(osaf_extended_name_borrow(&scbk->param.csi_attr_change.csi_name),
 				 &(*o_dcbk)->param.csi_attr_change.csi_name);
                 /* memset avsv & amf csi attr lists */
-                memset(&(*o_dcbk)->param.csi_attr_change.attrs, 0, sizeof(AVSV_CSI_ATTRS));
+		memset(&(*o_dcbk)->param.csi_attr_change.attrs, 0, sizeof(AVSV_CSI_ATTRS));
+		memset(&(*o_dcbk)->param.csi_attr_change.csiAttr, 0, sizeof(SaAmfCSIAttributeListT));
                 /* copy the avsv csi attr list */
                 if (scbk->param.csi_attr_change.attrs.number > 0) {
                         (*o_dcbk)->param.csi_attr_change.attrs.list = 
@@ -369,7 +370,7 @@ uint32_t avsv_amf_cbk_copy(AVSV_AMF_CBK_INFO **o_dcbk, AVSV_AMF_CBK_INFO *scbk)
 			memcpy((*o_dcbk)->param.csi_attr_change.attrs.list,
 					scbk->param.csi_attr_change.attrs.list,
 					sizeof(AVSV_ATTR_NAME_VAL) * scbk->param.csi_attr_change.attrs.number);
-			for (i = 0; i < scbk->param.csi_set.attrs.number; i++) {
+			for (i = 0; i < scbk->param.csi_attr_change.attrs.number; i++) {
 				osaf_extended_name_alloc(osaf_extended_name_borrow(&scbk->param.csi_attr_change.attrs.list[i].name),
                                                                                  &(*o_dcbk)->param.csi_attr_change.attrs.list[i].name);
                                 osaf_extended_name_alloc(osaf_extended_name_borrow(&scbk->param.csi_attr_change.attrs.list[i].value),

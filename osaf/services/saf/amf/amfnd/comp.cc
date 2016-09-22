@@ -1913,8 +1913,7 @@ static void set_params_for_csi_attr_change_cbk(AVSV_AMF_CBK_INFO *cbk_info, AVND
     attr.list = static_cast<AVSV_ATTR_NAME_VAL*>(calloc(csi_rec->attrs.number,
       sizeof(AVSV_ATTR_NAME_VAL)));
     osafassert(attr.list != nullptr);
-    memcpy(attr.list, csi_rec->attrs.list,
-      sizeof(AVSV_ATTR_NAME_VAL)*csi_rec->attrs.number);
+    amfnd_copy_csi_attrs(&csi_rec->attrs, &attr);
     attr.number = csi_rec->attrs.number;
   }
   /* fill the callback params */
@@ -2035,9 +2034,7 @@ uint32_t avnd_comp_cbk_send(AVND_CB *cb,
 				attr.list = static_cast<AVSV_ATTR_NAME_VAL*>
 					(calloc(curr_csi->attrs.number, sizeof(AVSV_ATTR_NAME_VAL)));
 				osafassert(attr.list != nullptr);
-
-				memcpy(attr.list, curr_csi->attrs.list,
-				       sizeof(AVSV_ATTR_NAME_VAL) * curr_csi->attrs.number);
+				amfnd_copy_csi_attrs(&csi_rec->attrs, &attr);
 				attr.number = curr_csi->attrs.number;
 			}
 

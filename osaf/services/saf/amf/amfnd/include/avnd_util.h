@@ -78,4 +78,6 @@ SaAisErrorT amf_saImmOmAccessorGet_o2(SaImmHandleT& immHandle,
 	const std::string& objectName,
 	const SaImmAttrNameT * attributeNames,
 	SaImmAttrValuesT_2 *** attributes);
+void amfnd_free_csi_attr_list(AVSV_CSI_ATTRS *attrs);
+void amfnd_copy_csi_attrs(AVSV_CSI_ATTRS *src_attrs, AVSV_CSI_ATTRS *dest_attrs);
 #endif   /* !AVND_UTIL_H */

@@ -922,7 +922,7 @@ static uint32_t avnd_process_comp_csi_msg (AVND_COMP *comp, AVND_COMP_CSI_REC *c
     case AVSV_COMPCSI_ATTR_CHANGE_AND_NO_ACK: {
       //Free ealrliar allocated memory by EDP utils. 
       if (csi_rec->attrs.list != nullptr)
-	free (csi_rec->attrs.list);
+	amfnd_free_csi_attr_list(&csi_rec->attrs);
       csi_rec->attrs.number = param->info.attrs.number;
       csi_rec->attrs.list = param->info.attrs.list;
       param->info.attrs.number = 0;
