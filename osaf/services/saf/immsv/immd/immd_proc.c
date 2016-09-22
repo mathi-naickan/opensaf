@@ -583,7 +583,6 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, 
 	NCS_UBAID uba;
 	char *tmpData = NULL;
 	bool coord_exists = true; /* Assumption at this point.*/
-	bool possible_fo = false;
 	TRACE_ENTER();
 
 	TRACE_5("immd_process_immnd_down pid:%u on-active:%u "
@@ -614,29 +613,24 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, 
 			       "detected at standby immd!! %x. "
 			       "Possible failover",
 			       immd_get_slot_and_subslot_id_from_node_id(immnd_info->immnd_key), cb->immd_self_id);
-			possible_fo = true;
+
 			if (immnd_info->isCoord && immnd_info->syncStarted) {
 				immd_proc_abort_sync(cb, immnd_info);
 			}
+
+			immd_proc_rebroadcast_fevs(cb, 2);
 		}
 	}
 
-	if (active || possible_fo || !cb->immd_remote_up) {
+	if (active || !cb->immd_remote_up) {
 		/* 
 		 ** HAFE - Let IMMND subscribe for IMMND up/down events instead?
 		 ** ABT - Not for now. IMMND up/down are only subscribed by IMMD.
-		 ** This is the cleanest solution with respect to FEVS and works fine
-		 ** for all cases except IMMND down at the active controller. 
-		 ** That case has to be handled in a special way. Currently we do it
-		 ** by having both the standby and active IMMD broadcast the same 
-		 ** DISCARD_NODE message. IMMNDs have to cope with the possibly 
-		 ** redundant message, which they do in fevs_receive discarding
-		 ** any duplicate (same sequence no).
+		 ** Active IMMD will inform other IMMNDs about the down IMMND.
+		 ** If the active is down, the standby (has not become active yet)
+		 ** will do the job.
 		 */
 		if (coord_exists) {
-			if (possible_fo) {
-				immd_proc_rebroadcast_fevs(cb, 2);
-			}
 
 			TRACE_5("Notify all remaining IMMNDs of the departed IMMND");
 			memset(&send_evt, 0, sizeof(IMMSV_EVT));
@@ -666,14 +660,13 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, 
 
 			free(tmpData);
 		}
-	} else if(!(immnd_info->isOnController)) {
-		/* Standby NOT immediately sending redundant D2ND_DISCARD_NODE in this case.
-		   But will record any payload down event in case the active SC is included
-		   in a burst of node downs. See ticket #563. The active IMMD may be going
-		   down together with many payload nodes, such that the active IMMD never has
-		   time to generate the discard node message for all payloads. This will be
-		   detected if this (standby) IMMD becomes active in close time proximity.
-		   See immd_pending_payload_discards() below.
+	} else {
+		/* Standby NOT immediately sending D2ND_DISCARD_NODE. But will record any
+		 * IMMND down event. The active IMMD may never have time to generate the
+		 * discard node message for the IMMND if the active IMMD goes down at the
+		 * same time with the IMMND. This will be detected if this (standby) IMMD
+		 * becomes active in close time proximity.
+		 * See immd_pending_payload_discards() below.
 		 */
 		
 		LOG_IN("Standby IMMD recording IMMND DOWN for node %x", immnd_info->immnd_key);
@@ -696,16 +689,16 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, 
 
 
 /****************************************************************************
- * Name          : immd_pending_payload_discards
+ * Name          : immd_pending_discards
  *
  * Description   : Send possibly redundant discard-node message to IMMNDs for
- *                 payload nodes (IMMNDs) that have departed and not returned.
+ *                 IMMNDs that have departed and not returned.
  *                 This is needed to plug the small hole that exists in the
  *                 handling of IMMND node down, when the current active IMMD
- *                 is being taken down concurrently with several payloads.
+ *                 is being taken down.
  *
  *                 The active IMMD may then be pulled down after having 
- *                 received the IMMND MDS down event for the payloads, but
+ *                 received the IMMND MDS down event for the IMMNDs, but
  *                 before having created or sent the fevs message broadcasting
  *                 each node down to the IMMND cluster.
  *
@@ -713,7 +706,7 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, 
  *                 in the current epoch. This is an extra guard against the new 
  *                 active shooting down a recently restarted payload. The list
  *                 is also pruned in immd_sbevt.c when it receives info about
- *                 a payload having re-joined.
+ *                 a IMMND having re-joined.
  *
  *                 This function should only be invoked by the just recently
  *                 newly active IMMD. It is only relevant for fail-over, not
@@ -724,7 +717,7 @@ uint32_t immd_process_immnd_down(IMMD_CB *cb, IMMD_IMMND_INFO_NODE *immnd_info, 
  *
  * Notes         : None.
  *****************************************************************************/
-void immd_pending_payload_discards(IMMD_CB *cb)
+void immd_pending_discards(IMMD_CB *cb)
 {
 	IMMSV_EVT send_evt;
 	char *tmpData = NULL;
