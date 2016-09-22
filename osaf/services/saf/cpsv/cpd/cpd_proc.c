@@ -383,11 +383,6 @@ uint32_t cpd_ckpt_db_entry_update(CPD_CB *cb,
 		}
 	}
 
-	if (node_info) {
-		m_MMGR_FREE_CPD_CPND_INFO_NODE(node_info);
-
-	}
-
 	TRACE_LEAVE();
 	return proc_rc;
 
