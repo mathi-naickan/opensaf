@@ -1,4 +1,4 @@
-SCs outage support in NTF
+SCs absence support in NTF
 ===============================
 https://sourceforge.net/p/opensaf/tickets/1180/
 
@@ -6,19 +6,19 @@ General
 -------
 
 As support of cloud deployment use case which both SCs possibly are brought down,
-the NTF service does not have to provide its full functionality during SCs outage
-but it must responsively maintain the interface toward NTF client. It's aimed to 
-make the NTF client not being aware of SCs outage, some APIs provided to client 
-are just temporarily unavailable. Finally, NTF functionality as well as all NTF 
-APIs can resume operationally after one of SCs comes up. This requires the NTF 
-client incorporates to implement retry mechanism, which has already been 
+the NTF service does not have to provide its full functionality during SC absence
+period but it must responsively maintain the interface toward NTF client. It's 
+aimed to make the NTF client not being aware of absence of SCs, some APIs provided
+to client are just temporarily unavailable. Finally, NTF functionality as well as
+all NTF APIs can resume operationally after one of SCs comes up. This requires the
+NTF client incorporates to implement retry mechanism, which has already been 
 documented in NTF Programmer Guide (4.5).
 
 Solution
 --------
 
 The proposed solution must have the following implementation:
-1. NTF Agent must return SA_AIS_ERR_TRY_AGAIN during SCs outage in most of APIs 
+1. NTF Agent must return SA_AIS_ERR_TRY_AGAIN during SCs absence period in most of APIs 
 required to communicate with NTF server.
 
 2. Once SC comes up (also known as NTF server is started), NTF Agent will silently
@@ -84,7 +84,7 @@ invalid
    can be considered as the last notification successfully been read, from which 
    NTF Agent can use to find the next notification that the client wishes. However,
    this continuous read is not supported since notifications are not preserved 
-   after SC outage.
+   after SC absence period.
 
 8. saNtfNotificationReadFinalize
    Return SA_AIS_ERR_TRY_AGAIN if NTF server is unavailable.
@@ -93,16 +93,16 @@ invalid
    all invalid clients and return SA_AIS_OK if all operations succeed.
    
 9. saNtfDispatch
-   Once NTF Agent detects that the NTF Server is up after period of outage, NTF Agent
-   will send dummy callback to subscriber's mailbox to trigger saNtfDispatch call. From
-   saNtfDispatch, Agent silently registers all invalid clients and subscribe for 
+   Once NTF Agent detects that the NTF Server is up after absence period of SCs, NTF
+   Agent will send dummy callback to subscriber's mailbox to trigger saNtfDispatch call.
+   From saNtfDispatch, Agent silently registers all invalid clients and subscribe for
    notification if the client is a subscriber.
 
 Non-affected APIs and explanations
 ----------------------------------
 The following APIs do not require communication with NTF server, also the information
 these APIs manipulate are cached locally in NTF Agent. Therefore they can be performed
-normally despite of NTF server state.
+normally regardless NTF server state.
  
 1. Notification allocation APIs for Producer
 2. Filter allocation APIs for Consumer
