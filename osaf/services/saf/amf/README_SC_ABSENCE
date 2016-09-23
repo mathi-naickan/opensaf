@@ -1,0 +1,151 @@
+#
+#      -*- OpenSAF  -*-
+#
+# (C) Copyright 2016 The OpenSAF Foundation
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE. This file and program are licensed
+# under the GNU Lesser General Public License Version 2.1, February 1999.
+# The complete license can be accessed from the following location:
+# http://opensource.org/licenses/lgpl-license.php
+# See the Copying file included with the OpenSAF distribution for full
+# licensing terms.
+#
+# Author(s): Ericsson AB
+#
+
+GENERAL
+-------
+
+This is a description of how the AMF service suppports the SC absence feature 
+which allows payloads to remain running during the absence of both SCs, and 
+perform recovery after at least one SC comes back. 
+
+CONFIGURATION
+-------------
+
+AMF reads the "scAbsenceAllowed" attribute to determine if SC absence feature 
+is enabled. A positive integer indicates the number of seconds AMF will 
+tolerate the absence period of both SCs, and a zero value indicates this 
+feature is disabled.
+
+Normally, the AMF Node Director (amfnd) will restart a node if there is no 
+active AMF Director (amfd). If this feature is enabled, the Node Director will
+delay the restart for the duration specified in "scAbsenceAllowed". If a SC
+returns during the period, the restart is aborted.
+
+IMPLEMENTATION DETAILS
+----------------------
+
+* Amfnd detects absence of SCs:
+Upon receiving NCSMDS_DOWN event which indicates the last active SC has gone,
+amfnd will not reboot the node and enters SC absence period (if 
+scAbsenceAllowed is configured)
+
+* Escalation and Recovery during SC absence period:
+Restarts will work as normal, but failover or switchover will result in Node
+Failfast. The repair action will be initiated when a SC returns if 
+saAmfSGAutoRepair is enabled.
+
+* Amfnd detects return of SCs:
+NCSMDS_UP is the event that amfnd uses to detect the presence of an active amfd.
+
+* New sync messages 
+New messages (state information messages) have been introduced to carry 
+assignments and states from all amfnd(s), which then are sent to amfd. State 
+information messages also contain component and SU restart counts. These new 
+counter values will be updated to IMM after recovery.The operation where 
+amfnd(s) sends state information messages and amfd processes these messages
+is known as a *sync* operation.
+
+* Admin operation continuation
+If an admin operation on an AMF entity is still in progress when the cluster 
+loses both SCs, the operation will continue when a SC returns. In order to 
+resume the admin operation, AMF internal states that are used in the admin 
+operation need to be restored. In a normal cluster state, these states are
+*regularly* checkpointed to the standby AMFD so that the standby AMFD can 
+take over the active role if the active AMFD goes down. Using a similar 
+approach, new AMF runtime cached attributes are introduced to store the states 
+in IMM, as another method of restoring these states for the purpose of SC 
+absence recovery. The new attributes are:
+- osafAmfSISUFsmState:SUSI fsm state 
+- osafAmfSGFsmState:SG fsm state
+- osafAmfSGSuOperationList:SU operation list of SG
+- osafAmfSUSwitch:SU switch toggle.
+
+Only 2N SG is currently supported for admin operation continuation.
+
+LIMITATIONS
+-----------
+
+* While both SCs are absent, any failover or switchover escalation will result 
+in node failfast. The events of node reboot, node power off, and node failfast
+will lead to a loss of SI assignments, which are not restored during the SC 
+absence period. The SI assignments may remain in improper states until a SC 
+comes back. Recovery of any lost SI assignments during SC absence period is 
+currently not supported.
+
+* SI dependency tolerance timer 
+After a SC comes back, if an unassigned sponsor SI is detected, all its 
+dependent SI(s) assignments are removed regardless of tolerance duration. The 
+time of sponsor SI becoming unassigned is not recorded, so the new amfd cannot
+figure out how much time is left that the dependent SI(s) can tolerate.
+
+* Proxy and Proxied components are not yet supported
+
+* Alarms and notifications
+During the SC absence period, notifications will not be sent as the Director in
+charge of sending notifications is not available. For example, if a component 
+fails to instantiate while SC absence stage and its SU becomes disabled, a state
+change for the SU from ENABLED to DISABLED will not be sent.
+
+List of possible missed notifications
+=====================================
+SA_AMF_PRESENCE_STATE of a SU
+SA_AMF_OP_STATE of a SU 
+SA_AMF_HA_STATE of a SI 
+SA_AMF_ASSIGNMENT_STATE of a SI
+
+After the SC absence period, some redundant alarms and notifications may be sent
+from the Director. Initially the Director will think all PLs are down. But as 
+sync info is received from PLs, alarms will be cleared or set, and finally reflect
+the current state of the cluster. For example, an alarm may initially be raised
+for an unassigned SI, but later cleared as the Director learns of the SI assignment
+ on a PL that remained running.
+
+Redundant notifications
+=======================
+SA_AMF_PRESENCE_STATE of a SU may change from SA_AMF_PRESENCE_UNINSTANTIATED to <<current state>>
+SA_AMF_OP_STATE of a SU may change from SA_AMF_OPERATIONAL_DISABLED to <<current state>>
+SA_AMF_HA_STATE of a SI may change from "" to <<current state>>
+SA_AMF_ASSIGNMENT_STATE of a SI may change from SA_AMF_ASSIGNMENT_UNASSIGNED to <<current state>>
+
+Redundant alarms
+================
+An unassigned SI alarm may be raised and then cleared shortly afterwards
+
+Furthermore, some notifications may be slightly misleading. For example, if a SI
+becomes PARTIALLY_ASSIGNED from FULLY_ASSIGNED because a component develops a fault
+while SC absence period, the SI change notification may describe the SI going from
+UNASSIGNED to PARTIALLY_ASSIGNED. This is because the Director initially does not 
+know about the existence of the SIs assigned to PLs that remained running.
+
+Limited notifications
+=====================
+SA_AMF_ASSIGNMENT_STATE of a SI may change from SA_AMF_ASSIGNMENT_UNASSIGNED to 
+SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED when it should be 
+SA_AMF_ASSIGNMENT_FULLY_ASSIGNED to SA_AMF_ASSIGNMENT_PARTIALLY_ASSIGNED
+
+* Some AMF API functions will be unavailable while SC absence period
+saAmfProtectionGroupTrack() and saAmfProtectionGroupTrackStop() return 
+SA_AMF_ERROR_TRY_AGAIN.
+
+* One payload limitation
+
+If the cluster is configured with one payload without PBE, IMM will reload from
+XML the second time the cluster experiences the absence of both SCs. This causes
+amfd to lose all objects which were created before SC absence and data 
+inconsistency will occur between amfnd and amfd/IMM on the SC. To avoid this 
+inconsistency, the payload will be rebooted.
+
