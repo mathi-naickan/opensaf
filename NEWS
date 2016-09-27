@@ -5,21 +5,22 @@ This is a major release containing new enhancements. Before installing or
 upgrading to OpenSAF 5.0, make sure your system meets the minimum version
 requirements of the following system components:
 
-- Linux kernel, version 2.6.32 or later (see note below regarding TIPC, though)
+- Linux kernel, version 2.6.37 or later. Recommended version is Linux 3.18 or
+  later when using the TCP transport, and Linux 4.4.22 or later when using the
+  TIPC transport. Linux versions older than the recommended ones contain bugs
+  that are known to affect the proper function of OpenSAF. Use of Linux versions
+  older than the recommended ones together with OpenSAF is strongly discouraged.
 - GNU C Library (Glibc), version 2.11 or later
 - GNU Compiler Collection (GCC), version 4.8.1 or later
 - Libxml2, version 2.7 or later
 - Libsqlite3, version 3.6 or later (only needed when configuring with
   --enable-imm-pbe)
+- OpenHPI, version 2.17.0 or later (only needed when configuring with
+  --enable-ais-plm)
 
 Pay special attention to the fact that we have increased the minimum required
-version of GCC to 4.8.1 due to the use of the C++11 standard.
-
-When using MDS over TIPC, note that starting with OpenSAF 4.5, the TIPC
-multi-cast feature is being used. Due to TIPC bugs present in old versions of
-the Linux kernel, please make sure to use Linux kernel version 3.16 or later, or
-alternatively make sure that the relevant TIPC bug-fixes have been back-ported
-to the Linux kernel version you are using.
+version of GCC to 4.8.1 in OpenSAF 4.7.0, due to the use of the C++11 standard.
+In OpenSAF 4.7.2, the minimum Linux version was increased to 2.6.37.
 
 Important enhancements in this release
 --------------------------------------
