@@ -1,104 +1,119 @@
-OpenSAF 4.7.0 (released 2015-11-01)
+OpenSAF 5.1.0 (released 2016-09-27)
 -----------------------------------
 
 This is a major release containing new enhancements. Before installing or
-upgrading to OpenSAF 4.7, make sure your system meets the minimum version
+upgrading to OpenSAF 5.1, make sure your system meets the minimum version
 requirements of the following system components:
 
-- Linux kernel, version 2.6.32 or later (see note below regarding TIPC, though)
+- Linux kernel, version 2.6.37 or later. Recommended version is Linux 3.18 or
+  later when using the TCP transport, and Linux 4.4.22 or later when using the
+  TIPC transport. Linux versions older than the recommended ones contain bugs
+  that are known to affect the proper function of OpenSAF. Use of Linux versions
+  older than the recommended ones together with OpenSAF is strongly discouraged.
 - GNU C Library (Glibc), version 2.11 or later
 - GNU Compiler Collection (GCC), version 4.8.1 or later
 - Libxml2, version 2.7 or later
 - Libsqlite3, version 3.6 or later (only needed when configuring with
   --enable-imm-pbe)
+- OpenHPI, version 2.17.0 or later (only needed when configuring with
+  --enable-ais-plm)
+- Libvirt, version 0.9.7 or later (only needed when configuring with
+  --enable-ais-plm)
 
 Pay special attention to the fact that we have increased the minimum required
-version of GCC to 4.8.1 in OpenSAF 4.7, due to the use of the C++11 standard.
-
-When using MDS over TIPC, note that starting with OpenSAF 4.5, the TIPC
-multi-cast feature is being used. Due to TIPC bugs present in old versions of
-the Linux kernel, please make sure to use Linux kernel version 3.16 or later, or
-alternatively make sure that the relevant TIPC bug-fixes have been back-ported
-to the Linux kernel version you are using.
+version of GCC to 4.8.1 in OpenSAF 4.7.0, due to the use of the C++11 standard.
+In OpenSAF 4.7.2, the minimum Linux version was increased to 2.6.37.
 
 Important enhancements in this release
 --------------------------------------
 
 **AMF enhancements**
 
-- Support for the SI swap administrative operation in the N-way model [#78]
+- The N-Way and N+M models are now supported by the node group admin operations
+  [#1454], [#1608]
 
-- Improvements to the amf-find and amf-state command line tools [#113], [#1318]
+- CSI Set Callback is now called immediately when CSI attributes are modified
+  [#1553]
 
-- Specification compliance for passive monitoring [#181]
+- AMF now supports the extended SaNameT feature [#1642]
 
-- Specification compliance for component restart administrative operation [#334]
+- Improvements to the SC absence and spare SC features [#1725], [#1828]
 
-- Support for the restart administrative operation on SUs [#1455]
+- CSI dependencies for STANDBY are now handled in the same way as for ACTIVE
+  [#1734]
 
-- Support for parallel lock/unlock instantiation on AMF node groups [#1327]
+- In-service increase of saAmfSGMaxStandbySIsperSU in the N+M model is now
+  supported [#1741]
+
+**CKPT enhancements**
+
+- CKPT now supports the extended SaNameT feature [#1574]
 
 **CLM enhancements**
 
-- Support for cluster scale-out [#1453]
+- CLM now supports the extended SaNameT feature [#1906]
+
+**FM enhancements**
+
+- Added support for STONITH fencing [#1859]
 
 **IMM enhancements**
 
-- Periodic auditing of the persistent back-end database [#19]
+- Some previously hard-coded limits are now configurable [#195]
 
-- Classify the cause of an aborted CCB [#744]
+- The immcfg command now supports setting the admin owner also in the explicit
+  commit mode [#1383]
 
-- Performance improvements to sync and runtime data updates [#952], [#1445]
+- IMM internal timer resolution has been increased from seconds to nanoseconds
+  [#1704]
 
-- New administrative operation to abort non-critical CCBs [#1107]
+- New option -r to the immadm command, for setting ReleaseOnFinalize [#1937]
 
-- Improved immcfg tool to support create operation followed by modify [#1283]
-
-- Abort non-critical CCBs when an object implementer is disconnected [#1391]
-
-- Support removal of default attribute values from class definition [#1471]
+- Veteran wait time is now configurable for the SC absence feature [#1974]
 
 **LOG enhancements**
 
-- New format tokens for time zone and milliseconds [#593]
+- LOG now supports the extended SaNameT feature [#1315]
 
-- The saflogger tool now uses the default log format and has improved parameter
-  checking [#1433], [#1367]
-
-- Performance and memory usage improvement [#1376]
-
-- Improved support for runtime configuration changes [#1288], [#1387], [#1490]
-
-- New runtime object showing the actual LOG service configuration [#1393]
+- The LOG service is now only available on nodes that are members of the CLM
+  cluster [#1638]
 
 **MDS enhancements**
 
-- Detect duplicate TIPC addresses on the network [#464]
+- Added support for 64-bit timeout values [#1658]
+
+- Support for using multiple TIPC bearers [#1862]
+
+- Support for deriving the IP broadcast address when running in containers
+  [#1930]
+
+- OpenSAF now supports Linux kernels that have the TIPC module built-in [#1951]
+
+**PLM enhancements**
+
+- Added support for management of virtualized EEs using libvirt [#1431]
 
 **Python bindings enhancements**
 
-- New high-level/pythonic bindings for the IMM OI API [#1406]
-
-- Improved IMM OM bindings [#1417], [#1419]
-
-- Consistent handling of retry loops and exceptions [#1434], [#1441]
-
-- New high-level bindings for the LOG API [#1447]
+- Added the str method to the non-extended SaNameT class [#1737]
 
 **SMF enhancements**
 
-- Upgrade time improvement [#1401]
+- Shortened upgrade time by locking and unlocking nodes in parallel [#1634]
+
+- Rolling upgrades can now be performed in batches, upgrading several nodes at a
+  time [#1685]
 
 Links
 -----
 
-* The complete list of enhancements in the 4.7.0 release can be found in this
+* The complete list of enhancements in the 5.1.0 release can be found in this
   report:
 
-http://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A%284.7.FC+4.7.RC1+4.7.0%29+AND+_type%3Aenhancement&limit=50
+https://sourceforge.net/p/opensaf/tickets/search/?q=status%3Afixed+AND+_milestone%3A%285.1.FC+5.1.RC1+5.1.RC2+5.1.0%29+AND+_type%3Aenhancement&limit=100
 
-* The documentation for the OpenSAF 4.7.0 release can be downloaded here:
+* The documentation for the OpenSAF 5.1.0 release can be downloaded here:
 
-http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-4.7.0.tar.gz/download
+http://sourceforge.net/projects/opensaf/files/docs/opensaf-documentation-5.1.0.tar.gz/download
 
 You can also check the README of the respective OpenSAF service.
