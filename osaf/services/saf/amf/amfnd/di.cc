@@ -871,7 +871,7 @@ uint32_t avnd_di_susi_resp_send(AVND_CB *cb, AVND_SU *su, AVND_SU_SI_REC *si)
                                su->name.c_str());
         }
 
-        if (cb->is_avd_down == true || cb->amfd_sync_required == true) {
+        if (cb->is_avd_down == true || (cb->amfd_sync_required == true && su->is_ncs == false)) {
         	// We are in headless, buffer this msg
         	msg.info.avd->msg_info.n2d_su_si_assign.msg_id = 0;
         	if (avnd_diq_rec_add(cb, &msg) == nullptr) {
