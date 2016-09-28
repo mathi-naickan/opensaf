@@ -1642,6 +1642,8 @@ void avd_sg_admin_state_set(AVD_SG* sg, SaAmfAdminStateT state)
 	SaAmfAdminStateT old_state = sg->saAmfSGAdminState;
 	
 	osafassert(state <= SA_AMF_ADMIN_SHUTTING_DOWN);
+	if (sg->saAmfSGAdminState == state)
+		return;
 	TRACE_ENTER2("%s AdmState %s => %s", sg->name.c_str(),
 			avd_adm_state_name[old_state], avd_adm_state_name[state]);
 	saflog(LOG_NOTICE, amfSvcUsrName, "%s AdmState %s => %s", sg->name.c_str(),
@@ -1656,12 +1658,15 @@ void avd_sg_admin_state_set(AVD_SG* sg, SaAmfAdminStateT state)
 					SA_AMF_NTFID_SG_ADMIN_STATE,
 					old_state,
 					sg->saAmfSGAdminState);
+	TRACE_LEAVE();
 }
 
 void AVD_SG::set_admin_state(SaAmfAdminStateT state) {
 	SaAmfAdminStateT old_state = saAmfSGAdminState;
 
 	osafassert(state <= SA_AMF_ADMIN_SHUTTING_DOWN);
+	if (saAmfSGAdminState == state)
+		return;
 	TRACE_ENTER2("%s AdmState %s => %s", name.c_str(),
 			avd_adm_state_name[old_state], avd_adm_state_name[state]);
 	saflog(LOG_NOTICE, amfSvcUsrName, "%s AdmState %s => %s", name.c_str(),
