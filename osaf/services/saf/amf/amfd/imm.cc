@@ -385,7 +385,7 @@ AvdJobDequeueResultT Fifo::execute(SaImmOiHandleT immOiHandle)
 	if (!avd_cb->active_services_exist)
 		return JOB_ETRYAGAIN;
 
-	if (!avd_cb->is_implementer) {
+	if ((!avd_cb->is_implementer) && (avd_cb->avail_state_avd == SA_AMF_HA_STANDBY)) {
 		check_and_flush_job_queue_standby_amfd();
 		return JOB_EINVH;
 	}
