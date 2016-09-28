@@ -1644,7 +1644,7 @@ void avnd_sync_csicomp(AVND_CB *cb)
 	}
 
 	LOG_NO("%d CSICOMP states synced", msg.info.avd->msg_info.n2d_nd_csicomp_state_info.num_csicomp);
-	LOG_NO("%d SU states sent", msg.info.avd->msg_info.n2d_nd_csicomp_state_info.num_comp);
+	LOG_NO("%d COMP states sent", msg.info.avd->msg_info.n2d_nd_csicomp_state_info.num_comp);
 
 	rc = avnd_di_msg_send(cb, &msg);
 	if (rc == NCSCC_RC_SUCCESS)

@@ -342,7 +342,7 @@ AVND_COMP_CSI_REC *avnd_su_si_csi_rec_add(AVND_CB *cb,
 	const std::string param_csi_name = Amf::to_string(&param->csi_name);
 	const std::string param_comp_name = Amf::to_string(&param->comp_name);
 
-	TRACE_ENTER2("Comp'%s', Csi'%s' and Rank'%u'", param_csi_name.c_str(), param_comp_name.c_str(), param->csi_rank);
+	TRACE_ENTER2("Comp'%s', Csi'%s' and Rank'%u'", param_comp_name.c_str(), param_csi_name.c_str(), param->csi_rank);
 
 	*rc = NCSCC_RC_SUCCESS;
 
