@@ -333,7 +333,7 @@ AVND_COMP_CSI_REC *avnd_su_si_csi_rec_add(AVND_CB *cb,
 	AVND_COMP_CSI_REC *csi_rec = 0;
 	AVND_COMP *comp = 0;
 
-	TRACE_ENTER2("Comp'%s', Csi'%s' and Rank'%u'",param->csi_name.value, param->comp_name.value, param->csi_rank);
+	TRACE_ENTER2("Comp'%s', Csi'%s' and Rank'%u'",param->comp_name.value, param->csi_name.value, param->csi_rank);
 
 	*rc = NCSCC_RC_SUCCESS;
 
