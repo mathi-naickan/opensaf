@@ -517,7 +517,7 @@ void NtfAdmin::subscriptionRemoved(unsigned int clientId,
   }
   else
   {
-    LOG_ER("NtfAdmin::subscriptionRemoved client %u not found", clientId);
+    LOG_WA("NtfAdmin::subscriptionRemoved client %u not found", clientId);
   }
 
   // notifications do not need to be sent on that subscription, remove

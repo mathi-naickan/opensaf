@@ -226,7 +226,7 @@ void NtfClient::subscriptionRemoved(SaNtfSubscriptionIdT subscriptionId,
   }
   else
   {
-    LOG_ER( "NtfClient::subscriptionRemoved subscription"
+    LOG_WA( "NtfClient::subscriptionRemoved subscription"
             " %u not found", subscriptionId);
   }
   if (activeController()) {
