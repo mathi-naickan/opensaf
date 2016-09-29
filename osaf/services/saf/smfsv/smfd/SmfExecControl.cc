@@ -103,13 +103,10 @@ bool createStepForBalancedProc(SmfUpgradeProcedure* procedure) {
   SmfCampaign* camp = SmfCampaignThread::instance()->campaign();
   SmfUpgradeCampaign* ucamp = camp->getUpgradeCampaign();
 
-  std::vector<SmfUpgradeStep*> steps;
-  for (auto step : getStepsMatchingBalancedGroup(procedure, ucamp)) {
-    // copy steps and callbacks
+  auto steps = getStepsMatchingBalancedGroup(procedure, ucamp);
+  for (auto step : steps) {
     SmfUpgradeProcedure* oproc = step->getProcedure();
-    steps.insert(steps.end(),
-                 oproc->getProcSteps().begin(),
-                 oproc->getProcSteps().end());
+    // copy callbacks to the new procedure
     procedure->getCallbackList(oproc->getUpgradeMethod());
   }
   if (!steps.empty()) {
