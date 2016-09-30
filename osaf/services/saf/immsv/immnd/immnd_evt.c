@@ -9963,13 +9963,25 @@ static void immnd_evt_proc_impl_clr(IMMND_CB *cb,
 	IMMND_IMM_CLIENT_NODE *cl_node = NULL;
 	SaAisErrorT err;
 	NCS_NODE_ID nodeId;
-	SaUint32T conn;
+	SaUint32T conn, globArrSize = 0;
+	SaUint32T * globIdArr = NULL;
 
 	osafassert(evt);
 	conn = m_IMMSV_UNPACK_HANDLE_HIGH(clnt_hdl);
 	nodeId = m_IMMSV_UNPACK_HANDLE_LOW(clnt_hdl);
 
-	err = immModel_implementerClear(cb, &(evt->info.implSet), (originatedAtThisNd) ? conn : 0, nodeId);
+	err = immModel_implementerClear(cb, &(evt->info.implSet), (originatedAtThisNd) ? conn : 0, nodeId, &globArrSize, &globIdArr);
+	if (err == SA_AIS_OK && globArrSize) {
+                SaUint32T ix;
+                for (ix = 0; ix < globArrSize; ++ix) {
+                        LOG_WA("Cleared implementer for id  %u, abort Non-critical ccbId %u which has "
+                                        "cleared the implementer", evt->info.implSet.impl_id, globIdArr[ix]);
+                        immnd_proc_global_abort_ccb(cb, globIdArr[ix]);
+                }
+                free(globIdArr);
+                globIdArr = NULL;
+                globArrSize = 0;
+        }
 
 	if (originatedAtThisNd) {	/*Send reply to client from this ND. */
 		immnd_client_node_get(cb, clnt_hdl, &cl_node);

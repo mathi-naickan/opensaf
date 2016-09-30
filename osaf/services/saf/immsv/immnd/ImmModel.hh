@@ -438,7 +438,9 @@ public:
     SaAisErrorT         implementerClear(
                                          const struct ImmsvOiImplSetReq* req,
                                          SaUint32T con,
-                                         unsigned int nodeId);
+                                         unsigned int nodeId,
+                                         IdVector& gv,
+                                         bool isAtCoord);
     
     SaAisErrorT         rtObjectCreate(
                                        struct ImmsvOmCcbObjectCreate* req,

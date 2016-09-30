@@ -241,7 +241,8 @@ extern "C" {
 
 	SaAisErrorT
 	    immModel_implementerClear(IMMND_CB *cb, const struct ImmsvOiImplSetReq *req,
-				      SaUint32T implConn, SaUint32T implNodeId);
+				      SaUint32T implConn, SaUint32T implNodeId,
+				       SaUint32T *globArrSize, SaUint32T** globccbIdArr);
 	SaAisErrorT
 	    immModel_classImplementerSet(IMMND_CB *cb, const struct ImmsvOiImplSetReq *req,
 		                         SaUint32T implConn, SaUint32T implNodeId, SaUint32T* ccbId);
