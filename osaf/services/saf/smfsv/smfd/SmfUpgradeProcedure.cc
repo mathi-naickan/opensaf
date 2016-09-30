@@ -4213,7 +4213,6 @@ SmfSwapThread::main(void)
 	int rc = admOp.execute(0);
 	while ((rc == SA_AIS_ERR_TRY_AGAIN) ||
               (rc == SA_AIS_ERR_BUSY) ||
-              (rc == SA_AIS_ERR_TIMEOUT) ||
               (rc == SA_AIS_ERR_FAILED_OPERATION)) {
 
                 if (retryCnt > max_swap_retry) {
@@ -4221,12 +4220,11 @@ SmfSwapThread::main(void)
                         goto exit_error;
                 }
 
-                if ((rc == SA_AIS_ERR_TIMEOUT) ||
-                    (rc == SA_AIS_ERR_FAILED_OPERATION)) {
-                        //A timeout or failed operation occur. It is undefined if the operation was successful or not.
+                if (rc == SA_AIS_ERR_FAILED_OPERATION) {
+                        //A failed operation occur. It is undefined if the operation was successful or not.
                         //We wait for maximum two minutes to see if the campaign thread is terminated (which it is in a successful swap)
                         //If not terminated, retry the SWAP operation.
-                        LOG_NO("SA_AMF_ADMIN_SI_SWAP return SA_AIS_ERR_TIMEOUT or SA_AIS_ERR_FAILED_OPERATION [%d]. Wait for SmfCampaignThread to die, if not retry", rc);
+                        LOG_NO("SA_AMF_ADMIN_SI_SWAP return  SA_AIS_ERR_FAILED_OPERATION [%d]. Wait for SmfCampaignThread to die, if not retry", rc);
                         termCnt = 0;
                         while (SmfCampaignThread::instance() != NULL) {
                                 if(termCnt >= 60) { //Wait for max 2 minutes (60 * 2 sec)
@@ -4237,6 +4235,8 @@ SmfSwapThread::main(void)
                                 osaf_nanosleep(&sleepTime);
                                 termCnt++;
                         }
+                	goto exit_error;
+			
                 } else { //SA_AIS_ERR_TRY_AGAIN or SA_AIS_ERR_BUSY
                         LOG_NO("SA_AMF_ADMIN_SI_SWAP return SA_AIS_ERR_TRY_AGAIN or SA_AIS_ERR_BUSY [%d], wait 2 seconds and retry", rc);
                         struct timespec sleepTime = { 2, 0 };
@@ -4250,6 +4250,7 @@ SmfSwapThread::main(void)
         if (rc != SA_AIS_OK) {
                 //SA_AIS_ERR_LIBRARY, SA_AIS_ERR_BAD,_HANDLE SA_AIS_ERR_INIT, SA_AIS_ERR,_INVALID_PARAM, SA_AIS_ERR_NO_MEMORY
                 //SA_AIS_ERR_NO_RESOURCES, SA_AIS_ERR_BAD_OPERATION, SA_AIS_ERR_NOT_EXIST, SA_AIS_ERR_EXIST, SA_AIS_ERR_UNAVAILABLE
+		//SA_AIS_ERR_TIMEOUT
                 LOG_NO("Admin op SA_AMF_ADMIN_SI_SWAP fail [rc = %d]", rc);
                 goto exit_error;
         }
