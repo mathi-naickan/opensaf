@@ -1899,10 +1899,27 @@ immModel_discardImplementer(IMMND_CB* cb, SaUint32T implId,
 
 SaAisErrorT
 immModel_implementerClear(IMMND_CB *cb, const struct ImmsvOiImplSetReq* req,
-    SaUint32T implConn, SaUint32T implNodeId)
+    SaUint32T implConn, SaUint32T implNodeId, SaUint32T *globArrSize, SaUint32T** globccbIdArr)
 {
-    return ImmModel::instance(&cb->immModel)->implementerClear(req, implConn,
-        implNodeId);
+    SaAisErrorT err;
+    ConnVector gv;
+    ConnVector::iterator gvi;
+    err = ImmModel::instance(&cb->immModel)->implementerClear(req, implConn,
+        implNodeId, gv, cb->mIsCoord);
+
+     if (globArrSize && globccbIdArr) {
+        *globArrSize = (SaUint32T) gv.size();
+        SaUint32T ix=0;
+        if(*globArrSize) {
+            *globccbIdArr = (SaUint32T *) malloc((*globArrSize)* sizeof(SaUint32T));
+            for(gvi = gv.begin(); gvi!=gv.end(); ++gvi, ++ix) {
+               (*globccbIdArr)[ix] = (*gvi);
+           }
+        }
+        osafassert(ix==(*globArrSize));
+    }
+
+    return err;
 }
 
 SaAisErrorT
@@ -15594,11 +15611,10 @@ SaAisErrorT ImmModel::adminOwnerRelease(std::string objectName,
  */
 SaAisErrorT
 ImmModel::implementerClear(const struct ImmsvOiImplSetReq* req,
-    SaUint32T conn,
-    unsigned int nodeId)
+    SaUint32T conn, unsigned int nodeId,
+    IdVector& gv,  bool isAtCoord)
 {
     SaAisErrorT err = SA_AIS_OK;
-    ConnVector gv;
     TRACE_ENTER();
     
     ImplementerInfo* info = findImplementer(req->impl_id);
@@ -15607,7 +15623,7 @@ ImmModel::implementerClear(const struct ImmsvOiImplSetReq* req,
             /* Sync is ongoing and we are a sync client.
                Remember the death of the implementer. 
             */
-            discardImplementer(req->impl_id, true, gv, false);
+            discardImplementer(req->impl_id, true, gv, isAtCoord);
             goto done;
         }
         LOG_NO("ERR_BAD_HANDLE: Not a correct implementer handle? %llu id:%u", 
@@ -15620,7 +15636,7 @@ ImmModel::implementerClear(const struct ImmsvOiImplSetReq* req,
                 conn, nodeId);
             err = SA_AIS_ERR_BAD_HANDLE;
         } else {
-            discardImplementer(req->impl_id, true, gv, false);
+            discardImplementer(req->impl_id, true, gv, isAtCoord);
         }
     }
     
