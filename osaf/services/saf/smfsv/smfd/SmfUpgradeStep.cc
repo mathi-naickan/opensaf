@@ -57,10 +57,6 @@
 #include "smfd.h"
 #include "osaf_time.h"
 
-#if 0 /*LLDTEST*/
-#include "SmfExecControlHdl.h"
-#endif
-
 /* ========================================================================
  *   DEFINITIONS
  * ========================================================================
@@ -80,8 +76,6 @@
  *   FUNCTION PROTOTYPES
  * ========================================================================
  */
-
-#define LLDPROTO1 /* The prototype code */
 
 //================================================================================
 // Class SmfUpgradeStep
@@ -3450,7 +3444,6 @@ bool SmfAdminOperation::setNodeGroupParentDn()
 ///
 bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 {
-	bool rc = true;
 	m_errno = SA_AIS_OK;
 
 	TRACE_ENTER();
@@ -3537,31 +3530,58 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 
 	// ------------------------------------
 	// Create the node group
-	m_errno = immutil_saImmOmCcbObjectCreate_2(
-	    m_ccbHandle,
-	    className,
-	    &nodeGroupParentDn,
-	    attrValues);
+	bool method_rc = false;
+        const uint32_t MAX_NO_RETRIES = 2;
+        uint32_t retry_cnt = 0;
+        while (++retry_cnt <= MAX_NO_RETRIES) {
+                // Creating the node group object will fail if a previously
+                // created node group was for some reason not deleted
+                // If that's the case (SA_AIS_ERR_EXIST) try to delete the
+                // node group and try again.
+                m_errno = immutil_saImmOmCcbObjectCreate_2(
+                    m_ccbHandle,
+                    className,
+                    &nodeGroupParentDn,
+                    attrValues);
+                TRACE("%s: immutil_saImmOmCcbObjectCreate_2 %s",
+                        __FUNCTION__, saf_error(m_errno));
 
-	if (m_errno != SA_AIS_OK) {
-		LOG_NO("%s: saImmOmCcbObjectCreate_2() '%s' Fail %s",
-			__FUNCTION__, nGnodeName, saf_error(m_errno));
-		rc = false;
-	} else {
-		m_errno = saImmOmCcbApply(m_ccbHandle);
-		if (m_errno != SA_AIS_OK) {
-		LOG_NO("%s: saImmOmCcbApply() Fail '%s'",
-			__FUNCTION__, saf_error(m_errno));
-			rc = false;
-		}
-	}
+                if (m_errno == SA_AIS_ERR_EXIST) {
+                        // A node group with the same name already exist
+                        // May happen if a previous delete after usage has
+                        // failed
+                        bool rc = deleteNodeGroup();
+                        if (rc == false) {
+                                LOG_NO("%s: deleteNodeGroup() Fail",
+                                       __FUNCTION__);
+                                method_rc = false;
+                                break;
+                        }
+                        continue;
+                } else if (m_errno != SA_AIS_OK) {
+                        LOG_NO("%s: saImmOmCcbObjectCreate_2() '%s' Fail %s",
+                                __FUNCTION__, nGnodeName, saf_error(m_errno));
+                        method_rc = false;
+                        break;
+                } else {
+                        m_errno = saImmOmCcbApply(m_ccbHandle);
+                        if (m_errno != SA_AIS_OK) {
+                                LOG_NO("%s: saImmOmCcbApply() Fail '%s'",
+                                        __FUNCTION__, saf_error(m_errno));
+                                method_rc = false;
+                        } else {
+                                method_rc = true;
+                        }
+                        break;
+                }
+        }
 
 	if (nodeName != NULL)
 		free(nodeName);
 	if (nodeNameList != NULL)
 		free(nodeNameList);
-	TRACE_LEAVE();
-	return rc;
+	TRACE_LEAVE2("rc %s", method_rc? "Ok":"Fail");
+	return method_rc;
 }
 
 /// Delete the SmfSetAdminState instance specific node group
