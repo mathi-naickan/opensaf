@@ -2821,7 +2821,7 @@ SmfAdminOperation::SmfAdminOperation(std::list <unitNameAndState> *i_allUnits)
 	// and an immediate return is done
 	// The public methods shall return fail if m_creation_fail is true
 
-	bool rc = getAllImmHandles();
+	bool rc = initAllImmHandles();
 	if (rc == false) {
 		LOG_NO("%s: getAllImmHandles Fail", __FUNCTION__);
 		m_creation_fail = true;
@@ -2858,11 +2858,7 @@ SmfAdminOperation::SmfAdminOperation(std::list <unitNameAndState> *i_allUnits)
 
 SmfAdminOperation::~SmfAdminOperation()
 {
-	// This frees all IMM handles that's based on the omHandle and
-	// give up admin ownership of Amf Cluster object
-	if (m_omHandle != 0) {
-		(void)immutil_saImmOmFinalize(m_omHandle);
-	}
+        finalizeAllImmHandles();
 }
 
 ///
@@ -3077,7 +3073,7 @@ bool SmfAdminOperation::restart()
 /// Get all needed IMM handles. Updates corresponding member variables
 /// Return false if fail
 ///
-bool SmfAdminOperation::getAllImmHandles()
+bool SmfAdminOperation::initAllImmHandles()
 {
 	SaAisErrorT ais_rc = SA_AIS_ERR_TRY_AGAIN;
 	int timeout_try_cnt = 6;
@@ -3152,6 +3148,15 @@ bool SmfAdminOperation::getAllImmHandles()
 
 	TRACE_LEAVE2("rc = %s", rc? "true": "false");
 	return rc;
+}
+
+// Free all IMM handles that's based on the omHandle and
+// give up admin ownership of Amf Cluster object
+void SmfAdminOperation::finalizeAllImmHandles() {
+	if (m_omHandle != 0) {
+		(void)immutil_saImmOmFinalize(m_omHandle);
+	}
+
 }
 
 /// Check if the AIS return is considered a campaign error
@@ -3550,6 +3555,8 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
                         // A node group with the same name already exist
                         // May happen if a previous delete after usage has
                         // failed
+                        LOG_NO("%s: saImmOmCcbObjectCreate_2 Fail %s",
+                               __FUNCTION__, saf_error(m_errno));
                         bool rc = deleteNodeGroup();
                         if (rc == false) {
                                 LOG_NO("%s: deleteNodeGroup() Fail",
@@ -3589,8 +3596,7 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 ///
 bool SmfAdminOperation::deleteNodeGroup()
 {
-	bool rc = true;
-	m_errno = SA_AIS_OK;
+	SaAisErrorT ais_rc = SA_AIS_OK;
 
 	TRACE_ENTER();
 	std::string nodeGroupName_s =
@@ -3600,25 +3606,53 @@ bool SmfAdminOperation::deleteNodeGroup()
 		&nodeGroupName);
 
 	TRACE("\t Deleting nodeGroup '%s'", nodeGroupName_s.c_str());
+	bool method_rc = false;
+        const uint32_t MAX_NO_RETRIES = 2;
+        uint32_t retry_cnt = 0;
+        while (++retry_cnt <= MAX_NO_RETRIES) {
+                // Handles including ccb handle may have been invalidated by
+                // IMM resulting in SA_AIS_ERR_BAD_HANDLE response on the
+                // delete object request.
+                // If that's the case: Try to create new handles and try again
+                ais_rc = immutil_saImmOmCcbObjectDelete(m_ccbHandle,
+                        &nodeGroupName);
+                TRACE("%s: immutil_saImmOmCcbObjectDelete %s",
+                        __FUNCTION__, saf_error(m_errno));
 
-	m_errno = immutil_saImmOmCcbObjectDelete(m_ccbHandle,
-		&nodeGroupName);
-	if (m_errno != SA_AIS_OK) {
-		LOG_NO("%s: saImmOmCcbObjectDelete '%s' Fail %s",
-		 __FUNCTION__, nodeGroupName_s.c_str(),
-		 saf_error(m_errno));
-		rc = false;
-	} else {
-		m_errno = saImmOmCcbApply(m_ccbHandle);
-		if (m_errno != SA_AIS_OK) {
-		LOG_NO("%s: saImmOmCcbApply() Fail '%s'",
-			__FUNCTION__, saf_error(m_errno));
-			rc = false;
-		}
-	}
+                if (ais_rc == SA_AIS_ERR_BAD_HANDLE) {
+                        LOG_NO("%s: saImmOmCcbObjectDelete Fail %s",
+                               __FUNCTION__, saf_error(m_errno));
+                        finalizeAllImmHandles();
+                        bool rc = initAllImmHandles();
+                        if (rc == false) {
+                                LOG_NO("%s: getAllImmHandles() Fail",
+                                       __FUNCTION__);
+                                method_rc = false;
+                                break;
+                        }
+                        continue;
+                } else if (ais_rc != SA_AIS_OK) {
+                      LOG_NO("%s: saImmOmCcbObjectDelete() '%s' Fail %s",
+                                __FUNCTION__, nodeGroupName_s.c_str(),
+                      saf_error(ais_rc));
+                      method_rc = false;
+                      break;
+                } else {
+                        ais_rc = saImmOmCcbApply(m_ccbHandle);
+                        if (ais_rc != SA_AIS_OK) {
+                                LOG_NO("%s: saImmOmCcbApply() Fail '%s'",
+                                        __FUNCTION__, saf_error(ais_rc));
+                                method_rc = false;
+                        } else {
+                                method_rc = true;
+                        }
+                        break;
+                }
+        }
 
-	TRACE_LEAVE();
-	return rc;
+	TRACE_LEAVE2("rc %s, ais_rc %s", method_rc? "Ok":"Fail",
+                 saf_error(ais_rc));
+	return method_rc;
 }
 
 /// Request given admin operation to the SmfSetAdminState instance node group
@@ -3652,6 +3686,9 @@ bool SmfAdminOperation::nodeGroupAdminOperation(SaAmfAdminOperationIdT adminOp)
 			m_ownerHandle,
 			&nodeGroupName, 0, adminOp, params,
 			&oi_rc, smfd_cb->adminOpTimeout);
+
+                if (m_errno == SA_AIS_OK && oi_rc == SA_AIS_OK)
+                        break;
 
 		if (retry <= 0) {
 			LOG_NO("Fail to invoke admin operation, too many OI "

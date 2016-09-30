@@ -851,7 +851,8 @@ class SmfAdminOperation {
 	bool restart();
 
     private:
-	bool getAllImmHandles();
+	bool initAllImmHandles();
+        void finalizeAllImmHandles();
 	bool isRestartError(SaAisErrorT ais_rc);
 
 	// Result in m_nodeList and m_suList
