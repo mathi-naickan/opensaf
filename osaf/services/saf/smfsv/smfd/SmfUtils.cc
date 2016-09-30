@@ -176,7 +176,7 @@ getNodeDestination(const std::string & i_node, SmfndNodeDest* o_nodeDest, int *e
 	                }
                 }
                 free(nodeName);
-		LOG_NO("%s: className '%s'",__FUNCTION__, className);
+		TRACE("%s: className '%s'",__FUNCTION__, className);
         } else {
                 LOG_NO("Unknown class name %s", className);
                 return false;
