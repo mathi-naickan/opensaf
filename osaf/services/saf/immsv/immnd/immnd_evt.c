@@ -3741,41 +3741,21 @@ static void immnd_evt_proc_ccb_obj_modify_rsp(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 		IMMSV_ATTR_NAME_LIST strList;
-		IMMSV_ATTR_NAME_LIST errStrList = { { 0 }, NULL };
-		
+		IMMSV_ATTR_NAME_LIST* errStrList = immModel_ccbGrabErrStrings(cb, evt->info.ccbUpcallRsp.ccbId);
+
 		if (evt->info.ccbUpcallRsp.result != SA_AIS_OK) {
-			if(evt->info.ccbUpcallRsp.result != SA_AIS_ERR_FAILED_OPERATION) {
-				char buf[2];
-				int size;
+			evt->info.ccbUpcallRsp.result = SA_AIS_ERR_FAILED_OPERATION;
 
-				/* Create error string */
-				size = snprintf(buf, 1,
-						IMM_RESOURCE_ABORT "Upcall failed with error code: %u",
-						evt->info.ccbUpcallRsp.result);
-				osafassert(size >= 0);
-				errStrList.name.size = ++size;
-				errStrList.name.buf = (char *)malloc(size);
-				errStrList.next = NULL;
-				size = snprintf(errStrList.name.buf, errStrList.name.size,
-						IMM_RESOURCE_ABORT "Upcall failed with error code: %u",
-						evt->info.ccbUpcallRsp.result);
-				osafassert(size >= 0);
-
-				evt->info.ccbUpcallRsp.result = SA_AIS_ERR_FAILED_OPERATION;
-			}
 			if (evt->info.ccbUpcallRsp.errorString.size) {
 				osafassert(evt->type == IMMND_EVT_A2ND_CCB_OBJ_MODIFY_RSP_2);
-				if(errStrList.name.buf) {
-					strList.next = &errStrList;
-				} else {
-					strList.next = NULL;
-				}
+
+				strList.next = errStrList;
 				strList.name = evt->info.ccbUpcallRsp.errorString;/*borrow*/
 				send_evt.info.imma.info.errRsp.errStrings = &(strList);
 				send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR_2;
-			} else if(errStrList.name.buf) {
+			} else if (errStrList) {
 				osafassert(evt->type == IMMND_EVT_A2ND_CCB_OBJ_MODIFY_RSP);
-				send_evt.info.imma.info.errRsp.errStrings = &(errStrList);
+				send_evt.info.imma.info.errRsp.errStrings = errStrList;
 				send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR_2;
 			}
 		}
@@ -3788,7 +3768,7 @@ static void immnd_evt_proc_ccb_obj_modify_rsp(IMMND_CB *cb,
 			LOG_WA("Failed to send response to agent/client over MDS rc:%u", rc);
 		}
 
-		free(errStrList.name.buf);
+		immsv_evt_free_attrNames(errStrList);
 	}
 
 	TRACE_LEAVE();
@@ -3840,41 +3820,21 @@ static void immnd_evt_proc_ccb_obj_create_rsp(IMMND_CB *cb,
 		send_evt.type = IMMSV_EVT_TYPE_IMMA;
 		send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR;
 		IMMSV_ATTR_NAME_LIST strList;
-		IMMSV_ATTR_NAME_LIST errStrList = { { 0 }, NULL };
+		IMMSV_ATTR_NAME_LIST* errStrList = immModel_ccbGrabErrStrings(cb, evt->info.ccbUpcallRsp.ccbId);
 
 		if (evt->info.ccbUpcallRsp.result != SA_AIS_OK) {
-			if(evt->info.ccbUpcallRsp.result != SA_AIS_ERR_FAILED_OPERATION) {
-				char buf[2];
-				int size;
+			evt->info.ccbUpcallRsp.result = SA_AIS_ERR_FAILED_OPERATION;
 
-				/* Create error string */
-				size = snprintf(buf, 1,
-						IMM_RESOURCE_ABORT "Upcall failed with error code: %u",
-						evt->info.ccbUpcallRsp.result);
-				osafassert(size >= 0);
-				errStrList.name.size = ++size;
-				errStrList.name.buf = (char *)malloc(size);
-				errStrList.next = NULL;
-				size = snprintf(errStrList.name.buf, errStrList.name.size,
-						IMM_RESOURCE_ABORT "Upcall failed with error code: %u",
-						evt->info.ccbUpcallRsp.result);
-				osafassert(size >= 0);
-
-				evt->info.ccbUpcallRsp.result = SA_AIS_ERR_FAILED_OPERATION;
-			}
 			if (evt->info.ccbUpcallRsp.errorString.size) {
 				osafassert(evt->type == IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP_2);
-				if(errStrList.name.buf) {
-					strList.next = &errStrList;
-				} else {
-					strList.next = NULL;
-				}
+
+				strList.next = errStrList;
 				strList.name = evt->info.ccbUpcallRsp.errorString;/*borrow*/
 				send_evt.info.imma.info.errRsp.errStrings = &(strList);
 				send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR_2;
-			} else if(errStrList.name.buf) {
+			} else if (errStrList) {
 				osafassert(evt->type == IMMND_EVT_A2ND_CCB_OBJ_CREATE_RSP);
-				send_evt.info.imma.info.errRsp.errStrings = &(errStrList);
+				send_evt.info.imma.info.errRsp.errStrings = errStrList;
 				send_evt.info.imma.type = IMMA_EVT_ND2A_IMM_ERROR_2;
 			}
 		}
@@ -3887,7 +3847,7 @@ static void immnd_evt_proc_ccb_obj_create_rsp(IMMND_CB *cb,
 			LOG_WA("Failed to send response to agent/client over MDS rc:%u", rc);
 		}
 
-		free(errStrList.name.buf);
+		immsv_evt_free_attrNames(errStrList);
 	}
 
 	TRACE_LEAVE();

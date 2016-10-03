@@ -10580,7 +10580,11 @@ ImmModel::ccbObjDelContinuation(immsv_oi_ccb_upcall_rsp* rsp,
                     "implementer returned error, Ccb aborted with error: %u",
                      rsp->result);
                 ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
-                setCcbErrorString(ccb, IMM_VALIDATION_ABORT "Implementer returned error: ", rsp->result);
+                if (rsp->result == SA_AIS_ERR_BAD_OPERATION || rsp->result == SA_AIS_ERR_FAILED_OPERATION) {
+                    setCcbErrorString(ccb, IMM_VALIDATION_ABORT "Implementer returned error: %u", rsp->result);
+                } else {
+                    setCcbErrorString(ccb, IMM_RESOURCE_ABORT "Implementer returned error: %u", rsp->result);
+                }
                 //TODO: This is perhaps more drastic than the specification
                 //demands. We are here aborting the entire Ccb, whereas the spec
                 //seems to allow for a non-ok returnvalue from implementer 
@@ -10858,7 +10862,11 @@ ImmModel::ccbObjCreateContinuation(SaUint32T ccbId, SaUint32T invocation,
             "implementer returned error, Ccb aborted with error: %u",
             error);
         ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
-        setCcbErrorString(ccb, IMM_VALIDATION_ABORT "Implementer returned error: %u", error);
+        if (error == SA_AIS_ERR_BAD_OPERATION || error == SA_AIS_ERR_FAILED_OPERATION) {
+            setCcbErrorString(ccb, IMM_VALIDATION_ABORT "Implementer returned error: %u", error);
+        } else {
+            setCcbErrorString(ccb, IMM_RESOURCE_ABORT "Implementer returned error: %u", error);
+        }
         //TODO: This is perhaps more drastic than the specification demands.
         //We are here aborting the entire Ccb, whereas the spec seems to allow
         //for a non-ok returnvalue from implementer (in this callback) to
@@ -10948,7 +10956,11 @@ ImmModel::ccbObjModifyContinuation(SaUint32T ccbId, SaUint32T invocation,
         LOG_IN("ImmModel::ccbObjModifyContinuation: "
             "implementer returned error, Ccb aborted with error: %u", error);
         ccb->mVeto = SA_AIS_ERR_FAILED_OPERATION;
-        setCcbErrorString(ccb, IMM_VALIDATION_ABORT "Implementer returned error: %u", error);
+        if (error == SA_AIS_ERR_BAD_OPERATION || error == SA_AIS_ERR_FAILED_OPERATION) {
+            setCcbErrorString(ccb, IMM_VALIDATION_ABORT "Implementer returned error: %u", error);
+        } else {
+            setCcbErrorString(ccb, IMM_RESOURCE_ABORT "Implementer returned error: %u", error);
+        }
         //TODO: This is perhaps more drastic than the specification demands.
         //We are here aborting the entire Ccb, whereas the spec seems to allow
         //for a non-ok returnvalue from implementer (in this callback) to
