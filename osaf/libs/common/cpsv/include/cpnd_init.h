@@ -130,7 +130,6 @@ uint32_t cpnd_all_repl_rsp_expiry(CPND_CB *cb, CPND_TMR_INFO *tmr_info);
 uint32_t cpnd_open_active_sync_expiry(CPND_CB *cb, CPND_TMR_INFO *tmr_info);
 void cpnd_proc_free_read_data(CPSV_EVT *evt);
 SaUint32T cpnd_get_scAbsenceAllowed_attr();
-SaUint32T cpnd_get_longDnsAllowed_attr();
 /* End cpnd_proc.c */
 
 /* File : ---  cpnd_amf.c */

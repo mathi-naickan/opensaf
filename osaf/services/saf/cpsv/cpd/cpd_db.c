@@ -106,6 +106,9 @@ uint32_t cpd_ckpt_node_add(NCS_PATRICIA_TREE *ckpt_tree, CPD_CKPT_INFO_NODE *ckp
 		err = create_runtime_ckpt_object(ckpt_node, immOiHandle);
 		if (err != SA_AIS_OK) {
 			LOG_ER("create runtime ckpt object failed with error: %u",err);
+			if (err == SA_AIS_ERR_INVALID_PARAM) {
+				return NCSCC_RC_INVALID_INPUT;
+			}
 			return NCSCC_RC_FAILURE;
 		}
 	}

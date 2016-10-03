@@ -605,12 +605,6 @@ static uint32_t cpnd_evt_proc_ckpt_open(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_IN
 	TRACE_ENTER();
 	memset(&send_evt, '\0', sizeof(CPSV_EVT));
 
-	if ((cpnd_get_longDnsAllowed_attr() == 0) && osaf_is_an_extended_name(&evt->info.openReq.ckpt_name)) {
-		LOG_ER("cpnd - longDnsAllowed == false - NOT supporting extended name");
-		send_evt.info.cpa.info.openRsp.error = SA_AIS_ERR_INVALID_PARAM;
-		goto agent_rsp;
-	}
-
 	if (!cpnd_is_cpd_up(cb)) {
 		send_evt.info.cpa.info.openRsp.error = SA_AIS_ERR_TRY_AGAIN;
 		goto agent_rsp;
@@ -1136,12 +1130,6 @@ static uint32_t cpnd_evt_proc_ckpt_unlink(CPND_CB *cb, CPND_EVT *evt, CPSV_SEND_
 
 	TRACE_ENTER();
 	memset(&send_evt, '\0', sizeof(CPSV_EVT));
-
-	if ((cpnd_get_longDnsAllowed_attr() == 0) && osaf_is_an_extended_name(&evt->info.ulinkReq.ckpt_name)) {
-		LOG_ER("cpnd - longDnsAllowed == false - NOT supporting extended name");
-		send_evt.info.cpa.info.ulinkRsp.error = SA_AIS_ERR_INVALID_PARAM;
-		goto agent_rsp;
-	}
 
 	if (!cpnd_is_cpd_up(cb)) {
 		send_evt.info.cpa.info.ulinkRsp.error = SA_AIS_ERR_TRY_AGAIN;

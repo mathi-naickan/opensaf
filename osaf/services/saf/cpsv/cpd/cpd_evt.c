@@ -238,9 +238,11 @@ static uint32_t cpd_evt_proc_ckpt_create(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_INF
 		rc = SA_AIS_ERR_NO_MEMORY;
 		goto send_rsp;
 	} else if (proc_rc != NCSCC_RC_SUCCESS) {
-
 		TRACE_4("cpd ckpt create failure ckpt name,dest :  %s, %"PRIu64, ckpt_name, sinfo->dest);
 		rc = SA_AIS_ERR_LIBRARY;
+		if (proc_rc == NCSCC_RC_INVALID_INPUT) {
+			rc = SA_AIS_ERR_INVALID_PARAM;
+		}
 		goto send_rsp;
 	}
 

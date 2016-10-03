@@ -2735,31 +2735,6 @@ SaUint32T cpnd_get_scAbsenceAllowed_attr()
 }
 
 /****************************************************************************************
- * Name          : cpnd_get_longDnsAllowed_attr()
- *
- * Description   : This function gets scAbsenceAllowed attribute
- *
- * Arguments     : -
- * 
- * Return Values : scAbsenceAllowed attribute (0 = not allowed)
- *****************************************************************************************/
-SaUint32T cpnd_get_longDnsAllowed_attr()
-{
-	SaUint32T rc_attr_val = 0;
-	char *attribute_names[] = {
-		"longDnsAllowed",
-		NULL
-	};
-
-	TRACE_ENTER();
-
-	rc_attr_val = cpnd_get_imm_attr(attribute_names);
-
-	TRACE_LEAVE();
-	return rc_attr_val;
-}
-
-/****************************************************************************************
  * Name          : cpnd_get_imm_attr
  *
  * Description   : This function gets IMM attribute
