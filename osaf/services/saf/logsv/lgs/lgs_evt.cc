@@ -1027,33 +1027,34 @@ static uint32_t proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
       goto snd_rsp;
     }
 
-    if ((open_sync_param->lstr_open_flags & SA_LOG_STREAM_CREATE) == 0) {
-      /* The stream does not exist but the create flag is not
-       * set. If lgs_state is LGS_RECOVERY then:
-       * Check if the stream is in the list of stream objects
-       * not recovered. If in list, recover the stream and
-       * add it to the client
-       */
-      if (lgs_cb->lgs_recovery_state == LGS_RECOVERY) {
-        TRACE("%s LGS_RECOVERY",__FUNCTION__);
-        i_rc = lgs_restore_one_app_stream(name,
-                                          open_sync_param->client_id,
-                                          &logStream);
-        if (i_rc == -1) {
-          TRACE("%s lgs_restore_one_stream Fail", __FUNCTION__);
-          ais_rv = SA_AIS_ERR_NOT_EXIST;
-          goto snd_rsp;
-        }
-        TRACE("%s Stream %s is recovered", __FUNCTION__, name.c_str());
-        log_stream_print(logStream); /* TRACE */
-        lstr_id = logStream->streamId;
-        goto snd_rsp;
-      } else {
-        /* Trying to open a non existing stream */
-        TRACE("%s Attempt to open not existing stream", __FUNCTION__);
-        ais_rv = SA_AIS_ERR_NOT_EXIST;
-        goto snd_rsp;
+    /*
+     * Check if the stream is in the list of stream objects
+     * not recovered. If in list, recover the stream and
+     * add it to the client
+     */
+    if (lgs_cb->lgs_recovery_state == LGS_RECOVERY) {
+      TRACE("%s LGS_RECOVERY",__FUNCTION__);
+      i_rc = lgs_restore_one_app_stream(name,
+                                        open_sync_param->client_id,
+                                        &logStream);
+      if (i_rc == -1) {
+        // Not find the opening stream in recovery database.
+        // Goto next for checking other inputs.
+        goto next;
       }
+
+      TRACE("%s Stream %s is recovered", __FUNCTION__, name.c_str());
+      log_stream_print(logStream); /* TRACE */
+      lstr_id = logStream->streamId;
+      goto snd_rsp;
+    }
+
+ next:
+    if ((open_sync_param->lstr_open_flags & SA_LOG_STREAM_CREATE) == 0) {
+      /* Trying to open a non existing stream */
+      TRACE("%s Attempt to open not existing stream", __FUNCTION__);
+      ais_rv = SA_AIS_ERR_NOT_EXIST;
+      goto snd_rsp;
     }
 
     if (check_max_stream()) {
@@ -1066,7 +1067,6 @@ static uint32_t proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
      *  - Check parameters
      *  - Create the stream in the stream "data base"
      *  - If active create IMM runtime object
-     *  - If recover do not create IMM object
      *
      * Note: Files are not created here
      */
