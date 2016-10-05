@@ -23,19 +23,31 @@ die() {
 	exit 1
 }
 
+wait_for_pid_to_start() {
+	pid=$1
+	while ! test -d /proc/$pid; do sleep 0.1; done
+}
+
+wait_for_pid_to_die() {
+	pid=$1
+	while test -d /proc/$pid; do sleep 0.1; done
+}
+
 test -f "$PWD/$0" || die "Must execute $0 from directory where it is located"
 export CLUSTER_SIM_UML_DIR=$PWD
 export PATH=${PWD}/uml/bin:${PATH}
-test -d ./rootfs || die "No shadow root at [./root]"
+test \( \! -d ./rootfs \) -a \( "$1" != "stop" -a "$1" != "clean" \) && die "No shadow root at [./rootfs]"
 
 UML_DIR=$CLUSTER_SIM_UML_DIR/uml
 REPL_DIR=repl-opensaf
 test -x "$UML_DIR/bin/uml_start" || die "Not executable [$UML_DIR/bin/uml_start]"
 
-immxml_sc_count=$(grep -c 'SC SC-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg)
-immxml_pl_count=$(grep -c 'PL PL-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg)
-immxml_node_count=$((immxml_sc_count + immxml_pl_count))
-NUMNODES=${2:-$immxml_node_count}
+if test -d ./rootfs; then
+    immxml_sc_count=$(grep -c 'SC SC-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg)
+    immxml_pl_count=$(grep -c 'PL PL-' ./rootfs/usr/local/share/opensaf/immxml/nodes.cfg)
+    immxml_node_count=$((immxml_sc_count + immxml_pl_count))
+    NUMNODES=${2:-$immxml_node_count}
+fi
 OSAF_UML_MAX_TERMS=${OSAF_UML_MAX_TERMS:-5}
 IPADDRBASE=${IPADDRBASE:-192.168}
 PIDFILEDIR=/tmp/${USER}_opensaf
@@ -77,7 +89,7 @@ cluster_start() {
 			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
 		echo $! > $PIDFILEDIR/uml_switch
 		while [ ! -S /tmp/uml-${uid}.ctl ]; do
-			sleep 1
+			sleep 0.1
 		done
 	fi
 
@@ -107,25 +119,39 @@ cluster_start() {
 		# Append host to /etc/hosts file
 		echo "$IPADDRBASE.$((p / 256)).$((p % 256))       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
 	done
+
+	node_name_prefix=SC-
+	for ((p=1; p <= $numnodes; p++)); do
+		if ((p > immxml_sc_count)); then
+			node_name_prefix=PL-
+		fi
+		while ! test -f $HOME/.uml/$hostname/pid ; do sleep 0.1; done
+		pid=$(cat $HOME/.uml/$hostname/pid)
+		wait_for_pid_to_start $pid
+	done
 }
 
 cluster_stop() {
 	echo "Stopping opensaf services"
  	nodes=$(ls -1 "$HOME/.uml")
 	for node in $nodes; do
+		pid=$(cat $HOME/.uml/$node/pid)
 		"$UML_DIR/bin/uml_mconsole" "$node" halt > /dev/null 2>&1
+		wait_for_pid_to_die $pid
 	done
-	sleep 1
 	for node in $nodes; do
  		rm -rf "$HOME/.uml/$node"
 	done
 	if [ -d $PIDFILEDIR ]; then
 		pidfiles=$(ls $PIDFILEDIR)
 		for pidfile in $pidfiles; do
-			kill -9 $(cat $PIDFILEDIR/$pidfile) > /dev/null 2>&1
+			pid=$(cat $PIDFILEDIR/$pidfile)
+			kill -9 $pid > /dev/null 2>&1
+			wait_for_pid_to_die $pid
 		done
 		rm -rf $PIDFILEDIR
 	fi
+	pkill -9 -U $uid uml_switch
 	rm -f /tmp/uml-${uid}.ctl
 }
 
@@ -133,58 +159,6 @@ delete_persistent_store() {
 	echo "Deleting persistent store contents"
 	rm -rf $CLUSTER_SIM_UML_DIR/rootfs/var/*
 	rm -rf $CLUSTER_SIM_UML_DIR/$REPL_DIR
-}
-
-# Start a single node, referenced by number
-node_start() {
-	node=$1
-	dy=293
-
-	test -d $PIDFILEDIR || mkdir -p $PIDFILEDIR
-
-	if ! test -d $CLUSTER_SIM_UML_DIR/$REPL_DIR; then
-		mkdir -p $CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store
-		cp  rootfs/etc/opensaf/imm.xml \
-			$CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store/imm.xml
-	fi
-
-	# Start network if necessary
-	if ! pgrep -U $uid uml_switch > /dev/null; then
-		rm -f /tmp/uml-${uid}.ctl
-		xterm -iconic -geometry 60x8-0+5 \
-			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
-		echo $! > $PIDFILEDIR/uml_switch
-		while [ ! -S /tmp/uml-${uid}.ctl ]; do
-			sleep 1
-		done
-	fi
-
-	if ! stat "rootfs/etc/hosts" &> /dev/null; then
-		echo "127.0.0.1       localhost" > rootfs/etc/hosts
-	fi
-
-	echo "Starting node $node"
-
-	rootdir=rootfs
-	p=$node
-
-	if ((p <= immxml_sc_count)); then
-		node_name_prefix=SC-
-	else
-		node_name_prefix=PL-
-	fi
-
-	hostname=$node_name_prefix$p
-
-	# start the uml vm in its own xterm
-	x=$((p < 3 ? 65 : 910))
-	y=$((24 + (p < 3 ? p - 1 : p - 3) * dy))
-	xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
-		$UML_DIR/bin/uml_start $p umid=$hostname mem=${OSAF_UML_MEMSIZE} hostname=$hostname shadowroot=$rootdir $$ &
-	echo $! > $PIDFILEDIR/$hostname
-
-	# Append host to /etc/hosts file
-	grep -q "$hostname.opensaf.org" rootfs/etc/hosts || echo "$IPADDRBASE.$((p / 256)).$((p % 256))       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
 }
 
 # Stop a single node, referenced by number
@@ -200,15 +174,78 @@ node_stop() {
 	else
 		die "Node $1 is not started"
 	fi
+	pid=$(cat $HOME/.uml/$node/pid)
 
 	# halt the uml vm
 	$UML_DIR/bin/uml_mconsole $node halt > /dev/null 2>&1
-	sleep 1
+	wait_for_pid_to_die $pid
 	rm -rf $HOME/.uml/$node
 
 	# kill the xterm
-	kill -9 $(cat $PIDFILEDIR/$node) > /dev/null 2>&1
+	pid=$(cat $PIDFILEDIR/$node)
+	kill -9 $pid > /dev/null 2>&1
+	wait_for_pid_to_die $pid
 	rm $PIDFILEDIR/$node
+}
+
+# Start a single node, referenced by number
+node_start() {
+	node=$1
+	dy=293
+	p=$node
+
+	if ((p <= immxml_sc_count)); then
+		node_name_prefix=SC-
+	else
+		node_name_prefix=PL-
+	fi
+
+	hostname=$node_name_prefix$p
+
+	test -d $PIDFILEDIR || mkdir -p $PIDFILEDIR
+
+	if ls $HOME/.uml/$hostname/pid &> /dev/null; then
+		node_stop $node
+	fi
+
+	if ! test -d $CLUSTER_SIM_UML_DIR/$REPL_DIR; then
+		mkdir -p $CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store
+		cp  rootfs/etc/opensaf/imm.xml \
+			$CLUSTER_SIM_UML_DIR/$REPL_DIR/immsv_store/imm.xml
+	fi
+
+	# Start network if necessary
+	if ! pgrep -U $uid uml_switch > /dev/null; then
+		rm -f /tmp/uml-${uid}.ctl
+		xterm -iconic -geometry 60x8-0+5 \
+			-T UML-network -e $UML_DIR/bin/uml_switch -unix /tmp/uml-${uid}.ctl $tap &
+		echo $! > $PIDFILEDIR/uml_switch
+		while [ ! -S /tmp/uml-${uid}.ctl ]; do
+			sleep 0.1
+		done
+	fi
+
+	if ! stat "rootfs/etc/hosts" &> /dev/null; then
+		echo "127.0.0.1       localhost" > rootfs/etc/hosts
+	fi
+
+	echo "Starting node $node"
+
+	rootdir=rootfs
+
+	# start the uml vm in its own xterm
+	x=$((p < 3 ? 65 : 910))
+	y=$((24 + (p < 3 ? p - 1 : p - 3) * dy))
+	xterm -hold -geometry 140x20+$x+$y -T $hostname -e \
+		$UML_DIR/bin/uml_start $p umid=$hostname mem=${OSAF_UML_MEMSIZE} hostname=$hostname shadowroot=$rootdir $$ &
+	echo $! > $PIDFILEDIR/$hostname
+
+	# Append host to /etc/hosts file
+	grep -q "$hostname.opensaf.org" rootfs/etc/hosts || echo "$IPADDRBASE.$((p / 256)).$((p % 256))       $hostname.opensaf.org  $hostname" >> rootfs/etc/hosts
+
+	while ! test -f $HOME/.uml/$hostname/pid ; do sleep 0.1; done
+	pid=$(cat $HOME/.uml/$hostname/pid)
+	wait_for_pid_to_start $pid
 }
 
 case "$1" in
