@@ -33,4 +33,14 @@ p=$1
 hostdir=$(pwd)
 shift
 uid=$(id -u)
-exec "$umlx" rw hostdir="$hostdir" eth0=daemon,2:0:0:1:"$(printf "%x" $((p / 256)))":"$(printf "%x" $((p % 256)))",unix,/tmp/uml-"${uid}".ctl con0=fd:0,fd:1 con=pts "$@"
+byte1=2
+byte2=0
+byte3=0
+if [ "$OSAF_UML_DYNAMIC_MAC" -eq "1" ]; then
+  byte4=$(echo $(od -N1 -An -tx1 /dev/urandom))
+else
+  byte4=1
+fi
+byte5=$(printf "%x" $((p / 256)))
+byte6=$(printf "%x" $((p % 256)))
+exec "$umlx" rw hostdir="$hostdir" eth0=daemon,"$byte1":"$byte2":"$byte3":"$byte4":"$byte5":"$byte6",unix,/tmp/uml-"${uid}".ctl con0=fd:0,fd:1 con=pts "$@"

@@ -131,6 +131,12 @@ e.g.:
 
     export OSAF_UML_MAX_TERMS=10
 
+You can select to randomize a part of the MAC address assigned to a node each
+time the node is started by setting the environment variable
+OSAF_UML_DYNAMIC_MAC to 1:
+
+    export OSAF_UML_DYNAMIC_MAC=1
+
 Running the cluster adds the following direcories:
 
 repl-opensaf	This directory contains a simulated shared replicated disk

@@ -67,13 +67,13 @@ cd "$dir"
 archive=${ARCHIVE:-$dir/archive}
 configd=${CONFIGD:-$dir/config}
 
-kver=${KVER:-4.7.2}
+kver=${KVER:-4.8}
 kbasedir=$(echo "$kver" | cut -d. -f1).x
 #kurlbase=${KURLBASE:-"https://www.kernel.org/pub/linux/kernel/v$kbasedir"}
 kurlbase=${KURLBASE:-"http://ftp.funet.fi/pub/mirrors/ftp.kernel.org/pub/linux/kernel/v$kbasedir"}
 kernel_decompress=xz
 kurl="$kurlbase/linux-$kver.tar.xz"
-kernel_sha1sum='eb9e03765e02f93533b1efc3635a634f20779084  linux-4.7.2.tar.xz'
+kernel_sha1sum='e375f93600a7b96191498af39e5a2416b6666e59  linux-4.8.tar.xz'
 
 iproute2ver=${IPROUTE2VER:-4.7.0}
 iproute2url="https://www.kernel.org/pub/linux/utils/net/iproute2/iproute2-$iproute2ver.tar.xz"
