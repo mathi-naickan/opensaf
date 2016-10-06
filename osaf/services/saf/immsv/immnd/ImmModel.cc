@@ -6155,7 +6155,8 @@ ImmModel::ccbAbort(SaUint32T ccbId, ConnVector& connVector, ConnVector& clVector
     }
 
     /* Only send response when ccb continuation is not purged */
-    if (!ccb->mPurged && ccb->mState != IMM_CCB_READY && ccb->mState != IMM_CCB_VALIDATED) {
+    if (!ccb->mPurged && ccb->mState != IMM_CCB_EMPTY
+            && ccb->mState != IMM_CCB_READY && ccb->mState != IMM_CCB_VALIDATED) {
         clVector.push_back(ccb->mOriginatingConn);
         *nodeId = ccb->mOriginatingNode;
     }
