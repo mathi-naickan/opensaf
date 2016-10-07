@@ -877,6 +877,23 @@ bool isRestartSet(const AVND_SU *su)
 }
 
 /**
+ * @brief  Checks if all SIs of SU have a given prev_assign_state.
+ * @return true/false
+ */
+bool AVND_SU::avnd_su_check_sis_previous_assign_state(const AVND_SU_SI_ASSIGN_STATE prv_assign_state) const {
+  for (AVND_SU_SI_REC *si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&this->si_list);
+    si; si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_NEXT(&si->su_dll_node)) {
+    if ((prv_assign_state == AVND_SU_SI_ASSIGN_STATE_UNASSIGNED) &&
+      (!m_AVND_SU_SI_PRV_ASSIGN_STATE_IS_UNASSIGNED(si)))
+      return false;
+    else if ((prv_assign_state == AVND_SU_SI_ASSIGN_STATE_ASSIGNED) &&
+      (!m_AVND_SU_SI_PRV_ASSIGN_STATE_IS_ASSIGNED(si)))
+      return false;
+  }                       
+  return true;
+}
+
+/**
  * @brief  Processes compcsi msg based on the action (msg_type). 
  *		As of now only try to send csi attribute change callback.
  * @param  comp (ptr to AVND_COMP)

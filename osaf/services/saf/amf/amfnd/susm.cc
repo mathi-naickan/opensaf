@@ -59,6 +59,7 @@ static uint32_t avnd_su_pres_restart_compinst_hdler(AVND_CB *, AVND_SU *, AVND_C
 static uint32_t avnd_su_pres_restart_compterming_hdler(AVND_CB *, AVND_SU *, AVND_COMP *);
 static uint32_t avnd_su_pres_inst_compinstfail_hdler(AVND_CB *, AVND_SU *, AVND_COMP *);
 static uint32_t avnd_su_pres_instfailed_compuninst(AVND_CB *, AVND_SU *, AVND_COMP *);
+static uint32_t avnd_su_pres_termfailed_comptermfail_or_compuninst(AVND_CB *, AVND_SU *, AVND_COMP *);
 
 static uint32_t avnd_su_pres_st_chng_prc(AVND_CB *, AVND_SU *, SaAmfPresenceStateT, SaAmfPresenceStateT);
 
@@ -154,8 +155,8 @@ static AVND_SU_PRES_FSM_FN avnd_su_pres_fsm[][AVND_SU_PRES_FSM_EV_MAX - 1] = {
 	 0,			/* COMP INSTANTIATED */
 	 0,			/* COMP INST_FAIL */
 	 0,			/* COMP RESTARTING */
-	 0,			/* COMP TERM_FAIL */
-	 0,			/* COMP UNINSTANTIATED */
+	 avnd_su_pres_termfailed_comptermfail_or_compuninst,	/* COMP TERM_FAIL */
+	 avnd_su_pres_termfailed_comptermfail_or_compuninst,	/* COMP UNINSTANTIATED */
 	 0,			/* COMP TERMINATING */
 	 }
 };
@@ -1362,7 +1363,7 @@ done:
  * @param su
  * @return bool
  */
-bool all_comps_terminated_in_su(const AVND_SU *su)
+bool all_comps_terminated_in_su(const AVND_SU *su, bool all_final_pres_states)
 {
 	AVND_COMP *comp;
 
@@ -1370,7 +1371,14 @@ bool all_comps_terminated_in_su(const AVND_SU *su)
 			comp;
 			comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
 
-		if (comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) {
+		if ((all_final_pres_states == false) && (comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED)) {
+			TRACE("'%s' not terminated, pres.st=%u", comp->name.c_str(), comp->pres);
+			return false;
+		}
+		if ((all_final_pres_states == true) &&
+			(comp->pres != SA_AMF_PRESENCE_UNINSTANTIATED) &&
+			(comp->pres != SA_AMF_PRESENCE_INSTANTIATION_FAILED) &&
+			(comp->pres != SA_AMF_PRESENCE_TERMINATION_FAILED)) { 
 			TRACE("'%s' not terminated, pres.st=%u", comp->name.c_str(), comp->pres);
 			return false;
 		}
@@ -1699,10 +1707,10 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 				TRACE("SU oper state is disabled");
 		}
 
-		/* terminating -> term-failed */
+		/* terminating/restarting -> term-failed */
 		if (((prv_st == SA_AMF_PRESENCE_RESTARTING) || (SA_AMF_PRESENCE_TERMINATING == prv_st)) 
 				&& (SA_AMF_PRESENCE_TERMINATION_FAILED == final_st)) {
-			TRACE("Terminating -> Termination Failed");
+			TRACE("Terminating/Restarting -> Termination Failed");
 			if (sufailover_in_progress(su)) {
 				/*Do not reset any flag, this will be done as a part of repair.*/
 				rc = avnd_di_oper_send(cb, su, AVSV_ERR_RCVR_SU_FAILOVER);
@@ -1711,13 +1719,54 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 				goto done;
 			}
 			m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
-			/* inform AvD about oper state change */
-			rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
+			/* inform AvD about oper state change, in case prev state was TERMINATING.
+			   In RESTARTING case, comp FSM triggers comp-failover.*/
+			if (prv_st == SA_AMF_PRESENCE_TERMINATING)
+				rc = avnd_di_oper_send(cb, su, SA_AMF_COMPONENT_FAILOVER);
 			if (NCSCC_RC_SUCCESS != rc)
 				goto done;
 
 		}
+		/*instantiated-> term-failed*/
+		if ((prv_st == SA_AMF_PRESENCE_INSTANTIATED) &&
+				(final_st == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+			TRACE("Instantiated -> Termination Failed");
+			/*
+			   This state transition of SU can happen when: 
+			   -its one NPI comp moves to TERM_FAILED state. There can 
+			    be two subcases here: a)assigned NPI comp faults or b)it 
+			    faults during fresh assignments during instantiation phase. 
+			   -its restartable PI comp moves to TERM_FAILED state. There
+			    can be two subcases here:a)assigned PI comp fault or b)
+			    it faults during fresh assignments in CSI SET callback.
+			   In these cases SU moves directly from INSTANTIATED to TERM_FAILED state.
 
+			   AMFND should respond to AMFD for su-failover only when SU moves
+			   to TERM_FAILED state during fresh assignments.
+			 */
+			if ((su->si_list.n_nodes != 0) && (m_AVND_SU_IS_ASSIGN_PEND(su)) && 
+  			   (su->avnd_su_check_sis_previous_assign_state(AVND_SU_SI_ASSIGN_STATE_UNASSIGNED) == true)) {
+				m_AVND_SU_OPER_STATE_SET(su, SA_AMF_OPERATIONAL_DISABLED);
+				if (all_comps_terminated_in_su(su, true) == true) {			
+					TRACE_2("Informing AMFD of su-failover");
+					rc = avnd_di_oper_send(cb, su, AVSV_ERR_RCVR_SU_FAILOVER);
+					avnd_su_si_del(avnd_cb, su->name);
+				} else {
+					//Some PI comps are still terminating. Try to terminate NPIs.
+					for (AVND_COMP *comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&su->comp_list));
+						comp;
+						comp = m_AVND_COMP_FROM_SU_DLL_NODE_GET(m_NCS_DBLIST_FIND_NEXT(&comp->su_dll_node))) {
+						if (m_AVND_COMP_TYPE_IS_PREINSTANTIABLE(comp))
+							continue;
+						rc = avnd_comp_clc_fsm_trigger(cb, comp, AVND_COMP_CLC_PRES_FSM_EV_TERM);
+						if (NCSCC_RC_SUCCESS != rc) {
+							LOG_ER("'%s' termination failed", comp->name.c_str());
+							goto done;
+						}
+					}
+				}
+			} 
+		}
 	}
 
 	/* npi su */
@@ -3842,4 +3891,26 @@ uint32_t avnd_evt_ir_evh(struct avnd_cb_tag *cb, struct avnd_evt_tag *evt)
 done:
 	TRACE_LEAVE();
 	return rc;
+}
+
+static uint32_t avnd_su_pres_termfailed_comptermfail_or_compuninst(AVND_CB *cb, AVND_SU *su, AVND_COMP *comp) {
+  uint32_t rc = NCSCC_RC_SUCCESS;
+  const std::string compname = comp ? comp->name : "none";
+  TRACE_ENTER2("CompTermFailed/CompUnInstantiated event in the TermFailed state:'%s', '%s'",
+    su->name.c_str(), compname.c_str());
+
+  //PI SU case. 
+  if (m_AVND_SU_IS_PREINSTANTIABLE(su)) {
+    TRACE_1("PI SU");
+    if ((all_comps_terminated_in_su(su, true) == true) && 
+      (su->si_list.n_nodes != 0) &&
+      (m_AVND_SU_IS_ASSIGN_PEND(su)) &&
+      (su->avnd_su_check_sis_previous_assign_state(AVND_SU_SI_ASSIGN_STATE_UNASSIGNED) == true)) {
+      TRACE_2("Informing AMFD of su-failover");
+      rc = avnd_di_oper_send(cb, su, AVSV_ERR_RCVR_SU_FAILOVER);
+      avnd_su_si_del(cb, su->name);
+    }
+  }
+  TRACE_LEAVE();
+  return rc;
 }

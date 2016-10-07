@@ -1394,6 +1394,11 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			ev = AVND_SU_PRES_FSM_EV_COMP_TERM_FAIL;
 		else if ((SA_AMF_PRESENCE_TERMINATING == final_st) && (comp->su->pres == SA_AMF_PRESENCE_RESTARTING))
 			ev = AVND_SU_PRES_FSM_EV_COMP_TERMINATING;
+		else if ((final_st == SA_AMF_PRESENCE_UNINSTANTIATED) &&
+				(comp->su->pres == SA_AMF_PRESENCE_TERMINATION_FAILED))
+			/*This may be the last NPI comp being terminated in a TERM_FAILED SU.
+			  Trigger SU FSM so that AMFND can inform AMFD for su-failover.*/
+			ev = AVND_SU_PRES_FSM_EV_COMP_UNINSTANTIATED;
 		else if ((sufailover_in_progress(comp->su) || (m_AVND_SU_IS_RESTART(comp->su)) || 
 					(avnd_cb->term_state == AVND_TERM_STATE_NODE_SWITCHOVER_STARTED) || 
 					(all_comps_terminated_in_su(comp->su) == true)) &&
