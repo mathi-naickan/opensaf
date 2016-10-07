@@ -1572,7 +1572,7 @@ void avnd_sync_csicomp(AVND_CB *cb)
 		comp = (AVND_COMP *)compdb_rec_get_next(&cb->compdb, (uint8_t *)&comp->name);
 	}
 
-	LOG_NO("%d CSICOMP states synced", msg.info.avd->msg_info.n2d_nd_csicomp_state_info.num_csicomp);
+	LOG_NO("%d CSICOMP states sent", msg.info.avd->msg_info.n2d_nd_csicomp_state_info.num_csicomp);
 	LOG_NO("%d COMP states sent", msg.info.avd->msg_info.n2d_nd_csicomp_state_info.num_comp);
 
 	rc = avnd_di_msg_send(cb, &msg);
