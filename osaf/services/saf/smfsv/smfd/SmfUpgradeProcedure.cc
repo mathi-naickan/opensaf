@@ -482,12 +482,17 @@ SmfUpgradeProcedure::switchOver()
                 osafassert(0);
         }
 
-	TRACE("SmfUpgradeProcedure::switchOver: Create the restart indicator");
-	SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->createSmfRestartIndicator();
+	if (!SmfSwapThread::running()) {
+		TRACE("SmfUpgradeProcedure::switchOver: Create the restart indicator");
+		SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->createSmfRestartIndicator();
 
-	SmfSwapThread *swapThread = new SmfSwapThread(this);
-	TRACE("SmfUpgradeProcedure::switchOver, Starting SI_SWAP thread");
-	swapThread->start();
+		SmfSwapThread *swapThread = new SmfSwapThread(this);
+		TRACE("SmfUpgradeProcedure::switchOver, Starting SI_SWAP thread");
+		swapThread->start();
+	} else {
+		TRACE("SmfUpgradeProcedure::switchOver, SI_SWAP thread already running");
+		SmfSwapThread::setProc(this);
+	}
 
 	TRACE_LEAVE();
 }
@@ -4156,6 +4161,31 @@ SmfUpgradeProcedure::resetProcCounter()
 /*  Static methods                                                    */
 /*====================================================================*/
 
+SmfSwapThread *SmfSwapThread::me(0);
+std::mutex SmfSwapThread::m_mutex;
+
+/** 
+ * SmfSmfSwapThread::running
+ * Is the thread currently running?
+ */
+bool
+SmfSwapThread::running(void)
+{
+	std::lock_guard<std::mutex> guard(m_mutex);
+	return me ? true : false;
+}
+
+/** 
+ * SmfSmfSwapThread::setProc
+ * Set the procedure pointer to the newly created procedure
+ */
+void
+SmfSwapThread::setProc(SmfUpgradeProcedure *newProc)
+{
+	std::lock_guard<std::mutex> guard(m_mutex);
+	me->m_proc = newProc;
+}
+
 /** 
  * SmfSmfSwapThread::main
  * static main for the thread
@@ -4181,6 +4211,8 @@ SmfSwapThread::SmfSwapThread(SmfUpgradeProcedure * i_proc):
 	m_proc(i_proc)
 {
 	sem_init(&m_semaphore, 0, 0);
+	std::lock_guard<std::mutex> guard(m_mutex);
+	me = this;
 }
 
 /** 
@@ -4188,6 +4220,8 @@ SmfSwapThread::SmfSwapThread(SmfUpgradeProcedure * i_proc):
  */
 SmfSwapThread::~SmfSwapThread()
 {
+	std::lock_guard<std::mutex> guard(m_mutex);
+	me = 0;
 }
 
 /**
@@ -4309,13 +4343,25 @@ SmfSwapThread::main(void)
 
 exit_error:
         if (SmfCampaignThread::instance() != NULL) {
-                SmfProcStateExecFailed::instance()->changeState(m_proc, SmfProcStateExecFailed::instance());
-        }
+		std::lock_guard<std::mutex> guard(m_mutex);
 
-        if (SmfCampaignThread::instance() != NULL) {
+                SmfProcStateExecuting::instance()->changeState(m_proc, SmfProcStateStepUndone::instance());
+
+		// find the failed upgrade step and set it to Undone
+		std::vector<SmfUpgradeStep *>& upgradeSteps(m_proc->getProcSteps());
+		for (std::vector<SmfUpgradeStep *>::iterator it(upgradeSteps.begin()); it != upgradeSteps.end(); ++it) {
+			if ((*it)->getSwitchOver()) {
+				(*it)->changeState(SmfStepStateUndone::instance());
+				break;
+			}
+		}
+
+		std::string error("si-swap of middleware failed");
+                SmfCampaignThread::instance()->campaign()->setError(error);
+
                 CAMPAIGN_EVT *evt = new CAMPAIGN_EVT();
                 evt->type = CAMPAIGN_EVT_PROCEDURE_RC;
-                evt->event.procResult.rc = SMF_PROC_FAILED;
+                evt->event.procResult.rc = SMF_PROC_STEPUNDONE;
                 evt->event.procResult.procedure = m_proc;
                 SmfCampaignThread::instance()->send(evt);
         }

@@ -424,6 +424,19 @@ SmfStepStateUndone::execute(SmfUpgradeStep * i_step)
 {
 	TRACE_ENTER();
 
+        if (i_step->calculateStepType() != SA_AIS_OK) {
+                LOG_ER("SmfStepStateUndone: Failed to calculate step type");
+                changeState(i_step, SmfStepStateFailed::instance());
+                TRACE_LEAVE();
+                return SMF_STEP_FAILED;
+        }
+
+        if (i_step->getSwitchOver() == true) {
+                TRACE("Switch over is needed in this step");
+                TRACE_LEAVE();
+                return SMF_STEP_SWITCHOVER;
+        }
+
         i_step->setRetryCount(0); /* Reset the retry counter */
 	changeState(i_step, SmfStepStateExecuting::instance());
 
