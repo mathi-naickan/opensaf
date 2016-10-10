@@ -29,6 +29,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <mutex>
 
 #include <saSmf.h>
 #include <saImmOi.h>
@@ -551,7 +552,7 @@ class SmfUpgradeProcedure {
 /// @param    -
 /// @return   The list of upgrade steps.
 ///
-        const std::vector < SmfUpgradeStep * >& getProcSteps() { return m_procSteps; }
+        std::vector < SmfUpgradeStep * >& getProcSteps() { return m_procSteps; }
 
 ///
 /// Purpose:  Add the list of upgrade steps
@@ -777,7 +778,12 @@ class SmfSwapThread {
 	~SmfSwapThread();
 	int start(void);
 
+	static bool running(void);
+	static void setProc(SmfUpgradeProcedure *);
+
  private:
+	static SmfSwapThread *me;
+	static std::mutex m_mutex;
 
 	void main(void);
 	int init(void);
