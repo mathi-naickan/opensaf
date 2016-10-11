@@ -1703,7 +1703,7 @@ static int imm_operation(int argc, char *argv[])
 			}
 		}
 
-		if(useAdminOwner) {
+		if(useAdminOwner && adminOwnerName) {
 			error = immutil_saImmOmAdminOwnerFinalize(ownerHandle);
 			if (SA_AIS_OK != error) {
 				fprintf(stderr, "error - saImmOmAdminOwnerFinalize FAILED: %s\n", saf_error(error));
