@@ -467,16 +467,15 @@ open_retry:
  */
 int fileclose_hdl(void *indata, void *outdata, size_t max_outsize) {
   int rc = 0;
-  int fd;
+  int *fd = static_cast<int *>(indata);
 
-  fd = *static_cast<int *>(indata);
-  TRACE_ENTER2("fd=%d", fd);
+  TRACE_ENTER2("fd=%d", *fd);
 
   osaf_mutex_unlock_ordie(&lgs_ftcom_mutex); /* UNLOCK critical section */
   /* Flush and synchronize the file before closing to guaranty that the file
    * is not written to after it's closed
    */
-  if ((rc = fdatasync(fd)) == -1) {
+  if ((rc = fdatasync(*fd)) == -1) {
     if ((errno == EROFS) || (errno == EINVAL)) {
       TRACE("Synchronization is not supported for this file");
     } else {
@@ -485,9 +484,16 @@ int fileclose_hdl(void *indata, void *outdata, size_t max_outsize) {
   }
 
   /* Close the file */
-  rc = close(fd);
+  rc = close(*fd);
   if (rc == -1) {
     LOG_ER("fileclose() %s",strerror(errno));
+  } else {
+    // When file system is busy, operations on files will take time.
+    // In that case, file handle thread will get timeout and the `requester`
+    // will put the `fd` into one link list to do retry next time.
+    // But if closing file succesfully, let the `requester` knows and
+    // no need to send `close file request` again.
+    *fd = -1;
   }
 
   osaf_mutex_lock_ordie(&lgs_ftcom_mutex); /* LOCK after critical section */
