@@ -225,22 +225,10 @@ SmfCampaignInit::execute()
                 return false;
         }
 
-        TRACE("1. Read_IMM_long_DN_config_and_set_control_block()");
-        if (!immUtil.read_IMM_long_DN_config_and_set_control_block(smfd_cb)) {
-       	LOG_ER("SmfCampaignInit: reading long DN config from IMM FAILED");
-       	TRACE_LEAVE();
-       	return false;
-    }
 	std::list < SmfUpgradeAction * >::iterator upActiter;
 	upActiter = m_campInitAction.begin();
 	while (upActiter != m_campInitAction.end()) {
-                TRACE("2. %s: read_IMM_long_DN_config_and_set_control_block()",__FUNCTION__);
-		if (!immUtil.read_IMM_long_DN_config_and_set_control_block(smfd_cb)) {
-			LOG_ER("SmfCampaignInit: reading long DN config from IMM FAILED");
-			TRACE_LEAVE();
-			return false;
-		}
-		SaAisErrorT rc = (*upActiter)->execute(SmfCampaignThread::instance()->getImmHandle(),
+       		SaAisErrorT rc = (*upActiter)->execute(SmfCampaignThread::instance()->getImmHandle(),
                                                        &initRollbackDn);
 		if (rc != SA_AIS_OK) {
 			LOG_ER("SmfCampaignInit init action %d failed, rc=%s", (*upActiter)->getId(), saf_error(rc));
