@@ -1023,6 +1023,87 @@ done:
 }
 
 /**
+ * CCB Object Modify, root directory. Path exist. OK
+ * Result shall be OK
+ */
+void change_root_path(void)
+{
+	int rc = 0, tst_stat = 0;
+	char command[256];
+	char tstdir[256];
+
+	/* Path to test directory */
+	sprintf(tstdir, "%s/croot", log_root_path);
+
+	// Remove if the test folder is exist
+	sprintf(command, "rm -rf %s/", tstdir);
+	rc = tet_system(command);
+
+	/* Create test directory */
+	sprintf(command, "mkdir -p %s", tstdir);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+		goto done;
+	}
+
+	/* Make sure it can be accessed by server */
+	sprintf(command, "chmod ugo+w,ugo+r %s", tstdir);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+		goto done;
+	}
+
+	sprintf(command, "immcfg -c SaLogStreamConfig safLgStrCfg=testRoot "
+		"-a saLogStreamPathName=./testRoot -a saLogStreamFileName=testRoot");
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+		goto done;
+	}
+
+	/* Change to xxtest */
+	sprintf(command, "immcfg -a logRootDirectory=%s logConfig=1,safApp=safLogService", tstdir);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+		goto free;
+	}
+
+	// Verify if the directory and subdirectly are created successfully
+	usleep(100*1000); // to make sure logsv done processing of directories creation
+	sprintf(command, "ls %s/testRoot 1>/dev/null", tstdir);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail rc=%d\n", command, rc);
+		tst_stat = 1;
+	}
+
+	/* Change back */
+	sprintf(command, "immcfg -a logRootDirectory=%s logConfig=1,safApp=safLogService", log_root_path);
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail to restore rc=%d\n", command, rc);
+	}
+
+free:
+	// Delete test app stream
+	sprintf(command, "immcfg -d safLgStrCfg=testRoot");;
+	rc = tet_system(command);
+	if (rc != 0) {
+		fprintf(stderr, "'%s' Fail to restore  rc=%d\n", command, rc);
+	}
+
+done:
+	rc_validate(tst_stat, 0);
+}
+
+/**
  * CCB Object Modify, data group. Group does not exist. Not allowed
  * Result shall be reject
  */
@@ -3776,6 +3857,7 @@ __attribute__ ((constructor)) static void saOiOperations_constructor(void)
 	test_suite_add(5, "LOG OI tests, Service configuration object");
 	test_case_add(5, saLogOi_52, "CCB Object Modify, root directory. Path does not exist. Not allowed");
 	test_case_add(5, saLogOi_48, "CCB Object Modify, root directory. Path exist. OK");
+	test_case_add(5, change_root_path, "CCB Object Modify, change root directory. Path exist. OK");
 	test_case_add(5, saLogOi_79, "CCB Object Modify, data group. Group does not exist. Not allowed");
 	test_case_add(5, saLogOi_80, "CCB Object Modify, data group. Group exists. OK");
 	test_case_add(5, saLogOi_81, "CCB Object Modify, delete data group. OK");

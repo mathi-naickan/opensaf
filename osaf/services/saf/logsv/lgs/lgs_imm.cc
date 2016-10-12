@@ -1854,6 +1854,9 @@ void logRootDirectory_filemove(
     }
   }
 
+  // Change logrootDirectory to new_logRootDirectory
+  lgs_rootpathconf_set(new_logRootDirectory);
+
   /* Create new files at new path
    */
   char *current_time;
