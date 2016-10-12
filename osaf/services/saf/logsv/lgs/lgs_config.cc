@@ -1321,7 +1321,7 @@ done:
  * Support older check-point protocols prior to version 5
  */
 /**
- * Used for updating logRootDirectory on standby when check-pointed
+ * Used for updating logRootDirectory
  *
  * Set the logRootDirectory parameter in the lgs_conf struct
  * Used for holding data from config object

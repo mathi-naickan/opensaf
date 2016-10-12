@@ -1878,6 +1878,9 @@ void logRootDirectory_filemove(
 		stream = log_stream_getnext_by_name(stream->name);
 	}
 
+	// Change logrootDirectory to new_logRootDirectory
+	lgs_rootpathconf_set(new_logRootDirectory);
+
 	/* Create new files at new path
 	 */
 	stream = log_stream_getnext_by_name(NULL);
