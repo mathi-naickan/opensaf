@@ -1267,6 +1267,12 @@ int log_stream_write_h(log_stream_t *stream, const char *buf, size_t count)
 		if (*stream->p_fd == -1) {
 			TRACE("%s - Initiating stream files \"%s\" Failed", __FUNCTION__,
 					stream->name);
+			// Seems file system is busy - can not create requrested files.
+			// Let inform the log client TRY_AGAIN.
+			//
+			// Return (-1) to inform that it is caller's responsibility
+			// to free the allocated memmories.
+			return -1;
 		} else {
 			TRACE("%s - stream files initiated", __FUNCTION__);
 		}
