@@ -1021,7 +1021,11 @@ static uint32_t proc_stream_open_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
     }
   } else {
     /* Stream does not exist */
-    if (cb->immOiHandle == 0) {
+
+    // Client should try again when role changes is in transition (queued).
+    // This check is to avoid the client getting SA_AIS_BAD_OPERATION
+    // as there is no IMM OI implementer set.
+    if (cb->immOiHandle == 0 || cb->is_quiesced_set == true) {
       TRACE("IMM service unavailable, open stream failed");
       ais_rv = SA_AIS_ERR_TRY_AGAIN;
       goto snd_rsp;
@@ -1153,7 +1157,11 @@ static uint32_t proc_stream_close_msg(lgs_cb_t *cb, lgsv_lgs_evt_t *evt) {
     goto snd_rsp;
   }
 
-  if ((stream->streamType == STREAM_TYPE_APPLICATION) && (cb->immOiHandle == 0)) {
+  // Client should try again when role changes is in transition (queued).
+  // This check is to avoid the client getting SA_AIS_BAD_OPERATION
+  // as there is no IMM OI implementer set.
+  if ((stream->streamType == STREAM_TYPE_APPLICATION) &&
+      (cb->immOiHandle == 0 || cb->is_quiesced_set == true)) {
     TRACE("IMM service unavailable, close stream failed");
     ais_rc = SA_AIS_ERR_TRY_AGAIN;
     goto snd_rsp;

@@ -18,30 +18,8 @@
 #include "logtest.h"
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <limits.h>
 #include <unistd.h>
 #include <stdarg.h>
-
-static char host_name[_POSIX_HOST_NAME_MAX] = {0};
-static const char *hostname(void)
-{
-	gethostname(host_name, _POSIX_HOST_NAME_MAX);
-	return host_name;
-}
-
-static bool is_test_done_on_pl(void)
-{
-	return (strncmp(hostname(), "PL-", strlen("PL-")) == 0);
-}
-
-static void cond_check(void)
-{
-	if (is_test_done_on_pl() == false) {
-		fprintf(stderr, "Test must be done on payload node \n");
-		exit(EXIT_FAILURE);
-	}
-}
-
 
 /* Test cases for CLM Member Node.
  * NOTE1: For the moment these test cases need interaction with the tester and
