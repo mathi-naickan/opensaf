@@ -225,7 +225,6 @@ SmfCampaignInit::execute()
                 return false;
         }
 
-    }
 	std::list < SmfUpgradeAction * >::iterator upActiter;
 	upActiter = m_campInitAction.begin();
 	while (upActiter != m_campInitAction.end()) {
