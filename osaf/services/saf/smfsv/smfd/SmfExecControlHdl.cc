@@ -41,7 +41,10 @@ SmfExecControlObjHandler::SmfExecControlObjHandler() :
   m_exec_ctrl_name_ad(0),
   m_procExecMode_ad(0),
   m_numberOfSingleSteps_ad(0),
-  m_nodesForSingleStep_ad(0)
+  m_nodesForSingleStep_ad(0),
+  m_omHandle(0),
+  m_ownerHandle(0),
+  m_ccbHandle(0)
 {
   p_immutil_object = new SmfImmUtils; // Deleted by uninstall and in destructor
 }
@@ -57,8 +60,10 @@ SmfExecControlObjHandler::~SmfExecControlObjHandler() {
   // overwritten the next time a copy has to be created
   //
   TRACE_ENTER();
-  if (p_immutil_object != 0)
+  if (p_immutil_object != NULL) {
     delete p_immutil_object;
+    p_immutil_object = NULL;
+  }
   TRACE_LEAVE();
 }
 
@@ -94,8 +99,10 @@ bool SmfExecControlObjHandler::install() {
 
 void SmfExecControlObjHandler::uninstall() {
   TRACE_ENTER();
-  if (p_immutil_object != 0)
+  if (p_immutil_object != NULL) {
     delete p_immutil_object;
+    p_immutil_object = NULL;
+  }
   removeExecControlObjectCopy();
   TRACE_LEAVE();
 }
@@ -311,6 +318,20 @@ void SmfExecControlObjHandler::removeExecControlObjectCopy() {
 
   TRACE("Deleting object '%s'", c_openSafSmfExecControl_copy);
 
+  if (createImmOmHandles() == false) {
+    TRACE("createCcbHandle Fail");
+  }
+
+  const SaNameT *names[2];
+  names[0] = &node_name;
+  names[1] = NULL;
+  ais_rc = immutil_saImmOmAdminOwnerSet(m_ownerHandle, names, SA_IMM_ONE);
+
+  if (ais_rc != SA_AIS_OK) {
+    LOG_NO("%s - saImmOmAdminOwnerSet FAILED: %s",
+           __FUNCTION__, saf_error(ais_rc));
+  }
+
   ais_rc = immutil_saImmOmCcbObjectDelete(m_ccbHandle,
           &node_name);
   if (ais_rc != SA_AIS_OK) {
@@ -324,6 +345,8 @@ void SmfExecControlObjHandler::removeExecControlObjectCopy() {
                   __FUNCTION__, saf_error(ais_rc));
           }
   }
+
+  finalizeImmOmHandles();
 
   TRACE_LEAVE();
 }
@@ -344,10 +367,8 @@ bool SmfExecControlObjHandler::copyExecControlObject() {
   // ------------------------------------
   // Create handles needed
   //
-  rc = createAllImmHandles();
-  if (rc == false) {
-    LOG_NO("%s: createAllImmHandles Fail", __FUNCTION__);
-    return rc;
+  if (createImmOmHandles() == false) {
+    TRACE("createCcbHandle Fail");
   }
 
   // ------------------------------------
@@ -398,6 +419,7 @@ bool SmfExecControlObjHandler::copyExecControlObject() {
     }
   }
 
+  finalizeImmOmHandles();
   TRACE_LEAVE();
   return rc;
 }
@@ -428,12 +450,15 @@ void SmfExecControlObjHandler::saveAttributeDescriptors() {
  * 
  * @return false on Fail
  */
-bool SmfExecControlObjHandler::createAllImmHandles() {
+bool SmfExecControlObjHandler::createImmOmHandles() {
   SaAisErrorT ais_rc = SA_AIS_ERR_TRY_AGAIN;
   int timeout_try_cnt = 6;
   bool rc = true;
 
   TRACE_ENTER();
+
+  finalizeImmOmHandles();
+
   // OM handle
   while (timeout_try_cnt > 0) {
     ais_rc = immutil_saImmOmInitialize(&m_omHandle, NULL,
@@ -446,23 +471,6 @@ bool SmfExecControlObjHandler::createAllImmHandles() {
     LOG_NO("%s: saImmOmInitialize Fail %s", __FUNCTION__,
            saf_error(ais_rc));
     rc = false;
-  }
-
-  // Accessors handle
-  if (rc == true) {
-    timeout_try_cnt = 6;
-    while (timeout_try_cnt > 0) {
-      ais_rc = immutil_saImmOmAccessorInitialize(m_omHandle,
-                                                 &m_accessorHandle);
-      if (ais_rc != SA_AIS_ERR_TIMEOUT)
-        break;
-      timeout_try_cnt--;
-    }
-    if (ais_rc != SA_AIS_OK) {
-      LOG_NO("%s: saImmOmAccessorInitialize Fail %s",
-             __FUNCTION__, saf_error(ais_rc));
-      rc = false;
-    }
   }
 
   // Admin owner handle
@@ -503,4 +511,18 @@ bool SmfExecControlObjHandler::createAllImmHandles() {
 
   TRACE_LEAVE();
   return rc;
+}
+
+void SmfExecControlObjHandler::finalizeImmOmHandles() {
+  if (m_omHandle != 0) {
+    SaAisErrorT ais_rc = immutil_saImmOmFinalize(m_omHandle);
+    if (ais_rc != SA_AIS_OK) {
+      LOG_NO("%s: immutil_saImmOmFinalize Fail %s",
+             __FUNCTION__, saf_error(ais_rc));
+    }
+  }
+
+  m_omHandle = 0;
+  m_ownerHandle = 0;
+  m_ccbHandle = 0;
 }

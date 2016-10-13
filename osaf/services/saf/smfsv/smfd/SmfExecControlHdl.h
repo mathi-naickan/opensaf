@@ -85,7 +85,8 @@ class SmfExecControlObjHandler {
   bool readOpenSafSmfConfig();
   bool copyExecControlObject();
   void removeExecControlObjectCopy();
-  bool createAllImmHandles();
+  bool createImmOmHandles();
+  void finalizeImmOmHandles();
   void saveAttributeDescriptors();
 
 
@@ -104,7 +105,7 @@ class SmfExecControlObjHandler {
 
   
   // For OpenSafSmfExecControl object copy
-  const char* c_openSafSmfExecControl_copy = "openSafSmfExecControl_copy";
+  const char* c_openSafSmfExecControl_copy = "openSafSmfExecControl=SmfHdlCopy";
   SaImmAttrValuesT_2 **m_attributes;
   SaImmAttrValuesT_2 *m_exec_ctrl_name_ad;
   SaImmAttrValuesT_2 *m_procExecMode_ad;
@@ -114,11 +115,9 @@ class SmfExecControlObjHandler {
 
   // For storing IMM handles
   const SaVersionT m_immVersion {'A', 2, 1};
-  SaImmHandleT m_omHandle {0};
-  SaImmAdminOwnerHandleT m_ownerHandle {0};
-  SaImmCcbHandleT m_ccbHandle {0};
-  SaImmAccessorHandleT m_accessorHandle {0};
-
+  SaImmHandleT m_omHandle;
+  SaImmAdminOwnerHandleT m_ownerHandle;
+  SaImmCcbHandleT m_ccbHandle;
 
   DELETE_COPY_AND_MOVE_OPERATORS(SmfExecControlObjHandler);
 };

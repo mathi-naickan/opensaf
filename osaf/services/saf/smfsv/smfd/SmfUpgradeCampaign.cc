@@ -93,6 +93,7 @@ SmfUpgradeCampaign::~SmfUpgradeCampaign()
         }
         m_originalProcedures.clear();
 
+        m_execControlHdl->uninstall();
         delete m_execControlHdl;
 
         TRACE_LEAVE();
