@@ -704,6 +704,133 @@ done:
 	}
 }
 
+//
+// This test to verify Open call gets BAD_OPERATION or not during si-swap
+//
+void saLogStreamOpen_BadOp(void)
+{
+	SaAisErrorT rc;
+	char command[1000];
+	int loop;
+
+	cond_check();
+	rc = saLogInitialize(&logHandle, &logCallbacks, &logVersion);
+	if (rc != SA_AIS_OK) {
+		fprintf(stderr, "Failed at saLogInitialize: %d \n", (int)rc);
+		test_validate(rc, SA_AIS_OK);
+		return;
+	}
+
+	// Perform si-swap in background
+	sprintf(command, "amf-adm si-swap safSi=SC-2N,safApp=OpenSAF &");
+	loop = system(command);
+
+	// To make Open probably processed righ after logsv HA is set to QUEISED state.
+	// This test is created to reproduce the issue reported in ticket #2093
+	// The amount of sleep is an guess. It works when running on UML
+	// If running on other power test enviroment, si-swap may happens quick.
+	usleep(100*1000);
+
+	loop = 100;
+tryagain:
+	rc = saLogStreamOpen_2(logHandle, &app1StreamName, &appStream1LogFileCreateAttributes,
+	                       SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle);
+	if (rc == SA_AIS_ERR_TRY_AGAIN && loop--) {
+		usleep(100*1000);
+		goto tryagain;
+	}
+
+	test_validate(rc, SA_AIS_OK);
+
+tryagain_2:
+	rc = saLogStreamClose(logStreamHandle);
+	if (rc == SA_AIS_ERR_TRY_AGAIN && loop--) {
+		usleep(100*1000);
+		goto tryagain_2;
+	}
+
+
+	rc = saLogFinalize(logHandle);
+	if (rc != SA_AIS_OK) {
+		fprintf(stderr, "Failed to call salogFinalize: %d \n", (int) rc);
+	}
+}
+
+//
+// This test to verify Close call gets BAD_OPERATION in syslog or not during si-swap
+//
+void saLogStreamClose_BadOp(void)
+{
+	SaAisErrorT rc;
+	char command[1000];
+	int loop;
+
+	cond_check();
+	rc = saLogInitialize(&logHandle, &logCallbacks, &logVersion);
+	if (rc != SA_AIS_OK) {
+		fprintf(stderr, "Failed at saLogInitialize: %d \n", (int)rc);
+		test_validate(rc, SA_AIS_OK);
+		return;
+	}
+
+	loop = 100;
+tryagain:
+	rc = saLogStreamOpen_2(logHandle, &app1StreamName, &appStream1LogFileCreateAttributes,
+	                       SA_LOG_STREAM_CREATE, SA_TIME_ONE_SECOND, &logStreamHandle);
+	if (rc == SA_AIS_ERR_TRY_AGAIN && loop--) {
+		usleep(100*1000);
+		goto tryagain;
+	}
+
+	if (rc != SA_AIS_OK) {
+		fprintf(stderr, "Failed to open stream (%d)\n", rc);
+		test_validate(rc, SA_AIS_OK);
+		goto done;
+	}
+
+	// Perform si-swap in background
+	sprintf(command, "amf-adm si-swap safSi=SC-2N,safApp=OpenSAF &");
+	loop = system(command);
+
+	// To make Close probably processed righ after logsv HA is set to QUEISED state.
+	// This test is created to reproduce the issue reported in ticket #2093
+	// The amount of sleep is an guess. It works when running on UML.
+	// If running on other power test enviroment, si-swap may happens quick.
+	usleep(100*1000);
+
+	loop = 100;
+tryagain_2:
+	rc = saLogStreamClose(logStreamHandle);
+	if (rc == SA_AIS_ERR_TRY_AGAIN && loop--) {
+		usleep(100*1000);
+		goto tryagain_2;
+	}
+
+	test_validate(rc, SA_AIS_OK);
+
+done:
+	rc = saLogFinalize(logHandle);
+	if (rc != SA_AIS_OK) {
+		fprintf(stderr, "Failed to call salogFinalize: %d \n", (int) rc);
+	}
+}
+
+// For verifying the fault reported in ticket #2093
+// The test must be performed on PL node
+// As running si-swap in background, then need to put these 02 cases
+// into 02 separate test suites
+void add_suite_15()
+{
+	test_suite_add(15, "Test Open API while si-swap");
+	test_case_add(15, saLogStreamOpen_BadOp, "saLogStreamOpen_2 while si-swap");
+}
+
+void add_suite_16()
+{
+	test_suite_add(16, "Test Close API while si-swap");
+	test_case_add(16, saLogStreamClose_BadOp, "saLogStreamClose while si-swap");
+}
+
 extern void saLogStreamOpenAsync_2_01(void);
 extern void saLogStreamOpenCallbackT_01(void);
 extern void saLogWriteLog_01(void);
@@ -791,4 +918,3 @@ __attribute__ ((constructor)) static void saLibraryLifeCycle_constructor(void)
     test_case_add(2, verFixLogRec_Min_Err, "saLogStreamOpen_2 with maxLogRecordSize < 150, ERR");
     test_case_add(2, saLogStreamOpen_2_50, "saLogStreamOpen_2 with stream number out of the limitation, ERR");
 }
-

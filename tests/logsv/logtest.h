@@ -27,6 +27,8 @@
 #include <utest.h>
 #include <util.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#include <limits.h>
 
 #include <osaf_time.h>
 #include <logtrace.h>
@@ -99,6 +101,8 @@ void add_suite_9(void);
 void add_suite_10(void);
 void add_suite_11(void);
 void add_suite_12(void);
+void add_suite_15();
+void add_suite_16();
 
 int get_active_sc(void);
 int get_attr_value(SaNameT *inObjName, char *inAttr, void *outValue);
@@ -135,5 +139,10 @@ static inline void time_meas_print_v(time_meas_t* tm, char *id)
 	printf_v("\n%s. Elapsed time %ld.%09ld sec\n", id,
 		 tm->diff_time.tv_sec, tm->diff_time.tv_nsec);
 }
+
+// Common interfaces
+const char *hostname(void);
+bool is_test_done_on_pl(void);
+void cond_check(void);
 
 #endif

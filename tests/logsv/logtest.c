@@ -104,6 +104,7 @@ SaNameT saNameT_appstream_name_256 =
 };
 
 static char buf[2048];
+static char host_name[_POSIX_HOST_NAME_MAX] = {0};
 
 SaLogBufferT alarmStreamBuffer =
 {
@@ -397,6 +398,25 @@ int get_active_sc(void)
 	return active_sc;
 }
 
+const char *hostname(void)
+{
+	gethostname(host_name, _POSIX_HOST_NAME_MAX);
+	return host_name;
+}
+
+bool is_test_done_on_pl(void)
+{
+	return (strncmp(hostname(), "PL-", strlen("PL-")) == 0);
+}
+
+void cond_check(void)
+{
+	if (is_test_done_on_pl() == false) {
+		fprintf(stderr, "Test must be done on payload node \n");
+		exit(EXIT_FAILURE);
+	}
+}
+
 /**
  * Print help text
  */
@@ -506,6 +526,8 @@ int main(int argc, char **argv)
 			add_suite_10();
 			add_suite_11();
 			add_suite_12();
+			add_suite_15();
+			add_suite_16();
 			test_list();
 			exit(0);
 		case 'e':
@@ -537,6 +559,8 @@ int main(int argc, char **argv)
 			add_suite_10();
 			add_suite_11();
 			add_suite_12();
+			add_suite_15();
+			add_suite_16();
 			break;
 		case 'v':
 			if (silent_flg == true) {
