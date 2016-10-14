@@ -1033,12 +1033,8 @@ uint32_t avnd_di_msg_send(AVND_CB *cb, AVND_MSG *msg)
 	if (!msg)
 		goto done;
 
-	/* Verify Ack nack and PG track action msgs are not buffered */
-	if (m_AVSV_N2D_MSG_IS_PG_TRACK_ACT(msg->info.avd)) {
-		/*send the response to AvD */
-		rc = avnd_mds_send(cb, msg, &cb->avd_dest, 0);
-		goto done;
-	} else if (m_AVSV_N2D_MSG_IS_VER_ACK_NACK(msg->info.avd)) {
+	/* Verify Ack nack msgs are not buffered */
+	if (m_AVSV_N2D_MSG_IS_VER_ACK_NACK(msg->info.avd)) {
 		/*send the response to active AvD (In case MDS has not updated its
 		   tables by this time) */
 		TRACE_1("%s, Active AVD Adest: %" PRIu64, __FUNCTION__, cb->active_avd_adest);
