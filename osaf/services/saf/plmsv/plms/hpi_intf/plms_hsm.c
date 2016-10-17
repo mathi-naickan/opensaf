@@ -261,8 +261,45 @@ SaUint32T plms_get_hotswap_model(const SaHpiEntityPathT *epath_ptr,
 							&rptUpdateCount);
 
 		if (hpirc != SA_OK) {
-			LOG_ER("failed to get resource id: %i", hpirc);
+			SaInt8T *entityPathStr = 0;
+
+			if (convert_entitypath_to_string(epath_ptr,
+							&entityPathStr) !=
+				NCSCC_RC_SUCCESS) {
+				/*
+				 * For some reason couldn't convert to string
+				 * so just write out the enums
+				 */
+				int i;
+				entityPathStr = malloc(256);
+				memset(entityPathStr, 0, 256);
+
+				for (i = 0; i < SAHPI_MAX_ENTITY_PATH; i++) {
+					sprintf(&entityPathStr[strlen(entityPathStr)],
+						"%i",
+						epath_ptr->Entry[i].EntityType);
+
+					sprintf(&entityPathStr[strlen(entityPathStr)],
+						".%i",
+						epath_ptr->Entry[i].EntityLocation);
+
+					if (epath_ptr->Entry[i].EntityType ==
+						SAHPI_ENT_ROOT)
+						break;
+				        else
+						sprintf(&entityPathStr[strlen(entityPathStr)],
+							",");
+			        }
+			}
+
+			LOG_ER("failed to get resource id for entity: %s: %i",
+				entityPathStr,
+				hpirc);
 			rc = NCSCC_RC_FAILURE;
+
+			if (entityPathStr)
+				free(entityPathStr);
+
 			break;
 		}
 
@@ -273,7 +310,9 @@ SaUint32T plms_get_hotswap_model(const SaHpiEntityPathT *epath_ptr,
 							&rptEntry);
 
 		if (hpirc != SA_OK) {
-			LOG_ER("failed to get rpt entry id: %i", hpirc);
+			LOG_ER("failed to get rpt entry id for res: %d: %i",
+				resourceId,
+				hpirc);
 			rc = NCSCC_RC_FAILURE;
 			break;
 		}
@@ -816,7 +855,9 @@ static SaUint32T hsm_discover_and_dispatch()
 			rc = saHpiEventLogClear(cb->session_id,
 					      rpt_entry.ResourceId);
 			if (SA_OK != rc)
-				LOG_ER("saHpiEventLogClear failed ret val:%u",rc);
+				LOG_ER("saHpiEventLogClear for res: %d failed ret val:%d",
+					rpt_entry.ResourceId,
+					rc);
 		}
 
 		/* Get the Hotswap State model for this resource */
@@ -1201,7 +1242,7 @@ static SaUint32T hsm_get_idr_chassis_info(SaHpiRptEntryT  *rpt_entry,
         SaHpiIdrAreaHeaderT  area_info;
         SaHpiIdrFieldT       thisField;
         PLMS_HSM_CB          *cb = hsm_cb;
-        SaUint32T            err = SA_OK;
+        SaErrorT             err = SA_OK;
         SaHpiEntryIdT        fieldId;
         area_id = SAHPI_FIRST_ENTRY;
 
@@ -1216,8 +1257,12 @@ static SaUint32T hsm_get_idr_chassis_info(SaHpiRptEntryT  *rpt_entry,
                                         &next_area,
                                         &area_info);
 
-		if (err != SA_OK)
+		if (err != SA_OK) {
+			LOG_ER("saHpiIdrAreaHeaderGet failed for res: %d err: %d",
+				rpt_entry->ResourceId,
+				err);
 			return NCSCC_RC_FAILURE;
+		}
 
                 /* Check out what Area it is */
                 if (area_info.Type == SAHPI_IDR_AREATYPE_CHASSIS_INFO) {
@@ -1262,7 +1307,9 @@ static SaUint32T hsm_get_idr_chassis_info(SaHpiRptEntryT  *rpt_entry,
 
                         }
                 } else {
-                        LOG_ER("hsm_get_idr_chassis_info failed error val is:%d",err);
+                        LOG_ER("saHpiIdrFieldGet failed for res: %d error val is:%d",
+				rpt_entry->ResourceId,
+				err);
                         return NCSCC_RC_FAILURE;
                 }
                 fieldId = next_field;
@@ -1292,7 +1339,7 @@ static SaUint32T hsm_get_idr_board_info(SaHpiRptEntryT  *rpt_entry,
 	SaHpiIdrAreaHeaderT area_info;
 	SaHpiIdrFieldT thisField;
 	SaHpiEntryIdT  fieldId;
-	SaUint32T      err = SA_OK;
+	SaErrorT       err = SA_OK;
 	area_id = SAHPI_FIRST_ENTRY;
 
 	/* get the BOARD_INFO area header for the given resource */
@@ -1306,8 +1353,12 @@ static SaUint32T hsm_get_idr_board_info(SaHpiRptEntryT  *rpt_entry,
                                         &next_area,
                                         &area_info);
 
-		if (err != SA_OK)
+		if (err != SA_OK) {
+			LOG_ER("saHpiIdrAreaHeaderGet failed for res: %d err: %d",
+				rpt_entry->ResourceId,
+				err);
 			return NCSCC_RC_FAILURE;
+		}
 
                 /* Check out what Area it is */
                 if (area_info.Type == SAHPI_IDR_AREATYPE_BOARD_INFO) {
@@ -1374,7 +1425,9 @@ static SaUint32T hsm_get_idr_board_info(SaHpiRptEntryT  *rpt_entry,
                                         board_area.fru_field_id.DataLength);
                         }
                 } else {
-                        LOG_ER("hsm_get_idr_board_info failed error val is:%d",err);
+                        LOG_ER("saHpiIdrFieldGet failed for res: %d error val is:%d",
+				rpt_entry->ResourceId,
+				err);
                         return NCSCC_RC_FAILURE;
                 }
                 fieldId = next_field;
@@ -1400,7 +1453,7 @@ static SaUint32T hsm_get_idr_product_info(SaHpiRptEntryT  *rpt_entry,
 	SaHpiIdrAreaHeaderT area_info;
 	SaHpiIdrFieldT thisField;
 	SaHpiEntryIdT  fieldId;
-	SaUint32T      err = SA_OK;
+	SaErrorT       err = SA_OK;
 	area_id = SAHPI_FIRST_ENTRY;
 
 	/* get the PRODUCT_INFO area header for the given resource */
@@ -1415,8 +1468,12 @@ static SaUint32T hsm_get_idr_product_info(SaHpiRptEntryT  *rpt_entry,
                                         &next_area,
                                         &area_info);
 
-		if (err != SA_OK)
+		if (err != SA_OK) {
+			LOG_ER("saHpiIdrAreaHeaderGet failed for res: %d err: %d",
+				rpt_entry->ResourceId,
+				err);
 			return NCSCC_RC_FAILURE;
+		}
 
                 /* Check out what Area it is */
                 if (area_info.Type == SAHPI_IDR_AREATYPE_PRODUCT_INFO) {
@@ -1505,7 +1562,9 @@ static SaUint32T hsm_get_idr_product_info(SaHpiRptEntryT  *rpt_entry,
                                         product_area.fru_field_id.DataLength);
                         }
                 } else {
-                        LOG_ER("hsm_get_idr_board_info failed error val is:%d",err);
+                        LOG_ER("saHpiIdrFieldGet failed for res: %d error val is:%d",
+				rpt_entry->ResourceId,
+				err);
                         return NCSCC_RC_FAILURE;
                 }
                 fieldId = next_field;
@@ -1562,7 +1621,7 @@ SaUint32T hsm_get_idr_info(SaHpiRptEntryT  *rpt_entry,
 	SaHpiRdrT       rdr;
 /*	SaHpiIdrInfoT   idr_info; */
 	SaHpiIdrIdT 	idr_id;
-	SaUint32T       err;
+	SaErrorT        err;
 
 	TRACE_ENTER();
 
@@ -1577,7 +1636,9 @@ SaUint32T hsm_get_idr_info(SaHpiRptEntryT  *rpt_entry,
 		err = saHpiRdrGet(cb->session_id, rpt_entry->ResourceId, 
 				current_entry, &next_entry, &rdr); 
 		if (SA_OK != err){
-			LOG_ER("HSM:RDR get failed with err:%d",err);
+			LOG_ER("HSM:RDR get (saHpiRdrGet) failed for res: %d with err:%d",
+				rpt_entry->ResourceId,
+				err);
 			if(SA_ERR_HPI_CAPABILITY == err){
 				LOG_ER("HSM:RDR table is empty ");
 				return NCSCC_RC_FAILURE;
