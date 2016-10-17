@@ -4999,7 +4999,7 @@ static uint32_t immnd_evt_proc_admop_rsp(IMMND_CB *cb, IMMND_EVT *evt,
 		if (rc != NCSCC_RC_SUCCESS) {
 			LOG_ER("Failure in sending reply for admin-op over MDS");
 		}
-	} else if (reply_dest) {
+	} else if (reply_dest && reply_dest != (SaUint64T) cb->immnd_mdest_id) {
 		/*Forward reply to relevant ND. */
 		send_evt.type = IMMSV_EVT_TYPE_IMMND;
 		if(evt->info.admOpRsp.parms) {
