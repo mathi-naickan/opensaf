@@ -375,8 +375,13 @@ static SaUint32T hrb_process_hpi_req( PLMS_HPI_REQ  *hpi_req )
 	TRACE("Processing Status for hpi request for res:%u HPI resp:%i",
 			resourceid,hpirc);
 
-	if(hpirc != SA_OK)
+	if(hpirc != SA_OK) {
+		 LOG_ER("PLMS HPI cmd: %d failed for res: %d err: %i",
+		 	hpi_req->cmd,
+			resourceid,
+			hpirc);
 		 response->ret_val = NCSCC_RC_FAILURE; 
+	 }
 	else
 		response->ret_val  = NCSCC_RC_SUCCESS; 
 

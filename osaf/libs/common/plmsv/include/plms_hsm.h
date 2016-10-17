@@ -57,7 +57,7 @@ SaUint32T plms_hsm_finalize(void);
 SaUint32T hsm_get_idr_info(SaHpiRptEntryT  *rpt_entry,
                                 PLMS_INV_DATA  *inv_data);
 
-SaUint32T convert_entitypath_to_string(SaHpiEntityPathT *entity_path,
+SaUint32T convert_entitypath_to_string(const SaHpiEntityPathT *entity_path,
                                         SaInt8T **ent_path_str);
 SaUint32T plms_hsm_session_close();
 #endif   /* PLMS_HSM_H */

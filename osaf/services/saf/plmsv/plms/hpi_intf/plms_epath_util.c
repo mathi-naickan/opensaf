@@ -53,13 +53,13 @@ typedef struct
 /***********************************************************************
 *   FUNCTION PROTOTYPES
 ***********************************************************************/
-SaUint32T convert_entitypath_to_string(SaHpiEntityPathT *entity_path,
+SaUint32T convert_entitypath_to_string(const SaHpiEntityPathT *entity_path,
 					SaInt8T **ent_path_str);
 SaUint32T convert_string_to_epath(SaInt8T *epath_str,
                                            SaHpiEntityPathT *epath_ptr);
 static void remove_spaces(SaInt8T **tok);
 
-static SaUint32T convert_entity_types(SaHpiEntityPathT *entity_path, 
+static SaUint32T convert_entity_types(const SaHpiEntityPathT *entity_path,
 				SaInt8T *ent_path_str,
 				SaUint32T  index_array[SAHPI_MAX_ENTITY_PATH]);
 
@@ -204,7 +204,7 @@ static PLMS_ENTITY_TYPE_LIST  hpi_ent_type_list[] = {
  *
  * Notes         : None.
  ************************************************************************/
-SaUint32T convert_entitypath_to_string(SaHpiEntityPathT *entity_path, 
+SaUint32T convert_entitypath_to_string(const SaHpiEntityPathT *entity_path,
 			SaInt8T **ent_path_str)
 {
         SaUint32T  i     = 0;
@@ -336,7 +336,7 @@ SaUint32T convert_entitypath_to_string(SaHpiEntityPathT *entity_path,
 *
 * Notes         : None.
 *****************************************************************************/
-static SaUint32T convert_entity_types(SaHpiEntityPathT *entity_path, 
+static SaUint32T convert_entity_types(const SaHpiEntityPathT *entity_path,
 				SaInt8T *ent_path_str,
 				SaUint32T  index_array[SAHPI_MAX_ENTITY_PATH])
 {
