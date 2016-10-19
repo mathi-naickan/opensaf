@@ -24,6 +24,7 @@
 #include <climits>
 #include <ctime>
 #include "osaf_time.h"
+#include "macros.h"
 
 static inline bool operator<(const timespec& ts1, const timespec& ts2) {
   return osaf_timespec_compare(&ts1, &ts2) < 0;
@@ -269,6 +270,40 @@ static inline timespec Max(const timespec& ts1, const timespec& ts2,
                            const timespec& ts3) {
   return osaf_timespec_compare(&ts1, &ts2) >= 0 ? Max(ts1, ts3) : Max(ts2, ts3);
 }
+
+/**
+ * Set a timeout in milliseconds and check if that time has elapsed
+ * The time can be set when the object is created and using a set method
+ */
+class Timer {
+ public:
+  // Set time in ms when creating Timer object
+  explicit Timer(uint64_t i_millis)
+    : m_ts_timeout_time({0, 0}) {
+    set_timeout_time(i_millis);
+  }
+  ~Timer() {}
+
+  // Set time after Timer object is created
+  void set_timeout_time(uint64_t i_millis) {
+    osaf_set_millis_timeout(i_millis, &m_ts_timeout_time);
+  }
+
+  // Return true if on set time or set time has expired
+  const bool is_timeout() {
+    return osaf_is_timeout(&m_ts_timeout_time);
+  }
+
+  // Return time left before timeout in ms
+  const uint64_t time_left() {
+    return osaf_timeout_time_left(&m_ts_timeout_time);
+  }
+
+ private:
+  struct timespec m_ts_timeout_time;
+
+  DELETE_COPY_AND_MOVE_OPERATORS(Timer);
+};
 
 } // namespace base
 

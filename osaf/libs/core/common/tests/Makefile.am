@@ -42,6 +42,7 @@ core_common_test_SOURCES = \
 	osaf_timespec_compare_test.cc \
 	osaf_timespec_convert_test.cc \
 	osaf_timespec_subtract_test.cc \
+	osaf_millis_timeout_test.cc \
 	mock_clock_gettime.cc \
 	mock_clock_nanosleep.cc \
 	mock_syslog.cc

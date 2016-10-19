@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <sys/time.h>
+#include <stdbool.h>
 #include "osaf_utility.h"
 
 #ifdef  __cplusplus
@@ -252,6 +253,23 @@ static inline uint64_t osaf_timespec_to_nanos(const struct timespec* i_ts);
  */
 static inline double osaf_timespec_to_double(const struct timespec* i_ts);
 
+/**
+ * @brief Set a time @a i_millis in the future. To be used with
+ * osaf_is_timeout()
+ *
+ * Read current time and add @a i_millis in @a o_ts
+ */
+static inline void osaf_set_millis_timeout(uint64_t i_millis,
+                                           struct timespec* o_ts);
+/**
+ * @brief Inform if the time given in @a i_ts is passed
+ *
+ * Read current time and compare with the given timeout time.
+ * The return value will be -1, 0 or 1, if @a timeout time not passed,
+ * time equal to @a timeout time, or greater than @a timeout time, respectively.
+ */
+static inline bool osaf_is_timeout(const struct timespec* i_ts);
+
 static inline void osaf_clock_gettime(clockid_t i_clk_id, struct timespec* o_ts) {
   if (clock_gettime(i_clk_id, o_ts) != 0) osaf_abort(i_clk_id);
 }
@@ -367,6 +385,39 @@ static inline uint64_t osaf_timespec_to_nanos(const struct timespec* i_ts) {
 
 static inline double osaf_timespec_to_double(const struct timespec* i_ts) {
   return i_ts->tv_sec + i_ts->tv_nsec / (double) kNanosPerSec;
+}
+
+static inline void osaf_set_millis_timeout(uint64_t i_millis,
+                                           struct timespec* o_ts) {
+  struct timespec current_ts;
+  struct timespec millis_to_add_ts;
+  osaf_clock_gettime(CLOCK_MONOTONIC, &current_ts);
+  osaf_millis_to_timespec(i_millis, &millis_to_add_ts);
+  osaf_timespec_add(&current_ts, &millis_to_add_ts, o_ts);
+}
+
+static inline bool osaf_is_timeout(const struct timespec* i_ts) {
+  struct timespec current_ts;
+  osaf_clock_gettime(CLOCK_MONOTONIC, &current_ts);
+  if (osaf_timespec_compare(&current_ts, i_ts) < 0)
+    return false;
+  else
+    return true;
+}
+
+static inline uint64_t osaf_timeout_time_left(const struct timespec* i_ts) {
+  struct timespec current_ts;
+  uint64_t time_left = 0;
+  struct timespec diff_ts;
+  osaf_clock_gettime(CLOCK_MONOTONIC, &current_ts);
+  if (osaf_timespec_compare(&current_ts, i_ts) < 0) {
+    osaf_timespec_subtract(i_ts, &current_ts, &diff_ts);
+    time_left = osaf_timespec_to_millis(&diff_ts);
+  } else {
+    time_left = 0;
+  }
+
+  return time_left;
 }
 
 #ifdef  __cplusplus
