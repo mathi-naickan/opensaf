@@ -122,11 +122,16 @@ timespec ElectionStarter::Poll() {
 
 timespec ElectionStarter::CalculateTimeRemainingUntilNextEvent() const {
   timespec timeout;
-  if (controller_nodes_.tree.empty() &&
-      nodes_with_lower_node_id_.tree.empty()) {
+  if (controller_nodes_.tree.empty()) {
+    timespec delay = election_delay_time_;
+    // The node with the lowest node-id will be given priority to start an
+    // election. After twenty seconds (plus the election delay time) without any
+    // controller node, all nodes in the cluster will be allowed to start an
+    // election.
+    if (!nodes_with_lower_node_id_.tree.empty()) delay += base::kTwentySeconds;
     timeout =
-        base::Max(controller_nodes_.last_change + election_delay_time_,
-                  nodes_with_lower_node_id_.last_change + election_delay_time_,
+        base::Max(controller_nodes_.last_change + delay,
+                  nodes_with_lower_node_id_.last_change + delay,
                   last_election_start_attempt_ + base::kOneHundredMilliseconds);
   } else {
     timeout = base::kTimespecMax;
