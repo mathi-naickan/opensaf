@@ -745,21 +745,21 @@ SaAisErrorT SG_2N::si_swap(AVD_SI *si, SaInvocationT invocation) {
 	TRACE_ENTER2("'%s' sg_fsm_state=%u", si->name.c_str(), si->sg_of_si->sg_fsm_state);
 
 	if (si->saAmfSIAdminState != SA_AMF_ADMIN_UNLOCKED) {
-		LOG_ER("%s SWAP failed - wrong admin state=%u", si->name.c_str(),
+		LOG_NO("%s SWAP failed - wrong admin state=%u", si->name.c_str(),
 			si->saAmfSIAdminState);
 		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto done;
 	}
 
 	if (avd_cb->init_state != AVD_APP_STATE) {
-		LOG_ER("%s SWAP failed - not in app state (%u)", si->name.c_str(),
+		LOG_NO("%s SWAP failed - not in app state (%u)", si->name.c_str(),
 			avd_cb->init_state);
 		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto done;
 	}
 
 	if (si->sg_of_si->sg_fsm_state != AVD_SG_FSM_STABLE) {
-		LOG_ER("%s SWAP failed - SG not stable (%u)", si->name.c_str(),
+		LOG_NO("%s SWAP failed - SG not stable (%u)", si->name.c_str(),
 			si->sg_of_si->sg_fsm_state);
 		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto done;
@@ -774,14 +774,14 @@ SaAisErrorT SG_2N::si_swap(AVD_SI *si, SaInvocationT invocation) {
 	if ((si->sg_of_si->sg_ncs_spec) && 
 			((avd_cb->node_id_avd_other != 0) && (avd_cb->other_avd_adest != 0))) {
 		if (avd_cb->stby_sync_state == AVD_STBY_OUT_OF_SYNC) {
-			LOG_ER("%s SWAP failed - Cold sync in progress", si->name.c_str());
+			LOG_NO("%s SWAP failed - Cold sync in progress", si->name.c_str());
 			rc = SA_AIS_ERR_TRY_AGAIN;
 			goto done;
 		}
 	}
 
 	if (si->list_of_sisu->si_next == nullptr) {
-		LOG_ER("%s SWAP failed - only one assignment", si->name.c_str());
+		LOG_NO("%s SWAP failed - only one assignment", si->name.c_str());
 		rc = SA_AIS_ERR_TRY_AGAIN;
 		goto done;
 	}
