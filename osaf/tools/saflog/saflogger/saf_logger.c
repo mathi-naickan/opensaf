@@ -99,7 +99,7 @@ static void usage(void)
 	printf("\t\tvalid severity names: emerg, alert, crit, error, warn, notice, info\n");
 
 	printf("\nEXAMPLES\n");
-	printf("\tsaflogger -a safLgStrCfg=Test \"Hello world\"\n");
+	printf("\tsaflogger -a safLgStr=Test \"Hello world\"\n");
 	printf("\tsaflogger -s crit \"I am going down\"\n\n");
 }
 
