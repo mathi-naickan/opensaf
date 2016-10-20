@@ -2821,30 +2821,17 @@ SmfAdminOperation::SmfAdminOperation(std::list <unitNameAndState> *i_allUnits)
 	// and an immediate return is done
 	// The public methods shall return fail if m_creation_fail is true
 
-	bool rc = initAllImmHandles();
+	bool rc = initNodeGroupOm();
 	if (rc == false) {
-		LOG_NO("%s: getAllImmHandles Fail", __FUNCTION__);
-		m_creation_fail = true;
-		return;
-	}
-	
-	// Set parent DN for the Node group used for parallel locking
-	rc = setNodeGroupParentDn();
-	if (rc == false) {
-		LOG_NO("%s: setNodeGroupParentDn Fail", __FUNCTION__);
+		LOG_NO("%s: initNodeGroupOm Fail", __FUNCTION__);
 		m_creation_fail = true;
 		return;
 	}
 
-	// Become (temporary)admin owner of Amf Cluster object
-	SaNameT nodeGroupParentDn;
-	saAisNameLend(m_nodeGroupParentDn.c_str(), &nodeGroupParentDn);
-	const SaNameT *objectNames[2] = {&nodeGroupParentDn, NULL};
-	SaAisErrorT ais_rc = immutil_saImmOmAdminOwnerSet(m_ownerHandle,
-						objectNames, SA_IMM_ONE);
-	if (ais_rc != SA_AIS_OK) {
-		LOG_NO("%s: saImmOmAdminOwnerSet Fail '%s'", __FUNCTION__,
-			saf_error(ais_rc));
+	rc = becomeAdminOwnerOfAmfClusterObj();
+	if (rc == false) {
+		LOG_NO("%s: becomeAdminOwnerOfAmfClusterObj Fail",
+			__FUNCTION__);
 		m_creation_fail = true;
 		return;
 	}
@@ -2858,7 +2845,7 @@ SmfAdminOperation::SmfAdminOperation(std::list <unitNameAndState> *i_allUnits)
 
 SmfAdminOperation::~SmfAdminOperation()
 {
-        finalizeAllImmHandles();
+        finalizeNodeGroupOm();
 }
 
 ///
@@ -3073,7 +3060,7 @@ bool SmfAdminOperation::restart()
 /// Get all needed IMM handles. Updates corresponding member variables
 /// Return false if fail
 ///
-bool SmfAdminOperation::initAllImmHandles()
+bool SmfAdminOperation::initNodeGroupOm()
 {
 	SaAisErrorT ais_rc = SA_AIS_ERR_TRY_AGAIN;
 	int timeout_try_cnt = 6;
@@ -3111,7 +3098,7 @@ bool SmfAdminOperation::initAllImmHandles()
 		}
 	}
 
-	// Admin owner handle
+	// Admin owner handle and Admin owner
 	if (rc == true) {
 		timeout_try_cnt = 6;
 		while (timeout_try_cnt > 0) {
@@ -3126,6 +3113,20 @@ bool SmfAdminOperation::initAllImmHandles()
 			LOG_NO("%s: saImmOmAdminOwnerInitialize Fail %s",
 				__FUNCTION__, saf_error(ais_rc));
 			rc = false;
+		}
+	}
+
+	// Set parent DN for the Node group used for parallel locking and
+	// Connect the admin owner if a node group already exist
+	rc = setNodeGroupParentDn();
+	if (rc == false) {
+		LOG_NO("%s: setNodeGroupParentDn Fail", __FUNCTION__);
+		rc = false;
+	} else {
+		rc = becomeAdminOwnerOfAmfClusterObj();
+		if (rc == false) {
+			LOG_NO("%s: becomeAdminOwnerOfAmfClusterObj Fail",
+				__FUNCTION__);
 		}
 	}
 
@@ -3150,9 +3151,27 @@ bool SmfAdminOperation::initAllImmHandles()
 	return rc;
 }
 
+// Become (temporary)admin owner of Amf Cluster object and node group
+// Needed in order to administrate a node group
+// Return false if Fail
+bool SmfAdminOperation::becomeAdminOwnerOfAmfClusterObj() {
+	SaNameT nodeGroupParentDn;
+	saAisNameLend(m_nodeGroupParentDn.c_str(), &nodeGroupParentDn);
+	const SaNameT *objectNames[2] = {&nodeGroupParentDn, NULL};
+	SaAisErrorT ais_rc = immutil_saImmOmAdminOwnerSet(m_ownerHandle,
+						objectNames, SA_IMM_SUBTREE);
+	bool rc = true;
+	if (ais_rc != SA_AIS_OK) {
+		LOG_NO("%s: saImmOmAdminOwnerSet Fail '%s'", __FUNCTION__,
+			saf_error(ais_rc));
+	}
+
+	return rc;
+}
+
 // Free all IMM handles that's based on the omHandle and
 // give up admin ownership of Amf Cluster object
-void SmfAdminOperation::finalizeAllImmHandles() {
+void SmfAdminOperation::finalizeNodeGroupOm() {
 	if (m_omHandle != 0) {
 		(void)immutil_saImmOmFinalize(m_omHandle);
 	}
@@ -3449,8 +3468,6 @@ bool SmfAdminOperation::setNodeGroupParentDn()
 ///
 bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 {
-	m_errno = SA_AIS_OK;
-
 	TRACE_ENTER();
 
 	TRACE("\t uniqueNodeName '%s'", m_instanceNodeGroupName.c_str());
@@ -3514,6 +3531,7 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 		osaf_extended_name_lend(node.name.c_str(), &nodeName[i]);
 		nodeNameList[i] = &nodeName[i];
 		i++;
+		TRACE("\t Node %d in list '%s'", i, node.name.c_str());
 	}
 	saAmfNGNodeListAttr.attrValues = nodeNameList;
 
@@ -3532,9 +3550,11 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 		const_cast<SaImmClassNameT>("SaAmfNodeGroup");
 	SaNameT nodeGroupParentDn;
 	osaf_extended_name_lend(m_nodeGroupParentDn.c_str(), &nodeGroupParentDn);
+	TRACE("\t m_nodeGroupParentDn '%s'", m_nodeGroupParentDn.c_str());
 
 	// ------------------------------------
 	// Create the node group
+	m_errno = SA_AIS_OK;
 	bool method_rc = false;
         const uint32_t MAX_NO_RETRIES = 2;
         uint32_t retry_cnt = 0;
@@ -3592,11 +3612,11 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 }
 
 /// Delete the SmfSetAdminState instance specific node group
-/// Return false if Fail. m_ais_errno is set
+/// Return false if Fail. m_errno is set
 ///
 bool SmfAdminOperation::deleteNodeGroup()
 {
-	SaAisErrorT ais_rc = SA_AIS_OK;
+	m_errno = SA_AIS_OK;
 
 	TRACE_ENTER();
 	std::string nodeGroupName_s =
@@ -3607,41 +3627,44 @@ bool SmfAdminOperation::deleteNodeGroup()
 
 	TRACE("\t Deleting nodeGroup '%s'", nodeGroupName_s.c_str());
 	bool method_rc = false;
-        const uint32_t MAX_NO_RETRIES = 2;
+        const uint32_t MAX_NO_RETRIES = 3;
         uint32_t retry_cnt = 0;
         while (++retry_cnt <= MAX_NO_RETRIES) {
                 // Handles including ccb handle may have been invalidated by
                 // IMM resulting in SA_AIS_ERR_BAD_HANDLE response on the
                 // delete object request.
                 // If that's the case: Try to create new handles and try again
-                ais_rc = immutil_saImmOmCcbObjectDelete(m_ccbHandle,
+                m_errno = immutil_saImmOmCcbObjectDelete(m_ccbHandle,
                         &nodeGroupName);
                 TRACE("%s: immutil_saImmOmCcbObjectDelete %s",
                         __FUNCTION__, saf_error(m_errno));
 
-                if (ais_rc == SA_AIS_ERR_BAD_HANDLE) {
+                if (m_errno == SA_AIS_ERR_BAD_HANDLE ||
+		    m_errno == SA_AIS_ERR_BAD_OPERATION) {
                         LOG_NO("%s: saImmOmCcbObjectDelete Fail %s",
                                __FUNCTION__, saf_error(m_errno));
-                        finalizeAllImmHandles();
-                        bool rc = initAllImmHandles();
+                        finalizeNodeGroupOm();
+                        bool rc = initNodeGroupOm();
                         if (rc == false) {
-                                LOG_NO("%s: getAllImmHandles() Fail",
+                                LOG_NO("%s: initNodeGroupOm() Fail",
                                        __FUNCTION__);
                                 method_rc = false;
                                 break;
                         }
+			TRACE("\t Try again after %s",
+				saf_error(m_errno));
                         continue;
-                } else if (ais_rc != SA_AIS_OK) {
+                } else if (m_errno != SA_AIS_OK) {
                       LOG_NO("%s: saImmOmCcbObjectDelete() '%s' Fail %s",
                                 __FUNCTION__, nodeGroupName_s.c_str(),
-                      saf_error(ais_rc));
+                      saf_error(m_errno));
                       method_rc = false;
                       break;
                 } else {
-                        ais_rc = saImmOmCcbApply(m_ccbHandle);
-                        if (ais_rc != SA_AIS_OK) {
+                        m_errno = saImmOmCcbApply(m_ccbHandle);
+                        if (m_errno != SA_AIS_OK) {
                                 LOG_NO("%s: saImmOmCcbApply() Fail '%s'",
-                                        __FUNCTION__, saf_error(ais_rc));
+                                        __FUNCTION__, saf_error(m_errno));
                                 method_rc = false;
                         } else {
                                 method_rc = true;
@@ -3650,8 +3673,8 @@ bool SmfAdminOperation::deleteNodeGroup()
                 }
         }
 
-	TRACE_LEAVE2("rc %s, ais_rc %s", method_rc? "Ok":"Fail",
-                 saf_error(ais_rc));
+	TRACE_LEAVE2("rc %s, m_errno %s", method_rc? "Ok":"Fail",
+                 saf_error(m_errno));
 	return method_rc;
 }
 

@@ -851,8 +851,9 @@ class SmfAdminOperation {
 	bool restart();
 
     private:
-	bool initAllImmHandles();
-        void finalizeAllImmHandles();
+	bool initNodeGroupOm();
+        bool becomeAdminOwnerOfAmfClusterObj();
+        void finalizeNodeGroupOm();
 	bool isRestartError(SaAisErrorT ais_rc);
 
 	// Result in m_nodeList and m_suList
