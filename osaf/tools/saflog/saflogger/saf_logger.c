@@ -101,12 +101,12 @@ static void usage(void)
 	printf("\t-s SEV or --severity=SEV       use severity SEV, default INFO\n");
 	printf("\t\tvalid severity names: emerg, alert, crit, error, warn, notice, info\n");
 	printf("\nNOTES\n");
-	printf("\t1) -f is only applicable for app stream.\n");
+	printf("\t1) -f is only applicable for runtime app stream.\n");
 	printf("\t1) <FILENAME> length must not be longer than 255 characters.\n");
 
 	printf("\nEXAMPLES\n");
-	printf("\tsaflogger -a safLgStrCfg=Test \"Hello world\"\n");
-	printf("\tsaflogger -a safLgStrCfg=Test -f testLogFile \"Hello world\"\n");
+	printf("\tsaflogger -a safLgStr=Test \"Hello world\"\n");
+	printf("\tsaflogger -a safLgStr=Test -f testLogFile \"Hello world\"\n");
 	printf("\tsaflogger -s crit \"I am going down\"\n\n");
 }
 
