@@ -1884,6 +1884,16 @@ uint32_t avnd_su_pres_st_chng_prc(AVND_CB *cb, AVND_SU *su, SaAmfPresenceStateT 
 			/* Send response to Amfd only when there is a pending assignment. */
 			if (m_AVND_SU_IS_ASSIGN_PEND(su))
 				rc = avnd_di_susi_resp_send(cb, su, m_AVND_SU_IS_ALL_SI(su) ? 0 : si);
+			/*
+			   During shutdown phase, all comps of NPI SU are terminated as a part of 
+			   removal of assignments. If a SU enters in TERM_FAILED state then in order
+			   to complete shutdown sequence generate a si-oper done indication.
+			 */
+			if ((si != nullptr) && (m_AVND_IS_SHUTTING_DOWN(cb)) &&
+				(m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVING(si)) && 
+					(all_comps_terminated_in_su(su, true) == true)) {
+				rc = avnd_su_si_oper_done(cb, su, si);
+			}
 		}
 
 		/* instantiating -> term-failed */
@@ -3912,6 +3922,24 @@ static uint32_t avnd_su_pres_termfailed_comptermfail_or_compuninst(AVND_CB *cb, 
       avnd_su_si_del(avnd_cb, &su->name);
     }
   }
+
+  //NPI SU case. 
+  if (!m_AVND_SU_IS_PREINSTANTIABLE(su)) {
+    TRACE_1("NPI SU");
+    AVND_SU_SI_REC *si = (AVND_SU_SI_REC *)m_NCS_DBLIST_FIND_FIRST(&su->si_list);
+
+    /*
+       During shutdown phase, all comps of NPI SU are terminated as a part of
+       removal of assignments. If a SU enters in TERM_FAILED state then in order
+       to complete shutdown sequence generate a si-oper done indication.
+     */
+    if ((si != nullptr) && (m_AVND_IS_SHUTTING_DOWN(cb)) &&
+      (m_AVND_SU_SI_CURR_ASSIGN_STATE_IS_REMOVING(si)) && 
+      (all_comps_terminated_in_su(su, true) == true)) {
+      rc = avnd_su_si_oper_done(cb, su, si);
+    }
+  }
+
   TRACE_LEAVE();
   return rc;
 }
