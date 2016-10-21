@@ -167,7 +167,7 @@ static uint32_t imma_create(NCSMDS_SVC_ID sv_id)
 
 	if (imma_sync_with_immnd(cb) != NCSCC_RC_SUCCESS) {
 		/* Needed to prevent endless TRY_AGAIN loop for first client. */ 
-		goto mds_reg_fail;
+		goto edu_init_fail;
 	}
 
 	/* EDU initialisation ABT: Dont exactly know why we need this but... */
