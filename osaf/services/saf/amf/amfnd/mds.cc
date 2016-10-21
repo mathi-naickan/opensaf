@@ -1416,8 +1416,10 @@ uint32_t avnd_mds_send(AVND_CB *cb, AVND_MSG *msg, MDS_DEST *dest, MDS_SYNC_SND_
 	case AVND_MSG_AVD:
 		send_info->i_to_svc = NCSMDS_SVC_ID_AVD;
 		/* Don't send any messages if we are shutting down */
-		if (m_AVND_IS_SHUTTING_DOWN(cb))
+		if (m_AVND_IS_SHUTTING_DOWN(cb)) {
+			TRACE_1("Shutting down, not sending msg to AMFD.");
 			goto done;
+		}
 		break;
 
 	case AVND_MSG_AVA:

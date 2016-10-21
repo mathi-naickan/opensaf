@@ -1315,6 +1315,19 @@ uint32_t avnd_comp_clc_st_chng_prc(AVND_CB *cb, AVND_COMP *comp, SaAmfPresenceSt
 			}
 
                 }
+		//Terminating -> Terminationfailed.
+                if ((prv_st == SA_AMF_PRESENCE_TERMINATING) && (final_st == SA_AMF_PRESENCE_TERMINATION_FAILED)) {
+			/*
+			   Shutdown phase and NPI comp faulted during its termination as a part of 
+			   of removal of assignment.
+			 */
+			csi = m_AVND_CSI_REC_FROM_COMP_DLL_NODE_GET(m_NCS_DBLIST_FIND_FIRST(&comp->csi_list));
+			if ((m_AVND_IS_SHUTTING_DOWN(cb)) && 
+				(m_AVND_COMP_CSI_CURR_ASSIGN_STATE_IS_REMOVING(csi))) {
+				TRACE_1("CSI marked Removed.");
+				m_AVND_COMP_CSI_CURR_ASSIGN_STATE_SET(csi, AVND_COMP_CSI_ASSIGN_STATE_REMOVED);
+			}
+		}
 
 	}
 
