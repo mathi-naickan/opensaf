@@ -26,6 +26,10 @@
 extern uint32_t cpsv_encode_extended_name(NCS_UBAID *uba, SaNameT *name);
 extern uint32_t cpsv_decode_extended_name(NCS_UBAID *uba, SaNameT *name);
 
+static void cpd_mbcsv_enc_a2s_usr_info_2(NCS_UBAID *io_uba, CPD_A2S_CKPT_USR_INFO_2 *usr_info);
+static void cpd_mbcsv_dec_a2s_usr_info_2(NCS_UBAID *io_uba, CPD_A2S_CKPT_USR_INFO_2 *usr_info, NCS_MBCSV_CB_ARG *arg);
+
+
 /**********************************************************************************************
  * Name                   : cpd_mbcsv_async_update
  *
@@ -447,12 +451,7 @@ uint32_t cpd_mbcsv_enc_async_update(CPD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 
 	case CPD_A2S_MSG_CKPT_USR_INFO:
 		cpd_msg = (CPD_MBCSV_MSG *)NCS_INT64_TO_PTR_CAST(arg->info.encode.io_reo_hdl);
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, FUNC_NAME(CPD_A2S_CKPT_USR_INFO), &arg->info.encode.io_uba,
-				    EDP_OP_TYPE_ENC, &cpd_msg->info.usr_info, &ederror);
-		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE_4("edu exec async userinfo failed ");
-			rc = NCSCC_RC_FAILURE;
-		}
+		cpd_mbcsv_enc_a2s_usr_info_2(&arg->info.encode.io_uba, &cpd_msg->info.usr_info_2);
 		break;
 
 	case CPD_A2S_MSG_CKPT_DEST_DOWN:
@@ -754,7 +753,6 @@ uint32_t cpd_mbcsv_dec_async_update(CPD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 	CPSV_CKPT_DEST_INFO *ckpt_dest_add = NULL;
 	CPSV_CKPT_DEST_INFO *ckpt_dest_del = NULL;
 	CPSV_CKPT_DEST_INFO *ckpt_dest_down = NULL;
-	CPD_A2S_CKPT_USR_INFO *ckpt_usr_info = NULL;
 	uint32_t evt_type, rc = NCSCC_RC_SUCCESS;
 	EDU_ERR ederror = 0;
 
@@ -912,16 +910,8 @@ uint32_t cpd_mbcsv_dec_async_update(CPD_CB *cb, NCS_MBCSV_CB_ARG *arg)
 		break;
 
 	case CPD_A2S_MSG_CKPT_USR_INFO:
-		ckpt_usr_info = &cpd_msg->info.usr_info;
-		rc = m_NCS_EDU_EXEC(&cb->edu_hdl, FUNC_NAME(CPD_A2S_CKPT_USR_INFO), &arg->info.decode.i_uba,
-				    EDP_OP_TYPE_DEC, &ckpt_usr_info, &ederror);
-		if (rc != NCSCC_RC_SUCCESS) {
-			TRACE_4("edu exec async dest del failed"); 
-			rc = NCSCC_RC_FAILURE;
-			goto end;
-		}
 		cpd_msg->type = evt_type;
-		cpd_msg->info.usr_info = *ckpt_usr_info;
+		cpd_mbcsv_dec_a2s_usr_info_2(&arg->info.decode.i_uba, &cpd_msg->info.usr_info_2, arg);
 		rc = cpd_process_sb_msg(cb, cpd_msg);
 
 		if (rc != NCSCC_RC_SUCCESS) {
@@ -1182,4 +1172,79 @@ uint32_t cpd_mbcsv_decode_proc(NCS_MBCSV_CB_ARG *arg)
 		return NCSCC_RC_FAILURE;
 	}
 
+}
+
+/**********************************************************************************************
+ * Name                   : cpd_mbcsv_enc_a2s_usr_info_2
+ *
+ * Description            : This function encodes the message CPD_A2S_MSG_CKPT_USR_INFO
+ *
+ * Return Values          : None
+ *
+ * Notes                  : None
+**********************************************************************************************/
+void cpd_mbcsv_enc_a2s_usr_info_2(NCS_UBAID *io_uba, CPD_A2S_CKPT_USR_INFO_2 *usr_info)
+{
+	TRACE_ENTER();
+	osaf_encode_uint64(io_uba, usr_info->ckpt_id);
+	osaf_encode_uint32(io_uba, usr_info->num_user);
+	osaf_encode_uint32(io_uba, usr_info->num_writer);
+	osaf_encode_uint32(io_uba, usr_info->num_reader);
+	osaf_encode_uint32(io_uba, usr_info->num_sections);
+	osaf_encode_uint32(io_uba, usr_info->ckpt_on_scxb1);
+	osaf_encode_uint32(io_uba, usr_info->ckpt_on_scxb2);
+	osaf_encode_uint32(io_uba, usr_info->node_users_cnt);
+
+	int i = 0;
+	for (i = 0; i < usr_info->node_users_cnt; i++) {
+		osaf_encode_uint64(io_uba, usr_info->node_list[i].dest);
+		osaf_encode_uint32(io_uba, usr_info->node_list[i].num_users);
+		osaf_encode_uint32(io_uba, usr_info->node_list[i].num_writers);
+		osaf_encode_uint32(io_uba, usr_info->node_list[i].num_readers);
+	}
+
+	TRACE_LEAVE();
+}
+
+/**********************************************************************************************
+ * Name                   : cpd_mbcsv_dec_a2s_usr_info_2
+ *
+ * Description            : This function decodes the message CPD_A2S_MSG_CKPT_USR_INFO
+ *
+ *
+ * Return Values          : None
+ *
+ * Notes                  : None
+**********************************************************************************************/
+void cpd_mbcsv_dec_a2s_usr_info_2(NCS_UBAID *io_uba, CPD_A2S_CKPT_USR_INFO_2 *usr_info, NCS_MBCSV_CB_ARG *arg)
+{
+	TRACE_ENTER();
+	osaf_decode_uint64(io_uba, (uint64_t *) &usr_info->ckpt_id);
+	osaf_decode_uint32(io_uba, &usr_info->num_user);
+	osaf_decode_uint32(io_uba, &usr_info->num_writer);
+	osaf_decode_uint32(io_uba, &usr_info->num_reader);
+	osaf_decode_uint32(io_uba, &usr_info->num_sections);
+	osaf_decode_uint32(io_uba, &usr_info->ckpt_on_scxb1);
+	osaf_decode_uint32(io_uba, &usr_info->ckpt_on_scxb2);
+	// Handle old message
+	uint16_t msg_fmt_version = m_NCS_MBCSV_FMT_GET(arg->info.decode.i_peer_version,
+					      CPSV_CPD_MBCSV_VERSION, CPSV_CPD_MBCSV_VERSION_MIN);
+	if (msg_fmt_version < CPSV_CPD_MBCSV_VERSION_USR_INFO) {
+		TRACE_LEAVE();
+		return;
+	}
+	osaf_decode_uint32(io_uba, &usr_info->node_users_cnt);
+
+	int i = 0;
+	CPD_NODE_USER_INFO *node_list = malloc(usr_info->node_users_cnt * sizeof(CPD_NODE_USER_INFO));
+	for (i = 0; i < usr_info->node_users_cnt; i++) {
+		osaf_decode_uint64(io_uba, &node_list[i].dest);
+		osaf_decode_uint32(io_uba, &node_list[i].num_users);
+		osaf_decode_uint32(io_uba, &node_list[i].num_writers);
+		osaf_decode_uint32(io_uba, &node_list[i].num_readers);
+	}
+
+	usr_info->node_list = node_list;
+
+	TRACE_LEAVE();
 }

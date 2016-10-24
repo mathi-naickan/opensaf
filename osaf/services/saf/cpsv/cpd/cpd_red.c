@@ -301,18 +301,34 @@ void cpd_a2s_ckpt_dest_del(CPD_CB *cb, SaCkptCheckpointHandleT ckpt_hdl, MDS_DES
 void cpd_a2s_ckpt_usr_info(CPD_CB *cb, CPD_CKPT_INFO_NODE *ckpt_node)
 {
 	CPD_MBCSV_MSG cpd_msg;
+	int count = 0;
 	uint32_t rc = SA_AIS_OK;
 	memset(&cpd_msg, '\0', sizeof(CPD_MBCSV_MSG));
 
 	TRACE_ENTER();
 	cpd_msg.type = CPD_A2S_MSG_CKPT_USR_INFO;
-	cpd_msg.info.usr_info.ckpt_id = ckpt_node->ckpt_id;
-	cpd_msg.info.usr_info.num_user = ckpt_node->num_users;
-	cpd_msg.info.usr_info.num_writer = ckpt_node->num_writers;
-	cpd_msg.info.usr_info.num_reader = ckpt_node->num_readers;
-	cpd_msg.info.usr_info.num_sections = ckpt_node->num_sections;
-	cpd_msg.info.usr_info.ckpt_on_scxb1 = ckpt_node->ckpt_on_scxb1;
-	cpd_msg.info.usr_info.ckpt_on_scxb2 = ckpt_node->ckpt_on_scxb2;
+	cpd_msg.info.usr_info_2.ckpt_id = ckpt_node->ckpt_id;
+	cpd_msg.info.usr_info_2.num_user = ckpt_node->num_users;
+	cpd_msg.info.usr_info_2.num_writer = ckpt_node->num_writers;
+	cpd_msg.info.usr_info_2.num_reader = ckpt_node->num_readers;
+	cpd_msg.info.usr_info_2.num_sections = ckpt_node->num_sections;
+	cpd_msg.info.usr_info_2.ckpt_on_scxb1 = ckpt_node->ckpt_on_scxb1;
+	cpd_msg.info.usr_info_2.ckpt_on_scxb2 = ckpt_node->ckpt_on_scxb2;
+
+	if (ckpt_node->node_users_cnt) {
+		CPD_NODE_USER_INFO *node_user = ckpt_node->node_users;
+		cpd_msg.info.usr_info_2.node_users_cnt = ckpt_node->node_users_cnt;
+		cpd_msg.info.usr_info_2.node_list = malloc(ckpt_node->node_users_cnt * sizeof(CPD_NODE_USER_INFO));
+		memset(cpd_msg.info.usr_info_2.node_list, '\0', (sizeof(CPD_NODE_USER_INFO) * ckpt_node->node_users_cnt));
+
+		for (count = 0; count < ckpt_node->node_users_cnt; count++) {
+			cpd_msg.info.usr_info_2.node_list[count].dest = node_user->dest;
+			cpd_msg.info.usr_info_2.node_list[count].num_users = node_user->num_users;
+			cpd_msg.info.usr_info_2.node_list[count].num_readers = node_user->num_readers;
+			cpd_msg.info.usr_info_2.node_list[count].num_writers = node_user->num_writers;
+			node_user = node_user->next;
+		}
+	}
 
 	rc = cpd_mbcsv_async_update(cb, &cpd_msg);
 	if (rc != SA_AIS_OK)

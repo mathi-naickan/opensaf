@@ -22,7 +22,7 @@
 #include <saClm.h>
 #include "cpd_tmr.h"
 
-#define CPSV_CPD_MBCSV_VERSION    1
+#define CPSV_CPD_MBCSV_VERSION    2
 
 #define m_CPND_IS_ON_SCXB(m,n) ((m==n)?1:0)
 
@@ -50,7 +50,7 @@
          CPD_WRT_CPA_SUBPART_VER_MIN + 1 )
 
 #define CPSV_CPD_MBCSV_VERSION_MIN 1
-#define CPSV_CPD_MBCSV_VERSION 1
+#define CPSV_CPD_MBCSV_VERSION_USR_INFO 2
 
 #include "saImmOi.h"
 
@@ -92,6 +92,8 @@ typedef struct cpd_ckpt_info_node {
 	uint32_t num_users;
 	uint32_t num_readers;
 	uint32_t num_writers;
+	uint32_t node_users_cnt;
+	CPD_NODE_USER_INFO *node_users;
 
 	/* for imm */
 	SaUint32T ckpt_used_size;

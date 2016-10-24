@@ -1576,3 +1576,151 @@ void cpd_proc_broadcast_rdset_stop(SaCkptCheckpointHandleT ckpt_id, CPD_CB *cb)
 	send_evt.info.cpnd.info.rdset.type = CPSV_CKPT_RDSET_STOP;
 	cpd_mds_bcast_send(cb, &send_evt, NCSMDS_SVC_ID_CPND);
 }
+
+/******************************************************************************************
+ * Name          : cpd_proc_increase_node_ref_user_info
+ *
+ * Description   : This routine increases number of user, writer and reader for 
+ *                 the specified cpnd node reference
+ *
+ * Return Values : None 
+ *
+ * Notes         : None
+******************************************************************************************/
+void cpd_proc_increase_node_user_info(CPD_CKPT_INFO_NODE *ckpt_node, MDS_DEST cpnd_dest, 
+		SaCkptCheckpointOpenFlagsT open_flags)
+{
+	CPD_NODE_USER_INFO *node_user = ckpt_node->node_users;
+	CPD_NODE_USER_INFO *last_node_user = NULL;
+
+	TRACE_ENTER();
+
+	if (ckpt_node->node_users_cnt == 0) {
+		node_user = malloc(sizeof(CPD_NODE_USER_INFO));
+		memset(node_user, 0, sizeof(CPD_NODE_USER_INFO));
+		node_user->dest = cpnd_dest;
+
+		if (open_flags & SA_CKPT_CHECKPOINT_READ)
+			node_user->num_readers++;
+		if (open_flags & SA_CKPT_CHECKPOINT_WRITE)
+			node_user->num_writers++;
+
+		node_user->num_users++;
+		node_user->next = NULL;
+		ckpt_node->node_users = node_user;
+		ckpt_node->node_users_cnt++;
+		TRACE_LEAVE();
+		return;
+	}
+
+	while (node_user) {
+		if (node_user->dest == cpnd_dest) {
+			if (open_flags & SA_CKPT_CHECKPOINT_READ)
+				node_user->num_readers++;
+			if (open_flags & SA_CKPT_CHECKPOINT_WRITE)
+				node_user->num_writers++;
+
+			node_user->num_users++;
+			TRACE_LEAVE();
+			return;
+		}
+		last_node_user = node_user;
+		node_user = node_user->next;
+	}
+
+	/* Add node user */
+	node_user = malloc(sizeof(CPD_NODE_USER_INFO));
+	memset(node_user, 0, sizeof(CPD_NODE_USER_INFO));
+	node_user->dest = cpnd_dest;
+
+	if (open_flags & SA_CKPT_CHECKPOINT_READ)
+		node_user->num_readers++;
+	if (open_flags & SA_CKPT_CHECKPOINT_WRITE)
+		node_user->num_writers++;
+
+	node_user->num_users++;
+	node_user->next = NULL;
+	last_node_user->next = node_user;
+	ckpt_node->node_users_cnt++;
+
+	TRACE_LEAVE();
+}
+
+/******************************************************************************************
+ * Name          : cpd_proc_decrease_node_ref_user_info
+ *
+ * Description   : This routine decreases number of user, writer and reader for 
+ *                 the specified cpnd node reference
+ *
+ * Return Values : None 
+ *
+ * Notes         : None
+******************************************************************************************/
+void cpd_proc_decrease_node_user_info(CPD_CKPT_INFO_NODE *ckpt_node, MDS_DEST cpnd_dest, 
+		SaCkptCheckpointOpenFlagsT open_flags)
+{
+	CPD_NODE_USER_INFO *node_user = ckpt_node->node_users;
+
+	TRACE_ENTER();
+
+	while (node_user) {
+		if (node_user->dest == cpnd_dest) {
+			if (node_user->num_users == 0) {
+				LOG_ER("cpd_proc_decrease_node_user_info failed - no user on node id 0x%X", 
+						m_NCS_NODE_ID_FROM_MDS_DEST(cpnd_dest));
+				TRACE_LEAVE();
+				return;
+			}
+
+			if (open_flags & SA_CKPT_CHECKPOINT_READ)
+				node_user->num_readers--;
+			if (open_flags & SA_CKPT_CHECKPOINT_WRITE)
+				node_user->num_writers--;
+
+			node_user->num_users--;
+			TRACE_LEAVE();
+			return;
+		}
+		node_user = node_user->next;
+	}
+
+	TRACE_LEAVE();
+}
+
+/******************************************************************************************
+ * Name          : cpd_proc_update_user_info_when_node_down
+ *
+ * Description   : This routine updates number of user, writer and reader in case node down 
+ *
+ * Return Values : None 
+ *
+ * Notes         : None
+******************************************************************************************/
+void cpd_proc_update_user_info_when_node_down(CPD_CB *cb, NODE_ID node_id)
+{
+	CPD_CKPT_INFO_NODE *ckpt_node;
+	TRACE_ENTER();
+	
+	cpd_ckpt_node_getnext(&cb->ckpt_tree, NULL, &ckpt_node);
+	while (ckpt_node) {
+		SaCkptCheckpointHandleT prev_ckpt_hdl = ckpt_node->ckpt_id;
+		CPD_NODE_USER_INFO *node_user;
+
+		for (node_user = ckpt_node->node_users; node_user != NULL; node_user = node_user->next) {
+			if (node_id == m_NCS_NODE_ID_FROM_MDS_DEST(node_user->dest)) {
+				ckpt_node->num_users -= node_user->num_users;
+				ckpt_node->num_writers -= node_user->num_writers;
+				ckpt_node->num_readers -= node_user->num_readers;
+
+				node_user->num_users = 0;
+				node_user->num_writers = 0;
+				node_user->num_readers = 0;
+				break;
+			}
+		}
+
+		cpd_ckpt_node_getnext(&cb->ckpt_tree, &prev_ckpt_hdl, &ckpt_node);
+	}
+
+	TRACE_LEAVE();
+}

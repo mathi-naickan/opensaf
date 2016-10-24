@@ -840,6 +840,14 @@ typedef struct cpd_tmr_info {
 	} info;
 } CPD_TMR_INFO;
 
+typedef struct cpd_node_user_info {
+	MDS_DEST dest;
+	uint32_t num_users;
+	uint32_t num_writers;
+	uint32_t num_readers;
+	struct cpd_node_user_info *next;
+} CPD_NODE_USER_INFO;
+
 /******************************************************************************
  CPD Event Data Structures
  ******************************************************************************/

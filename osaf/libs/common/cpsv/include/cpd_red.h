@@ -64,6 +64,18 @@ typedef struct cpd_a2s_ckpt_usr_info {
 
 } CPD_A2S_CKPT_USR_INFO;
 
+typedef struct cpd_a2s_ckpt_usr_info_2 {
+	SaCkptCheckpointHandleT ckpt_id;
+	uint32_t num_user;
+	uint32_t num_writer;
+	uint32_t num_reader;
+	uint32_t num_sections;
+	uint32_t ckpt_on_scxb1;
+	uint32_t ckpt_on_scxb2;
+	uint32_t node_users_cnt;
+	CPD_NODE_USER_INFO *node_list;
+} CPD_A2S_CKPT_USR_INFO_2;
+
 typedef struct cpd_mbcsv_msg {
 	CPD_MBCSV_MSG_TYPE type;
 	union {
@@ -76,6 +88,7 @@ typedef struct cpd_mbcsv_msg {
 		CPD_A2S_CKPT_UNLINK ckpt_ulink;
 		CPD_A2S_CKPT_USR_INFO usr_info;
 		CPSV_CKPT_DEST_INFO dest_down;
+		CPD_A2S_CKPT_USR_INFO_2 usr_info_2;
 	} info;
 } CPD_MBCSV_MSG;
 
