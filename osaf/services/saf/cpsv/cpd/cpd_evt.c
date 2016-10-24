@@ -249,6 +249,7 @@ static uint32_t cpd_evt_proc_ckpt_create(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_INF
 		ckpt_node->num_writers++;
 
 	ckpt_node->num_users++;
+	cpd_proc_increase_node_user_info(ckpt_node, sinfo->dest, ckpt_create->ckpt_flags);
 
 	cb->is_db_upd = true;
 
@@ -447,6 +448,8 @@ static uint32_t cpd_evt_proc_ckpt_usr_info(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_I
 			ckpt_node->num_readers++;
 		if (evt->info.ckpt_usr_info.ckpt_flags & SA_CKPT_CHECKPOINT_WRITE)
 			ckpt_node->num_writers++;
+
+		cpd_proc_increase_node_user_info(ckpt_node, sinfo->dest, evt->info.ckpt_usr_info.ckpt_flags);
 	}
 	else if (evt->info.ckpt_usr_info.info_type == CPSV_USR_INFO_CKPT_OPEN) {
 
@@ -456,6 +459,8 @@ static uint32_t cpd_evt_proc_ckpt_usr_info(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_I
 			ckpt_node->num_readers++;
 		if (evt->info.ckpt_usr_info.ckpt_flags & SA_CKPT_CHECKPOINT_WRITE)
 			ckpt_node->num_writers++;
+
+		cpd_proc_increase_node_user_info(ckpt_node, sinfo->dest, evt->info.ckpt_usr_info.ckpt_flags);
 	}
 	
 	if (evt->info.ckpt_usr_info.info_type == CPSV_USR_INFO_CKPT_CLOSE_LAST) {
@@ -493,6 +498,8 @@ static uint32_t cpd_evt_proc_ckpt_usr_info(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_I
 			ckpt_node->num_readers--;
 		if (evt->info.ckpt_usr_info.ckpt_flags & SA_CKPT_CHECKPOINT_WRITE)
 			ckpt_node->num_writers--;
+
+		cpd_proc_decrease_node_user_info(ckpt_node, sinfo->dest, evt->info.ckpt_usr_info.ckpt_flags);
 	}
 	else if (evt->info.ckpt_usr_info.info_type == CPSV_USR_INFO_CKPT_CLOSE) {
 
@@ -503,6 +510,7 @@ static uint32_t cpd_evt_proc_ckpt_usr_info(CPD_CB *cb, CPD_EVT *evt, CPSV_SEND_I
 		if (evt->info.ckpt_usr_info.ckpt_flags & SA_CKPT_CHECKPOINT_WRITE)
 			ckpt_node->num_writers--;
 
+		cpd_proc_decrease_node_user_info(ckpt_node, sinfo->dest, evt->info.ckpt_usr_info.ckpt_flags);
 	}
 
 	cpd_a2s_ckpt_usr_info(cb, ckpt_node);

@@ -137,6 +137,7 @@ uint32_t cpd_ckpt_node_delete(CPD_CB *cb, CPD_CKPT_INFO_NODE *ckpt_node)
 {
 	uint32_t rc = NCSCC_RC_SUCCESS;
 	CPD_NODE_REF_INFO *nref_info, *next_info;
+	CPD_NODE_USER_INFO *node_user, *next_node_user;
 
 	TRACE_ENTER();
 
@@ -151,6 +152,13 @@ uint32_t cpd_ckpt_node_delete(CPD_CB *cb, CPD_CKPT_INFO_NODE *ckpt_node)
 		next_info = nref_info->next;
 		m_MMGR_FREE_CPD_NODE_REF_INFO(nref_info);
 		nref_info = next_info;
+	}
+
+	node_user = ckpt_node->node_users;
+	while (node_user) {
+		next_node_user = node_user->next;
+		free(node_user);
+		node_user = next_node_user;
 	}
 
 	/* delete imm ckpt runtime object */
@@ -1258,8 +1266,11 @@ void cpd_clm_cluster_track_cb(const SaClmClusterNotificationBufferT *notificatio
 		/* 2. Check the HA_STATE */
 		for (counter = 0; counter < notificationBuffer->numberOfItems; counter++) {
 			if (notificationBuffer->notification[counter].clusterChange == SA_CLM_NODE_LEFT) {
+				node_id = notificationBuffer->notification[counter].clusterNode.nodeId;
+
+				cpd_proc_update_user_info_when_node_down(cb, node_id);
+
 				if (cb->ha_state == SA_AMF_HA_ACTIVE) {
-					node_id = notificationBuffer->notification[counter].clusterNode.nodeId;
 					key = node_id;
 					cpnd_info_node = (CPD_CPND_INFO_NODE *)
 					    ncs_patricia_tree_get(&cb->cpnd_tree, (uint8_t *)&key);
@@ -1267,7 +1278,6 @@ void cpd_clm_cluster_track_cb(const SaClmClusterNotificationBufferT *notificatio
 						cpd_process_cpnd_down(cb, &cpnd_info_node->cpnd_dest);
 					}
 				} else if (cb->ha_state == SA_AMF_HA_STANDBY) {
-					node_id = notificationBuffer->notification[counter].clusterNode.nodeId;
 					key = node_id;
 					cpnd_info_node = (CPD_CPND_INFO_NODE *)
 					    ncs_patricia_tree_get(&cb->cpnd_tree, (uint8_t *)&key);

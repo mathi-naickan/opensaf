@@ -549,14 +549,15 @@ uint32_t cpd_sb_proc_ckpt_dest_add(CPD_CB *cb, CPD_MBCSV_MSG *msg)
 /**********************************************************************************
 *  Name :  cpd_sb_proc_ckpt_usrinfo
 *
-*  Description : This routine will set the active replica flag of the checkpoint
+*  Description : This routine will update user information of the checkpoint
+*                This version includes user information of each node
 *
 *  Arguments   : CPD_MBCSV_MSG - mbcsv message
-                                                                                                                             
+*
 *  Return Values : Success / Error
-                                                                                                                             
+*
 *  Notes : None
-                                                                                                                             
+*
 **********************************************************************************/
 uint32_t cpd_sb_proc_ckpt_usrinfo(CPD_CB *cb, CPD_MBCSV_MSG *msg)
 {
@@ -569,12 +570,48 @@ uint32_t cpd_sb_proc_ckpt_usrinfo(CPD_CB *cb, CPD_MBCSV_MSG *msg)
 		return NCSCC_RC_FAILURE;
 	}
 
-	ckpt_node->num_users = msg->info.usr_info.num_user;
-	ckpt_node->num_writers = msg->info.usr_info.num_writer;
-	ckpt_node->num_readers = msg->info.usr_info.num_reader;
-	ckpt_node->num_sections = msg->info.usr_info.num_sections;
-	ckpt_node->ckpt_on_scxb1 = msg->info.usr_info.ckpt_on_scxb1;
-	ckpt_node->ckpt_on_scxb2 = msg->info.usr_info.ckpt_on_scxb2;
+	ckpt_node->num_users = msg->info.usr_info_2.num_user;
+	ckpt_node->num_writers = msg->info.usr_info_2.num_writer;
+	ckpt_node->num_readers = msg->info.usr_info_2.num_reader;
+	ckpt_node->num_sections = msg->info.usr_info_2.num_sections;
+	ckpt_node->ckpt_on_scxb1 = msg->info.usr_info_2.ckpt_on_scxb1;
+	ckpt_node->ckpt_on_scxb2 = msg->info.usr_info_2.ckpt_on_scxb2;
+
+	/* Free the old node_users */
+	CPD_NODE_USER_INFO *node_user = ckpt_node->node_users;
+	CPD_NODE_USER_INFO *prev_node_user = NULL;
+
+	while (node_user) {
+		CPD_NODE_USER_INFO *prev_node_user = node_user;
+		node_user = node_user->next;
+		free(prev_node_user);
+	}
+	ckpt_node->node_users = NULL;
+
+	if (!msg->info.usr_info_2.node_users_cnt) {
+		TRACE_LEAVE();
+		return NCSCC_RC_SUCCESS;
+	}
+
+	/* Update the node_users */
+	int i = 0;
+	for (i = 0; i < msg->info.usr_info_2.node_users_cnt; i++) {
+		CPD_NODE_USER_INFO *node_user = malloc(sizeof(CPD_NODE_USER_INFO));
+		if (prev_node_user != NULL)
+			prev_node_user->next = node_user;
+
+		node_user->dest = msg->info.usr_info_2.node_list[i].dest;
+		node_user->num_users = msg->info.usr_info_2.node_list[i].num_users;
+		node_user->num_readers = msg->info.usr_info_2.node_list[i].num_readers;
+		node_user->num_writers = msg->info.usr_info_2.node_list[i].num_writers;
+		node_user->next = NULL;
+		prev_node_user = node_user;
+
+		if (i == 0)
+			ckpt_node->node_users = node_user;
+	}
+
+	free(msg->info.usr_info_2.node_list);
 
 	TRACE_LEAVE();
 	return NCSCC_RC_SUCCESS;

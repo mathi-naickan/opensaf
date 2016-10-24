@@ -108,5 +108,8 @@ uint32_t cpd_mbcsv_enc_async_update(CPD_CB *cb, NCS_MBCSV_CB_ARG *arg);
 uint32_t cpd_mbcsv_close(CPD_CB *cb);
 bool cpd_is_noncollocated_replica_present_on_payload(CPD_CB *cb, CPD_CKPT_INFO_NODE *ckpt_node);
 uint32_t cpd_ckpt_reploc_imm_object_delete(CPD_CB *cb,  CPD_CKPT_REPLOC_INFO *ckpt_reploc_node ,bool is_unlink_set);
+void cpd_proc_increase_node_user_info(CPD_CKPT_INFO_NODE *ckpt_node, MDS_DEST cpnd_dest, SaCkptCheckpointOpenFlagsT open_flags);
+void cpd_proc_decrease_node_user_info(CPD_CKPT_INFO_NODE *ckpt_node, MDS_DEST cpnd_dest, SaCkptCheckpointOpenFlagsT open_flags);
+void cpd_proc_update_user_info_when_node_down(CPD_CB *cb, NODE_ID node_id);
 uint32_t cpd_proc_ckpt_update_post(CPD_CB *cb);
 #endif
