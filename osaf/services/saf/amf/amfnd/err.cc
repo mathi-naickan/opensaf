@@ -368,7 +368,7 @@ uint32_t avnd_err_process(AVND_CB *cb, AVND_COMP *comp, AVND_ERR_INFO *err_info)
 
 	if  (m_AVND_COMP_PRES_STATE_IS_TERMINATING(comp)) {
 		if (err_info->src == AVND_ERR_SRC_HC) {
-			LOG_NO("healthcheck failure ignored as '%s' is terminating", comp->name.c_str());
+			LOG_NO("healthcheck failure ignored as '%s' is terminating", comp->name.value);
 			// ignore if healthcheck failed during terminating state
 			goto done;
 		}
