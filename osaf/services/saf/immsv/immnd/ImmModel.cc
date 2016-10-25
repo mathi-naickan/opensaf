@@ -16254,10 +16254,10 @@ SaInt32T ImmModel::pbePrtObjDeletesContinuation(SaUint32T invocation,
         if(error == SA_AIS_OK) {
             if(oMut->mAfterImage->mObjFlags & IMM_PRTO_FLAG) {
                 if(oMut->mAfterImage->mImplementer) {
-                    LOG_NO("Delete of PERSISTENT runtime object '%s' (%s).", i2->first.c_str(),
+                    TRACE("Delete of PERSISTENT runtime object '%s' (%s).", i2->first.c_str(),
                         oMut->mAfterImage->mImplementer->mImplementerName.c_str());
                 } else {
-                    LOG_NO("Delete of PERSISTENT runtime object '%s' (%s).", i2->first.c_str(), 
+                    TRACE("Delete of PERSISTENT runtime object '%s' (%s).", i2->first.c_str(), 
                         "<detached>");
                 }
             } else {
