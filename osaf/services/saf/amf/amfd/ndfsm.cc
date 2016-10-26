@@ -32,6 +32,10 @@
 
 AmfDb<uint32_t, AVD_FAIL_OVER_NODE> *node_list_db = 0;      /* SaClmNodeIdT index */
 
+// indicates whether MDS service up has been received from amfnd.
+// If a node ID is in the set, then service up has been received.
+std::set<uint32_t> *amfnd_svc_db = 0;
+
 /*****************************************************************************
  * Function: avd_process_state_info_queue
  *
@@ -289,7 +293,13 @@ void avd_node_up_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 
 	TRACE_ENTER2("from %x, %s", n2d_msg->msg_info.n2d_node_up.node_id,
 				osaf_extended_name_borrow(&n2d_msg->msg_info.n2d_node_up.node_name));
-
+	
+	if (amfnd_svc_db->find(n2d_msg->msg_info.n2d_node_up.node_id) == amfnd_svc_db->end()) {
+		// don't process node_up until svc up is received
+		LOG_NO("amfnd svc up not yet received from node %x", n2d_msg->msg_info.n2d_node_up.node_id);
+		goto done;
+	}
+	
 	act_nd = n2d_msg->msg_info.n2d_node_up.node_id == cb->node_id_avd;
 	if (cb->scs_absence_max_duration > 0 &&
 		cb->all_nodes_synced == false &&
@@ -645,8 +655,13 @@ void avd_nd_ncs_su_failed(AVD_CL_CB *cb, AVD_AVND *avnd)
 
 void avd_mds_avnd_up_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 {
-	TRACE("Local node director is up, start sending heart beats to %" PRIx64, cb->local_avnd_adest);
-	avd_tmr_snd_hb_evh(cb, evt);
+	if (evt->info.node_id == cb->node_id_avd) {
+		TRACE("Local node director is up, start sending heart beats to %" PRIx64, cb->local_avnd_adest);
+		avd_tmr_snd_hb_evh(cb, evt);
+	}
+
+	TRACE("amfnd on %x is up", evt->info.node_id);
+	amfnd_svc_db->insert(evt->info.node_id);
 }
 
 /*****************************************************************************
@@ -672,6 +687,7 @@ void avd_mds_avnd_down_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 	
 	//update MDS version db.
 	nds_mds_ver_db.erase(evt->info.node_id);
+	amfnd_svc_db->erase(evt->info.node_id);
 
 	if (node != nullptr) {
 		// Do nothing if the local node goes down. Most likely due to system shutdown.

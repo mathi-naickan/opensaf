@@ -420,16 +420,18 @@ static uint32_t avd_mds_svc_evt(MDS_CALLBACK_SVC_EVENT_INFO *evt_info)
 
 		case NCSMDS_SVC_ID_AVND:
 			{	
-				if (evt_info->i_node_id == cb->node_id_avd) {
-					AVD_EVT *evt = new AVD_EVT();
+				AVD_EVT *evt = new AVD_EVT();
 
-					evt->rcv_evt = AVD_EVT_MDS_AVND_UP;
+				evt->rcv_evt = AVD_EVT_MDS_AVND_UP;
+				evt->info.node_id = m_NCS_NODE_ID_FROM_MDS_DEST(evt_info->i_dest);
+				if (evt_info->i_node_id == cb->node_id_avd) {
 					cb->local_avnd_adest = evt_info->i_dest;
-					if (m_NCS_IPC_SEND(&cb->avd_mbx, evt, NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
-						LOG_ER("%s: ncs_ipc_send failed", __FUNCTION__);
-						delete evt;
-					}
 				}
+				if (m_NCS_IPC_SEND(&cb->avd_mbx, evt, NCS_IPC_PRIORITY_HIGH) != NCSCC_RC_SUCCESS) {
+					LOG_ER("%s: ncs_ipc_send failed", __FUNCTION__);
+					delete evt;
+				}
+
 				//Post MDS version info to mailbox. 
 				AVD_EVT *evt1 = new AVD_EVT();
 				evt1->rcv_evt = AVD_EVT_ND_MDS_VER_INFO;
