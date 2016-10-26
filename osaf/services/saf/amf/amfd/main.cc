@@ -563,6 +563,7 @@ static uint32_t initialize(void)
             base::GetEnv("OSAF_AMF_MIN_CLUSTER_SIZE", uint32_t{2});
 
         node_list_db = new AmfDb<uint32_t, AVD_FAIL_OVER_NODE>;
+	amfnd_svc_db = new std::set<uint32_t>;
 	/* get the node id of the node on which the AVD is running. */
 	cb->node_id_avd = m_NCS_GET_NODE_ID;
 
