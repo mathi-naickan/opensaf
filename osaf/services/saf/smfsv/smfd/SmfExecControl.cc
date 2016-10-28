@@ -35,8 +35,8 @@ static std::vector<SmfUpgradeStep*> getStepsMatchingBalancedGroup(SmfUpgradeProc
 static SmfUpgradeStep* mergeStep(SmfUpgradeProcedure* procedure,
                                  const std::vector<SmfUpgradeStep*>& steps);
 
-static bool removeDuplicateActivationUnits(SmfUpgradeProcedure * i_newproc,
-                                           SmfUpgradeStep *newStep);
+static bool removeDuplicateActivationUnits(SmfUpgradeProcedure * i_newproc, SmfUpgradeStep *newStep,
+                                           const std::list<unitNameAndState>& deact);
 
 
 static bool isNodeInGroup(const std::string& node,
@@ -104,14 +104,18 @@ bool createStepForBalancedProc(SmfUpgradeProcedure* procedure) {
   SmfUpgradeCampaign* ucamp = camp->getUpgradeCampaign();
 
   auto steps = getStepsMatchingBalancedGroup(procedure, ucamp);
+  std::list <unitNameAndState> deact;
   for (auto step : steps) {
     SmfUpgradeProcedure* oproc = step->getProcedure();
     // copy callbacks to the new procedure
     procedure->getCallbackList(oproc->getUpgradeMethod());
+    deact.insert(deact.end(),
+                 step->getDeactivationUnitList().begin(),
+                 step->getDeactivationUnitList().end());
   }
   if (!steps.empty()) {
     SmfUpgradeStep* newstep = mergeStep(procedure, steps);
-    removeDuplicateActivationUnits(procedure, newstep);
+    removeDuplicateActivationUnits(procedure, newstep, deact);
     procedure->addProcStep(newstep);
   }
   const std::vector<SmfUpgradeProcedure*>& allprocs = ucamp->getProcedures();
@@ -201,15 +205,11 @@ SmfUpgradeStep* mergeStep(SmfUpgradeProcedure* procedure,
   newstep->setDn(newstep->getRdn() + "," + procedure->getDn());
   newstep->setMaxRetry(0);
   newstep->setRestartOption(0);
-  std::list <unitNameAndState> deact;
   for (auto step : steps) {
     if (isNodeInGroup(step->getSwNode(), procedure->getBalancedGroup())) {
-      TRACE("adding modifications, deact and bundle ref from node:%s",
+      TRACE("adding modifications and bundle ref from node:%s",
             step->getSwNode().c_str());
       newstep->addModifications(step->getModifications());
-      deact.insert(deact.end(),
-                   step->getDeactivationUnitList().begin(),
-                   step->getDeactivationUnitList().end());
       procedure->mergeBundleRefRollingToSingleStep(newstep, step);
     }
   }
@@ -217,13 +217,14 @@ SmfUpgradeStep* mergeStep(SmfUpgradeProcedure* procedure,
   return newstep;
 }
 
-bool removeDuplicateActivationUnits(SmfUpgradeProcedure * i_newproc,
-                                                SmfUpgradeStep *newStep) {
+bool removeDuplicateActivationUnits(SmfUpgradeProcedure * i_newproc, SmfUpgradeStep *newStep,
+                                    const std::list<unitNameAndState>& deact) {
   // Remove any (de)activation unit duplicates and add them to the step.
   // Activation and deactivation units are the same because rolling and
   // formodify is symetric.
   TRACE_ENTER();
   std::list < unitNameAndState > tmpDU;
+  tmpDU.insert(tmpDU.begin(), deact.begin(), deact.end());
   std::multimap<std::string, objectInst> objInstances;
   if (i_newproc->getImmComponentInfo(objInstances) == false) {
     TRACE("Config info from IMM could not be read");
