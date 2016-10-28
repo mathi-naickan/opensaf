@@ -148,15 +148,6 @@ SmfUpgradeProcedure::~SmfUpgradeProcedure()
                         delete(*stepit);
                 }
         }
-        //} else {
-        //        unsigned int execMode = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign()->getProcExecutionMode();
-        //        if (execMode == SMF_BALANCED_MODE) {
-        //                for (auto& step : m_procSteps) {
-        //                        delete step;
-        //                }
-        //        }
-        //}
-
 	TRACE_LEAVE();
 }
 
@@ -1913,9 +1904,14 @@ SmfUpgradeProcedure::addStepModifications(SmfUpgradeStep * i_newStep,
         //Skip this for procedures in state completed, modifications will not be needed if completed.
         //This can happend if the cluster is rebooted and will fail if the reboot is performed when the 
         //versioned types are removed i.e. during test traffic, if the types was removed in campaign wrapup/complete section.
-        if (getState() == SA_SMF_PROC_COMPLETED) {
-                TRACE_LEAVE();
-                return true;
+        SmfUpgradeCampaign* ucamp = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign();
+        if (ucamp->getProcExecutionMode() != SMF_BALANCED_MODE) {
+                // getImmStepsSingleStep handles this case for balanced mode
+                if (getState() == SA_SMF_PROC_COMPLETED) {
+                        TRACE("Procedure is completed, skipping addStepModifications");
+                        TRACE_LEAVE();
+                        return true;
+                }
         }
 
 	std::list < SmfTargetEntityTemplate * >::const_iterator it;
@@ -3027,11 +3023,16 @@ SmfUpgradeProcedure::getImmStepsSingleStep()
 	const SmfForAddRemove* forAddRemove = dynamic_cast<const SmfForAddRemove*>(scope);
 	const SmfForModify*    forModify    = dynamic_cast<const SmfForModify*>(scope);
 
-        if ((forAddRemove == NULL)&&(forModify == NULL)) {
-		LOG_NO("SmfUpgradeProcedure::getImmStepsSingleStep: Procedure scope not found (SmfForAddRemove/forModify)");
-                delete newStep;
-		TRACE_LEAVE();
-		return SA_AIS_ERR_NOT_EXIST;
+        SmfUpgradeCampaign* ucamp = SmfCampaignThread::instance()->campaign()->getUpgradeCampaign();
+        // Skip this check in balanced mode. Balanced need to be able to read the
+        // modify data after procedures are completed
+        if (ucamp->getProcExecutionMode() != SMF_BALANCED_MODE) {
+                if ((forAddRemove == NULL)&&(forModify == NULL)) {
+                        LOG_NO("Procedure scope not found (SmfForAddRemove/forModify)");
+                        delete newStep;
+                        TRACE_LEAVE();
+                        return SA_AIS_ERR_NOT_EXIST;
+                }
         }
 
 	//----------------------------------------------------------
