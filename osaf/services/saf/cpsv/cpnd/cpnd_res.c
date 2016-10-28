@@ -40,8 +40,6 @@
 
 #define m_CPND_CKPTINFO_READ(ckpt_info,addr,offset) memcpy(&ckpt_info,addr+offset,sizeof(CKPT_INFO))
 
-#define m_CPND_CKPTINFO_V0_READ(ckpt_info,addr,offset) memcpy(&ckpt_info,addr+offset,sizeof(CKPT_INFO_V0))
-
 #define m_CPND_CKPTINFO_UPDATE(addr,ckpt_info,offset) memcpy(addr+offset,&ckpt_info,sizeof(CKPT_INFO))
 
 #define m_CPND_CKPTHDR_UPDATE(ckpt_hdr,offset)  memcpy(offset,&ckpt_hdr,sizeof(CKPT_HDR))
@@ -50,13 +48,11 @@ static uint32_t cpnd_res_ckpt_sec_add(CPND_CKPT_SECTION_INFO *pSecPtr, CPND_CKPT
 static bool cpnd_find_exact_ckptinfo(CPND_CB *cb, CKPT_INFO *ckpt_info, uint32_t bitmap_offset,
 					 uint32_t *offset, uint32_t *prev_offset);
 static void cpnd_clear_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, uint32_t curr_offset, uint32_t prev_offset);
-static uint32_t cpnd_restore_client_info(CPND_CB *cb, uint8_t *cli_addr);
-static uint32_t cpnd_restore_ckpt_info_v1(CPND_CB *cb, uint8_t *ckpt_addr, SaClmNodeIdT nodeid);
-static uint32_t cpnd_restore_ckpt_info_v0(CPND_CB *cb, uint8_t *ckpt_addr, SaClmNodeIdT nodeid);
-static void cpnd_destroy_shm_cpnd_cp_info(NCS_OS_POSIX_SHM_REQ_OPEN_INFO *open_req);
-static void *cpnd_create_shm_cpnd_cp_info(NCS_OS_POSIX_SHM_REQ_INFO *req_info);
-static void cpnd_update_shm_cpnd_cp_info(CPND_CB *cb);
-static void cpnd_convert_cp_info_v0(CKPT_INFO_V0 *cp_info_v0, CKPT_INFO *cp_info);
+static void cpnd_destroy_shm(NCS_OS_POSIX_SHM_REQ_OPEN_INFO *open_req);
+static uint32_t cpnd_shm_extended_open(CPND_CB *cb, uint32_t flag);
+static uint32_t cpnd_extended_name_lend(SaConstStringT value, SaNameT* name);
+static SaConstStringT cpnd_extended_name_borrow(const SaNameT* name);
+static void cpnd_extended_name_free(const SaNameT* name);
 
 /******************************************************************************* *
  * Name           : cpnd_client_extract_bits
@@ -324,10 +320,24 @@ void cpnd_restart_update_timer(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaTimeT clo
 
 void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB *cb, SaClmNodeIdT nodeid)
 {
-	uint32_t rc = NCSCC_RC_SUCCESS;
+	uint32_t counter = 0, count, num_bitset = 0, n_clients, rc = NCSCC_RC_SUCCESS, bit_position;
+	uint64_t i_offset;
+	int32_t next_offset;
+	CPND_CKPT_CLIENT_NODE *cl_node = NULL;
+	CPND_CKPT_NODE *cp_node = NULL;
+	CLIENT_INFO cl_info;
+	CLIENT_HDR cli_hdr;
+	CKPT_INFO cp_info, tmp_cp_info;
+	SaCkptHandleT client_hdl;
 	char *buf = NULL, *buffer = NULL;
 	uint8_t size = 0, total_length;
 	GBL_SHM_PTR gbl_shm_addr = {0, 0, 0, 0, 0};
+	memset(&cp_info, '\0', sizeof(CKPT_INFO));
+	NCS_OS_POSIX_SHM_REQ_INFO ckpt_rep_open;
+	SaTimeT presentTime, timeout = 0;
+	int64_t now, diff_time, giga_sec;
+	uint32_t max_client_hdl = 0;
+	SaTimeT tmpTime = 0;
 	CPND_SHM_VERSION cpnd_shm_version;
 
 	TRACE_ENTER();
@@ -349,7 +359,7 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 
 	/* 1. FIRST TRYING TO OPEN IN RDWR MODE */
 	cpnd_open_req->type = NCS_OS_POSIX_SHM_REQ_OPEN;
-	cpnd_open_req->info.open.i_size =
+	cpnd_open_req->info.open.i_size = sizeof(CPND_SHM_VERSION) +
 	    sizeof(CLIENT_HDR) + (MAX_CLIENTS * sizeof(CLIENT_INFO)) + sizeof(CKPT_HDR) +
 	    (MAX_CKPTS * sizeof(CKPT_INFO));
 	if (cb->shm_alloc_guaranteed == true)
@@ -366,15 +376,19 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 
 	if (rc == NCSCC_RC_FAILURE) {	/* INITIALLY IT FAILS SO CREATE A SHARED MEMORY */
 		TRACE_1("cpnd comming up first time");
-
-		if (NULL == cpnd_create_shm_cpnd_cp_info(cpnd_open_req)) {
+		cpnd_open_req->info.open.i_flags = O_CREAT | O_RDWR;
+		rc = ncs_os_posix_shm(cpnd_open_req);
+		if (NCSCC_RC_FAILURE == rc) {
 			LOG_ER("cpnd open request fail for RDWR mode %s",buf);
 			m_MMGR_FREE_CPND_DEFAULT(buffer);
 			return NULL;
 		}
-		
 		cb->cpnd_first_time = true;
 
+		memset(cpnd_open_req->info.open.o_addr, 0, sizeof(CPND_SHM_VERSION) +
+		       sizeof(CLIENT_HDR) + (MAX_CLIENTS * sizeof(CLIENT_INFO)) + sizeof(CKPT_HDR) +
+		       (MAX_CKPTS * sizeof(CKPT_INFO)));
+		memcpy(cpnd_open_req->info.open.o_addr, &cpnd_shm_version, sizeof(cpnd_shm_version));
 		TRACE_1("cpnd new shm create request success");
 		return cpnd_open_req->info.open.o_addr;
 	}
@@ -390,51 +404,230 @@ void *cpnd_restart_shm_create(NCS_OS_POSIX_SHM_REQ_INFO *cpnd_open_req, CPND_CB 
 
 	/* Already the shared memory exists */
 	else {
-		CPND_SHM_VERSION shm_version;
 		TRACE_1("cpnd restart already shared memory exits");
+		/* Update version value from existing shared memory */
+		memcpy(&cpnd_shm_version, cpnd_open_req->info.open.o_addr, sizeof(cpnd_shm_version));
+
 		gbl_shm_addr.cli_addr = cpnd_open_req->info.open.o_addr + sizeof(cpnd_shm_version);	/* Starting address of the shared memory */
 		gbl_shm_addr.ckpt_addr = (void *)((char *)gbl_shm_addr.cli_addr + sizeof(CLIENT_HDR) +
 						  (MAX_CLIENTS * sizeof(CLIENT_INFO)));
 		cb->shm_addr = gbl_shm_addr;
-		memcpy(&shm_version, cpnd_open_req->info.open.o_addr, sizeof(shm_version));
+
+		switch (cpnd_shm_version.shm_version) {
+			case CPSV_CPND_SHM_VERSION:
+				/* Do nothing, continue with next step */
+				break;
+			case CPSV_CPND_SHM_VERSION_EXTENDED:
+				/* Update extended address */
+				rc = cpnd_shm_extended_open(cb, O_RDWR);
+				break;
+			default:
+				/* Unsupport version, should discard old and open new one */
+				cpnd_destroy_shm(&cpnd_open_req->info.open);
+				m_MMGR_FREE_CPND_DEFAULT(buffer);
+				return cpnd_restart_shm_create(cpnd_open_req, cb, nodeid);
+		}
+
+		if (rc != NCSCC_RC_SUCCESS) {
+			LOG_ER("Error in restoring shared memory");
+			m_MMGR_FREE_CPND_DEFAULT(buffer);
+			return NULL;
+		}
 
 		/* READ FROM THE SHARED MEMORY */
 
-		TRACE("CPND IS RESTARTING WITH VERSION %d", shm_version.shm_version);
-		cpnd_restore_client_info(cb, gbl_shm_addr.cli_addr);
-		switch (shm_version.shm_version) {
-		case 0:
-		{
-			cpnd_restore_ckpt_info_v0(cb, gbl_shm_addr.ckpt_addr, nodeid);
+		TRACE("CPND IS RESTARTING ");
+		/* Read the number of clients from the header */
+		memset(&cli_hdr, '\0', sizeof(CLIENT_HDR));
+		m_CPND_CLIHDR_INFO_READ(cli_hdr, (char *)gbl_shm_addr.cli_addr, 0);
 
-			/* Destroy the CPND_CHECKPOINT_INFO version 0 */
-			cpnd_destroy_shm_cpnd_cp_info(&cpnd_open_req->info.open);
+		n_clients = cli_hdr.num_clients;
+		TRACE_1("cpnd num clients read ");
+		/* ( DO - WHILE )-  READ THE CLIENT INFO AND FILL THE DATABASE OF CLIENT INFO */
+		if (n_clients != 0) {
+			while (counter < MAX_CLIENTS) {
+				memset(&cl_info, '\0', sizeof(CLIENT_INFO));
+				if ((counter * sizeof(CLIENT_INFO)) > INTMAX_MAX) {
+					LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
+				}
+				i_offset = counter * sizeof(CLIENT_INFO);
+				m_CPND_CLINFO_READ(cl_info, (char *)gbl_shm_addr.cli_addr + sizeof(CLIENT_HDR),
+						   i_offset);
 
-			/* Create the CPND_CHECKPOINT_INFO version 1 */
-			if (NULL == cpnd_create_shm_cpnd_cp_info(cpnd_open_req)) {
-				LOG_ER("cpnd open request fail for RDWR mode %s",buf);
-				m_MMGR_FREE_CPND_DEFAULT(buffer);
-				return NULL;
+				if (cl_info.ckpt_app_hdl == 0) {
+					counter++;
+					continue;
+				}
+
+				cl_node = m_MMGR_ALLOC_CPND_CKPT_CLIENT_NODE;
+				if (cl_node == NULL) {
+					LOG_ER("cpnd ckpt client node memory alloc failed ");
+					rc = SA_AIS_ERR_NO_MEMORY;
+					goto memfail;
+				}
+				memset(cl_node, '\0', sizeof(CPND_CKPT_CLIENT_NODE));
+				cl_node->ckpt_app_hdl = cl_info.ckpt_app_hdl;
+				cl_node->ckpt_open_ref_cnt = cl_info.ckpt_open_ref_cnt;
+				cl_node->open_reader_flags_cnt = cl_info.open_reader_flags_cnt;
+				cl_node->open_writer_flags_cnt = cl_info.open_writer_flags_cnt;
+				cl_node->agent_mds_dest = cl_info.agent_mds_dest;
+				cl_node->offset = cl_info.offset;
+				cl_node->version = cl_info.version;
+				cl_node->arrival_cb_flag = cl_info.arr_flag;
+				cl_node->ckpt_list = NULL;
+
+				if (cpnd_client_node_add(cb, cl_node) != NCSCC_RC_SUCCESS) {
+					TRACE_4("cpnd client nonde tree add failed cpkpt_app_hdl %llx ",cl_node->ckpt_app_hdl);
+					rc = SA_AIS_ERR_NO_MEMORY;
+					goto node_add_fail;
+				}
+				counter++;
+				if (cl_info.ckpt_app_hdl > max_client_hdl) {
+					max_client_hdl = cl_info.ckpt_app_hdl;
+					cb->cli_id_gen = cl_info.ckpt_app_hdl + 1;
+				}
+				TRACE_1("cpnd client info read success");
 			}
-
-			/* Update the CPND_CHECKPOINT_INFO version 1 */
-			gbl_shm_addr.cli_addr = cpnd_open_req->info.open.o_addr + sizeof(cpnd_shm_version);     /* Starting address of the shared memory */
-			gbl_shm_addr.ckpt_addr = (void *)((char *)gbl_shm_addr.cli_addr + sizeof(CLIENT_HDR) +
-											  (MAX_CLIENTS * sizeof(CLIENT_INFO)));
-			cb->shm_addr = gbl_shm_addr;
-			cpnd_update_shm_cpnd_cp_info(cb);
-
-			break;
 		}
-		case 1:
-			cpnd_restore_ckpt_info_v1(cb, gbl_shm_addr.ckpt_addr, nodeid);
-			break;
-		default:
-			LOG_ER("cpnd share memory version invalide");
-			break;
-		}
+		counter = 0;
 
+		/* TO READ THE NUMBER OF CHECKPOINTS FROM THE HEADER */
+		while (counter < MAX_CKPTS) {
+			memset(&cp_info, '\0', sizeof(CKPT_INFO));
+			if ((counter * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+				LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
+			}
+			i_offset = counter * sizeof(CKPT_INFO);
+			m_CPND_CKPTINFO_READ(cp_info, (char *)gbl_shm_addr.ckpt_addr + sizeof(CKPT_HDR), i_offset);
+
+			if (cp_info.is_valid == 0) {
+				counter++;
+				continue;
+			}
+			if (cp_info.is_first) {
+				cp_node = m_MMGR_ALLOC_CPND_CKPT_NODE;
+				if (cp_node == NULL) {
+					LOG_ER("cpnd ckpt node memory allocation failed");
+					goto memfail;
+				}
+
+				memset(cp_node, '\0', sizeof(CPND_CKPT_NODE));
+				cp_node->ckpt_name = strdup(cpnd_extended_name_borrow(&cp_info.ckpt_name));
+				cp_node->ckpt_id = cp_info.ckpt_id;
+				cp_node->offset = cp_info.offset;
+				cp_node->is_close = cp_info.is_close;
+				cp_node->is_unlink = cp_info.is_unlink;
+				cp_node->close_time = cp_info.close_time;
+				cp_node->cpnd_rep_create = cp_info.cpnd_rep_create;
+				cpnd_ckpt_sec_map_init(&cp_node->replica_info);
+
+				/* Non-collocated Differentiator flag */
+				if (cp_info.cpnd_rep_create) {
+					/* OPEN THE SHARED MEMORY ALREADY CREATED FOR CHECKPOINT REPLICA */
+					/* size=cp_node->ckpt_name.length; */
+					buf = m_MMGR_ALLOC_CPND_DEFAULT(CPND_MAX_REPLICA_NAME_LENGTH);
+					memset(buf, '\0', CPND_MAX_REPLICA_NAME_LENGTH);
+					strncpy(buf, cp_node->ckpt_name, CPND_REP_NAME_MAX_CKPT_NAME_LENGTH);
+					sprintf(buf + strlen(buf) - 1, "_%u_%llu", (uint32_t)nodeid, cp_node->ckpt_id);
+					rc = cpnd_ckpt_replica_create_res(&ckpt_rep_open, buf, &cp_node, 0, &cp_info, cb->shm_alloc_guaranteed);
+					if (rc != NCSCC_RC_SUCCESS) {
+						/*   assert(0); */
+						TRACE_4("cpnd ckpt replica create failed with return value %d",rc);
+
+						counter++;
+						continue;
+					}
+					cb->num_rep++;
+				}
+				if (cp_node->is_unlink) {
+					free((void *)cp_node->ckpt_name);
+					cp_node->ckpt_name = strdup("");
+				}
+
+				memset(&tmp_cp_info, '\0', sizeof(CKPT_INFO));
+				memcpy(&tmp_cp_info, &cp_info, sizeof(CKPT_INFO));
+				next_offset = cp_info.offset;
+				while (next_offset >= 0) {
+					num_bitset = client_bitmap_isset(tmp_cp_info.client_bitmap);	/* To check which clients opened this checkpoint */
+					cp_node->ckpt_lcl_ref_cnt = cp_node->ckpt_lcl_ref_cnt + num_bitset;
+					bit_position = 0;
+					for (count = 1; count <= num_bitset; count++) {
+						client_hdl = cpnd_client_extract_bits(tmp_cp_info.client_bitmap, &bit_position);	/* This will return the client which opened this checkpoint */
+						TRACE_1("cpnd client handle extracted ");
+						client_hdl = (tmp_cp_info.bm_offset * 32) + client_hdl;
+						cpnd_client_node_get(cb, client_hdl, &cl_node);	/* already in the above do-while , we added client node to client tree */
+						if (cl_node == NULL) {
+							/* this should not have happened , quit */
+							/*  assert(0); */
+							TRACE_4("cpnd client node get failed client hdl: %llx",client_hdl);
+							continue;
+							/* goto end; */
+						}
+						cpnd_ckpt_client_add(cp_node, cl_node);
+					}
+					next_offset = tmp_cp_info.next;
+					if (next_offset >= 0) {
+						if ((next_offset * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
+							LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
+						}
+						memset(&tmp_cp_info, '\0', sizeof(CKPT_INFO));
+						i_offset = next_offset * sizeof(CKPT_INFO);
+						m_CPND_CKPTINFO_READ(tmp_cp_info,
+								     (char *)gbl_shm_addr.ckpt_addr + sizeof(CKPT_HDR),
+								     i_offset);
+					}
+
+				}	/* End of clients processing for this cp_node */
+
+				cpnd_ckpt_node_add(cb, cp_node);
+
+				if (cp_info.is_close) {
+					/* start the timer if exists */
+					now = m_GET_TIME_STAMP(tmpTime);
+					giga_sec = 1000000000;
+					diff_time = now - cp_node->close_time;
+					/* if((cp_node->create_attrib.retentionDuration) > (SA_TIME_ONE_SECOND*(presentTime - cp_node->close_time))) */
+					if ((cp_node->create_attrib.retentionDuration) > (giga_sec * diff_time)) {
+						/*  timeout = cp_node->create_attrib.retentionDuration - (SA_TIME_ONE_SECOND*(presentTime - cp_node->close_time)); */
+						timeout =
+						    cp_node->create_attrib.retentionDuration - (giga_sec * diff_time);
+						timeout = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
+					}
+					if (timeout) {
+						/* for restart shared memory updation */
+						m_GET_TIME_STAMP(presentTime);
+						cpnd_restart_update_timer(cb, cp_node, presentTime);
+						if (!m_CPND_IS_COLLOCATED_ATTR_SET
+								(cp_node->create_attrib.creationFlags)) {
+							cp_node->ret_tmr.type = CPND_TMR_TYPE_NON_COLLOC_RETENTION;
+						} else {
+							cp_node->ret_tmr.type = CPND_TMR_TYPE_RETENTION;
+						}
+						cp_node->ret_tmr.uarg = cb->cpnd_cb_hdl_id;
+						cp_node->ret_tmr.ckpt_id = cp_node->ckpt_id;
+						cpnd_tmr_start(&cp_node->ret_tmr, timeout);
+					} else {
+						if (!m_CPND_IS_COLLOCATED_ATTR_SET
+								(cp_node->create_attrib.creationFlags)) {
+							cpnd_proc_non_colloc_rt_expiry(cb, cp_node->ckpt_id);
+						} else {
+							cpnd_proc_rt_expiry(cb, cp_node->ckpt_id);
+						}
+					}
+				}
+
+			}	/* End of one cp_node processing */
+			counter++;
+		}		/* End of while  after processing all 2000 ckpt structs */
 	}			/* End of else  CPND after restart */
+	TRACE_LEAVE();
+	return cpnd_open_req->info.open.o_addr;
+ memfail:
+ node_add_fail:
+	if (cl_node)
+		cpnd_client_node_tree_cleanup(cb);
+	if (cp_node)
+		cpnd_ckpt_node_tree_cleanup(cb);
 	TRACE_LEAVE();
 	return cpnd_open_req->info.open.o_addr;
 }
@@ -858,7 +1051,10 @@ uint32_t cpnd_write_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, int32_t offs
 
 	TRACE_ENTER();
 	memset(&ckpt_info, 0, sizeof(CKPT_INFO));
-	strncpy(ckpt_info.ckpt_name, cp_node->ckpt_name, kOsafMaxDnLength);
+	rc = cpnd_extended_name_lend(cp_node->ckpt_name, &ckpt_info.ckpt_name);
+	if (rc != NCSCC_RC_SUCCESS) {
+		return rc;
+	}
 	ckpt_info.ckpt_id = cp_node->ckpt_id;
 	ckpt_info.maxSections = cp_node->create_attrib.maxSections;
 	ckpt_info.maxSecSize = cp_node->create_attrib.maxSectionSize;
@@ -1188,6 +1384,7 @@ void cpnd_clear_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, uint32_t curr_of
 		i_offset = prev_offset * sizeof(CKPT_INFO);
 		m_CPND_CKPTINFO_UPDATE((char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), prev_ckpt_info, i_offset);
 
+		cpnd_extended_name_free(&curr_ckpt_info.ckpt_name);
 		memset(&curr_ckpt_info, '\0', sizeof(CKPT_INFO));
 		i_offset = curr_offset * sizeof(CKPT_INFO);
 		m_CPND_CKPTINFO_UPDATE((char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), curr_ckpt_info, i_offset);
@@ -1221,6 +1418,7 @@ void cpnd_clear_ckpt_info(CPND_CB *cb, CPND_CKPT_NODE *cp_node, uint32_t curr_of
 				LOG_ER("cpnd clear ckpt info failed,exceeded the write limits(UINT64_MAX) ");
 			}
 			i_offset = (curr_ckpt_info.offset) * sizeof(CKPT_INFO);
+			cpnd_extended_name_free(&curr_ckpt_info.ckpt_name);
 			memset(&curr_ckpt_info, '\0', sizeof(CKPT_INFO));
 
 			m_CPND_CKPTINFO_UPDATE((char *)cb->shm_addr.ckpt_addr + sizeof(CKPT_HDR), curr_ckpt_info,
@@ -1302,8 +1500,20 @@ uint32_t cpnd_restart_shm_ckpt_update(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaCk
 	CKPT_INFO ckpt_info;
 	memset(&ckpt_info, 0, sizeof(ckpt_info));
 	CKPT_HDR ckpt_hdr;
+	uint32_t rc = NCSCC_RC_SUCCESS;
 
 	TRACE_ENTER();
+	/* Check ckpt name input versus shm version and restart shm if need */
+	if (strlen(cp_node->ckpt_name) > SA_MAX_UNEXTENDED_NAME_LENGTH && cb->shm_addr.extended_addr == 0) {
+		/* Open new shared memory */
+		rc = cpnd_shm_extended_open(cb, O_CREAT | O_RDWR);
+		if (rc != NCSCC_RC_SUCCESS) {
+			return rc;
+		}
+		/* Update shared memory version */
+		((CPND_SHM_VERSION*)cb->shm_addr.base_addr)->shm_version = CPSV_CPND_SHM_VERSION_EXTENDED;
+	}
+
 	/* check if the ckpt already exists */
 	if (cp_node->offset == SHM_INIT) {	/* if it is not there then find the free place to fit into */
 		/* now find the free shm for placing the checkpoint info */
@@ -1345,436 +1555,140 @@ uint32_t cpnd_restart_shm_ckpt_update(CPND_CB *cb, CPND_CKPT_NODE *cp_node, SaCk
 }
 
 /*********************************************************************************************
- * Name           :  cpnd_restore_client_info
+ * Name           :  cpnd_shm_extended_open
  *
- * Description    : To restore client information from share memory
+ * Description    : Open extended shared memory
  *
  * Arguments      : -
  *
  * Return Values  : -
  *
  **********************************************************************************************/
-static uint32_t cpnd_restore_client_info(CPND_CB *cb, uint8_t *cli_addr)
-{	
-	uint32_t counter = 0, n_clients;
-	uint64_t i_offset;
-	CPND_CKPT_CLIENT_NODE *cl_node = NULL;
-	CLIENT_INFO cl_info;
-	CLIENT_HDR cli_hdr;
-	uint32_t max_client_hdl = 0;
+static uint32_t cpnd_shm_extended_open(CPND_CB *cb, uint32_t flag)
+{
+	uint32_t rc = NCSCC_RC_FAILURE;
+	NCS_OS_POSIX_SHM_REQ_INFO cpnd_open_req;
+	memset(&cpnd_open_req, 0, sizeof(cpnd_open_req));
+	uint8_t total_length = strlen("CPND_EXTENDED_INFO") + sizeof(cb->nodeid) + 5;
+	char *buffer = m_MMGR_ALLOC_CPND_DEFAULT(total_length);
+	if (buffer == NULL) {
+		LOG_ER("cpnd default memory allocation failed in cpnd_open in resart shm create");
+		return rc;
+	}
+	cb->cpnd_res_shm_name = (uint8_t*)buffer;
+	memset(buffer, '\0', total_length);
+	strncpy(buffer, "CPND_EXTENDED_INFO", total_length);
+	sprintf(buffer + strlen("CPND_EXTENDED_INFO"), "_%d", cb->nodeid);
 
-	TRACE_ENTER();
+	cpnd_open_req.type = NCS_OS_POSIX_SHM_REQ_OPEN;
+	cpnd_open_req.info.open.i_size = MAX_CKPTS * sizeof(CKPT_EXTENDED_INFO);
+	if (cb->shm_alloc_guaranteed == true)
+		cpnd_open_req.info.open.ensures_space = true;
+	else
+		cpnd_open_req.info.open.ensures_space = false;
+	cpnd_open_req.info.open.i_offset = 0;
+	cpnd_open_req.info.open.i_name = buffer;
+	cpnd_open_req.info.open.i_map_flags = MAP_SHARED;
+	cpnd_open_req.info.open.o_addr = cb->shm_addr.extended_addr;
+	cpnd_open_req.info.open.i_flags = flag;
 
-	/* Read the number of clients from the header */
-	memset(&cli_hdr, '\0', sizeof(CLIENT_HDR));
-	m_CPND_CLIHDR_INFO_READ(cli_hdr, cli_addr, 0);
+	rc = ncs_os_posix_shm(&cpnd_open_req);
 
-	n_clients = cli_hdr.num_clients;
-	TRACE_1("cpnd num clients read - n_clients = %d", n_clients);
+	if (rc == NCSCC_RC_SUCCESS) {
+		cb->shm_addr.extended_addr = cpnd_open_req.info.open.o_addr;
+	}
+	return rc;
+}
 
-	/* ( DO - WHILE )-  READ THE CLIENT INFO AND FILL THE DATABASE OF CLIENT INFO */
-	if (n_clients != 0) {
-		while (counter < MAX_CLIENTS) {
-			memset(&cl_info, '\0', sizeof(CLIENT_INFO));
-			if ((counter * sizeof(CLIENT_INFO)) > INTMAX_MAX) {
-				LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
-			}
-			i_offset = counter * sizeof(CLIENT_INFO);
-			m_CPND_CLINFO_READ(cl_info, cli_addr + sizeof(CLIENT_HDR), i_offset);
-
-			if (cl_info.ckpt_app_hdl == 0) {
-				counter++;
-				continue;
-			}
-
-			cl_node = m_MMGR_ALLOC_CPND_CKPT_CLIENT_NODE;
-			if (cl_node == NULL) {
-				LOG_ER("cpnd ckpt client node memory alloc failed ");
-				TRACE_LEAVE();
-				return SA_AIS_ERR_NO_MEMORY;
-			}
-			memset(cl_node, '\0', sizeof(CPND_CKPT_CLIENT_NODE));
-			cl_node->ckpt_app_hdl = cl_info.ckpt_app_hdl;
-			cl_node->ckpt_open_ref_cnt = cl_info.ckpt_open_ref_cnt;
-			cl_node->open_reader_flags_cnt = cl_info.open_reader_flags_cnt;
-			cl_node->open_writer_flags_cnt = cl_info.open_writer_flags_cnt;
-			cl_node->agent_mds_dest = cl_info.agent_mds_dest;
-			cl_node->offset = cl_info.offset;
-			cl_node->version = cl_info.version;
-			cl_node->arrival_cb_flag = cl_info.arr_flag;
-			cl_node->ckpt_list = NULL;
-
-			if (cpnd_client_node_add(cb, cl_node) != NCSCC_RC_SUCCESS) {
-				TRACE_4("cpnd client nonde tree add failed cpkpt_app_hdl %llx ",cl_node->ckpt_app_hdl);
-				cpnd_client_node_tree_cleanup(cb);
-				TRACE_LEAVE();
-				return SA_AIS_ERR_NO_MEMORY;
-			}
-			counter++;
-			if (cl_info.ckpt_app_hdl > max_client_hdl) {
-				max_client_hdl = cl_info.ckpt_app_hdl;
-				cb->cli_id_gen = cl_info.ckpt_app_hdl + 1;
-			}
-			TRACE_1("cpnd client info read success");
-		}
+/*********************************************************************************************
+ * Name           :  cpnd_extended_name_lend
+ *
+ * Description    : Find a free location for extended shared memory
+ *
+ * Arguments      : -
+ *
+ * Return Values  : -
+ *
+ **********************************************************************************************/
+static uint32_t cpnd_extended_name_lend(SaConstStringT value, SaNameT* name)
+{
+	size_t length = strlen(value);
+	TRACE("LENGTH=%x", (int)length);
+	if (length <= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+		osaf_extended_name_lend(value, name);
+		return NCSCC_RC_SUCCESS;
 	}
 
-	TRACE_LEAVE();
-	return SA_AIS_OK;
-}
-
-
-/*********************************************************************************************
- * Name           :  cpnd_restore_client_info_v1
- *
- * Description    : To restore client information from share memory version 1
- *
- * Arguments      : -
- *
- * Return Values  : -
- *
- **********************************************************************************************/
-static uint32_t cpnd_restore_ckpt_info_v1(CPND_CB *cb, uint8_t *ckpt_addr, SaClmNodeIdT nodeid)
-{	
-	uint32_t counter = 0, count, num_bitset = 0, rc = NCSCC_RC_SUCCESS, bit_position;
-	uint64_t i_offset;
-	int32_t next_offset;
-	CPND_CKPT_CLIENT_NODE *cl_node = NULL;
-	CPND_CKPT_NODE *cp_node = NULL;
-	CKPT_INFO cp_info, tmp_cp_info;
-	SaCkptHandleT client_hdl;
-	char *buf = NULL;
-	memset(&cp_info, '\0', sizeof(CKPT_INFO));
-	NCS_OS_POSIX_SHM_REQ_INFO ckpt_rep_open;
-	SaTimeT presentTime, timeout = 0;
-	int64_t now, diff_time, giga_sec;
-	SaTimeT tmpTime = 0;
-
-	TRACE_ENTER();
-
-	/* TO READ THE NUMBER OF CHECKPOINTS FROM THE HEADER */
-	while (counter < MAX_CKPTS) {
-		memset(&cp_info, '\0', sizeof(CKPT_INFO));
-		if ((counter * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
-			LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
-		}
-		i_offset = counter * sizeof(CKPT_INFO);
-		m_CPND_CKPTINFO_READ(cp_info, ckpt_addr + sizeof(CKPT_HDR), i_offset);
-
-		if (cp_info.is_valid == 0) {
-			counter++;
+	/* Find memory slot for ckpt_name */
+	CPND_CB *cb = ncshm_take_hdl(NCS_SERVICE_ID_CPND, m_CPND_GET_CB_HDL);
+	TRACE("cb=%p, extended_info=%p", cb, cb->shm_addr.extended_addr);
+	CKPT_EXTENDED_INFO *extended_info = cb->shm_addr.extended_addr;
+	if (!extended_info) {
+		/* Logically there is no way for this */
+		return NCSCC_RC_FAILURE;
+	}
+	int position = 0;
+	while (position < MAX_CKPTS) {
+		if (extended_info->is_valid == 1) {
+			++position;
+			++extended_info;
 			continue;
 		}
-		if (cp_info.is_first) {
-			cp_node = m_MMGR_ALLOC_CPND_CKPT_NODE;
-			if (cp_node == NULL) {
-				LOG_ER("cpnd ckpt node memory allocation failed");
-				TRACE_LEAVE();
-				return SA_AIS_ERR_NO_MEMORY;
-			}
-
-			memset(cp_node, '\0', sizeof(CPND_CKPT_NODE));
-			cp_node->ckpt_name = strdup(cp_info.ckpt_name);
-			cp_node->ckpt_id = cp_info.ckpt_id;
-			cp_node->offset = cp_info.offset;
-			cp_node->is_close = cp_info.is_close;
-			cp_node->is_unlink = cp_info.is_unlink;
-			cp_node->close_time = cp_info.close_time;
-			cp_node->cpnd_rep_create = cp_info.cpnd_rep_create;
-			cpnd_ckpt_sec_map_init(&cp_node->replica_info);
-
-			/* Non-collocated Differentiator flag */
-			if (cp_info.cpnd_rep_create) {
-				/* OPEN THE SHARED MEMORY ALREADY CREATED FOR CHECKPOINT REPLICA */
-				/* size=cp_node->ckpt_name.length; */
-				buf = m_MMGR_ALLOC_CPND_DEFAULT(CPND_MAX_REPLICA_NAME_LENGTH);
-				memset(buf, '\0', CPND_MAX_REPLICA_NAME_LENGTH);
-				strncpy(buf, cp_node->ckpt_name, CPND_REP_NAME_MAX_CKPT_NAME_LENGTH);
-				sprintf(buf + strlen(buf) - 1, "_%u_%llu", (uint32_t)nodeid, cp_node->ckpt_id);
-				rc = cpnd_ckpt_replica_create_res(&ckpt_rep_open, buf, &cp_node, 0, &cp_info, cb->shm_alloc_guaranteed);
-				if (rc != NCSCC_RC_SUCCESS) {
-					/*   assert(0); */
-					TRACE_4("cpnd ckpt replica create failed with return value %d",rc);
-
-					counter++;
-					continue;
-				}
-				cb->num_rep++;
-			}
-			if (cp_node->is_unlink) {
-				free((void *)cp_node->ckpt_name);
-				cp_node->ckpt_name = strdup("");
-			}
-
-			memset(&tmp_cp_info, '\0', sizeof(CKPT_INFO));
-			memcpy(&tmp_cp_info, &cp_info, sizeof(CKPT_INFO));
-			next_offset = cp_info.offset;
-			while (next_offset >= 0) {
-				num_bitset = client_bitmap_isset(tmp_cp_info.client_bitmap);	/* To check which clients opened this checkpoint */
-				cp_node->ckpt_lcl_ref_cnt = cp_node->ckpt_lcl_ref_cnt + num_bitset;
-				bit_position = 0;
-				for (count = 1; count <= num_bitset; count++) {
-					client_hdl = cpnd_client_extract_bits(tmp_cp_info.client_bitmap, &bit_position);	/* This will return the client which opened this checkpoint */
-					TRACE_1("cpnd client handle extracted ");
-					client_hdl = (tmp_cp_info.bm_offset * 32) + client_hdl;
-					cpnd_client_node_get(cb, client_hdl, &cl_node);	/* already in the above do-while , we added client node to client tree */
-					if (cl_node == NULL) {
-						/* this should not have happened , quit */
-						/*  assert(0); */
-						TRACE_4("cpnd client node get failed client hdl: %llx",client_hdl);
-						continue;
-						/* goto end; */
-					}
-					cpnd_ckpt_client_add(cp_node, cl_node);
-				}
-				next_offset = tmp_cp_info.next;
-				if (next_offset >= 0) {
-					if ((next_offset * sizeof(CKPT_INFO)) > UINTMAX_MAX) {
-						LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
-					}
-					memset(&tmp_cp_info, '\0', sizeof(CKPT_INFO));
-					i_offset = next_offset * sizeof(CKPT_INFO);
-					m_CPND_CKPTINFO_READ(tmp_cp_info, ckpt_addr + sizeof(CKPT_HDR), i_offset);
-				}
-
-			}	/* End of clients processing for this cp_node */
-
-			cpnd_ckpt_node_add(cb, cp_node);
-
-			if (cp_info.is_close) {
-				/* start the timer if exists */
-				now = m_GET_TIME_STAMP(tmpTime);
-				giga_sec = 1000000000;
-				diff_time = now - cp_node->close_time;
-				/* if((cp_node->create_attrib.retentionDuration) > (SA_TIME_ONE_SECOND*(presentTime - cp_node->close_time))) */
-				if ((cp_node->create_attrib.retentionDuration) > (giga_sec * diff_time)) {
-					/*  timeout = cp_node->create_attrib.retentionDuration - (SA_TIME_ONE_SECOND*(presentTime - cp_node->close_time)); */
-					timeout =
-					    cp_node->create_attrib.retentionDuration - (giga_sec * diff_time);
-					timeout = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
-				}
-				if (timeout) {
-					/* for restart shared memory updation */
-					m_GET_TIME_STAMP(presentTime);
-					cpnd_restart_update_timer(cb, cp_node, presentTime);
-					if (!m_CPND_IS_COLLOCATED_ATTR_SET
-							(cp_node->create_attrib.creationFlags)) {
-						cp_node->ret_tmr.type = CPND_TMR_TYPE_NON_COLLOC_RETENTION;
-					} else {
-						cp_node->ret_tmr.type = CPND_TMR_TYPE_RETENTION;
-					}
-					cp_node->ret_tmr.uarg = cb->cpnd_cb_hdl_id;
-					cp_node->ret_tmr.ckpt_id = cp_node->ckpt_id;
-					cpnd_tmr_start(&cp_node->ret_tmr, timeout);
-				} else {
-					if (!m_CPND_IS_COLLOCATED_ATTR_SET
-							(cp_node->create_attrib.creationFlags)) {
-						cpnd_proc_non_colloc_rt_expiry(cb, cp_node->ckpt_id);
-					} else {
-						cpnd_proc_rt_expiry(cb, cp_node->ckpt_id);
-					}
-				}
-			}
-
-		}	/* End of one cp_node processing */
-		counter++;
-	}		/* End of while  after processing all 2000 ckpt structs */
-
-	TRACE_LEAVE();
-	return SA_AIS_OK;
+		memset(&extended_info->ckpt_name, 0, kOsafMaxDnLength + 1);
+		memcpy(&extended_info->ckpt_name, value, length);
+		uint64_t offset = position * sizeof(CKPT_EXTENDED_INFO);
+		name->_opaque[0] = kOsafExtendedNameMagic;
+		memcpy(name->_opaque + sizeof(SaConstStringT)/sizeof(SaUint16T), &offset,
+				sizeof(uint64_t));
+		extended_info->is_valid = 1;
+		return NCSCC_RC_SUCCESS;
+	}
+	/* Logically there is no way for this */
+	return NCSCC_RC_FAILURE;
 }
 
 /*********************************************************************************************
- * Name           :  cpnd_restore_client_info_v0
+ * Name           :  cpnd_extended_name_borrow
  *
- * Description    : To restore client information from share memory version 0
+ * Description    : Get location for extended shared memory data
  *
  * Arguments      : -
  *
  * Return Values  : -
  *
  **********************************************************************************************/
-static uint32_t cpnd_restore_ckpt_info_v0(CPND_CB *cb, uint8_t *ckpt_addr, SaClmNodeIdT nodeid)
-{	
-	uint32_t counter = 0, count, num_bitset = 0, rc = NCSCC_RC_SUCCESS, bit_position;
-	uint64_t i_offset;
-	int32_t next_offset;
-	CPND_CKPT_CLIENT_NODE *cl_node = NULL;
-	CPND_CKPT_NODE *cp_node = NULL;
-	CKPT_INFO_V0 cp_info_v0, tmp_cp_info_v0;
-	CKPT_INFO cp_info;
-	SaCkptHandleT client_hdl;
-	char *buf = NULL;
-	memset(&cp_info_v0, '\0', sizeof(CKPT_INFO_V0));
-	NCS_OS_POSIX_SHM_REQ_INFO ckpt_rep_open;
-	SaTimeT presentTime, timeout = 0;
-	int64_t now, diff_time, giga_sec;
-	SaTimeT tmpTime = 0;
-
-	TRACE_ENTER();
-
-	/* TO READ THE NUMBER OF CHECKPOINTS FROM THE HEADER */
-	while (counter < MAX_CKPTS) {
-		memset(&cp_info_v0, '\0', sizeof(CKPT_INFO_V0));
-		if ((counter * sizeof(CKPT_INFO_V0)) > UINTMAX_MAX) {
-			LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
-		}
-		i_offset = counter * sizeof(CKPT_INFO_V0);
-		m_CPND_CKPTINFO_V0_READ(cp_info_v0, ckpt_addr + sizeof(CKPT_HDR), i_offset);
-
-		if (cp_info_v0.is_valid == 0) {
-			counter++;
-			continue;
-		}
-		if (cp_info_v0.is_first) {
-			cp_node = m_MMGR_ALLOC_CPND_CKPT_NODE;
-			if (cp_node == NULL) {
-				LOG_ER("cpnd ckpt node memory allocation failed");
-				TRACE_LEAVE();
-				return SA_AIS_ERR_NO_MEMORY;
-			}
-
-			memset(cp_node, '\0', sizeof(CPND_CKPT_NODE));
-			cp_node->ckpt_name = strdup(osaf_extended_name_borrow(&cp_info_v0.ckpt_name));
-			cp_node->ckpt_id = cp_info_v0.ckpt_id;
-			cp_node->offset = SHM_INIT;
-			cp_node->is_close = cp_info_v0.is_close;
-			cp_node->is_unlink = cp_info_v0.is_unlink;
-			cp_node->close_time = cp_info_v0.close_time;
-			cp_node->cpnd_rep_create = cp_info_v0.cpnd_rep_create;
-			cpnd_ckpt_sec_map_init(&cp_node->replica_info);
-
-			/* Non-collocated Differentiator flag */
-			if (cp_info_v0.cpnd_rep_create) {
-				/* OPEN THE SHARED MEMORY ALREADY CREATED FOR CHECKPOINT REPLICA */
-				/* size=cp_node->ckpt_name.length; */
-				buf = m_MMGR_ALLOC_CPND_DEFAULT(CPND_MAX_REPLICA_NAME_LENGTH);
-				memset(buf, '\0', CPND_MAX_REPLICA_NAME_LENGTH);
-				strncpy(buf, cp_node->ckpt_name, CPND_REP_NAME_MAX_CKPT_NAME_LENGTH);
-				sprintf(buf + strlen(buf) - 1, "_%u_%llu", (uint32_t)nodeid, cp_node->ckpt_id);
-				cpnd_convert_cp_info_v0(&cp_info_v0, &cp_info);
-				rc = cpnd_ckpt_replica_create_res(&ckpt_rep_open, buf, &cp_node, 0, &cp_info, cb->shm_alloc_guaranteed);
-				if (rc != NCSCC_RC_SUCCESS) {
-					/*   assert(0); */
-					TRACE_4("cpnd ckpt replica create failed with return value %d",rc);
-
-					counter++;
-					continue;
-				}
-				cb->num_rep++;
-			}
-			if (cp_node->is_unlink) {
-				free((void *)cp_node->ckpt_name);
-				cp_node->ckpt_name = strdup("");
-			}
-
-			memset(&tmp_cp_info_v0, '\0', sizeof(CKPT_INFO_V0));
-			memcpy(&tmp_cp_info_v0, &cp_info_v0, sizeof(CKPT_INFO_V0));
-			next_offset = cp_info_v0.offset;
-			while (next_offset >= 0) {
-				num_bitset = client_bitmap_isset(tmp_cp_info_v0.client_bitmap);	/* To check which clients opened this checkpoint */
-				cp_node->ckpt_lcl_ref_cnt = cp_node->ckpt_lcl_ref_cnt + num_bitset;
-				bit_position = 0;
-				for (count = 1; count <= num_bitset; count++) {
-					client_hdl = cpnd_client_extract_bits(tmp_cp_info_v0.client_bitmap, &bit_position);	/* This will return the client which opened this checkpoint */
-					TRACE_1("cpnd client handle extracted ");
-					client_hdl = (tmp_cp_info_v0.bm_offset * 32) + client_hdl;
-					cpnd_client_node_get(cb, client_hdl, &cl_node);	/* already in the above do-while , we added client node to client tree */
-					if (cl_node == NULL) {
-						/* this should not have happened , quit */
-						/*  assert(0); */
-						TRACE_4("cpnd client node get failed client hdl: %llx",client_hdl);
-						continue;
-						/* goto end; */
-					}
-					cpnd_ckpt_client_add(cp_node, cl_node);
-				}
-				next_offset = tmp_cp_info_v0.next;
-				if (next_offset >= 0) {
-					if ((next_offset * sizeof(CKPT_INFO_V0)) > UINTMAX_MAX) {
-						LOG_ER("cpnd ckpt shm create failed,exceeded the write limits(UINT64_MAX) ");
-					}
-					memset(&tmp_cp_info_v0, '\0', sizeof(CKPT_INFO_V0));
-					i_offset = next_offset * sizeof(CKPT_INFO_V0);
-					m_CPND_CKPTINFO_V0_READ(tmp_cp_info_v0, ckpt_addr + sizeof(CKPT_HDR), i_offset);
-				}
-
-			}	/* End of clients processing for this cp_node */
-
-			cpnd_ckpt_node_add(cb, cp_node);
-
-			if (cp_info_v0.is_close) {
-				/* start the timer if exists */
-				now = m_GET_TIME_STAMP(tmpTime);
-				giga_sec = 1000000000;
-				diff_time = now - cp_node->close_time;
-				/* if((cp_node->create_attrib.retentionDuration) > (SA_TIME_ONE_SECOND*(presentTime - cp_node->close_time))) */
-				if ((cp_node->create_attrib.retentionDuration) > (giga_sec * diff_time)) {
-					/*  timeout = cp_node->create_attrib.retentionDuration - (SA_TIME_ONE_SECOND*(presentTime - cp_node->close_time)); */
-					timeout =
-					    cp_node->create_attrib.retentionDuration - (giga_sec * diff_time);
-					timeout = m_CPSV_CONVERT_SATIME_TEN_MILLI_SEC(timeout);
-				}
-				if (timeout) {
-					/* for restart shared memory updation */
-					m_GET_TIME_STAMP(presentTime);
-					cpnd_restart_update_timer(cb, cp_node, presentTime);
-					if (!m_CPND_IS_COLLOCATED_ATTR_SET
-							(cp_node->create_attrib.creationFlags)) {
-						cp_node->ret_tmr.type = CPND_TMR_TYPE_NON_COLLOC_RETENTION;
-					} else {
-						cp_node->ret_tmr.type = CPND_TMR_TYPE_RETENTION;
-					}
-					cp_node->ret_tmr.uarg = cb->cpnd_cb_hdl_id;
-					cp_node->ret_tmr.ckpt_id = cp_node->ckpt_id;
-					cpnd_tmr_start(&cp_node->ret_tmr, timeout);
-				} else {
-					if (!m_CPND_IS_COLLOCATED_ATTR_SET
-							(cp_node->create_attrib.creationFlags)) {
-						cpnd_proc_non_colloc_rt_expiry(cb, cp_node->ckpt_id);
-					} else {
-						cpnd_proc_rt_expiry(cb, cp_node->ckpt_id);
-					}
-				}
-			}
-
-		}	/* End of one cp_node processing */
-		counter++;
-	}		/* End of while  after processing all 2000 ckpt structs */
-
-	TRACE_LEAVE();
-	return SA_AIS_OK;
-}
-
-/*********************************************************************************************
- * Name           :  cpnd_convert_cp_info_v0
- *
- * Description    : To convert a struct CKTP_INFO_V0 to CKPT_INFO
- *
- * Arguments      : -
- *
- * Return Values  : -
- *
- **********************************************************************************************/
-static void cpnd_convert_cp_info_v0(CKPT_INFO_V0 *cp_info_v0, CKPT_INFO *cp_info) 
+SaConstStringT cpnd_extended_name_borrow(const SaNameT* name)
 {
-	memset(cp_info, 0, sizeof(CKPT_INFO));
+	if (!osaf_is_an_extended_name(name)) {
+		return osaf_extended_name_borrow(name);
+	}
+	uint64_t offset = 0;
+	CPND_CB *cb = ncshm_take_hdl(NCS_SERVICE_ID_CPND, m_CPND_GET_CB_HDL);
+	memcpy(&offset, name->_opaque + sizeof(SaConstStringT)/sizeof(SaUint16T),
+			sizeof(uint64_t));
+	CKPT_EXTENDED_INFO *extended_info = cb->shm_addr.extended_addr + offset;
+	return extended_info->ckpt_name;
+}
 
-	strncpy(cp_info->ckpt_name, osaf_extended_name_borrow(&cp_info_v0->ckpt_name), kOsafMaxDnLength);
-	cp_info->ckpt_id = cp_info_v0->ckpt_id;
-	cp_info->maxSections = cp_info_v0->maxSections;
-	cp_info->maxSecSize = cp_info_v0->maxSecSize;
-	cp_info->node_id = cp_info_v0->node_id;
-	cp_info->offset = SHM_INIT;
-	cp_info->client_bitmap = cp_info_v0->client_bitmap;
-	cp_info->is_valid = cp_info_v0->is_valid;
-	cp_info->bm_offset = cp_info_v0->bm_offset;
-	cp_info->is_unlink = cp_info_v0->is_unlink;
-	cp_info->is_close = cp_info_v0->is_close;
-	cp_info->cpnd_rep_create = cp_info_v0->cpnd_rep_create;
-	cp_info->is_first = cp_info_v0->is_first;
-	cp_info->close_time = cp_info_v0->close_time;
-	cp_info->next = cp_info_v0->next;
+/*********************************************************************************************
+ * Name           :  cpnd_extended_name_free
+ *
+ * Description    : Free location for extended shared memory
+ *
+ * Arguments      : -
+ *
+ * Return Values  : -
+ *
+ **********************************************************************************************/
+static void cpnd_extended_name_free(const SaNameT* name)
+{
+	size_t length = osaf_extended_name_length(name);
+	if (length <= SA_MAX_UNEXTENDED_NAME_LENGTH) {
+		return;
+	}
+	SaConstStringT ckpt_name = cpnd_extended_name_borrow(name);
+	/* Reset valid flag for future use */
+	((CKPT_EXTENDED_INFO *)ckpt_name)->is_valid = 0;
 }
 
 /*********************************************************************************************
@@ -1787,7 +1701,7 @@ static void cpnd_convert_cp_info_v0(CKPT_INFO_V0 *cp_info_v0, CKPT_INFO *cp_info
  * Return Values  : -
  *
  **********************************************************************************************/
-static void cpnd_destroy_shm_cpnd_cp_info(NCS_OS_POSIX_SHM_REQ_OPEN_INFO *open_req)
+static void cpnd_destroy_shm(NCS_OS_POSIX_SHM_REQ_OPEN_INFO *open_req)
 {
 	NCS_OS_POSIX_SHM_REQ_INFO shm_info;
 	uint32_t rc = NCSCC_RC_SUCCESS;
@@ -1821,96 +1735,6 @@ static void cpnd_destroy_shm_cpnd_cp_info(NCS_OS_POSIX_SHM_REQ_OPEN_INFO *open_r
 		LOG_ER("cpnd shm checkpoint_info unlink failed");
 		TRACE_LEAVE();
 		return;
-	}
-
-	TRACE_LEAVE();
-}
-
-/*********************************************************************************************
- * Name           :  cpnd_create_shm_cpnd_cp_info
- *
- * Description    : To destroy the shared memory CPND_CHECKPOINT_INFO
- *
- * Arguments      : -
- *
- * Return Values  : -
- *
- **********************************************************************************************/
-static void *cpnd_create_shm_cpnd_cp_info(NCS_OS_POSIX_SHM_REQ_INFO *req_info)
-{
-	uint32_t rc = NCSCC_RC_SUCCESS;
-	CPND_SHM_VERSION cpnd_shm_version;
-
-	TRACE_ENTER();
-	/* Initializing shared memory version */
-	memset(&cpnd_shm_version, '\0', sizeof(cpnd_shm_version));
-	cpnd_shm_version.shm_version = CPSV_CPND_SHM_VERSION;
-
-	/* Create the shared memory */
-	req_info->info.open.i_flags = O_CREAT | O_RDWR;
-	rc = ncs_os_posix_shm(req_info);
-	if (NCSCC_RC_FAILURE == rc) {
-		LOG_ER("cpnd create shm_cpnd_cp_info fail for RDWR mode");
-		return NULL;
-	}
-
-	/* Initialize memory and set version */
-	memset(req_info->info.open.o_addr, 0,
-	       sizeof(CLIENT_HDR) + (MAX_CLIENTS * sizeof(CLIENT_INFO)) + sizeof(CKPT_HDR) +
-	       (MAX_CKPTS * sizeof(CKPT_INFO)));
-	memcpy(req_info->info.open.o_addr, &cpnd_shm_version, sizeof(cpnd_shm_version));
-
-	TRACE_LEAVE();
-	return req_info->info.open.o_addr;
-}
-
-/*********************************************************************************************
- * Name           :  cpnd_update_shm_cpnd_cp_info
- *
- * Description    : To update the shared memory CPND_CHECKPOINT_INFO when for new version
- *
- * Arguments      : -
- *
- * Return Values  : -
- *
- **********************************************************************************************/
-static void cpnd_update_shm_cpnd_cp_info(CPND_CB *cb)
-{
-	CPND_CKPT_CLIENT_NODE *cl_node = NULL;
-	CPND_CKPT_NODE *ckpt_node = NULL;
-	SaCkptHandleT prev_ckpt_hdl;
-
-	TRACE_ENTER();
-
-	/* go through the client tree, to update shared memory */
-	cpnd_client_node_getnext(cb, 0, &cl_node);
-	while (cl_node) {
-		int32_t cl_offset;
-		prev_ckpt_hdl = cl_node->ckpt_app_hdl;
-
-		cl_offset = cpnd_restart_shm_client_update(cb, cl_node);
-		/* -1 shared memory is full &&& -2 - shared memory read failed */
-		if (cl_offset == -1 || cl_offset == -2) {
-			TRACE_4("cpnd client info update failed %d",cl_offset);
-		}
-
-		cpnd_client_node_getnext(cb, prev_ckpt_hdl, &cl_node);
-	}
-
-	/* go through the ckpt_node tree, to update shared memory */
-	cpnd_ckpt_node_getnext(cb, 0, &ckpt_node);
-	while (ckpt_node != NULL) {
-		SaCkptCheckpointHandleT prev_ckpt_id;
-		CPND_CKPT_CLLIST_NODE *ckpt_client_list = NULL;
-
-		ckpt_client_list = ckpt_node->clist;
-		while (ckpt_client_list != NULL) {
-			cpnd_restart_shm_ckpt_update(cb, ckpt_node, ckpt_client_list->cnode->ckpt_app_hdl);
-			ckpt_client_list = ckpt_client_list->next;
-		}
-
-		prev_ckpt_id = ckpt_node->ckpt_id;
-		cpnd_ckpt_node_getnext(cb, prev_ckpt_id, &ckpt_node);
 	}
 
 	TRACE_LEAVE();
