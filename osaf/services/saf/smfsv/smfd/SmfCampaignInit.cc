@@ -228,8 +228,13 @@ SmfCampaignInit::execute()
 	std::list < SmfUpgradeAction * >::iterator upActiter;
 	upActiter = m_campInitAction.begin();
 	while (upActiter != m_campInitAction.end()) {
+		if (!immUtil.read_IMM_long_DN_config_and_set_control_block(smfd_cb)) {
+			LOG_ER("SmfCampaignInit: reading long DN config from IMM FAILED");
+			TRACE_LEAVE();
+			return false;
+		}
 		SaAisErrorT rc = (*upActiter)->execute(SmfCampaignThread::instance()->getImmHandle(),
-                                                       &initRollbackDn);
+				&initRollbackDn);
 		if (rc != SA_AIS_OK) {
 			LOG_ER("SmfCampaignInit init action %d failed, rc=%s", (*upActiter)->getId(), saf_error(rc));
 			TRACE_LEAVE();
