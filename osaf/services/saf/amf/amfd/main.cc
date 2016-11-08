@@ -415,8 +415,9 @@ static void handle_event_in_failover_state(AVD_EVT *evt)
 		 * failover completes 
 		 */
 		for (std::map<uint32_t, AVD_AVND *>::const_iterator it = node_id_db->begin();
-				it != node_id_db->end(); it++) {
+				it != node_id_db->end();) {
 			AVD_AVND *node = it->second;
+			++it;
 			bool fover_done = false;
 			if (AVD_AVND_STATE_ABSENT == node->node_state) {
 				/* Check whether this node failover has been
