@@ -597,8 +597,10 @@ static void perform_nodeswitchover_recovery(AVD_AVND *node)
 	bool node_reboot = true;
 	TRACE_ENTER2("'%s'", node->name.c_str());
 
-	for (const auto& su : node->list_of_su) {
+	//To avoid switchover to SUs of this node, mark all of them OOS.
+	for (const auto& su : node->list_of_su)
 		su->set_readiness_state(SA_AMF_READINESS_OUT_OF_SERVICE);
+	for (const auto& su : node->list_of_su) {
 
 		if (su->list_of_susi == nullptr)
 			continue;
