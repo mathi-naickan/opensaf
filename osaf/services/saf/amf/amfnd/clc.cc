@@ -2025,7 +2025,22 @@ uint32_t avnd_comp_clc_inst_clean_hdler(AVND_CB *cb, AVND_COMP *comp)
 		rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
 	} else if (m_AVND_COMP_TYPE_IS_PROXY(comp) && comp->pxied_list.n_nodes) {
 		/* if there are still outstanding proxied components we can't terminate right now */
-		return rc;
+		/* Check if the proxy and proxied components are in the same SUs. */
+		TRACE("Proxy has proxied components: %u", comp->pxied_list.n_nodes);
+		AVND_COMP_PXIED_REC *rec;
+		rec = (AVND_COMP_PXIED_REC *)m_NCS_DBLIST_FIND_FIRST(&comp->pxied_list);
+                while (rec) {
+                        if (comp->su == rec->pxied_comp->su)
+				break;
+                        rec = (AVND_COMP_PXIED_REC *)m_NCS_DBLIST_FIND_NEXT(&rec->comp_dll_node);
+                }
+		if (rec == nullptr) {
+			TRACE("Proxy and proxied are not in the same SU.");
+			/* This means that proxy and proxied components are not in the same SU.
+			   That means that we can cleanup the component. */
+			rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+		} else
+			return rc;
 	} else {
 		if (m_AVND_SU_IS_RESTART(comp->su) && m_AVND_COMP_IS_RESTART_DIS(comp) &&
 				(comp->csi_list.n_nodes > 0) &&
