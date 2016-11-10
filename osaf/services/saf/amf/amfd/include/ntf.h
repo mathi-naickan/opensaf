@@ -31,6 +31,7 @@
 #include <comp.h>
 #include <susi.h>
 
+#include "imm.h"
 #define ADDITION_TEXT_LENGTH 320
 #define AMF_NTF_SENDER "safApp=safAmfService"
 

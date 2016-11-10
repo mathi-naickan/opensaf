@@ -655,7 +655,7 @@ static void main_loop(void)
 
 		if (pollretval == 0) {
 			// poll time out, submit some jobs (if any)
-			polltmo = retval_to_polltmo(Fifo::execute(cb->immOiHandle));
+			polltmo = retval_to_polltmo(Fifo::execute(cb));
 			continue;
 		}
 
@@ -678,7 +678,7 @@ static void main_loop(void)
 
 			if (evt->rcv_evt == AVD_IMM_REINITIALIZED) {
 				TRACE("Received IMM reinit msg");
-				polltmo = retval_to_polltmo(Fifo::execute(cb->immOiHandle));
+				polltmo = retval_to_polltmo(Fifo::execute(cb));
 				continue;
 			}
 
@@ -740,7 +740,7 @@ static void main_loop(void)
 		}
 
 		// submit some jobs (if any)
-		polltmo = retval_to_polltmo(Fifo::execute(cb->immOiHandle));
+		polltmo = retval_to_polltmo(Fifo::execute(cb));
 	}
 
 	syslog(LOG_CRIT, "AVD Thread Failed");

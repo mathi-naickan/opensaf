@@ -24,6 +24,7 @@
 #ifndef AVD_IMM_H
 #define AVD_IMM_H
 
+#include "cb.h"
 #include <immutil.h>
 #include <queue>
 
@@ -49,9 +50,10 @@ typedef enum {
 } AvdJobDequeueResultT;
 
 // TODO HANO Write comments
+// @todo move this into job.h
 class Job {
 public:
-	virtual AvdJobDequeueResultT exec(SaImmOiHandleT immOiHandle) = 0;
+	virtual AvdJobDequeueResultT exec(const AVD_CL_CB *cb) = 0;
 	virtual ~Job() = 0;
 };
 
@@ -62,7 +64,7 @@ public:
 	SaNameT parentName_;
 	const SaImmAttrValuesT_2 **attrValues_;
 	
-	AvdJobDequeueResultT exec(SaImmOiHandleT immOiHandle);
+	AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
 	
 	~ImmObjCreate();
 };
@@ -75,7 +77,7 @@ public:
 	SaImmValueTypeT attrValueType_;
 	void *value_;
 	
-	AvdJobDequeueResultT exec(SaImmOiHandleT immOiHandle);
+	AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
 	
 	~ImmObjUpdate();
 };
@@ -85,7 +87,7 @@ class ImmObjDelete : public Job {
 public:
 	SaNameT dn_;
 	
-	AvdJobDequeueResultT exec(SaImmOiHandleT immOiHandle);
+	AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
 	
 	~ImmObjDelete() {}
 };
@@ -97,7 +99,7 @@ class ImmAdminResponse : public Job {
 		this->invocation_ = invocation;
 		this->result_ = result;
 	}
-	AvdJobDequeueResultT exec(SaImmOiHandleT immOiHandle);
+	AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
 	
 	~ImmAdminResponse() {}
  private:
@@ -106,6 +108,16 @@ class ImmAdminResponse : public Job {
 	SaAisErrorT result_;
 };
 
+class NtfSend : public Job {
+ public:
+   NtfSend() : already_sent(false) {}
+   AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
+   SaNtfNotificationsT myntf;
+   bool already_sent;
+   ~NtfSend();
+};
+
+// @todo move this into job.h
 //
 class Fifo {
 public:
@@ -115,13 +127,13 @@ public:
 
         static Job* dequeue();
     
-        static AvdJobDequeueResultT execute(SaImmOiHandleT immOiHandle);
+        static AvdJobDequeueResultT execute(const AVD_CL_CB *cb);
 
         static void empty();
     
 	static uint32_t size();
 private:
-        static std::queue<Job*> imm_job_;
+        static std::queue<Job*> job_;
 };
 //
 

@@ -26,6 +26,7 @@
 #include <util.h>
 #include <ntf.h>
 #include "osaf_time.h"
+#include <queue>
 
 /*****************************************************************************
   Name          :  avd_send_comp_inst_failed_alarm
@@ -552,6 +553,50 @@ SaAisErrorT fill_ntf_header_part_avd(SaNtfNotificationHeaderT *notificationHeade
 
 }
 
+/*
+ * @brief      Tries to send notification if not sent already. If not successful then
+ *	       does not try to Free() it. Same function will be called from job queue
+ *	       to complete remaining task. 
+ * @param[in]  ptr to NtfSend 
+ * @return     SaAisErrorT.
+ * TODO:       Make it a member function of NtfSend() when all notification related handling 
+ *	       is moved in separate thread.
+ */
+SaAisErrorT avd_try_send_notification(NtfSend *job) {
+  TRACE_ENTER2("Ntf Type:%x, sent status:%u", job->myntf.notificationType,
+    job->already_sent); 
+
+  SaNtfNotificationsT *myntf = &job->myntf;
+  SaAisErrorT rc = SA_AIS_OK;	
+  SaNtfNotificationHandleT notificationHandle = 0;
+
+  if (myntf->notificationType == SA_NTF_TYPE_STATE_CHANGE) {
+    notificationHandle = myntf->notification.stateChangeNotification.notificationHandle;
+  } else if (myntf->notificationType == SA_NTF_TYPE_ALARM) { 
+    notificationHandle = myntf->notification.alarmNotification.notificationHandle;
+  }
+
+  //Try to send the notification if not sent.
+  if (job->already_sent == false) {
+    rc = saNtfNotificationSend(notificationHandle);
+    if ((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_TIMEOUT)) {
+      TRACE("Notification Send unsuccesful TRY_AGAIN or TIMEOUT rc:%u",rc);
+      goto done;
+    } else {
+      //To remember only Free is pending as NotificationFree() may hit with TRY AGAIN.
+      job->already_sent = true;
+    }
+  }
+  
+  rc = saNtfNotificationFree(notificationHandle);
+  if ((rc == SA_AIS_ERR_TRY_AGAIN) || (rc == SA_AIS_ERR_TIMEOUT)) {
+    TRACE("Notification Free unsuccesful TRY_AGAIN or TIMEOUT rc:%u", rc);
+  }
+
+done:
+  TRACE_LEAVE();
+  return rc;
+}
 uint32_t sendAlarmNotificationAvd(AVD_CL_CB *avd_cb,
 			       const SaNameT &ntf_object,
 			       SaUint8T *add_text,
@@ -563,7 +608,6 @@ uint32_t sendAlarmNotificationAvd(AVD_CL_CB *avd_cb,
 			       int type)
 {
 	uint32_t status = NCSCC_RC_FAILURE;
-	SaNtfAlarmNotificationT myAlarmNotification;
 	SaUint16T add_info_items = 0;
 	SaUint64T allocation_size = 0;
 
@@ -579,12 +623,14 @@ uint32_t sendAlarmNotificationAvd(AVD_CL_CB *avd_cb,
 		return status;
 	}
 
+	NtfSend *job = new NtfSend{};
+
 	if (type != 0) {
 		add_info_items = 1;
 		allocation_size = SA_NTF_ALLOC_SYSTEM_LIMIT;
 	}
 
-	status = saNtfAlarmNotificationAllocate(avd_cb->ntfHandle, &myAlarmNotification,
+	status = saNtfAlarmNotificationAllocate(avd_cb->ntfHandle, &job->myntf.notification.alarmNotification,
 						/* numCorrelatedNotifications */
 						0,
 						/* lengthAdditionalText */
@@ -605,7 +651,7 @@ uint32_t sendAlarmNotificationAvd(AVD_CL_CB *avd_cb,
 		return NCSCC_RC_FAILURE;
 	}
 
-	status = fill_ntf_header_part_avd(&myAlarmNotification.notificationHeader,
+	status = fill_ntf_header_part_avd(&job->myntf.notification.alarmNotification.notificationHeader,
 				 SA_NTF_ALARM_PROCESSING,
 				 ntf_object,
 				 add_text,
@@ -614,31 +660,19 @@ uint32_t sendAlarmNotificationAvd(AVD_CL_CB *avd_cb,
 				 const_cast<SaInt8T*>(AMF_NTF_SENDER),
 				 add_info,
 				 type,
-				 myAlarmNotification.notificationHandle);
+				 job->myntf.notification.alarmNotification.notificationHandle);
 	
 	if (status != SA_AIS_OK) {
 		LOG_ER("%s: fill_ntf_header_part_avd Failed (%u)", __FUNCTION__, status);
-		saNtfNotificationFree(myAlarmNotification.notificationHandle);
+		saNtfNotificationFree(job->myntf.notification.alarmNotification.notificationHandle);
 		return NCSCC_RC_FAILURE;
 	}
 
-	*(myAlarmNotification.probableCause) = static_cast<SaNtfProbableCauseT>(probableCause);
-	*(myAlarmNotification.perceivedSeverity) = static_cast<SaNtfSeverityT>(perceivedSeverity);
+	*(job->myntf.notification.alarmNotification.probableCause) = static_cast<SaNtfProbableCauseT>(probableCause);
+	*(job->myntf.notification.alarmNotification.perceivedSeverity) = static_cast<SaNtfSeverityT>(perceivedSeverity);
 
-	status = saNtfNotificationSend(myAlarmNotification.notificationHandle);
-
-	if (status != SA_AIS_OK) {
-		saNtfNotificationFree(myAlarmNotification.notificationHandle);
-		LOG_ER("%s: saNtfNotificationSend Failed (%u)", __FUNCTION__, status);
-		return NCSCC_RC_FAILURE;
-	}
-
-	status = saNtfNotificationFree(myAlarmNotification.notificationHandle);
-
-	if (status != SA_AIS_OK) {
-		LOG_ER("%s: saNtfNotificationFree Failed (%u)", __FUNCTION__, status);
-		return NCSCC_RC_FAILURE;
-	}
+	job->myntf.notificationType = SA_NTF_TYPE_ALARM;
+	Fifo::queue(job);
 
 	return status;
 
@@ -657,7 +691,6 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 				     int additional_info_is_present)
 {
 	uint32_t status = NCSCC_RC_FAILURE;
-	SaNtfStateChangeNotificationT myStateNotification;
 	SaUint16T add_info_items = 0;
 	SaUint64T allocation_size = 0;
 	SaUint16T num_of_changedStates = 1;
@@ -685,9 +718,9 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 	if (stateId == STATE_ID_NA) {
 		num_of_changedStates = 0;
 	}
-
+	NtfSend *job = new NtfSend{};
 	status = saNtfStateChangeNotificationAllocate(avd_cb->ntfHandle,/* handle to Notification Service instance */
-						      &myStateNotification,
+						      &job->myntf.notification.stateChangeNotification,
 						      /* number of correlated notifications */
 						      0,
 						      /* length of additional text */
@@ -704,7 +737,7 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 		return NCSCC_RC_FAILURE;
 	}
 
-	status = fill_ntf_header_part_avd(&myStateNotification.notificationHeader,
+	status = fill_ntf_header_part_avd(&job->myntf.notification.stateChangeNotification.notificationHeader,
 				 SA_NTF_OBJECT_STATE_CHANGE,
 				 ntf_object,
 				 add_text,
@@ -713,37 +746,24 @@ uint32_t sendStateChangeNotificationAvd(AVD_CL_CB *avd_cb,
 				 const_cast<SaInt8T*>(AMF_NTF_SENDER),
 				 add_info,
 				 additional_info_is_present,
-				 myStateNotification.notificationHandle);
+				 job->myntf.notification.stateChangeNotification.notificationHandle);
 	
 	if (status != SA_AIS_OK) {
 		LOG_ER("%s: fill_ntf_header_part_avd Failed (%u)", __FUNCTION__, status);
-		saNtfNotificationFree(myStateNotification.notificationHandle);
+		saNtfNotificationFree(job->myntf.notification.stateChangeNotification.notificationHandle);
 		return NCSCC_RC_FAILURE;
 	}
 
-	*(myStateNotification.sourceIndicator) = static_cast<SaNtfSourceIndicatorT>(sourceIndicator);
+	*(job->myntf.notification.stateChangeNotification.sourceIndicator) = static_cast<SaNtfSourceIndicatorT>(sourceIndicator);
 	
 	if (num_of_changedStates == 1) {
-		myStateNotification.changedStates->stateId = stateId;
-		myStateNotification.changedStates->oldStatePresent = SA_TRUE;
-		myStateNotification.changedStates->oldState = oldstate;
-		myStateNotification.changedStates->newState = newState;
+		job->myntf.notification.stateChangeNotification.changedStates->stateId = stateId;
+		job->myntf.notification.stateChangeNotification.changedStates->oldStatePresent = SA_TRUE;
+		job->myntf.notification.stateChangeNotification.changedStates->oldState = oldstate;
+		job->myntf.notification.stateChangeNotification.changedStates->newState = newState;
 	}
-
-	status = saNtfNotificationSend(myStateNotification.notificationHandle);
-
-	if (status != SA_AIS_OK) {
-		saNtfNotificationFree(myStateNotification.notificationHandle);
-		LOG_ER("%s: saNtfNotificationSend Failed (%u)", __FUNCTION__, status);
-		return NCSCC_RC_FAILURE;
-	}
-
-	status = saNtfNotificationFree(myStateNotification.notificationHandle);
-
-	if (status != SA_AIS_OK) {
-		LOG_ER("%s: saNtfNotificationFree Failed (%u)", __FUNCTION__, status);
-		return NCSCC_RC_FAILURE;
-	}
+	job->myntf.notificationType = SA_NTF_TYPE_STATE_CHANGE;
+	Fifo::queue(job);
 
 	return status;
 
@@ -855,4 +875,33 @@ SaAisErrorT avd_start_ntf_init_bg(void)
 	pthread_attr_destroy(&attr);
 
 	return SA_AIS_OK;
+}
+
+AvdJobDequeueResultT NtfSend::exec(const AVD_CL_CB *cb) {
+  AvdJobDequeueResultT res;
+  SaAisErrorT rc = SA_AIS_OK;
+  TRACE_ENTER2("Ntf Type:%x, sent status:%u", myntf.notificationType,
+    already_sent); 
+
+  rc = avd_try_send_notification(this);
+  if (rc == SA_AIS_OK) {
+    delete Fifo::dequeue();
+    res = JOB_EXECUTED;
+  } else if (rc == SA_AIS_ERR_TRY_AGAIN) {
+    TRACE("TRY-AGAIN");
+    res = JOB_ETRYAGAIN;
+  } else if (rc == SA_AIS_ERR_TIMEOUT) {
+    TRACE("TIMEOUT");
+    res = JOB_ETRYAGAIN;
+  } else {
+    delete Fifo::dequeue();
+    LOG_ER("%s: Notification Send FAILED %u", __FUNCTION__, rc);
+    res = JOB_ERR;
+  }
+
+  TRACE_LEAVE();
+  return res;
+}
+
+NtfSend::~NtfSend() {
 }
