@@ -134,11 +134,11 @@ Job::~Job()
 }
 
 //
-AvdJobDequeueResultT ImmObjCreate::exec(SaImmOiHandleT immOiHandle)
+AvdJobDequeueResultT ImmObjCreate::exec(const AVD_CL_CB *cb)
 {
 	SaAisErrorT rc;
 	AvdJobDequeueResultT res;
-	
+	const SaImmOiHandleT immOiHandle = cb->immOiHandle;
 	TRACE_ENTER2("Create %s", parentName_.c_str());
 
 	const SaNameTWrapper parent_name(parentName_);
@@ -200,11 +200,12 @@ ImmObjCreate::~ImmObjCreate()
 }
 
 //
-AvdJobDequeueResultT ImmObjUpdate::exec(SaImmOiHandleT immOiHandle)
+AvdJobDequeueResultT ImmObjUpdate::exec(const AVD_CL_CB *cb)
 {
 	SaAisErrorT rc;
 	AvdJobDequeueResultT res;
-	
+	const SaImmOiHandleT immOiHandle = cb->immOiHandle;
+
 	SaImmAttrModificationT_2 attrMod;
 	const SaImmAttrModificationT_2 *attrMods[] = {&attrMod, nullptr};
 	SaImmAttrValueT attrValues[] = {value_};
@@ -253,10 +254,11 @@ ImmObjUpdate::~ImmObjUpdate()
 }
 
 //
-AvdJobDequeueResultT ImmObjDelete::exec(SaImmOiHandleT immOiHandle)
+AvdJobDequeueResultT ImmObjDelete::exec(const AVD_CL_CB *cb)
 {
 	SaAisErrorT rc;
 	AvdJobDequeueResultT res;
+	const SaImmOiHandleT immOiHandle = cb->immOiHandle;
 
 	TRACE_ENTER2("Delete %s", dn.c_str());
 
@@ -290,9 +292,10 @@ ImmObjDelete::~ImmObjDelete()
 }
 
 //
-AvdJobDequeueResultT ImmAdminResponse::exec(const SaImmOiHandleT handle) {
+AvdJobDequeueResultT ImmAdminResponse::exec(const AVD_CL_CB *cb) {
 	SaAisErrorT rc;
 	AvdJobDequeueResultT res;
+	const SaImmOiHandleT handle = cb->immOiHandle;
 
 	TRACE_ENTER2("Admin resp inv:%llu res:%u", invocation_, result_);
 
@@ -331,10 +334,10 @@ Job* Fifo::peek()
 {
 	Job* tmp;
 	
-	if (imm_job_.empty()) {
+	if (job_.empty()) {
 		tmp = 0;
 	} else {
-		tmp = imm_job_.front();
+		tmp = job_.front();
 	}
 	
 	return tmp;
@@ -343,7 +346,7 @@ Job* Fifo::peek()
 //
 void Fifo::queue(Job* job)
 {
-	imm_job_.push(job);
+	job_.push(job);
 }
 
 //
@@ -351,11 +354,11 @@ Job* Fifo::dequeue()
 {
 	Job* tmp;
 	
-	if (imm_job_.empty()) {
+	if (job_.empty()) {
 		tmp = 0;
 	} else {
-		tmp = imm_job_.front();
-		imm_job_.pop();
+		tmp = job_.front();
+		job_.pop();
 	}
 	
 	return tmp;
@@ -376,7 +379,7 @@ void check_and_flush_job_queue_standby_amfd(void)
 }
 
 //
-AvdJobDequeueResultT Fifo::execute(SaImmOiHandleT immOiHandle)
+AvdJobDequeueResultT Fifo::execute(const AVD_CL_CB *cb)
 {
 	Job *ajob;
 	AvdJobDequeueResultT ret;
@@ -395,7 +398,7 @@ AvdJobDequeueResultT Fifo::execute(SaImmOiHandleT immOiHandle)
 
 	TRACE_ENTER();
 
-	ret = ajob->exec(immOiHandle);
+	ret = ajob->exec(cb);
 	
 	TRACE_LEAVE2("%d", ret);
 
@@ -418,11 +421,11 @@ void Fifo::empty()
 
 uint32_t Fifo::size()
 {
-       return imm_job_.size();
+       return job_.size();
 }
 
 //
-std::queue<Job*> Fifo::imm_job_;
+std::queue<Job*> Fifo::job_;
 //
 
 extern struct ImmutilWrapperProfile immutilWrapperProfile;

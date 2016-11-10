@@ -803,7 +803,7 @@ void avd_su_oper_state_evh(AVD_CL_CB *cb, AVD_EVT *evt)
 						*/
 						AvdJobDequeueResultT job_res = JOB_EXECUTED;
 						while (job_res == JOB_EXECUTED)
-							job_res = Fifo::execute(cb->immOiHandle);
+							job_res = Fifo::execute(cb);
 
 						goto done;
 					} else {

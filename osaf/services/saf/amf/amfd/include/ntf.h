@@ -31,6 +31,7 @@
 #include <comp.h>
 #include <susi.h>
 
+#include "imm.h"
 #define AMF_NTF_SENDER "safApp=safAmfService"
 
 /* All states like oper, readiness etc starts from 1, so defining not applicable values */
