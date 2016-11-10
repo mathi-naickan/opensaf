@@ -1804,6 +1804,7 @@ static void su_ccb_apply_modify_hdlr(struct CcbUtilOperationData *opdata)
 	TRACE_ENTER2("CCB ID %llu, '%s'", opdata->ccbId, osaf_extended_name_borrow(&opdata->objectName));
 
 	su = su_db->find(Amf::to_string(&opdata->objectName));
+	osafassert(su != nullptr);
 
 	while ((attr_mod = opdata->param.modify.attrMods[i++]) != nullptr) {
 		/* Attribute value removed */
