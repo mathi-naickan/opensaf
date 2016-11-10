@@ -260,17 +260,17 @@ uint32_t avd_active_role_initialization(AVD_CL_CB *cb, SaAmfHAStateT role)
 
 	TRACE_ENTER();
 
+        if (avd_imm_impl_set() != SA_AIS_OK) {
+                LOG_ER("avd_imm_impl_set FAILED");
+                goto done;
+        }
+
 	if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
 		LOG_ER("avd_imm_config_get FAILED");
 		goto done;
 	}
 
 	cb->init_state = AVD_CFG_DONE;
-
-	if (avd_imm_impl_set() != SA_AIS_OK) {
-		LOG_ER("avd_imm_impl_set FAILED");
-		goto done;
-	}
 
 	avd_imm_update_runtime_attrs();
 
@@ -294,17 +294,17 @@ uint32_t avd_standby_role_initialization(AVD_CL_CB *cb)
 
 	TRACE_ENTER();
 
+        if (avd_imm_applier_set() != SA_AIS_OK) {
+                LOG_ER("avd_imm_applier_set FAILED");
+                goto done;
+        }
+
 	if (avd_imm_config_get() != NCSCC_RC_SUCCESS) {
 		LOG_ER("avd_imm_config_get FAILED");
 		goto done;
 	}
 
 	cb->init_state = AVD_CFG_DONE;
-
-	if (avd_imm_applier_set() != SA_AIS_OK) {
-		LOG_ER("avd_imm_applier_set FAILED");
-		goto done;
-	}
 
 	status = NCSCC_RC_SUCCESS;
 done:
