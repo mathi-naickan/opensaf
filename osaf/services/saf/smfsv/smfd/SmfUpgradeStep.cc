@@ -55,7 +55,7 @@
 #include "immutil.h"
 #include "smfd_smfnd.h"
 #include "smfd.h"
-#include "osaf_time.h"
+#include "base/time.h"
 
 /* ========================================================================
  *   DEFINITIONS
@@ -3290,7 +3290,7 @@ void SmfAdminOperation::createUnitLists(SaAmfAdminStateT adminState,
 	TRACE_LEAVE();
 }
 
-/// Return false if Fail. m_ais_errno is set
+/// Return false if Fail. m_errno is set
 ///
 bool SmfAdminOperation::changeNodeGroupAdminState(SaAmfAdminStateT fromState,
 					 SaAmfAdminOperationIdT toState)
@@ -3556,52 +3556,52 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 	// Create the node group
 	m_errno = SA_AIS_OK;
 	bool method_rc = false;
-        const uint32_t MAX_NO_RETRIES = 2;
-        uint32_t retry_cnt = 0;
-        while (++retry_cnt <= MAX_NO_RETRIES) {
-                // Creating the node group object will fail if a previously
-                // created node group was for some reason not deleted
-                // If that's the case (SA_AIS_ERR_EXIST) try to delete the
-                // node group and try again.
-                m_errno = immutil_saImmOmCcbObjectCreate_2(
-                    m_ccbHandle,
-                    className,
-                    &nodeGroupParentDn,
-                    attrValues);
-                TRACE("%s: immutil_saImmOmCcbObjectCreate_2 %s",
-                        __FUNCTION__, saf_error(m_errno));
+	const uint32_t MAX_NO_RETRIES = 2;
+	uint32_t retry_cnt = 0;
+	while (++retry_cnt <= MAX_NO_RETRIES) {
+		// Creating the node group object will fail if a previously
+		// created node group was for some reason not deleted
+		// If that's the case (SA_AIS_ERR_EXIST) try to delete the
+		// node group and try again.
+		m_errno = immutil_saImmOmCcbObjectCreate_2(
+							   m_ccbHandle,
+							   className,
+							   &nodeGroupParentDn,
+							   attrValues);
+		TRACE("%s: immutil_saImmOmCcbObjectCreate_2 %s",
+		      __FUNCTION__, saf_error(m_errno));
 
-                if (m_errno == SA_AIS_ERR_EXIST) {
-                        // A node group with the same name already exist
-                        // May happen if a previous delete after usage has
-                        // failed
-                        LOG_NO("%s: saImmOmCcbObjectCreate_2 Fail %s",
-                               __FUNCTION__, saf_error(m_errno));
-                        bool rc = deleteNodeGroup();
-                        if (rc == false) {
-                                LOG_NO("%s: deleteNodeGroup() Fail",
-                                       __FUNCTION__);
-                                method_rc = false;
-                                break;
-                        }
-                        continue;
-                } else if (m_errno != SA_AIS_OK) {
-                        LOG_NO("%s: saImmOmCcbObjectCreate_2() '%s' Fail %s",
-                                __FUNCTION__, nGnodeName, saf_error(m_errno));
-                        method_rc = false;
-                        break;
-                } else {
-                        m_errno = saImmOmCcbApply(m_ccbHandle);
-                        if (m_errno != SA_AIS_OK) {
-                                LOG_NO("%s: saImmOmCcbApply() Fail '%s'",
-                                        __FUNCTION__, saf_error(m_errno));
-                                method_rc = false;
-                        } else {
-                                method_rc = true;
-                        }
-                        break;
-                }
-        }
+		if (m_errno == SA_AIS_ERR_EXIST) {
+			// A node group with the same name already exist
+			// May happen if a previous delete after usage has
+			// failed
+			LOG_NO("%s: saImmOmCcbObjectCreate_2 Fail %s",
+			       __FUNCTION__, saf_error(m_errno));
+			bool rc = deleteNodeGroup();
+			if (rc == false) {
+				LOG_NO("%s: deleteNodeGroup() Fail",
+				       __FUNCTION__);
+				method_rc = false;
+				break;
+			}
+			continue;
+		} else if (m_errno != SA_AIS_OK) {
+			LOG_NO("%s: saImmOmCcbObjectCreate_2() '%s' Fail %s",
+			       __FUNCTION__, nGnodeName, saf_error(m_errno));
+			method_rc = false;
+			break;
+		} else {
+			m_errno = saImmOmCcbApply(m_ccbHandle);
+			if (m_errno != SA_AIS_OK) {
+				LOG_NO("%s: saImmOmCcbApply() Fail '%s'",
+				       __FUNCTION__, saf_error(m_errno));
+				method_rc = false;
+			} else {
+				method_rc = true;
+			}
+			break;
+		}
+	}
 
 	if (nodeName != NULL)
 		free(nodeName);
@@ -3683,10 +3683,6 @@ bool SmfAdminOperation::deleteNodeGroup()
 ///
 bool SmfAdminOperation::nodeGroupAdminOperation(SaAmfAdminOperationIdT adminOp)
 {
-	bool rc = true;
-	SaAisErrorT oi_rc = SA_AIS_OK;
-	m_errno = SA_AIS_OK;
-
 	TRACE_ENTER();
 
 	// Create the object name
@@ -3702,42 +3698,62 @@ bool SmfAdminOperation::nodeGroupAdminOperation(SaAmfAdminOperationIdT adminOp)
 	// There are no operation parameters
 	const SaImmAdminOperationParamsT_2 *params[1] = {NULL};
 
-	int retry = 100;
-	do {
-		TRACE("immutil_saImmOmAdminOperationInvoke_2 %s", __FUNCTION__);
-		m_errno = immutil_saImmOmAdminOperationInvoke_2(
-			m_ownerHandle,
-			&nodeGroupName, 0, adminOp, params,
-			&oi_rc, smfd_cb->adminOpTimeout);
+	// ===================================
+	// Create the node group
+        const SaTimeT kNanoMillis = 1000000;
+	SaAisErrorT oi_rc = SA_AIS_OK;
+	SaAisErrorT imm_rc = SA_AIS_OK;
+	m_errno = SA_AIS_OK;
+	bool method_rc = false;
+	base::Timer adminOpTimer(smfd_cb->adminOpTimeout / kNanoMillis);
 
-                if (m_errno == SA_AIS_OK && oi_rc == SA_AIS_OK)
-                        break;
-
-		if (retry <= 0) {
-			LOG_NO("Fail to invoke admin operation, too many OI "
-				"TRY_AGAIN, giving up. %s", __FUNCTION__);
+	while (adminOpTimer.is_timeout() == false) {
+		TRACE("%s: saImmOmAdminOperationInvoke_2 time left = %ld",
+		 __FUNCTION__, adminOpTimer.time_left());
+		imm_rc = saImmOmAdminOperationInvoke_2(
+				m_ownerHandle,
+				&nodeGroupName, 0, adminOp, params,
+				&oi_rc,
+				smfd_cb->adminOpTimeout);
+		if ((imm_rc == SA_AIS_ERR_TRY_AGAIN) ||
+		    (imm_rc == SA_AIS_OK && oi_rc == SA_AIS_ERR_TRY_AGAIN)) {
+			base::Sleep(base::MillisToTimespec(2000));
+			continue;
+		} else if (imm_rc != SA_AIS_OK) {
+			LOG_NO("%s: saImmOmAdminOperationInvoke_2 "
+				"Fail %s", __FUNCTION__, saf_error(imm_rc));
+			m_errno = imm_rc;
+			break;
+		} else if (oi_rc != SA_AIS_OK) {
+			LOG_NO("%s: SaAmfAdminOperationId %d Fail %s",
+				__FUNCTION__, adminOp, saf_error(oi_rc));
+			m_errno = oi_rc;
+			break;
+		} else {
+			// Operation success
+			method_rc = true;
 			break;
 		}
-		sleep(2);
-		retry--;
-	} while (m_errno == SA_AIS_OK && oi_rc == SA_AIS_ERR_TRY_AGAIN);
-
-	if (m_errno != SA_AIS_OK) {
-		LOG_NO("%s: saImmOmAdminOperationInvoke_2 Fail %s",
-			__FUNCTION__, saf_error(m_errno));
-		rc = false;
+	}
+	if (adminOpTimer.is_timeout()) {
+		if ((imm_rc == SA_AIS_OK) && (oi_rc == SA_AIS_OK)) {
+			// Timeout is passed but operation is ok. This is Ok
+			method_rc = true;
+		} else if (imm_rc != SA_AIS_OK) {
+			LOG_NO("%s adminOpTimeout Fail %s",
+				__FUNCTION__, saf_error(imm_rc));
+			m_errno = imm_rc;
+			method_rc = false;
+		} else {
+			LOG_NO("%s adminOpTimeout Fail %s",
+				__FUNCTION__, saf_error(oi_rc));
+			m_errno = oi_rc;
+			method_rc = false;
+		}
 	}
 
-	if ((m_errno == SA_AIS_OK) && (oi_rc != SA_AIS_OK)){
-		/* IMM om admin operation was ok but amf oi reported an error */
-		LOG_NO("%s: Set adminstate (%d) Fail %s",
-			__FUNCTION__, adminOp, saf_error(oi_rc));
-		m_errno = oi_rc;
-		rc = false;
-	}
-
-	TRACE_LEAVE();
-	return rc;
+	TRACE_LEAVE2("%s", method_rc? "OK":"FAIL");
+	return method_rc;
 }
 
 /// Set given admin state to all units in the given unitList
