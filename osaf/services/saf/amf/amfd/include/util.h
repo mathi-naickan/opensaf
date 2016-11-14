@@ -96,4 +96,6 @@ extern void d2n_msg_free(AVSV_DND_MSG *msg);
 extern const char* avd_getparent(const char* dn);
 extern bool object_exist_in_imm(const SaNameT *dn);
 extern const char *admin_op_name(SaAmfAdminOperationIdT opid);
+void avd_association_namet_init(const SaNameT *associate_dn, SaNameT *child,
+                SaNameT *parent, AVSV_AMF_CLASS_ID parent_class_id);
 #endif

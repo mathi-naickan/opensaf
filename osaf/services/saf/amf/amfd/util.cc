@@ -1924,3 +1924,49 @@ bool admin_op_is_valid(SaImmAdminOperationIdT opId, AVSV_AMF_CLASS_ID class_id)
  	child_dn->length = i;
  	return 0;
  }
+ 
+void avd_association_namet_init(const SaNameT *associate_dn, SaNameT *child,
+		SaNameT *parent, AVSV_AMF_CLASS_ID parent_class_id) {
+  char *p = nullptr;
+  memset(parent, 0, sizeof(SaNameT));
+  memset(child, 0, sizeof(SaNameT));
+  //Example dns
+  //dn:safCSIComp=safComp=AmfDemo\,safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1,safCsi=AmfDemo,safSi=AmfDemo,safApp=AmfDemo1
+  // child: safComp=AmfDemo\,safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1 
+  //parent: safCsi=AmfDemo,safSi=AmfDemo,safApp=AmfDemo1
+  //dn:safSISU=safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1,safSi=AmfDemo,safApp=AmfDemo1
+  if (parent_class_id  == AVSV_SA_AMF_SI) {
+    avsv_sanamet_init(associate_dn, parent, "safSi=");
+  } else if (parent_class_id  == AVSV_SA_AMF_CSI) {
+    avsv_sanamet_init(associate_dn, parent, "safCsi=");
+  } else {
+    return;
+  }
+
+  int i;
+  SaNameT name;
+  name = *associate_dn;
+  if (parent_class_id  == AVSV_SA_AMF_SI) {
+    p = strstr((char *)name.value, "safSi=");
+  } else if (parent_class_id  == AVSV_SA_AMF_CSI) {
+    p = strstr((char *)name.value, "safCsi=");
+  }
+
+  *(--p) = '\0';  /* null terminate at comma before parent name */
+
+  /* Skip past the RDN tag */
+  p = strchr((char *)name.value, '=') + 1;
+
+  /* Copy the RDN value which is a DN with escaped commas */
+  i = 0;
+  while (*p) {
+    if (*p != '\\')
+	    child->value[i++] = *p;
+    p++;
+  }
+  /* Points just after child name ends, so it will give the name length
+     as it starts with zero. */
+  child->length = i;
+
+}
+

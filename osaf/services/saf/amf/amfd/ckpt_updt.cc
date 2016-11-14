@@ -453,6 +453,11 @@ uint32_t avd_ckpt_siass(AVD_CL_CB *cb, AVSV_SU_SI_REL_CKPT_MSG *su_si_ckpt, NCS_
 			} else {
 				memset(&(su_si_rel_ptr->comp_name),0,sizeof(SaNameT));
 				memset(&(su_si_rel_ptr->csi_name),0,sizeof(SaNameT));
+				//This is update of SUSI because of modification of assignment.
+				if (action == NCS_MBCSV_ACT_UPDATE) {
+					avd_susi_update(su_si_rel_ptr, su_si_rel_ptr->state);
+				}
+
 			}
 		} else {
 			LOG_ER("%s:%u", __FUNCTION__, __LINE__);
