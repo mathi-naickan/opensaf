@@ -142,6 +142,12 @@ AvdJobDequeueResultT ImmObjCreate::exec(const AVD_CL_CB *cb)
 	TRACE_ENTER2("Create %s", parentName_.c_str());
 
 	const SaNameTWrapper parent_name(parentName_);
+	//Check in AMF Db before creation in IMM.
+	if (immobj_update_required() == false){
+		delete Fifo::dequeue();
+		res = JOB_EXECUTED;
+		goto done;	
+	}
 	rc = saImmOiRtObjectCreate_2(immOiHandle, className_,
 				     parent_name, attrValues_);
 
@@ -163,7 +169,7 @@ AvdJobDequeueResultT ImmObjCreate::exec(const AVD_CL_CB *cb)
 		LOG_ER("%s: create FAILED %u", __FUNCTION__, rc);
 		res = JOB_ERR;
 	}
-	
+done:
 	TRACE_LEAVE();
 	
 	return res;
@@ -212,6 +218,12 @@ AvdJobDequeueResultT ImmObjUpdate::exec(const AVD_CL_CB *cb)
 
 	TRACE_ENTER2("Update '%s' %s", dn.c_str(), attributeName_);
 
+	//update latest values.
+	if (immobj_update_required() == false){
+		delete Fifo::dequeue();
+		res = JOB_EXECUTED;
+		goto done;	
+	}
 	attrMod.modType = SA_IMM_ATTR_VALUES_REPLACE;
 	attrMod.modAttr.attrName = attributeName_;
 	attrMod.modAttr.attrValuesNumber = 1;
@@ -238,7 +250,7 @@ AvdJobDequeueResultT ImmObjUpdate::exec(const AVD_CL_CB *cb)
 		LOG_ER("%s: update FAILED %u", __FUNCTION__, rc);
 		res = JOB_ERR;
 	}
-	
+done:
 	TRACE_LEAVE();
 	return res;
 }
@@ -262,6 +274,12 @@ AvdJobDequeueResultT ImmObjDelete::exec(const AVD_CL_CB *cb)
 
 	TRACE_ENTER2("Delete %s", dn.c_str());
 
+	//Check AMF db before deletion.
+	if (immobj_update_required() == false){
+		delete Fifo::dequeue();
+		res = JOB_EXECUTED;
+		goto done;	
+	}
 	rc = saImmOiRtObjectDelete_o3(immOiHandle, dn.c_str());
 
 	if ((rc == SA_AIS_OK) || (rc == SA_AIS_ERR_NOT_EXIST)) {
@@ -282,7 +300,7 @@ AvdJobDequeueResultT ImmObjDelete::exec(const AVD_CL_CB *cb)
 		LOG_ER("%s: delete FAILED %u", __FUNCTION__, rc);
 		res = JOB_ERR;
 	}
-	
+done:	
 	TRACE_LEAVE();
 	return res;
 }
@@ -481,8 +499,8 @@ static const char *avd_class_names[] = {
 	"SaAmfSIDependency",
 	"SaAmfSIRankedSU",
 
-	"SaAmfCSIAssignment",
-	"SaAmfSIAssignment"
+	"SaAmfSIAssignment",
+	"SaAmfCSIAssignment"
 };
 
 static AvdImmOiCcbApplyCallbackT ccb_apply_callback[AVSV_SA_AMF_CLASS_MAX];
@@ -1686,6 +1704,8 @@ void avd_saImmOiRtObjectUpdate(const std::string& dn, const std::string& attribu
 		return;
 
 	ImmObjUpdate *ajob = new ImmObjUpdate;
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
+		ajob->implementer = false;
 
 	sz = value_size(attrValueType);
 
@@ -1724,6 +1744,8 @@ void avd_saImmOiRtObjectCreate(const std::string& className,
 		return;
 
 	ImmObjCreate* ajob = new ImmObjCreate;
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
+		ajob->implementer = false;
 
 	ajob->className_ = StrDup(className.c_str());
 	osafassert(ajob->className_ != nullptr);
@@ -1747,6 +1769,8 @@ void avd_saImmOiRtObjectDelete(const std::string& dn)
 		return;
 
 	ImmObjDelete *ajob = new ImmObjDelete;
+	if (avd_cb->avail_state_avd != SA_AMF_HA_ACTIVE)
+		ajob->implementer = false;
 
 	ajob->dn = dn;
 	Fifo::queue(ajob);
@@ -2052,3 +2076,356 @@ void report_admin_op_error(SaImmOiHandleT immOiHandle, SaInvocationT invocation,
 	}
 
 }
+
+
+/**
+ * @brief  Fetches latest attribute values from AMF db before creating any runtime object in IMM. 
+ *         Currently, standby AMFD creates runtime objects of only
+ *         AVSV_SA_AMF_SI_ASSIGNMENT and AVSV_SA_AMF_CSI_ASSIGNMENT.
+ * @Return true/false.
+ */
+bool ImmObjCreate::immobj_update_required() {
+  
+  bool ret = true;
+  int i = 0;
+  AVD_SU_SI_REL *susi = nullptr; 
+  AVSV_AMF_CLASS_ID class_type = AVSV_SA_AMF_CLASS_INVALID;
+  const SaImmAttrValuesT_2 *attribute = nullptr; 
+  if (implementer == true)
+    return true;
+  TRACE_ENTER2("class type:'%s'", className_);
+
+  class_type = class_name_to_class_type(className_);
+  if ((class_type != AVSV_SA_AMF_SI_ASSIGNMENT) && 
+    (class_type != AVSV_SA_AMF_CSI_ASSIGNMENT)) {
+    TRACE_LEAVE2("false");
+    return false;
+  }
+   
+  if (class_type == AVSV_SA_AMF_SI_ASSIGNMENT) {
+    std::string su_name;
+    std::string sisu_name;
+    std::string::size_type pos;
+    while ((attribute = attrValues_[i++]) != nullptr) {
+      if (!strcmp(attribute->attrName, "safSISU")) {
+	sisu_name = Amf::to_string(reinterpret_cast<SaNameT*>(attribute->attrValues[0]));
+	//at present sisu_name : safSISU=safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1.
+	avsv_sanamet_init(sisu_name, su_name, "safSu=");
+	su_name.erase(std::remove(su_name.begin(), su_name.end(), '\\'), su_name.end());
+	TRACE_1("su_name:'%s'",su_name.c_str());
+	break;
+      }	
+    }
+    susi = avd_susi_find(avd_cb, su_name, parentName_);
+    if (susi == nullptr) {
+      TRACE_1("susi not found");
+      ret = false;
+      goto done;
+    }
+    i=0;
+    while ((attribute = attrValues_[i++]) != nullptr) {
+      if (!strcmp(attribute->attrName, "safSISU")) {
+        continue;
+      } else if (!strcmp(attribute->attrName, "saAmfSISUHAState")) {
+	TRACE_1("saAmfSISUHAState old value:%u, new value:%u",
+	  *static_cast<SaAmfHAStateT*>(attribute->attrValues[0]), susi->state);
+	memcpy(attribute->attrValues[0], &susi->state, value_size(attribute->attrValueType));
+      } else if (!strcmp(attribute->attrName, "osafAmfSISUFsmState")) {
+	TRACE_1("osafAmfSISUFsmState old value:%u, new value:%u",
+	  *static_cast<AVD_SU_SI_STATE*>(attribute->attrValues[0]), susi->fsm);
+	memcpy(attribute->attrValues[0], &susi->fsm, value_size(attribute->attrValueType));
+      }
+    }
+  } else if (class_type == AVSV_SA_AMF_CSI_ASSIGNMENT) {
+    std::string comp_name;
+    std::string csicomp_name;
+    std::string::size_type pos;
+    AVD_CSI *csi = nullptr;
+    AVD_COMP *comp = nullptr;
+    AVD_COMP_CSI_REL *compcsi = nullptr; 
+    while ((attribute = attrValues_[i++]) != nullptr) {
+      if (!strcmp(attribute->attrName, "safCSIComp")) {
+	csicomp_name = Amf::to_string(reinterpret_cast<SaNameT*>(attribute->attrValues[0]));
+        //at present csicomp_name:safCSIComp=safComp=AmfDemo\,safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1.
+	avsv_sanamet_init(csicomp_name, comp_name, "safComp=");
+	comp_name.erase(std::remove(comp_name.begin(), comp_name.end(), '\\'), comp_name.end());
+	TRACE_1("comp_name:'%s'", comp_name.c_str());
+	break;
+      }	
+    }
+    csi =  csi_db->find(parentName_);
+    comp = comp_db->find(comp_name);	
+    if ((csi == nullptr) || (comp == nullptr)) {
+      TRACE_1("comp or csi not found");
+      ret = false;
+      goto done;
+    }
+    susi = avd_susi_find(avd_cb, comp->su->name, csi->si->name);
+    if (susi == nullptr) {
+      TRACE_1("susi not found");
+      ret = false;
+      goto done;
+    }
+    for (compcsi = susi->list_of_csicomp; compcsi; compcsi = compcsi->susi_csicomp_next) {
+      if ((compcsi->comp == comp) && (compcsi->csi == csi)) 
+	break;
+    }
+    if (compcsi == nullptr) {
+      ret = false;
+      goto done;
+    }
+    i = 0;
+    while ((attribute = attrValues_[i++]) != nullptr) {
+      if (!strcmp(attribute->attrName, "safCSIComp")) {
+        continue;
+      } else if (!strcmp(attribute->attrName, "saAmfCSICompHAState")) {
+	TRACE_1("saAmfCSICompHAState old value:%u, new value:%u",
+	  *static_cast<SaAmfHAStateT*>(attribute->attrValues[0]), susi->state);
+	memcpy(attribute->attrValues[0], &susi->state, value_size(attribute->attrValueType));
+      }
+    }
+  }
+done:
+  TRACE_LEAVE2("ret:%u",ret);
+  return ret;
+}
+
+//Imm Object atrribute update related member functions.
+bool ImmObjUpdate::su_get_attr_value() {	
+  bool ret = true;
+  AVD_SU *su = nullptr;
+  su = su_db->find(dn);
+  if (su == nullptr) {
+    TRACE_1("su not found");
+    ret = false;
+    goto done;
+  }
+  if (!strcmp(attributeName_, "saAmfSUOperState")) {
+    TRACE_1("saAmfSUOperState old value:%u, new value:%u",
+      *static_cast<SaAmfOperationalStateT*>(value_), su->saAmfSUOperState);
+    memcpy(value_, &su->saAmfSUOperState, value_size(attrValueType_));
+  } else if (!strcmp(attributeName_, "saAmfSUReadinessState")) {
+    TRACE_1("saAmfSuReadinessState old value:%u, new value:%u",
+      *static_cast<SaAmfReadinessStateT*>(value_), su->saAmfSuReadinessState);
+    memcpy(value_, &su->saAmfSuReadinessState, value_size(attrValueType_));
+  } else if (!strcmp(attributeName_, "saAmfSUPresenceState")) {
+    TRACE_1("saAmfSUPresenceState old value:%u, new value:%u",
+      *static_cast<SaAmfPresenceStateT*>(value_), su->saAmfSUPresenceState);
+    memcpy(value_, &su->saAmfSUPresenceState, value_size(attrValueType_));
+  } else if (!strcmp(attributeName_, "saAmfSUAdminState")) {
+    TRACE_1("saAmfSUAdminState old value:%u, new value:%u",
+      *static_cast<SaAmfAdminStateT*>(value_), su->saAmfSUAdminState);
+    memcpy(value_, &su->saAmfSUAdminState, value_size(attrValueType_));
+  } else {
+    //Other attributes not considered.
+    ret = false;
+  }
+done:
+  return ret;
+}
+bool ImmObjUpdate::siass_get_attr_value() {	
+  std::string su_name;
+  std::string si_name;
+  //dn : safSISU=safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1,safSi=AmfDemo,safApp=AmfDemo1
+  avd_association_namet_init(dn, su_name, si_name, AVSV_SA_AMF_SI);
+  AVD_SU_SI_REL *susi = avd_susi_find(avd_cb, su_name, si_name);
+  if (susi == nullptr) {
+    TRACE_1("SUSI not found");
+    return false;
+  } 
+  if (!strcmp(attributeName_, "saAmfSISUHAState")) {
+    TRACE_1("saAmfSISUHAState old value:%u, new value:%u",
+      *static_cast<SaAmfHAStateT*>(value_), susi->state);
+    memcpy(value_, &susi->state, value_size(attrValueType_));
+  } else if (!strcmp(attributeName_, "osafAmfSISUFsmState")) {
+    TRACE_1("osafAmfSISUFsmState old value:%u, new value:%u",
+      *static_cast<AVD_SU_SI_STATE*>(value_), susi->fsm);
+    memcpy(value_, &susi->fsm, value_size(attrValueType_));
+  } else
+	return false;
+  return true;
+}
+bool ImmObjUpdate::csiass_get_attr_value() {
+  std::string comp_name;
+  std::string csi_name;
+  AVD_CSI *csi = nullptr;
+  AVD_COMP *comp = nullptr;
+  AVD_COMP_CSI_REL *compcsi = nullptr;
+  //dn:safCSIComp=safComp=AmfDemo\,safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1,safCsi=AmfDemo,safSi=AmfDemo,safApp=AmfDemo1
+  avd_association_namet_init(dn, comp_name, csi_name, AVSV_SA_AMF_CSI);
+  csi =  csi_db->find(csi_name);
+  comp = comp_db->find(comp_name);
+  if ((csi == nullptr) || (comp == nullptr)) {
+    TRACE_1("comp or csi not found");
+    return false;
+  }
+  AVD_SU_SI_REL *susi = avd_susi_find(avd_cb, comp->su->name, csi->si->name);
+  if (susi == nullptr) {
+    TRACE_1("susi not found");
+    return false;
+  }
+  for (compcsi = susi->list_of_csicomp; compcsi; compcsi = compcsi->susi_csicomp_next) {
+    if ((compcsi->comp == comp) && (compcsi->csi == csi))
+      break;
+  }
+  if (compcsi == nullptr) {
+    return false;
+  }
+  if (!strcmp(attributeName_, "saAmfCSICompHAState")) {
+    TRACE_1("saAmfCSICompHAState old value:%u, new value:%u",
+      *static_cast<SaAmfHAStateT*>(value_), susi->state);
+    memcpy(value_, &susi->state, value_size(attrValueType_));
+  } else
+	return false;
+
+  return true;
+}
+bool ImmObjUpdate::comp_get_attr_value() {
+  AVD_COMP *comp = nullptr;
+  comp = comp_db->find(dn);	
+  if (comp == nullptr) {
+    TRACE_1("comp not found");
+    return false;
+  }
+  if (!strcmp(attributeName_, "saAmfCompOperState")) {
+    TRACE_1("saAmfCompOperState old value:%u, new value:%u",
+      *static_cast<SaAmfOperationalStateT*>(value_), comp->saAmfCompOperState);
+    memcpy(value_, &comp->saAmfCompOperState, value_size(attrValueType_));
+  } else if (!strcmp(attributeName_, "saAmfCompReadinessState")) {
+    TRACE_1("saAmfCompReadinessState old value:%u, new value:%u",
+      *static_cast<SaAmfReadinessStateT*>(value_), comp->saAmfCompReadinessState);
+    memcpy(value_, &comp->saAmfCompReadinessState, value_size(attrValueType_));
+  } else if (!strcmp(attributeName_, "saAmfCompPresenceState")) {
+    TRACE_1(" saAmfCompPresenceState old value:%u, new value:%u",
+      *static_cast<SaAmfPresenceStateT*>(value_), comp->saAmfCompPresenceState);
+    memcpy(value_, &comp->saAmfCompPresenceState, value_size(attrValueType_));
+  } else {
+    //Other attributes not considered.
+    return false;
+  }
+  return true;
+}
+bool ImmObjUpdate::si_get_attr_value() {
+  TRACE("si:'%s'",dn.c_str());
+  AVD_SI *si = si_db->find(dn);
+  if (si == nullptr) {
+    TRACE_1("si not found");
+    return false;
+  }
+  if (!strcmp(attributeName_, "saAmfSIAssignmentState")) {
+    TRACE_1("saAmfSIAssignmentState old value:%u, new value:%u",
+      *static_cast<SaAmfAssignmentStateT*>(value_), si->saAmfSIAssignmentState);
+    memcpy(value_, &si->saAmfSIAssignmentState, value_size(attrValueType_));
+  }
+  return true;
+}
+/**
+ * @brief  Fetches latest value of attribute from AMF db before updating it in IMM.
+ *         Currently, only for SU, Comp, SI, SISU and CSICOMP.
+ * @Return true/false.
+ */
+bool ImmObjUpdate::immobj_update_required() {
+  bool ret = true;
+  AVSV_AMF_CLASS_ID class_type = object_name_to_class_type(dn);
+  if (implementer == true)
+    return true;
+  TRACE_ENTER2("class type:'%s'", avd_class_names[class_type] );
+   
+  if (class_type == AVSV_SA_AMF_SI) {
+    ret = si_get_attr_value();
+  } else if (class_type == AVSV_SA_AMF_COMP) {
+    ret = comp_get_attr_value();
+  } else if (class_type == AVSV_SA_AMF_SU) {
+    ret = su_get_attr_value();
+  } else if (class_type == AVSV_SA_AMF_SI_ASSIGNMENT) {
+    ret = siass_get_attr_value();	
+  } else if (class_type == AVSV_SA_AMF_CSI_ASSIGNMENT){
+    ret = csiass_get_attr_value();	
+  } else {
+    TRACE_1("Class not considered");
+    ret = false;
+  }
+  TRACE_LEAVE2("ret:%u",ret);
+  return ret;
+}
+
+
+//Imm Object delete related member functions.
+bool ImmObjDelete::is_siass_exist() { 
+  std::string su_name;
+  std::string si_name;
+  //dn : safSISU=safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1,safSi=AmfDemo,safApp=AmfDemo1
+  avd_association_namet_init(dn, su_name, si_name, AVSV_SA_AMF_SI);
+  TRACE("si:%s",si_name.c_str());
+  TRACE("su:%s",su_name.c_str());
+  AVD_SU_SI_REL *susi = avd_susi_find(avd_cb, su_name, si_name);
+  //SUSI should not be present in AMF DB.
+  if (susi != nullptr) {
+    TRACE_1("SUSI found");
+    return false;
+  } else {
+    TRACE_1("SUSI not found");
+  }
+  return true;
+}
+bool ImmObjDelete::is_csiass_exist() { 
+  bool ret = true;
+  std::string comp_name;
+  std::string csi_name;
+  AVD_CSI *csi = nullptr;
+  AVD_COMP *comp = nullptr;
+  AVD_COMP_CSI_REL *compcsi = nullptr; 
+  AVD_SU_SI_REL *susi = nullptr;
+  //dn:safCSIComp=safComp=AmfDemo\,safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1,safCsi=AmfDemo,safSi=AmfDemo,safApp=AmfDemo1
+  TRACE("csiass:%s",dn.c_str());
+  avd_association_namet_init(dn, comp_name, csi_name, AVSV_SA_AMF_CSI);
+  TRACE("csi:%s",csi_name.c_str());
+  TRACE("comp:%s",comp_name.c_str());
+  csi =  csi_db->find(csi_name);
+  comp = comp_db->find(comp_name);	
+  if ((csi == nullptr) || (comp == nullptr)) {
+    TRACE_1("comp or csi not found");
+    goto done;
+  }
+  susi = avd_susi_find(avd_cb, comp->su->name, csi->si->name);
+  if (susi != nullptr) {
+    TRACE_1("susi found");
+    for (compcsi = susi->list_of_csicomp; compcsi; compcsi = compcsi->susi_csicomp_next) {
+      if ((compcsi->comp == comp) && (compcsi->csi == csi)) 
+	break;
+    }
+    if (compcsi != nullptr) {
+      ret = false;
+      goto done;	
+    }
+  } else {
+    TRACE_1("SUSI not found");
+  }
+  return true;
+done:
+  return ret;
+}
+
+/*
+ * @brief  Checks existence of object in AMF db before deleting it from IMM.
+ *         Currently checks only for SISU and CSICOMP.
+ * @Return true/false.
+ */
+bool ImmObjDelete::immobj_update_required() { 
+  bool ret = true;
+  AVSV_AMF_CLASS_ID class_type = object_name_to_class_type(dn);
+  if (implementer == true)
+    return true;
+  TRACE_ENTER2("class type:'%s'", avd_class_names[class_type] );
+  if (class_type == AVSV_SA_AMF_SI_ASSIGNMENT) {
+    ret = is_siass_exist();
+  } else if (class_type == AVSV_SA_AMF_CSI_ASSIGNMENT) {
+    ret = is_csiass_exist();
+  } else {
+    TRACE_1("Class not considered");
+    ret = false;
+  }
+  TRACE_LEAVE2("ret:%u",ret);
+  return ret;
+}
+

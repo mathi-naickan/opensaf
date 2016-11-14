@@ -65,6 +65,8 @@ struct avd_comp_csi_rel_tag;
 class AVD_CSI;
 
 void avsv_sanamet_init(const std::string& haystack, std::string& dn, const char *needle);
+void avd_association_namet_init(const std::string& associate_dn, std::string& child,
+                std::string& parent, AVSV_AMF_CLASS_ID parent_class_id);
 int get_child_dn_from_ass_dn(const std::string& ass_dn, std::string& child_dn);
 int get_parent_dn_from_ass_dn(const std::string& ass_dn, std::string& parent_dn);
 void avd_d2n_reboot_snd(AVD_AVND *node);

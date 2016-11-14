@@ -127,9 +127,10 @@ void avd_susi_update(AVD_SU_SI_REL *susi, SaAmfHAStateT ha_state)
 
 	TRACE("HA State %s of %s for %s", avd_ha_state[ha_state],
 	susi->su->name.c_str(), susi->si->name.c_str());
-	saflog(LOG_NOTICE, amfSvcUsrName, "HA State %s of %s for %s",
-		avd_ha_state[ha_state], susi->su->name.c_str(), susi->si->name.c_str());
-
+	if (avd_cb->avail_state_avd == SA_AMF_HA_ACTIVE) 
+		saflog(LOG_NOTICE, amfSvcUsrName, "HA State %s of %s for %s",
+				avd_ha_state[ha_state], susi->su->name.c_str(), susi->si->name.c_str());
+        
 	avd_saImmOiRtObjectUpdate(Amf::to_string(&dn), "saAmfSISUHAState",
 	   SA_IMM_ATTR_SAUINT32T, &ha_state);
 	osaf_extended_name_free(&dn);

@@ -54,6 +54,9 @@ typedef enum {
 // @todo move this into job.h
 class Job {
 public:
+	bool implementer;
+
+	Job():implementer(true) {};
 	virtual AvdJobDequeueResultT exec(const AVD_CL_CB *cb) = 0;
 	virtual ~Job() = 0;
 };
@@ -64,7 +67,9 @@ public:
 	SaImmClassNameT className_;
 	std::string parentName_;
 	const SaImmAttrValuesT_2 **attrValues_;
-	
+
+	ImmObjCreate():Job() {};
+	bool immobj_update_required();
 	AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
 	
 	~ImmObjCreate();
@@ -77,8 +82,15 @@ public:
 	SaImmAttrNameT attributeName_;
 	SaImmValueTypeT attrValueType_;
 	void *value_;
-	
+
+	ImmObjUpdate():Job() {};
+	bool immobj_update_required();
 	AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
+	bool si_get_attr_value();
+	bool siass_get_attr_value();
+	bool csiass_get_attr_value();
+	bool comp_get_attr_value();
+	bool su_get_attr_value();
 	
 	~ImmObjUpdate();
 };
@@ -87,7 +99,11 @@ public:
 class ImmObjDelete : public Job {
 public:
 	std::string dn;
-	
+
+	ImmObjDelete():Job() {};
+	bool immobj_update_required();
+	bool is_csiass_exist();
+	bool is_siass_exist();
 	AvdJobDequeueResultT exec(const AVD_CL_CB *cb);
 	
 	~ImmObjDelete();

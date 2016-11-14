@@ -2096,3 +2096,31 @@ uint32_t avd_snd_compcsi_msg(AVD_COMP *comp, AVD_CSI *csi, AVD_COMP_CSI_REL *com
   return NCSCC_RC_SUCCESS;
 }
 
+void avd_association_namet_init(const std::string& associate_dn, std::string& child,
+		std::string& parent, AVSV_AMF_CLASS_ID parent_class_id) {
+  std::string::size_type pos;
+  std::string::size_type equal_pos;
+
+  //Example dns
+  //dn:safCSIComp=safComp=AmfDemo\,safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1,safCsi=AmfDemo,safSi=AmfDemo,safApp=AmfDemo1
+  // child: safComp=AmfDemo\,safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1 
+  //parent: safCsi=AmfDemo,safSi=AmfDemo,safApp=AmfDemo1
+  //dn:safSISU=safSu=SU1\,safSg=AmfDemo\,safApp=AmfDemo1,safSi=AmfDemo,safApp=AmfDemo1
+  if (parent_class_id  == AVSV_SA_AMF_SI) {
+    pos = associate_dn.find("safSi=");
+  } else if (parent_class_id  == AVSV_SA_AMF_CSI) {
+    pos = associate_dn.find("safCsi=");
+  } else {
+    parent = "";
+    child  = "";
+    return;
+  }
+  // set parent name 
+  parent = associate_dn.substr(pos);
+
+  // set child name 
+  equal_pos = associate_dn.find('=');
+  child = associate_dn.substr(equal_pos + 1, pos - equal_pos - 2);
+  child.erase(std::remove(child.begin(), child.end(), '\\'), child.end());
+}
+
