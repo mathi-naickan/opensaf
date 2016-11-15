@@ -3732,7 +3732,7 @@ bool SmfAdminOperation::nodeGroupAdminOperation(SaAmfAdminOperationIdT adminOp)
 	base::Timer adminOpTimer(smfd_cb->adminOpTimeout / kNanoMillis);
 
 	while (adminOpTimer.is_timeout() == false) {
-		TRACE("%s: saImmOmAdminOperationInvoke_2 time left = %ld",
+		TRACE("%s: saImmOmAdminOperationInvoke_2 time left = %" PRIu64,
 		 __FUNCTION__, adminOpTimer.time_left());
 		imm_rc = saImmOmAdminOperationInvoke_2(
 				m_ownerHandle,
