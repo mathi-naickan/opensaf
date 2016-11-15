@@ -2816,6 +2816,17 @@ SmfAdminOperation::SmfAdminOperation(std::list <unitNameAndState> *i_allUnits)
 		m_smfKeepDuState = true;
 	}
 
+	// Create an instance unique name for a node group IMM object
+	// using an instance number.
+	m_instance_number = m_next_instance_number++;
+	m_instanceNodeGroupName = "safAmfNodeGroup=smfLockAdmNg"+
+	    std::to_string(m_instance_number);
+	m_admin_owner_name ="smfNgAdmOwnerName";
+	TRACE("%s m_instanceNodeGroupName '%s'",__FUNCTION__,
+		m_instanceNodeGroupName.c_str());
+	TRACE("%s m_NodeGroupAdminOwnerName '%s'", __FUNCTION__,
+		m_admin_owner_name.c_str());
+
 	// Note:
 	// If any of the following steps fails m_creation_fail is set to true
 	// and an immediate return is done
@@ -2835,12 +2846,6 @@ SmfAdminOperation::SmfAdminOperation(std::list <unitNameAndState> *i_allUnits)
 		m_creation_fail = true;
 		return;
 	}
-
-	// Create an instance unique name for a node group IMM object using an
-	// instance number.
-	m_instance_number = m_next_instance_number++;
-	m_instanceNodeGroupName = "safAmfNodeGroup=smfLockAdmNg"+
-	    std::to_string(m_instance_number);
 }
 
 SmfAdminOperation::~SmfAdminOperation()
@@ -3103,7 +3108,8 @@ bool SmfAdminOperation::initNodeGroupOm()
 		timeout_try_cnt = 6;
 		while (timeout_try_cnt > 0) {
 			ais_rc = immutil_saImmOmAdminOwnerInitialize(m_omHandle,
-				const_cast<char*> ("smfSetAdminStateOwner"),
+				const_cast<char*>
+				(m_admin_owner_name.c_str()),
 				SA_TRUE, &m_ownerHandle);
 			if (ais_rc != SA_AIS_ERR_TIMEOUT)
 				break;
@@ -3162,7 +3168,8 @@ bool SmfAdminOperation::becomeAdminOwnerOfAmfClusterObj() {
 						objectNames, SA_IMM_SUBTREE);
 	bool rc = true;
 	if (ais_rc != SA_AIS_OK) {
-		LOG_NO("%s: saImmOmAdminOwnerSet Fail '%s'", __FUNCTION__,
+		LOG_NO("%s: saImmOmAdminOwnerSet owner name '%s' Fail '%s'",
+			__FUNCTION__, m_admin_owner_name.c_str(),
 			saf_error(ais_rc));
 	}
 
@@ -3470,7 +3477,9 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 {
 	TRACE_ENTER();
 
-	TRACE("\t uniqueNodeName '%s'", m_instanceNodeGroupName.c_str());
+	TRACE("\t unique Node name '%s'", m_instanceNodeGroupName.c_str());
+	TRACE("\t unique Admin owner name '%s'",
+		m_admin_owner_name.c_str());
 
 	// ------------------------------------
 	// Attribute descriptor for the node name
@@ -3556,7 +3565,7 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 	// Create the node group
 	m_errno = SA_AIS_OK;
 	bool method_rc = false;
-	const uint32_t MAX_NO_RETRIES = 2;
+	const uint32_t MAX_NO_RETRIES = 4;
 	uint32_t retry_cnt = 0;
 	while (++retry_cnt <= MAX_NO_RETRIES) {
 		// Creating the node group object will fail if a previously
@@ -3585,6 +3594,21 @@ bool SmfAdminOperation::createNodeGroup(SaAmfAdminStateT i_fromState)
 				break;
 			}
 			continue;
+                } else if (m_errno == SA_AIS_ERR_BAD_HANDLE ||
+			   m_errno == SA_AIS_ERR_BAD_OPERATION) {
+                        LOG_NO("%s: saImmOmCcbObjectCreate_2 Fail %s",
+                               __FUNCTION__, saf_error(m_errno));
+                        finalizeNodeGroupOm();
+                        bool rc = initNodeGroupOm();
+                        if (rc == false) {
+                                LOG_NO("%s: initNodeGroupOm() Fail",
+                                       __FUNCTION__);
+                                method_rc = false;
+                                break;
+                        }
+			TRACE("\t Try again after %s",
+				saf_error(m_errno));
+                        continue;
 		} else if (m_errno != SA_AIS_OK) {
 			LOG_NO("%s: saImmOmCcbObjectCreate_2() '%s' Fail %s",
 			       __FUNCTION__, nGnodeName, saf_error(m_errno));

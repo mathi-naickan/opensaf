@@ -907,6 +907,7 @@ class SmfAdminOperation {
 	bool m_smfKeepDuState {false};
 	unsigned int m_instance_number {0};
 	std::string m_instanceNodeGroupName {""};
+        std::string m_admin_owner_name {""};
 
 	DELETE_COPY_AND_MOVE_OPERATORS(SmfAdminOperation);
 };
