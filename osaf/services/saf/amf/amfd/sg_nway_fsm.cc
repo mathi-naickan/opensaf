@@ -3001,6 +3001,16 @@ void avd_sg_nway_node_fail_stable(AVD_CL_CB *cb, AVD_SU *su, AVD_SU_SI_REL *susi
 		if (curr_susi == susi)
 			continue;
 
+		/*
+		   This node and its SUs are already marked OOS. 
+		   If a valid active SISU exists for this SI on some other node and this SI 
+		   is not having any sponsor then continue the for loop as for this 
+		   SI (curr_susi->si) neither failover is required nor deletion of all 
+		   assignments. This curr_susi will be deleted in this function.
+		 */
+		if ((curr_susi->si->is_active() == true) && (curr_susi->si->spons_si_list == nullptr))
+			continue;
+			
 		if ((SA_AMF_HA_ACTIVE == curr_susi->state) ||
 		    (SA_AMF_HA_QUIESCED == curr_susi->state) || (SA_AMF_HA_QUIESCING == curr_susi->state)) {
 			/* identify the most preferred standby su for this si */

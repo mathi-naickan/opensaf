@@ -1547,8 +1547,12 @@ void AVD_SI::update_alarm_state(bool alarm_state, bool sent_notification)
 bool AVD_SI::is_active() const
 {
 	for (AVD_SU_SI_REL *sisu = list_of_sisu; sisu != nullptr; sisu = sisu->si_next) {
-		if ((sisu->state == SA_AMF_HA_ACTIVE) && (sisu->fsm == AVD_SU_SI_STATE_ASGND) &&
-				(sisu->su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE)) {
+		if ((sisu->state == SA_AMF_HA_ACTIVE) &&
+			((sisu->fsm == AVD_SU_SI_STATE_ASGND) ||
+			 (sisu->fsm == AVD_SU_SI_STATE_ASGN) ||
+			 (sisu->fsm == AVD_SU_SI_STATE_MODIFY)) &&
+			(sisu->si->saAmfSIAdminState == SA_AMF_ADMIN_UNLOCKED) &&
+			(sisu->su->saAmfSuReadinessState == SA_AMF_READINESS_IN_SERVICE)) {
 			return true;
 		}
 	}
