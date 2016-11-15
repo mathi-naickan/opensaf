@@ -553,13 +553,12 @@ uint32_t avnd_evt_mds_avd_up_evh(AVND_CB *cb, AVND_EVT *evt)
 		 */
 		if (evt->info.mds.i_change == NCSMDS_NEW_ACTIVE && cb->amfd_sync_required) {
 			if (cb->led_state == AVND_LED_STATE_GREEN) {
-				LOG_NO("Sending node up due to NCSMDS_NEW_ACTIVE");
-
 				// node_up, sync sisu, compcsi info to AVND for recovery
 				avnd_sync_sisu(cb);
 				avnd_sync_csicomp(cb);
-				avnd_send_node_up_msg();
 			}
+			LOG_NO("Sending node up due to NCSMDS_NEW_ACTIVE");
+			avnd_send_node_up_msg();
 		}
 	}
 
