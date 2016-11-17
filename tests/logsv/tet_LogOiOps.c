@@ -1076,7 +1076,7 @@ void change_root_path(void)
 	}
 
 	// Verify if the directory and subdirectly are created successfully
-	usleep(100*1000); // to make sure logsv done processing of directories creation
+	sleep(1); // to make sure logsv done processing of directories creation
 	sprintf(command, "ls %s/testRoot 1>/dev/null", tstdir);
 	rc = tet_system(command);
 	if (rc != 0) {
