@@ -157,6 +157,37 @@ void saNtfNotificationSubscribe_04(void)
     test_validate(rc, SA_AIS_ERR_EXIST);
 }
 
+SaAisErrorT saNtfSubscribe(SaNtfSubscriptionIdT subscriptionId)
+{
+    SaAisErrorT ret;
+    SaNtfObjectCreateDeleteNotificationFilterT obcf;
+    SaNtfNotificationTypeFilterHandlesT FilterHandles;
+    memset(&FilterHandles, 0, sizeof(FilterHandles));
+
+    ret = saNtfObjectCreateDeleteNotificationFilterAllocate(ntfHandle, &obcf,0,0,0,1,0);
+    obcf.notificationFilterHeader.notificationClassIds->vendorId = SA_NTF_VENDOR_ID_SAF;
+    obcf.notificationFilterHeader.notificationClassIds->majorId = 222;
+    obcf.notificationFilterHeader.notificationClassIds->minorId = 222;
+    FilterHandles.objectCreateDeleteFilterHandle = obcf.notificationFilterHandle;
+    ret = saNtfNotificationSubscribe(&FilterHandles, subscriptionId);
+    return ret;
+}
+
+void saNtfNotificationSubscribe_05(void)
+{
+    SaNtfHandleT ntfHandle1 = 0;
+    safassert(saNtfInitialize(&ntfHandle1, &ntfCallbacks, &ntfVersion), SA_AIS_OK);
+    safassert(saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion), SA_AIS_OK);
+    safassert(saNtfSubscribe(666), SA_AIS_OK);
+    safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
+
+    safassert(saNtfInitialize(&ntfHandle, &ntfCallbacks, &ntfVersion), SA_AIS_OK);
+    rc = saNtfSubscribe(666);
+    safassert(saNtfFinalize(ntfHandle), SA_AIS_OK);
+    safassert(saNtfFinalize(ntfHandle1), SA_AIS_OK);
+    test_validate(rc, SA_AIS_OK);
+}
+
 __attribute__ ((constructor)) static void saNtfNotificationSubscribe_constructor(void)
 {
     test_suite_add(10, "Consumer operations - subscribe");
@@ -164,6 +195,7 @@ __attribute__ ((constructor)) static void saNtfNotificationSubscribe_constructor
     test_case_add(10, saNtfNotificationSubscribe_02, "saNtfNotificationSubscribe null handle SA_AIS_ERR_INVALID_PARAM");
     test_case_add(10, saNtfNotificationSubscribe_03, "saNtfNotificationSubscribe All filter handles null  SA_AIS_ERR_INVALID_PARAM");
     test_case_add(10, saNtfNotificationSubscribe_04, "saNtfNotificationSubscribe subscriptionId exist SA_AIS_ERR_EXIST");
+    test_case_add(10, saNtfNotificationSubscribe_05, "saNtfNotificationSubscribe subscriptionId if old handle has subscriptionId had been finalized SA_AIS_OK");
 }
 
 

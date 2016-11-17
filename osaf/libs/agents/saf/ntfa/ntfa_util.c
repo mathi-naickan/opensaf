@@ -743,6 +743,46 @@ void ntfa_subscriber_list_del()
 	}
 	subscriberNoList = NULL;
 }
+
+/****************************************************************************
+  Name          : subscriber_removed_by_handle
+
+  Description   : This routine delete subscribers of this client out of the
+  	  	  subcriberNoList
+
+  Arguments     : SaNtfHandleT ntfHandle
+
+  Return Values : None
+
+  Notes         :
+******************************************************************************/
+void ntfa_subscriber_del_by_handle(SaNtfHandleT ntfHandle)
+{
+	TRACE_ENTER();
+	ntfa_subscriber_list_t* subscriber_hdl = subscriberNoList;
+	while (subscriber_hdl != NULL) {
+		ntfa_subscriber_list_t *rm_subscriber = subscriber_hdl;
+		subscriber_hdl = subscriber_hdl->next;
+		if (ntfHandle == rm_subscriber->subscriberListNtfHandle) {
+			if (rm_subscriber->next != NULL) {
+				rm_subscriber->next->prev = rm_subscriber->prev;
+			}
+
+			if (rm_subscriber->prev != NULL) {
+				rm_subscriber->prev->next = rm_subscriber->next;
+			} else {
+				if (rm_subscriber->next != NULL)
+					subscriberNoList = rm_subscriber->next;
+				else
+					subscriberNoList = NULL;
+			}
+			ntfa_del_ntf_filter_ptrs(&rm_subscriber->filters);
+			free(rm_subscriber);
+		}
+	}
+	TRACE_LEAVE();
+}
+
 /****************************************************************************
   Name          : ntfa_hdl_list_del
  
@@ -910,27 +950,7 @@ void ntfa_hdl_rec_force_del(ntfa_client_hdl_rec_t **list_head, ntfa_client_hdl_r
 		ntfa_msg_destroy(cbk_msg);
 	}
 	/* delete subscriber of this client out of the subcriberNoList*/
-	ntfa_subscriber_list_t* subscriber_hdl = subscriberNoList;
-	while (subscriber_hdl != NULL) {
-		ntfa_subscriber_list_t *rm_subscriber = subscriber_hdl;
-		subscriber_hdl = subscriber_hdl->next;
-		if (rm_node->local_hdl == rm_subscriber->subscriberListNtfHandle) {
-			if (rm_subscriber->next != NULL) {
-				rm_subscriber->next->prev = rm_subscriber->prev;
-			}
-
-			if (rm_subscriber->prev != NULL) {
-				rm_subscriber->prev->next = rm_subscriber->next;
-			} else {
-				if (rm_subscriber->next != NULL)
-					subscriberNoList = rm_subscriber->next;
-				else
-					subscriberNoList = NULL;
-			}
-			ntfa_del_ntf_filter_ptrs(&rm_subscriber->filters);
-			free(rm_subscriber);
-		}
-	}
+	ntfa_subscriber_del_by_handle(rm_node->local_hdl);
 	/* Now delete client */
 	m_NCS_IPC_DETACH(&rm_node->mbx, ntfa_clear_mbx, NULL);
 	m_NCS_IPC_RELEASE(&rm_node->mbx, NULL);
@@ -946,6 +966,7 @@ void ntfa_hdl_rec_force_del(ntfa_client_hdl_rec_t **list_head, ntfa_client_hdl_r
 
 	TRACE_LEAVE();
 }
+
 /****************************************************************************
   Name          : ntfa_hdl_rec_del
 
@@ -968,7 +989,14 @@ uint32_t ntfa_hdl_rec_del(ntfa_client_hdl_rec_t **list_head, ntfa_client_hdl_rec
 	ntfa_client_hdl_rec_t *list_iter = *list_head;
 
 	TRACE_ENTER();
+
+	ncshm_give_hdl(rm_node->local_hdl);
 /* TODO: free all resources allocated by the client */
+
+	/* Remove subscribers of this client if there are any in subcriberNoList */
+	pthread_mutex_lock(&ntfa_cb.cb_lock);
+	ntfa_subscriber_del_by_handle(rm_node->local_hdl);
+	pthread_mutex_unlock(&ntfa_cb.cb_lock);
 
 	/* If the to be removed record is the first record */
 	if (list_iter == rm_node) {
@@ -979,7 +1007,6 @@ uint32_t ntfa_hdl_rec_del(ntfa_client_hdl_rec_t **list_head, ntfa_client_hdl_rec
 		m_NCS_IPC_DETACH(&rm_node->mbx, ntfa_clear_mbx, NULL);
 		m_NCS_IPC_RELEASE(&rm_node->mbx, NULL);
 
-		ncshm_give_hdl(rm_node->local_hdl);
 		ncshm_destroy_hdl(NCS_SERVICE_ID_NTFA, rm_node->local_hdl);
 	/** Free the channel records off this hdl 
          **/
@@ -1000,7 +1027,6 @@ uint32_t ntfa_hdl_rec_del(ntfa_client_hdl_rec_t **list_head, ntfa_client_hdl_rec
 				m_NCS_IPC_DETACH(&rm_node->mbx, ntfa_clear_mbx, NULL);
 				m_NCS_IPC_RELEASE(&rm_node->mbx, NULL);
 
-				ncshm_give_hdl(rm_node->local_hdl);
 				ncshm_destroy_hdl(NCS_SERVICE_ID_NTFA, rm_node->local_hdl);
 		/** Free the channel records off this ntfa_hdl  */
 				ntfa_notification_hdl_rec_list_del(&rm_node->notification_list);

@@ -1514,9 +1514,9 @@ SaAisErrorT saNtfDispatch(SaNtfHandleT ntfHandle, SaDispatchFlagsT dispatchFlags
  *   A pointer to the handle, obtained through the saNtfInitialize() function,
  *   designating this particular initialization of the Ntf Service.
  *
- * Note: Avoid using lock on ntfa_cb.cb_lock in this API as it may lead to deadlock
- *       situation in an applcation in which other APIs are called along with 
- *       this in parallel. 
+ * Note: Avoid using lock on ntfa_cb.cb_lock before giving ntfHandle in this API
+ *       as it may lead to deadlock situation in an application in which other
+ *       APIs are called along with this in parallel.
  ***************************************************************************/
 SaAisErrorT saNtfFinalize(SaNtfHandleT ntfHandle)
 {
@@ -2059,6 +2059,7 @@ static void subscriberListItemRemove(SaNtfSubscriptionIdT subscriptionId)
 	ntfa_subscriber_list_t *listPtr = NULL;
 	osafassert(pthread_mutex_lock(&ntfa_cb.cb_lock) == 0);
 	listPtr = listItemGet(subscriptionId); 
+	if (listPtr == NULL) goto done;
 	if (listPtr->next != NULL) {
 		listPtr->next->prev = listPtr->prev;
 	}
@@ -2074,6 +2075,7 @@ static void subscriberListItemRemove(SaNtfSubscriptionIdT subscriptionId)
 	TRACE_1("REMOVE: listPtr->SubscriptionId %d", listPtr->subscriberListSubscriptionId);
 	ntfa_del_ntf_filter_ptrs(&listPtr->filters);
 	free(listPtr);
+done:
 	osafassert(pthread_mutex_unlock(&ntfa_cb.cb_lock) == 0);
 }
 
