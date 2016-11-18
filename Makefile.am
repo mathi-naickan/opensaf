@@ -369,10 +369,10 @@ cpplint:
 	true
 
 shellcheck:
-	@builddir=$$(cd $(top_builddir); pwd; cd - > /dev/null); $(MAKE) install DESTDIR="$$builddir/tmpinstall"
-	@cd "$$builddir/tmpinstall"; files=$$(grep --exclude-dir=cluster_sim_uml --exclude-dir='.[a-zA-Z0-9]*' -E '^#\! */bin/(ba)?sh' -rlI .); \
+	@builddir=$$(cd $(top_builddir); pwd; cd - > /dev/null); $(MAKE) install DESTDIR="$$builddir/tmpinstall" 2>&1; \
+	cd "$$builddir/tmpinstall"; files=$$(grep --exclude-dir=cluster_sim_uml --exclude-dir='.[a-zA-Z0-9]*' -E '^#\! */bin/(ba)?sh' -rlI *); \
 	if test -n "$$files"; then \
-		shellcheck --shell=sh $$files; \
+		shellcheck --shell=sh $$files 1>&2; \
 	fi; \
 	true
 
@@ -380,6 +380,7 @@ shellcheck:
 
 clean-local:
 	-rm -f $(PACKAGE_NAME)-$(PACKAGE_VERSION).tar.gz
+	-rm -rf $(top_builddir)/tmpinstall
 if ENABLE_RPM_TARGET
 	-rm -rf $(RPMTOPDIR)/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS,tmp}
 endif

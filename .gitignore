@@ -74,6 +74,7 @@
 /src/smf/smfnd/osaf-smfnd
 /test-driver
 /test-suite.log
+/tmpinstall/
 /tools/cluster_sim_uml/repl-opensaf/
 /tools/cluster_sim_uml/rootfs/
 /tools/cluster_sim_uml/uml/bin/busybox
