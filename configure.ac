@@ -14,15 +14,15 @@
 # Author(s): Wind River Systems
 #
 
-AC_PREREQ([2.61])
+AC_PREREQ([2.63])
 AC_INIT([opensaf], [5.2.M0], [opensaf-users@lists.sourceforge.net], [opensaf])
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_SYSTEM
 AC_CONFIG_SRCDIR([opensaf.spec.in])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADER([src/osaf/config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([1.10 subdir-objects])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 AC_USE_SYSTEM_EXTENSIONS
 
@@ -85,9 +85,9 @@ AC_ARG_WITH([rpm-release],
         if test "$withval" = timestamp; then
                 with_rpm_release=`date +%Y%m%d%H%M`
         elif test "$withval" = global-rev; then
-                with_rpm_release=`hg id -i`
+                with_rpm_release=`git rev-parse HEAD`
         elif test "$withval" = local-rev; then
-                with_rpm_release=c`hg id -n`
+                with_rpm_release=`git rev-parse HEAD`
         else
                 with_rpm_release=$withval
         fi
@@ -439,20 +439,14 @@ AC_SUBST([localstatedir])
 #############################################
 # Checks for programs.
 #############################################
-AC_PROG_AWK
 AC_PROG_CC
-AM_PROG_CC_C_O
 AC_PROG_CXX
-AC_PROG_GCC_TRADITIONAL
 AC_PROG_INSTALL
-AC_PROG_LEX
 AC_PROG_LIBTOOL
-AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_PROG_YACC
 
 if test "$enable_python" = yes; then
-        AM_PATH_PYTHON([2.5])
+        AM_PATH_PYTHON([2.6])
 fi
 
 if test "$enable_java" = yes; then
@@ -556,113 +550,9 @@ if test -z "$OSAF_HARDEN_FLAGS"; then
 	if echo "${CFLAGS} ${CXXFLAGS}" | grep -q -- -O0; then
 		OSAF_HARDEN_FLAGS=""
 	fi
-	OSAF_HARDEN_FLAGS="${OSAF_HARDEN_FLAGS} -fstack-protector"
+	OSAF_HARDEN_FLAGS="${OSAF_HARDEN_FLAGS} -fstack-protector --param ssp-buffer-size=4 -fPIE -pie -zrelro -znow"
 fi
 AC_SUBST(OSAF_HARDEN_FLAGS)
-
-#############################################
-# Checks for header files.
-#############################################
-AC_HEADER_DIRENT
-AC_HEADER_MAJOR
-AC_HEADER_STDBOOL
-AC_HEADER_STDC
-AC_HEADER_SYS_WAIT
-AC_HEADER_TIME
-
-AC_CHECK_HEADERS([ \
-        arpa/inet.h \
-        fcntl.h \
-        limits.h \
-        malloc.h \
-        netdb.h \
-        netinet/in.h \
-        stddef.h \
-        stdlib.h \
-        string.h \
-        sys/file.h \
-        sys/ioctl.h \
-        sys/param.h \
-        sys/socket.h \
-        sys/time.h \
-        syslog.h \
-        termios.h \
-        unistd.h \
-        utmp.h])
-
-
-#############################################
-# Checks for typedefs, structures, 
-# and compiler characteristics.
-#############################################
-AC_C_CONST
-AC_C_INLINE
-AC_C_VOLATILE
-AC_CHECK_MEMBERS([struct stat.st_rdev])
-AC_STRUCT_TM
-AC_TYPE_OFF_T
-AC_TYPE_SIGNAL
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-AC_TYPE_UID_T
-AC_TYPE_UINT8_T
-AC_TYPE_INT8_T
-AC_TYPE_UINT16_T
-AC_TYPE_INT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_INT32_T
-AC_TYPE_UINT64_T
-AC_TYPE_INT64_T
-
-
-#############################################
-# Checks for library functions.
-#############################################
-AC_FUNC_ALLOCA
-AC_FUNC_CLOSEDIR_VOID
-AC_FUNC_FORK
-AC_FUNC_MALLOC
-AC_FUNC_MEMCMP
-AC_FUNC_MMAP
-AC_FUNC_REALLOC
-AC_FUNC_SELECT_ARGTYPES
-AC_FUNC_STAT
-AC_FUNC_STRFTIME
-AC_FUNC_STRNLEN
-AC_FUNC_STRTOD
-AC_FUNC_VPRINTF
-
-AC_CHECK_FUNCS([ \
-        bzero \
-        clock_gettime \
-        dup2 \
-        ftruncate \
-        gethostname \
-        gettimeofday \
-        inet_ntoa \
-        isascii \
-        localtime_r \
-        memmove \
-        memset \
-        mkfifo \
-        munmap \
-        pow \
-        select \
-        setenv \
-        socket \
-        strcasecmp \
-        strchr \
-        strdup \
-        strerror \
-        strndup \
-        strpbrk \
-        strrchr \
-        strspn \
-        strstr \
-        strtol \
-        strtoul \
-        strtoull])
-
 
 #############################################
 # List the output Makefiles
@@ -671,274 +561,48 @@ AC_CONFIG_FILES([
         Makefile
         opensaf.spec
         Doxyfile
-        java/Makefile
-        java/ais_api/Makefile
-        java/ais_api_impl/Makefile
-        java/ais_api_impl_native/Makefile
-        java/amf_agent/Makefile
-        python/Makefile
-        python/pyosaf/Makefile
-        python/pyosaf/utils/Makefile
-        python/pyosaf/utils/immom/Makefile
-        python/pyosaf/utils/clm/Makefile
-        python/pyosaf/utils/log/Makefile
-        python/pyosaf/utils/immoi/Makefile
-        python/pyosaf/utils/ntf/Makefile
-        osaf/Makefile
-        osaf/libs/Makefile
-        osaf/libs/agents/Makefile
-        osaf/libs/agents/infrastructure/Makefile
-        osaf/libs/agents/infrastructure/rda/Makefile
-        osaf/libs/agents/saf/Makefile
-        osaf/libs/agents/saf/amfa/Makefile
-        osaf/libs/agents/saf/amfa/include/Makefile
-        osaf/libs/agents/saf/amfa/tests/Makefile
-        osaf/libs/agents/saf/imma/Makefile
-        osaf/libs/agents/saf/plma/Makefile
-        osaf/libs/agents/saf/lga/Makefile
-        osaf/libs/agents/saf/ntfa/Makefile
-        osaf/libs/agents/saf/clma/Makefile
-        osaf/libs/agents/saf/cpa/Makefile
-        osaf/libs/agents/saf/eda/Makefile
-        osaf/libs/agents/saf/gla/Makefile
-        osaf/libs/agents/saf/mqa/Makefile
-        osaf/libs/agents/saf/smfa/Makefile
-        osaf/libs/core/Makefile
-        osaf/libs/core/include/Makefile
-        osaf/libs/core/common/Makefile
-        osaf/libs/core/common/include/Makefile
-        osaf/libs/core/common/tests/Makefile
-        osaf/libs/core/leap/tests/Makefile
-        osaf/libs/core/leap/Makefile
-        osaf/libs/core/leap/include/Makefile
-        osaf/libs/core/mbcsv/Makefile
-        osaf/libs/core/mbcsv/include/Makefile
-        osaf/libs/core/mds/Makefile
-        osaf/libs/core/mds/include/Makefile
-        osaf/libs/common/Makefile
-        osaf/libs/common/ais/Makefile
-        osaf/libs/common/amf/Makefile
-        osaf/libs/common/amf/include/Makefile
-        osaf/libs/common/cpsv/Makefile
-        osaf/libs/common/cpsv/include/Makefile
-        osaf/libs/common/edsv/Makefile
-        osaf/libs/common/edsv/include/Makefile
-        osaf/libs/common/glsv/Makefile
-        osaf/libs/common/glsv/include/Makefile
-        osaf/libs/common/immsv/Makefile
-        osaf/libs/common/immsv/include/Makefile
-        osaf/libs/common/plmsv/Makefile
-        osaf/libs/common/plmsv/include/Makefile
-        osaf/libs/common/plmsv/plmc/Makefile
-        osaf/libs/common/plmsv/plmc/include/Makefile
-        osaf/libs/common/logsv/Makefile
-        osaf/libs/common/logsv/include/Makefile
-        osaf/libs/common/mqsv/Makefile
-        osaf/libs/common/mqsv/include/Makefile
-        osaf/libs/common/ntfsv/Makefile
-        osaf/libs/common/ntfsv/include/Makefile
-        osaf/libs/common/smfsv/Makefile
-        osaf/libs/common/smfsv/include/Makefile
-        osaf/libs/common/clmsv/Makefile
-        osaf/libs/common/clmsv/include/Makefile
-        osaf/libs/saf/Makefile
-        osaf/libs/saf/include/Makefile
-        osaf/libs/saf/libSaAmf/Makefile
-        osaf/libs/saf/libSaAmf/pkgconfig/Makefile
-        osaf/libs/saf/libSaAmf/pkgconfig/opensaf-amf.pc
-        osaf/libs/saf/libSaImm/Makefile
-        osaf/libs/saf/libSaImm/pkgconfig/Makefile
-        osaf/libs/saf/libSaImm/pkgconfig/opensaf-imm.pc
-        osaf/libs/saf/libSaPlm/Makefile
-        osaf/libs/saf/libSaPlm/pkgconfig/Makefile
-        osaf/libs/saf/libSaPlm/pkgconfig/opensaf-plm.pc	
-        osaf/libs/saf/libSaLog/Makefile
-        osaf/libs/saf/libSaLog/pkgconfig/Makefile
-        osaf/libs/saf/libSaLog/pkgconfig/opensaf-log.pc
-        osaf/libs/saf/libSaNtf/Makefile
-        osaf/libs/saf/libSaNtf/pkgconfig/Makefile
-        osaf/libs/saf/libSaNtf/pkgconfig/opensaf-ntf.pc
-        osaf/libs/saf/libSaClm/Makefile
-        osaf/libs/saf/libSaClm/pkgconfig/Makefile
-        osaf/libs/saf/libSaClm/pkgconfig/opensaf-clm.pc
-        osaf/libs/saf/libSaCkpt/Makefile
-        osaf/libs/saf/libSaCkpt/pkgconfig/Makefile
-        osaf/libs/saf/libSaCkpt/pkgconfig/opensaf-ckpt.pc
-        osaf/libs/saf/libSaEvt/Makefile
-        osaf/libs/saf/libSaEvt/pkgconfig/Makefile
-        osaf/libs/saf/libSaEvt/pkgconfig/opensaf-evt.pc
-        osaf/libs/saf/libSaLck/Makefile
-        osaf/libs/saf/libSaLck/pkgconfig/Makefile
-        osaf/libs/saf/libSaLck/pkgconfig/opensaf-lck.pc
-        osaf/libs/saf/libSaMsg/Makefile
-        osaf/libs/saf/libSaMsg/pkgconfig/Makefile
-        osaf/libs/saf/libSaMsg/pkgconfig/opensaf-msg.pc
-        osaf/libs/saf/libSaSmf/Makefile
-        osaf/libs/saf/libSaSmf/pkgconfig/Makefile
-        osaf/libs/saf/libSaSmf/pkgconfig/opensaf-smf.pc
-        osaf/libs/core/cplusplus/Makefile
-        osaf/libs/core/cplusplus/base/Makefile
-        osaf/libs/core/cplusplus/base/tests/Makefile
-        osaf/services/Makefile
-        osaf/services/config/Makefile
-        osaf/services/infrastructure/Makefile
-        osaf/services/infrastructure/dtms/Makefile
-        osaf/services/infrastructure/dtms/dtm/Makefile
-        osaf/services/infrastructure/dtms/transport/Makefile
-        osaf/services/infrastructure/dtms/transport/tests/Makefile
-        osaf/services/infrastructure/dtms/scripts/Makefile
-        osaf/services/infrastructure/dtms/scripts/osaf-dtm
-        osaf/services/infrastructure/dtms/scripts/osaf-transport
-        osaf/services/infrastructure/dtms/config/Makefile
-        osaf/services/infrastructure/dtms/include/Makefile
-        osaf/services/infrastructure/fm/Makefile
-        osaf/services/infrastructure/fm/fms/Makefile
-        osaf/services/infrastructure/fm/config/Makefile
-        osaf/services/infrastructure/fm/fms/scripts/Makefile
-        osaf/services/infrastructure/fm/fms/scripts/osaf-fmd
-        osaf/services/infrastructure/nid/Makefile
-        osaf/services/infrastructure/nid/config/Makefile
-        osaf/services/infrastructure/nid/config/opensafd.service
-        osaf/services/infrastructure/nid/scripts/Makefile
-        osaf/services/infrastructure/nid/scripts/configure_tipc
-        osaf/services/infrastructure/nid/scripts/opensafd
-        osaf/services/infrastructure/rde/Makefile
-        osaf/services/infrastructure/rde/include/Makefile
-        osaf/services/infrastructure/rde/scripts/Makefile
-        osaf/services/infrastructure/rde/config/Makefile
-        osaf/services/infrastructure/rde/scripts/osaf-rded
-        osaf/services/saf/Makefile
-        osaf/services/saf/amf/Makefile
-        osaf/services/saf/amf/config/Makefile
-        osaf/services/saf/amf/amfd/Makefile
-        osaf/services/saf/amf/amfd/include/Makefile
-        osaf/services/saf/amf/amfd/scripts/Makefile
-        osaf/services/saf/amf/amfd/scripts/osaf-amfd
-        osaf/services/saf/amf/amfd/tests/Makefile
-        osaf/services/saf/amf/amfnd/Makefile
-        osaf/services/saf/amf/amfnd/include/Makefile
-        osaf/services/saf/amf/amfnd/scripts/Makefile
-        osaf/services/saf/amf/amfnd/scripts/osaf-amfnd
-        osaf/services/saf/amf/amfnd/tests/Makefile
-        osaf/services/saf/amf/amfwdog/Makefile
-        osaf/services/saf/amf/amfwdog/scripts/Makefile
-        osaf/services/saf/amf/amfwdog/scripts/osaf-amfwd
-        osaf/services/saf/immsv/Makefile
-        osaf/services/saf/immsv/config/Makefile
-        osaf/services/saf/immsv/immd/Makefile
-        osaf/services/saf/immsv/immnd/Makefile
-        osaf/services/saf/immsv/immpbed/Makefile
-        osaf/services/saf/immsv/immloadd/Makefile
-        osaf/services/saf/immsv/immd/scripts/Makefile
-        osaf/services/saf/immsv/immd/scripts/osaf-immd
-        osaf/services/saf/immsv/immnd/scripts/Makefile
-        osaf/services/saf/immsv/immnd/scripts/osaf-immnd
-        osaf/services/saf/plmsv/Makefile
-        osaf/services/saf/plmsv/config/Makefile
-        osaf/services/saf/plmsv/plms/Makefile
-        osaf/services/saf/plmsv/plms/hpi_intf/Makefile
-        osaf/services/saf/plmsv/plms/scripts/Makefile
-        osaf/services/saf/plmsv/plms/scripts/osaf-plmd
-        osaf/services/saf/logsv/Makefile
-        osaf/services/saf/logsv/config/Makefile
-        osaf/services/saf/logsv/lgs/Makefile
-        osaf/services/saf/logsv/lgs/scripts/Makefile
-        osaf/services/saf/logsv/lgs/scripts/osaf-logd
-        osaf/services/saf/ntfsv/Makefile
-        osaf/services/saf/ntfsv/config/Makefile
-		osaf/services/saf/ntfsv/ntfimcnd/Makefile
-        osaf/services/saf/ntfsv/ntfs/Makefile
-        osaf/services/saf/ntfsv/ntfs/scripts/Makefile
-        osaf/services/saf/ntfsv/ntfs/scripts/osaf-ntfd
-        osaf/services/saf/clmsv/Makefile
-        osaf/services/saf/clmsv/config/Makefile
-        osaf/services/saf/clmsv/nodeagent/Makefile
-        osaf/services/saf/clmsv/clms/Makefile
-        osaf/services/saf/clmsv/clms/scripts/Makefile
-        osaf/services/saf/clmsv/clms/scripts/osaf-clmd
-        osaf/services/saf/clmsv/nodeagent/scripts/Makefile
-        osaf/services/saf/clmsv/nodeagent/scripts/osaf-clmna
-        osaf/services/saf/cpsv/Makefile
-        osaf/services/saf/cpsv/config/Makefile
-        osaf/services/saf/cpsv/cpd/Makefile
-        osaf/services/saf/cpsv/cpnd/Makefile
-        osaf/services/saf/cpsv/cpd/scripts/Makefile
-        osaf/services/saf/cpsv/cpd/scripts/osaf-ckptd
-        osaf/services/saf/cpsv/cpnd/scripts/Makefile
-        osaf/services/saf/cpsv/cpnd/scripts/osaf-ckptnd
-        osaf/services/saf/edsv/Makefile
-        osaf/services/saf/edsv/config/Makefile
-        osaf/services/saf/edsv/eds/Makefile
-        osaf/services/saf/edsv/eds/scripts/Makefile
-        osaf/services/saf/edsv/eds/scripts/osaf-evtd
-        osaf/services/saf/glsv/Makefile
-        osaf/services/saf/glsv/config/Makefile
-        osaf/services/saf/glsv/gld/Makefile
-        osaf/services/saf/glsv/glnd/Makefile
-        osaf/services/saf/glsv/gld/scripts/Makefile
-        osaf/services/saf/glsv/gld/scripts/osaf-lckd
-        osaf/services/saf/glsv/glnd/scripts/Makefile
-        osaf/services/saf/glsv/glnd/scripts/osaf-lcknd
-        osaf/services/saf/mqsv/Makefile
-        osaf/services/saf/mqsv/config/Makefile
-        osaf/services/saf/mqsv/mqd/Makefile
-        osaf/services/saf/mqsv/mqnd/Makefile
-        osaf/services/saf/mqsv/mqd/scripts/Makefile
-        osaf/services/saf/mqsv/mqd/scripts/osaf-msgd
-        osaf/services/saf/mqsv/mqnd/scripts/Makefile
-        osaf/services/saf/mqsv/mqnd/scripts/osaf-msgnd
-        osaf/services/saf/smfsv/Makefile
-        osaf/services/saf/smfsv/config/Makefile
-        osaf/services/saf/smfsv/scripts/Makefile
-        osaf/services/saf/smfsv/smfd/Makefile
-        osaf/services/saf/smfsv/smfnd/Makefile
-        osaf/services/saf/smfsv/smfd/scripts/Makefile
-        osaf/services/saf/smfsv/smfd/scripts/osaf-smfd
-        osaf/services/saf/smfsv/smfnd/scripts/Makefile
-        osaf/services/saf/smfsv/smfnd/scripts/osaf-smfnd
-        osaf/tools/Makefile
-        osaf/tools/safamf/Makefile
-        osaf/tools/safamf/amfpm/Makefile
-        osaf/tools/safimm/Makefile
-        osaf/tools/safimm/immadm/Makefile
-        osaf/tools/safimm/immcfg/Makefile
-        osaf/tools/safimm/immdump/Makefile
-        osaf/tools/safimm/immfind/Makefile
-        osaf/tools/safimm/immlist/Makefile
-        osaf/tools/safimm/immxml/Makefile
-        osaf/tools/safimm/include/Makefile
-        osaf/tools/safimm/src/Makefile
-        osaf/tools/saflog/Makefile
-        osaf/tools/saflog/include/Makefile
-        osaf/tools/saflog/saflogger/Makefile
-        osaf/tools/saflog/src/Makefile
-        osaf/tools/safntf/Makefile
-        osaf/tools/safntf/include/Makefile
-        osaf/tools/safntf/src/Makefile
-        osaf/tools/safntf/ntfsend/Makefile
-        osaf/tools/safntf/ntfsubscribe/Makefile
-        osaf/tools/safntf/ntfread/Makefile
-        osaf/tools/rde/Makefile
-        osaf/tools/scripts/Makefile
-        pkgconfig/Makefile
-        pkgconfig/opensaf.pc
-        tests/immsv/Makefile
-        tests/immsv/common/Makefile
-        tests/immsv/implementer/Makefile
-        tests/immsv/management/Makefile
-        tests/logsv/Makefile
-        tests/clmsv/Makefile
-        tests/ntfsv/Makefile
-	tests/plmsv/common/Makefile
-        tests/plmsv/plms/Makefile
-        tests/plmsv/Makefile
-        tests/mds/Makefile
-        tests/cpsv/Makefile
-        tests/unit_test_fw/Makefile
-	tests/unit_test_fw/src/Makefile
-        tests/unit_test_fw/inc/Makefile])
-
-AC_CONFIG_SUBDIRS([contrib/plmc])
+	src/amf/amfd/osaf-amfd
+	src/amf/amfnd/osaf-amfnd
+	src/amf/amfwd/osaf-amfwd
+	src/amf/saf/opensaf-amf.pc
+	src/ckpt/ckptd/osaf-ckptd
+	src/ckpt/ckptnd/osaf-ckptnd
+	src/ckpt/saf/opensaf-ckpt.pc
+	src/clm/clmd/osaf-clmd
+	src/clm/clmnd/osaf-clmna
+	src/clm/saf/opensaf-clm.pc
+	src/dtm/dtmnd/osaf-dtm
+	src/evt/evtd/osaf-evtd
+	src/evt/saf/opensaf-evt.pc
+	src/fm/fmd/osaf-fmd
+	src/imm/immd/osaf-immd
+	src/imm/immnd/osaf-immnd
+	src/imm/saf/opensaf-imm.pc
+	src/lck/lckd/osaf-lckd
+	src/lck/lcknd/osaf-lcknd
+	src/lck/saf/opensaf-lck.pc
+	src/log/logd/osaf-logd
+	src/log/saf/opensaf-log.pc
+	src/msg/msgd/osaf-msgd
+	src/msg/msgnd/osaf-msgnd
+	src/msg/saf/opensaf-msg.pc
+	src/nid/configure_tipc
+	src/nid/opensafd
+	src/nid/opensafd.service
+	src/ntf/ntfd/osaf-ntfd
+	src/ntf/saf/opensaf-ntf.pc
+	src/plm/plmcd/plmcboot
+	src/plm/plmcd/plmcboot.service
+	src/plm/plmcd/plmcd
+	src/plm/plmcd/plmcd.service
+	src/plm/plmd/osaf-plmd
+	src/plm/saf/opensaf-plm.pc
+	src/rde/rded/osaf-rded
+	src/smf/saf/opensaf-smf.pc
+	src/smf/smfd/osaf-smfd
+	src/smf/smfnd/osaf-smfnd
+	src/dtm/transport/osaf-transport
+        pkgconfig/opensaf.pc])
 
 AC_OUTPUT
 

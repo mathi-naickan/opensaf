@@ -14,16 +14,32 @@
 # Author(s): Wind River Systems
 #
 
-MAINTAINERCLEANFILES = Makefile.in
+EXTRA_DIST += \
+	java/INSTALL \
+	java/TODO \
+	java/ais_api/src \
+	java/ais_api/overview.html \
+	java/ais_api/build.xml \
+	java/ais_api_impl/src \
+	java/ais_api_impl/build.xml \
+	java/apitest/src \
+	java/apitest/configandscript \
+	java/apitest/build.xml \
+	java/amf_agent/src \
+	java/amf_agent/build.xml
 
-SUBDIRS = ais_api ais_api_impl ais_api_impl_native
+if ENABLE_JAVA
+
+BUILT_SOURCES += java/ais_api_impl/bin/opensaf_ais_api.jar
+
+nodist_java_DATA += java/ais_api_impl/bin/opensaf_ais_api.jar
 
 if ENABLE_AM4J
 
-SUBDIRS += amf_agent
+BUILT_SOURCES += java/amf_agent/bin/amf_agent.jar
+
+nodist_java_DATA += java/amf_agent/bin/amf_agent.jar
 
 endif
 
-EXTRA_DIST = \
-	INSTALL \
-	TODO
+endif

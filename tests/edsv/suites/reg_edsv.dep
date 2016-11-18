@@ -1,6 +1,0 @@
-# It must start with current test name.
-# The current test name and its dependent test name are separated by a colon.
-# If current test has more than one dependent test, the dependent tests are separated by a space.
-# For example:  cur_test:test1 test2
-
-edsv:

@@ -14,14 +14,52 @@
 # Author(s): Wind River Systems
 #
 
-include $(top_srcdir)/Makefile.common
+EXTRA_DIST += \
+	python/Makefile.mk \
+	python/MANIFEST.in \
+	python/README \
+	python/setup.py
 
-MAINTAINERCLEANFILES = Makefile.in
+if ENABLE_PYTHON
 
-EXTRA_DIST = \
-	Makefile.mk \
-	MANIFEST.in \
-	README \
-	setup.py
+pkgpyosaf_PYTHON = \
+	python/pyosaf/__init__.py \
+	python/pyosaf/saAis.py \
+	python/pyosaf/saAmf.py \
+	python/pyosaf/saCkpt.py \
+	python/pyosaf/saClm.py \
+	python/pyosaf/saEnumConst.py \
+	python/pyosaf/saEvt.py \
+	python/pyosaf/saImmOi.py \
+	python/pyosaf/saImmOm.py \
+	python/pyosaf/saImm.py \
+	python/pyosaf/saLck.py \
+	python/pyosaf/saLog.py \
+	python/pyosaf/saMsg.py \
+	python/pyosaf/saNtf.py \
+	python/pyosaf/saSmf.py
 
-SUBDIRS = pyosaf
+pkgpyosafutils_PYTHON = \
+	python/pyosaf/utils/__init__.py
+
+pkgpyosafutilsimmom_PYTHON = \
+	python/pyosaf/utils/immom/__init__.py \
+	python/pyosaf/utils/immom/ccb.py \
+	python/pyosaf/utils/immom/iterator.py \
+	python/pyosaf/utils/immom/object.py
+
+pkgpyosafutilsclm_PYTHON = \
+	python/pyosaf/utils/clm/__init__.py
+
+pkgpyosafutilslog_PYTHON = \
+	python/pyosaf/utils/log/__init__.py \
+	python/pyosaf/utils/log/logger.py
+
+pkgpyosafutilsimmoi_PYTHON = \
+	python/pyosaf/utils/immoi/__init__.py \
+	python/pyosaf/utils/immoi/implementer.py
+
+pkgpyosafutilsntf_PYTHON = \
+	python/pyosaf/utils/ntf/__init__.py
+
+endif

@@ -125,22 +125,21 @@ found here:
 You can find most information concerning the development of `OpenSAF' at this
 site.
 
-`OpenSAF' is using `Mercurial' (hg) as its Source Control Management system
-tool. `Mercurial' is a fast, lightweight Source Control Management system
-designed for efficient handling of very large distributed projects and can be
-obtained from here:
+`OpenSAF' is using `Git' as its Source Control Management system tool. `Git' is
+a fast, lightweight Source Control Management system designed for efficient
+handling of very large distributed projects and can be obtained from here:
 
-    http://mercurial.selenic.com/
+    http://git-scm.com/
 
 
-Building from `Mercurial'
-=========================
+Building from `Git'
+===================
 
 If you don't want to use one of the `OpenSAF' release archive, you can get a
 clone and bootstrap it by doing the following steps:
 
-    % hg clone http://hg.code.sf.net/p/opensaf/staging opensaf-staging
-    % cd opensaf-staging
+    % git clone git://git.code.sf.net/p/opensaf/git opensaf-git
+    % cd opensaf-git
     % ./bootstrap.sh
 
 After bootstraping follow the standard build instructions.
@@ -178,76 +177,157 @@ Linux environment:
 Source Tree Structure
 =====================
 
-   |+-contrib/
-   |  | +-plmc/         (The PLM coordinator implementation)
-   +-java/              (Java AIS API mapping Implementation for AMF,CLM)
-   |  |+-ais_api/
-   |  |+-ais_api_impl/
-   |  |+-ais_api_impl_native/
-   |  |+-ais_api_test/
-   +-m4/                (Extra M4 macros for the build)
-   +-osaf/      (OpenSAF Sources)
-   |  +-libs/   (Sources of OpenSAF Libraries)
-   |  |    |+-agents/ (sources for OpenSAF agents)
-   |  |    |    |+-infrastructure/ (Agents of Infrastructure services)
-   |  |    |    |       |+-rda/
-   |  |    |    |+-saf/ (Agents of SAF services)
-   |  |    |            |+-amfa/
-   |  |    |            |+-clma/
-   |  |    |            |+-cpa/
-   |  |    |            |+-eda/
-   |  |    |            |+-gla/
-   |  |    |            |+-imma/
-   |  |    |            |+-lga/
-   |  |    |            |+-mqa/
-   |  |    |            |+-ntfa/
-   |  |    |            |+-plma/
-   |  |    |+-common/ (Common sources for OpenSAF services)
-   |  |    |+-core/ (OpenSAF core library)
-   |  |    |            |+-common/
-   |  |    |            |+-include/
-   |  |    |            |+-leap/
-   |  |    |            |+-mbcsv/
-   |  |    |            |+-mds/
-   |  |    |+-saf/ (SAF Libraries)
-   |  |                 |+-include/
-   |  |                 |+-libSaAmf/
-   |  |                 |+-libSaCkpt/
-   |  |                 |+-libSaEvt/
-   |  |                 |+-libSaImm/
-   |  |                 |+-libSaLck/
-   |  |                 |+-libSaLog/
-   |  |                 |+-libSaMsg/
-   |  |                 |+-libSaNtf/
-   |  |                 |+-libSaPlm/
-   |  |+-services/ (Sources, Config files for Directors/ND/Servers of OpenSAF
-   |  |         |   services)
-   |  |         |+-infrastructure/ (Infrastructure services)
-   |  |         |       |+-dtms/
-   |  |         |       |+-fm/
-   |  |         |       |+-nid/
-   |  |         |       |+-rde/
-   |  |         |+-saf/ (SAF services)
-   |  |                 |+-amf/
-   |  |                 |+-clmsv/
-   |  |                 |+-cpsv/
-   |  |                 |+-edsv/
-   |  |                 |+-glsv/
-   |  |                 |+-immsv/
-   |  |                 |+-logsv/
-   |  |                 |+-mqsv/
-   |  |                 |+-ntfsv/
-   |  |                 |+-plmsv/
-   |  |                 |+-smfsv/
-   |  |+-tools/
-   |           |+-safimm (IMM commandline utilities and IMM XML merge tool)
-   |           |+-saflog (SAFLOG command line utility)
-   |           |+-safntf (SAFNTF command line utility)
-   |+-pkgconfig/ (OpenSAF Pkgconfig file)
-   |+-samples/ (OpenSAF sample applications for SAF services)
-   |+-scripts/ (OpenSAF scripts)
-   |+-tests/ (OpenSAF Test suites)
-   |+-tools (OpenSAF developer tools and UML devel environment)
+bin  (Built executables)
+java  (Java source code)
+java/ais_api
+java/ais_api/src
+java/ais_api/src/org
+java/ais_api/src/org/saforum
+java/ais_api/src/org/saforum/ais
+java/ais_api/src/org/saforum/ais/amf
+java/ais_api/src/org/saforum/ais/clm
+java/ais_api_impl  (Java AIS API mapping Implementation for AMF,CLM)
+java/ais_api_impl/src
+java/ais_api_impl/src/org
+java/ais_api_impl/src/org/opensaf
+java/ais_api_impl/src/org/opensaf/ais
+java/ais_api_impl/src/org/opensaf/ais/amf
+java/ais_api_impl/src/org/opensaf/ais/clm
+java/am4j_sailfin
+java/am4j_sailfin/amf-configuration
+java/am4j_sailfin/clc-cli-scripts
+java/amf_agent
+java/amf_agent/src
+java/amf_agent/src/com
+java/amf_agent/src/com/ericsson
+java/amf_agent/src/com/ericsson/saf
+java/amf_agent/src/com/ericsson/saf/amf
+java/apitest  (OpenSAF Test suites)
+java/apitest/configandscript
+java/apitest/src
+java/apitest/src/org
+java/apitest/src/org/opensaf
+java/apitest/src/org/opensaf/ais
+java/apitest/src/org/opensaf/ais/amf
+java/apitest/src/org/opensaf/ais/amf/test
+java/apitest/src/org/opensaf/ais/clm
+java/apitest/src/org/opensaf/ais/clm/test
+java/apitest/src/org/opensaf/ais/test
+lib  (Built libraries)
+m4  (Extra M4 macros for the build)
+pkgconfig  (OpenSAF Pkgconfig file)
+python  (Python source code)
+python/pyosaf
+python/pyosaf/utils
+python/pyosaf/utils/clm
+python/pyosaf/utils/immoi
+python/pyosaf/utils/immom
+python/pyosaf/utils/log
+python/pyosaf/utils/ntf
+python/samples
+rpms  (Built RPMs)
+samples  (OpenSAF sample applications for SAF services)
+scripts  (OpenSAF scripts)
+src  (C and C++ source code)
+src/amf
+src/amf/agent  (sources for OpenSAF agents)
+src/amf/amfd
+src/amf/amfd/tests
+src/amf/amfnd
+src/amf/amfwd
+src/amf/saf
+src/amf/tools
+src/base  (OpenSAF base library)
+src/base/tests
+src/ckpt
+src/ckpt/agent  (sources for OpenSAF agents)
+src/ckpt/apitest  (OpenSAF Test suites)
+src/ckpt/ckptd
+src/ckpt/ckptnd
+src/ckpt/saf
+src/clm
+src/clm/agent  (sources for OpenSAF agents)
+src/clm/apitest  (OpenSAF Test suites)
+src/clm/clmd
+src/clm/clmnd
+src/clm/saf
+src/dtm
+src/dtm/dtmnd
+src/dtm/transport
+src/dtm/transport/tests
+src/evt
+src/evt/agent  (sources for OpenSAF agents)
+src/evt/apitest  (OpenSAF Test suites)
+src/evt/evtd
+src/evt/saf
+src/fm
+src/fm/fmd
+src/imm
+src/imm/agent  (sources for OpenSAF agents)
+src/imm/apitest  (OpenSAF Test suites)
+src/imm/apitest/implementer
+src/imm/apitest/management
+src/imm/immd
+src/imm/immloadd
+src/imm/immnd
+src/imm/immpbed
+src/imm/saf
+src/imm/tools  (IMM commandline utilities and IMM XML merge tool)
+src/lck
+src/lck/agent  (sources for OpenSAF agents)
+src/lck/apitest  (OpenSAF Test suites)
+src/lck/lckd
+src/lck/lcknd
+src/lck/saf
+src/libjava
+src/log
+src/log/agent  (sources for OpenSAF agents)
+src/log/apitest  (OpenSAF Test suites)
+src/log/logd
+src/log/saf
+src/log/tools  (SAFLOG command line utility)
+src/mbc
+src/mbc/apitest  (OpenSAF Test suites)
+src/mds
+src/mds/apitest  (OpenSAF Test suites)
+src/msg
+src/msg/agent  (sources for OpenSAF agents)
+src/msg/apitest  (OpenSAF Test suites)
+src/msg/msgd
+src/msg/msgnd
+src/msg/saf
+src/nid
+src/nid/agent  (sources for OpenSAF agents)
+src/ntf
+src/ntf/agent  (sources for OpenSAF agents)
+src/ntf/apitest  (OpenSAF Test suites)
+src/ntf/ntfd
+src/ntf/ntfimcnd
+src/ntf/saf
+src/ntf/tools  (SAFNTF command line utility)
+src/osaf
+src/osaf/apitest  (OpenSAF Test suites)
+src/osaf/immutil
+src/osaf/saf
+src/osaf/saflog
+src/plm
+src/plm/agent  (sources for OpenSAF agents)
+src/plm/apitest  (OpenSAF Test suites)
+src/plm/plmcd
+src/plm/plmd
+src/plm/saf
+src/rde
+src/rde/agent  (sources for OpenSAF agents)
+src/rde/rded
+src/rde/tools
+src/smf
+src/smf/agent  (sources for OpenSAF agents)
+src/smf/saf
+src/smf/scripts
+src/smf/smfd
+src/smf/smfnd
+src/smf/tools
+tools  (OpenSAF developer tools and UML devel environment)
 
 Prerequisites
 =============
@@ -350,8 +430,8 @@ steps:
 Note: `OpenSAF' can safely be built with parallel jobs using -jX, where X should
       be the number of CPU you want to dedicate + 1
 
-If you are Building from `Mercurial', make sure you followed the required steps
-before trying to `configure' (i.e. bootsrapping).
+If you are Building from `Git', make sure you followed the required steps before
+trying to `configure' (i.e. bootsrapping).
 
     % ./bootstrap.sh
     % ./configure && make
@@ -476,8 +556,8 @@ specific Ant version installed in a non-standard location on your system.
 
 By using `./configure --with-rpm-release', you can change the default release
 token in the generated rpm filename. Predefined values exist like the build
-timestamp, the Mercurial revision used to when building the code, and also you
-can add your own free text token.
+timestamp, the `Git' revision used to when building the code, and also you can
+add your own free text token.
 
 By using `./configure --with-hpi-interface', you can force the HPI interface
 version used. By default it's autodetected by scanning the SaHpi.h header, but

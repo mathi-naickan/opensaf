@@ -57,7 +57,6 @@ Source: http://download.opensaf.org/releases/%{name}-%{version}.tar.gz
 Packager: @OPENSAF_BUGREPORT@
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 %if %use_systemd
-BuildRequires: systemd
 %systemd_requires
 %endif
 Requires(pre): /usr/bin/getent /usr/sbin/groupadd /usr/sbin/useradd
@@ -279,7 +278,6 @@ various objects of the SA Forum Information Model.
 %package imm-director
 Group: System Environment/Daemons
 Summary: The OpenSAF implementation of the SAF-AIS-IMM Service
-BuildRequires: libxml2-devel
 Requires: libxml2
 Requires: /lib/lsb/init-functions
 Requires: %{name}-libs = %{version}-%{release}
@@ -376,7 +374,6 @@ running on the System Controller nodes only.
 %package plm-libs
 Group: System Environment/Libraries
 Summary: The OpenSAF implementation of the SAF-AIS-PLM Service
-BuildRequires: openhpi-devel
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 Requires: %{name}-libs = %{version}-%{release}
@@ -393,7 +390,6 @@ process must be bound with the libSaPlm.so library.
 %package plm-server
 Group: System Environment/Daemons
 Summary: The OpenSAF implementation of the SAF-AIS-PLM Service
-BuildRequires: openhpi-devel
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 Requires: /lib/lsb/init-functions
@@ -412,7 +408,6 @@ running on the System Controller nodes only.
 Group: System Environment/Daemons
 Summary: The OpenSAF implementation of the SAF-AIS-PLM Service
 %if %use_systemd
-BuildRequires: systemd-devel
 %systemd_requires
 %endif
 Requires(post): /sbin/ldconfig
@@ -426,7 +421,6 @@ running on any nodes that need Execution Environment (EE) integration with PLM.
 %package plm-hpi
 Group: System Environment/Libraries
 Summary: The OpenSAF implementation of the SAF-AIS-PLM Service
-BuildRequires: openhpi-devel
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 Requires: openhpi
@@ -537,7 +531,6 @@ changes cause no (or only minimal) loss of service.
 %package smf-director
 Group: System Environment/Daemons
 Summary: The OpenSAF implementation of the SAF-AIS-SMF Service
-BuildRequires: libxml2-devel
 Requires: libxml2
 Requires: /lib/lsb/init-functions
 Requires: %{name}-libs = %{version}-%{release}
@@ -639,7 +632,6 @@ Requires: %{name}-smf-libs = %{version}-%{release}
 %package devel
 Group: Development/Libraries
 Summary: The development environment for the OpenSAF project
-BuildRequires: pkgconfig
 Requires: %{name}-libs = %{version}-%{release}
 Requires: %{name}-amf-libs = %{version}-%{release}
 Requires: %{name}-clm-libs = %{version}-%{release}
@@ -685,7 +677,6 @@ Requires: %{name}-devel = %{version}-%{release}
 %package java
 Group: Development/Libraries
 Summary: The Java AIS interface mapping for AMF and CLM
-BuildRequires: ant java-devel
 Requires: java
 Requires: %{name}-amf-libs = %{version}-%{release}
 Requires: %{name}-clm-libs = %{version}-%{release}
@@ -700,7 +691,6 @@ Requires: %{name}-clm-libs = %{version}-%{release}
 %package python
 Group: Development/Libraries
 Summary: The Python AIS Bindings for SAF Services
-BuildRequires: python-devel
 Requires: %{name}-amf-libs = %{version}-%{release}
 Requires: %{name}-clm-libs = %{version}-%{release}
 Requires: %{name}-imm-libs = %{version}-%{release}
@@ -1324,7 +1314,6 @@ fi
 %defattr(-,root,root)
 %{_libdir}/libSaSmf.so.*
 %dir %{_pkglibdir}
-%{_pkglibdir}/libsmfsv_common.so.*
 
 %files smf-director
 %defattr(-,root,root)
@@ -1415,7 +1404,6 @@ fi
 %defattr(-,root,root)
 %dir %{_pkglibdir}
 %{_libdir}/libopensaf_core.so.*
-%{_pkglibdir}/librda.so.*
 
 %files tools
 %defattr(-,root,root)
@@ -1454,24 +1442,36 @@ fi
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/libSa*.so
 %{_libdir}/libSa*.a
-%{_includedir}/%{name}/cpsv_papi.h
 %{_includedir}/saAis.h
 %{_includedir}/saAis_B_5_14.h
 %{_includedir}/saAmf.h
 %{_includedir}/saAmf_B_04_02.h
+%if %is_ais_ckpt
 %{_includedir}/saCkpt.h
 %{_includedir}/saCkpt_B_02_03.h
+%{_includedir}/%{name}/cpsv_papi.h
+%endif
 %{_includedir}/saClm.h
+%if %is_ais_evt
 %{_includedir}/saEvt.h
+%endif
+%if %is_ais_lck
+%{_includedir}/saLck.h
+%endif
+%{_includedir}/saLog.h
+%if %is_ais_msg
+%{_includedir}/saMsg.h
+%endif
+%{_includedir}/saNtf.h
+%if %is_ais_smf
+%{_includedir}/saSmf.h
+%endif
+%if %is_ais_plm
+%{_includedir}/saPlm.h
+%endif
 %{_includedir}/saImm.h
 %{_includedir}/saImmOi.h
 %{_includedir}/saImmOm.h
-%{_includedir}/saLck.h
-%{_includedir}/saLog.h
-%{_includedir}/saMsg.h
-%{_includedir}/saNtf.h
-%{_includedir}/saSmf.h
-%{_includedir}/saPlm.h
 %{_includedir}/saImmOi_A_2_11.h
 %{_includedir}/saImmOm_A_2_11.h
 %{_includedir}/saImmOm_A_2_12.h

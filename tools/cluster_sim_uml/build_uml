@@ -30,9 +30,9 @@ prg=$(basename "$0")
 dir=$(dirname "$0"); dir=$(cd "$dir"; pwd)
 tmp=$(mktemp -d /tmp/"${prg}"$$.XXXXXXXXXX)
 no_of_processors=$(find /sys/devices/system/cpu -name 'cpu[0-9]*' -print | wc -l)
-if [ "$no_of_processors" -le 0 ]; then
+#if [ "$no_of_processors" -le 0 ]; then
     no_of_processors=1
-fi
+#fi
 
 die() {
     echo "ERROR: $*" >&2
@@ -247,7 +247,7 @@ EOF
     fi
 
     # Select TIPC transport if OpenSAF was configured with it.
-    if grep -q "define ENABLE_TIPC_TRANSPORT 1" ../../../config.h; then
+    if grep -q "define ENABLE_TIPC_TRANSPORT 1" ../../../src/osaf/config.h; then
 	sed -i 's/MDS_TRANSPORT=TCP/MDS_TRANSPORT=TIPC/g' etc/opensaf/nid.conf
         # Increase RDE peer discovery timeout to match the TIPC link tolerance
         sed -i 's/#export RDE_DISCOVER_PEER_TIMEOUT=5000/export RDE_DISCOVER_PEER_TIMEOUT=4000/' etc/opensaf/rde.conf
