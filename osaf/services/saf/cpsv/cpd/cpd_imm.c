@@ -401,6 +401,8 @@ SaAisErrorT delete_runtime_replica_object(CPD_CKPT_REPLOC_INFO *ckpt_reploc_node
 	rc = immutil_saImmOiRtObjectDelete(immOiHandle, &replica_name); 
 	if (rc != SA_AIS_OK) {
 		LOG_ER("Deleting run time object %s Failed - rc = %d",replica_dn, rc);
+	} else {
+		TRACE("Deleting run time object %s Success - rc = %d",replica_dn, rc);
 	}
 
 	free(replica_dn);
@@ -522,9 +524,11 @@ SaAisErrorT delete_runtime_ckpt_object(CPD_CKPT_INFO_NODE *ckpt_node, SaImmOiHan
 	osaf_extended_name_lend(ckpt_node->ckpt_name, &ckpt_name);
 
 	rc =  immutil_saImmOiRtObjectDelete(immOiHandle, &ckpt_name);
-	if (rc != SA_AIS_OK)
+	if (rc != SA_AIS_OK) {
 		LOG_ER("Deleting run time object %s failed - rc = %d", ckpt_node->ckpt_name, rc);
-
+	} else {
+		TRACE("Deleting run time object %s success - rc = %d", ckpt_node->ckpt_name, rc);
+	}
 	return rc;
 }
 
@@ -917,11 +921,11 @@ SaAisErrorT cpd_clean_checkpoint_objects(CPD_CB *cb)
                /* Delete the runtime object and its children. */
                rc = immutil_saImmOiRtObjectDelete(cb->immOiHandle, &object_name);
                if (rc == SA_AIS_OK) {
-                       TRACE("Object \"%s\" deleted", (char *) osaf_extended_name_borrow(&object_name));
-               } else {
-                       LOG_ER("%s saImmOiRtObjectDelete for \"%s\" FAILED %d",
-                                       __FUNCTION__, (char *) osaf_extended_name_borrow(&object_name), rc);
-               }
+		       TRACE("saImmOiRtObjectDelete \"%s\" deleted Successfully", (char *) osaf_extended_name_borrow(&object_name));
+	       } else {
+		       LOG_ER("%s saImmOiRtObjectDelete for \"%s\" FAILED %d",
+				       __FUNCTION__, (char *) osaf_extended_name_borrow(&object_name), rc);
+	       }
        }
 
        if (rc != SA_AIS_ERR_NOT_EXIST) {

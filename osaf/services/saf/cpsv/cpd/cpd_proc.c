@@ -809,6 +809,11 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 			send_evt.info.cpnd.info.ckpt_del.mds_dest = *cpnd_dest;
 			if (ckpt_node->dest_cnt == 0) {
 				TRACE_1("cpd ckpt del success for ckpt_id:%llx",ckpt_node->ckpt_id);
+				/* Delete reploc fist*/
+				cpd_ckpt_reploc_get(&cb->ckpt_reploc_tree, &key_info, &rep_info);
+				if (rep_info) {
+					cpd_ckpt_reploc_node_delete(cb, rep_info, ckpt_node->is_unlink_set);
+				}
 				cpd_ckpt_map_node_get(&cb->ckpt_map_tree, ckpt_node->ckpt_name, &map_info);
 
 				/* Remove the ckpt_node */
@@ -875,7 +880,7 @@ uint32_t cpd_process_cpnd_down(CPD_CB *cb, MDS_DEST *cpnd_dest)
 		/* Send it to CPD(s), by sending ckpt_id = 0 */
 		/* This is to delete the node from reploc_tree */
 		cpd_ckpt_reploc_get(&cb->ckpt_reploc_tree, &key_info, &rep_info);
-		if (rep_info) {
+		if ((rep_info) && (ckpt_node)) {
 			cpd_ckpt_reploc_node_delete(cb, rep_info, ckpt_node->is_unlink_set);
 		}
 
@@ -1238,6 +1243,8 @@ uint32_t cpd_ckpt_reploc_imm_object_delete(CPD_CB *cb, CPD_CKPT_REPLOC_INFO *ckp
 			LOG_ER("Deleting run time object %s FAILED", replica_dn);
 			free(replica_dn);
 			return NCSCC_RC_FAILURE;
+		} else {
+			TRACE("Deleting run time object %s SUCCESS", replica_dn);	
 		}
 		free(replica_dn);
 	}
