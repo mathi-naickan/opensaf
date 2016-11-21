@@ -45,6 +45,13 @@
 #include "mds_core.h"
 #include "base/osaf_utility.h"
 
+#ifndef SOCK_CLOEXEC
+enum {
+	SOCK_CLOEXEC = 0x80000
+};
+#define SOCK_CLOEXEC SOCK_CLOEXEC
+#endif
+
 /*
     tipc_id will be <NODE_ID,RANDOM NUMBER>
 */
@@ -151,7 +158,6 @@ uint32_t mdtm_global_frag_num;
 uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 {
 	uint32_t tipc_node_id = 0;
-	int flags;
 
 	NCS_PATRICIA_PARAMS pat_tree_params;
 
@@ -176,47 +182,16 @@ uint32_t mdtm_tipc_init(NODE_ID nodeid, uint32_t *mds_tipc_ref)
 
 	/* Create the sockets required for Binding, Send, receive and Discovery */
 
-	tipc_cb.Dsock = socket(AF_TIPC, SOCK_SEQPACKET, 0);
+	tipc_cb.Dsock = socket(AF_TIPC, SOCK_SEQPACKET | SOCK_CLOEXEC, 0);
 	if (tipc_cb.Dsock < 0) {
 		syslog(LOG_ERR, "MDTM:TIPC Dsock Socket creation failed in MDTM_INIT err :%s", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
-	tipc_cb.BSRsock = socket(AF_TIPC, SOCK_RDM, 0);
+	tipc_cb.BSRsock = socket(AF_TIPC, SOCK_RDM | SOCK_CLOEXEC, 0);
 	if (tipc_cb.BSRsock < 0) {
 		syslog(LOG_ERR, "MDTM:TIPC BSRsock Socket creation failed in MDTM_INIT err :%s", strerror(errno));
 		return NCSCC_RC_FAILURE;
 	}
-
-	flags = fcntl(tipc_cb.Dsock, F_GETFD, 0);
-	if ((flags < 0) || (flags > 1)) {
-		syslog(LOG_ERR, "MDTM:TIPC Unable to get the CLOEXEC Flag on Dsock err :%s", strerror(errno));
-		close(tipc_cb.Dsock);
-		close(tipc_cb.BSRsock);
-		return NCSCC_RC_FAILURE;
-	} else {
-		if (fcntl(tipc_cb.Dsock, F_SETFD, (flags | FD_CLOEXEC)) == (-1)) {
-			syslog(LOG_ERR, "MDTM:TIPC Unable to set the CLOEXEC Flag on Dsock err :%s", strerror(errno));
-			close(tipc_cb.Dsock);
-			close(tipc_cb.BSRsock);
-			return NCSCC_RC_FAILURE;
-		}
-	}
-
-	flags = fcntl(tipc_cb.BSRsock, F_GETFD, 0);
-	if ((flags < 0) || (flags > 1)) {
-		syslog(LOG_ERR, "MDTM:TIPC Unable to get the CLOEXEC Flag on BSRsock err :%s", strerror(errno));
-		close(tipc_cb.Dsock);
-		close(tipc_cb.BSRsock);
-		return NCSCC_RC_FAILURE;
-	} else {
-		if (fcntl(tipc_cb.BSRsock, F_SETFD, (flags | FD_CLOEXEC)) == (-1)) {
-			syslog(LOG_ERR, "MDTM:TIPC Unable to set the CLOEXEC Flag on BSRsock err :%s", strerror(errno));
-			close(tipc_cb.Dsock);
-			close(tipc_cb.BSRsock);
-			return NCSCC_RC_FAILURE;
-		}
-	}
-	/* End Fix */
 
 	/* Code for getting the self tipc random number */
 	memset(&addr, 0, sizeof(addr));
