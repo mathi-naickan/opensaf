@@ -2606,7 +2606,7 @@ uint32_t avnd_su_pres_inst_comprestart_hdler(AVND_CB *cb, AVND_SU *su, AVND_COMP
 				if (m_AVND_COMP_IS_RESTART_DIS(curr_comp) &&
 						(curr_comp->csi_list.n_nodes > 0)) {
 					TRACE("Start reassignment to different SU as '%s' is"
-							" not restartable", curr_comp->name.c_str());
+							" not restartable", curr_comp->name.value);
 					su_send_suRestart_recovery_msg(su);
 					goto done;
 				} else {
