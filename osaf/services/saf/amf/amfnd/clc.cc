@@ -2021,26 +2021,48 @@ uint32_t avnd_comp_clc_inst_clean_hdler(AVND_CB *cb, AVND_COMP *comp)
 
 	if (m_AVND_COMP_TYPE_IS_PROXIED(comp)) {
 		avnd_comp_cbq_del(cb, comp, true);
-		/* call the cleanup callback */
-		rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+		/* Check whether
+		   1. it is a case of SU restart escalation.
+		   2. it is a case of proxy-proxied residing in the same SU.
+		   3. the proxy of this component is in good state to accept the callback.*/
+
+		/* Check if the proxy and proxied components are in the same SUs. */
+		if ((m_AVND_SU_IS_RESTART(comp->su) && m_AVND_SU_IS_FAILED(comp->su)) && /* #1. */
+				((comp->pxy_comp) && (comp->su == comp->pxy_comp->su)) && /* #2  */
+				(m_AVND_COMP_IS_FAILED(comp->pxy_comp))) { /* #3 */
+			/* If proxy is not in good shape, we can't issue callback, so issue cleanup
+			   (assume it is local component). */
+			rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+		} else {
+			/* call the cleanup callback */
+			rc = avnd_comp_cbk_send(cb, comp, AVSV_AMF_PXIED_COMP_CLEAN, 0, 0);
+		}
 	} else if (m_AVND_COMP_TYPE_IS_PROXY(comp) && comp->pxied_list.n_nodes) {
 		/* if there are still outstanding proxied components we can't terminate right now */
 		/* Check if the proxy and proxied components are in the same SUs. */
 		TRACE("Proxy has proxied components: %u", comp->pxied_list.n_nodes);
 		AVND_COMP_PXIED_REC *rec;
 		rec = (AVND_COMP_PXIED_REC *)m_NCS_DBLIST_FIND_FIRST(&comp->pxied_list);
-                while (rec) {
-                        if (comp->su == rec->pxied_comp->su)
+		while (rec) {
+			if (comp->su == rec->pxied_comp->su)
 				break;
-                        rec = (AVND_COMP_PXIED_REC *)m_NCS_DBLIST_FIND_NEXT(&rec->comp_dll_node);
-                }
+			rec = (AVND_COMP_PXIED_REC *)m_NCS_DBLIST_FIND_NEXT(&rec->comp_dll_node);
+		}
 		if (rec == nullptr) {
 			TRACE("Proxy and proxied are not in the same SU.");
 			/* This means that proxy and proxied components are not in the same SU.
 			   That means that we can cleanup the component. */
 			rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
-		} else
-			return rc;
+		} else {
+			TRACE("Proxy and proxied are in the same SU.");
+			if (((m_AVND_SU_IS_RESTART(comp->su) && m_AVND_SU_IS_FAILED(comp->su)) &&
+						(m_AVND_COMP_IS_FAILED(comp))) ||
+					(cb->term_state == AVND_TERM_STATE_OPENSAF_SHUTDOWN_STARTED)) {
+				/* If proxy is not in good shape, so issue cleanup. */
+				rc = avnd_comp_clc_cmd_execute(cb, comp, AVND_COMP_CLC_CMD_TYPE_CLEANUP);
+			} else
+				goto done;
+		}
 	} else {
 		if (m_AVND_SU_IS_RESTART(comp->su) && m_AVND_COMP_IS_RESTART_DIS(comp) &&
 				(comp->csi_list.n_nodes > 0) &&
