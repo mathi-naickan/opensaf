@@ -14,15 +14,15 @@
 # Author(s): Wind River Systems
 #
 
-AC_PREREQ([2.63])
-AC_INIT([opensaf], [5.2.M0], [opensaf-users@lists.sourceforge.net], [opensaf])
+AC_PREREQ([2.64])
+AC_INIT([opensaf], [5.2.M0], [opensaf-users@lists.sourceforge.net], [opensaf], [http://opensaf.sourceforge.net/])
 AC_CONFIG_AUX_DIR([.])
 AC_CANONICAL_SYSTEM
 AC_CONFIG_SRCDIR([opensaf.spec.in])
 AC_CONFIG_HEADER([src/osaf/config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.10 subdir-objects])
+AM_INIT_AUTOMAKE([1.11.1 subdir-objects])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 AC_USE_SYSTEM_EXTENSIONS
 
@@ -59,7 +59,8 @@ AC_ARG_ENABLE([rpath],
 	[enable_rpath=yes])
 AC_MSG_RESULT([$enable_rpath])
 
-AC_PROG_LIBTOOL
+LT_PREREQ([2.2.6])
+LT_INIT([disable-static pic-only])
 AC_CONFIG_COMMANDS([libtool-rpath-patch],
 	[if test "$libtool_patch_use_rpath" = "no"; then
 		sed < libtool > libtool-2 's/^hardcode_libdir_flag_spec.*$'/'hardcode_libdir_flag_spec=""/'

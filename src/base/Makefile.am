@@ -26,6 +26,7 @@ lib_libopensaf_core_la_CPPFLAGS += \
 	$(AM_CPPFLAGS)
 
 lib_libopensaf_core_la_LDFLAGS += \
+	$(AM_LDFLAGS) \
 	-pthread -ldl -lrt -lstdc++ \
 	-version-number 0:2:0
 
